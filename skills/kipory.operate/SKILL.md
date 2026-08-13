@@ -69,5 +69,5 @@ tests against it.
 
 ## Then
 
-Nothing yet for reading a flow's execution trace outside an eval run — if you need per-run
-diagnostics, `kipory.prove`'s eval traces are currently the only drill-down.
+`kipory.diagnose` when something running unattended does the wrong thing — a flow's run history
+answers "what happened on the run that misbehaved", which a schedule's own history cannot.

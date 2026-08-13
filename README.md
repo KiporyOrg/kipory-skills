@@ -23,14 +23,14 @@ is the one that gets you to everything else.
 
 There are three layers, and only the third one lives in this repository.
 
-| Layer         | Where it lives                     | Why there                                                        |
-| ------------- | ---------------------------------- | ---------------------------------------------------------------- |
+| Layer         | Where it lives                     | Why there                                                         |
+| ------------- | ---------------------------------- | ----------------------------------------------------------------- |
 | **Facts**     | your deployment's API              | `GET /v1/openapi.json`, `GET /v1/handlers` — what actually exists |
 | **Judgment**  | your deployment's capability packs | `GET /v1/capability-packs` — how to think about each capability   |
 | **Procedure** | **this repo**                      | which job to do, in what order, and what bites you                |
 
 **The capability packs are not copied here on purpose.** They are served by the deployment you are
-building on, so they answer for *that* deployment and move when it moves. A copy in this repository
+building on, so they answer for _that_ deployment and move when it moves. A copy in this repository
 would answer for whichever deployment happened to be in front of whoever last edited it. The
 packs are public — no credential needed — and every response carries a `version` that is a content
 hash of the whole set, so an agent can cache against it and refetch when it moves.
@@ -41,8 +41,8 @@ wrote the documentation.
 
 ## The skills
 
-| Skill             | For                                                                             |
-| ----------------- | ------------------------------------------------------------------------------- |
+| Skill             | For                                                                              |
+| ----------------- | -------------------------------------------------------------------------------- |
 | `kipory.connect`  | **Start here.** Confirm the credential, learn what it reaches, load the packs    |
 | `kipory.plan`     | Turn an idea into a build sheet — everything that will exist, before authoring   |
 | `kipory.model`    | Record types, facets, relations, and the vector space that makes them searchable |
@@ -50,6 +50,7 @@ wrote the documentation.
 | `kipory.expose`   | Put a flow on HTTP, and get a credential that can call it                        |
 | `kipory.prove`    | Pin what "working" means and re-check it after every edit                        |
 | `kipory.operate`  | Schedules, events, and runtime config                                            |
+| `kipory.diagnose` | Read a flow's runs and see what each skill actually emitted                      |
 
 ## Before you start
 
@@ -69,7 +70,7 @@ These files are **mirrored from a private monorepo** and are overwritten on each
 made here would be lost.
 
 **Please open an issue rather than a pull request.** A correction is genuinely welcome — the most
-useful kind is *"this skill told me to do X and the platform refused,"* because that is the failure
+useful kind is _"this skill told me to do X and the platform refused,"_ because that is the failure
 mode these files exist to prevent and the one that is hardest to catch from the inside.
 
 For transparency about how much checking stands behind them: the **capability packs** are linted
