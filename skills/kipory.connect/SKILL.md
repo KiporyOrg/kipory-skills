@@ -29,6 +29,8 @@ Three things. **None of them is discoverable — all three come from the human.*
 | An **API key**        | A key can only be minted from a signed-in session — see below.   |
 | The key's **node id** | Nothing echoes a grant back. There is no `whoami` for a key.     |
 
+<!-- key-unreachable-ok: GET /v1/me — named ONLY to explain why it refuses a key, never prescribed -->
+
 That third row is the one that surprises people. Your key carries a grant — one node, one role —
 and **no endpoint will tell you what it is.** `GET /v1/me` is a per-user surface and answers `401`
 to a key, correctly: a key is a machine principal and has no "me". If the human did not give you a
@@ -120,6 +122,8 @@ A key holds a **grant**: one node and one role, written on the row when it was m
 
 **A key is minted at `VIEWER` unless a role was asked for.** If every write refuses while reads
 succeed, suspect the role before you suspect anything else.
+
+<!-- key-unreachable-ok: GET /v1/projects — named ONLY to warn it is refused, never prescribed -->
 
 ## What the platform refuses
 
