@@ -151,8 +151,14 @@ succeed, suspect the role before you suspect anything else.
 
 ## Where to go next
 
-Everything past connecting is judgment, and it is served by the deployment rather than carried here
-— so it stays true as the platform moves.
+**The next skill.** `kipory.plan` if the human described a product rather than an endpoint — it
+turns an idea into a build sheet before anything is authored. If a plan already exists, go straight
+to the step it calls for: `kipory.model` for the data, `kipory.build` for flows, `kipory.expose` to
+put one on HTTP, `kipory.operate` for schedules and events, `kipory.prove` to pin what working
+means, and `kipory.diagnose` when something already ran and came back wrong.
+
+**The judgment behind it.** Everything past connecting is judgment, and it is served by the
+deployment rather than carried here — so it stays true as the platform moves.
 
 | Next                                  | Fetch                                           |
 | ------------------------------------- | ----------------------------------------------- |

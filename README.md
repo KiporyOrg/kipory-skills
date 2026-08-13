@@ -73,12 +73,17 @@ made here would be lost.
 useful kind is _"this skill told me to do X and the platform refused,"_ because that is the failure
 mode these files exist to prevent and the one that is hardest to catch from the inside.
 
-For transparency about how much checking stands behind them: the **capability packs** are linted
-against the live route table, the handler registry and the error codes on every build, and a pack
-that prescribed an endpoint your key cannot clear now fails that build. **These skills are not yet
-covered by that linting** — their citations were verified by hand. Closing that gap is the next
-piece of work, and until it lands, treat a skill's endpoint as a strong hint and the live
-`GET /v1/openapi.json` as the authority.
+For transparency about how much checking stands behind them: every file here is linted on each
+build of the monorepo it is mirrored from. Endpoint citations resolve against the live route table,
+capability-pack ids against the set a deployment actually serves, and a skill that prescribed an
+endpoint your key could never clear fails that build — the check asks whether **you may call** a
+route, not merely whether it exists. The mirror is measured rather than asserted: the published
+copy is compared byte for byte against its source.
+
+**What none of that can see is prose.** A sentence describing how the platform behaves at runtime —
+what it re-checks, what it caches, what it refuses and why — resolves no route and names no id, so
+nothing verifies it. That is the class of error most worth reporting, and on request and response
+shapes the live `GET /v1/openapi.json` on your own deployment stays the authority.
 
 ## License
 
