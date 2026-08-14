@@ -72,6 +72,10 @@ head marker, long hit lists capped. You are reading evidence, not a replay.
   score across cases and keep their traces attached for drill-down.
 - **A flow that will not save or activate** never ran, so there is nothing to
   trace. That is a validation problem — `kipory.build`.
+- **A `402` is not a flow problem** and leaves no run to read. Two independent
+  gates produce it — the payer's wallet and the caller's own spend ceiling — and
+  a healthy `status` rules out only the first. `kipory.operate` has the reads,
+  both of which keep working while you are refused everywhere else.
 
 ## Related
 
