@@ -40,9 +40,15 @@ sequential: **plan to come back here after the flows exist.**
 
 ## What will bite you
 
-- **Relations have a write half and no read half.** You can author edges; nothing returns a record's
-  edges, no read includes them, and no filter selects records by edge. Design around that before
-  committing to a graph-shaped feature, not after.
+- **Edges are read by walking from a record, never by finding them on one.**
+  `GET /v1/records/{id}/relations/{kind}` gives you one hop. No record read or list carries edges,
+  and no filter selects records by edge — so "this record and its neighbours" is two calls, and
+  there is no multi-hop. Design the read path around that before committing to a graph-shaped
+  feature, not after.
+- ⚠️ **An empty traversal is not proof of no edges.** A kind the project does not have, and a kind
+  marked unexposed, both answer 200 with an empty list — deliberately, so nobody can enumerate a
+  project's hidden vocabulary. Check the kind exists and is exposed before you go looking for a
+  missing write.
 - **On a facet patch, an omitted field preserves and an explicit null clears.** "Leave it alone" and
   "remove it" look nearly identical in a payload and mean opposite things.
 - **A pairing has no update.** Re-target by deleting and recreating. The relation-kind key is
