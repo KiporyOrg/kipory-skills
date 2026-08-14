@@ -70,8 +70,8 @@ head marker, long hit lists capped. You are reading evidence, not a replay.
   the same way.
 - **"Is this any good" rather than "what happened"** is `kipory.prove`: eval runs
   score across cases and keep their traces attached for drill-down.
-- **A flow that will not save or activate** never ran, so there is nothing to
-  trace. That is a validation problem — `kipory.build`.
+- **A flow that will not save, or that saved with blocking issues**, never ran,
+  so there is nothing to trace. That is a validation problem — `kipory.build`.
 - **A `402` is not a flow problem** and leaves no run to read. Two independent
   gates produce it — the payer's wallet and the caller's own spend ceiling — and
   a healthy `status` rules out only the first. `kipory.operate` has the reads,

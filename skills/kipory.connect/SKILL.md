@@ -44,12 +44,16 @@ node id, ask for it. Do not guess, and do not try to discover it by probing ids.
 ### 1. Prove the deployment is there — no credential needed
 
 ```
-GET /health              → 200, and `sha` is the build actually running
+GET /health              → 200; `sha` is the build's commit, or null (see below)
 GET /v1/capability-packs → 200, the judgment layer + a `version`
 ```
 
 Both are public on purpose. An agent that must read the packs _before_ it can author anything
 cannot be asked for a credential it does not have yet.
+
+⚠️ **`sha` is nullable, and null is not an error.** It is always present as a key and carries the
+commit only when the build was stamped with one; a deployment that was not is `null`. So use it to
+tell two builds apart, never as proof you reached a healthy one — `status` is what says that.
 
 ### 2. Load the judgment layer
 

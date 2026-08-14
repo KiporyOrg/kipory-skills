@@ -22,7 +22,7 @@ it burned real calls before anyone noticed.
 ## The sequence
 
 ```
-POST  /v1/flows              create with its signature — starts INACTIVE
+POST  /v1/flows              create with its signature
 POST  /v1/skills             add nodes (also /v1/skills/batch and /v1/skills/replace)
 PATCH /v1/flows/{id}         bind the output slots  ← without this it returns nothing
 POST  /v1/flows/{id}/preview run against real inputs and read the transcript

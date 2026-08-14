@@ -32,8 +32,11 @@ policy of `skip` or `allow`.
   re-enable.
 - ⚠️ **Choose the overlap policy deliberately.** `allow` on a flow that takes longer than its
   interval will run copies of itself concurrently.
-- **Run history is the diagnostic surface here.** For a schedule, `runs` is how you find out what
-  happened — there is no general flow-run history to fall back on.
+- **`runs` answers "did it fire", not "why was the answer wrong".** It gives you the occurrence and
+  its outcome — fired, skipped, blocked. For a run that fired and produced the wrong thing, the
+  flow's own trace is the surface with the per-skill detail, and a scheduled fire leaves one like
+  any other run: `GET /v1/flows/{id}/traces`. ⚠️ Do not stop at the schedule's own error text — on
+  an ordinary skill failure it is a fixed generic string by design. See `kipory.diagnose`.
 
 ## Events
 
@@ -98,5 +101,6 @@ What you spent is this one.
 
 ## Then
 
-`kipory.diagnose` when something running unattended does the wrong thing — a flow's run history
-answers "what happened on the run that misbehaved", which a schedule's own history cannot.
+`kipory.diagnose` when something running unattended does the wrong thing — the flow's trace answers
+"what did each step actually emit on the run that misbehaved", which the schedule's own history
+cannot.
