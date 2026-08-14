@@ -52,4 +52,5 @@ A facet's resolver is an ordinary flow. Build it, then go back and patch the fac
 ## Then
 
 `kipory.expose` to put it on HTTP, `kipory.prove` to pin what "working" means before you edit it
-again.
+again. `kipory.secrets` if a handler reported a missing API key — the fix is a stored credential,
+not a flow edit.

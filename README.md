@@ -49,6 +49,7 @@ wrote the documentation.
 | `kipory.build`    | Build and edit flows over the handler catalog                                    |
 | `kipory.expose`   | Put a flow on HTTP, and get a credential that can call it                        |
 | `kipory.prove`    | Pin what "working" means and re-check it after every edit                        |
+| `kipory.secrets`  | Store a credential a flow needs — and decide whose key pays the vendor           |
 | `kipory.operate`  | Schedules, events, and runtime config                                            |
 | `kipory.diagnose` | Read a flow's runs and see what each skill actually emitted                      |
 
