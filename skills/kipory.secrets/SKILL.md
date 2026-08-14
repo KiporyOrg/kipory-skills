@@ -18,8 +18,12 @@ vault**, then the **nearest ancestor node**, then the **platform's own key**. Wh
 first is the one that gets spent.
 
 That choice is a billing decision. On the first two, the vendor bills you directly and the platform
-does not also charge its own price for a call you already paid for. On the third, you are spending
-the platform's key at the platform's price.
+does not also pass its own vendor charge through for a call you already paid for. On the third, you
+are spending the platform's key at the platform's price.
+
+⚠️ **It removes the vendor pass-through, not the cost of the run.** The flat per-run compute fee is
+charged either way, so bringing your own key changes who the vendor invoices — it does not make the
+run free. Check `GET /v1/credits/events` rather than assuming a saving.
 
 So a project that has its own vendor account should put the key here, and one that does not can
 often run without touching this surface at all.
