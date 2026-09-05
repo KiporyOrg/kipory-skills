@@ -14,7 +14,7 @@ emitted nothing, which is otherwise indistinguishable from outside.
 
 ```
 GET /v1/flows/{id}/traces?source=production&limit=20   recent runs, newest first
-GET /v1/flows/{id}/traces/{traceId}                    one run, with slotOutputs
+GET /v1/flows/{id}/traces/{traceId}                    one run, with its writes
 ```
 
 Narrow with `source` (`production` · `eval` · `manual`) and `recordId`. The list
@@ -42,20 +42,34 @@ nothing until you know whether any were being written.
 
 1. **Start from `output`.** If it is missing a slot the caller declared, you have
    your failure — that is also the usual cause of a 502 through an endpoint.
-2. **Then walk `slotOutputs` in order.** It is keyed by skill; each value is what
-   that skill wrote. The first skill that emitted nothing, or emitted a shape the
-   next one could not use, is where the run went wrong.
-3. **Compare a good run to a bad one.** Both are in the same list. This is the
+2. **Then read `slotOutputs`.** ⛔ It is keyed by **output slot**, one level —
+   NOT by skill, and not nested. A slot that emitted nothing, or emitted a shape
+   the next step could not use, is where the run went wrong.
+3. **Read `stepOutputs` beside it** when you need to know WHICH step wrote a
+   slot. Within one flow a slot name already names a skill, so this usually only
+   confirms what you can see; it earns its place in the two cases where a slot
+   name is not an identity — a **sub-flow** invoked by this one, and a
+   **fan-out branch**, where two steps write the same slot name and
+   `slotOutputs` keeps only the last. Every `superseded` entry is a write that
+   is not in `slotOutputs` at all.
+4. **Compare a good run to a bad one.** Both are in the same list. This is the
    fastest way to find a step whose behaviour changed, and it needs no
    instrumentation.
-4. **Check `durationMs`** if the complaint is slowness — but ⚠️ null means the
+5. **Check `durationMs`** if the complaint is slowness — but ⚠️ null means the
    writer did not time itself, **not** that the run was instant.
 
-Values in `slotOutputs` are **truncated at write time** — embeddings reduced to a
-head marker, long hit lists capped. You are reading evidence, not a replay.
+Values in both are **truncated at write time** — embeddings reduced to a head
+marker, long hit lists capped, and anything that would not fit the row's byte
+budget replaced by a `dropped-oversized` marker naming the size it stood in for.
+You are reading evidence, not a replay.
 
 ## What a trace is not
 
+- **`stepOutputs: null` is not "nothing was written".** It means that trace's
+  writer did not record steps — which is every trace older than 2026-08-25. An
+  empty `steps` array is the different answer that it recorded and there were
+  none. And a non-zero `droppedWrites` says the run made more overwritten writes
+  than the row kept, so `steps` is not the whole record.
 - **There is no status field.** A trace records what happened, not a verdict on
   it. Failure shows up as a missing or wrong `output`, not as a flag.
 - **It is not a replay.** You cannot re-run a trace. To reproduce, take its
