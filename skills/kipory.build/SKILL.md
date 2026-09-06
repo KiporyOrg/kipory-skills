@@ -30,14 +30,25 @@ POST  /v1/flows/{id}/preview run against real inputs and read the transcript
 
 ## What will bite you
 
-- **A save succeeding is not a promise it will run.** Saves return 2xx with an `outstandingIssues`
-  array; only _blocking_ problems refuse the write, and activation is stricter than authoring. Read
-  `outstandingIssues` on every save — treating a 201 as "done" is the most common way a flow reaches
-  preview broken.
-- **An unbound output is the single most common cause of a dead endpoint.** The flow runs, the
-  transcript looks right, and every call through an endpoint is a 502. Bind the slots.
-- **Preview costs money.** It avoids _side effects_, not spend: it resolves the payer, refuses a
-  suspended one, and charges provider work. Budget for iteration; do not treat it as a free dry run.
+- **A save succeeding is not a promise it will run.** ⚠️ And the diagnostics are not where you would
+  look for them: **skill** writes (`/v1/skills`, `/v1/skills/batch`, `/v1/skills/replace`) return
+  2xx with an `outstandingIssues` array, while **flow** writes — `POST /v1/flows` and
+  `PATCH /v1/flows/{id}`, both of which this sequence tells you to make — carry no diagnostics at
+  all. For the whole-flow verdict ask `GET /v1/flows/{id}/health`. Treating a 201 as "done" is the
+  most common way a flow reaches preview broken.
+- ⛔ **A flow that saved with problems still runs.** Only a _skill_-level error refuses a write;
+  edge- and flow-level errors save cleanly, by design, so you can leave a graph half-wired between
+  edits. Nothing re-checks the graph at run time. So a flow with known blocking issues will execute,
+  and it will leave a trace you can read — which is usually the fastest way to see what the
+  diagnostic was predicting.
+- **An unbound output is a common cause of a dead endpoint, and it does not always announce itself.**
+  Depending on the slot's type the call either 502s or returns **200 with an empty value** — `[]`,
+  `{}`, `""`, `0` — because the invoke path fills an unproduced required slot with its type's empty
+  value. Preview does not: check `missingRequiredOutput` in the preview response, which is non-null
+  exactly when a live call would come back wrong. Bind the slots.
+- ⛔ **Preview costs money AND writes.** It is not a dry run in either sense. It resolves the payer,
+  refuses a suspended one, charges provider work — and `apply` defaults to true, so the records it
+  stages are really written. Pass `apply: false` to run it in full and throw the change set away.
 - **Checkpoint before a risky edit, not after.** Capture is cheap, and `restore-preview` tells you
   what a rollback would change before you commit to it. Reads never return the payload, so the
   preview is the only way to see inside one.
@@ -46,8 +57,14 @@ POST  /v1/flows/{id}/preview run against real inputs and read the transcript
 
 ## If a facet sent you here
 
-A facet's resolver is an ordinary flow. Build it, then go back and patch the facet to bind
-`resolverFlowId` — the facet is inert until you do, and it fails silently rather than loudly.
+⚠️ **First check you need a flow at all — usually you do not.** A facet whose `matching` is
+`exact` needs no resolver. A `semantic` one created _without_ naming a `resolverFlowId` is bound to
+a platform default resolver at creation and works as authored; only an explicit `null` births it
+unbound. Author your own resolver when the default is not what you want, then patch
+`resolverFlowId` onto the facet.
+
+And an unbound semantic facet is not silent: it reads `blocked` with the reason `RESOLVER_UNBOUND`,
+and resolving it throws at ingest.
 
 ## Then
 

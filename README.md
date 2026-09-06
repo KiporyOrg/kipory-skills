@@ -41,17 +41,17 @@ wrote the documentation.
 
 ## The skills
 
-| Skill             | For                                                                              |
-| ----------------- | -------------------------------------------------------------------------------- |
-| `kipory.connect`  | **Start here.** Confirm the credential, learn what it reaches, load the packs    |
-| `kipory.plan`     | Turn an idea into a build sheet — everything that will exist, before authoring   |
-| `kipory.model`    | Record types, facets, relations, and the vector space that makes them searchable |
-| `kipory.build`    | Build and edit flows over the handler catalog                                    |
-| `kipory.expose`   | Put a flow on HTTP, and get a credential that can call it                        |
-| `kipory.prove`    | Pin what "working" means and re-check it after every edit                        |
-| `kipory.secrets`  | Store a credential a flow needs — and decide whose key pays the vendor           |
-| `kipory.operate`  | Schedules, events, and runtime config                                            |
-| `kipory.diagnose` | Read a flow's runs and see what each skill actually emitted                      |
+| Skill             | For                                                                                       |
+| ----------------- | ----------------------------------------------------------------------------------------- |
+| `kipory.connect`  | **Start here.** Confirm the credential reaches the project you were given, load the packs |
+| `kipory.plan`     | Turn an idea into a build sheet — everything that will exist, before authoring            |
+| `kipory.model`    | Record types, facets, relations, and the vector space that makes them searchable          |
+| `kipory.build`    | Build and edit flows over the handler catalog                                             |
+| `kipory.expose`   | Put a flow on HTTP, and get a credential that can call it                                 |
+| `kipory.prove`    | Pin what "working" means and re-check it after every edit                                 |
+| `kipory.secrets`  | Store a credential a flow needs — and decide whose key pays the vendor                    |
+| `kipory.operate`  | Schedules, events, runtime config, and what it all spent                                  |
+| `kipory.diagnose` | Read a flow's runs and see what each output slot actually holds                           |
 
 ## Before you start
 

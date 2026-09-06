@@ -1,6 +1,6 @@
 ---
 name: kipory.plan
-description: Turn a product idea into a Kipory build sheet — every record type, flow, endpoint, schedule and test that will exist, each marked buildable-as-configuration or needs-software-written. Use before authoring anything, when the user describes what they want to build rather than which endpoint to call.
+description: Turn a product idea into a Kipory build sheet — every record type, flow, skill, endpoint, facet, relation, event, schedule and test that will exist, each marked buildable-as-configuration or needs-software-written. Use before authoring anything, when the user describes what they want to build rather than which endpoint to call.
 ---
 
 # Plan a Kipory project
@@ -20,22 +20,21 @@ drift toward whichever deployment happened to be in front of the person who wrot
    routes and shapes. This is Rule 0 and it is not optional.
 5. **Emit the build sheet, then stop.**
 
-## What this skill adds to the protocol
+## Three the protocol states that an agent most often skims past
 
-Three things the protocol assumes and does not say, because they only bite an agent:
+These are **in** the protocol, in nearly these words. They are repeated here because each one is a
+rule an agent breaks by default, not because the protocol is silent on them — when this file and the
+fetched protocol differ, the protocol is right.
 
 **Read the whole handler catalog before step 3, not a filtered view.** A keyword search encodes what
-you already believe. The catalog's job is to show you what you did not think to ask for — the first
-recorded run of this protocol searched for the words it expected and missed a handler that would
-have collapsed two `code` rows into one `seed` row.
+you already believe. The first recorded run of this protocol searched for the words it expected and
+missed a handler entirely — turning what should have been a `seed` row into a `code` row.
 
 **A `code` row is a finding, not a failure.** The count of them is the number that makes the plan
-real, so surface it rather than designing around it to keep the sheet tidy. A plan with four honest
-`code` rows is worth more than one with zero and a hidden assumption.
+real, so surface it rather than designing around it to keep the sheet tidy.
 
 **Nothing executes a build sheet.** There is no plan runner and no privileged path — executing a
-plan is ordinary design-API use, the same calls a person makes by hand. Do not go looking for an
-endpoint that takes a plan.
+plan is ordinary design-API use, the same calls a person makes by hand.
 
 ## What will bite you
 
@@ -49,5 +48,5 @@ endpoint that takes a plan.
 
 ## Then
 
-`kipory.model` for steps 2 and 5, `kipory.build` for step 3, `kipory.expose` for step 4,
-`kipory.operate` for steps 6 and 7, `kipory.prove` for step 8.
+`kipory.connect` for step 1, `kipory.model` for steps 2 and 5, `kipory.build` for step 3,
+`kipory.expose` for step 4, `kipory.operate` for steps 6 and 7, `kipory.prove` for step 8.

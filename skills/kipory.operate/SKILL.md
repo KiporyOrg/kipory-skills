@@ -1,6 +1,6 @@
 ---
 name: kipory.operate
-description: Run a Kipory project unattended — schedules that fire flows on a clock, events that report progress and fan-out, and namespaced config that lets a flow be tuned without an edit. Use once a flow works and should run, report, or be adjustable without redeployment.
+description: Run a Kipory project unattended — schedules that fire flows on a clock, events that report progress and fan-out, namespaced config that lets a flow be tuned without an edit, and the spend reads that say what it all cost and what will stop it. Use once a flow works and should run, report, or be adjustable without redeployment, or when a call came back 402.
 ---
 
 # Operate a Kipory project
@@ -32,11 +32,14 @@ policy of `skip` or `allow`.
   re-enable.
 - ⚠️ **Choose the overlap policy deliberately.** `allow` on a flow that takes longer than its
   interval will run copies of itself concurrently.
-- **`runs` answers "did it fire", not "why was the answer wrong".** It gives you the occurrence and
-  its outcome — fired, skipped, blocked. For a run that fired and produced the wrong thing, the
-  flow's own trace is the surface with the per-skill detail, and a scheduled fire leaves one like
-  any other run: `GET /v1/flows/{id}/traces`. ⚠️ Do not stop at the schedule's own error text — on
-  an ordinary skill failure it is a fixed generic string by design. See `kipory.diagnose`.
+- **`runs` answers "did it fire", and more than that.** It gives you the occurrence and its outcome
+  — fired, skipped, blocked. ⚠️ Do not stop at the schedule's own error text: on an ordinary skill
+  failure it is a fixed generic string by design. ⭐ **But the same occurrence carries a `failure`
+  naming the `skillName` and phase that broke** — read that before going anywhere else. For the
+  whole ordered run, take the occurrence's invocation id to `GET /v1/runs/{runId}/steps`: which
+  steps ran and what happened to each, and unlike a trace it is never sampled. Reach for the flow's
+  trace (`GET /v1/flows/{id}/traces`, `kipory.diagnose`) when you need the _values_ a step emitted,
+  which is the one thing only a trace carries.
 
 ## Events
 
@@ -53,7 +56,10 @@ A type takes a default scope of `run`, `record`, `user` or `project`. A signal s
 one on the bus are different things: pick by who needs to hear it. The payload shape is optional —
 omit it and the event is a payload-less marker.
 
-**Seeded rows are read-only.** Anything the platform seeded refuses edits and deletes.
+⚠️ **Seeded rows cannot be DELETED — but they can be edited.** A category or type the platform
+installed refuses a delete with 409, and accepts a patch. So a built-in event's label, scope,
+payload binding and status are all still changeable, and nothing stops you: if you did not mean to
+reshape a platform-installed event, check what you are patching.
 
 ## Project config
 
@@ -73,28 +79,36 @@ tests against it.
 
 ## Spend
 
+<!-- key-unreachable-ok: GET /v1/credits/events — named ONLY to warn that it 401s an API key, never prescribed; the machine-caller read below is /v1/runs/{runId}/spend -->
+
 ```
-GET /v1/credits/balance   the wallet, your ceiling, and the window it is measured over
-GET /v1/credits/events    your own charge ledger — filter, then page by cursor
+GET /v1/credits/balance      the wallet, the ceiling if one binds you, and its window
+GET /v1/runs/{runId}/spend   what one run cost — the read a machine caller has
 ```
 
-⚠️ **Two independent gates refuse a call, and only one of them is `status`.** The wallet
-(`creditsRemaining` against `softCapCredits`) is the obvious one. The other is your own ceiling —
-`perUserSpendCap` with `perUserSpendConsumed` against it — which caps how much of that wallet
-_this caller_ may use. A caller reads `status: "active"` on a healthy wallet and is still refused
-by the ceiling, so a view rendering only `status` says everything is fine right up to a `402` it
-cannot explain.
+⛔ **Read this before you build anything against spend: an API key is not a person, and half of
+this surface answers only to a person.**
 
-- **`perUserSpendCap: null` means no ceiling; `0` means block everything.** A falsy check turns the
-  second into the first.
-- **Read `perUserSpendWindowStart`, never recompute it.** It is the boundary the consumed figure
-  was actually summed from, so the number you show and the number enforced cannot disagree. It is
-  `null` exactly when the period is lifetime.
-- **Both reads keep working while you are over cap** — deliberately exempt from the gate, because
-  the one call an over-cap customer needs is the one that says so. A `402` elsewhere and a `200`
-  here is expected.
-- **The ledger is yours, not the tenant's.** Every bearer binds a user and the ledger scopes to it;
-  a wider grant does not widen the answer.
+- ⛔ **`GET /v1/credits/events` answers `401` to an API key, always.** The ledger scopes to a user,
+  and a key has none — the refusal comes from inside the handler, so nothing about the route's
+  shape warns you. It serves session-token callers only, and then only that user's own charges. To
+  account for key-driven spend, read `GET /v1/runs/{runId}/spend` per run, or the schedule
+  occurrence's `creditCost`.
+- ⛔ **The per-user ceiling does not bind a key either.** `perUserSpendCap` caps how much of the
+  wallet one _person_ may spend, and it is inert for machine traffic. On a key-authenticated
+  balance read it comes back `null` — which there means _there is no person to cap_, not "the
+  project set no ceiling". For a key there is exactly one gate that can `402` you, and it is the
+  wallet: `creditsRemaining` against `softCapCredits`, reported as `status`.
+- **If you are building for your product's own end users, the ceiling is real and `status` is not
+  enough.** A session caller reads `status: "active"` on a healthy wallet and is still refused by
+  their own ceiling, so a view rendering only `status` says everything is fine right up to a `402`
+  it cannot explain. There, `perUserSpendCap: null` means no ceiling and `0` means block
+  everything — a falsy check turns the second into the first — and
+  `perUserSpendWindowStart` should be read, never recomputed, so the number you show and the number
+  enforced cannot disagree. It is `null` exactly when the period is lifetime.
+- **The balance read keeps working while you are over cap** — deliberately exempt from the gate,
+  because the one call an over-cap customer needs is the one that says so. A `402` elsewhere and a
+  `200` here is expected.
 
 **Prices are not here.** What things cost is a platform-operator surface an API key cannot read.
 What you spent is this one.
@@ -102,5 +116,7 @@ What you spent is this one.
 ## Then
 
 `kipory.diagnose` when something running unattended does the wrong thing — the flow's trace answers
-"what did each step actually emit on the run that misbehaved", which the schedule's own history
-cannot.
+"what did each step actually emit on the run that misbehaved", which is the one question no other
+surface answers. Start closer to home, though: the schedule's history names the failing step and
+hands you the run id for the un-sampled step log, so reach for the trace when you need the values
+rather than the sequence.

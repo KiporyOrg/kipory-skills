@@ -1,13 +1,14 @@
 ---
 name: kipory.connect
-description: Establish a working connection to a Kipory deployment — confirm the credential is live, learn exactly what it can reach, and load the deployment's judgment layer. Use at the start of any session that will build on Kipory, before authoring anything.
+description: Establish a working connection to a Kipory deployment — confirm the credential is live, confirm it reaches the project you were given, and load the deployment's judgment layer. Use at the start of any session that will build on Kipory, before authoring anything.
 ---
 
 # Connect to Kipory
 
-This is turn zero. It runs before planning, before modelling, before a single design call — and it
-is the one skill that cannot be fetched from the platform, because it is what tells you how to
-fetch from the platform.
+This is turn zero. It runs before planning, before modelling, before a single design call, because
+it is what tells you how to fetch the deployment's own judgment layer. Like every skill here it is
+procedure and ships with these files — the platform serves facts and judgment, never skills, so do
+not go looking on your deployment for any of them.
 
 ## What Kipory is, in four sentences
 
@@ -23,11 +24,16 @@ served. Do not reach for one from inside the other.
 
 Three things. **None of them is discoverable — all three come from the human.**
 
-| You need              | Why you cannot derive it                                         |
-| --------------------- | ---------------------------------------------------------------- |
-| The **base URL**      | Kipory is deployed per installation. There is no canonical host. |
-| An **API key**        | A key can only be minted from a signed-in session — see below.   |
-| The key's **node id** | Nothing echoes a grant back. There is no `whoami` for a key.     |
+| You need                  | Why you cannot derive it                                         |
+| ------------------------- | ---------------------------------------------------------------- |
+| The **base URL**          | Kipory is deployed per installation. There is no canonical host. |
+| An **API key**            | A key can only be minted from a signed-in session — see below.   |
+| The **project's node id** | Nothing echoes a grant back. There is no `whoami` for a key.     |
+
+⚠️ **Two node ids, and they are the same value only sometimes.** Your key's _grant_ node is what it
+may reach; every design call scopes by the _project's_ node. For a key granted at the project they
+coincide — for one granted at an organisation, which is an ordinary arrangement, they do not. Ask
+the human which one they gave you.
 
 <!-- key-unreachable-ok: GET /v1/me — named ONLY to explain why it refuses a key, never prescribed -->
 
@@ -45,21 +51,25 @@ node id, ask for it. Do not guess, and do not try to discover it by probing ids.
 
 ```
 GET /health              → 200; `sha` is the build's commit, or null (see below)
-GET /v1/capability-packs → 200, the judgment layer + a `version`
+GET /v1/capability-packs → 200, the pack INDEX + a `version`
 ```
 
 Both are public on purpose. An agent that must read the packs _before_ it can author anything
 cannot be asked for a credential it does not have yet.
 
 ⚠️ **`sha` is nullable, and null is not an error.** It is always present as a key and carries the
-commit only when the build was stamped with one; a deployment that was not is `null`. So use it to
-tell two builds apart, never as proof you reached a healthy one — `status` is what says that.
+commit only when the build was stamped with one; a deployment that was not is `null`. Use it to tell
+two builds apart, never as proof you reached a healthy one. ⛔ And nothing else on `/health` proves
+that either: this is a liveness probe, `status` is a constant, and no dependency is checked. A 200
+means the process is answering, and that is the whole of it.
 
 ### 2. Load the judgment layer
 
-`GET /v1/capability-packs` returns every pack with a `version` that is a content hash of the whole
-set. **Read the README pack first** — it is the index, and it tells you which pack answers which
-question. Fetch one pack with `GET /v1/capability-packs/{id}`.
+⚠️ **The index carries no pack content** — it is deliberately content-free, because the full set is
+large. `GET /v1/capability-packs` returns one row per pack (id, title, description, size) plus a
+`version` that is a content hash of the whole set, which is what you cache against. The markdown
+itself comes one pack at a time from `GET /v1/capability-packs/{id}`. **Read the README pack first**
+— it is the index of which pack answers which question.
 
 Cache against `version`. A `version` you have not seen means this deployment's judgment changed
 under you.
@@ -103,10 +113,11 @@ resolve it — see below.
 
 The two codes answer different questions, and telling them apart saves an hour:
 
-| Code  | Means                                                     | Do                                                     |
-| ----- | --------------------------------------------------------- | ------------------------------------------------------ |
-| `401` | The credential is missing, malformed, revoked or expired  | Re-check the header, then ask the human for a live key |
-| `403` | The credential is fine; the grant does not authorise this | Check role, then reach — in that order                 |
+| Code  | Means                                                       | Do                                                                                                   |
+| ----- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------- |
+| `401` | The credential is missing, malformed, revoked or expired    | Re-check the header, then ask the human for a live key                                               |
+| `403` | The credential is fine; the grant does not authorise this   | Check role, then reach — in that order                                                               |
+| `404` | The node resolved and you may read it — it hosts no project | You are probably holding the organisation node, or the project id, rather than the project's node id |
 
 **A `403` is deliberately not an existence oracle.** An unresolvable node, a project that was never
 created, a corrupt tree and an insufficient role all refuse identically. So a `403` never means

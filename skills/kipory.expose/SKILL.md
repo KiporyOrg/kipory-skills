@@ -20,16 +20,26 @@ from documentation belongs to whichever deployment wrote the documentation.
 
 ## The order that avoids the two silent failures
 
-1. **The flow's output binding projects its declared slots.** Do this first. An unbound output makes
-   every call a 502 while the flow itself previews fine — the most common cause by a wide margin.
+1. **The flow's output binding projects its declared slots.** Do this first. ⚠️ An unbound required
+   output 502s only when its type has no safe empty value — a reference to an object type, a record
+   reference, a file, a union. A list, record, string, number or boolean is filled in with that
+   type's empty value and the call returns **200**, which is the quieter and far worse failure: the
+   caller gets `[]`, `{}`, `""`, `0` and no error at all. Preview is where you see either, because
+   preview deliberately does not fill anything in — it names the slot in `missingRequiredOutput`.
 2. **Create the endpoint**: path, contract, action. The path starts with `/v1/`, has no adjacent
    parameters, and must collide with no coded route or sibling.
 3. **Check for a shadowing coded route** — ask for the shadowed expansion on the endpoints read. A
    coded route wins, and the symptom is your endpoint simply never being reached.
 4. **Bind every input.** Each field the flow needs is a declared parameter or body field, bound in
    the inputs, and every required non-provider slot is bound.
-5. **Preview first, then call for real.** Preview bills the project's payer but commits no side
-   effects.
+5. **Preview first, then call for real.** ⛔ **A preview is not a rehearsal.** It bills the
+   project's payer _and applies the writes it stages_ — `apply` defaults to true, so a preview
+   pointed at a live project writes real records. Pass `apply: false` for the reporting-only run:
+   the flow still executes in full — every step, every model call — and its change set is sealed,
+   summarised, then discarded, readable at `GET /v1/runs/{runId}/change-set`. What a preview does
+   hold back either way is narrower than it sounds: no vectors are written, emitted events resolve
+   but are never delivered, and produced files land in a playground area. Record writes are not on
+   that list.
 
 ## The credential
 
@@ -42,19 +52,22 @@ Tell them what to mint, because the grant cannot be edited afterwards — revoke
 - **The node** it acts at. A grant reaches that node and everything beneath it, so a key granted at
   one project reaches only that project.
 - **The role**, which is uniform over that whole reach and defaults to the least it can do.
-- **An expiry**, which is required.
+- **An expiry**, which must be stated but may be `null`. ⚠️ `null` means the key **never expires**
+  and only revoking will stop it — say so out loud when you ask, because it is easy to hand over by
+  omission. A date must be in the future and at most a year out, and there is no extend path either
+  way: rotation is mint-new-then-revoke-old.
 
 The plaintext is shown once. Only a hash and a short prefix persist.
 
 ## Reading a refusal
 
-|                     |                                                                                        |
-| ------------------- | -------------------------------------------------------------------------------------- |
-| **404 on the host** | unknown project-shaped host — it never falls through to another project                |
-| **404 on the path** | no match, **or the right path with the wrong method** — method existence is not leaked |
-| **401**             | missing, malformed, revoked or expired credential                                      |
-| **403**             | the grant does not reach this project, or a write on an endpoint not marked read-only  |
-| **502**             | almost always the output binding                                                       |
+|                     |                                                                                                                                                                                            |
+| ------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **404 on the host** | unknown project-shaped host — it never falls through to another project                                                                                                                    |
+| **404 on the path** | no match, **or the right path with the wrong method** — method existence is not leaked                                                                                                     |
+| **401**             | missing, malformed, revoked or expired credential                                                                                                                                          |
+| **403**             | the grant does not reach this project, or a **VIEWER** key attempting a non-GET — and VIEWER is what a key is minted at when no role was asked for, so a default key cannot write anywhere |
+| **502**             | the flow failed, or produced nothing for a declared-required output whose type has no empty value, or the output failed the endpoint's response contract                                   |
 
 ⚠️ **A key has no owner whose status could refuse it.** Its authority is the grant on the row, so
 there is no membership to go stale and checking one is wasted time — revocation and expiry are what

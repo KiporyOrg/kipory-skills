@@ -28,11 +28,19 @@ POST /v1/flows/{id}/test     run them — omit the body to run every enabled cas
 ```
 
 ```
-POST /v1/eval-suites         create — bind the flow (or the dataset)
-POST /v1/eval-cases          inputs, expected, labels, assertions
-POST /v1/eval-suites/{id}/run   establishes or extends the baseline
-GET  /v1/eval-suites/{id}/trend across runs — the only cross-run read there is
+POST /v1/eval-suites            create — bind the flow (or the dataset)
+POST /v1/eval-cases             inputs, expected, labels, assertions
+POST /v1/eval-suites/{id}/run   202 {queued} — ADMIN only, 409 if one is in flight
+GET  /v1/eval-suites/{id}/runs  poll for the row the worker writes
+GET  /v1/eval-runs/{id}         one run, WITH its delta against the previous one
+GET  /v1/eval-suites/{id}/trend one suite's scores across runs
+GET  /v1/eval-suites/trend      every suite in the project, same shape
 ```
+
+⚠️ **The run call does not return a run.** It answers `202` with `{ suiteId, queued: true }` and
+nothing else — no id, no results — so there is nothing to poll on directly. Re-read the suite's
+runs until the worker's row appears. This is the one asymmetry with `POST /v1/flows/{id}/test`,
+which answers `200` with the results themselves.
 
 ## What will bite you
 
@@ -40,8 +48,14 @@ GET  /v1/eval-suites/{id}/trend across runs — the only cross-run read there is
   case set is the most expensive thing in this skill — size it deliberately.
 - **An eval run is single-flight per suite** and refused while one is in flight. Serialise; do not
   fire a second and hope.
-- **The trend read is the only cross-run comparison there is.** Reading individual runs and
-  differencing them yourself is doing worse what the trend already does.
+- **Two different cross-run questions, two different reads — do not use one for the other.** "Where
+  has this been going" is the trend, one suite or the whole project. "Did this edit break it" is the
+  run's own `delta`, on `GET /v1/eval-runs/{id}`: which cases were comparable, which changed, which
+  were added or removed, and which metrics moved, against the previous settled run. The trend
+  carries none of that. ⚠️ A run also carries a `regressed` verdict where **`null` means no verdict
+  was computed** — a different answer from `false`, and a list that renders null as "fine" reports a
+  suite nobody judged as a suite that passed. What you should not do is fetch runs and difference
+  them by hand: that comparison already exists and knows which cases were even comparable.
 - **Write the assertions before the change, not after.** Assertions written to describe what a flow
   currently does will agree with the bug. Pin the behaviour you _want_ while you still remember why.
 - **Do not skip this because the project is small.** The assertions are the only part of a design
