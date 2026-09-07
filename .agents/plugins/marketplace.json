@@ -4,7 +4,7 @@
     {
       "name": "kipory",
       "source": "./",
-      "description": "Agent skills for building a product on Kipory over its HTTP API."
+      "description": "Agent skills for building a product on Kipory over its HTTP API — record types, flows, endpoints, schedules and the runs they leave, authored by calling the design API."
     }
   ]
 }

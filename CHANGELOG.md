@@ -2,6 +2,15 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260907.1153 — 2026-09-07
+
+Synced from the Kipory monorepo at `bca860ea7`.
+
+- changed: `.agents/plugins/marketplace.json`
+- changed: `.claude-plugin/marketplace.json`
+- changed: `.claude-plugin/plugin.json`
+- changed: `.codex-plugin/plugin.json`
+
 ## 1.20260907.1116 — 2026-09-07
 
 Synced from the Kipory monorepo at `5a9056c5e`.
@@ -158,4 +167,3 @@ Synced from the Kipory monorepo at `5a9056c5e`.
 - removed: `skills/kipory.plan/SKILL.md`
 - removed: `skills/kipory.prove/SKILL.md`
 - removed: `skills/kipory.secrets/SKILL.md`
-

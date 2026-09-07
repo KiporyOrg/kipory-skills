@@ -1,6 +1,6 @@
 {
   "name": "kipory",
-  "description": "Agent skills for building a product on Kipory over its HTTP API: connect, plan, model, build, expose, prove, operate, diagnose.",
+  "description": "Agent skills for building a product on Kipory over its HTTP API — record types, flows, endpoints, schedules and the runs they leave, authored by calling the design API.",
   "author": {
     "name": "Kipory",
     "url": "https://github.com/KiporyOrg"
