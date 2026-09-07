@@ -65,4 +65,4 @@ First check you need a flow at all — usually you do not. A facet whose `matchi
 
 ## Then
 
-`kipory-expose` to put the flow on HTTP. `kipory-prove` to pin what "working" means before you edit it again. `kipory-secrets` if a handler reported a missing API key — the fix is a stored credential, not a flow edit. `kipory-channels` if a step sends mail or reads a Telegram channel. `kipory-diagnose` when a run came back wrong.
+`kipory-expose` to put the flow on HTTP. `kipory-prove` to pin what "working" means before you edit it again. `kipory-secrets` if a handler reported a missing API key — the fix is a stored credential, not a flow edit. `kipory-channels` if a step sends mail or reads a Telegram channel. For the step itself rather than the wiring: `kipory-gather` for a source that reaches outside the project, `kipory-extract` for one that opens a file, and `kipory-retrieve` for the chunk-embed-search-cite chain. `kipory-evolve` before changing a flow that something already depends on. `kipory-diagnose` when a run came back wrong.

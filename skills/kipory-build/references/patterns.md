@@ -68,11 +68,34 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
 - `patternSyntax` is `regex` (validity checked at save) or `glob` (`*` only, always case-insensitive, ignores `flags`).
 - The row's `outputSlot` is a mirror; the real writes land in the slots the rules name.
 
+## 6. Accumulate across branches
+
+**Shape:** `state.write` in the branch body, `state.read` after the merge.
+
+A fan-out's branches cannot see each other's slots, and a merge lane only collects what a step in
+the branch wrote to a named slot. Run-state cells are the way a run accumulates a total, a set or a
+running list across branches that otherwise never meet.
+
+- `state.write` names a **fixed** `key` — chosen when you author the step, never computed at run
+  time — and an `op`: `set` overwrites, `add` sums, `append` builds a list, `union` builds a
+  deduplicated set. `state.read` reads the same key back.
+- **A cell is scoped to one run.** It is not project state, it does not persist, and a second run
+  starts empty. For state that outlives a run, write a record (`entity.update`).
+- `state.read` reads no slots at all, which means **nothing orders it against the writes**.
+  `state.write` emits a marker for exactly this reason: wire that marker into the read to put the
+  read after the write. Skip that and you will read a cell before the branch that filled it ran.
+- The shape depends on the op: `set` and `add` cells read back as a string, `append` and `union` as
+  a list.
+- Under `flow.fan-out` the ordering rules still apply — with `maxParallelBranches` unset, branches
+  may run in parallel, and only `1` makes a branch reliably see what an earlier one wrote. `add`
+  and `union` are the ops that are safe regardless of order; `set` is the one that is not.
+
 ## Utilities you will reach for
 
 - `value.first-non-empty` — an ordered `inputs` list of slots or paths; emits the first non-empty **preserving its runtime shape**, which is what lets it coalesce a URL string and a file. `valueKind` narrows to `string` or `file`.
 - `value.transform` — one JSONata `expression`; top-level identifiers are slot names. The result must be text, a file, a flat object, or a list of those. `$now`, `$millis`, `$random` and `$shuffle` are refused because they break caching. Use it for computation; for prose with holes use `text.interpolate`.
 - `text.interpolate` — a prompt template and nothing else; makes no model call and cannot emit a list.
+- `list.concat` — an ordered `inputs` list of slots; flattens lists, lifts scalars to one-element lists, and joins them in the order given. `strategy` is `concat` or `dedup-concat`. It collects contributions from parallel sources **without needing a fan-out and merge pair**, which is the cheaper answer whenever the branches were never really a fan-out.
 
 ## Model choice
 

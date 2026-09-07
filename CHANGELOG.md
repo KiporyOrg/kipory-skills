@@ -2,6 +2,27 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260907.1320 — 2026-09-07
+
+Synced from the Kipory monorepo at `fc03ca409`.
+
+- changed: `README.md`
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-data/SKILL.md`
+- added: `skills/kipory-data/references/in-flow-record-handlers.md`
+- added: `skills/kipory-evolve/SKILL.md`
+- added: `skills/kipory-evolve/references/change-order.md`
+- added: `skills/kipory-extract/SKILL.md`
+- added: `skills/kipory-extract/references/document-flows.md`
+- added: `skills/kipory-gather/SKILL.md`
+- added: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-model/SKILL.md`
+- added: `skills/kipory-model/references/classification-runtime.md`
+- added: `skills/kipory-retrieve/SKILL.md`
+- added: `skills/kipory-retrieve/references/pipeline.md`
+
 ## 1.20260907.1153 — 2026-09-07
 
 Synced from the Kipory monorepo at `bca860ea7`.

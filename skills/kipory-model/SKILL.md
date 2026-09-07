@@ -79,14 +79,15 @@ A facet whose `matching` is `exact` needs no resolver. A `semantic` one created 
 
 ## References
 
-| File                                                                                                                      | What it answers                                                                 |
-| ------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| `references/packs/record-types-and-schema-entries.md`                                                                     | shapes versus types, reserved names, what an edit cascades into                 |
-| `references/packs/facets.md`                                                                                              | classification, resolvers, the path from resolving to committing terms          |
-| `references/packs/relations.md`                                                                                           | kinds, pairings, the declaration on the type, the multi-hop that does not exist |
-| `references/packs/embedding-profiles.md`                                                                                  | the project's vector space                                                      |
-| `references/api/record-types.md` · `schema-entries.md` · `facets-and-terms.md` · `relations.md` · `embedding-profiles.md` | every route's fields                                                            |
+| File                                                                                                                      | What it answers                                                                        |
+| ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `references/packs/record-types-and-schema-entries.md`                                                                     | shapes versus types, reserved names, what an edit cascades into                        |
+| `references/packs/facets.md`                                                                                              | classification, resolvers, the path from resolving to committing terms                 |
+| `references/packs/relations.md`                                                                                           | kinds, pairings, the declaration on the type, the multi-hop that does not exist        |
+| `references/packs/embedding-profiles.md`                                                                                  | the project's vector space                                                             |
+| `references/classification-runtime.md`                                                                                    | the resolver flow's own handlers: the threshold gate's three outcomes, the browse tree |
+| `references/api/record-types.md` · `schema-entries.md` · `facets-and-terms.md` · `relations.md` · `embedding-profiles.md` | every route's fields                                                                   |
 
 ## Then
 
-`kipory-build` for the flows this step referenced — the processing flow a record type binds, and any facet resolver you left unbound. `kipory-data` to see the records a type holds and the edges between them. `kipory-diagnose` if a search step returns nothing after a profile change.
+`kipory-retrieve` once records are embedded and something has to search them. `kipory-evolve` before changing any of this on a project that already holds records. `kipory-build` for the flows this step referenced — the processing flow a record type binds, and any facet resolver you left unbound. `kipory-data` to see the records a type holds and the edges between them. `kipory-diagnose` if a search step returns nothing after a profile change.

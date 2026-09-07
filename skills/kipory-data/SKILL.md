@@ -76,14 +76,15 @@ GET /v1/projects/{nodeId}/ingest/summary?window=7d   what the ingest workers fet
 
 ## References
 
-| File                        | What it answers                                                                   |
-| --------------------------- | --------------------------------------------------------------------------------- |
-| `references/api/records.md` | every query key, operator and response field of the records list; the edge routes |
-| `references/api/files.md`   | the upload handshake, listing scopes and totals, download and detach              |
-| `references/api/ingest.md`  | the summary's vocabulary — outcomes, cache, quota — and the bust call             |
+| File                                    | What it answers                                                                                                                         |
+| --------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/api/records.md`             | every query key, operator and response field of the records list; the edge routes                                                       |
+| `references/api/files.md`               | the upload handshake, listing scopes and totals, download and detach                                                                    |
+| `references/api/ingest.md`              | the summary's vocabulary — outcomes, cache, quota — and the bust call                                                                   |
+| `references/in-flow-record-handlers.md` | the same work from inside a flow: reading edges, deleting, teardown before a reprocess, and the owner scoping that differs from a route |
 
 The handler that writes a record is `entity.create`; its config and worked example are in `kipory-build` under `references/handlers/`.
 
 ## Then
 
-`kipory-build` to author the flow that creates or processes records — that is where a record write actually happens. `kipory-model` when the type, facet or relation kind you need does not exist yet. `kipory-diagnose` when a record processed and came back wrong: the processing stream tells you _that_ it failed, the run's steps tell you _where_. `kipory-expose` to put the record write on HTTP for your product's users.
+`kipory-extract` when a file attached to a record has to become text. `kipory-retrieve` to make what a project holds searchable. `kipory-evolve` before deleting records to clear a type. `kipory-build` to author the flow that creates or processes records — that is where a record write actually happens. `kipory-model` when the type, facet or relation kind you need does not exist yet. `kipory-diagnose` when a record processed and came back wrong: the processing stream tells you _that_ it failed, the run's steps tell you _where_. `kipory-expose` to put the record write on HTTP for your product's users.

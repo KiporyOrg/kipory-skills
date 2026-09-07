@@ -49,12 +49,16 @@ Every generated file opens with a stamp naming the content hash it was generated
 | `kipory-model`    | Record types and shapes, facets and terms, relation kinds, the embedding profile that makes records searchable           |
 | `kipory-build`    | Build and edit flows over the handler catalog: steps, slots, output binding, health, preview, checkpoints                |
 | `kipory-data`     | The records, files and edges a project already holds; the processing stream; what ingest fetched                         |
+| `kipory-gather`   | Bring data in from outside: fetch and scrape pages, web search, YouTube, X, Telegram discovery, geocoding                |
+| `kipory-extract`  | Turn a file into something a flow can use: PDF text, page renders, transcripts, image data, signed links                 |
+| `kipory-retrieve` | Search the project's own records and answer over them: chunk, embed, search, re-rank, and prove the citations            |
 | `kipory-expose`   | Put a flow on HTTP as the product's own endpoint — sync, async or streaming — and sign its users in                      |
 | `kipory-prove`    | Pin what "working" means: test cases for pass/fail, eval suites for quality, the run-to-run delta                        |
 | `kipory-operate`  | Schedules, the event registry, runtime config, and what it all spent                                                     |
 | `kipory-channels` | Send mail from the project's own address; subscribe to Telegram channels                                                 |
 | `kipory-secrets`  | Store a vendor credential a flow needs — and decide whose key pays the vendor                                            |
 | `kipory-diagnose` | Find a run, read its step log, its writes and its trace, and see which step moved                                        |
+| `kipory-evolve`   | Change a project that is already live: rehearse a change, read a refusal, roll a flow back                               |
 
 ## Before you start
 
