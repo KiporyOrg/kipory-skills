@@ -1,90 +1,78 @@
 # Kipory agent skills
 
-Skills that teach a coding agent how to build a product on **Kipory**.
+Skills that teach a coding agent how to build a product on **Kipory**, over its HTTP API.
 
-Kipory is a platform for building products. A product on Kipory is a **project**, and a project is
-not code — its record types, flows, HTTP endpoints, facets, schedules and events are validated
-configuration rows you author by calling the design API. So an agent with an API key can build a
-whole project without writing an application, which is what these skills are for.
+Kipory is a platform for building products. A product on Kipory is a **project**, and a project is not code — its record types, flows, HTTP endpoints, facets, schedules and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a whole product without writing an application, which is what these skills are for.
 
 ## Install
 
-Copy the skills you want into your agent's skill directory. For Claude Code:
+**Claude Code** — as a plugin, which keeps it updatable:
 
-```bash
+```
+/plugin marketplace add KiporyOrg/kipory-skills
+/plugin install kipory@kipory-skills
+```
+
+**Any agent that reads the Agent Skills format** (Codex, Cursor, Gemini CLI, Copilot and others):
+
+```
+npx skills add KiporyOrg/kipory-skills
+```
+
+**By hand** — copy the skill directories into wherever your agent looks (`.claude/skills/`, `.agents/skills/`):
+
+```
 git clone https://github.com/KiporyOrg/kipory-skills
 cp -R kipory-skills/skills/* .claude/skills/
 ```
 
-Then tell your agent what you want to build. Start with `kipory.connect` — it is turn zero, and it
-is the one that gets you to everything else.
+Each skill is self-contained: its `references/` and `scripts/` live inside it, so installing one skill alone works. Then tell your agent what you want to build. Start with `kipory-connect` — it is turn zero, and it hands off to everything else.
 
-## What is here, and what deliberately is not
+## What is here
 
-There are three layers, and only the third one lives in this repository.
+Three layers. The first two come from the deployment you build on; the third is this repository — and this repository also carries a **generated snapshot** of the first two, so an agent can read a handler's config table or a route's fields without a network round trip per question.
 
-| Layer         | Where it lives                     | Why there                                                         |
-| ------------- | ---------------------------------- | ----------------------------------------------------------------- |
-| **Facts**     | your deployment's API              | `GET /v1/openapi.json`, `GET /v1/handlers` — what actually exists |
-| **Judgment**  | your deployment's capability packs | `GET /v1/capability-packs` — how to think about each capability   |
-| **Procedure** | **this repo**                      | which job to do, in what order, and what bites you                |
+| Layer                                                | Source of truth                                                       | In this repo                                                                                              |
+| ---------------------------------------------------- | --------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------- |
+| **Facts** — what exists                              | `GET /v1/openapi.json`, `GET /v1/handlers` on your deployment         | `references/api/*.md` and `references/handlers/*.md`, generated from the same model the deployment serves |
+| **Judgment** — how to think about each capability    | `GET /v1/capability-packs` on your deployment (public, no credential) | `references/packs/*.md`, mirrored                                                                         |
+| **Procedure** — which job, in what order, what bites | this repo                                                             | every `SKILL.md`, plus the hand-written references beside it                                              |
 
-**The capability packs are not copied here on purpose.** They are served by the deployment you are
-building on, so they answer for _that_ deployment and move when it moves. A copy in this repository
-would answer for whichever deployment happened to be in front of whoever last edited it. The
-packs are public — no credential needed — and every response carries a `version` that is a content
-hash of the whole set, so an agent can cache against it and refetch when it moves.
-
-That is also why these skills name **endpoints and never hosts**. Kipory is deployed per
-installation; there is no canonical host, and a URL baked into documentation belongs to whoever
-wrote the documentation.
+Every generated file opens with a stamp naming the content hash it was generated from. The deployment serves the same hashes live — `version` on `GET /v1/capability-packs` and on `GET /v1/handlers` — and `kipory-connect` runs a small script at turn zero that compares them. **When they differ, the deployment wins.** That is also why these skills name endpoints and never hosts: Kipory is deployed per installation, and a URL baked into documentation belongs to whoever wrote the documentation.
 
 ## The skills
 
-| Skill             | For                                                                                       |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| `kipory.connect`  | **Start here.** Confirm the credential reaches the project you were given, load the packs |
-| `kipory.plan`     | Turn an idea into a build sheet — everything that will exist, before authoring            |
-| `kipory.model`    | Record types, facets, relations, and the vector space that makes them searchable          |
-| `kipory.build`    | Build and edit flows over the handler catalog                                             |
-| `kipory.expose`   | Put a flow on HTTP, and get a credential that can call it                                 |
-| `kipory.prove`    | Pin what "working" means and re-check it after every edit                                 |
-| `kipory.secrets`  | Store a credential a flow needs — and decide whose key pays the vendor                    |
-| `kipory.operate`  | Schedules, events, runtime config, and what it all spent                                  |
-| `kipory.diagnose` | Read a flow's runs and see what each output slot actually holds                           |
+| Skill             | For                                                                                                                      |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
+| `kipory-connect`  | **Start here.** Prove the deployment and the key, read the project in one call, learn the conventions every route shares |
+| `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                           |
+| `kipory-model`    | Record types and shapes, facets and terms, relation kinds, the embedding profile that makes records searchable           |
+| `kipory-build`    | Build and edit flows over the handler catalog: steps, slots, output binding, health, preview, checkpoints                |
+| `kipory-data`     | The records, files and edges a project already holds; the processing stream; what ingest fetched                         |
+| `kipory-expose`   | Put a flow on HTTP as the product's own endpoint — sync, async or streaming — and sign its users in                      |
+| `kipory-prove`    | Pin what "working" means: test cases for pass/fail, eval suites for quality, the run-to-run delta                        |
+| `kipory-operate`  | Schedules, the event registry, runtime config, and what it all spent                                                     |
+| `kipory-channels` | Send mail from the project's own address; subscribe to Telegram channels                                                 |
+| `kipory-secrets`  | Store a vendor credential a flow needs — and decide whose key pays the vendor                                            |
+| `kipory-diagnose` | Find a run, read its step log, its writes and its trace, and see which step moved                                        |
 
 ## Before you start
 
 You need three things, and **an agent cannot discover any of them** — they come from you:
 
-1. **The base URL** of your Kipory deployment.
-2. **An API key.** Only a signed-in human can mint one: a key cannot mint another key, so that a
-   leaked key cannot manufacture siblings that outlive revoking the original.
-3. **The node id your key was granted at.** Nothing echoes a grant back to its holder, so if your
-   agent is not told, it cannot find out.
-
-`kipory.connect` explains what each is for and how to check the key works before anything is built.
+1. **The base URL** of your Kipory deployment's api host.
+2. **An API key.** Only a signed-in human can mint one: a key cannot mint another key, so that a leaked key cannot manufacture siblings that outlive revoking the original. Mint it with the role the work needs — a key is `VIEWER` unless you ask, and anything that runs a flow is `ADMIN`.
+3. **The node id your key was granted at**, or the project's node id. `kipory-connect` explains how a key reads its own grant back once it is connected.
 
 ## Contributing
 
-These files are **mirrored from a private monorepo** and are overwritten on each sync, so an edit
-made here would be lost.
+These files are **mirrored from a private monorepo** on every merge to its main branch, so an edit made here is overwritten by the next sync. **Please open an issue rather than a pull request.** The most useful report is _"this skill told me to do X and the platform refused"_ — that is the failure these files exist to prevent and the one that is hardest to catch from the inside.
 
-**Please open an issue rather than a pull request.** A correction is genuinely welcome — the most
-useful kind is _"this skill told me to do X and the platform refused,"_ because that is the failure
-mode these files exist to prevent and the one that is hardest to catch from the inside.
+What stands behind them: on every build of the monorepo, each skill's frontmatter is checked against the Agent Skills spec; every endpoint citation is resolved against the route manifest, with the parameter names the API uses; every route a customer's key can never call is refused from prose that would prescribe it — a curated table, complete for the gates it has learned to see; every cited capability pack is one the deployment actually serves; links stay inside the skill that ships them; the generated references are compared byte for byte with their generators; and the mirror is measured against this repository daily. What none of that can see is **prose** — a sentence about what the platform re-checks, caches or refuses resolves no route and names no id. That is the class of error most worth reporting.
 
-For transparency about how much checking stands behind them: every file here is linted on each
-build of the monorepo it is mirrored from. Endpoint citations resolve against the live route table,
-capability-pack ids against the set a deployment actually serves, and a skill that prescribed an
-endpoint your key could never clear fails that build — the check asks whether **you may call** a
-route, not merely whether it exists. The mirror is measured rather than asserted: the published
-copy is compared byte for byte against its source.
+## Versions
 
-**What none of that can see is prose.** A sentence describing how the platform behaves at runtime —
-what it re-checks, what it caches, what it refuses and why — resolves no route and names no id, so
-nothing verifies it. That is the class of error most worth reporting, and on request and response
-shapes the live `GET /v1/openapi.json` on your own deployment stays the authority.
+`VERSION` and `CHANGELOG.md` are written by the publish job; every publish is also a git tag. The stamps inside the generated references carry the content hashes that matter for correctness.
 
 ## License
 

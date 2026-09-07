@@ -1,0 +1,10 @@
+{
+  "name": "kipory-skills",
+  "plugins": [
+    {
+      "name": "kipory",
+      "source": "./",
+      "description": "Agent skills for building a product on Kipory over its HTTP API."
+    }
+  ]
+}

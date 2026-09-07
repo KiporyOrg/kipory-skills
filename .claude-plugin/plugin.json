@@ -1,0 +1,11 @@
+{
+  "name": "kipory",
+  "description": "Agent skills for building a product on Kipory over its HTTP API: connect, plan, model, build, expose, prove, operate, diagnose.",
+  "author": {
+    "name": "Kipory",
+    "url": "https://github.com/KiporyOrg"
+  },
+  "license": "MIT",
+  "keywords": ["kipory", "agent-skills", "api", "flows", "record-types"],
+  "skills": "./skills"
+}

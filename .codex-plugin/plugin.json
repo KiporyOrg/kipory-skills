@@ -1,0 +1,5 @@
+{
+  "name": "kipory",
+  "description": "Agent skills for building a product on Kipory over its HTTP API.",
+  "skills": "./skills"
+}

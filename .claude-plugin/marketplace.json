@@ -1,0 +1,19 @@
+{
+  "name": "kipory-skills",
+  "owner": {
+    "name": "Kipory",
+    "url": "https://github.com/KiporyOrg"
+  },
+  "metadata": {
+    "description": "Skills that teach a coding agent to build a product on Kipory through its HTTP API."
+  },
+  "plugins": [
+    {
+      "name": "kipory",
+      "source": "./",
+      "description": "Agent skills for building a product on Kipory over its HTTP API: connect, plan, model, build, expose, prove, operate, diagnose.",
+      "category": "development",
+      "tags": ["kipory", "api", "flows", "record-types"]
+    }
+  ]
+}
