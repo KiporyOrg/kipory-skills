@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: f70ac5c86d2c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 8f1c60e82a35 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 
@@ -100,13 +100,14 @@ Gate: `structural key refusal`
 - `PATCH /v1/nodes/{…}`
 - `PATCH /v1/nodes/{…}/status`
 
-## a roster of people is not workload data — one call on a least-privilege key would return the id, email and display name of everyone with an active membership on the system root, and on a project node every end user who ever signed in. The two WRITES are refused for the invites' reason rather than the roster's: membership management decides who ELSE may act, and a credential that can seat or unseat a person is a credential that can mint a human path around its own revocation
+## a roster of people is not workload data — one call on a least-privilege key would return the id, email and display name of everyone with an active membership on the system root, and on a project node every end user who ever signed in. The three WRITES are refused for the invites' reason rather than the roster's: membership management decides who ELSE may act, and a credential that can seat or unseat a person is a credential that can mint a human path around its own revocation. `POST` is the newest of the three (2026-09-09) and is the most literal case of it: it seats a named user outright, with no invite for anybody to accept
 
 Gate: `structural key refusal`
 
 - `DELETE /v1/nodes/{…}/members/{…}`
 - `GET /v1/nodes/{…}/members`
 - `PATCH /v1/nodes/{…}/members/{…}`
+- `POST /v1/nodes/{…}/members`
 
 ## everyone with an account on the installation and where they belong — an API key is NEVER platform staff, and there is no per-tenant equivalent because a person belongs to many nodes across every tenant rather than to a project
 

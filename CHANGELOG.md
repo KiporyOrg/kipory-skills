@@ -2,6 +2,43 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260909.1918 — 2026-09-09
+
+Synced from the Kipory monorepo at `4644f5330`.
+
+- changed: `skills/kipory-build/references/api/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-build/references/api/skills.md`
+- changed: `skills/kipory-channels/references/api/managed-email-addresses.md`
+- changed: `skills/kipory-channels/references/api/sources.md`
+- changed: `skills/kipory-connect/references/api/bootstrap.md`
+- changed: `skills/kipory-connect/references/api/nodes-and-organizations.md`
+- changed: `skills/kipory-connect/references/api/platform-reads.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-data/references/api/files.md`
+- changed: `skills/kipory-data/references/api/ingest.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-diagnose/references/api/traces.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/api/route-enablement.md`
+- changed: `skills/kipory-model/references/api/embedding-profiles.md`
+- changed: `skills/kipory-model/references/api/facets-and-terms.md`
+- changed: `skills/kipory-model/references/api/record-types.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/schema-entries.md`
+- changed: `skills/kipory-operate/references/api/events.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/api/schedules.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-operate/references/api/triggers.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+- changed: `skills/kipory-prove/references/api/flow-test-cases.md`
+- changed: `skills/kipory-secrets/references/api/secrets.md`
+
 ## 1.20260909.1030 — 2026-09-09
 
 Synced from the Kipory monorepo at `6adddd287`.
