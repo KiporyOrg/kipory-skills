@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: a22b93e6cbba · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 93e75142d106 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 
@@ -17,6 +17,13 @@ Gate: `assertPlatformStaffActor`
 - `POST /v1/alerts/{…}/acknowledge`
 - `POST /v1/alerts/{…}/silence`
 
+## what this installation could recover and whether a restore has ever been demonstrated — an API key is NEVER platform staff, and a backup artifact spans every tenant, so there is no per-tenant equivalent to point a customer at
+
+Gate: `assertPlatformStaffActor`
+
+- `GET /v1/backups`
+- `GET /v1/backups/drills/{…}`
+
 ## the charges the platform could not bill — OUR failures to write a CostEvent, named by the chokepoint that caught them. `BillingEmitFailure` has no tenant column, so there is nothing a key could be scoped to, and a staff-mode hub never resolves a presented key in the first place. What a payer may read is their own charges (GET /v1/credits/events); a charge that never landed is not one of them
 
 Gate: `assertPlatformStaffActor`
@@ -24,6 +31,15 @@ Gate: `assertPlatformStaffActor`
 - `GET /v1/billing-failures`
 - `POST /v1/billing-failures/acknowledge`
 - `POST /v1/billing-failures/unacknowledge`
+
+## every machine this installation runs on, its volumes, its stacks and the host operations an operator may ask for — an API key is NEVER platform staff, and there is no per-tenant equivalent: a customer has no question about our hardware
+
+Gate: `assertPlatformStaffActor`
+
+- `GET /v1/boxes`
+- `GET /v1/boxes/{…}`
+- `GET /v1/boxes/{…}/commands`
+- `POST /v1/boxes/{…}/commands`
 
 ## the ledger scopes to a person and an API key has none — `request.user` is assigned only on the two session branches of the auth middleware, so a key-authenticated caller is answered 401 from inside the handler. Per-run attribution for machine callers is GET /v1/runs/{runId}/spend; the wallet is GET /v1/credits/balance, which a key CAN read
 
