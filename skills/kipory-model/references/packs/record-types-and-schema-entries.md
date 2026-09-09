@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 1e228431bd0e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a5020e2fbc4b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
@@ -500,6 +500,102 @@ indistinguishable from a save that changed everything you intended.
 It runs the save's own decision phase rather than a description of it, so an answer here cannot
 disagree with the write. **EDITOR**, and a POST: the body is three documents, and the question is
 what YOUR save would do.
+
+## Identity — the field that says two records are the same thing
+
+A record type may declare a **natural key**: one field of the submitted payload that identifies the
+thing the record stands for. `externalId`
+
+<!-- field-ok: externalId — a field an operator authored on their own shape, named here as the
+     worked example this whole section runs on; the platform declares no such field --> on a post, a
+
+canonical URL on a bookmark, an ISBN on a book. Declare one and the **database** refuses a second
+record of that type carrying the same value.
+
+⛔ **It is identity, not a reference.** It does not point at another record — it says which thing in
+the world this one is. Two writes carrying the same value are two claims about one thing, so the
+second is refused rather than converged: converging would discard the incoming payload, overwriting
+would discard the stored one. An edit to an existing record goes through `entity.update`.
+
+```
+PUT  /v1/record-types/{id}/natural-key            { "field": "externalId" }   declare
+PUT  /v1/record-types/{id}/natural-key            { "field": null }           retract
+POST /v1/record-types/{id}/natural-key-preview    { "fields": [...] }         ask first
+```
+
+### Declaring is a promise about the data you already have
+
+⛔ **It is not a configuration edit, which is why it is not part of the PATCH.** Declaring verifies
+every existing record, stamps them all, and persists the declaration — in ONE transaction. A record
+that cannot supply the field, or a value two records share, refuses the whole thing with **409
+`RECORD_TYPE_NATURAL_KEY_UNSATISFIED`**, listing the offending values so you can act on them. Nothing
+partial lands.
+
+The backfill is the point: without it the constraint would cover only future writes, and a
+pre-existing duplicate would sit permanently under a key claiming uniqueness.
+
+⚠️ **Retracting CLEARS the stamps.** Leaving them would keep constraining a type whose configuration
+no longer declares a key — a later create failing against a rule nobody can see.
+
+### Ask before you declare: `POST /v1/record-types/{id}/natural-key-preview`
+
+Send the fields you are considering and get back, for each one, the verdict the declaration would
+reach — measured against every record the type has, writing nothing.
+
+```json
+{
+  "declared": null,
+  "examined": 1240,
+  "candidates": [
+    {
+      "field": "externalId",
+      "ok": true,
+      "distinct": 1240,
+      "duplicates": 0,
+      "unusable": 0,
+      "conflicts": [],
+      "unusableSample": []
+    },
+    {
+      "field": "title",
+      "ok": false,
+      "distinct": 1238,
+      "duplicates": 2,
+      "unusable": 0,
+      "conflicts": [{ "value": "Untitled", "recordIds": ["rec_1", "rec_2"] }],
+      "unusableSample": []
+    }
+  ]
+}
+```
+
+- **`duplicates` counts VALUES, not the records sharing them.** Two values held by fifty records
+  each is `duplicates: 2` — the shape of the problem, not its weight.
+- **`unusable` is a record that cannot supply the field at all**: absent, not a string, empty, or
+  over the stamp's length. `unusableSample` carries the reason per record.
+- **`conflicts` and `unusableSample` are SAMPLES, capped at five each way** — five values, five
+  records per value. The counts beside them are exact.
+- **A candidate that would be refused is part of a 200.** `ok: false` is the answer; the point of
+  asking is to find out.
+- The whole field list is measured against ONE read of the records, so ask about all of them at once
+  rather than one per keystroke. **EDITOR**, and a POST: the question is what YOUR declaration would
+  do, and a caller who cannot declare has none to ask about.
+
+### The rules a key must satisfy
+
+- **One field, top-level, of the submitted payload.** Not a dot-path: nesting would make the stamped
+  value depend on a traversal rule that has to stay stable forever. Not a composite, for the same
+  reason applied to a separator.
+- **The value must be a string, and it is not coerced.** `1` and `"1"` would otherwise be the same
+  record. Max 512 characters.
+- **A record that cannot supply it is REFUSED, never written unconstrained** — the silent exemption
+  is the gap the key exists to close.
+- **Uniqueness is per project and per type**, and on a `USER`-scoped type also **per user**: two
+  people may legitimately hold the same key. A `USER`-scoped record with no user cannot be covered
+  and is refused at declaration time.
+- **The key becomes the record's label** wherever the platform names a row — in the records list, in
+  the files ledger, and as the one field a free-text record search can always look in. A type with
+  no key shows its records by their generated id.
 
 ## The key you author
 

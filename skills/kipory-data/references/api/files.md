@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 87ba7606f60b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: f70ac5c86d2c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Files
 
@@ -12,6 +12,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- |
 | `GET` | [`/v1/files/raw/{token}`](#get-v1-files-raw-token) |  |
 | `GET` | [`/v1/projects/{nodeId}/files`](#get-v1-projects-nodeid-files) |  |
+| `DELETE` | [`/v1/projects/{nodeId}/files/{fileId}`](#delete-v1-projects-nodeid-files-fileid) |  |
 | `POST` | [`/v1/projects/{nodeId}/files/{fileId}/confirm`](#post-v1-projects-nodeid-files-fileid-confirm) |  |
 | `POST` | [`/v1/projects/{nodeId}/files/{fileId}/detach`](#post-v1-projects-nodeid-files-fileid-detach) |  |
 | `GET` | [`/v1/projects/{nodeId}/files/{fileId}/download-url`](#get-v1-projects-nodeid-files-fileid-download-url) |  |
@@ -58,6 +59,21 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the page OLDER than this one. NULL means there is nothing older — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page NEWER than this one. NULL means this is the newest page, which is the only honest way for a client to know it is at the top: it cannot infer that from a full page. |
 
+### `DELETE /v1/projects/{nodeId}/files/{fileId}`
+
+Delete one of the project's files: the row, and its bytes when no other file row still names them. Refuses (409) a file a flow produced.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `fileId` | `string` | yes | The `RecordFile` row id. |
+
+**Response `204`**
+
+_No fields._
+
 ### `POST /v1/projects/{nodeId}/files/{fileId}/confirm`
 
 **Path parameters**
@@ -89,7 +105,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The file that was released. |
-| `record` | `"null"` | yes | Always null after a detach — echoed so a client can update its row in place. The BYTES are untouched and the file stays in the library; this is not a delete, and there is no delete. |
+| `record` | `"null"` | yes | Always null after a detach — echoed so a client can update its row in place. The BYTES are untouched and the file stays in the library. To remove it entirely, DELETE the file itself. |
 
 ### `GET /v1/projects/{nodeId}/files/{fileId}/download-url`
 

@@ -1,17 +1,17 @@
 ---
 name: kipory-operate
-description: Run a Kipory project unattended — schedules that fire a flow on a cron, the event registry a flow emits into and clients subscribe to, namespaced runtime config that tunes a flow without an edit, and the spend reads that say what it all cost and what will stop it. Use once a flow works and should run on a clock, report progress, or be adjustable without redeployment; when the user asks what a project spent; or when a call came back 402. Not for diagnosing a single bad run (that is diagnose) and not for the credentials a flow needs (that is secrets).
+description: Run a Kipory project unattended — schedules that fire a flow on a cron, triggers that run a flow whenever a matching event is recorded, the event registry a flow emits into and clients subscribe to, namespaced runtime config that tunes a flow without an edit, and the spend reads that say what it all cost and what will stop it. Use once a flow works and should run on a clock, react to something that happened, report progress, or be adjustable without redeployment; when the user asks what a project spent; or when a call came back 402. Not for diagnosing a single bad run (that is diagnose) and not for the credentials a flow needs (that is secrets).
 license: MIT
 ---
 
 # Operate a project
 
-Four capabilities that only matter once something works, and one fact most people get wrong about money: **the credit balance is a project-host read.** `GET /v1/credits/balance` answers on the product's own host and is a plain 404 on the api host, where everything else in this skill lives. What you spent, per run and per project, is on the api host.
+Five capabilities that only matter once something works, and one fact most people get wrong about money: **the credit balance is a project-host read.** `GET /v1/credits/balance` answers on the product's own host and is a plain 404 on the api host, where everything else in this skill lives. What you spent, per run and per project, is on the api host.
 
 ## Before the first call
 
-- Fetch the pack for the capability you touch: `references/packs/schedules.md`, `events.md`, `project-config.md`, `credits.md`.
-- `GET /v1/bootstrap?project={nodeId}&sections=surfaces,events,project` returns every schedule, every event category and type, the route enablement and the config namespaces in one call.
+- Fetch the pack for the capability you touch: `references/packs/schedules.md`, `triggers.md`, `events.md`, `project-config.md`, `credits.md`.
+- `GET /v1/bootstrap?project={nodeId}&sections=surfaces,events,project` returns every schedule, every trigger, every event category and type, the route enablement and the config namespaces in one call.
 - Writes here are EDITOR; deletes, and the project settings that hold the spend ceiling, are ADMIN.
 
 ## Schedules
@@ -29,6 +29,22 @@ Inputs are keyed by input slot; `overlapPolicy` is `skip` or `allow`. The next-r
 
 Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked` — its `invocation` with `id`, `status` and a `failure` naming the step and phase that broke, and `creditCost` where null is not zero. **The invocation's `id` is the run id**: take it to `GET /v1/runs/{runId}/steps` for the ordered, never-sampled step log (`kipory-diagnose`).
 
+## Triggers
+
+```
+POST /v1/triggers                          { project, key, category, event, flowId, inputs, filter?, overlapPolicy?, name? }
+GET  /v1/triggers?project={nodeId}&expand=lastRun,drift,flowLabel
+PATCH /v1/triggers/{id}                    { version, … } — inputs REPLACE; key is immutable and not a body field
+POST /v1/triggers/{id}/disable             { version }
+POST /v1/triggers/{id}/enable              { version } — reacts from now; nothing is caught up
+GET  /v1/triggers/{id}/runs?limit=50       every decision — fired, filtered, skipped, blocked — with its reason and run id
+POST /v1/triggers/{id}/replay              { eventId } — re-run one decision as a new attempt
+GET  /v1/triggers/{id}/sample              the newest logged event the trigger would accept, shaped as the `event` slot
+GET  /v1/project-events?project={nodeId}   the durable event log itself, newest first, 30 days
+```
+
+A trigger fires a flow every time a matching event is **recorded** in the project's event log. Only a **durable**, non-`run`-scoped event type is logged, so the write refuses a selector on any other kind and names the thing to change. The flow receives the envelope in a reserved `event` slot and `{ triggerId, key, triggerRunId, replay }` in a reserved `trigger` slot — neither belongs in `inputs`; everything else the flow declares does. A `filter` is a step condition over two slots, `event` (the envelope) and `data` (its payload); an event it rejects is recorded as `filtered`, never dropped.
+
 ## Events
 
 ```
@@ -37,7 +53,7 @@ POST /v1/event-types             { category, eventKey, label, defaultScope, payl
 GET  /v1/event-types?category={categoryId}
 ```
 
-A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload shape is optional; omit it and the event is a marker. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`.
+A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload shape is optional; omit it and the event is a marker. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`; another flow reacts through a trigger, which needs the type to be `durable`.
 
 ## Project config
 
@@ -71,6 +87,9 @@ A machine caller has no ledger of its own: `GET /v1/credits/events` scopes to a 
 - **A schedule's `key` never changes** and is not on the patch body — sending it is a 422. Rename through `name`; a blank string is a 422, `null` clears.
 - **`runs` is a cap, not a page.** `limit` goes to 200, there is no cursor, and `truncated` is the only word you get about what was cut.
 - **Choose `overlapPolicy` deliberately.** `allow` on a flow slower than its interval runs copies of itself concurrently.
+- **A trigger never catches up.** Enabling one, or creating one, reacts to events recorded from then on; earlier events are in `GET /v1/project-events` and only a decision the trigger already took can be replayed. There is no backfill, on purpose.
+- **A trigger's `skip` overlap judges "still running" by its last fire's run status.** A run stuck in `PROCESSING` skips every later event of that type until it terminates; the ledger shows the rows. `allow` on a flow that emits its own trigger type runs until the platform's chain-depth cap blocks it, and the ledger says `blocked` with why.
+- **A trigger's filter reads a payload field as `{ "slot": "data", "path": "source" }`** — `path` is ONE key, never a dotted walk, which is why the payload is its own slot. Shape the payload in the flow's first step, not in the filter.
 - **Event types are scoped by their category's row id, not by the project** — the one addressing surprise in this resource, and it fails looking like a missing project. Fetch categories first.
 - **Seeded categories and types cannot be deleted (409) but can be patched.** A platform-installed event's label, scope and payload binding are all changeable, and nothing stops you.
 - **A type's `status` does not gate emitting.** A retired type still fires; removing the emit step is the way to stop it. An event type carries two version numbers: `payloadVersion` for its shape and `version` for the lock.
@@ -80,13 +99,14 @@ A machine caller has no ledger of its own: `GET /v1/credits/events` scopes to a 
 
 ## References
 
-| File                                                                           | What it answers                                                                             |
-| ------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------- |
-| `references/packs/schedules.md`                                                | time-triggered runs and their history                                                       |
-| `references/packs/events.md`                                                   | the registry, emitting, the difference between a run signal and a bus signal                |
-| `references/packs/project-config.md`                                           | tunables typed by a bound shape                                                             |
-| `references/packs/credits.md`                                                  | the balance, the ledger, and the second gate a client that renders only `status` never sees |
-| `references/api/schedules.md` · `events.md` · `project-config.md` · `spend.md` | every route's fields                                                                        |
+| File                                                                                           | What it answers                                                                             |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
+| `references/packs/schedules.md`                                                                | time-triggered runs and their history                                                       |
+| `references/packs/triggers.md`                                                                 | event-triggered runs, the log they read, and the ledger of every decision                   |
+| `references/packs/events.md`                                                                   | the registry, emitting, the difference between a run signal and a bus signal                |
+| `references/packs/project-config.md`                                                           | tunables typed by a bound shape                                                             |
+| `references/packs/credits.md`                                                                  | the balance, the ledger, and the second gate a client that renders only `status` never sees |
+| `references/api/schedules.md` · `triggers.md` · `events.md` · `project-config.md` · `spend.md` | every route's fields                                                                        |
 
 ## Then
 

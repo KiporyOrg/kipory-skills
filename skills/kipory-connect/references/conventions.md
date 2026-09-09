@@ -33,7 +33,7 @@ Read → `VIEWER`. Design mutation → `EDITOR`. Destructive, structural or **sp
 ## Optimistic locking
 
 - A PATCH carries the `version` you last read; a stale one is a **409** naming the captured and current versions. Re-read and reconcile; never blind-retry.
-- `version` is **required** wherever a PATCH body accepts it: skills (`capturedVersion`), api-endpoints, facets, schedules (patch, enable, disable), event categories and types, schema entries, project config (when the namespace exists), flow test cases, eval suites and cases, telegram subscriptions.
+- `version` is **required** wherever a PATCH body accepts it: skills (`capturedVersion`), api-endpoints, facets, schedules (patch, enable, disable), event categories and types, schema entries, project config (when the namespace exists), flow test cases, eval suites and cases, triggers (patch, enable, disable) and sources (patch, enable, disable).
 - Two resources publish a `version` that is **not** a lock: an embedding profile's `version` is its geometry generation and its PATCH refuses one; a record's `version` is owned by a database trigger and there is no record PATCH.
 - Resources with **no lock at all**: the flow PATCH, project settings, auth config, managed email addresses, route enablement, nodes. Last writer wins.
 - Every write body is **strict**: an unknown key, including `version` where none is accepted, is a 422.

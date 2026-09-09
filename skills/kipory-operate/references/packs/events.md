@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 1e228431bd0e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a5020e2fbc4b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Events
 
@@ -26,6 +26,11 @@ subscribe on the bus, depending on scope.
   caller you have made a mess for.
 - **Against a schedule.** Emit an event when the trigger is _something happening_. Use a
   schedule (capability pack `schedules` — `GET /v1/capability-packs/schedules`) when the trigger is the clock.
+- **To run another flow.** An event is the decoupled way: the emitting flow raises it and a
+  trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) runs the reacting flow, with neither naming the other. That needs the type
+  to be **durable** and not `run`-scoped, because a trigger reads the project's event log rather
+  than the bus. A `flow.invoke` step is the coupled way, and the right one when the second flow is
+  really a step of the first.
 
 ### Scope decides the transport, so choose it by who needs to hear it
 
@@ -116,8 +121,9 @@ the user you mean as data.
 - ⚠️ **A bus event from a run that FAILS is never published at all.** Because the emit is
   transactional, the change set is discarded on failure and the event goes with it. So a bus event
   is not a progress signal for a run in flight: only `scope: "run"` is live during execution. The
-  per-type `durable` and `delivery` flags remain stored and unread — they are future seams, not the
-  mechanism described here.
+  per-type `durable` flag is read on that path — a durable emission is written to the project's
+  event log before the publish, and that row is what a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) consumes. It changes
+  nothing for a streaming subscriber: the bus is still at-most-once to whoever is connected.
 - **The payload version moves on its own.** It increments both when you re-point a type at a
   different shape _and_ when someone edits that shape in place — which bumps every type bound to
   it. It is not the optimistic-lock version, and it counts per event type, so two types sharing a
@@ -133,5 +139,6 @@ the user you mean as data.
 
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the subscription action that
   consumes bus-scoped events.
+- Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — running a flow because a durable event was recorded.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — where the emit node lives.
 - Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — authoring a payload shape.

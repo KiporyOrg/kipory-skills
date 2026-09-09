@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 1e228431bd0e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a5020e2fbc4b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -175,7 +175,7 @@ default on purpose — adopting rewrites the published request/response contract
 that is your decision to make explicitly — but taking it is one call, where unbinding and rebinding
 by hand leaves the route bound to nothing in between.
 
-Other things bind a flow without capturing its shape: a schedule, a Telegram subscription, a
+Other things bind a flow without capturing its shape: a schedule, a trigger, a
 facet resolver. None of them blocks a signature change, because none froze a copy
 to go stale. What a schedule needs is that its stored inputs still cover the flow's declared input
 slots, and that is reported live on the schedule itself (`uncoveredInputSlots`) and re-checked when
@@ -544,7 +544,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   item the same way.
 - **A flow cannot be deleted while another flow invokes it, or while anything live points at it**
   (`FLOW_HAS_DEPENDENTS` — ⚠️ a **wider** set than the signature guard's, not the same one: five
-  kinds, adding schedules, Telegram subscriptions and facet resolvers to the endpoint and
+  kinds, adding schedules, triggers and facet resolvers to the endpoint and
   record-type bindings that freeze a shape. Those three bind a flow by id and capture nothing, so
   they cannot go stale on a signature edit — but they very much break on a delete). None of those is a
   database-level foreign key, so this check is the only thing standing between the delete and a

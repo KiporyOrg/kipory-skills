@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 1e228431bd0e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a5020e2fbc4b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Schedules
 
@@ -17,9 +17,10 @@ The fire is attributed to the **project**, not to a person, and billed to the pr
 
 - **Against an endpoint:** use an endpoint when an outside caller decides _when_. Use a schedule
   when the clock decides. Because there is no caller, every input has to be fixed in advance.
-- **Against an event subscription:** a schedule fires on wall-clock time; a subscription fires
-  when something happens. "Every ten minutes" is a schedule. "Whenever a record of this type
-  appears" is an event — model the producer to emit one rather than polling for it on a timer.
+- **Against a trigger:** a schedule fires on wall-clock time; a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) fires when
+  something happens. "Every ten minutes" is a schedule. "Whenever a record of this type appears"
+  is an event — model the producer to emit one and bind a trigger to it rather than polling for it
+  on a timer.
 
 Polling on a schedule what an event could tell you is the most common way to spend money on
 nothing.
@@ -183,4 +184,5 @@ schedule disabled across a window still fires no backlog — that is a different
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the flow being bound, and why its signature is locked
   while you are bound to it.
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the caller-triggered sibling.
-- Events (capability pack `events` — `GET /v1/capability-packs/events`) — when the trigger is something happening rather than a time.
+- Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — when the trigger is something happening rather than a time.
+- Events (capability pack `events` — `GET /v1/capability-packs/events`) — what a trigger listens to.

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 354457218db3b62b5d6c80c656c49e89d091f62d77a5a0d5ea4c102265fb04ac · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: d072dbbaba4c884693c307f89e8caf652dda27202fb703e86af59b78f690b003 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `image.resize` — Resize an image
 
@@ -46,7 +46,7 @@ Output:
 
 ```
 {
-  "key": "items/usr_ck.../2026/05/vacation-2026-04-12-resized.jpg",
+  "key": "files/user/usr_ck.../2026/05/vacation-2026-04-12-resized.jpg",
   "name": "vacation-2026-04-12-resized.jpg",
   "mime": "image/jpeg"
 }
@@ -68,7 +68,7 @@ Output:
 
 ```
 {
-  "key": "items/usr_ck.../2026/05/screenshot-2026-05-09-resized.webp",
+  "key": "files/user/usr_ck.../2026/05/screenshot-2026-05-09-resized.webp",
   "name": "screenshot-2026-05-09-resized.webp",
   "mime": "image/webp"
 }

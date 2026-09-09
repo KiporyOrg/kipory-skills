@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 87ba7606f60b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: f70ac5c86d2c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Runs
 
@@ -15,6 +15,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/runs/{runId}`](#get-v1-runs-runid) |  |
 | `GET` | [`/v1/runs/{runId}/change-set`](#get-v1-runs-runid-change-set) |  |
 | `GET` | [`/v1/runs/{runId}/flow-snapshots`](#get-v1-runs-runid-flow-snapshots) |  |
+| `POST` | [`/v1/runs/{runId}/retries`](#post-v1-runs-runid-retries) |  |
 | `GET` | [`/v1/runs/{runId}/steps`](#get-v1-runs-runid-steps) |  |
 | `GET` | [`/v1/runs/{runId}/steps/stream`](#get-v1-runs-runid-steps-stream) |  |
 
@@ -50,6 +51,7 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | `after` | `string` | no | Read the page of OLDER runs — pass the `nextCursor` you were given. An unparseable cursor is treated as absent and returns the first page, rather than as a bound of zero. |
 | `before` | `string` | no | Read the page of NEWER runs — pass the `prevCursor` you were given. ⛔ NOT VALID WITH `after`: the two name opposite ways from one row, so a request carrying both is a client bug and is answered 422 rather than resolved by precedence — a page picked silently would look plausible and hide the fault. |
 | `limit` | `integer` | no | Rows per page. Defaults to 50, capped at 100. |
+| `flow` | `string` | no | Only runs whose ROOT flow has this slug — the flow's address, the same one `/{project}/flows/{slug}` takes. A slug the project does not have is a 404, never an empty page: an empty page would say the flow has not run, which is a different claim. ⚠️ A run whose flow was since deleted matches nothing here, since it has no slug to match. Filters inside the same ordered walk the page uses; it does not change the cursor. |
 | `window` | `"24h" \| "7d" \| "30d"` | no | Narrow to runs STARTED in this window. ⭐ THE SAME VOCABULARY the calls, ingestion and usage surfaces take, so a drill-through from one of them carries its window across without a translation table and a reader who narrowed there is never silently re-widened here. ⚠️ IT FILTERS, IT DOES NOT ORDER: the page is still a keyset on `seq`, and a bound on `at` does not change which column the cursor walks. Ranges on the OPENER's `at` — when the run started — which is what a reader means by a run being 'in' a window. |
 
 **Response `200`**
@@ -110,6 +112,20 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | `runId` | `string` | yes | The run these snapshots belong to. The same heterogeneous id space `GET /v1/runs/{runId}/steps` and `/change-set` take — a record attempt id, a flow run's request id, or an endpoint invocation id. |
 | `snapshots` | `object[]` | yes | One entry per flow the run reached and stored, ordered by `flowId`. ⚠️ May be SHORTER than the run's `flowVersions` map, and the gap is meaningful: a system flow contributes a digest and no body, and a snapshot reaped past its window leaves the same shape. `missing` reports the difference rather than leaving it to be inferred. |
 | `missing` | `string[]` | yes | Flow ids the run's log names that this response carries no body for — a platform-owned flow, or one whose snapshot was reaped. ⛔ NOT an error and NOT an empty graph: a reader that silently drew only `snapshots` would report a run as having executed fewer flows than it did. |
+
+### `POST /v1/runs/{runId}/retries`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `runId` | `string` | yes | The endpoint run to run again. |
+
+**Response `202`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `runId` | `string` | yes | The NEW run's id — an invocation id, so `GET /v1/runs/{runId}` and its siblings answer for it once its opening frame is written. |
 
 ### `GET /v1/runs/{runId}/steps`
 

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 1e228431bd0e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a5020e2fbc4b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability packs
 
@@ -58,6 +58,8 @@ quietly working around it.
 | Link records to each other with typed edges                             | Relations (capability pack `relations` — `GET /v1/capability-packs/relations`)                                           |
 | Read a record's edges, or state one by hand                             | Relations (capability pack `relations` — `GET /v1/capability-packs/relations`)                                           |
 | Run a flow on a clock                                                   | Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)                                           |
+| Run a flow when an event is recorded                                    | Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)                                             |
+| Start a flow from something outside it — a channel, a webhook, a table  | Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)                                               |
 | Emit progress or fan-out signals from a flow, or subscribe to them      | Events (capability pack `events` — `GET /v1/capability-packs/events`)                                                 |
 | Snapshot a flow before a risky change, and roll back                    | Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`)                             |
 | Store what "working" means and re-check it after every edit             | Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`)                               |
@@ -91,6 +93,11 @@ quietly working around it.
   exist.
 - **Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)** — time-triggered flow runs, run history, and why the next-run time
   you are given is one you can hold the platform to.
+- **Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)** — event-triggered flow runs: the durable event log, the selector and
+  filter, the two reserved slots, replay, and why a trigger never catches up.
+- **Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)** — what writes events into your log from outside your flows: the
+  provider registry, the config each one takes, the vocabulary a first source seeds, and why a
+  source never names a flow.
 - **Events (capability pack `events` — `GET /v1/capability-packs/events`)** — the registry, emitting from a flow, and the difference between a signal
   scoped to one run and one on the bus.
 - **Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`)** — atomic snapshot and restore; the safety net to take

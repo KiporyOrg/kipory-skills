@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 87ba7606f60b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: f70ac5c86d2c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Record types
 
@@ -18,6 +18,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/record-types/{id}/contract-preview`](#get-v1-record-types-id-contract-preview) |  |
 | `PUT` | [`/v1/record-types/{id}/facets`](#put-v1-record-types-id-facets) |  |
 | `PUT` | [`/v1/record-types/{id}/natural-key`](#put-v1-record-types-id-natural-key) |  |
+| `POST` | [`/v1/record-types/{id}/natural-key-preview`](#post-v1-record-types-id-natural-key-preview) |  |
 | `POST` | [`/v1/record-types/{id}/write-preview`](#post-v1-record-types-id-write-preview) |  |
 
 ### `GET /v1/record-types`
@@ -275,6 +276,28 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `declared` | `string \| null` | yes | The field now declared, or null if it was retracted. |
 | `stamped` | `integer` | yes | Records stamped on declaring, or cleared on retracting. |
+
+### `POST /v1/record-types/{id}/natural-key-preview`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record type's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `fields` | `string[]` | yes | Fields to measure against the existing records. Repeats are answered once. Bounded because each one is verified over every record the type has. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `declared` | `string \| null` | yes | The field declared today, or null when the type declares none. |
+| `examined` | `integer` | yes | Records every candidate below was measured against. |
+| `candidates` | `object[]` | yes | One verdict per field asked about, in the order asked. |
 
 ### `POST /v1/record-types/{id}/write-preview`
 
