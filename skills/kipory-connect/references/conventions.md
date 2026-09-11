@@ -71,7 +71,7 @@ Facets and relation kinds report readiness under `expand=readiness`, from a four
 
 ## Preview is a run
 
-`POST /v1/flows/{id}/preview` executes the flow in full. It bills the project's payer, refuses a suspended one, and **applies its record writes unless you pass `apply: false`** — the dry run still executes every step and discards the sealed change set, readable at `GET /v1/runs/{runId}/change-set` where the run id is the response's `previewSessionId`. What it withholds either way: no vectors are written, emitted events resolve but are never delivered, produced files land in a playground area. Fan-out is capped at 5 branches per node unless you raise `fanOutCap`; the wall clock is 180 seconds. Preview does **not** fill an unproduced required output — it names it in `missingRequiredOutput`; a live invocation fills it with the type's empty value or 502s.
+`POST /v1/flows/{id}/preview` executes the flow in full. It bills the project's payer, refuses a suspended one, and **applies its record writes unless you pass `apply: false`** — the dry run still executes every step and discards the sealed change set, readable at `GET /v1/runs/{runId}/change-set` where the run id is the response's `previewSessionId`. What it withholds either way: no vectors are written, emitted events resolve but are never delivered, produced files land in the preview area (`preview/`, expired after 7 days). Fan-out is capped at 5 branches per node unless you raise `fanOutCap`; the wall clock is 180 seconds. Preview does **not** fill an unproduced required output — it names it in `missingRequiredOutput`; a live invocation fills it with the type's empty value or 502s.
 
 ## Paging
 

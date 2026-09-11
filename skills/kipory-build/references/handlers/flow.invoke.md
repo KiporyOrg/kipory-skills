@@ -44,7 +44,7 @@ Reads `Embed & store in vector DB` → emits `nothing` · 2→0 slots mapped
 Input:
 
 - {"index":0,"value":"currentChunk → text","detail":"into the sub-flow"}
-- {"index":1,"value":"datasetId → namespace","detail":"into the sub-flow"}
+- {"index":1,"value":"collectionId → namespace","detail":"into the sub-flow"}
 
 Back to the parent:
 

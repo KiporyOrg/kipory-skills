@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 116a24886bfa · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 423f5af968c4 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Eval suites
 
@@ -29,8 +29,6 @@ Use a test case for a contract. Use an eval when the answer is a matter of degre
   you they got worse.
 - **Around a prompt edit.** The delta between two runs is the only honest answer to "did that
   help?", and this resource will refuse to give you one when the comparison would lie.
-- **When you have a dataset and want to know what a flow does to it.** ⚠️ Records run through their
-  bound flow for real — if that flow writes, the run writes. See the preview note below.
 
 Do not reach for an eval to check that a flow still runs — that is cheaper, faster and
 deterministic as a test case (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`).
@@ -38,7 +36,7 @@ deterministic as a test case (capability pack `flow-test-cases` — `GET /v1/cap
 ## The sequence
 
 ```
-POST /v1/eval-suites            create — bind the flow (or the dataset)
+POST /v1/eval-suites            create — bind the flow
 POST /v1/eval-cases             add cases: a REQUIRED stable `key`, then inputs, expected
                                 (if any), labels, assertions
 POST /v1/eval-suites/{id}/run   queue a run — 202, the run has NOT happened yet
@@ -153,21 +151,16 @@ project does not define the one it names, or the payload failed its contract. `r
 configuration rather than a broken one. Kipory ships no project configuration, so the event a
 regression announces is one your own project already defines.
 
-## Two kinds of subject
+## The subject
 
-- **Flow inputs** — each case carries an input bag, bound to a flow.
-- **Dataset records** — each case names a record, bound to a dataset whose project and record type
-  select the flow.
+Each case carries an input bag, and the suite binds the flow every case runs through.
 
-⛔ **Both run through the preview engine, and a preview APPLIES its writes.** `apply` defaults to
+⛔ **A suite runs through the preview engine, and a preview APPLIES its writes.** `apply` defaults to
 true and the eval runner does not pass `apply: false`, so a suite over a flow that creates or
 updates records **mutates the very corpus it is measuring** — which also moves the case fingerprint
 and makes the next delta incomparable. Files land in a sandbox prefix and mail is refused; records
 and terms are not isolated. Re-running a suite over a mutating flow is not a safe idempotent act:
-point it at a dataset the flow does not write to, or accept that each run changes the baseline.
-
-⚠️ Dataset-record suites currently work only over one record type, because the preview engine's
-record input is scoped to it.
+measure a flow that does not write, or accept that each run changes the baseline.
 
 ## Two tiers of scorer — reach for the free one first
 
@@ -227,8 +220,8 @@ record or vector data while naming no type; `taxonomy.aggregate` is the one that
 data. Any of them present in the closure is reported in `unattributedHandlerKeys`, which is the
 measured size of the blind spot rather than a silence.
 
-⛔ **`scope: null` means the graph could not be walked** — the suite measures a dataset, names no
-flow, or names a flow the project's library does not hold. It never means "walked and found
+⛔ **`scope: null` means the graph could not be walked** — the suite's flow is not in the project's
+flow library. It never means "walked and found
 nothing"; that answer is a present `scope` with an empty `recordTypeReads`. Exactly one of `scope`
 and `unavailableReason` is ever set.
 

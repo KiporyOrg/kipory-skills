@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 116a24886bfa · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 423f5af968c4 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Facets
 
@@ -171,7 +171,7 @@ the others.
 
 **The node can only write from a flow a record type reaches.** `term.upsert` persists under a
 committing run, and a run only commits when its flow was resolved FROM a record type — live ingest
-and the playground's commit gesture both work that way, and nothing else does. A flow no record type
+works that way, and nothing else does — flow preview never commits. A flow no record type
 reaches, directly or through any depth of `flow.invoke`, runs its `term.upsert` and discards
 everything, on every run. Saving one warns, because a resolver sub-flow legitimately exists before
 the parent that invokes it.

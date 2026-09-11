@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 8a31334ff890 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 5accba538b04 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 
@@ -166,7 +166,6 @@ Gate: `assertPlatformStaffActor`
 - `GET /v1/queues/{…}`
 - `GET /v1/queues/{…}/jobs`
 - `GET /v1/queues/{…}/jobs/{…}`
-- `POST /v1/queues/{…}/jobs/{…}/retries`
 - `POST /v1/queues/{…}/pause`
 - `POST /v1/queues/{…}/retries`
 - `POST /v1/queues/{…}/runs`

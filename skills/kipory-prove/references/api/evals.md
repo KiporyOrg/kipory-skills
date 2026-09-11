@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 8a31334ff890 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 5accba538b04 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Eval suites, cases and runs
 
@@ -51,8 +51,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `suite` | `string` | yes | Suite to add this case to. |
 | `key` | `string` | yes | Stable identifier you choose. Run-to-run comparison matches on it, so keeping it stable preserves the case's history. |
 | `description` | `string \| null` | no | Why this case exists. Never read by a scorer. |
-| `inputs` | `object \| null` | no | Input values keyed by slot name. Use for a `FLOW_INPUTS` suite. |
-| `recordId` | `string \| null` | no | Record to run against. Use for a `DATASET_RECORDS` suite. |
+| `inputs` | `object \| null` | no | Input values for the suite's flow, keyed by slot name. Required: a case without inputs is refused. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
 | `assertions` | `object[]` | no | Deterministic checks over the output. May be empty — a case graded only by the suite's scorer flows is valid, and so is one graded only by assertions. |
 | `labels` | `string[]` | no | Tags for selecting a subset of cases. |
@@ -66,8 +65,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `suite` | `string` | yes | Suite this case belongs to. |
 | `key` | `string` | yes | Stable identifier you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
-| `inputs` | `object \| null` | yes | Input values for the flow, keyed by slot name. Used when the suite's `subjectKind` is `FLOW_INPUTS`. |
-| `recordId` | `string \| null` | yes | Record this case runs against. Used when the suite's `subjectKind` is `DATASET_RECORDS`. |
+| `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
 | `assertions` | `object[]` | yes | Deterministic checks over the run's output. Free and repeatable, unlike the suite's scorer flows. |
 | `labels` | `string[]` | yes | Tags for selecting a subset of cases. |
@@ -94,8 +92,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `suite` | `string` | yes | Suite this case belongs to. |
 | `key` | `string` | yes | Stable identifier you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
-| `inputs` | `object \| null` | yes | Input values for the flow, keyed by slot name. Used when the suite's `subjectKind` is `FLOW_INPUTS`. |
-| `recordId` | `string \| null` | yes | Record this case runs against. Used when the suite's `subjectKind` is `DATASET_RECORDS`. |
+| `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
 | `assertions` | `object[]` | yes | Deterministic checks over the run's output. Free and repeatable, unlike the suite's scorer flows. |
 | `labels` | `string[]` | yes | Tags for selecting a subset of cases. |
@@ -120,8 +117,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `key` | `string` | no | New stable identifier. Changing it detaches the case from its own history, since comparison matches on this value. |
 | `description` | `string \| null` | no | Why this case exists. Never read by a scorer. |
-| `inputs` | `object \| null` | no | Input values keyed by slot name. |
-| `recordId` | `string \| null` | no | Record to run against. |
+| `inputs` | `object \| null` | no | Input values for the suite's flow, keyed by slot name. Cannot be cleared: a case without inputs is refused. |
 | `expected` | `unknown` | no | What a correct result looks like. |
 | `assertions` | `object[]` | no | Deterministic checks. Replaces the existing list. |
 | `labels` | `string[]` | no | Tags. Replaces the existing list. |
@@ -136,8 +132,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `suite` | `string` | yes | Suite this case belongs to. |
 | `key` | `string` | yes | Stable identifier you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
-| `inputs` | `object \| null` | yes | Input values for the flow, keyed by slot name. Used when the suite's `subjectKind` is `FLOW_INPUTS`. |
-| `recordId` | `string \| null` | yes | Record this case runs against. Used when the suite's `subjectKind` is `DATASET_RECORDS`. |
+| `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
 | `assertions` | `object[]` | yes | Deterministic checks over the run's output. Free and repeatable, unlike the suite's scorer flows. |
 | `labels` | `string[]` | yes | Tags for selecting a subset of cases. |
@@ -230,9 +225,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the project that will own the suite. |
 | `name` | `string` | yes | Display name for the suite. |
 | `description` | `string \| null` | no | Free-text note about what this suite measures. |
-| `subjectKind` | `"FLOW_INPUTS" \| "DATASET_RECORDS"` | yes | What the suite measures. `FLOW_INPUTS` runs a flow against inputs each case supplies. `DATASET_RECORDS` runs it against existing records in a dataset, which also selects the flow. |
-| `flow` | `string \| null` | no | Flow under test. Required when `subjectKind` is `FLOW_INPUTS`, and refused otherwise. |
-| `dataset` | `string \| null` | no | Dataset supplying records. Required when `subjectKind` is `DATASET_RECORDS`, and refused otherwise. |
+| `flow` | `string` | yes | Flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. These are billed model calls; a case's own assertions are free. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | no | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -254,9 +247,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `name` | `string` | yes | Display name of the suite. |
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
-| `subjectKind` | `"FLOW_INPUTS" \| "DATASET_RECORDS"` | yes | What the suite measures. `FLOW_INPUTS` runs a flow against inputs each case supplies. `DATASET_RECORDS` runs it against existing records in a dataset, which also selects the flow. |
-| `flow` | `string \| null` | yes | Flow under test. Set when `subjectKind` is `FLOW_INPUTS`. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
-| `dataset` | `string \| null` | yes | Dataset supplying the records. Set when `subjectKind` is `DATASET_RECORDS`; the dataset also determines which flow runs. |
+| `flow` | `string` | yes | Flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -293,9 +284,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `name` | `string` | yes | Display name of the suite. |
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
-| `subjectKind` | `"FLOW_INPUTS" \| "DATASET_RECORDS"` | yes | What the suite measures. `FLOW_INPUTS` runs a flow against inputs each case supplies. `DATASET_RECORDS` runs it against existing records in a dataset, which also selects the flow. |
-| `flow` | `string \| null` | yes | Flow under test. Set when `subjectKind` is `FLOW_INPUTS`. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
-| `dataset` | `string \| null` | yes | Dataset supplying the records. Set when `subjectKind` is `DATASET_RECORDS`; the dataset also determines which flow runs. |
+| `flow` | `string` | yes | Flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -330,9 +319,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `name` | `string` | no | New display name. |
 | `description` | `string \| null` | no | New free-text note. |
-| `subjectKind` | `"FLOW_INPUTS" \| "DATASET_RECORDS"` | no | What the suite measures. `FLOW_INPUTS` runs a flow against inputs each case supplies. `DATASET_RECORDS` runs it against existing records in a dataset, which also selects the flow. |
-| `flow` | `string \| null` | no | Flow under test. Must be set when `subjectKind` is `FLOW_INPUTS`, and absent otherwise. |
-| `dataset` | `string \| null` | no | Dataset supplying records. Must be set when `subjectKind` is `DATASET_RECORDS`, and absent otherwise. |
+| `flow` | `string` | no | New flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. Replaces the existing list. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | no | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -355,9 +342,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `name` | `string` | yes | Display name of the suite. |
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
-| `subjectKind` | `"FLOW_INPUTS" \| "DATASET_RECORDS"` | yes | What the suite measures. `FLOW_INPUTS` runs a flow against inputs each case supplies. `DATASET_RECORDS` runs it against existing records in a dataset, which also selects the flow. |
-| `flow` | `string \| null` | yes | Flow under test. Set when `subjectKind` is `FLOW_INPUTS`. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
-| `dataset` | `string \| null` | yes | Dataset supplying the records. Set when `subjectKind` is `DATASET_RECORDS`; the dataset also determines which flow runs. |
+| `flow` | `string` | yes | Flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -406,9 +391,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `suiteId` | `string` | yes | The suite this readiness report describes. |
-| `subjectFlowId` | `string \| null` | yes | The flow whose graph was walked, or null when the suite names none. |
+| `subjectFlowId` | `string` | yes | The flow the suite names — the root of the walk. |
 | `scope` | `object \| null` | yes | What the subject's graph touches, or NULL when it could not be walked — never null to mean 'walked and found nothing'. Exactly one of this and `unavailableReason` is set. |
-| `unavailableReason` | `string \| null` | yes | Why there is no report, in a sentence for the operator: the suite measures a dataset, names no flow, or names a flow the project's library does not hold. Null when `scope` is present. |
+| `unavailableReason` | `string \| null` | yes | Why there is no report, in a sentence for the operator: the suite names a flow the project's library does not hold. Null when `scope` is present. |
 
 ### `POST /v1/eval-suites/{id}/run`
 

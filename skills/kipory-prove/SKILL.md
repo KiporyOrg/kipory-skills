@@ -53,7 +53,7 @@ Scorers are **flows**, not a vocabulary: `scorerFlowIds` names them, and each sc
 - **Two outcome vocabularies for one subject.** A test-case result is `passed | failed | invalid | not-run`; an eval case's is `scored | errored | invalid | not-run | unknown`. `errored` is not a low score and `invalid` is not a failure.
 - **There is no content-equality assertion**, deliberately. Shape and structure only; the `jsonata` kind is the escape hatch, validated at save time, and a non-boolean result fails rather than coercing truthy. It inherits the sandbox that bans `$now`, `$millis`, `$random`, `$shuffle`.
 - **The project-wide trend is capped at 20 runs**, because it is multiplied by the suite count; the per-suite trend allows 100.
-- **There is no datasets API.** A suite's `dataset` subject exists on the wire, but nothing creates or lists one; bind a flow.
+- **A suite measures one flow.** Every suite binds a `flow`, and every case carries its own inputs; there is no record-set subject.
 - **Do not skip this because the project is small.** The assertions are the only part of a design that survives a later rewrite.
 
 ## Before a risky edit
