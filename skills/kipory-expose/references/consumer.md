@@ -21,7 +21,7 @@ Three, resolved in this order from one hook:
 
 An `Authorization` header present but not `Bearer …` is an immediate 401 with no fall-through to the cookie. A session's user must still be active and a member of the project on every request; a key has no such third party.
 
-A VIEWER principal — session or key — is refused on any non-GET endpoint not marked `readOnly`: 403 `Your role is read-only for this organization`. A key is VIEWER unless a role was asked for at mint.
+A VIEWER principal — session or key — is refused on any call that counts as a write: 403 `Your role is read-only for this organization`. An async invoke or a DELETE always counts; any other GET never does; anything else does when the endpoint's bound flow reaches a step that changes data — a handler that writes, an event emitted beyond the run, or a facet resolution. The endpoint's `access` states which. A key is VIEWER unless a role was asked for at mint.
 
 ## Three shapes of answer
 

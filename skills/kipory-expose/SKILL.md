@@ -28,7 +28,7 @@ PATCH /v1/api-endpoints/{id}   { version, contractConfig, actionConfig }        
 DELETE /v1/api-endpoints/{id}                                                    the only off switch — there is no disable
 ```
 
-**`contractConfig`** — `method` (GET, POST, PATCH or DELETE; no PUT), `path` (starts `/v1/`, literal segments or one `{param}` per segment, no `_` first segment), `params` (each `in: path | query`, `type: string`, `required`), `successStatus` (default 200; **async needs 202**), `readOnly?`.
+**`contractConfig`** — `method` (GET, POST, PATCH or DELETE; no PUT), `path` (starts `/v1/`, literal segments or one `{param}` per segment, no `_` first segment), `params` (each `in: path | query`, `type: string`, `required`), `successStatus` (default 200; **async needs 202**). There is no read-only flag — see below.
 
 **`actionConfig.kind`** — one of three, and the method is decided by it:
 
@@ -49,7 +49,7 @@ The endpoint read returns `invokeUrl`, the project-host URL with its `{param}` p
 - **Every semantic refusal on save is one 422 with a joined message.** The per-rule codes never reach the wire; do not branch on them. A path collision or duplicate key is a 409 `CONFLICT`, distinguished only by the suffix in the message.
 - **`successStatus` defaults to 200 and async demands 202.** Omitting it on an async endpoint is a 422 naming the number, not the field. `execution` has no default. `deltaSlot` must be sent, even as `null`.
 - **A path parameter name is letters and digits only** — `{userId}` yes, `{user_id}` no — even though the endpoint key may carry dots and hyphens.
-- **`readOnly: true` is refused on GET and DELETE and with `async`**, because accepting an async invocation persists a row and enqueues billable work.
+- **There is no read-only flag to set; who may call is derived.** An async invoke or a DELETE is a write; any other GET is a read; anything else is a write when its bound flow reaches a step that changes data — a handler that writes, an event emitted beyond the run (it can start triggers), or a facet resolution. An async invoke cannot be saved on GET. Every endpoint read carries `access`, which says which — and a contract that still carries the old read-only key is a 422.
 - **`shadowedBy: null` is a verdict, not unknown**, and per-project route enablement does not affect it: a disabled coded group 404s by hook but its route stays registered and still wins the match.
 - **A coded route shipped later kills your endpoint with no error anywhere.** The save-time check is half the guarantee; re-read with `expand=shadowed` after a deployment moves.
 - **Route enablement toggles coded route groups, not endpoints.** `POST /v1/route-enablement { project, group, enabled }`. Only `auth`, `account`, `usage`, `files` and `docs` are toggleable; the group owns its whole top-level segment, so disabling `account` also kills any endpoint you authored under `/v1/me/…`, and disabling `usage` takes the credit balance your product reads. The last group cannot be turned off; a change takes up to 30 seconds and is not a security boundary.
@@ -58,7 +58,7 @@ The endpoint read returns `invokeUrl`, the project-host URL with its `{param}` p
 - **A sync timeout (504) abandons the work — it keeps running and may still write.** Retrying without an `Idempotency-Key` can double-apply.
 - **The 202's `statusPath` is relative.** Join it against the project host, not the api host.
 - **A malformed stored auth config re-enables Google sign-in.** The read reports `malformed: true` and nothing else does; treat it as urgent.
-- **A VIEWER key on a non-GET, non-`readOnly` endpoint is a 403** indistinguishable from a VIEWER session's — and a default key is VIEWER.
+- **A VIEWER key making a call that counts as a write is a 403** indistinguishable from a VIEWER session's — and a default key is VIEWER. Read the endpoint's `access` before handing a VIEWER key to a caller.
 - **`GET /v1/api-endpoints/{id}` on a row whose config no longer parses is a 500**, not a partial body; only the list degrades into `unreadable`.
 
 ## References

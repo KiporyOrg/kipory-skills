@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 93e75142d106 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 8a31334ff890 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Dynamic endpoints
 
@@ -53,6 +53,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `contractConfig` | `object` | yes | What the endpoint ACCEPTS: method, path template, declared parameters. |
 | `actionConfig` | `object` | yes | What the endpoint DOES when called — which flow it runs, how its inputs are bound, and whether it answers synchronously or streams. |
 | `invokeUrl` | `string \| null` | yes | COMPUTED, read-only. Absolute URL the endpoint is served at — the project's dynamic plane (https://{subdomain}.<env-host>{path}), NOT this design API's host. Path templates keep their {param} placeholders. null when the deployment has no derivable public host (local dev). |
+| `access` | `object` | yes | COMPUTED, read-only. Who may call the endpoint, derived on every read from its method and its bound flow's handlers — the same decision the dispatcher makes on every call. Never stored, never writable. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -84,6 +85,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `contractConfig` | `object` | yes | What the endpoint ACCEPTS: method, path template, declared parameters. |
 | `actionConfig` | `object` | yes | What the endpoint DOES when called — which flow it runs, how its inputs are bound, and whether it answers synchronously or streams. |
 | `invokeUrl` | `string \| null` | yes | COMPUTED, read-only. Absolute URL the endpoint is served at — the project's dynamic plane (https://{subdomain}.<env-host>{path}), NOT this design API's host. Path templates keep their {param} placeholders. null when the deployment has no derivable public host (local dev). |
+| `access` | `object` | yes | COMPUTED, read-only. Who may call the endpoint, derived on every read from its method and its bound flow's handlers — the same decision the dispatcher makes on every call. Never stored, never writable. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -117,6 +119,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `contractConfig` | `object` | yes | What the endpoint ACCEPTS: method, path template, declared parameters. |
 | `actionConfig` | `object` | yes | What the endpoint DOES when called — which flow it runs, how its inputs are bound, and whether it answers synchronously or streams. |
 | `invokeUrl` | `string \| null` | yes | COMPUTED, read-only. Absolute URL the endpoint is served at — the project's dynamic plane (https://{subdomain}.<env-host>{path}), NOT this design API's host. Path templates keep their {param} placeholders. null when the deployment has no derivable public host (local dev). |
+| `access` | `object` | yes | COMPUTED, read-only. Who may call the endpoint, derived on every read from its method and its bound flow's handlers — the same decision the dispatcher makes on every call. Never stored, never writable. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |

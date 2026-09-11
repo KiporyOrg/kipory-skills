@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a5020e2fbc4b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 116a24886bfa · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Anatomy of a dynamic endpoint
 
@@ -34,6 +34,10 @@ flow, and confusing them produces a 404 that looks like the endpoint was never m
 ⭐ **Never reconstruct the call URL by hand.** Every endpoint read carries a computed, read-only
 `invokeUrl` — the absolute dynamic-plane URL. Use it. ⚠️ It is `null` on a deployment with no
 derivable public host (bare local dev), so handle that arm rather than sending the literal.
+
+Every read also carries a computed, read-only `access`: whether a VIEWER-level caller may make the
+call, whether the method or the bound flow decided that, and which handlers in the flow write. It
+is derived on each read from the same rule the write gate applies — never stored, never writable.
 
 ## The one write-shape rule people get wrong
 
@@ -87,8 +91,12 @@ A coded route occupies its path on **every** host, including one where it answer
 project has disabled, or a management-plane group addressed on a project subdomain, is still a
 registered route and still wins the match. So "it 404s here" is never a reason to author onto it.
 
-There is also a flag marking an endpoint read-only, which is what lets a non-GET method skip the
-write-permission gate.
+There is **no read-only flag to set.** Whether a VIEWER-level caller may make a call is the
+platform's decision, not a declaration: an asynchronous invoke and a DELETE are writes; any other
+GET is a read; anything else is a write exactly when the bound flow — sub-flows included — reaches a
+step that changes data: a handler that writes, an event emitted beyond the run (it can start
+triggers), or a facet resolution. An asynchronous invoke cannot be saved on GET. So a
+POST search whose flow only reads is open to viewers without declaring anything — and a contract that still carries the old read-only key is refused like any unknown key.
 
 ## The action
 
@@ -165,8 +173,10 @@ drifted before the guards, but it is no longer the only way to find out — the 
    method on a path that exists is also a 404** — method existence is not leaked. More specific
    patterns win: fewer parameters first, then more literal characters, so a literal always beats a
    parameter.
-4. **Write gate.** A non-GET on an endpoint not marked read-only requires write permission. It is
-   checked _after_ matching, so a bogus path still 404s rather than revealing itself as a 403.
+4. **Write gate.** A write requires write permission. A GET is a read; a DELETE or an asynchronous
+   invoke is a write; anything else is a write when its bound flow — sub-flows included — reaches a
+   handler that writes, or a step the platform cannot resolve. It is checked _after_ matching, so a
+   bogus path still 404s rather than revealing itself as a 403.
 5. **Compile the contract** — from the _snapshot_, not the live flow. The same fragments back the
    published schema, so the wire and the docs cannot disagree.
 6. **Validate and assemble.** Undeclared or wrong-typed fields are refused.
@@ -176,14 +186,14 @@ drifted before the guards, but it is no longer the only way to find out — the 
 
 ## The errors, and what each really means
 
-| Status  | Trigger                                                                                                                                                                 |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **401** | No, malformed, unknown, revoked or expired token                                                                                                                        |
-| **403** | The grant does not reach this project; or a **VIEWER** principal writing to a route not marked read-only — and VIEWER is what a key is minted at when no role is stated |
-| **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                              |
-| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**                                                                              |
-| **502** | Skill failure; a **declared-required output the run did not produce**; response fails validation                                                                        |
-| **504** | A synchronous flow exceeding its timeout                                                                                                                                |
+| Status  | Trigger                                                                                                                                                                       |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **401** | No, malformed, unknown, revoked or expired token                                                                                                                              |
+| **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated |
+| **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                    |
+| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**                                                                                    |
+| **502** | Skill failure; a **declared-required output the run did not produce**; response fails validation                                                                              |
+| **504** | A synchronous flow exceeding its timeout                                                                                                                                      |
 
 ⚠️ **The undeclared query key is the notorious one.** The query schema forbids extra properties,
 so an unexpected `?foo=bar` is a 422 rather than being ignored. Callers who add a tracking
