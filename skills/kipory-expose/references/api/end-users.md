@@ -1,8 +1,8 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 5accba538b04 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 93bee81e1768 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # End users of the product
 
-Who calls a project's endpoints: sign-in providers, the profile shape end users carry, the operator's view over them, and their standing and credits at the project node.
+Who calls a project's endpoints: sign-in providers, the domain the project's app is served from and the DNS proof that it owns it, the profile shape end users carry, the operator's view over them, and their standing and credits at the project node.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -10,6 +10,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Method | Path | Notes |
 | --- | --- | --- |
+| `GET` | [`/v1/projects/{nodeId}/app-domain`](#get-v1-projects-nodeid-app-domain) |  |
+| `PUT` | [`/v1/projects/{nodeId}/app-domain`](#put-v1-projects-nodeid-app-domain) |  |
+| `DELETE` | [`/v1/projects/{nodeId}/app-domain`](#delete-v1-projects-nodeid-app-domain) |  |
+| `POST` | [`/v1/projects/{nodeId}/app-domain/verify`](#post-v1-projects-nodeid-app-domain-verify) |  |
 | `GET` | [`/v1/projects/{nodeId}/auth-config`](#get-v1-projects-nodeid-auth-config) |  |
 | `PUT` | [`/v1/projects/{nodeId}/auth-config`](#put-v1-projects-nodeid-auth-config) |  |
 | `GET` | [`/v1/projects/{nodeId}/members`](#get-v1-projects-nodeid-members) |  |
@@ -25,6 +29,72 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/users`](#get-v1-users) |  |
 | `GET` | [`/v1/users/{userId}/profile`](#get-v1-users-userid-profile) |  |
 | `PATCH` | [`/v1/users/{userId}/profile`](#patch-v1-users-userid-profile) |  |
+
+### `GET /v1/projects/{nodeId}/app-domain`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `claim` | `object \| null` | yes | This project's claim, or null when it has claimed no domain. |
+| `baseDomain` | `string \| null` | yes | The platform's base domain in this environment. A host under it needs no claim, because the session cookie already reaches it. Null where there is none (local development), and then every host is reachable. |
+
+### `PUT /v1/projects/{nodeId}/app-domain`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `host` | `string` | yes | The domain your app is served from, such as `app.acme.com`. A full URL is accepted and reduced to its host. Claiming a different host replaces the current claim and starts its proof over. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `claim` | `object \| null` | yes | This project's claim, or null when it has claimed no domain. |
+| `baseDomain` | `string \| null` | yes | The platform's base domain in this environment. A host under it needs no claim, because the session cookie already reaches it. Null where there is none (local development), and then every host is reachable. |
+
+### `DELETE /v1/projects/{nodeId}/app-domain`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `claim` | `object \| null` | yes | This project's claim, or null when it has claimed no domain. |
+| `baseDomain` | `string \| null` | yes | The platform's base domain in this environment. A host under it needs no claim, because the session cookie already reaches it. Null where there is none (local development), and then every host is reachable. |
+
+### `POST /v1/projects/{nodeId}/app-domain/verify`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `claim` | `object` | yes | A project's claim to its own app domain. |
+| `found` | `boolean` | yes | Whether this check saw the TXT record. False is normal for a while after publishing it, while DNS catches up; the claim stays pending until a check sees it. |
 
 ### `GET /v1/projects/{nodeId}/auth-config`
 

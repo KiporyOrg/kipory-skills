@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 5accba538b04 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 93bee81e1768 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 
@@ -147,6 +147,13 @@ Gate: `assertPlatformStaffActor`
 Gate: `assertPlatformStaffActor`
 
 - `GET /v1/projects`
+
+## which rate card prices the project, stored on the project row — an API key is NEVER platform staff. What a customer may read of their own spend is GET /v1/runs/{runId}/spend and GET /v1/projects/{nodeId}/usage; the price per unit is not theirs to read or set
+
+Gate: `assertPlatformStaffActor`
+
+- `GET /v1/projects/{…}/rate-card`
+- `PATCH /v1/projects/{…}/rate-card`
 
 ## Kipory's own diagnostic sampling rates, stored on the project row — an API key is NEVER platform staff. A customer reads what WAS traced on their flows (GET /v1/flows/{id}/traces); how much gets traced is not theirs to set
 

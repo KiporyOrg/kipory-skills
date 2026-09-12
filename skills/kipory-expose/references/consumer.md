@@ -16,7 +16,7 @@ How a request to `https://<project-host>/v1/<your-path>` is served. This is what
 Three, resolved in this order from one hook:
 
 1. `Authorization: Bearer <api-key>` — a machine key. Its grant must **reach** the project, else 403 `FORBIDDEN` (`Token is not valid for this API`). A key never has a user: its runs are project-owned, it gets no `userInfo`, and it is refused by any flow that writes person-owned records.
-2. `Authorization: Bearer <session-token>` — the opaque token a native app receives on sign-in, presented verbatim.
+2. `Authorization: Bearer <session-token>` — the opaque token a native app receives on sign-in, or an app on the project's own proven domain receives from `POST /v1/auth/handoff/exchange` (that one works on this project's host only); presented verbatim.
 3. The session cookie — a browser user.
 
 An `Authorization` header present but not `Bearer …` is an immediate 401 with no fall-through to the cookie. A session's user must still be active and a member of the project on every request; a key has no such third party.

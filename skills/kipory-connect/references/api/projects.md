@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 5accba538b04 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 93bee81e1768 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Projects
 
@@ -63,6 +63,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `projectId` | `string` | yes | The project's own id, used by the routes that say `{projectId}` and by records belonging to it. Distinct from `nodeId`, which addresses the same project's place in the tree — passing one where the other is expected resolves to nothing rather than erroring usefully. |
 | `slug` | `string` | yes | The project's URL-safe short name, unique across the platform. |
 | `name` | `string` | yes | The project's display name. |
+| `description` | `string` | yes | What the project is for, in its operators' own words. Empty when nobody has written one. |
 | `subdomain` | `string` | yes | The host this project's own API is served at. Endpoints you author are reachable here, NOT on the design API's host. |
 | `kind` | `"PRODUCT" \| "FIXTURE"` | yes | `PRODUCT` is a real tenant project; `FIXTURE` is platform scaffolding. Worth checking when you read a project by id: the LIST returns only PRODUCT, while reading one directly returns either, so an id that never appeared in a listing can still resolve here. |
 | `lifecycle` | `object` | yes | Whether this project is live or retired. Grouped because the two dates are one fact — `purgeAfter` means nothing without `retiredAt`, and a live project has neither. |
@@ -80,7 +81,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | yes | The project's new display name. Trimmed, and NOT required to be unique — the slug is the unique identity, and it is not changed by this. |
+| `name` | `string` | no | The project's new display name. Trimmed, and NOT required to be unique — the slug is the unique identity, and it is not changed by this. Absent = unchanged. |
+| `description` | `string` | no | What the project is for, in your own words. Trimmed; an empty string clears it. Absent = unchanged. |
 
 **Response `200`**
 
@@ -90,6 +92,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `projectId` | `string` | yes | The project's own id, used by the routes that say `{projectId}` and by records belonging to it. Distinct from `nodeId`, which addresses the same project's place in the tree — passing one where the other is expected resolves to nothing rather than erroring usefully. |
 | `slug` | `string` | yes | The project's URL-safe short name, unique across the platform. |
 | `name` | `string` | yes | The project's display name. |
+| `description` | `string` | yes | What the project is for, in its operators' own words. Empty when nobody has written one. |
 | `subdomain` | `string` | yes | The host this project's own API is served at. Endpoints you author are reachable here, NOT on the design API's host. |
 | `kind` | `"PRODUCT" \| "FIXTURE"` | yes | `PRODUCT` is a real tenant project; `FIXTURE` is platform scaffolding. Worth checking when you read a project by id: the LIST returns only PRODUCT, while reading one directly returns either, so an id that never appeared in a listing can still resolve here. |
 | `lifecycle` | `object` | yes | Whether this project is live or retired. Grouped because the two dates are one fact — `purgeAfter` means nothing without `retiredAt`, and a live project has neither. |
@@ -273,11 +276,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `defaultRateCardId` | `string \| null` | yes | Which rate card prices this project's usage. Null uses the platform's active card. |
 | `perUserSpendCapCredits` | `integer \| null` | yes | How much ONE end user may spend per `perUserSpendCapPeriod`, in credits. ⚠️ Null means NO ceiling, not 'the default' — unlike most nullable settings. A ceiling of zero is `0`, and the two are opposite outcomes. |
 | `perUserSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | yes | The window the per-user ceiling is measured over. Never null — the column defaults to `LIFETIME`, so there is no unset state to confuse with 'no ceiling'. |
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
 | `designSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `DAY`. |
+| `spendCapWarnPercent` | `integer \| null` | yes | Warn the project's operators when design-time spend passes this share of the build ceiling (`designSpendCapCredits`), in whole percent. Null = no warning. It watches the build ceiling only — the per-user ceiling raises no warning. The ceilings refuse at 100% regardless. |
+| `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 
 ### `PATCH /v1/projects/{nodeId}/settings`
 
@@ -291,21 +295,22 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `defaultRateCardId` | `string \| null` | no | Absent leaves it unchanged; null clears it back to the platform's active card. |
 | `perUserSpendCapCredits` | `integer \| null` | no | Absent leaves it unchanged. ⚠️ Null REMOVES the ceiling entirely (unlimited); `0` blocks every billable action. The two look similar in a form and are opposites. |
 | `perUserSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | no | The window a spend ceiling is measured over. The calendar windows clear themselves as the clock moves. ⚠️ `LIFETIME` never clears — it is a quota rather than a budget, so an active user eventually reaches it and is blocked permanently. |
 | `designSpendCapCredits` | `integer \| null` | no | Absent leaves it unchanged. Null removes the design-time ceiling; `0` blocks all design-time work. |
 | `designSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | no | The window a spend ceiling is measured over. The calendar windows clear themselves as the clock moves. ⚠️ `LIFETIME` never clears — it is a quota rather than a budget, so an active user eventually reaches it and is blocked permanently. |
+| `spendCapWarnPercent` | `integer \| null` | no | Absent leaves it unchanged; null turns the warning off. Whole percent of a ceiling, 1–100. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `defaultRateCardId` | `string \| null` | yes | Which rate card prices this project's usage. Null uses the platform's active card. |
 | `perUserSpendCapCredits` | `integer \| null` | yes | How much ONE end user may spend per `perUserSpendCapPeriod`, in credits. ⚠️ Null means NO ceiling, not 'the default' — unlike most nullable settings. A ceiling of zero is `0`, and the two are opposite outcomes. |
 | `perUserSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | yes | The window the per-user ceiling is measured over. Never null — the column defaults to `LIFETIME`, so there is no unset state to confuse with 'no ceiling'. |
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
 | `designSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `DAY`. |
+| `spendCapWarnPercent` | `integer \| null` | yes | Warn the project's operators when design-time spend passes this share of the build ceiling (`designSpendCapCredits`), in whole percent. Null = no warning. It watches the build ceiling only — the per-user ceiling raises no warning. The ceilings refuse at 100% regardless. |
+| `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 
 ### `GET /v1/projects/{projectId}/feature-map`
 
@@ -406,6 +411,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `projectId` | `string` | yes | The project's own id, used by the routes that say `{projectId}` and by records belonging to it. Distinct from `nodeId`, which addresses the same project's place in the tree — passing one where the other is expected resolves to nothing rather than erroring usefully. |
 | `slug` | `string` | yes | The project's URL-safe short name, unique across the platform. |
 | `name` | `string` | yes | The project's display name. |
+| `description` | `string` | yes | What the project is for, in its operators' own words. Empty when nobody has written one. |
 | `subdomain` | `string` | yes | The host this project's own API is served at. Endpoints you author are reachable here, NOT on the design API's host. |
 | `kind` | `"PRODUCT" \| "FIXTURE"` | yes | `PRODUCT` is a real tenant project; `FIXTURE` is platform scaffolding. Worth checking when you read a project by id: the LIST returns only PRODUCT, while reading one directly returns either, so an id that never appeared in a listing can still resolve here. |
 | `lifecycle` | `object` | yes | Whether this project is live or retired. Grouped because the two dates are one fact — `purgeAfter` means nothing without `retiredAt`, and a live project has neither. |
