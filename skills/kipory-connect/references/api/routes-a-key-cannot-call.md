@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 9375fddf7c51 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: f20d337ac98e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 

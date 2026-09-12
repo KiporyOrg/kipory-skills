@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7d5852bc6330 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 55079af603bb · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
@@ -733,6 +733,12 @@ is projected, never what is stored, so re-linking brings the same values back.
   succeed while the search half of your change quietly did not land.
 - **A record type is named by name in handler config**, not by id — which means a rename is not
   something the id-based delete guards can see coming.
+- **A schema entry lists every consumer that blocks its delete, and `usedByRelationKinds` is one
+  of them.** Alongside `usedByRecordTypes`, `usedByEventTypes`, `usedByConfigNamespaces` and
+  `usedAsProfile`, an entry reports the relation kinds whose edge properties it describes. It was
+  added because the delete gate began refusing on that column while the list did not report it —
+  so an entry consumed only by a link listed as unused and then answered 409 to the delete the
+  list had implied was safe.
 
 ## How they connect to flows
 

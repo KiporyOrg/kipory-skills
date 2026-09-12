@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 9375fddf7c51 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: f20d337ac98e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # End users of the product
 
@@ -341,7 +341,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | no | A name for the new type. Omit it and the platform names it `user_profile` (or the first free suffix). Letters, digits, dots, dashes and underscores only, starting with a letter or digit, up to 64 characters. It is used as an address, so it may not contain slashes, spaces or braces. |
+| `name` | `string` | yes | A name for the new type. Required: the platform no longer names it for you. Letters, digits, dots, dashes and underscores only, starting with a letter or digit, up to 64 characters. It is used as an address, so it may not contain slashes, spaces or braces. |
 
 **Response `200`**
 
@@ -390,7 +390,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `data` | `object \| null` | yes | The user's current values. When nothing has been saved this is the defaults — use `hasRow` to tell which you are looking at. |
 | `defaults` | `object \| null` | yes | What each field defaults to, so a form can show which values the user actually chose and which merely fell back. |
 | `schemaVersion` | `integer \| null` | yes | Which version of the profile shape `data` matches. |
-| `drift` | `object \| null` | yes | Present only when the stored profile is behind the current schema. The data is still returned — this says it was written against an older shape, not that it is unusable. |
+| `drift` | `object \| null` | yes | Present when the stored profile was written against a different schema version than the one in force — usually an older one, but a restored or rolled-back schema can leave a row AHEAD. Compare the two versions rather than assuming a direction. The data is still returned; this says it was written against another shape, not that it is unusable. |
 | `shape` | `object[] \| null` | yes | The fields to render. Null when unconfigured. |
 | `hasRow` | `boolean` | yes | Whether this user has ever saved a profile. FALSE with a non-null `data` is the ordinary case for someone who has not filled it in — the values you are seeing are defaults, not their answers. |
 
