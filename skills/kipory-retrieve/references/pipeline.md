@@ -30,40 +30,25 @@ embed leaves a point that exists and is half-searchable rather than one that is 
 
 ## Read half — a question becomes an answer
 
-Usually the flow behind an endpoint. Steps 3 and 5 are optional; the rest are not, if the answer
-is meant to be trustworthy.
+Usually the flow behind an endpoint. Step 3 is optional; the rest are not, if the answer is meant
+to be trustworthy.
 
-| #   | Handler                   | Reads                        | Emits                  | Why it is here                                 |
-| --- | ------------------------- | ---------------------------- | ---------------------- | ---------------------------------------------- |
-| 1   | `vector.search`           | the question                 | hits                   | find candidates                                |
-| 2   | `text.rerank`             | question + hits              | `RerankHit[]`          | precision the vector score alone does not give |
-| 3   | `text.sanitize`           | the hit texts                | wrapped `<doc>` blocks | retrieved text is untrusted input              |
-| 4   | `text.generate`           | question + wrapped sources   | answer + citations     | the answer                                     |
-| 5   | `text.validate-citations` | answer + citations + sources | verdict or errors      | proves the answer quoted what it claims        |
+| #   | Handler         | Reads                      | Emits                  | Why it is here                                 |
+| --- | --------------- | -------------------------- | ---------------------- | ---------------------------------------------- |
+| 1   | `vector.search` | the question               | hits                   | find candidates                                |
+| 2   | `text.rerank`   | question + hits            | `RerankHit[]`          | precision the vector score alone does not give |
+| 3   | `text.sanitize` | the hit texts              | wrapped `<doc>` blocks | retrieved text is untrusted input              |
+| 4   | `text.generate` | question + wrapped sources | the answer             | the answer                                     |
 
 Step 1 can take the question as text — `vector.search` embeds it with the collection's own model —
 or as a vector you embedded yourself. Text costs a model call inside the search step; a vector
 costs nothing there because you already paid for it.
 
-## Wiring the citation check
-
-`text.validate-citations` needs four things, and three of them come from the step that assembled
-the context rather than from the model:
-
-- `answerTextSlot` — the model's answer body
-- `citationsSlot` — the model's `{ recordId, quote }` pairs
-- `citableSourceIdsSlot` — the allow-list of record ids the context step actually supplied
-- `citableSourceTextsSlot` — a map of record id to the source text the quote must appear in
-
-The allow-list is the point. Without it the check can only ask whether a quote appears somewhere;
-with it, the check asks whether the model cited something it was actually given. Build both from
-the same step that built the prompt, so they cannot drift apart.
-
 ## Where the ids come from
 
 A hit's id is the vector store's own UUID unless `idPayloadField` names the payload key holding the
-record id. In candidate and record modes, set it. Everything downstream — the citation allow-list,
-a `entity.read` that fetches the record, a link back into the product — needs the record id, and a
+record id. In candidate and record modes, set it. Everything downstream — a `entity.read` that
+fetches the record, a link back into the product — needs the record id, and a
 UUID that resolves to nothing fails silently at the far end of the flow rather than at the search.
 
 ## Tuning, in the order that pays

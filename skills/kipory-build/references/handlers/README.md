@@ -1,13 +1,13 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: d072dbbaba4c884693c307f89e8caf652dda27202fb703e86af59b78f690b003 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: a5065908712202c7c97f0313289f9dec68a495faa83ce329d7da15d7c2d26748 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Handler catalog
 
-69 system handlers, one page each. A step in a flow is one of these plus its config. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` is in the stamp above; if the live one differs, the live one wins.
+68 system handlers, one page each. A step in a flow is one of these plus its config. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` is in the stamp above; if the live one differs, the live one wins.
 
 ## Groups
 
 - **AI** (3) — Nodes whose whole job is a model call — strip the model and there is no node left. What comes back is text, a vector, or a ranking.
-- **Text** (6) — Working on text that is already in hand, with no model involved: splitting it, matching it, filling it into a template, and cleaning it before it reaches a prompt.
+- **Text** (5) — Working on text that is already in hand, with no model involved: splitting it, matching it, filling it into a template, and cleaning it before it reaches a prompt.
 - **Sources** (17) — Where a project gets data it did not already have — pages, videos, feeds, places. These are the handlers that cross the network, so they are the ones that cost money, that can be slow, and that cache what they bring back.
 - **Files** (10) — Reading what a file already contains, rather than fetching it — metadata, text, frames and transcripts — plus the few that write a derived file back.
 - **Search** (5) — Vectors and the collections they live in: encoding a value, writing a point, and finding the nearest ones to it.
@@ -51,7 +51,7 @@ _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO
 - [`youtube.trending`](youtube.trending.md) — Fetch trending channels · Sources · `string` → `YoutubeTrendingChannels`
 - [`youtube.video`](youtube.video.md) — Fetch a YouTube video · Sources · `string` → `YoutubeVideo`
 
-## inline (33)
+## inline (32)
 
 _Run synchronously inside the flow engine, in order._
 
@@ -82,7 +82,6 @@ _Run synchronously inside the flow engine, in order._
 - [`text.extract`](text.extract.md) — Extract text by regex · Text · `string+` → `string[]`
 - [`text.interpolate`](text.interpolate.md) — Fill a template · Text · `any+` → `string`
 - [`text.sanitize`](text.sanitize.md) — Sanitize text for a prompt · Text · `any+` → `object`
-- [`text.validate-citations`](text.validate-citations.md) — Validate citations + derive spans · Text · `answer + citations + candidates + source texts` → `CitationValidationResult`
 - [`value.first-non-empty`](value.first-non-empty.md) — Pick the first non-empty value · Utility · `any+` → `nothing`
 - [`value.transform`](value.transform.md) — Transform with JSONata · Utility · `any+` → `object`
 - [`vector.fetch`](vector.fetch.md) — Read stored vectors · Search · `string` → `Record<string, number[]>`

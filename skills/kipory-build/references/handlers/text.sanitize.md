@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: d072dbbaba4c884693c307f89e8caf652dda27202fb703e86af59b78f690b003 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: a5065908712202c7c97f0313289f9dec68a495faa83ce329d7da15d7c2d26748 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `text.sanitize` — Sanitize text for a prompt
 
@@ -16,7 +16,7 @@ Clean and wrap retrieved text before putting it into an LLM prompt.
 | `idField` | string | no | `"id"` | Which field on each item carries its id. It is escaped when written into the block's attribute. |
 | `itemsSlot` | string | yes | — | The slot holding the items to sanitize. Each must be an object carrying the id and text fields named below. |
 | `maxCharsPerItem` | integer | no | `4000` | How long one item's body may be, 4000 characters by default. Anything longer is cut and the marker below appended. ⚠️ The cap is what bounds how much one poisoned item can say in the prompt. Lowering it tightens that at the cost of losing real evidence. |
-| `nonceSlot` | string | no | — | A slot holding the nonce to stamp on every block. Leave it unset and the step makes its own. ⚠️ Point it at the run's own nonce so every call in one turn shares it — that is what lets the system prompt name the nonce literally. |
+| `nonceSlot` | string | no | — | A slot holding the nonce to stamp on every block. Leave it unset and the step makes its own. ⚠️ Point it at the run's own nonce so every call in one run shares it — that is what lets the system prompt name the nonce literally. |
 | `outputShape` | `list` \| `joined` | no | `"list"` | `list` emits one entry per item; `joined` emits a single string. Pick `joined` when the next step expects flat text. |
 | `textField` | string | no | `"text"` | Which field on each item carries the body. A missing or non-text value leaves the block empty rather than dropping the item. |
 | `truncationMarker` | string | no | `" […truncated]"` | What to append to a body that hit the cap. Override it to match a project's wording. |

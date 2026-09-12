@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 423f5af968c4 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: be2e8d720ebb · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -366,7 +366,7 @@ later is validated by `replace` on the way in, so a shape that moved fails namin
 
 ## Asking about a step you have not saved
 
-25 <!-- count: editor-inputs-from-config --> of the sixty-nine handlers do not take their inputs
+24 <!-- count: editor-inputs-from-config --> of the sixty-eight handlers do not take their inputs
 from the step row: they name them INSIDE their own configuration. `value.transform` — the most-used handler there is — names them
 inside a JSONata expression, so writing the expression IS writing the step's input list, and there
 is nothing to pick from a list.

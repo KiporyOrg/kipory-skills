@@ -1,6 +1,6 @@
 ---
 name: kipory-retrieve
-description: Search a Kipory project's own records and answer questions over them — chunk and embed what the project holds, write it to a vector collection, search that collection densely or hybrid, re-rank the hits, and make the model's citations provable against the sources they name. Use when the product has to answer from the project's data rather than from the model's memory, when search returns nothing or returns the wrong things, when hits come back with ids nothing downstream can resolve, or when an answer quotes a source it never read.
+description: Search a Kipory project's own records and answer questions over them — chunk and embed what the project holds, write it to a vector collection, search that collection densely or hybrid, re-rank the hits, and hand the model sanitized text to answer from. Use when the product has to answer from the project's data rather than from the model's memory, when search returns nothing or returns the wrong things, or when hits come back with ids nothing downstream can resolve.
 license: MIT
 ---
 
@@ -20,7 +20,7 @@ Retrieval on Kipory is a chain of handlers, not a resource you configure. The wr
 
 ```
 write   text.chunk → text.embed  (+ text.embed-sparse)  → vector.point-id → vector.upsert
-read    question   → vector.search → text.rerank → text.sanitize → text.generate → text.validate-citations
+read    question   → vector.search → text.rerank → text.sanitize → text.generate
 ```
 
 Nothing forces both halves into one flow. The write half usually hangs off a record type's processing flow so a record is indexed as it arrives; the read half is usually the flow behind an endpoint.
@@ -53,12 +53,6 @@ Nothing forces both halves into one flow. The write half usually hangs off a rec
 **Re-rank when precision matters more than a round trip.** `text.rerank` re-scores candidates against the query with a model built for the job, best first, capped at `topN`. It bills per hundred documents scored, so raising `maxDocuments` past its default multiplies what every call costs; `topN` above the number scored is refused at save rather than silently returning fewer rows. A document longer than `maxDocumentChars` is rejected, not truncated. It resolves a Cohere credential from the vault under purpose `cohere` and falls through to the platform's key when no node holds one — `kipory-secrets` decides who pays.
 
 **Sanitize retrieved text before it reaches a prompt.** `text.sanitize` wraps each body in a `<doc>` block carrying a nonce, so the prompt can tell the model that everything inside is data rather than instruction. Retrieved text is untrusted — a record can hold whatever someone put in it, and a page fetched by `kipory-gather` is a stranger's text. Skipping this step is how a document talks your flow into ignoring its prompt.
-
-## Making the citations provable
-
-A model asked to cite will cite plausibly whether or not it read anything. `text.validate-citations` is the step that settles it: give it the answer, the model's `{ recordId, quote }` pairs, the allow-list of ids the context step actually supplied, and the source text for each. It enforces three invariants — the id is on the allow-list, the quote is a **verbatim substring** of that source, and the quote appears **exactly once** in the answer — and returns either the citations enriched with server-derived spans or a structured list naming each one that failed and why.
-
-Wire the failure somewhere. A validation result nothing reads is the same as not validating.
 
 ## What will bite you
 
