@@ -1,9 +1,10 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: be2e8d720ebb · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7a133b738d59 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability packs
 
-Judgment for building on Kipory. A **project** on Kipory — its record types, flows, endpoints,
-facets, schedules and events — is configuration you author by calling the design API. These packs
+Judgment for building on Kipory, the platform for a product's backend. A **project** on Kipory —
+its flows (the processes), record types (the data), endpoints, triggers and schedules (the entry
+points), facets and events — is configuration you author by calling the design API. These packs
 are what you need _beyond_ the schemas: when to reach for each capability, which calls drive it in
 what order, the invariants no JSON Schema expresses, and the mistakes that have already been made.
 
@@ -15,6 +16,10 @@ refetch when it moves; a `version` you have not seen means this deployment's jud
 changed under you.
 
 Read one or two packs per step, not all of them. The index below is built for that.
+
+The same set is indexed for agents that look for it at `/llms.txt` on the api host, with each
+pack as a markdown page at `/llms/{id}.md` — the JSON routes above and those pages are computed
+from one compiled-in module and carry the same `version`.
 
 ## Facts come from the live system, never from a pack
 

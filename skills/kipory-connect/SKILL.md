@@ -6,7 +6,7 @@ license: MIT
 
 # Connect to Kipory
 
-Kipory is a platform for building products. A product on Kipory is a **project**, and a project is not code: its record types, flows, HTTP endpoints, facets, schedules and events are **validated configuration rows** you author by calling the design API over HTTP. This skill is turn zero. The fact most people get wrong: there are **two hosts**, and the design API you author against answers on the api host with your key, while the product's own endpoints answer on the project's host — a design route called on the project host, or a product endpoint called on the api host, is a 404 that looks like a typo.
+Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code: its flows, record types, HTTP endpoints, triggers, schedules, facets and events are **validated configuration rows** you author by calling the design API over HTTP. This skill is turn zero. The fact most people get wrong: there are **two hosts**, and the design API you author against answers on the api host with your key, while the product's own endpoints answer on the project's host — a design route called on the project host, or a product endpoint called on the api host, is a 404 that looks like a typo.
 
 ## What you need before turn one
 

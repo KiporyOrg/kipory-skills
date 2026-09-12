@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: be2e8d720ebb · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7a133b738d59 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Planning protocol
 
@@ -14,6 +14,12 @@ needs-software-written.
 
 Every other pack is indexed by capability, which assumes you already know which capability you
 want. This one runs the other direction — from an idea to the primitives it decomposes into.
+
+What Kipory builds is the **backend** of the idea: the processes it runs (flows), the data it
+keeps (record types), and the entry points the outside uses (endpoints, triggers, schedules). The
+frontends people use are clients of what the project exposes and are not on the build sheet. The
+walk below is in dependency order — records before processing, because a flow reads and writes
+typed records — not in order of importance; the processes are the idea.
 
 ## When you need it
 

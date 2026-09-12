@@ -2,7 +2,7 @@
 
 Skills that teach a coding agent how to build a product on **Kipory**, over its HTTP API.
 
-Kipory is a platform for building products. A product on Kipory is a **project**, and a project is not code — its record types, flows, HTTP endpoints, facets, schedules and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a whole product without writing an application, which is what these skills are for.
+Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code — its flows, record types, HTTP endpoints, triggers, schedules, facets and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a product's whole backend without writing an application, which is what these skills are for. The frontends people use are clients of what the project exposes.
 
 ## Install
 
