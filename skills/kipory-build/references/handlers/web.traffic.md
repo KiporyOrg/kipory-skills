@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: a5065908712202c7c97f0313289f9dec68a495faa83ce329d7da15d7c2d26748 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: b4c1bc1cf99214fec7c8346b3c2a3219e32fd4783e32a0ee151e530eb890baad · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `web.traffic` — Fetch site traffic metrics
 
@@ -16,9 +16,7 @@ Look up one site's traffic profile — visits, ranking, and audience by country.
 
 ## Config
 
-| Field | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `cacheTtlMinutes` | integer | no | — | How long to reuse a lookup, in minutes. Leave it unset for the 7-day default. ⚠️ A polling sweep needs a short value near its poll interval, or every pass sees the same numbers. |
+_No operator-tunable config._
 
 ## Worked example
 

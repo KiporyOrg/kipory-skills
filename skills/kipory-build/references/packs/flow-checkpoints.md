@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7a133b738d59 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7d5852bc6330 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flow checkpoints
 
@@ -44,13 +44,14 @@ that is what the preview is for.
 skills, and a `warnings` list naming references that no longer resolve — a model that is gone, a
 handler no longer registered, an invoke target that has since been deleted.
 
-⚠️ **`timeoutMs` is the one field a restore always clears, and the preview now shows that.** A step's
-per-call deadline is a persisted, operator-set column, and the checkpoint FORMAT has never carried one
-— so a restored step comes back with no per-step deadline and falls to the per-task default. That was
-already true; what changed is that you can SEE it: `currentSkills[i].timeoutMs` carries the live
-value, `payloadSkills[i].timeoutMs` is `null` because the snapshot does not record one. A `null` on
-the payload side means "this record does not say", which for a restore is the same as "it will be
-cleared". Read the pair before restoring a flow whose steps were tuned by hand.
+⚠️ **A restore always resets how each step runs, and the preview shows that.** A step's per-call
+deadline (`timeoutMs`) and its run settings — `tries`, `tryDelayMs`, `onFailure`,
+`reuseResultsForMinutes` — are persisted, operator-set columns, and the checkpoint FORMAT carries none
+of them. So a restored step comes back with no per-step deadline, its handler's own tries and reuse
+period, and a failure that fails the run. You can SEE it before committing: `currentSkills[i]` carries
+the live values, and `payloadSkills[i]` lacks them because the snapshot does not record them. An
+absent value on the payload side means "this record does not say", which for a restore is the same as
+"it will be reset". Read the pair before restoring a flow whose steps were tuned by hand.
 
 Those warnings are the early signal for the one way a restore fails: **the captured graph is
 validated against the project as it is now, not as it was.** A snapshot taken when a handler

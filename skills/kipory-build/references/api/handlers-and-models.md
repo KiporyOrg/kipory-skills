@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 817f751217fc · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 9375fddf7c51 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Handler catalog and model reads
 
@@ -70,6 +70,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `rateLimit` | `object` | no | How fast it may call upstream, and whose allowance that spends. Absent means it declares no limit and counts into no bucket -- which is NOT the same as being free. |
 | `credential` | `object` | no | The secret-vault credential this handler resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU handler, and ALSO of the AI ones, which build their client from the environment and never consult the vault at all. |
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` handlers; an inline or control handler runs in the pipeline with neither. |
+| `run` | `object` | yes | How a step using this handler is run: what its time limit bounds, where the default comes from, and any limit the handler keeps whatever the step says. Always present. |
 | `example` | `object` | no | The worked example, when this handler ships one. |
 
 ### `GET /v1/projects/{projectId}/task-models`
@@ -86,3 +87,4 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `projectId` | `string` | yes | The project these bindings were resolved for. |
 | `tasks` | `object[]` | yes | Every task kind in the taxonomy, in declaration order. A task with no binding anywhere still appears, carrying its `code-default`. |
+| `generationTimeLimitMs` | `integer` | yes | What an AI generation call stops at when neither its step nor its task sets a limit. |

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: a5065908712202c7c97f0313289f9dec68a495faa83ce329d7da15d7c2d26748 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: b4c1bc1cf99214fec7c8346b3c2a3219e32fd4783e32a0ee151e530eb890baad · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `x.posts` — Scrape X posts
 
@@ -18,7 +18,6 @@ Scrape an X/Twitter tweet, profile or search URL into a page with its posts.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `cacheTtlMinutes` | integer | no | — | How long to reuse a scrape, in minutes. Leave it unset for the one-day default. ⚠️ A polling sweep needs a short value near its poll interval, or every pass sees the same posts. |
 | `maxItems` | integer | no | `20` | How many posts to pull for a profile or search URL, up to 100. A single-post URL returns one regardless. ⚠️ This bound is required, not a nicety — without it a single pasted link would pull everything the source will give, up to hundreds of posts. |
 | `sort` | `Latest` \| `Top` \| `Latest + Top` | no | `"Latest"` | Result ordering for profile/search scrapes. 'Top' surfaces high-engagement posts; 'Latest' the most recent. |
 

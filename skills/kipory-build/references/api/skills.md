@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 817f751217fc · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 9375fddf7c51 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Skills (flow steps)
 
@@ -60,6 +60,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `enabled` | `boolean` | no | Whether the skill executes. Defaults to enabled. |
 | `modelId` | `string \| null` | no | AiModel id this skill's AI call runs on. Omit (or send null) to inherit the model bound to this skill's taskKey at /platform/models — the project's AiTaskConfig row for that task, else the system default. Set an explicit id only to pin this skill to one model; it must name a row in the AiModel catalog. |
 | `timeoutMs` | `integer \| null` | no | Per-skill time limit in milliseconds, up to 120000. |
+| `tries` | `integer \| null` | no | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
+| `tryDelayMs` | `integer \| null` | no | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
+| `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | no | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. Defaults to `FAIL_RUN`. |
+| `reuseResultsForMinutes` | `integer \| null` | no | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
 
 **Response `201`**
 
@@ -99,7 +103,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `inputProjectionNames` | `unknown` | no | Names the projected inputs are exposed under inside the prompt, when they should differ from the source slot names. |
 | `enabled` | `boolean` | yes | Whether this skill executes. A disabled skill stays in the flow and is reported as skipped. |
 | `modelId` | `string \| null` | yes | Model this skill is pinned to, or null to use the one its `taskKey` resolves to. |
-| `timeoutMs` | `integer \| null` | yes | Per-skill time limit. The run's own limit still applies and is the shorter of the two. |
+| `tries` | `integer \| null` | yes | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
+| `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
+| `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | yes | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
+| `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
+| `timeoutMs` | `integer \| null` | yes | Per-skill time limit in milliseconds, or null for none of its own. What it bounds depends on the handler: each AI call for an AI generation step; the wait on the queued job for a fetch or file step, covering every try; and how long the run waits for a step that runs in the flow itself, whose work may still finish. Control steps ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -135,6 +143,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `enabled` | `boolean` | no | Whether the skill executes. |
 | `modelId` | `string \| null` | no | AiModel id this skill's AI call runs on. Omit (or send null) to inherit the model bound to this skill's taskKey at /platform/models — the project's AiTaskConfig row for that task, else the system default. Set an explicit id only to pin this skill to one model; it must name a row in the AiModel catalog. |
 | `timeoutMs` | `integer \| null` | no | Per-skill time limit in milliseconds, up to 120000. |
+| `tries` | `integer \| null` | no | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
+| `tryDelayMs` | `integer \| null` | no | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
+| `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | no | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
+| `reuseResultsForMinutes` | `integer \| null` | no | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
 | `confirmedOutputSlotRenames` | `object[]` | no | Confirm output-slot renames and cascade them. Every sibling skill referencing an old name is rewritten to the new one in the same transaction. A skill may rename several slots at once, so this is a list. Omit it and a rename leaves referencing siblings pointing at a slot that no longer exists. |
 
 **Response `200`**

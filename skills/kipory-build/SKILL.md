@@ -24,7 +24,7 @@ GET   /v1/flows/{id}/health              the whole-flow verdict: isActivatable, 
 POST  /v1/flows/{id}/preview             run it — ADMIN, bills the payer, applies writes unless apply: false
 ```
 
-A skill body carries `flow`, `name`, `handlerKey`, `handlerConfig`, `inputStreams`, `inputSchemas` (same length), `outputSlot`, `promptTemplate`, `taskKey`, and optionally `condition`, `inputPaths`, `inputProjectionNames` (both positional, same length as `inputStreams`), `outputSchema`, `modelId`, `timeoutMs`, `enabled`. There is **no position field**: execution order is derived from slot edges. A PATCH requires `capturedVersion`.
+A skill body carries `flow`, `name`, `handlerKey`, `handlerConfig`, `inputStreams`, `inputSchemas` (same length), `outputSlot`, `promptTemplate`, `taskKey`, and optionally `condition`, `inputPaths`, `inputProjectionNames` (both positional, same length as `inputStreams`), `outputSchema`, `modelId`, `timeoutMs`, `enabled`, and how it runs — `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes`. There is **no position field**: execution order is derived from slot edges. A PATCH requires `capturedVersion`.
 
 Before a risky edit: `POST /v1/flow-checkpoints { flow, name }`. Before committing to a rollback: `GET /v1/flow-checkpoints/{id}/restore-preview`, which never refuses and shows the current and captured steps side by side; the restore itself (`POST /v1/flow-checkpoints/{id}/restore`, no body, ADMIN) swaps the whole step set, signature and binding, and takes an automatic checkpoint of the previous state first.
 

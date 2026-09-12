@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7a133b738d59 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7d5852bc6330 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -359,10 +359,46 @@ not read a snapshot as evidence about a deadline, and expect a checkpoint restor
 restore preview shows the pair so the loss is visible before you commit to it; see
 `capability-packs/flow-checkpoints.md`.
 
+The four run settings — `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes` — travel the
+same way `timeoutMs` does: the export carries them and `replace` persists them, while the checkpoint
+format carries none of them, so their absence on a snapshot means "not recorded".
+
 ⚠️ **There is no `schemaVersion` on the export, deliberately.** The format is the replace entry
 shape, whose evolution is already governed; a version integer beside it would be a second, weaker
 mechanism for the same thing — and the weaker one is the one nobody bumps. A stored export re-imported
 later is validated by `replace` on the way in, so a shape that moved fails naming the field.
+
+## How a step runs — on/off, time limit, tries, failure, reuse
+
+These settings govern how a step runs rather than what it does. All are optional on a write, and a
+step that sets none behaves as it always has.
+
+- **`enabled`** — a switched-off step stays in the flow and never runs. Any step whose every input
+  traces back to it skips too, because a step runs while any one input is present. ⚠️ The save does
+  not check this: switching a producer off saves cleanly and its readers skip at run time.
+- **`timeoutMs`** — what it bounds depends on the handler, and the handler catalog says which:
+  `run.timeLimit` is `ai-call` (each AI call), `queue-wait` (the wait on the queued job, covering
+  every try — the job may still finish), `in-flow` (how long the run waits for a step that runs in
+  the flow itself, whose work may still finish) or `ignored` (control steps). Unset, it falls back to
+  the step's task limit (`GET /v1/projects/{id}/task-models`) for `run.timeLimitFromTask` handlers,
+  else to the handler's own wait. `run.budgetMs` is a limit the handler keeps whatever you set — 5 s
+  for `value.transform` — so only a shorter limit changes anything there.
+- **`tries`, `tryDelayMs`** — the number of tries including the first (1–5), and a fixed wait between
+  them. They REPLACE the handler's own queue attempts rather than adding to them, and apply to fetch
+  and file steps only; a step that runs in the flow is tried once. Only a failure a second try can
+  fix is tried again — never a missing API key, a blocked web address, bad input or a used-up quota.
+  ⚠️ Each try is charged when the step sets its own tries; the handler's built-in tries are billed
+  once. If the same fetch is already running for another step, that run's settings apply.
+- **`onFailure`** — `FAIL_RUN` (the default): the run fails and keeps nothing it wrote, while steps
+  that do not depend on this one still run. `CONTINUE`: the run carries on without this step's
+  output and reports the failure as a warning. Refused on a control step, on a step that may write
+  or reach a sub-flow, and on a step that feeds a required flow output.
+- **`reuseResultsForMinutes`** — how long a result the step saved stays reusable: null is the
+  handler's own period, `0` always runs fresh and saves nothing. It is checked when a result is
+  READ, so a result another step with identical settings saved counts only within this step's own
+  period. ⚠️ A period only ever LENGTHENS what is kept: steps whose fetch is identical share one
+  saved result, and it lives for the longest period any of them asked for, so a step with a short
+  period cannot cut a step with a long one short.
 
 ## Asking about a step you have not saved
 

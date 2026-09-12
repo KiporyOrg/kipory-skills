@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: a5065908712202c7c97f0313289f9dec68a495faa83ce329d7da15d7c2d26748 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: b4c1bc1cf99214fec7c8346b3c2a3219e32fd4783e32a0ee151e530eb890baad · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `url.scrape` — Scrape a web page
 
@@ -18,7 +18,6 @@ Scrape a web page into clean markdown and page metadata.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `cacheTtlMinutes` | integer | no | — | How long to reuse a scrape of this URL, in minutes. Leave it unset for the 24-hour default. ⚠️ A listing page IS the freshness signal, so give it a short value near your poll interval — a cached index replays the same links and nothing new is ever found. |
 | `excludeTags` | string[] | no | `[]` | CSS selectors to strip from the page before the text is extracted. ⚠️ Use it for chrome the main-content pass keeps — a consent or accessibility widget sitting above the article is the common case, and the extractor can mistake it for the article. |
 | `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. Narrower than excludeTags; leave empty unless the article container is known and stable. |
 | `mainContentFallbackMinChars` | integer | no | `0` | When the main-content pass returns fewer characters than this, scrape the whole page too and keep the longer result. 0 turns the retry off. ⚠️ A non-zero value bills a second scrape on every page that trips it. |
