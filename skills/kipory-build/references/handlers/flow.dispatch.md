@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: b4c1bc1cf99214fec7c8346b3c2a3219e32fd4783e32a0ee151e530eb890baad · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 2506fcca00d1fd81d80fcc980d8b3ea41d53a0514dab65b04ef305d744ce8fd0 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `flow.dispatch` — Dispatch by pattern
 

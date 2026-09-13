@@ -2,6 +2,80 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260913.1438 — 2026-09-13
+
+Synced from the Kipory monorepo at `fc9ddd622`.
+
+- changed: `skills/kipory-build/references/handlers/README.md`
+- changed: `skills/kipory-build/references/handlers/audio.metadata.md`
+- changed: `skills/kipory-build/references/handlers/audio.transcribe.md`
+- changed: `skills/kipory-build/references/handlers/email.send.md`
+- changed: `skills/kipory-build/references/handlers/entity.count.md`
+- changed: `skills/kipory-build/references/handlers/entity.create.md`
+- changed: `skills/kipory-build/references/handlers/entity.delete.md`
+- changed: `skills/kipory-build/references/handlers/entity.enqueue-process.md`
+- changed: `skills/kipory-build/references/handlers/entity.link-assert.md`
+- changed: `skills/kipory-build/references/handlers/entity.link-retract.md`
+- changed: `skills/kipory-build/references/handlers/entity.links.md`
+- changed: `skills/kipory-build/references/handlers/entity.list.md`
+- changed: `skills/kipory-build/references/handlers/entity.read.md`
+- changed: `skills/kipory-build/references/handlers/entity.teardown.md`
+- changed: `skills/kipory-build/references/handlers/entity.update.md`
+- changed: `skills/kipory-build/references/handlers/event.emit.md`
+- changed: `skills/kipory-build/references/handlers/facet.resolve.md`
+- changed: `skills/kipory-build/references/handlers/file.download-url.md`
+- changed: `skills/kipory-build/references/handlers/file.read-text.md`
+- changed: `skills/kipory-build/references/handlers/file.stats.md`
+- changed: `skills/kipory-build/references/handlers/flow.dispatch.md`
+- changed: `skills/kipory-build/references/handlers/flow.fan-out.md`
+- changed: `skills/kipory-build/references/handlers/flow.invoke.md`
+- changed: `skills/kipory-build/references/handlers/flow.loop-end.md`
+- changed: `skills/kipory-build/references/handlers/flow.loop.md`
+- changed: `skills/kipory-build/references/handlers/flow.merge.md`
+- changed: `skills/kipory-build/references/handlers/image.decode-qr.md`
+- changed: `skills/kipory-build/references/handlers/image.metadata.md`
+- changed: `skills/kipory-build/references/handlers/image.resize.md`
+- changed: `skills/kipory-build/references/handlers/list.concat.md`
+- changed: `skills/kipory-build/references/handlers/location.resolve.md`
+- changed: `skills/kipory-build/references/handlers/pdf.parse.md`
+- changed: `skills/kipory-build/references/handlers/pdf.screenshot.md`
+- changed: `skills/kipory-build/references/handlers/state.read.md`
+- changed: `skills/kipory-build/references/handlers/state.write.md`
+- changed: `skills/kipory-build/references/handlers/taxonomy.aggregate.md`
+- changed: `skills/kipory-build/references/handlers/telegram.resolve-channel.md`
+- changed: `skills/kipory-build/references/handlers/telegram.search-channels.md`
+- changed: `skills/kipory-build/references/handlers/telegram.stats.md`
+- changed: `skills/kipory-build/references/handlers/term.threshold-gate.md`
+- changed: `skills/kipory-build/references/handlers/term.upsert.md`
+- changed: `skills/kipory-build/references/handlers/text.chunk.md`
+- changed: `skills/kipory-build/references/handlers/text.detect-language.md`
+- changed: `skills/kipory-build/references/handlers/text.embed-sparse.md`
+- changed: `skills/kipory-build/references/handlers/text.embed.md`
+- changed: `skills/kipory-build/references/handlers/text.extract.md`
+- changed: `skills/kipory-build/references/handlers/text.generate.md`
+- changed: `skills/kipory-build/references/handlers/text.interpolate.md`
+- changed: `skills/kipory-build/references/handlers/text.rerank.md`
+- changed: `skills/kipory-build/references/handlers/text.sanitize.md`
+- changed: `skills/kipory-build/references/handlers/url.fetch-as-file.md`
+- changed: `skills/kipory-build/references/handlers/url.fetch.md`
+- changed: `skills/kipory-build/references/handlers/url.metadata.md`
+- changed: `skills/kipory-build/references/handlers/url.scrape.md`
+- changed: `skills/kipory-build/references/handlers/url.screenshot.md`
+- changed: `skills/kipory-build/references/handlers/value.first-non-empty.md`
+- changed: `skills/kipory-build/references/handlers/value.transform.md`
+- changed: `skills/kipory-build/references/handlers/vector.fetch.md`
+- changed: `skills/kipory-build/references/handlers/vector.point-id.md`
+- changed: `skills/kipory-build/references/handlers/vector.search.md`
+- changed: `skills/kipory-build/references/handlers/vector.upsert.md`
+- changed: `skills/kipory-build/references/handlers/web.rankings.md`
+- changed: `skills/kipory-build/references/handlers/web.search.md`
+- changed: `skills/kipory-build/references/handlers/web.traffic.md`
+- changed: `skills/kipory-build/references/handlers/x.posts.md`
+- changed: `skills/kipory-build/references/handlers/youtube.channel.md`
+- changed: `skills/kipory-build/references/handlers/youtube.transcript.md`
+- changed: `skills/kipory-build/references/handlers/youtube.trending.md`
+- changed: `skills/kipory-build/references/handlers/youtube.video.md`
+
 ## 1.20260912.2341 — 2026-09-12
 
 Synced from the Kipory monorepo at `33339c5eb`.
