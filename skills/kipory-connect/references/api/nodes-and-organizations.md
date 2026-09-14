@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: f20d337ac98e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 1801e53fa2ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Nodes and organisations
 
@@ -105,5 +105,5 @@ _No fields._
 | `name` | `string` | yes | Display name. Not unique, and not how anything addresses it. |
 | `kind` | `"organization"` | yes | Always `organization`; present so node shapes are discriminable. |
 | `parentId` | `string` | yes | Node id of the parent. Every organization has one — a top-level organization's parent is the installation root. |
-| `status` | `"active" \| "archived" \| "suspended" \| "deleted"` | yes | This node's OWN status — what was set here, never overwritten by an ancestor. Anything other than `active` restricts what the projects beneath it may do. |
-| `effectiveStatus` | `"active" \| "archived" \| "suspended" \| "deleted"` | yes | The most restrictive status over this node and everything above it. This is what decides whether work is admitted. When it is stricter than `status`, the restriction was set higher up and is not this node's to lift. |
+| `status` | `"active" \| "archived" \| "suspended"` | yes | This node's OWN status — what was set here, never overwritten by an ancestor. Anything other than `active` restricts what the projects beneath it may do. |
+| `effectiveStatus` | `"active" \| "archived" \| "suspended"` | yes | The most restrictive status over this node and everything above it. This is what decides whether work is admitted. When it is stricter than `status`, the restriction was set higher up and is not this node's to lift. |

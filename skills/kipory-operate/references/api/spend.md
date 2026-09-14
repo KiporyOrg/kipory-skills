@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: f20d337ac98e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 1801e53fa2ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Spend
 
@@ -11,11 +11,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | [`/v1/credits/balance`](#get-v1-credits-balance) |  |
+| `GET` | [`/v1/organizations/{nodeId}/ledger`](#get-v1-organizations-nodeid-ledger) |  |
 | `GET` | [`/v1/organizations/{nodeId}/quota`](#get-v1-organizations-nodeid-quota) |  |
+| `GET` | [`/v1/organizations/{nodeId}/usage`](#get-v1-organizations-nodeid-usage) |  |
 | `GET` | [`/v1/projects/{nodeId}/ai-calls`](#get-v1-projects-nodeid-ai-calls) |  |
 | `GET` | [`/v1/projects/{nodeId}/ai-calls/{callId}`](#get-v1-projects-nodeid-ai-calls-callid) |  |
 | `GET` | [`/v1/projects/{nodeId}/ai-calls/rollup`](#get-v1-projects-nodeid-ai-calls-rollup) |  |
 | `GET` | [`/v1/projects/{nodeId}/usage`](#get-v1-projects-nodeid-usage) |  |
+| `GET` | [`/v1/projects/{nodeId}/usage/events`](#get-v1-projects-nodeid-usage-events) |  |
+| `GET` | [`/v1/projects/{nodeId}/usage/events.csv`](#get-v1-projects-nodeid-usage-events-csv) |  |
 | `GET` | [`/v1/runs/{runId}/spend`](#get-v1-runs-runid-spend) |  |
 
 ### `GET /v1/credits/balance`
@@ -32,6 +36,32 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `perUserSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | yes | The window `perUserSpendConsumed` covers. Without it that figure is ambiguous where it matters most: '8 of 10' is a wall about to be hit if the window is LIFETIME, and an ordinary month if it is monthly. |
 | `perUserSpendWindowStart` | `string \| null` | yes | The instant the consumed figure was actually summed from, or null for a lifetime window. Read it rather than recomputing it from the period — recomputing is how a client shows a window the server did not enforce. |
 
+### `GET /v1/organizations/{nodeId}/ledger`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The organization's OrgNode id — the same id `/v1/nodes/{nodeId}` takes. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `after` | `string` | no | The page OLDER than this entry — pass back the `nextCursor` you were given. Omit for the newest page. |
+| `before` | `string` | no | The page NEWER than this entry — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `limit` | `integer` | no | How many entries per page, up to 200. Defaults to 50. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `payerNodeId` | `string` | yes | The wallet's node — always the organization itself on this route. |
+| `entries` | `object[]` | yes | Newest first, whichever direction the page was walked. |
+| `paging` | `"null"` | yes | Always `null`: the history merges two tables and a page count would be two unbounded counts per click. Walk by the cursors. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+
 ### `GET /v1/organizations/{nodeId}/quota`
 
 **Path parameters**
@@ -45,6 +75,49 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `resources` | `object[]` | yes | One entry per external quota pool this organization draws on. |
+
+### `GET /v1/organizations/{nodeId}/usage`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The organization's OrgNode id — the same id `/v1/nodes/{nodeId}` takes. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `window` | `"24h" \| "7d" \| "30d" \| "90d" \| "mtd" \| "custom"` | no | How far back to look. Defaults to 7 days rather than the 24 hours the calls page defaults to, and the difference is measured rather than stylistic: spend accrues slowly, and a 24-hour window is empty for most live projects. `mtd` is the current UTC month so far; `custom` takes `from` and `to`. |
+| `from` | `string` | no | The first UTC calendar day of a custom span, inclusive. Only with `window=custom`, where it is required. |
+| `to` | `string` | no | The last UTC calendar day of a custom span, INCLUSIVE — the window runs to the end of that day, or to the moment of the read if the day has not ended. Only with `window=custom`, where it is required. A span longer than 365 days is refused. |
+| `scope` | `"all" \| "users" \| "design" \| "system"` | no | Whose work to count. `all` is end-user plus design-time — the two CHARGING actors. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
+| `kind` | `"LLM_CALL" \| "EMBEDDING" \| "STORAGE_UPLOAD" \| "STORAGE_DELETE" \| "STORAGE_HELD" \| "VECTOR_UPSERT" \| "VECTOR_HELD" \| "HANDLER_RUN" \| "TRANSCRIPTION" \| "VENDOR_FETCH" \| "RERANK"` | no | Narrow to one kind of work. |
+| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `model` | `string` | no | Narrow to the calls that named one model. |
+| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `user` | `string` | no | Narrow to the work one end user caused, by user id. |
+| `key` | `string` | no | Narrow to the work one API key made, by key id. |
+| `project` | `string` | no | Narrow to one project, by its OrgNode id — the key a breakdown by project hands back. A node outside this organization's subtree is refused with a 404. |
+| `by` | `"project" \| "kind" \| "skill" \| "model" \| "handler" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the project, which is the split only this height can show. |
+| `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `window` | `object` | yes | The window actually measured, echoed rather than left to the client. Both bounds range on `CostEvent.occurredAt` — when the work HAPPENED — which is the column every spend window and both cap gates use. |
+| `totals` | `object` | yes | The subtree under the requested scope and narrowing. A FLOOR, not a ceiling, for the reason the project route gives: spend the meter could not record is invisible here. |
+| `prior` | `object \| null` | yes | The period before, measured under the same scope and narrowing. `null` unless `compare=1` was passed. |
+| `buckets` | `object[]` | yes | The window sliced oldest-first, quiet slices present as zeroes. |
+| `priorBuckets` | `object[] \| null` | yes | The prior period sliced the same way, one per slice of `buckets`. `null` unless `compare=1` was passed. |
+| `kinds` | `object[]` | yes | One row per kind of work with spend in the window, costliest first. |
+| `breakdown` | `object` | yes | The window split along the dimension `by` asked for. |
+| `narrowed` | `object` | yes | The narrowing the server applied, echoed so a client draws exactly the chips that are in force. |
+| `models` | `object[]` | yes | Every model with calls in the window across the subtree, under the scope and narrowing, costliest first. |
+| `projects` | `object[]` | yes | Every project in the subtree, by name. |
+| `payer` | `object \| null` | yes | The wallet that pays for this organization's work — its own, or the ancestor's it bills up to. `null` when no wallet resolves anywhere on the chain, in which case the platform serves the work unbilled and records the fact elsewhere. |
+| `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but handler runs, which are most of the events and charge nothing. Only cells with events are listed. |
 
 ### `GET /v1/projects/{nodeId}/ai-calls`
 
@@ -183,18 +256,98 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `window` | `"24h" \| "7d" \| "30d"` | no | How far back to look. Defaults to 7 days rather than the 24 hours the calls page defaults to, and the difference is measured rather than stylistic: spend accrues slowly, and a 24-hour window is empty for most live projects. |
+| `window` | `"24h" \| "7d" \| "30d" \| "90d" \| "mtd" \| "custom"` | no | How far back to look. Defaults to 7 days rather than the 24 hours the calls page defaults to, and the difference is measured rather than stylistic: spend accrues slowly, and a 24-hour window is empty for most live projects. `mtd` is the current UTC month so far; `custom` takes `from` and `to`. |
+| `from` | `string` | no | The first UTC calendar day of a custom span, inclusive. Only with `window=custom`, where it is required. |
+| `to` | `string` | no | The last UTC calendar day of a custom span, INCLUSIVE — the window runs to the end of that day, or to the moment of the read if the day has not ended. Only with `window=custom`, where it is required. A span longer than 365 days is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "system"` | no | Whose work to count. `all` is end-user plus design-time — the two CHARGING actors. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
+| `kind` | `"LLM_CALL" \| "EMBEDDING" \| "STORAGE_UPLOAD" \| "STORAGE_DELETE" \| "STORAGE_HELD" \| "VECTOR_UPSERT" \| "VECTOR_HELD" \| "HANDLER_RUN" \| "TRANSCRIPTION" \| "VENDOR_FETCH" \| "RERANK"` | no | Narrow to one kind of work. |
+| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `model` | `string` | no | Narrow to the calls that named one model. |
+| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `user` | `string` | no | Narrow to the work one end user caused, by user id. |
+| `key` | `string` | no | Narrow to the work one API key made, by key id. |
+| `by` | `"kind" \| "skill" \| "model" \| "handler" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work, which is the split the other spend pages cannot show. |
+| `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `window` | `object` | yes | The window actually measured, echoed rather than left to the client. Both bounds range on `CostEvent.occurredAt` — when the work HAPPENED — which is the column every spend window and both cap gates use. |
-| `totals` | `object` | yes | The window under the requested scope. ⚠️ A FLOOR, NOT A CEILING: when the meter cannot record a charge the platform serves the work for free and writes the failure down elsewhere, so spend that never landed is invisible here. |
+| `totals` | `object` | yes | The window under the requested scope and narrowing. ⚠️ A FLOOR, NOT A CEILING: when the meter cannot record a charge the platform serves the work for free and writes the failure down elsewhere, so spend that never landed is invisible here. |
+| `prior` | `object \| null` | yes | The period before, measured under the same scope and narrowing. `null` unless `compare=1` was passed. |
 | `buckets` | `object[]` | yes | The window sliced oldest-first. ⛔ A SLICE WITH NO SPEND IS PRESENT WITH ZEROES rather than absent: a series that skipped quiet slices would compress them and misreport the shape of the spending. |
-| `kinds` | `object[]` | yes | One row per kind of work with spend in the window, costliest first. Absent entirely for a window with none. |
-| `skills` | `object[]` | yes | One row per skill with spend in the window, costliest first, with the unattributed bucket among them. |
+| `priorBuckets` | `object[] \| null` | yes | The prior period sliced the same way, one slice per slice of `buckets` and in the same order, so the two can be drawn side by side without alignment. `null` unless `compare=1` was passed. |
+| `kinds` | `object[]` | yes | One row per kind of work with spend in the window, costliest first. Absent entirely for a window with none. Always present whatever `by` says, because the slices are stacked by kind. |
+| `breakdown` | `object` | yes | The window split along the dimension `by` asked for. |
+| `narrowed` | `object` | yes | The narrowing the server applied, echoed so a client draws exactly the chips that are in force and never infers them from its own URL. |
+| `models` | `object[]` | yes | Every model with calls in the window under the scope and narrowing, costliest first. |
+| `caps` | `object` | yes | The project's spend ceilings and how close each is. Measured on the ceilings' own windows, not the page's. |
+| `payer` | `object \| null` | yes | The wallet this project's work settles to. `null` when no wallet resolves anywhere above it, in which case the work is served unbilled and the platform records the fact elsewhere. |
+| `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but handler runs, which are most of the events and charge nothing. Only cells with events are listed. |
+
+### `GET /v1/projects/{nodeId}/usage/events`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, and the value `CostEvent.nodeId` actually stores. Not `projectId`, which is a different value on the same project. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `window` | `"24h" \| "7d" \| "30d" \| "90d" \| "mtd" \| "custom"` | no | How far back to look. Defaults to 7 days rather than the 24 hours the calls page defaults to, and the difference is measured rather than stylistic: spend accrues slowly, and a 24-hour window is empty for most live projects. `mtd` is the current UTC month so far; `custom` takes `from` and `to`. |
+| `from` | `string` | no | The first UTC calendar day of a custom span, inclusive. Only with `window=custom`, where it is required. |
+| `to` | `string` | no | The last UTC calendar day of a custom span, INCLUSIVE — the window runs to the end of that day, or to the moment of the read if the day has not ended. Only with `window=custom`, where it is required. A span longer than 365 days is refused. |
+| `scope` | `"all" \| "users" \| "design" \| "system"` | no | Whose work to count. `all` is end-user plus design-time — the two CHARGING actors. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
+| `kind` | `"LLM_CALL" \| "EMBEDDING" \| "STORAGE_UPLOAD" \| "STORAGE_DELETE" \| "STORAGE_HELD" \| "VECTOR_UPSERT" \| "VECTOR_HELD" \| "HANDLER_RUN" \| "TRANSCRIPTION" \| "VENDOR_FETCH" \| "RERANK"` | no | Narrow to one kind of work. |
+| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `model` | `string` | no | Narrow to the calls that named one model. |
+| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `user` | `string` | no | Narrow to the work one end user caused, by user id. |
+| `key` | `string` | no | Narrow to the work one API key made, by key id. |
+| `after` | `string` | no | The page OLDER than this row — pass back the `nextCursor` you were given. Omit for the newest page. |
+| `before` | `string` | no | The page NEWER than this row — pass back the `prevCursor` you were given. Refused together with `after`: they name opposite directions from one row, so a request carrying both has not said which it wants. |
+| `limit` | `integer` | no | How many charges per page, up to 200. Defaults to 50. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `window` | `object` | yes | The window actually listed, echoed — the same frame the usage figure under the same query measures. |
+| `events` | `object[]` | yes | This page of charges, newest first by `occurredAt`. |
+| `paging` | `"null"` | yes | Always NULL here. A page count needs a COUNT over the window on every page, which grows with the window, so this route declines it and walks with `after`/`before` instead. Read `null` as `cursor walking only`, never as `not measured yet`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+
+### `GET /v1/projects/{nodeId}/usage/events.csv`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, and the value `CostEvent.nodeId` actually stores. Not `projectId`, which is a different value on the same project. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `window` | `"24h" \| "7d" \| "30d" \| "90d" \| "mtd" \| "custom"` | no | How far back to look. Defaults to 7 days rather than the 24 hours the calls page defaults to, and the difference is measured rather than stylistic: spend accrues slowly, and a 24-hour window is empty for most live projects. `mtd` is the current UTC month so far; `custom` takes `from` and `to`. |
+| `from` | `string` | no | The first UTC calendar day of a custom span, inclusive. Only with `window=custom`, where it is required. |
+| `to` | `string` | no | The last UTC calendar day of a custom span, INCLUSIVE — the window runs to the end of that day, or to the moment of the read if the day has not ended. Only with `window=custom`, where it is required. A span longer than 365 days is refused. |
+| `scope` | `"all" \| "users" \| "design" \| "system"` | no | Whose work to count. `all` is end-user plus design-time — the two CHARGING actors. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
+| `kind` | `"LLM_CALL" \| "EMBEDDING" \| "STORAGE_UPLOAD" \| "STORAGE_DELETE" \| "STORAGE_HELD" \| "VECTOR_UPSERT" \| "VECTOR_HELD" \| "HANDLER_RUN" \| "TRANSCRIPTION" \| "VENDOR_FETCH" \| "RERANK"` | no | Narrow to one kind of work. |
+| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `model` | `string` | no | Narrow to the calls that named one model. |
+| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `user` | `string` | no | Narrow to the work one end user caused, by user id. |
+| `key` | `string` | no | Narrow to the work one API key made, by key id. |
+
+**Response `200`**
+
+_No fields._
 
 ### `GET /v1/runs/{runId}/spend`
 

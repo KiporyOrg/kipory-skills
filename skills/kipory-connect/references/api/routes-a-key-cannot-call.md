@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: f20d337ac98e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 1801e53fa2ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 
@@ -112,6 +112,7 @@ Gate: `assertPlatformStaffActor`
 
 Gate: `structural key refusal`
 
+- `DELETE /v1/nodes/{…}`
 - `GET /v1/nodes/{…}`
 - `PATCH /v1/nodes/{…}`
 - `PATCH /v1/nodes/{…}/status`
@@ -203,6 +204,14 @@ Gate: `assertPlatformStaffActor`
 - `DELETE /v1/sessions/{…}`
 - `GET /v1/sessions`
 
+## the installation's spend over every tenant, with what Kipory paid upstream beside what was charged — an API key is NEVER platform staff, and a staff-mode hub never resolves a presented key in the first place. The per-tenant equivalents are GET /v1/projects/{nodeId}/usage and GET /v1/organizations/{nodeId}/usage, which carry the charges and never the vendor column; the reprice has no customer equivalent because it moves other tenants' wallets
+
+Gate: `assertPlatformStaffActor`
+
+- `GET /v1/spend`
+- `GET /v1/spend/events`
+- `POST /v1/spend/reprice`
+
 ## the installation's supplier roster and its spend — an API key is NEVER platform staff, and there is no per-tenant equivalent because the subject is not tenant data
 
 Gate: `assertPlatformStaffActor`
@@ -210,6 +219,12 @@ Gate: `assertPlatformStaffActor`
 - `GET /v1/vendors`
 - `GET /v1/vendors/{…}`
 - `POST /v1/vendors/{…}/probe`
+
+## every wallet in the installation — each tenant's balance, overdraft and runway, and every person's own wallet — an API key is NEVER platform staff, and a staff-mode hub never resolves a presented key in the first place. A customer reads its own payer on GET /v1/projects/{nodeId}/usage and GET /v1/organizations/{nodeId}/usage, with the balance only for an admin of the wallet's holder
+
+Gate: `assertPlatformStaffActor`
+
+- `GET /v1/wallets`
 
 ## owner-scoped file operations resolve the acting USER; a key has none. (GET /v1/files/raw/{token} is deliberately public — the HMAC is the credential — and is NOT listed here)
 
