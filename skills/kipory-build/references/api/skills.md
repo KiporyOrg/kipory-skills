@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 1801e53fa2ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 649613b93ff2 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Skills (flow steps)
 
@@ -17,6 +17,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `DELETE` | [`/v1/skills/{id}`](#delete-v1-skills-id) |  |
 | `POST` | [`/v1/skills/{id}/duplicate`](#post-v1-skills-id-duplicate) |  |
 | `POST` | [`/v1/skills/batch`](#post-v1-skills-batch) |  |
+| `GET` | [`/v1/skills/input-options`](#get-v1-skills-input-options) |  |
 | `POST` | [`/v1/skills/preview`](#post-v1-skills-preview) |  |
 | `GET` | [`/v1/skills/rename-preview`](#get-v1-skills-rename-preview) |  |
 | `POST` | [`/v1/skills/replace`](#post-v1-skills-replace) |  |
@@ -208,6 +209,26 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updated` | `object[]` | yes | Skills that were changed. |
 | `deletedIds` | `string[]` | yes | Ids of the skills removed. |
 | `outstandingIssues` | `object[]` | yes | Warnings about the resulting graph. The batch applied — anything blocking would have rolled the whole transaction back instead. |
+
+### `GET /v1/skills/input-options`
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow the step belongs to. Flow-addressed because the step may not be saved yet. |
+| `handlerKey` | `string` | yes | The handler the step runs. Its declared inputs are what every slot is checked against. An unregistered key is a 422. |
+| `stepId` | `string` | no | The step being edited, when it is saved. Its own output is never offered, and a slot that waits on it is reported as closing a circle. Omit it for a step that does not exist yet. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `picker` | `"row" \| "config" \| "prompt"` | yes | Where this step's inputs are chosen. `row` — picked for the step itself, and only then are `bounds` and `candidates` filled. `config` — the step's settings name them. `prompt` — the prompt's placeholders name the step's text inputs. A file input a multimodal prompt attaches is named by no placeholder: it is wired through the step's own `inputStreams` and `inputSchemas` on its write, no picker offers one, and this read lists no candidates for either. |
+| `count` | `integer \| null` | yes | How many inputs the step takes, or null for any number. |
+| `bounds` | `object[]` | yes | What each input must hold. With a `count`, one entry per position, in order. Without one, a single entry every position shares. |
+| `stepScopedTo` | `object \| null` | yes | The fan-out or loop the step runs inside, as it is saved. Null when it runs outside both, or is not saved yet. |
+| `candidates` | `object[]` | yes | Every slot the step could read: earlier steps' outputs, then the flow's inputs, then the platform's. |
 
 ### `POST /v1/skills/preview`
 

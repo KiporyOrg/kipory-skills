@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 55079af603bb · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 4a2cbe719d4e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -483,6 +483,77 @@ so an editor can underline the offending character rather than pointing at the f
 <!-- field-ok: maxNodeCount — same open `details` map -->
 <!-- field-ok: maxDepth — same open `details` map -->
 <!-- field-ok: functionName — same open `details` map -->
+
+## Choosing what a step reads
+
+For a handler that takes its inputs from the step row, something has to choose them — and the
+choice is judged by rules no client can reproduce: whether a slot fits an input is decided against
+the project's type registry, and what a path into a value yields is a projection over the same
+registry.
+
+```
+GET /v1/skills/input-options    every slot this step could read, each checked
+```
+
+Send `flowId` and `handlerKey`, and `stepId` when the step is saved. Omit `stepId` for a step you
+are creating. Nothing is persisted.
+
+Read `picker` first. Only `row` means the inputs are chosen here, and only then are `bounds` and
+`candidates` filled in. `config` means the step's settings name its inputs. `prompt` means the
+prompt's placeholders name its text inputs. A file input that a multimodal prompt attaches is named
+by no placeholder: it is wired through the step's own `inputStreams` and `inputSchemas` on
+`PATCH /v1/skills/{id}`, no picker offers one today, and this read lists no candidates for either.
+
+`count` is how many inputs the step takes, or null for any number. `bounds` says what each must
+hold: with a `count`, one entry per position in order; without one, a single entry every position
+shares. Its `rule` is `contract` (the handler declares the shape, in `wants`), `list` (a fan-out's
+one input), `none` (the handler declares nothing) or `unresolved`. `words` says what the input must
+hold when no declared shape says it — `a list that is always there` for a fan-out — and is null
+otherwise. A variadic contract is enforced at every position, exactly as a fixed one is.
+
+Each candidate carries `verdicts`, aligned with `bounds`:
+
+- `fits` — the slot fits as it is.
+- `adapter` — it fits with one step: `first` takes a list's first item, `wrap` turns one value into
+  a one-item list.
+- `reach-in` — a field inside the value fits, though the slot does not; `paths` lists every such
+  field, at most three levels deep — shallower fields first — leaving out any field whose name a
+  path cannot carry.
+- `no` — nothing in it fits, with the save's `code` and `message`.
+- `unchecked` — nothing was checked.
+
+⭐ **Store what the answer hands you, verbatim.** `schema` goes into `inputSchemas` at that position,
+`path` into `inputPaths`, and `label` into `inputProjectionNames`. The label is minted by the
+platform; composing your own is how an input ends up exposed under a name nothing reads.
+
+⛔ **Fitting is by type identity, not by resemblance.** A named type fits only an input that wants
+that same type, so an object never fits a text input directly, however text-like its fields — which
+is exactly the case `reach-in` exists for.
+
+⛔ **`unresolved` is not freedom.** The handler declares a shape for its inputs and it could not be
+read — a platform defect. A slot with a shape comes back `unchecked`, a slot with no shape is still
+`no`, and a save of the step is refused with `INPUT_CONTRACT_RESOLVER_FAILED`.
+
+⚠️ **Nothing is filtered out.** A slot that does not fit, or cannot be reached, is listed with its
+reason. `unreachable` carries the platform's own code and sentence when wiring the slot would make
+steps wait for each other in a circle, or would mix a fan-out's or loop's values with values from
+outside it. For such a slot only the slot itself is judged: its fields are not walked, so its
+verdicts never say `reach-in`.
+
+⚠️ **`unreachable` is not a refusal.** The save keeps such wiring and reports it as an outstanding
+issue, and the flow will not activate or run until it is resolved — the picker is telling you before
+you make it.
+
+`scopedTo` names the step whose repetition a slot exists inside, with its `kind`: a `fan-out`
+delivers a list's items one at a time, and a `loop` re-runs its body over a carried value, one
+round at a time. `stepScopedTo` says the same of the step as it is saved.
+
+⚠️ **`unreachable` is judged as if the slot were the step's only input.** For a step that reads
+several slots, a mix of two chosen slots from different fan-outs is not caught here — the save
+reports it as an outstanding issue once both are saved.
+
+⚠️ **A fan-out needs a list that is always there.** A slot declared as a list that may be missing
+comes back `no`, because the save checks the input's shape exactly as stored.
 
 ## Renaming a slot — look before you commit
 
