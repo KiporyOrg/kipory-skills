@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 36e0c31f57b6 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 0b764bac9bc7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Ingest
 
@@ -45,13 +45,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `window` | `"24h" \| "7d" \| "30d"` | no | How far back the job figures reach. Defaults to `24h`. |
+| `window` | `"24h" \| "7d" \| "30d"` | no | How far back the job figures reach. Defaults to `24h`. Counted in whole slices, as usage counts it: `24h` from the top of the hour 23 hours before the current one, `7d` and `30d` from 00:00 UTC that many days back counting today — the response's `since` carries the instant. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `window` | `"24h" \| "7d" \| "30d"` | yes | How far back the job figures reach. `30d` is a ceiling rather than a choice of convenience: the maintenance job prunes `IngestJobLog` on a 30-day retention by default, so a longer window would report a falling count as evidence about traffic when it is evidence about pruning. Cache figures ignore this — a stored fetch has no window. |
+| `window` | `"24h" \| "7d" \| "30d"` | yes | How far back the job figures reach. `30d` is a ceiling rather than a choice of convenience: the maintenance job prunes `IngestJobLog` on a 30-day retention by default, so a longer window would report a falling count as evidence about traffic when it is evidence about pruning. Cache figures ignore this — a stored fetch has no window. Counted in whole slices, as usage counts it: `24h` from the top of the hour 23 hours before the current one, `7d` and `30d` from 00:00 UTC that many days back counting today — `since` carries the instant. |
 | `since` | `string` | yes | The instant `window` resolved to, so a reader can state the range rather than re-deriving it from a label and a clock that may differ. |
 | `totals` | `object` | yes | The window's figures over every handler at once. |
 | `stored` | `object` | yes | What this project has on disk right now. Unwindowed on every field, unlike everything else in this response. |

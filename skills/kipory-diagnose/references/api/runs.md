@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 36e0c31f57b6 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 0b764bac9bc7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Runs
 
@@ -49,10 +49,10 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project NODE whose runs to list (`OrgNode.id`). |
 | `after` | `string` | no | Read the page of OLDER runs — pass the `nextCursor` you were given. An unparseable cursor is treated as absent and returns the first page, rather than as a bound of zero. |
-| `before` | `string` | no | Read the page of NEWER runs — pass the `prevCursor` you were given. ⛔ NOT VALID WITH `after`: the two name opposite ways from one row, so a request carrying both is a client bug and is answered 422 rather than resolved by precedence — a page picked silently would look plausible and hide the fault. |
+| `before` | `string` | no | Read the page of NEWER runs — pass the `prevCursor` you were given. ⛔ NOT VALID WITH `after`: the two name opposite ways from one row, so a request carrying both is a client bug and is answered 400 rather than resolved by precedence — a page picked silently would look plausible and hide the fault. |
 | `limit` | `integer` | no | Rows per page. Defaults to 50, capped at 100. |
 | `flow` | `string` | no | Only runs whose ROOT flow has this slug — the flow's address, the same one `/{project}/flows/{slug}` takes. A slug the project does not have is a 404, never an empty page: an empty page would say the flow has not run, which is a different claim. ⚠️ A run whose flow was since deleted matches nothing here, since it has no slug to match. Filters inside the same ordered walk the page uses; it does not change the cursor. |
-| `window` | `"24h" \| "7d" \| "30d"` | no | Narrow to runs STARTED in this window. ⭐ THE SAME VOCABULARY the calls, ingestion and usage surfaces take, so a drill-through from one of them carries its window across without a translation table and a reader who narrowed there is never silently re-widened here. ⚠️ IT FILTERS, IT DOES NOT ORDER: the page is still a keyset on `seq`, and a bound on `at` does not change which column the cursor walks. Ranges on the OPENER's `at` — when the run started — which is what a reader means by a run being 'in' a window. |
+| `window` | `"24h" \| "7d" \| "30d"` | no | Narrow to runs STARTED in this window. ⭐ THE SAME VOCABULARY the calls, ingestion and usage surfaces take, so a drill-through from one of them carries its window across without a translation table and a reader who narrowed there is never silently re-widened here. ⚠️ IT FILTERS, IT DOES NOT ORDER: the page is still a keyset on `seq`, and a bound on `at` does not change which column the cursor walks. Ranges on the OPENER's `at` — when the run started — which is what a reader means by a run being 'in' a window. Counted in whole slices, as usage counts it: `24h` from the top of the hour 23 hours before the current one, `7d` and `30d` from 00:00 UTC that many days back counting today. |
 
 **Response `200`**
 
@@ -62,6 +62,7 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | `paging` | `"null"` | yes | Always `null`: this route declines a page COUNT over an unbounded run history and pages by cursor alone. Not a missing field — the route's answer (API-12). |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the page of OLDER runs. `null` means this was the last page. Independent of anything a row says about itself. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page of NEWER runs. `null` on page one. ⛔ MEASURED, NEVER INFERRED FROM THE REQUEST. It was once taken from `after !== undefined` — 'a caller that passed a cursor came from somewhere' — which is true of a caller who walked here and false of every other way of arriving, and is the reasoning `/files` shipped and withdrew after it drew the newer control inert on every jumped page. It is an existence probe now, in both directions. |
+| `since` | `string \| null` | yes | The instant `window` resolved to, or `null` when no window was asked — so a reader states the range the list was read over rather than re-deriving it from a label and a clock that may differ. |
 
 ### `GET /v1/runs/{runId}`
 
