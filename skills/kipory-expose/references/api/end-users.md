@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 649613b93ff2 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 36e0c31f57b6 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # End users of the product
 
@@ -146,7 +146,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `standing` | `"active" \| "suspended" \| "former"` | no | Show only seats in this standing. Omitted means every standing — an unfiltered roster, not just the healthy part of it. |
+| `standing` | `"active" \| "suspended"` | no | Show only seats in this standing. Omitted means every standing — an unfiltered roster, not just the healthy part of it. |
 | `q` | `string` | no | Case-insensitive substring over the member's email and name. A member who set no name is matched on their email alone. |
 | `limit` | `integer` | no | Rows per page. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
@@ -177,17 +177,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `confirmation` | `string` | yes | The member's email, typed back. Compared trimmed and case-insensitively; a mismatch refuses the request. |
-| `eraseContent` | `boolean` | yes | Whether to erase what they created. ⚠️ A SEPARATE DECISION from ending the account: false ends the account and KEEPS the records, which leaves rows in this project owned by somebody who holds no seat on it. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `changed` | `boolean` | yes | False when the account was already deleted — the call is idempotent, not an error, and a client should not report a second deletion as a failed one. |
+| `changed` | `boolean` | yes | False only when another request deleted the account a moment earlier — two deletions racing — which is a success, not an error. A deletion AFTER that answers 404 `MEMBER_NOT_FOUND`: a deleted account holds no seat on this project any more. |
 | `deletedMemberships` | `integer` | yes | Seats ended across the WHOLE platform, not only this project. Ending an account ends it everywhere. |
 | `revokedApiKeys` | `integer` | yes | API keys this person had minted, now revoked. |
 | `walletWrittenOff` | `integer` | yes | Credits written off to settle the account's own wallet, if it had one. |
-| `erasureEnqueued` | `boolean` | yes | Whether content erasure was scheduled by THIS call. False on an opt-out and on an idempotent re-run; the daily sweep enqueues any deleted account that still owns content regardless, so false does not mean the content stays. |
 
 ### `POST /v1/projects/{nodeId}/members/{userId}/credits`
 
@@ -229,6 +227,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `records` | `integer` | yes | Records this member owns in this project. |
 | `profile` | `integer` | yes | Profiles this member holds (0 or 1). |
 | `retainedNote` | `string` | yes | What SURVIVES the deletion, in words. Sent by the platform rather than composed by each client, so every surface makes the same promise. |
+| `seatsElsewhere` | `integer` | yes | Seats this person holds OUTSIDE this project, on any node of the platform. Above 0 the deletion is refused with a 409: deleting an account ends it everywhere, and a project administrator has authority over this project only. A count, not names — the other places may belong to other tenants. |
 
 ### `GET /v1/projects/{nodeId}/members/{userId}/deletion-preview/external`
 
@@ -259,15 +258,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `standing` | `"active" \| "suspended"` | yes | The standing to move this seat to. `suspended` withholds it; `active` reinstates a suspended one. `former` is deliberately not settable here — withdrawing a seat is its own route. |
+| `standing` | `"active" \| "suspended"` | yes | The standing to move this seat to. `suspended` withholds it; `active` reinstates a suspended one. Withdrawing a seat is its own route. |
 | `reason` | `string` | no | Why, for the audit trail. Optional and never gating — it is recorded on the `membership.status_changed` event when given and omitted entirely when not, so an empty reason is never stored as one. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `standing` | `"active" \| "suspended" \| "former"` | yes | The seat's standing after the call — which is its standing BEFORE the call whenever `changed` is false. |
-| `changed` | `boolean` | yes | Whether this call moved the seat. False when it already held that standing, and when the seat is `former` — which this route will not reinstate. Idempotent, never an error. ⚠️ NOT `false` for a seat that does not exist: that is a 404, raised before the write is attempted. |
+| `standing` | `"active" \| "suspended"` | yes | The seat's standing after the call — which is its standing BEFORE the call whenever `changed` is false. |
+| `changed` | `boolean` | yes | Whether this call moved the seat. False when it already held that standing. Idempotent, never an error. ⚠️ NOT `false` for a seat that does not exist: that is a 404. |
 
 ### `GET /v1/projects/{nodeId}/profile-schema`
 
