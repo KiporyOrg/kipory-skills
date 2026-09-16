@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 4a2cbe719d4e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: dc8573e06dac · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Schedules
 
@@ -94,11 +94,24 @@ way.
   falls past the end. Any timing field in an update re-derives the next run — editing the start
   alone is enough to trigger it.
 
+- **A cron pattern that is not exactly five fields is refused with a `422`.** The five, in order,
+  are minute, hour, day of month, month and day of week, counted on runs of whitespace, and the
+  refusal says how many fields the one you sent had. So a six-field _seconds_ pattern like
+  `0 */5 * * * *` is refused, and so are a four-field pattern, a blank or whitespace-only one, and
+  an `@daily`-style macro. ⚠️ **The seconds form is the one that used to bite**: the cron library
+  reads six fields SECONDS-FIRST, so before the count was checked a stray token after a
+  Monday-06:00 pattern stored as "minute 6 of every hour, on Tuesdays in January" — accepted, given
+  a confident next-run time, and nobody the wiser.
+
+  ⚠️ **Only a pattern the request CARRIES is counted** — on the create, and on an update whose body
+  names `cronPattern`. A row stored before the rule therefore keeps firing on the pattern it has,
+  and can still be enabled, disabled, renamed or re-zoned; it is refused the moment someone writes
+  its pattern, which is the request where they can fix it.
+
 - **A pattern with no future occurrence at all is refused.** Granularity is one minute — ⚠️ and that
-  comes from the TICK, not from the pattern grammar: no field count is enforced, so a six-field
-  (seconds) pattern is accepted, is given a sub-minute next-run time, and then fires at most once a
-  minute anyway. Do not read its acceptance as support. Daylight-saving transitions are handled by
-  the underlying cron library's timezone support.
+  comes from the TICK, not from the pattern grammar, so nothing here fires faster than once a minute
+  whatever the pattern asks for. Daylight-saving transitions are handled by the underlying cron
+  library's timezone support.
 
 - **Updating, enabling and disabling all require the version you last read.** Unlike some
   resources here, it is not optional.
