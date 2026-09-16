@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: dc8573e06dac · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e2604b8ecaf7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Facets
 
@@ -66,8 +66,8 @@ vocabulary and then found it would not recognise an obvious synonym.
 `GET /v1/facets/resolvers?project=<nodeId>` lists every flow this project may bind as a facet's
 resolver — **your own flows and the platform's, in one call** — filtered to those whose typed
 signature actually matches the resolver contract. Each row carries the flow's id and its display
-name, the slug it lives at, its scope (`PROJECT` or `SYSTEM`), its `paramsSchema` and its
-`paramsDefaults`.
+name, the slug it lives at, its scope (`PROJECT` or `SYSTEM`), its `paramsSchema`, its
+`paramsDefaults` and `platformDefault`.
 
 ⭐ **The filter is the point.** A flow whose signature cannot serve is not offered, so a binding you
 make from this list cannot fail at ingest for being the wrong shape. The offered set is exactly the
@@ -93,6 +93,12 @@ would have disagreed with.
 ⚠️ **`scope: SYSTEM` means the platform owns it.** Bindable by you, editable by nobody outside the
 platform. It reads at `VIEWER`, and it discloses a name and a parameter shape — never what a
 platform flow does inside.
+
+⭐ **`platformDefault` marks the platform's own pick** — `true` on the platform resolver that does
+each job: the two-cut one the create path binds when you omit `resolverFlowId`, and the one-cut
+one. Every other row is `false`, your own flows included, and when two platform flows fit a job
+and neither is marked as its default, neither is flagged. Preselect from it rather than from list
+order: the first platform resolver of a shape is not necessarily the one bound.
 
 ## The sequence
 

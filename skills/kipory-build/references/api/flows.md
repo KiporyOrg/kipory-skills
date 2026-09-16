@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 0b764bac9bc7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b8e26fccd5ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Flows
 
@@ -233,7 +233,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `graph` | `object` | no | Which graph to run: the flow's saved skills, or a draft supplied here. Defaults to the saved graph. |
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
-| `projectId` | `string` | no | Resolve project-scoped context — relation kinds, project config, facets, the caller's profile — against this project instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. |
+| `projectId` | `string` | no | Resolve project-scoped context — relation kinds, project config, facets, the caller's profile — against this project instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
 | `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true, matching what a preview has always done. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
 
@@ -275,7 +275,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `graph` | `object` | no | Which graph to run: the flow's saved skills, or a draft supplied here. Defaults to the saved graph. |
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
-| `projectId` | `string` | no | Resolve project-scoped context — relation kinds, project config, facets, the caller's profile — against this project instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. |
+| `projectId` | `string` | no | Resolve project-scoped context — relation kinds, project config, facets, the caller's profile — against this project instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
 | `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true, matching what a preview has always done. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
 

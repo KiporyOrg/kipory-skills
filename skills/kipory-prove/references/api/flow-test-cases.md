@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 0b764bac9bc7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b8e26fccd5ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Flow test cases
 
@@ -151,6 +151,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `testCaseIds` | `string[]` | no | Which cases to run, up to 100. NAMING IDS RUNS THEM EVEN IF THEY ARE DISABLED. Omit to run every enabled case on the flow. |
 | `includeDisabled` | `boolean` | no | Include disabled cases in an unnamed run. Ignored when you name ids — those run regardless. |
+| `projectId` | `string` | no | Run every case against this project's config, records and facets instead of the flow's own. Requires EDITOR on it. Required for a platform flow, which belongs to no project; the platform pays for its cases. |
 
 **Response `200`**
 

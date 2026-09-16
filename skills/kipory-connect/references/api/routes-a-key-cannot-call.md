@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: 0b764bac9bc7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: b8e26fccd5ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 
@@ -211,6 +211,18 @@ Gate: `assertPlatformStaffActor`
 - `GET /v1/spend`
 - `GET /v1/spend/events`
 - `POST /v1/spend/reprice`
+
+## the platform's own flows: an installation-wide choice of which one every project binds next, and an editor's reads that name other tenants' projects — an API key is NEVER platform staff, and no project owns a platform flow
+
+Gate: `assertPlatformStaffActor`
+
+- `DELETE /v1/system-flows/defaults/{…}`
+- `GET /v1/system-flows/defaults`
+- `GET /v1/system-flows/handlers`
+- `GET /v1/system-flows/schema-entries`
+- `GET /v1/system-flows/task-models`
+- `GET /v1/system-flows/{…}/used-by`
+- `PUT /v1/system-flows/defaults/{…}`
 
 ## the installation's supplier roster and its spend — an API key is NEVER platform staff, and there is no per-tenant equivalent because the subject is not tenant data
 

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: dc8573e06dac · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e2604b8ecaf7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flow test cases
 
@@ -37,6 +37,10 @@ POST /v1/flows/{id}/test    run the suite — omit the body to run every enabled
 Cases are scoped by `flow` and addressed by their own id. Running takes an optional list of case
 ids and a flag for including disabled ones. ⚠️ **Naming ids runs exactly those, enabled or not** —
 the disabled flag is ignored the moment you name any, so it only governs an unnamed run.
+
+A run also takes an optional `projectId`. Every case then resolves its config, records and facets
+against that project instead of the flow's own, which needs EDITOR there — and the spend follows it:
+that project's payer is billed.
 
 The assertion vocabulary is shared with the evals surface, which evaluates the same assertions —
 so an assertion you learn here transfers there unchanged.
