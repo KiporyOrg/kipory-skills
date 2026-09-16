@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 2506fcca00d1fd81d80fcc980d8b3ea41d53a0514dab65b04ef305d744ce8fd0 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 300d4708f4bec5f4edab8ba144e60798f9ed6866f80c93834980ee7692a726ab · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `flow.dispatch` — Dispatch by pattern
 
@@ -15,8 +15,8 @@ Send a value down a branch chosen by the first matching rule.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `default` | object | no | — | Fallback branch invoked when no explicit rule matches. When omitted, unmatched inputs are silently skipped. |
-| `flags` | string | no | `"i"` | Regex flags applied to every rule. Glob patterns are always case-insensitive and ignore this. |
-| `matchOn` | object | no | `"value"` | What the rules are tested against: the value itself, the host of a URL, or a named field of an object. ⚠️ Whatever is matched, the ORIGINAL input is what gets forwarded — so a file in stays a file out. |
+| `flags` | string[] | no | `["i"]` | Regex flags for every rule: `i` ignores case, `m` makes `^`/`$` match per line, `s` lets `.` match newlines, `u` enables Unicode. ⚠️ Glob patterns ignore these flags and always ignore case. |
+| `matchOn` | union | no | `"value"` | What the rules are tested against: the value itself, the host of a URL, or a named field of an object. ⚠️ Whatever is matched, the ORIGINAL input is what gets forwarded — so a file in stays a file out. |
 | `patternSyntax` | `regex` \| `glob` | no | `"regex"` | How the rule patterns are written. `regex` is full JavaScript regex; `glob` allows `*` and treats the rest literally. |
 | `rules` | object[] | no | `[]` | Ordered list of pattern → output-slot routing rules. Evaluated in declared order; first match wins. |
 

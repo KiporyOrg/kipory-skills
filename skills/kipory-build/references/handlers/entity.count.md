@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 2506fcca00d1fd81d80fcc980d8b3ea41d53a0514dab65b04ef305d744ce8fd0 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 300d4708f4bec5f4edab8ba144e60798f9ed6866f80c93834980ee7692a726ab · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `entity.count` — Count records
 

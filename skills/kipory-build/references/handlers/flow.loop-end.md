@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 2506fcca00d1fd81d80fcc980d8b3ea41d53a0514dab65b04ef305d744ce8fd0 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 300d4708f4bec5f4edab8ba144e60798f9ed6866f80c93834980ee7692a726ab · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `flow.loop-end` — Loop (end)
 
@@ -16,7 +16,7 @@ End a loop, check its stop condition, and expose the final result.
 | `carryMap` | object | no | `{}` | Which body output becomes which carry slot on the next pass. |
 | `escapeSlots` | object | no | `{}` | Which slots survive the loop, and under what name outside it. Everything else inside is discarded when the region closes. |
 | `outputSlot` | string | yes | — | The post-loop aggregate result slot in the parent scope. Mirrors Skill.outputSlot; the save action writes both. |
-| `until` | object | yes | — | When to stop. It is checked after each pass, against what that pass produced. |
+| `until` | union | yes | — | When to stop. It is checked after each pass, against what that pass produced. |
 
 ## Worked example
 

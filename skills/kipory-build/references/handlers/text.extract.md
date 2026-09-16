@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 2506fcca00d1fd81d80fcc980d8b3ea41d53a0514dab65b04ef305d744ce8fd0 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 300d4708f4bec5f4edab8ba144e60798f9ed6866f80c93834980ee7692a726ab · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `text.extract` — Extract text by regex
 
@@ -15,9 +15,9 @@ Extract matching text with a JavaScript regex.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `dedupe` | boolean | no | `true` | When true (default), repeat matches are dropped while preserving the first-occurrence order. |
-| `flags` | string | no | `"gi"` | Regex flags. Default `gi` (global + case-insensitive). The handler enforces the `g` flag at runtime — without it `.match()` returns at most one result. |
+| `flags` | string[] | no | `["i"]` | Regex flags: `i` ignores case, `m` makes `^`/`$` match per line, `s` lets `.` match newlines, `u` enables Unicode. Every match is returned. |
 | `group` | integer | no | `0` | Which capturing group to take from each match. 0 takes the whole match. A match missing that group is skipped. |
-| `pattern` | string | no | `"[\\s\\S]+"` | JavaScript regex source applied to the concatenated input text. The `g` flag is added implicitly when missing — the handler always extracts all matches. |
+| `pattern` | string | no | `"[\\s\\S]+"` | JavaScript regex source applied to the concatenated input text. Every match is extracted, not only the first. |
 
 ## Worked example
 
