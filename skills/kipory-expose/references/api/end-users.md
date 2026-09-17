@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # End users of the product
 
@@ -111,6 +111,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `stored` | `object \| null` | yes | What you saved, verbatim. Null when this project has never set a config — and ALSO null when what it saved failed to parse, so null alone does not distinguish never-set from broken. Read `malformed` to tell them apart. |
 | `effective` | `object` | yes | What is actually in force right now. Equal to `stored` when that is valid, and the platform default otherwise. This is the one to read when asking how sign-in currently behaves. |
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it — sign-in keeps working, which is exactly why the change goes unnoticed. |
+| `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
 
 ### `PUT /v1/projects/{nodeId}/auth-config`
 
@@ -133,6 +134,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `stored` | `object \| null` | yes | What you saved, verbatim. Null when this project has never set a config — and ALSO null when what it saved failed to parse, so null alone does not distinguish never-set from broken. Read `malformed` to tell them apart. |
 | `effective` | `object` | yes | What is actually in force right now. Equal to `stored` when that is valid, and the platform default otherwise. This is the one to read when asking how sign-in currently behaves. |
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it — sign-in keeps working, which is exactly why the change goes unnoticed. |
+| `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
 
 ### `GET /v1/projects/{nodeId}/members`
 
@@ -284,6 +286,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
+| `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different entry is refused with 409, because stored profiles were seeded from the current one. |
 
 ### `PUT /v1/projects/{nodeId}/profile-schema`
@@ -308,6 +311,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
+| `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different entry is refused with 409, because stored profiles were seeded from the current one. |
 
 ### `DELETE /v1/projects/{nodeId}/profile-schema`
@@ -326,6 +330,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
+| `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different entry is refused with 409, because stored profiles were seeded from the current one. |
 
 ### `POST /v1/projects/{nodeId}/profile-schema/starter`
@@ -350,6 +355,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
+| `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different entry is refused with 409, because stored profiles were seeded from the current one. |
 
 ### `GET /v1/users`

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Spend
 
@@ -107,6 +107,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `window` | `object` | yes | The window actually measured, echoed rather than left to the client. Both bounds range on `CostEvent.occurredAt` — when the work HAPPENED — which is the column every spend window and both cap gates use. |
+| `readOn` | `"credits" \| "events"` | yes | The magnitude this figure is read on under the requested scope. `credits` wherever the scope's work can carry a charge; `events` where every charge is zero by construction — the platform's own work — so a figure drawn on credits there would be a window of zeros. |
 | `totals` | `object` | yes | The subtree under the requested scope and narrowing. A FLOOR, not a ceiling, for the reason the project route gives: spend the meter could not record is invisible here. |
 | `prior` | `object \| null` | yes | The period before, measured under the same scope and narrowing. `null` unless `compare=1` was passed. |
 | `buckets` | `object[]` | yes | The window sliced oldest-first, quiet slices present as zeroes. |
@@ -274,6 +275,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `window` | `object` | yes | The window actually measured, echoed rather than left to the client. Both bounds range on `CostEvent.occurredAt` — when the work HAPPENED — which is the column every spend window and both cap gates use. |
+| `readOn` | `"credits" \| "events"` | yes | The magnitude this figure is read on under the requested scope. `credits` wherever the scope's work can carry a charge; `events` where every charge is zero by construction — the platform's own work — so a figure drawn on credits there would be a window of zeros. |
 | `totals` | `object` | yes | The window under the requested scope and narrowing. ⚠️ A FLOOR, NOT A CEILING: when the meter cannot record a charge the platform serves the work for free and writes the failure down elsewhere, so spend that never landed is invisible here. |
 | `prior` | `object \| null` | yes | The period before, measured under the same scope and narrowing. `null` unless `compare=1` was passed. |
 | `buckets` | `object[]` | yes | The window sliced oldest-first. ⛔ A SLICE WITH NO SPEND IS PRESENT WITH ZEROES rather than absent: a series that skipped quiet slices would compress them and misreport the shape of the spending. |

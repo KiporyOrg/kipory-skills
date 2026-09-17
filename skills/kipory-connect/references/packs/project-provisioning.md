@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Project provisioning
 
@@ -90,14 +90,16 @@ GET /v1/projects/address-availability?candidate=harvest
 ```
 
 `available` answers for the label as a whole — taken, reserved, or recently released by another
-project all come back unavailable, with `reason` in words you can show someone. When it is taken
-and the name is otherwise fine, `suggestion` carries a free alternative that has **already been
-checked**, so it is a real candidate rather than a guess at `<name>-2`.
+project all come back unavailable, with `reason` in words you can show someone. When it is
+unavailable, `suggestion` carries a free alternative that has **already been checked**, so it is a
+real candidate rather than a guess at `<name>-2` — a reserved name included: `app` comes back with
+`app-2`.
 
 Two limits worth knowing. The suggestion is **advisory**: it was true when computed and someone
-else can claim it a moment later, so the create's own conflict response stays the authority. And a
-**reserved** name gets no suggestion at all — the platform will not offer you the address next door
-to one it just refused.
+else can claim it a moment later, so the create's own conflict response stays the authority. And it
+is `null` when no numbered alternative in range is free, when the name contains one of the platform's
+own brand names (no numbered form of it is allowed), or when the candidate is too malformed to
+derive one from.
 
 Omit `projectId` when you are creating. Pass it when you are renaming an existing project, which
 also makes the project's own current address come back available — you may always keep the name you

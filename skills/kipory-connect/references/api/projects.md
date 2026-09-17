@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Projects
 
@@ -159,6 +159,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `nodeId` | `string` | yes | The project's node id. |
 | `projectId` | `string` | yes | The project's project id. |
 | `slug` | `string` | yes | The project's slug. |
+| `graceDays` | `integer` | yes | How many days a retire started now would keep the project restorable before it is destroyed — the grace period `DELETE /v1/projects/{nodeId}` would set. A project already retired keeps the deadline it was given; read `purgeAfter` for that. |
 | `counts` | `object` | yes | What a purge would destroy, by kind. A PREVIEW — reading it changes nothing, and the figures move as the project keeps being used. |
 | `external` | `object` | yes | What would be destroyed OUTSIDE the main database, and therefore not recoverable from a database backup. |
 
@@ -393,7 +394,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `candidate` | `string` | yes | The normalized label this answer is about — trimmed and lower-cased, so it may differ from what was sent. Key any client-side cache on this, not on the raw input. |
 | `available` | `boolean` | yes | True when a project may claim this address. False covers every reason at once — already taken, reserved, or released so recently that routing caches may still point elsewhere. |
 | `reason` | `string \| null` | yes | Why it is unavailable, in words safe to show a person. Non-null exactly when `available` is false. It never names another project. |
-| `suggestion` | `string \| null` | yes | A free alternative the server actually checked, not a guess. ADVISORY: true when computed and claimable by someone else a moment later — the create's own conflict response stays the authority. Null when the candidate is available, when the name is reserved (a refusal is a full stop), or when no alternative in range is free. |
+| `suggestion` | `string \| null` | yes | A free alternative the server actually checked, not a guess — offered for a taken, recently released, reserved or malformed name alike (a reserved `app` gets `app-2`). ADVISORY: true when computed and claimable by someone else a moment later — the create's own conflict response stays the authority. Null when the candidate is available, when no alternative in range is free, when the name contains one of the platform's own brand names (no numbered form of it is allowed), or when the candidate is too malformed to derive an alternative from. |
 
 ### `GET /v1/projects/by-project-id/{projectId}`
 

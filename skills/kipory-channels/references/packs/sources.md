@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Sources
 
@@ -34,6 +34,7 @@ one for the clock: a schedule (capability pack `schedules` — `GET /v1/capabili
 ## The sequence
 
 ```
+GET    /v1/sources/providers                                 the provider registry: concerns, specs, availability, announced names
 GET    /v1/sources?project={nodeId}[&provider=telegram]      every source, newest first, with health and the listening count
 POST   /v1/sources                                           { project, provider, config, key?, name? } → 201
 GET    /v1/sources/{id}
@@ -52,6 +53,10 @@ A Telegram source's config carries two fields: `channel`, a public `@handle` or 
 id, and `strategy`, which names the adapter that reads it. You may omit `strategy` — it defaults to
 the platform's own watcher fleet, the only adapter that runs today — but the write stores what it
 parsed, so the field comes back on every read whether or not you sent it.
+
+Read the registry rather than remembering it. Each provider names the config field that says what
+a source watches (`naturalKeyField` — `channel` for Telegram), and every source comes back with
+that value already read out as `naturalKey`, so a client never needs to know which field it was.
 
 The key is slugified from the channel when you do not supply one (`@alexavni` → `alexavni`), and is
 unique per project and provider. That uniqueness is not what keeps a channel from being watched
@@ -85,8 +90,9 @@ An edited message is a second event with a different id; a deleted one a third.
 
 ## What the platform refuses
 
-- A provider it has no writer for yet — `webhook`, `postgres`, `apify` are 422 at create until
-  they land; the catalogue lists them as coming.
+- A provider it has no writer for yet — 422 at create. `GET /v1/sources/providers` says which:
+  a provider whose `availability` is `soon` is refused, and that field is read from the same spec
+  the create checks, so offer create exactly where it says `available`.
 - A config the provider's schema rejects, with 422 naming the field.
 - A key already taken for the provider in the project (409).
 - A create or a patch that would point a second source at a channel this project already watches

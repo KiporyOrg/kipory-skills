@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Anatomy of a dynamic endpoint
 
@@ -172,7 +172,10 @@ drifted before the guards, but it is no longer the only way to find out — the 
 3. **Dispatch.** One catch-all matches everything under `/v1`. No match is a 404, and **a wrong
    method on a path that exists is also a 404** — method existence is not leaked. More specific
    patterns win: fewer parameters first, then more literal characters, so a literal always beats a
-   parameter.
+   parameter; a tie after that goes to the endpoint key, compared character by character. Every
+   endpoint you read carries `resolutionRank`, its place in exactly that order — compare it between
+   endpoints of the **same method** to see which one serves a path both match, rather than
+   re-deriving the order.
 4. **Write gate.** A write requires write permission. A GET is a read; a DELETE or an asynchronous
    invoke is a write; anything else is a write when its bound flow — sub-flows included — reaches a
    handler that writes, or a step the platform cannot resolve. It is checked _after_ matching, so a

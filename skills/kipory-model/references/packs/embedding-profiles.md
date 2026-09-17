@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Embedding profiles
 
@@ -105,7 +105,11 @@ not invisible.
 ## What the platform refuses
 
 - **Deleting a profile still named by a searchable record type**, and again while the version
-  still owns provisioned collections.
+  still owns provisioned collections. You do not have to discover either by trying: every profile
+  carries `deleteRefusal` — the delete's own code and sentence, or null — and the listing adds
+  `canDelete`, which also folds in the ADMIN role the delete needs and whether the project is
+  retired. A superseded version nothing declares against is the case that catches people: its
+  usage count is zero and it is still refused.
 - **A model with no recorded distance metric.** Defaulting to a common one is tempting and wrong,
   for the reason at the top of this pack.
 - **A version bump that changes nothing** about the vector space.

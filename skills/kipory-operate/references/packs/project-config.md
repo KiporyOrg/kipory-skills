@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Project config
 
@@ -35,7 +35,7 @@ Do **not** use it for:
 ## The sequence
 
 ```
-GET    /v1/project-config?project=…   list — every row carries both overrides and effective values
+GET    /v1/project-config?project=…   list — every row carries overrides, defaults and effective values
 POST   /v1/project-config             upsert by (project, namespace)
 DELETE /v1/project-config/{id}        remove the row
 ```
@@ -56,7 +56,10 @@ Through the project provider attribute — `projectInfo.config.<namespace>.<fiel
 handler call; it is resolved once per run and cached for that run.
 
 The map a flow sees is the **effective** one, so a flow picks up a field's default the moment the
-shape declares it.
+shape declares it. Each row also carries **`defaults`** — the half of `effective` your overrides did
+not supply, lifted by the same rule. To tell a field sitting at its default from one with no default
+at all (absent from what the flow reads), read `defaults`; do not re-read the schema's `default`
+keywords, which include ones the lift never takes (a nested one, or one behind a `$ref`).
 
 Three corners worth holding:
 

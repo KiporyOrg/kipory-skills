@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -119,6 +119,28 @@ Two things to know before you reach for it:
 - **A missing `health` is not a clean bill of health.** A flow the platform could not measure is
   returned WITHOUT the field rather than with a passing one. Treat absence as "not measured" and
   say so; defaulting it to `isActivatable: true` reports a flow nobody managed to check as healthy.
+
+### What the skill list already tells you about the order
+
+`GET /v1/skills?flow={id}` answers three questions about each skill that only make sense with the
+rest of the flow in hand, so you never have to walk the graph yourself:
+
+| field       | what it says                                                                                                                                                                                                                                                                                                                            |
+| ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `level`     | how many producer-to-consumer steps stand between the skill and the flow's inputs — skills on one level have no edge between them. A condition's slots count as reads. `null` on every skill of a flow whose skills wait on each other in a circle                                                                                      |
+| `canFire`   | `false` when the wiring alone keeps the skill from ever running: its condition cannot hold, none of its inputs can arrive, an input it reads a field of never arrives and the skill cannot go without it, or it sits inside a fan-out that can never run — because the slots involved are never written by anything that can itself run |
+| `blockedBy` | when `canFire` is `false`, the slot whose absence decides it — for a skill inside a fan-out that can never run, the slot that stops the fan-out                                                                                                                                                                                         |
+
+⚠️ **`canFire: true` is not a promise.** A condition over a value that may arrive, or a list that
+may be empty, can still skip a skill on a given run. Only `false` is a finding — and it is judged
+the way the runner judges: a gate of `not(slotPresent x)` over a slot nothing writes is `true`
+(it holds on every run), and a skill reading one dead slot beside a live one runs, because a step
+waits for ANY of its inputs, not all of them. Every skill is judged as though enabled.
+
+⚠️ **A slot nothing writes still gets a `level`.** The runner treats it as supplied and runs the
+skill at level 0, where it reads nothing and skips — which is what `INPUT_STREAM_DANGLING_SLOT`
+above is for. Read the diagnostic for "is this wired", `canFire` for "can this ever run", and
+`level` only for "in what order".
 
 ## Choosing a handler: two catalog reads, and they answer different questions
 
@@ -379,10 +401,13 @@ step that sets none behaves as it always has.
 - **`timeoutMs`** — what it bounds depends on the handler, and the handler catalog says which:
   `run.timeLimit` is `ai-call` (each AI call), `queue-wait` (the wait on the queued job, covering
   every try — the job may still finish), `in-flow` (how long the run waits for a step that runs in
-  the flow itself, whose work may still finish) or `ignored` (control steps). Unset, it falls back to
-  the step's task limit (`GET /v1/projects/{id}/task-models`) for `run.timeLimitFromTask` handlers,
-  else to the handler's own wait. `run.budgetMs` is a limit the handler keeps whatever you set — 5 s
-  for `value.transform` — so only a shorter limit changes anything there.
+  the flow itself, whose work may still finish) or `ignored` (control steps). Do not work out what an
+  unset limit falls back to — it can be the step's task limit, the deployment's generation default
+  or the handler's own wait, and which one depends on the handler. Read `effectiveTimeLimit` on
+  `GET /v1/skills?flow=` instead: the limit a run applies, the layer that decided it, and
+  `whenUnset`, what clearing the step's own falls back to. `run.budgetMs` is a limit the handler
+  keeps whatever you set — 5 s for `value.transform` — so only a shorter limit changes anything
+  there.
 - **`tries`, `tryDelayMs`** — the number of tries including the first (1–5), and a fixed wait between
   them. They REPLACE the handler's own queue attempts rather than adding to them, and apply to fetch
   and file steps only; a step that runs in the flow is tried once. Only a failure a second try can
@@ -423,6 +448,12 @@ save would pin `userInfo`. Omitting them is correct and free for a step you are 
 `derivedInputStreams` is the slot list this configuration NAMES, sorted — the **same list the save
 pins onto the step**, because the route runs the platform's own derivation rather than a second one.
 Send `order.total + shipping` and it answers `["order", "shipping"]`.
+
+`derivedInputSchemas` sits beside it, one entry per slot, and is the shape the save types a wire on
+that slot from — the step that writes it, else the flow input, else the platform's own type. When
+the derived list differs from the step's wiring, send it as `inputSchemas` for every position you do
+not already hold a stored shape for. An entry is `null` when nothing declares that slot's shape:
+there is no neutral shape to send, so do not save that list until the slot is typed.
 
 ⭐ **Send `outputSchema` too and the route will also tell you when the result cannot fit it.**
 Optional, and the only thing omitting it costs is that one check — every other diagnostic is
@@ -555,6 +586,33 @@ reports it as an outstanding issue once both are saved.
 ⚠️ **A fan-out needs a list that is always there.** A slot declared as a list that may be missing
 comes back `no`, because the save checks the input's shape exactly as stored.
 
+For a SAVED step whose inputs are named in its configuration, ask what it may name instead:
+
+```
+GET /v1/flows/{id}/steps/{stepId}/scope    every slot the step may read, typed
+```
+
+It lists the flow's inputs, the platform's own slots, and every slot written by a step that does not
+wait on this one — by an input **or by its condition**, which is the save's cycle rule. Each slot
+carries the shape the save types a wire on it from, the same resolution as the candidates above.
+
+## Which condition operator fits which value
+
+```
+GET /v1/skills/condition-operators    per operator: fits / inert / mismatch, whole slot and field
+```
+
+A condition leaf reads one value. For each operator the table gives a verdict on text, a number,
+true/false, a list and an object — separately for a whole slot and for a field inside one. `inert`
+is a test no value of that kind can change, and validation warns `CONDITION_LEAF_INERT`. Mostly it
+gives the same answer on every run (a number held as a whole slot is never read, so `slotEquals` on
+one never matches). `listEmpty` on a number, true/false or an object is the exception: missing is
+empty and anything present is not, so it asks only whether a value is there — write `slotPresent`,
+negated, to say so. `mismatch` compares the wrong type (`slotGt` on text):
+`CONDITION_VALUE_TYPE_MISMATCH`, an error on the flow, not the step — the step still saves with the
+finding beside it, and the flow's health marks it `blocksActivation`. It is the table both
+validation and the run decide by, so offer only what `fits`.
+
 ## Renaming a slot — look before you commit
 
 Slots connect steps by NAME, and the name appears in five places: a step's
@@ -609,6 +667,12 @@ value.
 - **Single versus multiple is the union, not a flag.** List variants are the multiple ones, and
   fanning out requires a list-shaped slot.
 - **One writer per slot**, enforced by the database. Two skills cannot write the same slot.
+- **A skill can write more slots than `outputSlot` names.** A dispatch writes one per branch, an
+  invoke one per mapped return, a merge one per lane, a loop opener every carry slot its
+  `seedFrom` / `seedLiteral` seeds, a loop-end its escaped slots, and any handler its declared
+  secondary outputs. Every skill read carries `producedSlots.slots` — the full list, as the
+  validator reads it — and `producedSlots.unknowable` when the config did not parse and the list
+  may be missing some. Read that rather than `outputSlot` when you ask "does anything write this?".
 - **Provider slots are seeded by the engine** — the user, the project and the run. They cannot be
   supplied from an incoming request, which is what stops a caller claiming to be someone else.
 

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Facets and terms
 
@@ -32,7 +32,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose facets to list. Required. |
 | `facetKey` | `string` | no | Return only the facet with this exact key. |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: stats, samples, validator, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: stats, samples, validator, readiness, wiring. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -83,6 +83,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the facet. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the facet is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per facet. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the facet, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this facet — which is weaker than "nothing fills it": a `facet.resolve` step can still pick the facet up from a slot it discovers at run time, and that path names no facet to scan for. A node whose configuration does not parse contributes nothing. |
 
 ### `GET /v1/facets/{id}`
 
@@ -96,7 +97,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: stats, samples, validator, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: stats, samples, validator, readiness, wiring. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -122,6 +123,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the facet. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the facet is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per facet. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the facet, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this facet — which is weaker than "nothing fills it": a `facet.resolve` step can still pick the facet up from a slot it discovers at run time, and that path names no facet to scan for. A node whose configuration does not parse contributes nothing. |
 
 ### `PATCH /v1/facets/{id}`
 
@@ -167,6 +169,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the facet. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the facet is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per facet. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the facet, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this facet — which is weaker than "nothing fills it": a `facet.resolve` step can still pick the facet up from a slot it discovers at run time, and that path names no facet to scan for. A node whose configuration does not parse contributes nothing. |
 
 ### `DELETE /v1/facets/{id}`
 

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Flows
 
@@ -20,6 +20,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/flows/{id}/health`](#get-v1-flows-id-health) |  |
 | `POST` | [`/v1/flows/{id}/preview`](#post-v1-flows-id-preview) |  |
 | `POST` | [`/v1/flows/{id}/preview/stream`](#post-v1-flows-id-preview-stream) |  |
+| `GET` | [`/v1/flows/{id}/steps/{stepId}/scope`](#get-v1-flows-id-steps-stepid-scope) |  |
+| `GET` | [`/v1/flows/{id}/steps/{stepId}/switch-off-preview`](#get-v1-flows-id-steps-stepid-switch-off-preview) |  |
 
 ### `GET /v1/flows`
 
@@ -69,6 +71,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
+| `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
 
 ### `GET /v1/flows/{id}`
 
@@ -77,6 +80,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: dependents. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -95,6 +104,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
+| `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
 
 ### `PATCH /v1/flows/{id}`
 
@@ -132,6 +142,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
+| `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
 
 ### `DELETE /v1/flows/{id}`
 
@@ -218,6 +229,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `counts` | `object` | yes | Summary counts, so a caller need not tally the list itself. |
 | `blockingActivation` | `object[]` | yes | The subset of `diagnostics` that actually prevents activation. Deliberately repeated rather than left to be derived — it is the exact list the refusal reads, so two callers cannot disagree about what blocks activation. |
 | `isActivatable` | `boolean` | yes | True when nothing blocks activation right now. |
+| `danglingReads` | `object[]` | yes | Every input a skill reads that nothing in the flow supplies — one entry per skill and slot, the same findings `diagnostics` reports as `INPUT_STREAM_DANGLING_SLOT`. Such a skill never runs, and neither does anything after it. Empty when every read is supplied. |
 
 ### `POST /v1/flows/{id}/preview`
 
@@ -313,3 +325,37 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `timings` | `object` | yes | Full breakdown of where the run's wall clock went. |
 | `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself — so the failure can be attributed. |
 | `diagnostics` | `unknown[]` | no | Per-problem detail for a draft graph that failed validation. These are the same diagnostics saving that graph would return. |
+
+### `GET /v1/flows/{id}/steps/{stepId}/scope`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+| `stepId` | `string` | yes | Unique id of a saved step (skill) in that flow — the one whose scope is read. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow asked about. |
+| `stepId` | `string` | yes | The step whose scope this is. |
+| `slots` | `object[]` | yes | Every slot the step may read: the flow's inputs, the platform's own slots, and every slot written by a step that does not wait on this one — directly or through others, by an input or by a condition. The step's own outputs are never listed. Sorted by name. |
+
+### `GET /v1/flows/{id}/steps/{stepId}/switch-off-preview`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+| `stepId` | `string` | yes | Unique id of a step (skill) in that flow — the one imagined switched off. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow asked about. |
+| `stepId` | `string` | yes | The step imagined switched off. |
+| `stops` | `object[] \| null` | yes | The steps that would stop running because this one is switched off — those whose condition, inputs or enclosing fan-out depend on what it writes — in the flow's order. A step already stopped by another switched-off step is not listed, and neither is one that only sometimes stops. Empty when nothing else stops. Null when it cannot be worked out: a step's configuration does not parse, so what that step writes is unknown, or the flow's declared inputs cannot be read. |

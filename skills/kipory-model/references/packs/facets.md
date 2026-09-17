@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Facets
 
@@ -67,7 +67,7 @@ vocabulary and then found it would not recognise an obvious synonym.
 resolver — **your own flows and the platform's, in one call** — filtered to those whose typed
 signature actually matches the resolver contract. Each row carries the flow's id and its display
 name, the slug it lives at, its scope (`PROJECT` or `SYSTEM`), its `paramsSchema`, its
-`paramsDefaults` and `platformDefault`.
+`paramsDefaults`, `platformDefault` and `paramsKind`.
 
 ⭐ **The filter is the point.** A flow whose signature cannot serve is not offered, so a binding you
 make from this list cannot fail at ingest for being the wrong shape. The offered set is exactly the
@@ -99,6 +99,15 @@ each job: the two-cut one the create path binds when you omit `resolverFlowId`, 
 one. Every other row is `false`, your own flows included, and when two platform flows fit a job
 and neither is marked as its default, neither is flagged. Preselect from it rather than from list
 order: the first platform resolver of a shape is not necessarily the one bound.
+
+⭐ **`paramsKind` says what a resolver does with a value that is close but not exact** — the
+platform's own classification, from the TYPE its `params` input declares. `thresholds` is the
+two-cut resolver: reuse at or above the high cut, add a term at or below the low one, and hand the
+band between them to a model. `reuse` is the one-cut resolver: reuse at or above its threshold, add
+a term below it, no model call. It is `null` for a resolver declaring no parameters or a type the
+platform has no reading of. ⛔ Do not infer it by counting the numbers in `paramsSchema` — two
+unrelated numbers look exactly like two cuts. `platformDefault` with a `paramsKind` names the flow
+the platform binds for that kind of decision.
 
 ## The sequence
 
@@ -277,6 +286,25 @@ Both start empty and fill from the first resolution after they began being
 recorded, so an empty one means nothing was observed, never that nothing
 happened. A preview run does not count — only values that actually landed.
 
+## Who feeds this facet?
+
+Ask the facets read with `expand=wiring` and each facet lists the flow nodes that put values into
+it: the flow and node, and how — `extracted` (a `text.generate` step lists it in `facetFields`),
+`proposed` (a `facet.resolve` step lists it with no slot feeding it, so its own model call proposes
+values) or `fed` (a `facet.resolve` step reads candidates from a slot, with no model call). It is
+the same scan the platform's own wiring view reads, so a node whose configuration does not parse
+contributes nothing, exactly as it would contribute nothing to a run.
+
+⚠️ **Two flags on an `extracted` row are about drift between a node and its type.** `drift` is a
+sentence, set when the node's stored `facetFields` no longer matches the `$facet` markers on its
+response type — the same sentence the save-time warning carries. `declaredOnly` marks a row that
+exists only because the TYPE marks the facet while the node has not captured it yet: nothing reaches
+the facet from that row until the node is re-derived from its type.
+
+⛔ **An empty list is weaker than "nothing fills it".** The scan reads configuration, and a
+`facet.resolve` step can pick a facet up from a slot it discovers at run time without naming it
+anywhere. Empty means no node's configuration names this facet.
+
 ## What will bite you
 
 - **Deleting a facet cascades** — it unlinks the facet from every record type that used it, removes
@@ -290,6 +318,13 @@ happened. A preview run does not count — only values that actually landed.
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.
 - **Terms are the vocabulary substrate; there is no separate taxonomy resource.** Facet
   statistics and samples are computed over terms.
+- **A term is deleted only when nothing points at it** — no record carries it, no term nests under
+  it, no merged alias points at it; otherwise `DELETE /v1/terms/{id}` is a 409. ⭐ Read
+  `GET /v1/terms?expand=usage` first: each term carries `deleteRefusal`, the delete's own check —
+  `null` when the delete would be accepted, else the code and sentence it would refuse with. Offer
+  the delete where it is `null` rather than re-comparing the three counts beside it. ⚠️ Absent means
+  you did not ask for usage, which is not the same as deletable, and a reference that lands between
+  the read and the delete still refuses it (`TERM_DELETE_RACE`).
 - **A facet that looks builtin is just a row.** Anything shipped as a default is an ordinary,
   editable facet — but its resolver wiring may never have been bound. Verify a facet's live
   binding before assuming it resolves anything.

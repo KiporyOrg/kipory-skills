@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Schema entries
 
@@ -15,6 +15,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/schema-entries/{id}`](#get-v1-schema-entries-id) |  |
 | `PATCH` | [`/v1/schema-entries/{id}`](#patch-v1-schema-entries-id) |  |
 | `DELETE` | [`/v1/schema-entries/{id}`](#delete-v1-schema-entries-id) |  |
+| `POST` | [`/v1/schema-entries/{id}/keywords-preview`](#post-v1-schema-entries-id-keywords-preview) |  |
 | `POST` | [`/v1/schema-entries/seed`](#post-v1-schema-entries-seed) |  |
 
 ### `GET /v1/schema-entries`
@@ -26,7 +27,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the project to read. |
 | `provenance` | `string` | no | Comma-separated tiers to include, e.g. `operator,library`. Omit for all. |
 | `name` | `string` | no | Exact name to look up. Matches exactly, not as a search, so it returns at most one entry. |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: graph. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: graph, keywords. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -133,6 +134,26 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Id of the row that was removed. |
 | `name` | `string` | yes | The deleted type's name, echoed back. |
 
+### `POST /v1/schema-entries/{id}/keywords-preview`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The type's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `definition` | `object` | yes | The type as you are editing it — the whole JSON Schema document, exactly as a PATCH would send it. Nothing is saved or checked against the registry; the answer only says what each keyword in it would do. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `keywordVerdicts` | `object[]` | yes | What each keyword in the definition you sent would do — the rows `GET /v1/schema-entries?expand=keywords` returns for this type once that definition is saved, judged against what binds the type now (its config namespaces and whether it is the project's end-user profile). The definition's structural keywords and its labels carry no row, as on the read. |
+
 ### `POST /v1/schema-entries/seed`
 
 **Request body**
@@ -140,7 +161,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to materialise and then read. |
-| `expand` | `"graph"[]` | no | Extra response sections to include, e.g. `["graph"]`. |
+| `expand` | `"graph" \| "keywords"[]` | no | Extra response sections to include, e.g. `["graph"]`. |
 
 **Response `200`**
 

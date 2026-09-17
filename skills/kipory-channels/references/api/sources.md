@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Sources
 
@@ -18,6 +18,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `POST` | [`/v1/sources/{id}/disable`](#post-v1-sources-id-disable) |  |
 | `POST` | [`/v1/sources/{id}/enable`](#post-v1-sources-id-enable) |  |
 | `GET` | [`/v1/sources/{id}/events`](#get-v1-sources-id-events) |  |
+| `GET` | [`/v1/sources/providers`](#get-v1-sources-providers) |  |
 
 ### `GET /v1/sources`
 
@@ -57,6 +58,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
 | `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
+| `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
@@ -83,6 +85,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
 | `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
+| `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
@@ -117,6 +120,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
 | `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
+| `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
@@ -164,6 +168,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
 | `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
+| `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
@@ -196,6 +201,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
 | `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
+| `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
@@ -224,3 +230,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `events` | `object[]` | yes | Newest first. |
 | `truncated` | `boolean` | yes | True when more events exist within retention than the limit. |
+
+### `GET /v1/sources/providers`
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `concerns` | `object[]` | yes | Every concern, in the order the catalogue draws them. Adding a provider never adds a concern. |
+| `providers` | `object[]` | yes | Every provider a source can be, grouped by concern in `concerns` order, then as declared. |
+| `announced` | `object[]` | yes | Names the catalogue shows as coming, with no provider, config schema or source behind them. Never creatable. |

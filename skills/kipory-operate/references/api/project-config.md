@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Project config
 
@@ -49,6 +49,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `namespace` | `string` | yes | The namespace these settings belong to, e.g. `ranking`. |
 | `schemaEntryId` | `string` | yes | Schema entry that types this namespace and supplies each field's default. A soft reference: if the entry is deleted, reads keep working and the next write is refused with 422 naming it. |
 | `data` | `object` | yes | Your explicit overrides ONLY. A key's absence means “use the default”, so this is usually much smaller than `effective`. |
+| `defaults` | `object` | yes | The defaults the bound schema entry declares, one key per top-level field that carries a `default` — the half of `effective` that `data` did not supply. A field absent here has no default: with no override it is absent from what flows read, not null. Nested defaults are not lifted. Empty when the entry is gone. Computed per request, like `effective`. |
 | `effective` | `object` | yes | Defaults overlaid with `data` — what flows actually read. Computed per request and never stored, so editing a default in the schema entry takes effect here immediately. Overlay is per top-level field: an override replaces the whole field rather than merging into it. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |

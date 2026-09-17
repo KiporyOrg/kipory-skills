@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Eval suites
 
@@ -79,6 +79,13 @@ this week's.
 would each compare against the same predecessor, so the second's delta would describe a baseline
 it never actually had.
 
+⭐ **Every suite read says whether a run is in flight — `runInFlight`.** It is `true` exactly when
+`POST /v1/eval-suites/{id}/run` would answer 409, and that includes a run that is queued and not yet
+picked up. ⛔ Do not read it off `lastRun.status === "RUNNING"`: the run row is written only when
+the worker starts, so for the whole wait the newest run is still the previous, settled one — and a
+Run control drawn from it is offered exactly when it is refused. `runInFlight` is `null` when the
+platform could not read its queue; that says nothing either way.
+
 ### Starting a run does not wait for it
 
 ⛔ **`POST /v1/eval-suites/{id}/run` answers `202` with `{ suiteId, queued: true }` — not the run.**
@@ -142,6 +149,20 @@ judgement is made against a baseline under the thresholds then in force — dele
 against, retune a floor, add a metric, and a recomputed answer differs from the one that actually
 fired the event. Read it as a record of the past.
 
+⭐ **To mark the series a verdict named, read `worsened` on the pooled aggregates** — do not match
+`worsenedMetrics` against names yourself. Those are display names (`latency.skill (rerankSet)`),
+and two series can spell the same one. The platform joins its own recorded verdict back to each
+series: `true` names this series, `false` does not, and `null` means no verdict was computed, the
+series is in a per-label group (a verdict judges the pooled comparison only), or the verdict's name
+fits more than one series.
+
+⚠️ **A run carries what it cost — `credits` — summed from its own `cost.credits` scores**, the same
+sum a suite's `lastRun.credits` reports. `null` is unknown, never free. Do not rebuild it from an
+aggregate's mean and sample size.
+
+⚠️ **A case's `latencyMs` is `null` when no duration was recorded** — a case the run never started,
+or a run from before per-case outcomes were stored. A `0` is a measured zero.
+
 ⚠️ **`announced: false` does not mean "nothing regressed".** It is false when there was nothing to
 announce _and_ when there was something and it could not be — the suite names no event type, the
 project does not define the one it names, or the payload failed its contract. `regressed: true` with
@@ -185,6 +206,15 @@ Every score carries a `source` saying what produced it, and the set is closed at
 own reading of latency, tokens or cost — a measurement with no judgement in it). Branch on it
 when you aggregate: folding a stopwatch reading in with a model's opinion averages two things
 that are not the same kind of number.
+
+⭐ **The aggregates carry it too.** Every numeric and categorical aggregate — on a run, and on every
+trend point — has a `source`, so telling a suite's own answers from the platform's instrumentation
+never needs a list of system metric names, which would go stale the day the platform adds one.
+⚠️ It is `null` when one series pools scores from more than one producer: a scorer is free to name
+its score `cost.credits`, and that series then holds both.
+Both trend reads also answer `numericSeries` — one `{ name, skillName, source }` per numeric series
+across the whole window, its `source` merged over every run by the same rule. Order or filter a
+chart's series by it rather than folding the points' sources yourself.
 
 ⚠️ **Two more sources were published here until 2026-08-19 and never existed** — one naming a
 human reviewer, one naming end-user feedback. Both were declared alongside the others in

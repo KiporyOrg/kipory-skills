@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Events
 
@@ -29,8 +29,11 @@ subscribe on the bus, depending on scope.
 - **To run another flow.** An event is the decoupled way: the emitting flow raises it and a
   trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) runs the reacting flow, with neither naming the other. That needs the type
   to be **durable** and not `run`-scoped, because a trigger reads the project's event log rather
-  than the bus. A `flow.invoke` step is the coupled way, and the right one when the second flow is
-  really a step of the first.
+  than the bus — and **`active`**: a draft, deprecated or retired type is refused too. Every event
+  type you read carries `listenable`, the platform's answer to all three at once and the same test
+  a trigger write applies, so offer what it says rather than re-deriving the rule from `durable`,
+  scope and status. A `flow.invoke` step is the coupled way, and the right one when the second flow
+  is really a step of the first.
 
 ### Scope decides the transport, so choose it by who needs to hear it
 

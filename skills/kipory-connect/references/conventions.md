@@ -24,7 +24,7 @@ Read → `VIEWER`. Design mutation → `EDITOR`. Destructive, structural or **sp
 
 - Every error is `{ code, message, details?, requestId }`. **Branch on `code`, never on `message`** — wording may change at any time. `requestId` is also the `x-request-id` header on every response.
 - `401` — credential missing, malformed, revoked, expired; or a route that needs a person, answered to a key.
-- `403` — grant does not reach, role below the floor, or a structural refusal of the key principal. Never an existence oracle: unknown node, missing project and insufficient role refuse identically.
+- `403` — grant does not reach, role below the floor, or a structural refusal of the key principal. Never an existence oracle: unknown node, missing project and insufficient role refuse identically. A design route's role refusal carries `details: { reason: "insufficient_project_role", requiredRole }` — `requiredRole` is the lowest role, on the project or organization the request names, that the route accepts. It depends only on the route, so it says nothing about whether the row exists; match `details.reason` before reading it, since other `FORBIDDEN` answers carry no such details.
 - `404` — wrong host, disabled route group (`This API is not enabled for this project.`), or a row that does not exist under a project you may read.
 - `409` — optimistic lock conflict (`version`), a retired project's write freeze, a single-flight run already in progress, a name or path already taken.
 - `422` — `VALIDATION_FAILED`: any schema failure, including an **undeclared query key**. Design semantic refusals arrive as one 422 whose `details.diagnostics[]` carry the rule codes.

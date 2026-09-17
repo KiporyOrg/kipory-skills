@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Schedules
 
@@ -78,6 +78,37 @@ The next-run time you get back is derived by the same computation the tick uses 
 fire — so it is a prediction you can hold the platform to, not a display value worked out a second
 way.
 
+## When it fires — ask, do not expand the pattern
+
+`GET /v1/schedules?project=…&expand=timing` (and the item read) answers three things per schedule,
+walked by the rule the tick advances by — each occurrence found from the one before, each spending
+one of `maxRuns`, `startsAt` opening the walk and `endsAt` closing it:
+
+- **`nextRun`** — `scheduled`, `exhausted` (run limit spent, or nothing before the end date) or
+  `invalid` (timing that cannot run), with the scheduler's own `reason` when it is not scheduled.
+- **`upcoming`** — the next five occurrences however far ahead, and `stoppedBy` naming what ends the
+  schedule first when there are fewer.
+- **`firings`** — every occurrence in a window opening at the read, `windowHours` long (default 24,
+  at most 48), with `truncated` when the list is capped. This is what lays several schedules on one
+  clock.
+
+⛔ **Do not expand a cron pattern yourself to draw these.** A wall-clock expansion disagrees with the
+tick on daylight-saving nights — `23 2 * * *` in `Europe/Berlin` fires ONCE on the fall-back night
+and once on the spring-forward night, where reading the local clock gives two and none — and cannot
+see `maxRuns` at all.
+
+⚠️ **None of the three reads `enabled`.** They are what the timing gives, which is also what enabling
+it now would give; a disabled schedule fires nothing whatever they say. And the walk assumes every
+occurrence fires — a skipped or blocked one spends no run, so a schedule near its limit can fire
+later than `upcoming` ends. The walk is CPU on the platform, one cron search per occurrence, so ask
+for it where you draw it and size the window to what you draw.
+
+⚠️ **A list read spends a bounded time on timing.** It walks the project's schedules in order and stops
+starting new ones once that time is spent; a schedule past it answers `nextRun`, `upcoming` and
+`firings` as **`null`** together — not measured, and no statement that nothing fires. Absent means you
+did not ask for `timing`. The item read (`GET /v1/schedules/{id}?expand=timing`) has no such bound, so
+read the one schedule you are about to show from it when the list left it `null`.
+
 ## What the platform refuses
 
 - **Every declared input slot must have a value.** A scheduled fire has no request to fill gaps,
@@ -153,6 +184,12 @@ Outcomes worth telling apart:
 - **fired** — it ran; read the invocation status.
 - **skipped** — with an overlap policy of `skip`, the previous fire was still going.
 - **blocked** — refused after claiming, with a reason. Usually a suspended or over-cap payer.
+
+⭐ **Count `status`, not the invocation.** Every run carries `status` — `succeeded`, `failed`,
+`running`, `skipped` or `blocked` — from the same function the list's `lastRunStatus` uses, so a
+success rate or a day strip built from it agrees with the "Last run" column. ⚠️ A fired occurrence
+whose invocation is not linked (yet, or any more) reads `running`; classifying the raw invocation
+yourself tends to call that row a failure.
 
 ### The window says whether it is the whole history
 

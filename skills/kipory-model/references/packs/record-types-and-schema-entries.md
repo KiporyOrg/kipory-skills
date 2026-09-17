@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
@@ -79,11 +79,55 @@ Every schema-entry read therefore carries **`recordTypeEligible`** — the
 server's verdict, from the same gates the save runs. There is a sibling flag,
 `profileEligible`, answering the same kind of question for the end-user profile.
 
-⚠️ **Do not re-derive either one.** Object-shapedness is not the gate, and
+A third, **`facetExtractable`**, answers a question the save never asks: would a
+`$facet` marker on one of this type's fields be READ? Only where a
+`text.generate` step answers with exactly this type does a marker become that
+step's facet extraction. Anywhere else — including a step answering with a
+_list_ of the type — a marker saves cleanly and extracts nothing, because the
+save checks the marker's name, uniqueness and facet, never whether anything
+reads it.
+
+⚠️ **Do not re-derive any of them.** Object-shapedness is not the gate, and
 treating it as one is a live way to build a picker that offers a shape the save
 then refuses — which is exactly what the operator UI did until it started
 reading this flag. Filter on the flag and a refusal becomes impossible to reach
 by choosing.
+
+## What a keyword on a field does — ask the server, do not guess
+
+A keyword in a stored definition is not a constraint just because it is there.
+Validation reads a fragment's `$ref`, `const`, `allOf`, `enum`, `oneOf` or
+`anyOf` **before** its `type`, and whichever it reads first decides the value —
+so `{"type": "string", "enum": ["ab"], "minLength": 5}` accepts `"ab"`: the
+`minLength` is never compiled. Reading `type` alone gets that wrong, and a tool
+that did so told operators a length bound held when it did not.
+
+`GET /v1/schema-entries?expand=keywords` adds **`keywordVerdicts`** to every
+entry: one row per keyword per fragment, keyed by `pointer` (the fragment's
+place in the definition), with `enforcement` — `enforced`, `ignored`, or
+`conditional` when validation ignores it but something else reads it (a config
+namespace serving a top-level `default`, the end-user profile seeding one, facet
+extraction, relation declarations) — and a `reason` naming which. The verdict is
+about the document as stored: after an edit, read it again. The keywords that
+are the definition's structure carry no row — `type` and `$ref`, the object's
+`properties` with its `required` list and `additionalProperties`, a list's
+`items`, and `x-field-order` — nor do the two labels, and a `$ref` target's
+keywords are that entry's own rows. Absent means not asked; an API older than the
+`keywords` expand refuses the whole read with a 422.
+
+### Ask about a definition you have not saved: `POST /v1/schema-entries/{id}/keywords-preview`
+
+The read judges the document as stored. To know what an EDIT would do before you
+save it, send the whole draft definition — exactly as the PATCH would carry it —
+to `POST /v1/schema-entries/{id}/keywords-preview` (`{ "definition": { ... } }`).
+The answer is `keywordVerdicts` in the read's shape, computed by the same function
+with the same bindings: whether a `default` is read depends on what binds the type
+now (a config namespace, the end-user profile), and those come from the stored
+type the path names, never from the body. Send the stored document and you get
+exactly the read's rows. Nothing is written and nothing is validated — a draft the
+save would refuse still gets an answer, which is how you see the unread keyword
+the save would refuse before you send it. It needs EDITOR on the type, like the
+PATCH, and a retired project refuses it like any other write.
 
 ## Owner scope — whose records are these?
 
@@ -182,7 +226,8 @@ today, so the list is the deployment's statement, not a promise.
 `details.issues[]` carries per issue a `code` to branch on, the `path` into your statement, the
 `field` and `use` it is about, and a `remedy` — what to do instead, never empty. Branch on the code:
 `USES_FIELD_UNKNOWN` (no such contract field), `USES_ILLEGAL_FOR_SHAPE` (that shape cannot be used
-that way — an object cannot be filtered, a file cannot be a key), `USES_TWO_KEYS`,
+that way — an object cannot be filtered, a number or a file cannot be a key), `USES_TWO_KEYS`,
+`USES_KEY_NOT_SUBMITTED` (a `key` on a field that is not submitted data, such as a flow output),
 `USES_SEARCH_NO_TEXT`, `USES_SEARCH_SETTINGS` (a `search` use with no `search` settings, or the
 reverse), `USES_FACET_UNKNOWN`, `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the entry already
 marks the field as a reference to a different type), and for `element.filters` on a `link`:
@@ -223,8 +268,9 @@ changing the chunking — on the type, OR on the profile's default that this typ
 every stored record's points stale, and the background reconcile re-runs each record's projection,
 embedding calls included. The save itself is instant; the spend arrives record by record as the
 re-embed drains. Three changes that look adjacent are **not** in that set: adding or removing a
-`filter` moves the payload index in place (free — see "Making fields filterable"), dropping the last
-`search` use deletes the points without spending credits, and re-pointing the bound flow or the
+`filter` rewrites each stored record's vector payload in place with no embedding calls (no credits —
+see "Making fields filterable"), dropping the last `search` use deletes the points without spending
+credits, and re-pointing the bound flow or the
 referenced shape diverges nothing at the save — those records re-embed later, each as it is next
 reprocessed, not as this save's own bill. The trigger is the **diff of the derived document**, not
 the edit: re-sending the same `uses` derives the same document and enqueues nothing.
@@ -290,17 +336,23 @@ Things to know before you declare one:
 - **The number of fields is capped, per kind.** Each queryable field takes a fixed storage slot
   shared by every record type, so declaring one is a save rather than a schema change. You get
   thirty-two text fields, eight numbers, eight dates and four booleans — a budget wide enough that
-  it is no longer the thing you design around.
+  it is no longer the thing you design around. A read names each field's slot as `column` and its
+  kind as `family` (`text`, `number`, `datetime`, `bool`; null until the save resolves a column),
+  so count a type's usage by `family` rather than by parsing column names.
 - ⚠️ **Saving the list queues a rewrite of every existing record of the type.** The save itself
   returns immediately; a durable background restamp then rewrites each record's filter columns, so
   the filter you just turned on answers correctly for records that already existed, instead of only
   for ones written afterwards. Until it completes, filters answer from the **previous** declaration
   — a coherent window, never a mix of old and new columns — and a crash cannot lose the obligation:
   it is retried at startup and by any later save of the type.
-- **On a searchable type, changing this list is still free.** The payload index it feeds moves
-  in place in the vector store — no record's points go stale, nothing re-embeds, no credits are
-  spent. The only billed change on a searchable type is moving the searchable declaration itself
-  (a content slot, or the profile); see "Making a type searchable".
+- **On a searchable type, changing this list spends no credits — but it does rewrite every
+  point.** A `filter` field travels on each stored vector, so adding or dropping one changes what
+  every record's points carry: the background reconcile rewrites each record's payload in place,
+  and nothing is re-embedded. Until a record's rewrite lands, a filter on the new field that is
+  pushed into the vector store does not match that record — `expand=vectorProgress` counts the
+  records still waiting, the same way it counts a re-embed. The only billed change on a searchable
+  type is moving the searchable declaration itself (a content slot, or the profile); see "Making a
+  type searchable".
 - **The window is readable: `GET /v1/record-types/{id}?expand=restamp`.** The section carries
   `pending` (the restamp has not converged yet), `startedAt` (when the pending run began, null
   before the runner starts), and `lastRows`/`lastMs` — the last **completed** restamp's own
@@ -595,7 +647,10 @@ body. A cached answer — every query reads the stores as they are now. The oper
   it, strictest wins.
 - **Deleting an entry** while it is a record type's data shape
   (`SCHEMA_ENTRY_REFERENCED_BY_RECORD_TYPE`) or referenced by the type-relation graph
-  (`SCHEMA_REFERENCED_BY_GRAPH`).
+  (`SCHEMA_REFERENCED_BY_GRAPH`). `GET /v1/schema-entries?expand=graph` says which references those
+  are before you try: each entry carries `usedByGraph` and `usedByGraphRefs` — the flows, steps,
+  handlers and sibling types that name it DIRECTLY. A flow taking a type that `$ref`s this one is
+  listed under that type, not here.
 - **Deleting a record type** that has records (`RECORD_TYPE_PINNED_BY_RECORDS`), was seeded
   (`RECORD_TYPE_SEEDED_READONLY`), or carries a reserved type name
   (`RECORD_TYPE_NAME_RESERVED` — a platform-wide set, not something your project defines).
@@ -608,6 +663,24 @@ body. A cached answer — every query reads the stores as they are now. The oper
   `deletedRelationKinds`. A link that still applies to another pair survives untouched.
   `invalidatedJoins`, beside it, reports the OTHER record types whose `joins` declaration this
   delete voided. Both exist because you asked to remove one thing and something else changed.
+
+  **Ask first: `GET /v1/record-types/{id}?expand=dependents`.** It counts, through the delete's
+  own reads, the records that refuse it (`refuses: true`) and the paired relation kinds and other
+  types' `joins` it would change (`refuses: false`). `total` sums only the refusing counts, so
+  `total > 0` means the delete will be refused; a seeded or reserved type is refused whatever it
+  says.
+
+- **A declaration the contract has moved out from under.** Each declaration is validated when it is
+  saved; editing the shape or re-capturing the flow afterwards can leave one naming a field the
+  type no longer has, and nothing refuses until the next save that restates it.
+  `GET /v1/record-types/{id}?expand=diagnostics` runs the save's own validators over what is stored
+  now and lists every issue with its code, path and the contract `field` it names — empty when all
+  of them still hold. A type is checked the way a save checks it: its `uses` statement is
+  derived first, and a refused one reports only `declaration: "uses"` issues (the same `USES_*`
+  codes a `RECORD_TYPE_USES_INVALID` carries, the remedy appended to the message); a statement that
+  derives has the `searchable`, `queryable` and `relations` it derives checked, not the stored
+  copies. A natural key no future record could supply is a refused `key` use, so it arrives as a
+  `uses` issue. Both expansions are item-route only.
 
 - **Re-pointing or renaming a type that already has records.**
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than
@@ -745,6 +818,16 @@ every stored point's payload namespace); `effects.restamp` says every row's quer
 re-stamped. An **empty `writes`** means your request changes nothing at all, which is otherwise
 indistinguishable from a save that changed everything you intended.
 
+**`effects.reembed` is the one that spends credits.** `reindex` says a reconcile is QUEUED, and a
+queued reconcile can find nothing to embed — a slot moved on a profile whose model resolves to no
+collection finds nothing at all, and a filter change finds only payloads to rewrite. `reembed`
+resolves the stored and the saved declaration the way the reconcile sweep does, asks its own
+divergence classifier whether a record indexed under the first is out of date under the second, and
+asks which repair that divergence takes — so `true` means every indexed record is projected again,
+embedding calls included. Two saves diverge every record and are still `false`: turning search off
+removes vectors, and adding or dropping a `filter` rewrites each record's stored payload in place —
+neither embeds anything.
+
 - **`resolved`** is each derived declaration as it would be STORED — the `searchable` document and the `queryable` and
   `relations` documents your `uses` derives to, with the platform's own resolutions applied:
   `queryable` carries the storage slot each `filter` field resolved to and `searchable` has its
@@ -851,9 +934,17 @@ reach — measured against every record the type has, writing nothing.
 
 - **One field, top-level, of the submitted payload.** Not a dot-path: nesting would make the stamped
   value depend on a traversal rule that has to stay stable forever. Not a composite, for the same
-  reason applied to a separator — two fields carrying `key` is `USES_TWO_KEYS`.
+  reason applied to a separator — two fields carrying `key` is `USES_TWO_KEYS`. The key is stamped
+  when the record is created, from what was submitted, before any flow runs — so a `key` on a
+  `processed` field is `USES_KEY_NOT_SUBMITTED`, even when a submitted field shares its name. A key
+  you want computed is computed by the flow that creates the record, into the submission.
 - **The value must be a string, and it is not coerced.** `1` and `"1"` would otherwise be the same
-  record. Max 512 characters.
+  record. Max 512 characters. `expand=contract` asks this of each field's schema before you have
+  records: `identityRefusal` is `LIST` or `NOT_TEXT` for a field no value of which could be stamped,
+  and null for one that might — null is not a promise, the declaration still checks every record.
+  It is the same verdict a `key` use is refused by for its shape: a field with a non-null
+  `identityRefusal` saves as `USES_ILLEGAL_FOR_SHAPE`, and a number field is one of them. It answers
+  the shape only — a `processed` field with a null `identityRefusal` is still refused as above.
 - **A record that cannot supply it is REFUSED, never written unconstrained** — the silent exemption
   is the gap the key exists to close.
 - **Uniqueness is per project and per type**, and on a `USER`-scoped type also **per user**: two

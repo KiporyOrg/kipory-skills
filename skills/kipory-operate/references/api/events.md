@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Event categories and types
 
@@ -169,6 +169,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `payloadVersion` | `integer` | yes | Which version of that payload shape this type currently declares. Unrelated to `version` below, which is the concurrency guard. |
 | `durable` | `boolean \| null` | yes | Whether events of this type are stored. Null means it follows the category's `durableDefault` rather than overriding it. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
+| `listenable` | `boolean` | yes | COMPUTED, read-only. Whether a trigger can listen to this type: it is `active`, it is not run-scoped, and it is durable once the category's `durableDefault` is applied. The same test a trigger create, update, enable or replay applies — a type reading false here is refused there with a 422 that names which of the three failed. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this type was authored in the project or installed by the platform. |
 | `sortOrder` | `integer` | yes | Position within the category, ascending. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the type in the meantime. Not the same as `payloadVersion`. |
@@ -197,6 +198,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `payloadVersion` | `integer` | yes | Which version of that payload shape this type currently declares. Unrelated to `version` below, which is the concurrency guard. |
 | `durable` | `boolean \| null` | yes | Whether events of this type are stored. Null means it follows the category's `durableDefault` rather than overriding it. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
+| `listenable` | `boolean` | yes | COMPUTED, read-only. Whether a trigger can listen to this type: it is `active`, it is not run-scoped, and it is durable once the category's `durableDefault` is applied. The same test a trigger create, update, enable or replay applies — a type reading false here is refused there with a 422 that names which of the three failed. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this type was authored in the project or installed by the platform. |
 | `sortOrder` | `integer` | yes | Position within the category, ascending. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the type in the meantime. Not the same as `payloadVersion`. |
@@ -236,6 +238,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `payloadVersion` | `integer` | yes | Which version of that payload shape this type currently declares. Unrelated to `version` below, which is the concurrency guard. |
 | `durable` | `boolean \| null` | yes | Whether events of this type are stored. Null means it follows the category's `durableDefault` rather than overriding it. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
+| `listenable` | `boolean` | yes | COMPUTED, read-only. Whether a trigger can listen to this type: it is `active`, it is not run-scoped, and it is durable once the category's `durableDefault` is applied. The same test a trigger create, update, enable or replay applies — a type reading false here is refused there with a 422 that names which of the three failed. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this type was authored in the project or installed by the platform. |
 | `sortOrder` | `integer` | yes | Position within the category, ascending. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the type in the meantime. Not the same as `payloadVersion`. |

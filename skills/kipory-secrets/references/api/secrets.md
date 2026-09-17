@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Secrets
 
@@ -17,6 +17,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `POST` | [`/v1/secrets/{id}/disable`](#post-v1-secrets-id-disable) |  |
 | `POST` | [`/v1/secrets/{id}/enable`](#post-v1-secrets-id-enable) |  |
 | `GET` | [`/v1/secrets/catalog`](#get-v1-secrets-catalog) |  |
+| `GET` | [`/v1/secrets/resolution`](#get-v1-secrets-resolution) |  |
 
 ### `GET /v1/secrets`
 
@@ -133,3 +134,18 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `types` | `object[]` | yes | Every kind of secret this platform can store, and its fields. |
+
+### `GET /v1/secrets/resolution`
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `node` | `string` | yes | The node to resolve credentials for — usually a project's node. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `node` | `string` | yes | The node these resolutions are for. |
+| `keys` | `object[]` | yes | Every key a tenant credential can answer — each vendor key a handler looks up and each sign-in credential — in the platform's own roster order, which is not a contract term. Keys the platform only ever reads from its own root are not listed. |

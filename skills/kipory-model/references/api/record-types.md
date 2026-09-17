@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Record types
 
@@ -84,6 +84,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `restamp` | `object` | no | Present when `expand=restamp` was requested. |
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
+| `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
+| `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 ### `GET /v1/record-types/{id}`
@@ -98,7 +100,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, facets, uses, restamp, migration, embedding, vectorProgress. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, facets, uses, restamp, migration, embedding, vectorProgress, diagnostics, dependents. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -135,6 +137,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `restamp` | `object` | no | Present when `expand=restamp` was requested. |
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
+| `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
+| `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 ### `PATCH /v1/record-types/{id}`
@@ -192,6 +196,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `restamp` | `object` | no | Present when `expand=restamp` was requested. |
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
+| `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
+| `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 ### `DELETE /v1/record-types/{id}`

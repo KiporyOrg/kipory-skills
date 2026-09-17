@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Secrets
 
@@ -90,6 +90,26 @@ as for the design plane.
   nothing at all. It never falls through to a different node's credential and never returns a
   value that is merely plausible.
 
+## Ask what resolves — do not reconstruct it
+
+`GET /v1/secrets/resolution` answers, for one node, the question the list declines to: for every
+credential the platform looks up — each vendor key a handler resolves and each sign-in credential
+— which record a call there would use. Each key reports a `state` (`present`, `disabled`,
+`not_found`, `branch_inactive`), the node holding the record that state is about, `ownStatus` for
+the row stored on the node itself, and, for a vendor key, `billedBy` — whether the vendor invoices
+the holder or the call runs on the platform's key at the platform's price. It is the same walk
+resolution performs, effective-status gate included, and nothing in it is decrypted.
+
+⛔ **Do not rebuild this by listing every ancestor and taking the first active row.** That
+reconstruction cannot see the effective-status gate, so it reports a suspended organisation's key
+as the one in use when resolution admits nothing at all.
+
+⚠️ **`present` is not proof the value works.** A record that fails to decrypt, or whose value is
+not the shape its handler expects, still yields nothing at run time; a metadata read cannot see
+either. And a holder above your own reach is withheld — its node and name come back null beside a
+`present` state — because whether a credential resolves for your node is yours to know and who
+holds it above you is not.
+
 ## There is no read-back, and that is structural
 
 No response on this surface carries a secret value. Creating takes a value and returns metadata;
@@ -133,6 +153,7 @@ the check is exactly the one it refuses.
 | ------------------------------------ | ------------------------------- |
 | Learn the supported types and fields | `GET /v1/secrets/catalog`       |
 | List one node's own credentials      | `GET /v1/secrets`               |
+| See which credential each key uses   | `GET /v1/secrets/resolution`    |
 | Store a new credential               | `POST /v1/secrets`              |
 | Replace a value in place             | `PUT /v1/secrets/{id}`          |
 | Stop using one, keeping the record   | `POST /v1/secrets/{id}/disable` |

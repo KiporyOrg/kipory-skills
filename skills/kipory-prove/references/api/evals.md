@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 08442917b53a · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Eval suites, cases and runs
 
@@ -263,6 +263,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a PATCH to be told about a concurrent edit instead of overwriting one. |
 | `caseCount` | `integer` | yes | How many cases the suite holds, so a list view can show it. |
 | `lastRun` | `object \| null` | yes | How this suite's most recent run came out, so a list can say whether the suite can be believed. Null when it has never run — which is not a zero and not a failure. |
+| `runInFlight` | `boolean \| null` | yes | Whether a run of this suite is already queued or executing — exactly when `POST /v1/eval-suites/{id}/run` refuses with a 409. True from the moment a run is accepted, before its run row exists. Null when the queue could not be read for this answer, which says nothing either way. |
 | `createdById` | `string \| null` | yes | Who created the suite. |
 | `createdByEmail` | `string \| null` | yes | Email of the creator, when known. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -300,6 +301,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a PATCH to be told about a concurrent edit instead of overwriting one. |
 | `caseCount` | `integer` | yes | How many cases the suite holds, so a list view can show it. |
 | `lastRun` | `object \| null` | yes | How this suite's most recent run came out, so a list can say whether the suite can be believed. Null when it has never run — which is not a zero and not a failure. |
+| `runInFlight` | `boolean \| null` | yes | Whether a run of this suite is already queued or executing — exactly when `POST /v1/eval-suites/{id}/run` refuses with a 409. True from the moment a run is accepted, before its run row exists. Null when the queue could not be read for this answer, which says nothing either way. |
 | `createdById` | `string \| null` | yes | Who created the suite. |
 | `createdByEmail` | `string \| null` | yes | Email of the creator, when known. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -358,6 +360,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a PATCH to be told about a concurrent edit instead of overwriting one. |
 | `caseCount` | `integer` | yes | How many cases the suite holds, so a list view can show it. |
 | `lastRun` | `object \| null` | yes | How this suite's most recent run came out, so a list can say whether the suite can be believed. Null when it has never run — which is not a zero and not a failure. |
+| `runInFlight` | `boolean \| null` | yes | Whether a run of this suite is already queued or executing — exactly when `POST /v1/eval-suites/{id}/run` refuses with a 409. True from the moment a run is accepted, before its run row exists. Null when the queue could not be read for this answer, which says nothing either way. |
 | `createdById` | `string \| null` | yes | Who created the suite. |
 | `createdByEmail` | `string \| null` | yes | Email of the creator, when known. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -458,6 +461,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `points` | `object[]` | yes | Points oldest first, so the series reads left to right. Check each point's `comparableWithPrevious` before connecting it to the last. |
+| `numericSeries` | `object[]` | yes | Every pooled numeric series measured in at least one point, in the order first met reading the points oldest first, each with the producer its values share across the whole window. Empty when no point carries a numeric aggregate. |
 | `truncated` | `boolean` | yes | True when runs exist OLDER than the first point here — the series is a window, not the suite's whole history. Distinguishes a genuinely new suite from one whose earlier runs fell outside `limit`. |
 
 ### `GET /v1/eval-suites/trend`
