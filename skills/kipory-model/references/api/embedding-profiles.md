@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b8e26fccd5ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 4f4a8ed9d776 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Embedding profiles and vector collections
 
@@ -50,6 +50,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `denseSlots` | `string[]` | yes | Names for the dense vector slots this profile writes. At least one is required — a profile with no dense slot could back nothing searchable. |
 | `sparseSlot` | `string \| null` | no | Optional name for a sparse vector slot. Declaring one makes every record carry sparse vectors from then on, so only add it if a search step will read them. |
 | `isDefault` | `boolean` | no | Make this the profile used when a searchable declaration names none. Setting it moves the default off whichever profile currently holds it. |
+| `defaultChunking` | `object` | yes | The chunking every record type on this profile inherits. Required: a profile is a vector space AND the default way records enter it. `{ kind: "whole" }` is one point per record. |
+| `defaultStages` | `object[] \| null` | no | Per-record projection stages every type on this profile inherits. Omit or null for none. |
 
 **Response `201`**
 
@@ -65,6 +67,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
@@ -100,6 +104,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
@@ -121,6 +127,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `label` | `string \| null` | no | New human-readable name, or null to clear it. |
 | `isDefault` | `boolean` | no | Make this the project's default profile. Anything that changes the vector space — the model, the slots — is refused here and needs a version bump instead. |
+| `defaultChunking` | `object` | no | Change the chunking every non-overriding type on this profile inherits. Re-derives and re-indexes each of them; not a geometry change, so no version bump. |
+| `defaultStages` | `object[] \| null` | no | Change the inherited per-record stages; null clears them. Re-derives every non-overriding type. |
 
 **Response `200`**
 
@@ -136,12 +144,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `rederive` | `object` | no | Present when `defaultChunking` or `defaultStages` changed: which inheriting record types followed. |
 
 ### `DELETE /v1/embedding-profiles/{id}`
 
@@ -205,6 +216,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |

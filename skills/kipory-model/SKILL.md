@@ -6,7 +6,7 @@ license: MIT
 
 # Model a project's data
 
-Five resources, five packs, and an order the packs do not state because each answers for one capability. The fact most people get wrong: **creating an embedding profile does nothing until you activate it**, and activation is the one expensive move here — it repoints every declaration and reindexes.
+Five resources, five packs, and an order the packs do not state because each answers for one capability. Two facts most people get wrong: **a record type has ONE storage declaration, `uses`** — per field, what it is for (`filter`, `search`, `link`, `key`, `file`), plus the type-level `search` settings, `join` and `facets`; `searchable`, `queryable`, `relations`, the natural key and the facet links are derived from it and read-only, and it is sent whole. And **creating an embedding profile does nothing until you activate it** — activation is the one expensive move here; it repoints every declaration and reindexes.
 
 ## Before the first call
 
@@ -16,10 +16,11 @@ Five resources, five packs, and an order the packs do not state because each ans
 
 ## The order, and why it is not arbitrary
 
-**1. Embedding profile first, if anything will be searchable.** A record type declares itself searchable against a profile, so the profile has to exist to be named.
+**1. Embedding profile first, if anything will be searchable.** A record type names a profile in `uses.search`, so the profile has to exist to be named — and it carries the `defaultChunking` (required) and `defaultStages` every type on it inherits unless the type overrides them.
 
 ```
-POST /v1/embedding-profiles                    { project, … }   → inert: nothing references it yet
+POST /v1/embedding-profiles                    { project, defaultChunking, … }   → inert: nothing references it yet
+PATCH /v1/embedding-profiles/{id}              label, isDefault, defaultChunking, defaultStages — a default change re-derives and re-embeds every inheriting type
 POST /v1/embedding-profiles/{id}/versions      mint the next geometry — still changes nothing
 POST /v1/embedding-profiles/{id}/activate      repoint every declaration onto it and reindex
 ```
@@ -31,11 +32,15 @@ Activation is direction-agnostic — pointing at a superseded version is the rol
 ```
 POST /v1/schema-entries                        a reusable typed shape
 POST /v1/schema-entries/seed                   { project } — materialise the flow-provider entries, idempotent
-POST /v1/record-types                          name, shape, owner scope, processing flow
-GET  /v1/record-types/{id}/contract-preview    what a write to this type must look like
-POST /v1/record-types/{id}/write-preview       try a payload against the type without storing it
-PUT  /v1/record-types/{id}/natural-key         → { declared, stamped } — verifies every existing record first
+POST /v1/record-types                          name, shape, owner scope, processing flow, `uses`
+PATCH /v1/record-types/{id}                    replace `uses` whole; `searchable`/`queryable`/`relations` in a body are a 422
+GET  /v1/record-types/{id}?expand=uses         where each use landed, and which use kinds this deployment supports
+GET  /v1/record-types/{id}/contract-preview    the field vocabulary a proposed shape or flow would give the type
+POST /v1/record-types/{id}/write-preview       what your PATCH body would do — derived declarations, reindex, restamp — writing nothing
+POST /v1/record-types/{id}/natural-key-preview the verdict a `key` use would get, per candidate field, before you send it
 ```
+
+The natural key is the `key` use on a field in `uses`: the save verifies every existing record first and refuses the whole PATCH with `409 RECORD_TYPE_NATURAL_KEY_UNSATISFIED` if two share a value. A `uses` refusal is `422 RECORD_TYPE_USES_INVALID` with every issue and its remedy in `details.issues`; a type from before the vocabulary answers `409 USES_NOT_MIGRATED` until migrated.
 
 The builtin and library shapes are **synthesized on read**: they have no rows and nothing creates them. There is no `?seed=` flag on the read; the seed is the POST.
 
@@ -49,18 +54,20 @@ POST /v1/relation-kind-pairings                which (typeA, typeB) pairs the ki
 GET  /v1/relation-kinds/{id}?expand=readiness  blocked · inert · unproven · ready
 ```
 
-Omit `declaration` and the kind is legal but produces nothing; readiness reports it `inert`. A pairing has no update — delete and recreate. The kind's key is immutable.
+Omit `declaration` and the kind is legal but produces nothing; readiness reports it `inert`. The field that feeds a kind is otherwise a `link` use on the record type — `{ "kind": "link", "relation": "<key>" }` in its `uses`, `element.ref` for a list of objects — and the type's `relations` is derived from it. A pairing has no update — delete and recreate. The kind's key is immutable.
 
 **5. Facets, and most of the time they need no flow at all.**
 
 ```
 POST /v1/facets                                { matching: exact | semantic, resolverFlowId? }
 POST /v1/facets/{id}/terms                     bulk-seed the vocabulary
-PUT  /v1/record-types/{id}/facets              which facets a type carries
+PATCH /v1/record-types/{id}                    `uses.facets: [...]` — which facets a type surfaces, in order; read back with `expand=facets`
 GET  /v1/facets/resolvers                      the resolver flows available
 GET  /v1/facets/{id}/delete-preflight          what deleting would reach
 GET  /v1/facets/{id}?expand=readiness
 ```
+
+A facet is not a field: its values are resolved by the processing flow into the term store, so the type-to-facet link is a list on the type (`uses.facets`), not a use of a field. A key that is not a facet of the project is `USES_FACET_UNKNOWN`.
 
 A facet whose `matching` is `exact` needs no resolver. A `semantic` one created _without_ naming a `resolverFlowId` is bound to a platform default at creation and works as authored; pass an explicit `null` only to opt out and bring your own resolver later (`kipory-build`, then patch it on). Single terms: `POST /v1/terms`, `PATCH /v1/terms/{id}`, `POST /v1/terms/{id}/merge`, `DELETE /v1/terms/{id}`.
 
@@ -72,7 +79,8 @@ A facet whose `matching` is `exact` needs no resolver. A `semantic` one created 
 - **A schema edit cascades.** Read the record-types pack on what an entry change reaches before editing one that types already reference.
 - **`expand=embedding` and `expand=vectorProgress` are refused on the record-types list.** They are per-row scans; ask them on `GET /v1/record-types/{id}`.
 - **Readiness is the diagnostic here, not `outstandingIssues`.** That array belongs to skill writes; none of the saves in this skill carry it. Re-read the facet or kind with `expand=readiness`: `blocked` cannot work (`RESOLVER_UNBOUND` on an unbound semantic facet), `inert` is wired to nothing, `unproven` has never resolved — expected an hour after authoring, a question a year later.
-- **An embedding profile's `version` is not a lock.** Its PATCH accepts only `label` and `isDefault`, and sending `version` is a 422. Changing the model or provider of the embedding step means embedding everything again and rebuilding the index.
+- **An embedding profile's `version` is not a lock.** Its PATCH accepts `label`, `isDefault`, `defaultChunking` and `defaultStages`, and sending `version` is a 422. Changing the model or the slots goes through a version and re-embeds everything; changing a default re-derives and re-embeds every type that inherits it, without a version.
+- **`uses` is sent whole.** A PATCH carrying it replaces the statement; reordering two `filter` fields moves their storage slots and re-stamps every record of the type. Read it, change it, send it back with the `version` you read — and ask `write-preview` first if you are not sure what it derives to.
 - **A search step left behind after activation keeps querying the superseded collection** — stale results, not an error. Read `repointedSteps`.
 - **Vector search is ADMIN and bills.** `POST /v1/vector-collections/{name}/search` embeds the query text on every call. The collections surface is otherwise read-only; `{name}` is the collection's name without its project prefix, and `storeState: absent` is a divergence to act on while `unreachable` is an outage — never fold them.
 - **A 2xx is not a promise it will run** — see `kipory-connect`'s conventions. Runtime is stricter than authoring.

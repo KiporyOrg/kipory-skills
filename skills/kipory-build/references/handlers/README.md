@@ -1,8 +1,8 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 300d4708f4bec5f4edab8ba144e60798f9ed6866f80c93834980ee7692a726ab · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 6822bc3287640202bf37a8289eb1aa64ee70d8e18ac0cb51ab94aade5f78e762 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Handler catalog
 
-68 system handlers, one page each. A step in a flow is one of these plus its config. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` is in the stamp above; if the live one differs, the live one wins.
+70 system handlers, one page each. A step in a flow is one of these plus its config. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` is in the stamp above; if the live one differs, the live one wins.
 
 ## Groups
 
@@ -11,7 +11,7 @@
 - **Sources** (17) — Where a project gets data it did not already have — pages, videos, feeds, places. These are the handlers that cross the network, so they are the ones that cost money, that can be slow, and that cache what they bring back.
 - **Files** (10) — Reading what a file already contains, rather than fetching it — metadata, text, frames and transcripts — plus the few that write a derived file back.
 - **Search** (5) — Vectors and the collections they live in: encoding a value, writing a point, and finding the nearest ones to it.
-- **Entities** (15) — Reading and changing the records a project holds, and the terms they are filed under. Every handler that can rewrite a record is here, and each one says so.
+- **Entities** (17) — Reading and changing the records a project holds, and the terms they are filed under. Every handler that can rewrite a record is here, and each one says so.
 - **Outbound** (1) — Steps that reach a person outside the platform. A message that leaves is the one thing a run cannot take back, so nothing here delivers until the run's writes have committed.
 - **Flow** (9) — Steps that steer the run rather than carry data — branching, looping, calling a sub-flow — and the run state that outlives a single step.
 - **Utility** (3) — Plumbing with no domain of its own: reshaping a value, or picking between values that came from somewhere else.
@@ -51,11 +51,12 @@ _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO
 - [`youtube.trending`](youtube.trending.md) — Fetch trending channels · Sources · `string` → `YoutubeTrendingChannels`
 - [`youtube.video`](youtube.video.md) — Fetch a YouTube video · Sources · `string` → `YoutubeVideo`
 
-## inline (32)
+## inline (34)
 
 _Run synchronously inside the flow engine, in order._
 
 - [`email.send`](email.send.md) — Send an email · Outbound · `recipient, subject, body` → `boolean`
+- [`entity.append`](entity.append.md) — Append to a stream · Entities · `record slot + event(s)` → `string`
 - [`entity.count`](entity.count.md) — Count records · Entities · `user id` → `number`
 - [`entity.create`](entity.create.md) — Create a record · Entities · `submission object` → `RecordCreate`
 - [`entity.delete`](entity.delete.md) — Delete records · Entities · `record id list` → `boolean`
@@ -64,6 +65,7 @@ _Run synchronously inside the flow engine, in order._
 - [`entity.link-retract`](entity.link-retract.md) — Take back a stated link · Entities · `string, string` → `RelationRetraction`
 - [`entity.links`](entity.links.md) — Read a record's links · Entities · `string` → `RecordLink[]`
 - [`entity.list`](entity.list.md) — List records · Entities · `user id + cursor` → `RecordPage`
+- [`entity.query`](entity.query.md) — Query records · Entities · `cursor + user slots` → `RecordQueryPage`
 - [`entity.read`](entity.read.md) — Read records by ID · Entities · `any+` → `RecordRead[]`
 - [`entity.teardown`](entity.teardown.md) — Tear down a record's derived state · Entities · `slot map` → `object`
 - [`entity.update`](entity.update.md) — Update a record · Entities · `record slot + data/derived patches` → `boolean`

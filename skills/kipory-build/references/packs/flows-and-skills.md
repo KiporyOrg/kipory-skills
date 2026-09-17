@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e2604b8ecaf7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f7f9afd9796b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -402,7 +402,7 @@ step that sets none behaves as it always has.
 
 ## Asking about a step you have not saved
 
-24 <!-- count: editor-inputs-from-config --> of the sixty-eight handlers do not take their inputs
+26 <!-- count: editor-inputs-from-config --> of the seventy handlers do not take their inputs
 from the step row: they name them INSIDE their own configuration. `value.transform` — the most-used handler there is — names them
 inside a JSONata expression, so writing the expression IS writing the step's input list, and there
 is nothing to pick from a list.

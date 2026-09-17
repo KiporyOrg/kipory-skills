@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b8e26fccd5ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 4f4a8ed9d776 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Relation kinds and pairings
 
@@ -142,6 +142,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
 | `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
 | `sortOrder` | `integer` | yes | Position among the project's relation kinds, ascending. |
+| `edgeFilters` | `object \| null` | yes | Which element properties edges of this kind can be filtered on, and the edge column each is stamped into — derived from the declaring record types' link uses (`element.filters`), read-only here. Null when no type declares a filter on this kind. |
+| `edgeRestampPending` | `boolean` | yes | True while live edges are being restamped after `edgeFilters` changed. Reads resolve `where`/`count` clauses against `stampedEdgeFilters` until it clears. |
+| `stampedEdgeFilters` | `object \| null` | yes | The map the edge rows are currently stamped for. Equals `edgeFilters` once a restamp has converged; the one clauses are resolved against meanwhile. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the kind in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -179,6 +182,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
 | `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
 | `sortOrder` | `integer` | yes | Position among the project's relation kinds, ascending. |
+| `edgeFilters` | `object \| null` | yes | Which element properties edges of this kind can be filtered on, and the edge column each is stamped into — derived from the declaring record types' link uses (`element.filters`), read-only here. Null when no type declares a filter on this kind. |
+| `edgeRestampPending` | `boolean` | yes | True while live edges are being restamped after `edgeFilters` changed. Reads resolve `where`/`count` clauses against `stampedEdgeFilters` until it clears. |
+| `stampedEdgeFilters` | `object \| null` | yes | The map the edge rows are currently stamped for. Equals `edgeFilters` once a restamp has converged; the one clauses are resolved against meanwhile. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the kind in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -230,6 +236,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
 | `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
 | `sortOrder` | `integer` | yes | Position among the project's relation kinds, ascending. |
+| `edgeFilters` | `object \| null` | yes | Which element properties edges of this kind can be filtered on, and the edge column each is stamped into — derived from the declaring record types' link uses (`element.filters`), read-only here. Null when no type declares a filter on this kind. |
+| `edgeRestampPending` | `boolean` | yes | True while live edges are being restamped after `edgeFilters` changed. Reads resolve `where`/`count` clauses against `stampedEdgeFilters` until it clears. |
+| `stampedEdgeFilters` | `object \| null` | yes | The map the edge rows are currently stamped for. Equals `edgeFilters` once a restamp has converged; the one clauses are resolved against meanwhile. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the kind in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e2604b8ecaf7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f7f9afd9796b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
@@ -32,8 +32,8 @@ is a thin descriptor pointing at one.
 
 ```
 POST /v1/schema-entries       author an operator shape
-POST /v1/record-types         create the type, referencing the entry
-PATCH /v1/record-types/{id}   bind a flowId to make it flow-backed
+POST /v1/record-types         create the type, referencing the entry — and say what its fields are FOR (`uses`)
+PATCH /v1/record-types/{id}   bind a flowId to make it flow-backed; replace `uses` whole
 
 # Not part of the sequence — the builtin and library shapes are synthesized on
 # read and have no rows, so nothing seeds them. This route re-materializes the
@@ -113,11 +113,96 @@ in the bound flow** — all of that is per-user end to end. A pool processing ru
 at all, so **a flow that reads user attributes cannot run under one**: the provider fails closed.
 Read configuration through the project attribute instead. Billing lands on the project's payer.
 
+## One statement of what each field is for: `uses`
+
+A record type carries ONE storage declaration, `uses`, and everything the platform stores about
+its fields is derived from it. Per field, a list of what the field is **for**:
+
+- `filter` — an indexed column; the field can be filtered on, in the record store and the vector
+  index alike (the derived `queryable` list, in this order).
+- `search` — the vector index; `{ "kind": "search", "role"? }`, the text is embedded (the derived
+  `searchable` document).
+- `link` — the edge store; `{ "kind": "link", "relation", "element"? }`, the field holds a record id,
+  or is a list of objects whose `element.ref` does (the derived `relations` document).
+  `element.filters` names the sibling properties to carry on the edge and filter on — see
+  "Filtering on the data an edge carries" below.
+- `stream` — the stream store; `{ "kind": "stream", "at", "filters"?, "retainDays"? }`, the field is
+  a list of timed events that grows without bound, appended never assigned — see "A list that grows
+  without bound" below.
+- `key` — the natural-key index; the field identifies the record (the derived `naturalKey`).
+- `file` — object storage; the field is a file reference.
+
+And three statements about the **type**, beside the fields: `search` (the embedding profile, with
+optional overrides of `chunking` and `stages`, and of `indexWhen` and `isolationGroup` — required iff a field is
+marked `search`), `join` (this type IS an edge), and `facets` (the ordered facet keys the type
+surfaces — a facet is not a field, so it is not a use of one; see "Which facets a type surfaces").
+
+```jsonc
+{
+  "uses": {
+    "fields": [
+      {
+        "source": { "family": "submission", "field": "externalId" },
+        "uses": ["key", "filter"],
+      },
+      {
+        "source": { "family": "submission", "field": "body" },
+        "uses": [{ "kind": "search" }],
+      },
+      {
+        "source": { "family": "submission", "field": "publishedAt" },
+        "uses": ["filter"],
+      },
+      {
+        "source": { "family": "submission", "field": "sourceId" },
+        "uses": [{ "kind": "link", "relation": "published-by" }],
+      },
+    ],
+    "search": { "profileId": "prof_…" },
+    "facets": ["topic", "language"],
+  },
+}
+```
+
+⛔ **`searchable` as well as `queryable` and `relations` are READ-ONLY on the wire.** They are derived from
+`uses` and reported beside it; a create or patch body naming any of them is a `422` from the strict
+schema, and there is no merge form of anything — `uses` is **sent whole**. Order matters for exactly
+one use: `filter` fields are assigned storage slots by position, so reordering two of them moves
+their values to different columns and re-stamps every record. A patch that omits `uses` keeps the
+stored statement.
+
+⭐ **The read tells you where each use landed: `GET /v1/record-types/{id}?expand=uses`.**
+`usesRouting` carries `supported` — the use kinds THIS deployment has a reader for — then per field,
+per use, the store it routed to and the physical handle it got (the slot column for `filter`, the
+profile slots for `search`, the producer key for `link`), and the surfaced facets with their
+positions. Offer exactly the kinds `supported` lists — every word in the vocabulary has a reader
+today, so the list is the deployment's statement, not a promise.
+
+**A refusal derives nothing.** Every issue comes back at once as `422 RECORD_TYPE_USES_INVALID`, and
+`details.issues[]` carries per issue a `code` to branch on, the `path` into your statement, the
+`field` and `use` it is about, and a `remedy` — what to do instead, never empty. Branch on the code:
+`USES_FIELD_UNKNOWN` (no such contract field), `USES_ILLEGAL_FOR_SHAPE` (that shape cannot be used
+that way — an object cannot be filtered, a file cannot be a key), `USES_TWO_KEYS`,
+`USES_SEARCH_NO_TEXT`, `USES_SEARCH_SETTINGS` (a `search` use with no `search` settings, or the
+reverse), `USES_FACET_UNKNOWN`, `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the entry already
+marks the field as a reference to a different type), and for `element.filters` on a `link`:
+`EDGE_FILTER_NOT_FILTERABLE`, `EDGE_FILTER_BUDGET_EXCEEDED`, `EDGE_FILTER_TYPE_CONFLICT` (below).
+Nothing is written on a refusal — not the statement, not a projection, not a marker.
+
+⚠️ **A type that predates `uses` takes a declaration, not an edit.** Its `uses` reads `null`.
+Deriving from nothing would clear every declaration it has, so a PATCH without `uses` is refused
+`409 USES_NOT_MIGRATED`. A PATCH carrying `uses` is accepted and migrates the type: what it derives
+to replaces what was stored, and the save restamps or re-embeds on the difference. The one-off
+migration does the same for every type whose stored declarations invert cleanly.
+
 ## Making a type searchable
 
-A `searchable` declaration is the **only** way a type gets vectors. It names an
-embedding profile (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) and two halves: which fields fill which vector slots
-and how they are chunked, and which fields are stored alongside each point.
+Marking a text field `search` and naming an embedding profile (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) in
+`uses.search` is the **only** way a type gets vectors. The `searchable` document you read back is
+derived from that: which fields fill which vector slots (a `search` use fills the profile's default
+role — its first dense slot, plus the sparse slot if it has one — unless `role` names another dense
+slot), how they are chunked (the profile's `defaultChunking`, unless `uses.search.chunking`
+overrides it), and which fields travel with each point (every `filter` field, and only those).
 
 Nothing physical happens when you save. The collection is **derived** from the project, the
 profile and its version, the owner scope and the isolation group, then provisioned in the
@@ -125,26 +210,30 @@ background. Nobody names a collection.
 
 Three consequences that catch people out, and only two of them fail _silently_:
 
-- ⚠️ **A field must be declared queryable to be filtered on** — see below. Only those get an index.
-  ⭐ This one is **loud**: a filter naming an undeclared key is refused at plan time
-  (`SEARCH_FILTER_KEY_NOT_FILTERABLE`) and answered `422 RECORD_FIELD_NOT_INDEXED` at runtime. It
-  used to save clean and match nothing at runtime; that silent-zero behaviour is a closed defect, so
-  read the 422 as the platform naming the fix rather than as a broken search.
+- ⚠️ **A field must carry `filter` to be filtered on** — see below. Only those get an index.
+  ⭐ This one is **loud**: a `vector.search` filter naming an undeclared key is refused at plan
+  time (`SEARCH_FILTER_KEY_NOT_FILTERABLE`). It used to save clean and match nothing at runtime;
+  that silent-zero behaviour is a closed defect, so read the refusal as the platform naming the
+  fix rather than as a broken search. (The operator records list is different: a condition beside
+  a meaning-based search there is answered by the **record store** first, and the ranking runs
+  over what it kept — so a `filter` field the points do not carry still narrows, exactly.)
 - ⚠️ **The tenant key is the scope key, not the user id.** Filtering by user id against a derived
   collection matches nothing, silently. The scope key holds the user for a user-scoped type, the
   project for a pool type, and the session for a preview write.
 - **Turning searchable off does not delete the points immediately.** A background pass notices and
   removes them later.
 
-⚠️ **Moving the searchable declaration itself re-embeds every existing record, and re-embedding
-costs credits.** Changing a content slot or the embedding profile makes every stored record's
-points stale, and the background reconcile re-runs each record's projection, embedding calls
-included. The save itself is instant; the spend arrives record by record as the re-embed drains.
-Three changes that look adjacent are **not** in that set: the queryable list moves the payload
-index in place (free — see "Making fields filterable"), removing `searchable` entirely deletes
-the points without spending credits, and re-pointing the bound flow or the referenced shape
-diverges nothing at the save — those records re-embed later, each as it is next reprocessed, not
-as this save's own bill.
+⚠️ **Moving the derived searchable declaration re-embeds every existing record, and re-embedding
+costs credits.** Marking a different field `search`, changing its role, changing the profile, or
+changing the chunking — on the type, OR on the profile's default that this type inherits — makes
+every stored record's points stale, and the background reconcile re-runs each record's projection,
+embedding calls included. The save itself is instant; the spend arrives record by record as the
+re-embed drains. Three changes that look adjacent are **not** in that set: adding or removing a
+`filter` moves the payload index in place (free — see "Making fields filterable"), dropping the last
+`search` use deletes the points without spending credits, and re-pointing the bound flow or the
+referenced shape diverges nothing at the save — those records re-embed later, each as it is next
+reprocessed, not as this save's own bill. The trigger is the **diff of the derived document**, not
+the edit: re-sending the same `uses` derives the same document and enqueues nothing.
 
 **The cost is estimable before you save, from measurements:
 `GET /v1/record-types/{id}?expand=embedding`** carries the profile's model, its current rate in
@@ -164,66 +253,39 @@ hand-off, not a stall in your data. Both scan-priced expansions (`embedding`, `v
 only**: the list route refuses them, because a page of types multiplied by a row scan each is a
 cost nobody asked for. Poll during a re-embed rather than attaching either to routine reads.
 
-**A content slot's field must be able to hold text, and the platform now says so.** A slot
-sourced from an object, a list of objects, or a null-only field is refused
-(`SEARCHABLE_FIELD_NOT_EMBEDDABLE`) rather than saved. It used to be accepted, and the result was
-the worst of the three possible outcomes: nothing errored, every record rendered to an empty
-string, each one was skipped as having no content, and the type sat there looking searchable while
-indexing nothing at all.
+**A `search` use needs text, and the platform says so before it derives anything.** `search` on a
+number, a date, a boolean, an object or a list of objects is refused `USES_SEARCH_NO_TEXT` with a
+remedy (render the value into a text field with a per-record stage, and search that); `search` on a
+file is `USES_SEARCH_NEEDS_STAGE` — bind an extraction stage and search its output. It used to be
+possible to save such a slot, and the result was the worst of the three possible outcomes: nothing
+errored, every record rendered to an empty string, each one was skipped as having no content, and
+the type sat there looking searchable while indexing nothing at all.
 
-The refusal is deliberately narrow — only shapes where **no** value could ever render as text.
-A field whose schema says nothing, or which admits several scalar types, is still allowed; a
-record that happens to be empty is reported per record, which is a fact about data rather than
-about the declaration. To combine or reshape something that is not plain text, use a template
-slot: it composes fields rather than reading one.
+The refusal is about the field's **shape**: a record that happens to be empty is reported per
+record, which is a fact about data rather than about the declaration. There is no template slot to
+compose several fields into one: put a per-record stage in `uses.search.stages` (or on the profile's
+`defaultStages`) and mark its output `search`.
 
 The contract read carries the same answer per field, so an editor can grey the option out and say
 why instead of offering it and indexing silence. It is a **separate** question from whether a
 field can be filtered — the two overlap and are not the same, and a field can be unfilterable and
 perfectly embeddable.
 
-### Editing part of a declaration: send a merge, not the whole document
+### There is no partial edit: `uses` is one statement, sent whole
 
-The `searchable` declaration is a **document**, and so are `queryable` and `relations`. A PATCH
-that names one REPLACES it. That is unambiguous and it is a trap for any client that models only part of one: to move a
-single content slot you must send back `content.chunking`, `content.stages`, `payload.fields` and
-`isolationGroup` as well — and whatever your editor does not model leaves with the write.
-
-⛔ **Nothing catches that.** The request is well-formed, the `version` is current, and you are
-overwriting your own read. The optimistic lock refuses a STALE write; it has nothing to say about
-a complete one that means less than it says. The answer comes back 200 and the collection loses a
-chunking policy nobody typed.
-
-So each of the three has a **merge** twin — `searchableMerge`, `queryableMerge`, `relationsMerge`
-— taking an [RFC 7386](https://www.rfc-editor.org/rfc/rfc7386) merge patch:
-
-- a key you **omit** keeps its stored value;
-- a key set to **`null`** is removed;
-- an object **merges recursively**;
-- anything else, **a list included**, replaces.
-
-A list replacing whole is the format's rule and the right one here: `payload.fields` is a list you
-send whole when you edit it anyway. The trap was never the list you edited; it was the list you
-left alone.
-
-Three things to know before you use it:
-
-- **Send one form or the other, never both.** "Replace with this, and also merge that into it" has
-  no reading a caller and a server would agree on, so a request carrying both is refused.
-- **The merge needs something to merge into.** A type with no declaration yet is
-  `RECORD_TYPE_MERGE_WITHOUT_TARGET` — declare it with the replace form first. Retracting one is
-  also the replace form: `searchable: null`.
-- **The MERGED document is validated, not your patch.** A patch is a fragment by nature, so it is
-  accepted as-is on the wire and the result meets the same strict schema a replacement would have.
-  A typo'd key is refused **by name**, and because a `null` in a merge patch DELETES, the refusal
-  also lists what your patch removed — `{"content": {"stages": null}}` reads as an edit and is a
-  deletion two levels down.
+The three derived documents used to be authored one by one, each with a merge form so a client
+could edit one slot without re-sending the parts it did not model. All of that is gone. What you
+send is the whole `uses` statement, and the three documents are derived from it in the same
+transaction — so the trap the merge form existed for (a client silently dropping the chunking it
+never modelled) cannot happen: chunking lives on the profile, and a field's every purpose is stated
+in one place. Read `uses`, change it, send it back with the `version` you read.
 
 ## Making fields filterable
 
-A `queryable` declaration lists the fields records of this type may be **filtered** on. It is a
-separate declaration from `searchable`, and that is the point: filtering has nothing to do with
-embeddings, so **a type with no vectors at all can still declare fields queryable.**
+The `filter` use marks a field records of this type may be **filtered** on; the derived `queryable`
+list is those fields, in the order you stated them. It is independent of `search`, and that is the
+point: filtering has nothing to do with embeddings, so **a type with no vectors at all can still
+mark fields `filter`.**
 
 One list serves both stores. A field you list here is filterable when you query records directly
 and when you search by similarity — it is filterable in both, or in neither, so a filter means the
@@ -259,16 +321,16 @@ Things to know before you declare one:
 - **Not every field can be filtered.** Objects, nested lists, untyped fields and fields that can
   hold more than one kind of value are refused when you save, with the reason. Project the value
   you actually want to filter on into its own field.
-- **You do not choose the storage.** The platform assigns each field a slot when
-  you save and records it on the declaration — the same way it resolves a derive
-  stage's flow. Send the field; leave the slot alone.
-- **Removing a field from the list removes the filter, not the data.** Records keep their values,
+- **You do not choose the storage.** The platform assigns each `filter` field a slot when you save
+  — by family and position in your `uses.fields` — and records it on the derived declaration, the
+  same way it resolves a derive stage's flow. `expand=uses` shows the column. Send the field; leave
+  the slot alone, and know that **reordering two `filter` fields moves their values** and re-stamps
+  the type.
+- **Dropping `filter` from a field removes the filter, not the data.** Records keep their values,
   so putting it back costs nothing.
-- ⚠️ **`searchable.payload.fields[].filterable` is GONE.** It used to be the place you marked a
-  field filterable, back when filtering was a property of having vectors. Sending it now is
-  refused — the payload field takes a `source` and nothing else. **Listing the field in
-  `queryable` is what makes it filterable.** A declaration you saved before the move may still
-  have the key stored; it is stripped when read, so nothing you saved stops working.
+- **On a searchable type every `filter` field also travels on each point.** The derivation makes
+  the payload and the filter list the same list, so a filter clause can be pushed into the vector
+  store; there is no separate "stored but not indexed" payload field to declare.
 
 Once a field is queryable, a listing step can filter on it two ways, and they compose:
 
@@ -279,10 +341,10 @@ Once a field is queryable, a listing step can filter on it two ways, and they co
   the value is a list. There is no range here, because a filter named by field has nowhere to put
   the comparison.
 
-⚠️ **A field that is not on the queryable list is refused, not filtered slowly.** That is
-deliberate: the alternative is a filter that quietly reads every record of the type on every
-request, forever, which is exactly the cost the declaration exists to avoid. If a listing step
-rejects a field, declare it queryable — do not work around it.
+⚠️ **A field that does not carry `filter` is refused, not filtered slowly.** That is deliberate:
+the alternative is a filter that quietly reads every record of the type on every request, forever,
+which is exactly the cost the declaration exists to avoid. If a listing step rejects a field, mark
+it `filter` — do not work around it.
 
 A counting step takes the same filters and answers **how many** without reading the rows. That is
 not a convenience over listing: a page is capped, so counting one is right only while the whole
@@ -321,6 +383,213 @@ relationship graph rather than a record's own fields, and it answers questions n
 ⚠️ **A date window on a declared timestamp is not the same as the created window.** The created
 window bounds when the record was _stored_; a queryable date field bounds whatever your data
 means by it. A feed item ingested today can have been published last year.
+
+### Filtering on the data an edge carries
+
+A `link` on a list of objects can say which of the element's OTHER properties travel onto the edge
+and can be filtered on there: `element.filters`.
+
+```jsonc
+{
+  "source": { "family": "processed", "field": "citations" },
+  "uses": [
+    {
+      "kind": "link",
+      "relation": "cites",
+      "element": { "ref": "source", "filters": ["quote", "spanStart"] },
+    },
+  ],
+}
+```
+
+Each named property is carried on the edge and stamped into an indexed edge column. The relations
+pack has the read side (`where` and `count` on an edge walk). Before you declare:
+
+- **Scalars only, and a list of scalars stamps its first element.** A string, number, integer,
+  boolean or date-time property, or a list of one of those. A nested object, a list of objects, an
+  untyped property, or the element's own reference (`ref` — the target, not data on the edge) is
+  refused `EDGE_FILTER_NOT_FILTERABLE`.
+- **The budget is the relation KIND's, and it is small.** Eight text, two number, two date-time,
+  two boolean columns per kind — shared by every record type that filters on that kind, because an
+  edge row is one row whichever type produced it. Past it, `EDGE_FILTER_BUDGET_EXCEEDED`, counted
+  over every declaring type. This is deliberately narrower than the record budget: an edge is a
+  relationship with a few attributes, not a document. Model anything wider as its own record type.
+- **Two types filtering on one kind must agree on each property's type.** A `quote` that is a string
+  in one type and an object in another is `EDGE_FILTER_TYPE_CONFLICT`, and the message names the
+  other type. The map is the kind's — `edgeFilters` on the relation-kind read, `{ property →
+column }`, read-only there; `GET /v1/record-types/{id}?expand=uses` routes the use as
+  `{ store: "edge-store", relation, producerKey, filters: { quote: "eText0" } }`.
+- **A property already on a column keeps it** when another type adds or drops a filter. A property
+  no type names any more leaves the map. So one type's edit never moves another's columns.
+- ⚠️ **Changing the filters restamps every live edge of the kind, after the save returns.** As with
+  `filter` above: the save records the obligation on the kind (`edgeRestampPending`,
+  `stampedEdgeFilters`), a runner rewrites the rows in batches, and edge reads resolve against the
+  previous map until it converges. A filter you just declared is not queryable until then.
+
+All three refusals arrive inside `RECORD_TYPE_USES_INVALID.details.issues` with a remedy each.
+
+### A list that grows without bound: `stream`
+
+A field that is a list of objects each carrying a time — every action of a person, every reading of a
+device — is a `stream`: its elements leave the record row and become rows of their own,
+time-partitioned store, appended and never assigned, read only inside a time bound.
+
+```jsonc
+{
+  "source": { "family": "submission", "field": "actions" },
+  "uses": [
+    {
+      "kind": "stream",
+      "at": "at",
+      "filters": ["action", "target"],
+      "retainDays": 90,
+    },
+  ],
+}
+```
+
+- **`at` is the event's own time and is required.** It must be a datetime property of the element
+  (`STREAM_AT_UNKNOWN` when it names nothing, `USES_STREAM_NO_TIME` when it is not a datetime). A late
+  event lands under its `at`; the platform never substitutes arrival time.
+- **`filters` become indexed columns on the event row**, under a budget of eight text, four number,
+  four date-time and two boolean per stream FIELD (`STREAM_FILTER_BUDGET_EXCEEDED`); a nested object
+  or a list of objects is `STREAM_FILTER_NOT_FILTERABLE`; a filter naming `at` is dropped, since the
+  time is always indexed. `expand=uses` routes the use as `{ store: "stream-store", at, retainDays,
+filters: { action: "sText0" } }`.
+- **The field is no longer part of `data`.** `entity.create` and `entity.update` refuse a payload
+  that names it — the step fails as invalid input saying the field is a stream. Events are written by
+  the `entity.append` step —
+  one event or a list per run, idempotent on `(recordId, at, eventId)`; the default event id hashes
+  the record, the time and the payload, so a retried run converges. An event without a parseable
+  `at` fails the step (`STREAM_EVENT_NO_TIME`).
+- **Every read is bounded in time.** `GET /v1/records/{id}/stream/{field}` lists one record's
+  events newest first inside a window (a `from` instant, a `to` instant, either optional), with a
+  repeatable `where=<prop>:<op>:<value>` on the declared
+  filters (an undeclared property is 422 `STREAM_FILTER_UNDECLARED`), `latest=1`, and the platform's
+  cursor walk: pass back `nextCursor` as `after` for older events, `prevCursor` as `before` for newer
+  ones (never both). The response says what bounded it — the request, the stream's retention, or
+  nothing on an unbounded stream — and never counts: a stream's total would be a scan of its whole
+  history. A window reaching before `now − retainDays` is 422
+  `STREAM_WINDOW_BEYOND_RETENTION`, not an incomplete answer.
+- **`retainDays` is a promise about reads, kept by a daily job.** Events past retention are deleted
+  in the background and whole months are dropped once empty; declare it when you ever ask for "the
+  latest", or that question opens every month.
+- ⚠️ **Declaring `stream` on a field that already holds an inline list, on a type with records, is a
+  MIGRATION, not an edit.** The save returns at once and records the obligation on the type; a runner
+  moves each record's list into rows in batches and removes the key from `data`; watch
+  `GET /v1/record-types/{id}?expand=migration` until `pending` is `null`. While it moves, the type
+  is held still, each refused 409 `STREAM_MIGRATING`: appends to that field; ANY save of `uses` that
+  would start another stream migration, on that field or another; `entity.update` / `entity.create`
+  data naming the field, and an `entity.update` replace during a promote (it would drop the lists
+  not yet moved); and a stream read or query clause on a field still being promoted, since most
+  records' events are not rows yet. A list element with no parseable time cannot become a row: it is
+  dropped, and the `dropped` count on the migration's `pending` says how many so far. Removing the
+  use folds the rows back the same way, and is refused 422 `STREAM_DEMOTE_TOO_LARGE` (naming the
+  records and the cap of 1 000 events) while any record's stream is larger than an inline list should
+  be. Changing `filters` on a populated stream restamps its rows the same way. One field moves at a
+  time.
+
+### One question across the stores: a query
+
+Every use above routes a part of a record to a store that answers its own kind of question, and
+none of those stores can answer another's. A **query** asks several of them at once and returns the
+records that satisfy ALL of its clauses — a conjunction, never an OR — with two fields on every
+answer that say how complete it is. One grammar, two places to state it: the config of an
+`entity.query` step inside a flow, and the body of `POST /v1/projects/{nodeId}/records/query` from
+outside one. A body, not query-string parameters, because clauses nest.
+
+```json
+{
+  "recordType": "person",
+  "clauses": [
+    { "kind": "term", "facet": "language", "slug": "hebrew" },
+    {
+      "kind": "edge",
+      "relation": "friend-of",
+      "where": [{ "property": "tag", "op": "eq", "value": "close" }],
+      "count": { "op": ">=", "n": 2 },
+      "peer": [
+        { "kind": "field", "field": "city", "op": "eq", "value": "Haifa" }
+      ]
+    },
+    {
+      "kind": "stream",
+      "field": "actions",
+      "window": { "from": "2026-08-17T00:00:00Z" },
+      "where": [{ "property": "action", "op": "eq", "value": "login" }]
+    },
+    { "kind": "field", "field": "age", "op": "gte", "value": 18 },
+    { "kind": "semantic", "text": "loves hiking", "topK": 50 }
+  ],
+  "limit": 20
+}
+```
+
+Each kind of clause is answered by the store its use routed the field to, so each needs that use:
+
+- **`field`** needs `filter` on the field. `eq`, `lt`, `lte`, `gt`, `gte` take one value; `in`
+  takes a list of up to 1 000 (an OR inside the clause). Dates travel as ISO strings.
+- **`term`** needs the facet in `uses.facets`. The `slug` may be an alias; it resolves one hop to
+  its canonical term, as every term read does.
+- **`edge`** needs a `link` for the `relation`. `direction` is `outgoing` unless you say
+  `incoming` or `either` (a symmetric link matches on either side whatever you ask); `where` speaks
+  the link's `element.filters`; `count` is a comparison on matching edges (omitted: at least one);
+  `peer` is a list of `field` and `term` clauses on the record at the far end — ONE hop, and those
+  two kinds only.
+- **`stream`** needs `stream` on the field. `window` is `{ from, to }` on the event's own time —
+  omitted, it is bounded by the stream's retention, and a `from` before the retention cutoff is 422
+  `STREAM_WINDOW_BEYOND_RETENTION`; `where` speaks the stream's `filters`; `count` is `exists`
+  (default), `none` (no matching event), or a comparison.
+- **`semantic`** needs a `search` use somewhere on the type (or on the named `field`). `text` is
+  the phrase, up to 8 000 characters; `topK` is how many to rank, 1–200, default 50. At most one per
+  query.
+
+Up to sixteen clauses. **How it is answered:** the exact clauses run first, cheapest first, each
+one narrowing the next; their intersection is then pushed into the meaning index and scored
+EXACTLY when it holds at most 25 000 records, so a record satisfying every clause is never dropped
+by the ranking. Above that the ranking runs first and the exact clauses narrow it — a bounded
+answer, and the answer says so.
+
+**Two honesty fields, never omitted.** Read them before you read `records`:
+
+- `bounded` — `false` means every record satisfying every clause is in reach. Otherwise
+  `{ bound, reason }`: `top-k` (every satisfying record was scored, more than `topK` satisfied, the
+  closest `bound` are here), `pushdown-cap` (the exact intersection was too large to push, so the
+  ranking ran first and this is at most `bound` of it), or `semantic-only` (no exact clause; a
+  plain ranking).
+- `explanation` — `clauses`, one row per clause in the order it ran, with the `store` that answered
+  it, the `index` it used, the `rank` it was ordered by, the `candidates` it produced after the
+  clauses before it narrowed it, and its `freshness`; and `pushdown` with the `ids` pushed, the
+  `cap` in force and the `mode`. An exact clause is `transactional`. The semantic clause is
+  `{ eventual: true, watermark, unindexed }`: a ready record not yet in the meaning index is absent
+  from it, `watermark` is the instant the index is current to, and `unindexed` is how many of the
+  type's ready records it cannot see yet — the number to read when a record is in an exact answer
+  and missing from a semantic one.
+- `emptiedBy` — present when a clause produced nothing: its index in `clauses`. No later clause
+  ran and the meaning index was not asked, so an empty `records` is that clause's doing.
+
+**Three refusals you will meet.**
+
+- 422 `QUERY_CLAUSE_UNROUTED` — a clause on a field, facet, relation or filter property the type's
+  `uses` does not route. The message names the field and the use to declare; no store scans for it.
+  For the step, at flow save; for the route, at request — it has no save step. The two shape
+  refusals sit beside it: `QUERY_SEMANTIC_MULTIPLE` (a second semantic clause) and
+  `QUERY_PEER_DEPTH` (a `peer` holding anything but `field` and `term`).
+- 422 `QUERY_CLAUSE_TOO_BROAD` — the first exact clause selected more than a million records
+  before any other clause could narrow it. Add a narrower clause the planner will run first — a
+  term, or a field equality — rather than reordering yours: the order is the planner's.
+- 503 `VECTOR_INDEX_UNREADABLE` — the meaning index could not be reached, or was never provisioned
+  for the type. Nothing partial comes back; a query with no semantic clause is unaffected.
+
+**Paging.** Only a query WITHOUT a semantic clause pages: on the route, pass back `nextCursor` as
+`after` for the next page and `prevCursor` as `before` for the previous one — never both — and
+`paging` is always null because a query is never counted; in the step, `cursorSlot` in and
+`nextCursor` out. With a semantic clause the answer is a ranking of at most `topK` with no cursor,
+and `limit` caps what is returned of it.
+
+**Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
+hop through `peer`. A query language — the grammar is this JSON, in a step's config or a request
+body. A cached answer — every query reads the stores as they are now. The operator app draws an `entity.query` step's clauses as a read-only tree and says so on the step page; a step's clauses are written through the design API (`POST /v1/skills`, `PATCH /v1/skills/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
 
 ## What the platform refuses
 
@@ -459,12 +728,12 @@ Three things to hold about it:
 
 ⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the name,
 the data shape and the owner scope; the binding can change at any point in a type's life. But a
-re-bind re-derives the `processed` family and re-validates all three declarations — the searchable
-one, the queryable one and the relations one — against the new signature **before the write opens at
-all**, so one stale declaration refuses the whole save, including the rename that rode along with
-it. (Validation precedes the transaction rather than sharing it; the effect on you is the same, and
-it is why nothing partial can land.) This route is how you find
-that out before you send it.
+re-bind re-derives the `processed` family and re-derives the type's whole `uses` against the new
+signature — every use is re-resolved and the three derived documents re-validated **before the
+write opens at all** — so one use naming a field the new signature no longer produces refuses the
+whole save, including the rename that rode along with it. (Derivation precedes the transaction
+rather than sharing it; the effect on you is the same, and it is why nothing partial can land.) This
+route is how you find that out before you send it.
 
 ⛔ **Do not re-derive the contract yourself.** It is a pure function of the data shape's schema and
 the flow's captured signature, and re-implementing it in an editor is how a declaration gets
@@ -482,24 +751,21 @@ every stored point's payload namespace); `effects.restamp` says every row's quer
 re-stamped. An **empty `writes`** means your request changes nothing at all, which is otherwise
 indistinguishable from a save that changed everything you intended.
 
-- **`resolved`** is each declaration as it would be STORED, not as you sent it. `queryable` gains
-  the storage slot each field resolved to and `searchable` has its per-record derive stages bound
-  to concrete flow ids — the half you cannot compute yourself. Each one is a **full declaration
-  document of the same shape you would send to the PATCH**, or `null` where the type would declare
-  nothing, so you can diff it field by field against what you sent rather than treating it as an
-  opaque blob.
-- **`removes`** names the keys a `…Merge` patch would DELETE, by path. A merge patch's `null`
-  removes rather than sets and the deletion is buried, so this is where you see it before you send
-  it rather than in a refusal afterwards.
+- **`resolved`** is each derived declaration as it would be STORED — the `searchable` document and the `queryable` and
+  `relations` documents your `uses` derives to, with the platform's own resolutions applied:
+  `queryable` carries the storage slot each `filter` field resolved to and `searchable` has its
+  per-record derive stages bound to concrete flow ids — the half you cannot compute yourself. Each
+  one is a full document, or `null` where the type would declare nothing, so you can see exactly
+  what a statement becomes before you commit to it.
 - **`accepted: false` comes back 200**, carrying the status the save would answer, its code and the
-  platform's own sentence. The point of asking is to find out; a preview that failed the way the
-  save fails would tell you nothing you could not learn by saving.
+  platform's own sentence — a `uses` refusal included, so a bad statement is found here rather than
+  by saving it.
 - **`staleVersion`** is reported on its own, because everything else about the plan is still true.
   It means re-read and reconcile, not that your patch is wrong.
 
 It runs the save's own decision phase rather than a description of it, so an answer here cannot
-disagree with the write. **EDITOR**, and a POST: the body is three documents, and the question is
-what YOUR save would do.
+disagree with the write. **EDITOR**, and a POST: the body is the PATCH body you are about to send,
+and the question is what YOUR save would do.
 
 ## Identity — the field that says two records are the same thing
 
@@ -518,18 +784,24 @@ second is refused rather than converged: converging would discard the incoming p
 would discard the stored one. An edit to an existing record goes through `entity.update`.
 
 ```
-PUT  /v1/record-types/{id}/natural-key            { "field": "externalId" }   declare
-PUT  /v1/record-types/{id}/natural-key            { "field": null }           retract
-POST /v1/record-types/{id}/natural-key-preview    { "fields": [...] }         ask first
+PATCH /v1/record-types/{id}                        `uses` with `"key"` on the field   declare
+PATCH /v1/record-types/{id}                        `uses` without it                  retract
+POST  /v1/record-types/{id}/natural-key-preview    { "fields": [...] }                ask first
 ```
+
+The key is the `key` use on a field in `uses` — the same statement as every other purpose a field
+has — and the read reports it as `naturalKey`. There is no separate verb any more; the one thing the
+old verb had that a statement does not, asking for the verdict before committing to it, is the
+preview route below.
 
 ### Declaring is a promise about the data you already have
 
-⛔ **It is not a configuration edit, which is why it is not part of the PATCH.** Declaring verifies
-every existing record, stamps them all, and persists the declaration — in ONE transaction. A record
-that cannot supply the field, or a value two records share, refuses the whole thing with **409
-`RECORD_TYPE_NATURAL_KEY_UNSATISFIED`**, listing the offending values so you can act on them. Nothing
-partial lands.
+⛔ **It is not an ordinary configuration edit, even though it rides the PATCH.** Declaring verifies
+every existing record, stamps them all, and persists the declaration. A record that cannot supply
+the field, or a value two records share, refuses the WHOLE save — the `key` use and everything else
+in the body — with **409 `RECORD_TYPE_NATURAL_KEY_UNSATISFIED`**, listing the offending values so you
+can act on them. The verification runs before the write; the stamp runs right after it commits, so
+a save that answers 200 has already proved the key holds. Nothing partial lands.
 
 The backfill is the point: without it the constraint would cover only future writes, and a
 pre-existing duplicate would sit permanently under a key claiming uniqueness.
@@ -585,7 +857,7 @@ reach — measured against every record the type has, writing nothing.
 
 - **One field, top-level, of the submitted payload.** Not a dot-path: nesting would make the stamped
   value depend on a traversal rule that has to stay stable forever. Not a composite, for the same
-  reason applied to a separator.
+  reason applied to a separator — two fields carrying `key` is `USES_TWO_KEYS`.
 - **The value must be a string, and it is not coerced.** `1` and `"1"` would otherwise be the same
   record. Max 512 characters.
 - **A record that cannot supply it is REFUSED, never written unconstrained** — the silent exemption
@@ -695,20 +967,22 @@ do it, and neither does a term resolving into it — the link is its own declara
 exists the facet is invisible on every read of that type no matter how much term data sits behind
 it.
 
-State the whole list at once. The request names the facet keys in the order the type surfaces
-them, and that order is the field order the API emits; re-sending the same list changes nothing.
-Sending a shorter list unlinks what you left out, and sending the same keys in a different order
-is how you reorder. There is no separate attach verb and no separate detach verb, so a half-applied
-change is not something the API can produce.
+The declaration is **`uses.facets`**: the facet keys, in the order the type surfaces them, and that
+order is the field order the API emits. It is a list on the TYPE, beside `join`, and not a use of a
+field — a facet's values are resolved by the processing flow into the term store and never sit on a
+record field, so there is no field to hang it on. It goes with the rest of `uses`, whole:
+re-sending the same list changes nothing, a shorter list unlinks what you left out, and the same
+keys in a different order is how you reorder. There is no separate attach verb, no detach verb and
+no facet-list route, so a half-applied change is not something the API can produce.
 
-What it refuses: a key that is not a facet of this project, a key that repeats, and any change at
-all to a seeded record type. Within a category the refusal is complete — every unknown key is named
-at once, so eight bad keys are one round trip rather than eight — but the two categories are
-reported separately, and a repeat is reported before an unknown.
+What it refuses: a key that is not a facet of this project (`USES_FACET_UNKNOWN`, one issue per
+unknown key, all at once), a key that repeats, and — like every other write — any change to a seeded
+record type (`RECORD_TYPE_SEEDED_READONLY`).
 
-Reading the current list is an expansion on the ordinary type read rather than an endpoint of its
-own. An empty list means the type surfaces nothing — which is not the same as the project having
-no facets, and the difference is the whole point of the link.
+Reading the current list is `expand=facets` on the ordinary type read rather than an endpoint of
+its own (and `expand=uses` shows each facet's position). An empty list means the type surfaces
+nothing — which is not the same as the project having no facets, and the difference is the whole
+point of the link.
 
 Each entry carries the facet's own label, binding, cardinality and BOTH of its admission
 settings — `mint` (what a value the facet has never seen may become: `none`, `active` or
@@ -752,5 +1026,5 @@ is projected, never what is stored, so re-linking brings the same values back.
 ## Related
 
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the flow a record type binds.
-- Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) — what a searchable declaration names.
+- Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) — what `uses.search` names, and where chunking defaults live.
 - Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) and Relations (capability pack `relations` — `GET /v1/capability-packs/relations`) — classifying and linking records.

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e2604b8ecaf7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f7f9afd9796b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Relations
 
@@ -39,8 +39,10 @@ Three things are authored and one is derived:
   optionally a cardinality, and optionally a shape for the edge's properties.
 - **A pairing** declares that a kind applies between two specific record types. The triple of
   kind, from and to _is_ the row — which is why there is nothing to update on one.
-- **A declaration on the record type** names, for each kind, **which field carries the reference**.
-  This is the part that actually makes edges.
+- **A `link` use on the record type** names, on a field, **which kind its reference feeds** —
+  `{ "kind": "link", "relation": "<kind key>" }` in the type's `uses`, with `element.ref` when the
+  field is a list of objects. The type's `relations` document is derived from those uses (and from
+  `uses.join`) and is read-only. This is the part that actually makes edges.
 - **The edge itself** is derived for a `field` kind — you never write one directly. `field` is the
   only producer whose edges you never author: a `curated` edge is asserted directly, and a
   `joinRecord` kind writes no edge at all, because the join records ARE the edges.
@@ -273,9 +275,17 @@ is no value that honours both, so it cannot degrade to a warning.
 
 ⚠️ **Omitting it is legal, and for a `joinRecord` kind it is a trap.** A `field` kind with no
 declaration produces nothing and says so; you can add one later with
-`PATCH /v1/record-types/{id}`. A **join kind has no edge table to fall back on** — until its type
-declares `joins`, every traversal resolves nothing, while the kind is listed and its pairing is
-right. Send the declaration with the create.
+`PATCH /v1/record-types/{id}` — a `link` use naming the kind on the field, or `join` on the type, in
+the type's `uses` (see the record types pack (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`)). A **join kind
+has no edge table to fall back on** — until its type declares `joins`, every traversal resolves
+nothing, while the kind is listed and its pairing is right. Send the declaration with the create.
+
+⭐ **A `link` use TYPES the field.** When the kind's pairings name exactly one target for the
+declaring type, saving the use stamps `x-record-ref` with that target onto the field's schema
+property — so a plain string that holds ids becomes a typed reference by being used as one, and
+`RELATION_SOURCE_FIELD_UNTYPED` stops applying. A marker already there naming a DIFFERENT type is
+refused (`USES_MARKER_DISAGREES`) rather than overwritten; a kind with several targets leaves the
+field unmarked.
 
 ⚠️ **The `kind` is implied, not spelled.** The stored `produces[]`/`joins` shapes each carry a
 `kind` because they live in a list on the record type; here it is the kind being created, and a
@@ -307,6 +317,47 @@ Three behaviours worth knowing before you debug an empty answer:
 which ordering actually ran, so an ignored request is visible rather than silent — read it rather
 than assuming the sort you asked for happened.
 
+### Filtering on the data an edge carries: the `where` clause, the `count` request
+
+A `link` use on a list of objects may name `element.filters` — the sibling properties to carry on
+the edge AND to filter on (the record-types pack has the declaration side). Each named property is
+stamped into an indexed edge column, and two clauses read those columns:
+
+- `?where=<prop>:<op>:<value>` — repeatable; several clauses AND. Ops: `eq`, `ne`, `in`, `lt`, `lte`,
+  `gt`, `gte`. `in` takes a comma list. The value is typed by the filter's column — an ISO instant
+  for a date filter, a number for a number filter, `true`/`false` for a boolean — and a value that
+  cannot be typed is a 422. A list-valued property is matched on its FIRST element only, because one
+  column holds one value. ⚠️ `ne` matches an edge that CARRIES the property with another value; an
+  edge without the property is unstamped and is not returned.
+- `?count=<prop>` — the response carries `counts: { value → n }` for the record's edges of that
+  kind, computed on the stamped column without loading peers and independent of `limit`. Keys are
+  the stamped values as strings. Edges that lack the property are not counted under any key. At
+  most 500 values come back, largest counts first; `countsTruncated: true` says there were more —
+  so counting a near-unique property (an instant, free text) on a busy record is a truncated answer,
+  not a complete one.
+
+Both work on the per-kind walk (`GET /v1/records/{id}/relations/{kind}`) and on the project sweep
+(`GET /v1/projects/{nodeId}/relations?link=K&where=…`).
+
+⚠️ **A property nobody declared is a 422 `EDGE_FILTER_UNDECLARED`, never a scan.** This is the one
+run-time refusal in the vocabulary: the read has no save step where the clause could be validated.
+Check the kind's `edgeFilters` map (on the relation-kind read) before you offer a property to filter
+on.
+
+- **A symmetric kind matches on either side.** Both endpoints may have declared the edge with
+  different property values; a `where` clause matches if EITHER producer's row matches, and each
+  returned edge carries `matchedBy` — the producer key of the row that matched.
+- **Retracted edges are excluded** from a `where` clause and from a `count` request unless `includeExpired=true`, the same
+  default the plain walk has.
+- **The kind reports its restamp state.** `edgeFilters` is the kind's `{ property → column }` map,
+  derived from every type filtering on it and read-only on the kind. When a record-type save changes
+  it, `edgeRestampPending` is true and `stampedEdgeFilters` holds the map the rows are still
+  stamped for; clauses are resolved against `stampedEdgeFilters` until it clears. A property present
+  in `edgeFilters` and absent from `stampedEdgeFilters` is one you cannot filter on yet.
+- **Not here: a clause into the peer record's own fields, and OR across clauses.** A `where` names a
+  property of the EDGE. "Peers whose own field is X" is a second call, and two `where` clauses are
+  always AND.
+
 ## The clause everything else rests on
 
 ⭐ **Supersession is scoped to the producer, never to an endpoint.** Rewriting a record retracts
@@ -326,9 +377,21 @@ responsible only for what it claims.
   current value is fine (the editor patches the whole object back); any other value is refused.
   Delete the kind and declare a new one.
 - **A declaration may only point at a field-producer kind** (`RELATION_PRODUCER_MISMATCH`), and
-  only at a kind the project has (`RELATION_KIND_NOT_FOUND`).
+  only at a kind the project has (`RELATION_KIND_NOT_FOUND`; from a `link` use, `USES_RELATION_UNKNOWN`
+  inside a `RECORD_TYPE_USES_INVALID` refusal).
+- **A `link` on a field whose shape cannot hold a record id** — a number, a date, a list of objects
+  with no string property — is refused at the vocabulary (`USES_ILLEGAL_FOR_SHAPE`), with the remedy
+  in the response.
 - **Cardinality only where a producer can enforce it** (`RELATION_CARDINALITY_NOT_APPLICABLE`) — a
   curated kind has nothing to count against.
+- **An edge filter that cannot be a column**, inside a `RECORD_TYPE_USES_INVALID` refusal of the
+  record-type save: `EDGE_FILTER_NOT_FILTERABLE` (a nested or untyped property, or the element's own
+  reference), `EDGE_FILTER_BUDGET_EXCEEDED` (the kind's 8 text / 2 number / 2 date-time / 2 boolean
+  columns are taken, counted over EVERY type filtering on the kind), `EDGE_FILTER_TYPE_CONFLICT`
+  (another type gives the same property a different type — the message names it). Nothing is
+  written on a refusal.
+- **A clause on a property the kind has no filter for** (`where`, or the `count` request) — 422 `EDGE_FILTER_UNDECLARED`,
+  at read time.
 - **A field that is not on the type's contract** (`CONTRACT_FIELD_NOT_FOUND`) or that cannot hold
   a reference at all (`RELATION_SOURCE_FIELD_TYPE`).
 - **A declaration on a type the kind does not connect** (`RELATION_SOURCE_TYPE_UNPAIRED`). The
@@ -382,7 +445,18 @@ well-typed.
   gated READS only — both producers wrote through it, the reconciler ran through it, and storage
   grew through it — so it could never stop the thing worth stopping, while the empty answer it
   produced was indistinguishable from "no such kind". It has been removed. To stop a kind
-  producing, clear the declaration that feeds it; to remove it and its edges, delete the kind.
+  producing, drop the `link` use that feeds it from the type's `uses`; to remove it and its edges,
+  delete the kind.
+- **Edge properties are declared from `uses`, and the budget is the KIND's.** A `link` on a list of
+  objects names the element's `ref` and, in `element.filters`, the sibling properties to carry and
+  filter on. Fourteen columns per kind — 8 text, 2 number, 2 date-time, 2 boolean — are shared by
+  every record type filtering on that kind, so a second type declaring filters on the same kind
+  spends the first type's budget. A property already on a column keeps it when another type adds
+  or drops a filter; a property nobody names any more leaves the map.
+- **Changing a kind's filters restamps every live edge of the kind, after the save returns.** The
+  save records the obligation on the kind (`edgeRestampPending`, `stampedEdgeFilters`) and a
+  runner rewrites the rows in batches. Until it converges, your `where` clauses resolve against
+  the map the rows are stamped for, not the one you just saved — coherent, and stale.
 - **Deleting a kind cascades** to its edges _and_ its pairings, and tells you how many of each.
   Deleting a pairing cascades nothing — but the **last** pairing cannot be deleted at all, because a
   kind that applies to no record types can connect nothing. Delete the kind instead.
@@ -458,6 +532,12 @@ Do not promise these:
 - **No edge history for a field-backed kind.** Its edges are hard-deleted when the field stops
   saying so, because the field is the truth and the history lives on the record. Only a curated
   edge expires rather than vanishing.
+- **No peer clause on the edge read.** A `where` here names a property stamped on the EDGE; it
+  cannot reach into the peer record's own declared fields. That question is a query: the `edge`
+  clause of a query takes a `peer` list of `field` and `term` clauses on the record at the far end,
+  one hop — see the query section of
+  Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`). OR across clauses is not
+  built anywhere.
 
 ## Related
 

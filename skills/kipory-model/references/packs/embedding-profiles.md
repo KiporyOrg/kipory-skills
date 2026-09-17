@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e2604b8ecaf7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f7f9afd9796b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Embedding profiles
 
@@ -13,6 +13,12 @@ deciding deliberately: declaring one makes every record carry sparse vectors whe
 searches them, and only a hybrid search step ever reads them. The **geometry** — how many dimensions, and which distance
 metric — is **derived** from the model and returned read-only.
 
+A profile is also **the default way records enter the space**: `defaultChunking` (required on
+create — `{ "kind": "whole" }` is one point per record) and optional `defaultStages`, the per-record
+projection stages. Every record type that marks a field `search` against this profile inherits both
+unless its own `uses.search.chunking` / `uses.search.stages` overrides them — and omitting the
+override is the common case.
+
 **You pick a model. You never pick a dimension count, and you never pick a distance metric.**
 
 That inversion is the whole design. The metric is a property of the model it was trained for, and
@@ -22,8 +28,8 @@ training produce meaningless similarity scores with nothing anywhere reporting a
 
 ## When you need it — and when you don't
 
-- **Anything searchable needs a profile first**, then a record type's searchable declaration
-  referencing it. Most projects want exactly one and never think about it again.
+- **Anything searchable needs a profile first**, then a record type naming it in `uses.search`
+  and marking a text field `search`. Most projects want exactly one and never think about it again.
 - **A second profile is an advanced choice with a permanent consequence.** Two record types on
   different profiles live in different physical collections by construction, so **no single query
   can search both.** Reach for one only when a type genuinely needs a different model, and know
@@ -44,17 +50,24 @@ outside everything on this page.
 ## The sequence
 
 ```
-POST /v1/embedding-profiles              create — model + slots; geometry is derived
-POST /v1/embedding-profiles/{id}/versions  mint the next version (free, inert)
-POST /v1/embedding-profiles/{id}/activate  repoint declarations and reindex (expensive)
+POST  /v1/embedding-profiles               create — model + slots + defaultChunking; geometry is derived
+PATCH /v1/embedding-profiles/{id}          label, isDefault, defaultChunking, defaultStages
+POST  /v1/embedding-profiles/{id}/versions mint the next version (free, inert)
+POST  /v1/embedding-profiles/{id}/activate repoint declarations and reindex (expensive)
 ```
 
 Reading a profile — one, or the project's list with the default first — gives you the derived
 geometry and how many record types use it. Ask for the collections expansion to see the physical
 collections your declarations actually imply.
 
-Updating a profile in place is limited to its label and whether it is the default. Everything that
-defines the vector space moves through a version instead.
+Updating a profile in place covers its label, whether it is the default, and the two **defaults**.
+Everything that defines the vector space — the model, the slots — moves through a version instead.
+
+⚠️ **Changing `defaultChunking` or `defaultStages` is not a geometry change, and it is not free
+either.** No version is minted; instead every record type on the profile that does NOT override the
+default is re-derived on the spot, and each one whose derived declaration moved is re-embedded in
+the background — with the credits that costs. A type that sets its own `uses.search.chunking` is
+untouched. A version bump copies the defaults onto the new version.
 
 **Geometry is resolved before the row is written**, so a model with no recorded dimensions or no
 recorded distance is refused rather than stored half-usable.
@@ -117,5 +130,5 @@ not invisible.
 
 ## Related
 
-- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — the searchable declaration
-  that names a profile.
+- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — the `uses.search` settings
+  that name a profile, and the per-type override of its defaults.

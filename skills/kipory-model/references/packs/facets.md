@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e2604b8ecaf7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f7f9afd9796b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Facets
 
@@ -182,10 +182,12 @@ reaches, directly or through any depth of `flow.invoke`, runs its `term.upsert` 
 everything, on every run. Saving one warns, because a resolver sub-flow legitimately exists before
 the parent that invokes it.
 
-**And a facet the record type does not LINK is written but never read.** Resolution succeeds, the
+**And a facet the record type does not LIST is written but never read.** Resolution succeeds, the
 assignment row lands, and every read of that record omits the value — a read returns exactly the
-facets its record type links. Saving warns; linking the facet afterwards surfaces every assignment
-already written, so nothing is lost by saving first.
+facets named in its record type's `uses.facets`, in that order (the
+record types pack (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) has the shape). Saving warns; adding the
+facet to the list afterwards surfaces every assignment already written, so nothing is lost by
+saving first.
 
 **And a facet that cannot coin, with nothing seeded, resolves nothing — quietly.** The trigger is
 `mint: none` **OR** `matching: exact`, whichever the other setting says: either one means no new
@@ -294,6 +296,7 @@ happened. A preview run does not count — only values that actually landed.
 
 ## Related
 
-- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — what a facet attaches to.
+- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — what a facet attaches to,
+  and the `uses.facets` list that says which types surface it.
 - Relations (capability pack `relations` — `GET /v1/capability-packs/relations`) — when the value is a record rather than a term.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — building the resolver, and the ingest flow that uses it.

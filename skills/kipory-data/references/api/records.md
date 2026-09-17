@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b8e26fccd5ed · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 4f4a8ed9d776 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Records and relations
 
@@ -11,11 +11,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | [`/v1/projects/{nodeId}/records`](#get-v1-projects-nodeid-records) |  |
+| `POST` | [`/v1/projects/{nodeId}/records/query`](#post-v1-projects-nodeid-records-query) |  |
 | `GET` | [`/v1/projects/{nodeId}/relations`](#get-v1-projects-nodeid-relations) |  |
 | `GET` | [`/v1/records/{id}/processing-stream`](#get-v1-records-id-processing-stream) | SSE |
 | `GET` | [`/v1/records/{id}/relations/{kind}`](#get-v1-records-id-relations-kind) |  |
 | `POST` | [`/v1/records/{id}/relations/{kind}`](#post-v1-records-id-relations-kind) |  |
 | `DELETE` | [`/v1/records/{id}/relations/{kind}/{peerRecordId}`](#delete-v1-records-id-relations-kind-peerrecordid) |  |
+| `GET` | [`/v1/records/{id}/stream/{field}`](#get-v1-records-id-stream-field) |  |
 
 ### `GET /v1/projects/{nodeId}/records`
 
@@ -60,7 +62,38 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 | `record` | `object \| null` | yes | The record `?record=` named, opened beside the result. Null when none was asked for AND when the one asked for is gone — a reader whose bookmark outlived a record is told so, with the list intact (FR-034); the page tells the two apart from its own address. |
-| `ranking` | `object \| null` | yes | Present only for a meaning-based result. The bound is stated so a reader who suspects the answer is further down knows there is no further down and must narrow instead. |
+| `bounded` | `false \| object` | yes | Whether this page is every record that matches, or a ranking of at most `bound`. `false` on an exact-match list, which pages. On a meaning-based result: `semantic-only` when nothing narrowed it, `pushdown-cap` when the exact narrowings exceeded the pushdown cap and the ranking had to run first, `top-k` when every matching record was scored exactly but more than `topK` matched. Stated on every response so a reader who suspects the answer is further down learns there is no further down and must narrow instead. |
+| `explanation` | `object \| null` | yes | How a meaning-based result was produced — one row per clause that ran (the shorthand narrowings become exact legs, the phrase the semantic one), with the store, the index and the freshness of each, and what was pushed into the vector index. Null on an exact-match list, which is the route's own keyset read and not a plan. |
+
+### `POST /v1/projects/{nodeId}/records/query`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `recordType` | `string` | yes | The record type the question is asked of. Every clause is validated against this type's `uses`: a field needs `filter`, a facet `facet`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the type. |
+| `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column: eq/lt/lte/gt/gte/in), `term` (a facet assignment by slug), `edge` (a relation, optionally with stamped edge filters, a count, and one hop of `peer` clauses on the far record), `stream` (event rows: exists/none/count inside a window), and at most one `semantic` (a phrase ranked by meaning). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
+| `limit` | `integer` | no | How many records come back at most. For an exact-only query this is the page size; with a semantic clause the clause's own `topK` bounds the ranking and this caps what is returned of it. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `records` | `object[]` | yes | The records satisfying every clause — in keyset order (newest first) for an exact-only query, in closeness order when a semantic clause ran. The same row shape the list route answers. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+| `paging` | `"null"` | yes | Always null: a query is never counted. An exact-only answer is walked by `after` / `before`; a ranking has no position to count from. |
+| `bounded` | `false \| object` | yes | `false`: every record satisfying every clause is in reach. Otherwise the answer is a ranking of at most `bound` records — because the semantic clause ran alone (`semantic-only`); because the exact intersection exceeded the pushdown cap and the semantic clause had to run first (`pushdown-cap`); or because every satisfying record WAS scored exactly but more than `topK` satisfied, so only the closest `bound` are returned (`top-k`). Never omitted. |
+| `explanation` | `object` | yes | How the answer was produced: one row per clause that ran, in the order it ran, and what was pushed into the vector store. STATED on every response. |
+| `emptiedBy` | `integer` | no | Present when an exact clause's leg emptied the intersection: its index in `clauses`. No later leg ran and the vector index was not touched, so `records` is empty by that clause's doing and not by the ranking's. |
 
 ### `GET /v1/projects/{nodeId}/relations`
 
@@ -81,6 +114,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `direction` | `"outgoing" \| "incoming" \| "either"` | no | Which way the edges point RELATIVE TO `record`. Refused without it, because there is no anchor for it to be relative to. IGNORED for a symmetric link — see the schema's own note. |
 | `relation` | `string` | no | Open this edge beside the result. An edge has no page of its own, so which one is open is part of the query rather than a second address. |
 | `limit` | `integer` | no | Rows per page. |
+| `where` | `string \| string[]` | no | Narrow to edges whose STAMPED filter column matches. Each value is `<property>:<op>:<value>` — `tag:eq:childhood`, `since:gte:2019-01-01`, `tag:in:a,b` — and the parameter is REPEATED to AND several clauses. `op` is one of eq, ne, in, lt, lte, gt, gte. `property` must be one of the relation kind's declared edge filters (a record type's link use names them in `element.filters`); any other name is 422 `EDGE_FILTER_UNDECLARED` — a refusal, never a scan over the properties bag. The value is typed by the filter's column: a date filter takes an ISO instant, a number filter a number, a boolean `true`/`false`; a value that cannot be typed is 422. `ne` matches an edge that CARRIES the property with another value — an edge without it is unstamped and is not returned. Retracted edges are out unless the read's history switch is on. While a declaration change is restamping the kind, clauses resolve against the map the rows are stamped for. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
 | `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 
@@ -142,6 +176,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `includeExpired` | `boolean` | no | Include edges that have since been retracted. Off by default, so a plain read is the CURRENT state rather than the whole history. |
 | `orderBy` | `string` | no | Order by one of the kind's declared edge properties. IGNORED when the kind declares none — read `orderedBy` on the response to see which ordering actually ran, so an ignored request is visible rather than silent. |
 | `orderDirection` | `"asc" \| "desc"` | no | Which way to sort. Only meaningful alongside `orderBy`. |
+| `where` | `string \| string[]` | no | Narrow to edges whose STAMPED filter column matches. Each value is `<property>:<op>:<value>` — `tag:eq:childhood`, `since:gte:2019-01-01`, `tag:in:a,b` — and the parameter is REPEATED to AND several clauses. `op` is one of eq, ne, in, lt, lte, gt, gte. `property` must be one of the relation kind's declared edge filters (a record type's link use names them in `element.filters`); any other name is 422 `EDGE_FILTER_UNDECLARED` — a refusal, never a scan over the properties bag. The value is typed by the filter's column: a date filter takes an ISO instant, a number filter a number, a boolean `true`/`false`; a value that cannot be typed is 422. `ne` matches an edge that CARRIES the property with another value — an edge without it is unstamped and is not returned. Retracted edges are out unless the read's history switch is on. While a declaration change is restamping the kind, clauses resolve against the map the rows are stamped for. |
+| `count` | `string` | no | Group this record's edges of the kind by ONE declared edge filter and answer `counts: { value → n }` — computed by the database on the stamped column, without loading the peers, over the same edges `where` and the history switch select and independent of `limit`. An undeclared name is 422 `EDGE_FILTER_UNDECLARED`. Edges that lack the property are not counted under any key. |
 
 **Response `200`**
 
@@ -151,6 +187,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `edges` | `object[]` | yes | The record's edges of that kind. |
 | `truncated` | `boolean` | yes | True when a limit cut this answer short. STATED rather than left to be inferred: you cannot tell a full page from a cut one by counting, and a silently truncated traversal reads as a complete answer. |
 | `orderedBy` | `object` | yes | Which ordering ACTUALLY ran, so an ignored `orderBy` is visible. |
+| `counts` | `object \| null` | yes | `{ value → n }` for the `count` filter, or null when none was asked. Keys are the stamped values as strings — an instant as ISO, a number or boolean as its text. Computed by `GROUP BY` on the stamped column over every edge in scope, never by counting the page. Holds at most 500 values, the largest counts first; `countsTruncated` says when there were more. Edges without the property are in no group. |
+| `countsTruncated` | `boolean` | yes | True when `counts` holds only the 500 largest groups because the edges carried more distinct values. False when every value is present, or when no `count` was asked. |
 
 ### `POST /v1/records/{id}/relations/{kind}`
 
@@ -192,3 +230,34 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `edgeId` | `string` | yes | The edge that was retracted. |
 | `retracted` | `true` | yes | Always `true`. The edge is EXPIRED, not deleted — who asserted it and when both survive, and it can be read again with `includeExpired`. |
+
+### `GET /v1/records/{id}/stream/{field}`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record whose stream to read. |
+| `field` | `string` | yes | The stream field — a field of the record's type that carries a `stream` use. Any other field is 422 `STREAM_FIELD_UNDECLARED`. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `from` | `string` | no | Oldest instant to include (ISO 8601). Omitted, the window opens at the field's retention cutoff (`now − retainDays`), or at the beginning of time for an unbounded stream — `bounded` on the response says which. A `from` older than the retention cutoff is 422 `STREAM_WINDOW_BEYOND_RETENTION`: those events may already be gone, and a partial answer is worse than a refusal. |
+| `to` | `string` | no | Newest instant to include (ISO 8601). Omitted, now — an event dated in the future is not returned until its time comes. |
+| `where` | `string \| string[]` | no | Narrow to events whose STAMPED filter column matches. Each value is `<property>:<op>:<value>` — `action:eq:opened`, `score:gte:3`, `action:in:a,b` — and the parameter is REPEATED to AND several clauses. `op` is one of eq, ne, in, lt, lte, gt, gte. `property` must be one of the field's declared stream filters (the stream use names them in `filters`); any other name is 422 `STREAM_FILTER_UNDECLARED` — a refusal, never a scan over the event payload. The value is typed by the filter's column: a date filter takes an ISO instant, a number filter a number, a boolean `true`/`false`; a value that cannot be typed is 422 under the same code. `ne` matches an event that CARRIES the property with another value — an event without it is unstamped and is not returned. While a declaration change is restamping the field, clauses resolve against the map the rows are stamped for. |
+| `latest` | `"1" \| "0" \| "true" \| "false"` | no | `1` to return only the NEWEST event within the window (at most one), with `nextCursor: null`. `limit`, `after` and `before` are ignored. |
+| `limit` | `integer` | no | Page size, 50 by default and at most 200. Events come newest first; follow `nextCursor` for older ones. |
+| `after` | `string` | no | The page of OLDER events past this row — pass back the `nextCursor` you were given, an opaque keyset over `(at, eventId)`. A cursor this read did not issue is 422. Refused together with `before`. |
+| `before` | `string` | no | The page of NEWER events before this row — pass back the `prevCursor` you were given. Refused together with `after`. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `events` | `object[]` | yes | The record's events on this field, newest first. |
+| `bounded` | `object` | yes | The time bound the read ran under. STATED, because an unbounded read and a retention-bounded one return the same-looking list and only this says whether older events exist that were not in reach. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the next page of OLDER events; null when this page was the last within the bound. Minted from this page's last row. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page of NEWER events; null on the newest page. Minted from this page's first row, never from the cursor you arrived on. |
+| `paging` | `"null"` | yes | Always null: a stream is never counted. A total over a record's events is a scan of its whole history, which is the cost this store exists to avoid; `bounded` is the honest size statement, and the walk is exact. |
