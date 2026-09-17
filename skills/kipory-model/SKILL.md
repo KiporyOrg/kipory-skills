@@ -40,7 +40,7 @@ POST /v1/record-types/{id}/write-preview       what your PATCH body would do —
 POST /v1/record-types/{id}/natural-key-preview the verdict a `key` use would get, per candidate field, before you send it
 ```
 
-The natural key is the `key` use on a field in `uses`: the save verifies every existing record first and refuses the whole PATCH with `409 RECORD_TYPE_NATURAL_KEY_UNSATISFIED` if two share a value. A `uses` refusal is `422 RECORD_TYPE_USES_INVALID` with every issue and its remedy in `details.issues`; a type from before the vocabulary answers `409 USES_NOT_MIGRATED` until migrated.
+The natural key is the `key` use on a field in `uses`: the save verifies every existing record first and refuses the whole PATCH with `409 RECORD_TYPE_NATURAL_KEY_UNSATISFIED` if two share a value. A `uses` refusal is `422 RECORD_TYPE_USES_INVALID` with every issue and its remedy in `details.issues`.
 
 The builtin and library shapes are **synthesized on read**: they have no rows and nothing creates them. There is no `?seed=` flag on the read; the seed is the POST.
 

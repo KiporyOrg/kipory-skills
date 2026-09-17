@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f7f9afd9796b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 23837e23ec0b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
@@ -188,12 +188,6 @@ reverse), `USES_FACET_UNKNOWN`, `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES`
 marks the field as a reference to a different type), and for `element.filters` on a `link`:
 `EDGE_FILTER_NOT_FILTERABLE`, `EDGE_FILTER_BUDGET_EXCEEDED`, `EDGE_FILTER_TYPE_CONFLICT` (below).
 Nothing is written on a refusal — not the statement, not a projection, not a marker.
-
-⚠️ **A type that predates `uses` takes a declaration, not an edit.** Its `uses` reads `null`.
-Deriving from nothing would clear every declaration it has, so a PATCH without `uses` is refused
-`409 USES_NOT_MIGRATED`. A PATCH carrying `uses` is accepted and migrates the type: what it derives
-to replaces what was stored, and the save restamps or re-embeds on the difference. The one-off
-migration does the same for every type whose stored declarations invert cleanly.
 
 ## Making a type searchable
 
