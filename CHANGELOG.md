@@ -2,6 +2,31 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260918.916 — 2026-09-18
+
+Synced from the Kipory monorepo at `3ac20148b`.
+
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/packs/project-provisioning.md`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/packs/embedding-profiles.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-model/references/packs/relations.md`
+- changed: `skills/kipory-operate/references/packs/credits.md`
+- changed: `skills/kipory-operate/references/packs/events.md`
+- changed: `skills/kipory-operate/references/packs/project-config.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-plan/references/packs/planning-protocol.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+- changed: `skills/kipory-prove/references/packs/flow-test-cases.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20260917.1553 — 2026-09-17
 
 Synced from the Kipory monorepo at `660a5f58a`.

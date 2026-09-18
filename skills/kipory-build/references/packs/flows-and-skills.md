@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e81cafda7eb5 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -86,6 +86,26 @@ The cheapest way to close this gap is a preview, below, which tells you directly
 `isActivatable` — which already accounts for both severity and what each diagnostic is about, so
 read it rather than deriving a verdict from the counts yourself.
 
+Each diagnostic carries its words in two halves and two forms:
+
+| field            | what it says                                                                                            |
+| ---------------- | ------------------------------------------------------------------------------------------------------- |
+| `message`        | what is wrong, in one line                                                                              |
+| `remedy`         | what to do about it — `null` is a real answer, for a finding with nothing a person can act on from here |
+| `segments`       | the sentence in pieces, so you can draw the objects it names as links                                   |
+| `remedySegments` | the remedy in pieces; empty exactly when there is no remedy                                             |
+
+A segment is `{ kind: "text" }`, `{ kind: "code" }` — a slot, a path, an expression, which names
+something real with nowhere to open — or `{ kind: "ref" }`, which carries the object it names
+(`step`, `flow`, `recordType`, `facet`, `handler`, `event`) addressed the way the operator UI
+addresses one. Every segment also carries its own `text`, so a consumer with nowhere to link
+renders the words and loses only the link.
+
+⚠️ `message` and `segments` are folded from ONE list by the platform, so they cannot disagree about
+the words — but they are not the same characters: the sentence quotes what a segment names and
+backticks what it spells as configuration, where a segment's `text` is the bare word. Read
+`segments` when you want the objects; read `message` when you want a sentence. Do not parse either.
+
 For a list, ask the list:
 
 ```
@@ -95,13 +115,13 @@ GET /v1/flows?project={node}&expand=health
 Each row then carries a `health` summary, folded from the same report the per-flow route returns
 in full, so the two cannot disagree:
 
-| field             | what it says                                                                                                                                                  |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isActivatable`   | ⚠️ a PREDICTION, not a gate: no error-severity diagnostic about the graph or its edges. Nothing consults it at run time, so a flow reading `false` still runs |
-| `errors`          | how many diagnostics are errors; not all of them block                                                                                                        |
-| `warnings`        | how many are warnings                                                                                                                                         |
-| `blockingCode`    | the first diagnostic preventing activation, or `null` when nothing does                                                                                       |
-| `blockingMessage` | that diagnostic's message — a sentence naming the skill or slot at fault                                                                                      |
+| field             | what it says                                                                                                                                                               |
+| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `isActivatable`   | ⚠️ a PREDICTION, not a gate: no error-severity diagnostic about the graph or its edges. Nothing consults it at run time, so a flow reading `false` still runs              |
+| `errors`          | how many diagnostics are errors; not all of them block                                                                                                                     |
+| `warnings`        | how many are warnings                                                                                                                                                      |
+| `blockingCode`    | the first diagnostic preventing activation, or `null` when nothing does                                                                                                    |
+| `blockingMessage` | that diagnostic's message — a sentence naming the skill or slot at fault. ⚠️ the SUMMARY carries the sentence only; the per-flow route carries its segments and its remedy |
 
 Show `blockingMessage`, not `blockingCode`. The code is one machine name out of roughly a hundred
 and fifty, and reads as one; the message is the sentence the validator wrote, and it names the particulars a per-code

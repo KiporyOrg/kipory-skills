@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f0136e1e3b1f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e81cafda7eb5 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
