@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: e642441dc4a027e916923b42b5e309c16ea072cb6447462e1cbcd601514a2c55 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 0b3c483144f7ca2f8a7849c2351790e691ab56c09c71dc63ca35749cc34cc26b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `pdf.parse` — Extract text from a PDF
 
