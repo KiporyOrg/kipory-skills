@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 83a001b0536e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 5d6ee5ca8c0c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Handler catalog and model reads
 
@@ -66,6 +66,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `requiredApiKey` | `string` | no | The environment variable this handler needs at run time. Present means the handler CANNOT run without it configured. |
 | `externalDep` | `object` | no | An outside service this handler depends on, when it needs one. |
 | `config` | `object[]` | yes | The settings a step using this handler can tune. Empty for handlers with nothing to configure. |
+| `configConstraints` | `object[]` | no | Rules about SEVERAL config settings at once, which no single field carries. Absent means this handler declares none. A form reads these to draw a pair as one unit BEFORE it is broken, and to mark a setting the current config makes inert; the platform evaluates the same list, so a refusal and the drawing cannot disagree. |
+| `configOutputSlots` | `object[]` | no | Where this handler's config names the slots the step WRITES. Absent means the config names none and the step's own output slot is the whole answer. A form reads these to draw those settings as slot NAMES — which a rename has to carry across every step that reads them — rather than as free text. |
 | `io` | `object` | yes | Input and output as comparable tokens, beside the prose in `reads` / `emits`. |
 | `rateLimit` | `object` | no | How fast it may call upstream, and whose allowance that spends. Absent means it declares no limit and counts into no bucket -- which is NOT the same as being free. |
 | `credential` | `object` | no | The secret-vault credential this handler resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU handler, and ALSO of the AI ones, which build their client from the environment and never consult the vault at all. |

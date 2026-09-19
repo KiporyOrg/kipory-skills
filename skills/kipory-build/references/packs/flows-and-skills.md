@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: e81cafda7eb5 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: b10a10f5bcdb · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -503,6 +503,21 @@ warning on correct work.
 will save.** Dangling slots, cycles and output collisions are questions about the GRAPH, and this
 route never looks at one. `GET /v1/flows/{id}/health` owns those, and a client that presents a clean
 draft check as "ready to save" will be wrong for every one of them.
+
+⛔ **A diagnostic names `fields`, a LIST, and its length is the thing to branch on.** One entry is
+the ordinary case and that field owns the message: draw it under that control. **Several means the
+rule is ABOUT THE RELATIONSHIP between them**, and then no single field owns it — `dataEqualsPath`
+and `dataEqualsSlot` on `entity.list` must be set together or not at all, and a `flow.dispatch`
+step needs its `rules` list, or else a `default` branch. Drawn under each field it names, an operator reads the same refusal twice and
+neither copy is about the control it sits under; so show the message ONCE for the configuration and
+mark each field named. An EMPTY list is a problem with the configuration as a whole.
+
+⚠️ **It replaced a single nullable `field`, which could only ever point at one of a pair.** Ten
+config fields across the catalog state a cross-field rule in their own prose — "Set both or neither",
+"Mutually exclusive with …", "Ignored when … is set" — and a locator that held one path could not
+carry any of them, so those sentences stayed prose that nothing enforced and no editor could place.
+`position` and `token` are unchanged and remain meaningful only for a single-field diagnostic: a
+character offset into "two fields" is not a thing.
 
 ⚠️ **`derivedInputStreams: null` is not an empty list, and there are three reasons for it.** Read
 `derivedFrom` to tell them apart: `row` means the handler takes inputs from the step row so there was

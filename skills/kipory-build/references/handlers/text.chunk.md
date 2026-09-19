@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 6822bc3287640202bf37a8289eb1aa64ee70d8e18ac0cb51ab94aade5f78e762 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: e642441dc4a027e916923b42b5e309c16ea072cb6447462e1cbcd601514a2c55 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `text.chunk` — Split text into chunks
 
