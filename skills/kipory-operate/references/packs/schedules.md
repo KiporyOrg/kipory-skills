@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 428be1ee1f88 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a91bc1950e91 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Schedules
 
@@ -219,6 +219,65 @@ sets it disabled with no next run. ⭐ **Re-enabling an exhausted schedule is th
 `422` naming the spent bound**, rather than quietly granting it a new lease. Raise `maxRuns` or move
 `endsAt` in a PATCH first, then enable. (Enable does recompute the next run forward from now, so a
 schedule disabled across a window still fires no backlog — that is a different thing.)
+
+## Asking when it would fire — `validateOnly`
+
+`POST /v1/schedules` and `PATCH /v1/schedules/{id}` take **`validateOnly: true`** in the body. Each
+runs every rule its write runs, writes nothing, and answers **200** with a verdict and the
+occurrences the draft would fire:
+
+```json
+{
+  "ok": true,
+  "complete": true,
+  "diagnostics": [],
+  "derived": {
+    "upcoming": {
+      "at": ["2026-08-24T06:00:00.000Z", "2026-08-31T06:00:00.000Z"],
+      "stoppedBy": "its run limit"
+    }
+  }
+}
+```
+
+⭐ **`derived.upcoming` is why this is worth a round trip.** A cron pattern is write-only — you type
+it, you save it, and the first confirmation is a firing. These are the same occurrences
+`expand=timing` returns for a schedule that exists, walked by the scheduler's own advance against
+your draft, so the times you are shown before creating are the times you get afterwards. It is not
+the resource: there is no id and no version, because nothing was created.
+
+⭐ **On a PATCH it answers about the EFFECTIVE post-edit bounds**, which is the part no client can
+compute. A patch is judged on this body mixed with the stored row — `runCount` above all. A schedule
+three runs into a limit of five, patched to a limit of five, has **two** occurrences left, not five.
+
+⚠️ **There is no `nextRun` beside it, deliberately.** This write refuses a schedule that would never
+fire, so a draft that got far enough to be walked always has one ahead — a field carrying the same
+answer every time is one you are entitled to mistake for something that was measured.
+
+⚠️ **An invalid draft is not a failed request.** The dry run succeeded — it computed a verdict, and
+the verdict is "no". A 4xx here means the _validate request itself_ was malformed, or that there is
+nothing to validate against: a `PATCH` to an id that does not exist answers **404**, not a verdict.
+
+⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added to
+the platform tomorrow arrives with a code your build has never heard of and a severity it has.
+Treat an unrecognised code as a generic finding of its stated severity.
+
+⚠️ **`complete: false` means checking stopped early**, because an earlier finding made the later
+rules unanswerable. Fix what is listed, ask again, and expect more. **A shorter list is not a
+healthier draft.** `derived` is absent in that case — nothing coherent enough to walk survived.
+
+⚠️ **`ok: true` is a snapshot, not a promise.** On a create, the key's uniqueness is a database
+constraint the write learns about by attempting it — a collision found here is certain, its absence
+is not. Nothing stops another write taking the key between your check and your create.
+
+⛔ **A `PATCH` answers ONE status with TWO bodies.** A create can spend `201` on the resource and
+leave `200` for the verdict; an edit has no second success code, so its `200` is a `oneOf` — the
+saved schedule, or a verdict about one that was not saved. They are mutually exclusive by their
+required members: narrow on `ok`, which only the verdict declares, or on `id`, which only the
+schedule does.
+
+It is a flag on the real route rather than a sibling `/preview`, deliberately. One route is one set
+of rules, so a check that passes and a save that refuses cannot come apart.
 
 ## What will bite you
 

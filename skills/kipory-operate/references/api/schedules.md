@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: d298a6f9774e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: aae5177f21e5 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Schedules
 
@@ -52,6 +52,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `endsAt` | `string \| null` | no | Do not fire after this instant. Pass null to clear the bound. |
 | `maxRuns` | `integer \| null` | no | Stop after this many firings. Pass null for no limit. Counted against `runCount`, which a patch does not reset. |
 | `overlapPolicy` | `"skip" \| "allow"` | no | What to do when an occurrence comes due while the previous one is still running. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to walk it, which is not the same as `ok` — a draft that will never fire still walks. |
 
 **Response `201`**
 
@@ -152,6 +162,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `maxRuns` | `integer \| null` | no | Stop after this many firings. Pass null for no limit. Counted against `runCount`, which a patch does not reset. |
 | `overlapPolicy` | `"skip" \| "allow"` | no | What to do when an occurrence comes due while the previous one is still running. |
 | `version` | `integer` | yes | The `version` you last read. Required here — a schedule patch is refused with 409 rather than silently overwriting a concurrent edit. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -183,6 +194,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound — the judgement the scheduler makes when it advances a fired schedule, and the one enabling it would get. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It does not read `enabled` otherwise: a disabled schedule fires nothing whatever this says. |
 | `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. It does not read `enabled`, except that an occurrence already due is listed only while the schedule is enabled. |
 | `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It does not read `enabled`, except that an occurrence already due is listed only while the schedule is enabled. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to walk it, which is not the same as `ok` — a draft that will never fire still walks. |
 
 ### `DELETE /v1/schedules/{id}`
 

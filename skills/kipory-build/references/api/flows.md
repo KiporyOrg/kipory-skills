@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: d298a6f9774e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: aae5177f21e5 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Flows
 
@@ -53,6 +53,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `inputTypeNames` | `object[]` | yes | The flow's inputs, as registered type names. |
 | `outputTypeNames` | `object[]` | yes | The flow's outputs, as registered type names. |
 | `outputBinding` | `object` | no | Which skill output feeds each flow output. Usually omitted at creation — the flow has no skills yet, so only the shape is checked; wire it up once the skills exist. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to resolve every type name, which is not the same as `ok` — a draft with a warning still resolves. |
 
 **Response `201`**
 
@@ -124,6 +134,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outputTypeNames` | `object[]` | no | Replacement output signature. Omit to leave it alone. Changing it re-validates the whole flow. |
 | `outputBinding` | `object` | no | Rewire which skill output feeds each flow output. Can be sent on its own once the skills exist, or together with both type arrays to replace the whole signature at once. Either way the graph is re-validated in full before anything is saved. |
 | `adoptSnapshots` | `boolean` | no | Opt in to re-publishing the request and response contract of any live endpoint this flow serves. Off by default, because that changes what a running route promises its callers — an explicit decision, not a side effect of editing a flow. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -143,6 +154,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to resolve every type name, which is not the same as `ok` — a draft with a warning still resolves. |
 
 ### `DELETE /v1/flows/{id}`
 

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 428be1ee1f88 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a91bc1950e91 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -710,6 +710,45 @@ value.
   may be missing some. Read that rather than `outputSlot` when you ask "does anything write this?".
 - **Provider slots are seeded by the engine** — the user, the project and the run. They cannot be
   supplied from an incoming request, which is what stops a caller claiming to be someone else.
+
+## Asking before you write — `validateOnly`
+
+`POST /v1/flows` and `PATCH /v1/flows/{id}` take **`validateOnly: true`**. Each
+runs every rule its write runs, writes nothing, and answers 200 with a verdict
+and the slot names the signature would be stored with:
+
+```json
+{
+  "ok": true,
+  "complete": true,
+  "diagnostics": [],
+  "derived": { "inputSlots": ["article"], "outputSlots": ["summary"] }
+}
+```
+
+⭐ **`derived` is the effective slot names.** You may name a slot or leave it to
+the platform, which derives one from the type name — so "what will this actually
+be called" is a question you can now ask instead of reimplementing.
+
+⭐ **On a PATCH it is what the row would HOLD, not what you sent.** A patch that
+mentions the signature without changing it keeps the stored names, and so does a
+binding-only rewrite.
+
+⭐⭐ **It runs the graph blockers too**, so a signature change the graph refuses
+is visible before you commit to it — the refusal that is otherwise discovered
+only after a save has begun.
+
+⛔ **A PATCH answers one status with two bodies**: the saved flow, or a verdict
+about one that was not saved. Narrow on `ok`, which only the verdict declares,
+or on `id`, which only the flow does. A create spends `201` on the resource and
+leaves `200` to the verdict alone.
+
+⚠️ **`ok: true` is a snapshot on a create.** The slug is unique per project — and
+separately per platform scope — as a database constraint the write learns about
+by attempting it. A collision found here is certain; its absence is not.
+
+⚠️ **An invalid draft is not a failed request**, and `complete: false` means
+checking stopped early. Gate on `severity`, never on `code`.
 
 ## What the platform refuses
 

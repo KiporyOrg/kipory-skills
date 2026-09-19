@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 428be1ee1f88 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a91bc1950e91 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Facets
 
@@ -304,6 +304,57 @@ the facet from that row until the node is re-derived from its type.
 ⛔ **An empty list is weaker than "nothing fills it".** The scan reads configuration, and a
 `facet.resolve` step can pick a facet up from a slot it discovers at run time without naming it
 anywhere. Empty means no node's configuration names this facet.
+
+## Seeding a vocabulary — let the platform coin the slug
+
+`POST /v1/facets/{id}/terms` takes rows of `{ slug, label }`, and **`slug` is
+optional**. Omit it and the platform derives one from the label.
+
+⛔⛔ **Coining it yourself is how a vocabulary stops matching.** A term's slug is
+what record ingest matches on, and a client deriving its own has to reproduce
+the platform's normalization exactly — including that an accented letter
+decomposes before it is filtered. When the two disagreed, `Crème brûlée` was
+seeded under one spelling and looked up under another: the records never
+resolved, and a create-new resolution minted a **second term for the same
+concept**. Pass a slug only when the identity matters more than the match.
+
+### Asking first — `validateOnly`
+
+The same route takes **`validateOnly: true`**. It runs every rule the seed
+runs, writes nothing, and answers 200 with a verdict and the rows it would
+write:
+
+```json
+{
+  "ok": true,
+  "complete": true,
+  "diagnostics": [],
+  "derived": {
+    "terms": [
+      { "slug": "creme-brulee", "label": "Crème brûlée", "outcome": "created" },
+      { "slug": "water-damage", "label": "Water Damage", "outcome": "existed" }
+    ]
+  }
+}
+```
+
+⭐ **`derived.terms` answers the two things a paste preview used to guess**: the
+permanent name each row would get, and which rows a term already holds. The
+second is a read of the moment — another seed landing first turns a `created`
+into an `existed`, which is a normal success either way, because this route is
+idempotent.
+
+⛔ **One status, two bodies.** Being idempotent is exactly what leaves no second
+success code for a verdict: a `200` is either the seeded batch or a verdict
+about one that was not seeded. Narrow on `ok`, which only the verdict declares.
+
+⚠️ **`ok: true` does not check the parent's existence.** A parent term is
+resolved inside the write's own transaction; the dry run knows only whether one
+was supplied where one was required. A parent id naming nothing is still a 422
+from the write.
+
+⚠️ **An invalid batch is not a failed request**, and `complete: false` means
+checking stopped early. Gate on `severity`, never on `code`.
 
 ## What will bite you
 
