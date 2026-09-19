@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 5d6ee5ca8c0c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 0098c73169c7 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Relation kinds and pairings
 
@@ -126,6 +126,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `sortOrder` | `integer` | no | Position among the project's relation kinds. |
 | `pairings` | `object[]` | yes | Record-type pairs to apply the kind to, created in the same transaction. At least one is required — a kind that applies to no pair can connect nothing. Every type named must already exist. |
 | `declaration` | `object` | no | The producer's own declaration, spliced into `recordType.relations` in the same transaction as the kind. Omit to declare it later. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict either way — see the validate response. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to derive it, which is not the same as `ok` — a draft with a warning still derives. |
 
 **Response `201`**
 

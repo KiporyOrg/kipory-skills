@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: b10a10f5bcdb · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 428be1ee1f88 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Relations
 
@@ -367,6 +367,49 @@ endpoint — another type's declaration, a curated assertion — survives untouc
 The system this replaced deleted every edge touching a record before rewriting it, which is how it
 lost edges its neighbours had authored. If you remember one thing here, remember that a write is
 responsible only for what it claims.
+
+## Asking before you write — `validateOnly`
+
+`POST /v1/relation-kinds` takes **`validateOnly: true`** in the body. It runs every rule the real
+create runs, writes nothing, and answers **200** with a verdict either way:
+
+```json
+{
+  "ok": false,
+  "complete": false,
+  "diagnostics": [
+    { "code": "RELATION_CARDINALITY_NOT_APPLICABLE", "severity": "error",
+      "message": "…", "field": "cardinality" }
+  ],
+  "derived": { "readiness": { "state": "inert", "reasons": [ … ] } }
+}
+```
+
+⚠️ **An invalid draft is not a failed request.** The dry run succeeded — it computed a verdict, and
+the verdict is "no". A 4xx here means the _validate request itself_ was malformed, which is a
+different thing to show a person.
+
+⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added to
+the platform tomorrow arrives with a code your build has never heard of and a severity it has.
+Treat an unrecognised code as a generic finding of its stated severity.
+
+⚠️ **`complete: false` means checking stopped early**, because an earlier finding made the later
+rules unanswerable. Fix what is listed, ask again, and expect more. **A shorter list is not a
+healthier draft.**
+
+⚠️ **`ok: true` is a snapshot, not a promise.** The key's uniqueness is a database constraint the
+write learns about by attempting it — a collision found here is certain, its absence is not. Nothing
+stops another write taking the key between your check and your create; that create answers 409 as it
+always did.
+
+⭐ **The `readiness` under `derived` is why this is worth a round trip.** It is the same verdict `expand=readiness`
+returns for a link that exists, computed against your draft — so you can see that a link will land
+`inert` (no pairing, no producing field, a properties type nothing ticks) _before_ creating it,
+rather than by noticing a count that never leaves zero. It is not the resource: there is no id and
+no version, because nothing was created.
+
+It is a flag on the real route rather than a sibling `/validate`, deliberately. One route is one set
+of rules, so a check that passes and a save that refuses cannot come apart.
 
 ## What the platform refuses
 
