@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a91bc1950e91 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 502054b7e77f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
@@ -1079,6 +1079,45 @@ Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) for what
 
 Unlinking is not deletion. The term rows a record already carries survive it; the link decides what
 is projected, never what is stored, so re-linking brings the same values back.
+
+## Asking whether a type edit would be accepted — `validateOnly`
+
+`POST /v1/schema-entries` and `PATCH /v1/schema-entries/{id}` take **`validateOnly: true`** in the
+body. Each runs every rule its write runs — the name clash, the definition compile gate, the
+unread-keyword and dead-null-arm refusals, the cycle detector, and every consumer guard (record-type
+declarations, flow bindings, user profiles, event payloads) — writes nothing, and answers **200**
+with a verdict:
+
+```json
+{
+  "ok": false,
+  "complete": false,
+  "diagnostics": [{ "code": "…", "severity": "error", "message": "…" }]
+}
+```
+
+⭐ **This surface is worth asking because the rules are many and most of them are about OTHER rows.**
+A type edit is refused for what it does to the things that reference it, which no client can compute
+from the document in front of it.
+
+⛔ **There is no `derived`, deliberately.** The sibling surfaces publish one because their write
+COMPUTES something you could not otherwise see — a schedule's occurrences, an endpoint's access. A
+type edit computes nothing of that kind: what it produces is the document you sent. A field with
+nothing true to put in it is worse than an absent one.
+
+⚠️ **The 409 is not a verdict.** An edit that re-shapes bound snapshots without `adoptSnapshots`
+is refused with **409** `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, listing what it would re-shape —
+and a dry run answers that 409 too, because it is the status the save gives. Send
+`adoptSnapshots: true` alongside the check to ask what the permitted edit would do instead.
+
+⚠️ **An invalid draft is not a failed request.** A 4xx means the _validate request itself_ could not
+be served — an id that addresses nothing answers **404**, not a verdict.
+
+⚠️ **`complete: false` means checking stopped early**, because an earlier finding made the later
+rules unanswerable. Fix what is listed, ask again, and expect more. **A shorter list is not a
+healthier draft.**
+
+⛔ **Gate on `severity`, never on `code`.**
 
 ## What will bite you
 

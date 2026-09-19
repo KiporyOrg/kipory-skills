@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: a91bc1950e91 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 502054b7e77f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Anatomy of a dynamic endpoint
 
@@ -284,6 +284,68 @@ their own project mints nothing; minting authority lives at the organisation abo
 ⚠️ **A key is not a person.** The same key works against both the project's API host and the design
 API, but it fails on per-user surfaces, and records it writes belong to the project pool rather
 than to a user.
+
+## Asking what it would publish — `validateOnly`
+
+`POST /v1/api-endpoints` and `PATCH /v1/api-endpoints/{id}` take **`validateOnly: true`** in the
+body. Each runs every rule its write runs — the key's charset, both config schemas, the shared
+endpoint-config validator, the route-collision check — writes nothing, and answers **200** with a
+verdict:
+
+```json
+{
+  "ok": true,
+  "complete": true,
+  "diagnostics": [
+    {
+      "code": "DERIVED_SNAPSHOT",
+      "severity": "warning",
+      "message": "`derived` describes this draft against the project as it stands now. …"
+    }
+  ],
+  "derived": {
+    "access": {
+      "viewers": false,
+      "decidedBy": "flow",
+      "writes": ["records.create"]
+    },
+    "resolutionRank": 2
+  }
+}
+```
+
+⭐ **`derived` is why this is worth a round trip.** Both members are COMPUTED on every read of a
+stored endpoint and were unanswerable before one existed — so choosing a method and a path used to
+mean saving, looking, and editing again to learn who would be able to call it and which sibling
+would shadow it. They are derived from your draft by the same functions a read derives them from
+for a stored row. It is not the resource: there is no id and no version, because nothing was
+created.
+
+⚠️ **Both members are snapshots, and the verdict says so.** `resolutionRank` is a position among the
+project's OTHER endpoints, so a sibling saved before yours moves it; `access` is re-derived from the
+bound flow inside the write's own transaction. That is what the `DERIVED_SNAPSHOT` warning is for —
+it is a warning, not an error, so `ok` stays true.
+
+⛔ **The findings name the field you sent.** A config rule reports `category` or `events[0]` because
+the action config is the document it reads — the verdict rewrites those to `actionConfig.category`,
+the path in your request body. The same is now true of a refused SAVE: a real POST that fails
+carries the same findings on `details.issues`, so a form does not need two readers.
+
+⭐ **Both ways an address can be taken come back the same way.** A `CONFLICT` finding on `endpoint`
+means the key is already used; a `CONFLICT` finding on `contractConfig.path` means another endpoint
+already serves that method and path. Neither is an exception — both are findings you can put under
+the input that caused them.
+
+⚠️ **An invalid draft is not a failed request.** The dry run succeeded — it computed a verdict, and
+the verdict is "no". A 4xx means the _validate request itself_ could not be served: a `PATCH` to an
+id that does not exist answers **404**, not a verdict.
+
+⚠️ **`ok: true` is a snapshot, not a promise.** On a create, the endpoint key's uniqueness is a
+database constraint the write learns about by attempting it — a collision found here is certain, its
+absence is not.
+
+⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added
+tomorrow arrives with a code your build has never heard of and a severity it has.
 
 ## Checklist for an endpoint that actually works
 
