@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest · version: b32f90a5852c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest · version: e6a21d0dd2e9 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Routes an API key cannot call
 
@@ -72,6 +72,12 @@ Gate: `assertSessionAuth`
 - `POST /v1/keys`
 - `POST /v1/keys/{…}/remove`
 
+## the keys a PERSON minted, at the nodes they still administer. A presented key has no MINTER, so the honest answer to one is a refusal rather than an empty list — and a leaked key able to enumerate what its holder's victim minted would be handed the inventory step of compromising the rest. The customer-key equivalent is GET /v1/keys?node=, which is the node's inventory and is itself session-only
+
+Gate: `assertSessionAuth`
+
+- `GET /v1/keys/mine`
+
 ## a per-user surface; a key is a machine principal with no person, so it 401s. There is no `me` for a key. The projects listing is scoped by MEMBERSHIP specifically, and a key holds none — its reach is the grant it was minted at, which is a different question with a different answer
 
 Gate: `requireUser`
@@ -96,6 +102,13 @@ Gate: `requireUser`
 
 - `GET /v1/me/profile`
 - `PATCH /v1/me/profile`
+
+## where a PERSON is signed in, and ending one of those sessions — session-cookie only, for the reason key management is. A bearer key holds no session, so the listing would be empty and the revoke would name a row the key's holder has no other way to learn about; worse, a leaked key that could end a person's sessions could lock them out while it went on working. There is no customer-key equivalent because there is no machine session to manage: a key IS the credential, and DELETE /v1/keys/{} is how one is ended
+
+Gate: `assertSessionAuth`
+
+- `DELETE /v1/me/sessions/{…}`
+- `GET /v1/me/sessions`
 
 ## the catalog's own prices against the registries and the writes that change them — an API key is NEVER platform staff, and the customer-facing catalog is `GET /v1/ai-models`, which publishes no price
 
