@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7a10c0476c1b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 320555c0adef · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Facets
 
@@ -232,6 +232,11 @@ editor you are standing in.
 - **Reserved keys are refused** with `FACET_KEY_INVALID` — the identity, content and metadata
   names the record shape already owns, along with `facets`, `terms`, `recordType` and the
   timestamps. Keys must be camelCase.
+- **An empty label is refused** with `FACET_LABEL_EMPTY`, on the create and the rename alike. It
+  used to answer `FACET_KEY_INVALID` on the create — one rule with two codes depending on which
+  verb ran it — so a client branching on the code for `POST /v1/facets` saw the key's failure over
+  a label. ⭐ Every one of these refusals now carries the field it is about on `details.issues`,
+  so a form marks the box rather than showing a sentence.
 - **A `sub-entity` binding is refused** with `FACET_BINDING_RETRACTED` — see above.
 - **A facet cannot nest under itself** (`FACET_PARENT_SELF`). The hierarchy is a chain of FACETS,
   not a tree of terms inside one: each level is its own facet with its own admission, resolver and
@@ -355,6 +360,57 @@ from the write.
 
 ⚠️ **An invalid batch is not a failed request**, and `complete: false` means
 checking stopped early. Gate on `severity`, never on `code`.
+
+### Asking a facet first — `validateOnly` on the create
+
+`POST /v1/facets` takes **`validateOnly: true`** as well. It runs every rule the
+create runs — the key's charset, the reserved list, the project-wide uniqueness,
+the parent's existence and cardinality, the admission knobs — and answers 200
+with a verdict plus the state the facet would be BORN in:
+
+```json
+{
+  "ok": true,
+  "complete": true,
+  "diagnostics": [],
+  "derived": {
+    "readiness": {
+      "state": "blocked",
+      "reasons": [
+        { "code": "VOCABULARY_EMPTY", "state": "blocked", "message": "…" },
+        { "code": "NOT_SURFACED", "state": "inert", "message": "…" },
+        { "code": "NEVER_RESOLVED", "state": "unproven", "message": "…" }
+      ]
+    },
+    "resolverFlowId": "flw_…"
+  }
+}
+```
+
+⭐⭐ **`derived.readiness` is the combination warning, before the facet exists.**
+A new facet has no vocabulary and nothing surfacing it — those are FACTS about a
+row that has not been written, not counts nobody loaded — so the state it will
+arrive in is fully knowable. The `exact` + empty case this pack warns about
+twice reads `blocked` HERE, rather than after you create the facet and read it
+back.
+
+⛔ **`blocked` is not a refusal.** `ok: true` beside it means the create would
+succeed and the facet would arrive needing work. Gate on `ok`; read `readiness`
+to know what work.
+
+⭐ **`derived.resolverFlowId` is the resolver the create would bind** — the one
+part of the outcome you cannot compute, because whether the platform HAS a
+default for that parameter shape is a platform fact. `null` means the facet
+would be born unbound, which for `semantic` matching is why `readiness` reads
+`blocked`.
+
+⛔ **A key already taken rides the 200 as a finding on `facetKey`**, where the
+real create answers `409`. Both are the platform having read your draft; only
+one of them is a status a form can render under an input.
+
+⚠️ **`derived` is absent when the draft is refused** — there is no binding to
+look up and no readiness to forecast. Absent and "full of defaults" are
+different claims, and only one of them is true.
 
 ## What will bite you
 

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7a10c0476c1b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 320555c0adef · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -488,6 +488,43 @@ the derived list differs from the step's wiring, send it as `inputSchemas` for e
 not already hold a stored shape for. An entry is `null` when nothing declares that slot's shape:
 there is no neutral shape to send, so do not save that list until the slot is typed.
 
+⭐⭐ **Send `run` and it answers the save's own rules about how the step runs.** The five that
+exist are in the section above: tries on a step that runs in the flow rather than on a queue, a
+wait beside `tries: 1`, a time limit a control step never reads, a time limit above the handler's
+own `run.budgetMs`, and a reuse period on a step that saves nothing. Each comes back as a `RUN_*`
+code with the field it is about, so a form marks the box rather than showing a sentence.
+
+```json
+{ "run": { "timeoutMs": 6000, "tries": 1, "tryDelayMs": 5000 } }
+```
+
+⚠️ **Omitting `run` runs no rule about it**, and a `null` inside it is a real value: absent means
+the draft does not set that field, `null` means it was cleared, and neither is a violation.
+
+⛔⛔ **The four numbers carry the SAVE's own bounds here** — `timeoutMs` 1–120000, `tries` 1–5,
+`tryDelayMs` 0–60000, `reuseResultsForMinutes` 0–86400 — because a dry run that accepts a number the
+save refuses is the one thing this route exists to prevent. They were bare integers until 2026-09-20,
+so `tries: 99` came back as a clean verdict and `PATCH /v1/skills/{id}` then refused the identical
+body at its own schema. A value outside a bound is a **400 against the body**, not a `RUN_*` finding:
+the bound is the shape of the field, and the five `RUN_*` rules are about a well-formed number being
+wrong for THIS handler.
+
+⭐ **Send `name` beside it.** Every run-settings sentence opens by naming the step — that is the
+save's own wording, reused rather than restated — so a draft the route cannot name is described as
+`"this step"`. Nothing validates the name; it only changes the words.
+
+⚠️ **`run.onFailure` takes the same two values the step row does** (`FAIL_RUN`, `CONTINUE`) and
+nothing else. It was a free-form string for one revision, which meant `"continue"` was accepted,
+matched no rule, and came back clean from a draft the save refuses.
+
+⭐ **A finding names the box under `run`**, e.g. `fields: ["run.tryDelayMs"]` — the body nests the
+settings, so the bare column name would address a field this request does not carry.
+
+⛔ **One of the five cannot be asked here.** An `onFailure: CONTINUE` on a step writing a slot the
+flow must RETURN is a fact about the flow's declaration, not about this draft, and this route is
+deliberately graph-free. The save runs it, and `PATCH /v1/skills/{id}` with `validateOnly: true`
+walks the graph if you want it first.
+
 ⭐ **Send `outputSchema` too and the route will also tell you when the result cannot fit it.**
 Optional, and the only thing omitting it costs is that one check — every other diagnostic is
 unaffected. Pass the `SchemaRef` the DRAFT declares, not the one on the saved row: an editor that
@@ -561,6 +598,48 @@ so an editor can underline the offending character rather than pointing at the f
 <!-- field-ok: maxNodeCount — same open `details` map -->
 <!-- field-ok: maxDepth — same open `details` map -->
 <!-- field-ok: functionName — same open `details` map -->
+
+## Asking a step's settings first — `validateOnly` on the patch
+
+`PATCH /v1/skills/{id}` takes **`validateOnly: true`**. It runs every rule the
+save runs — the normalization, the consumer re-typing cascade, the slot-rename
+plan and the whole flow-graph gate — writes nothing, and answers 200 with a
+verdict.
+
+⭐⭐ **It is how you ask the run-settings rules without saving.** Every refusal
+in the section above is a save-time rule: tries on a step that runs in the flow,
+a wait between tries beside `tries: 1`, a time limit on a control step or one
+above the handler's own `run.budgetMs`, a reuse period on a step that saves
+nothing. Each comes back with its own `code` and the `field` it is about, so a
+form marks the box rather than showing a sentence.
+
+⭐ **A confirmed slot rename answers what it would rewrite**, before it does:
+
+```json
+{
+  "ok": true,
+  "complete": true,
+  "diagnostics": [],
+  "derived": {
+    "rewrite": { "rewrittenCount": 4, "rewrittenSkillIds": ["skl_…"] }
+  }
+}
+```
+
+⚠️ **That count is a snapshot** — a sibling edited between this answer and the
+save moves it.
+
+⚠️ **Warnings ride `diagnostics` and leave `ok` true.** A save returns the same
+set beside the saved row precisely because they block nothing. Gate on
+`severity`, never on the list being empty.
+
+⛔ **A stale `capturedVersion` still answers 409, not a verdict.** The draft
+would be judged against a row that has moved, so every finding below it would
+describe a state you cannot see. Re-read, then ask again.
+
+⛔ **One status, two bodies.** A patch has no second success code to spend, so
+the `200` is either the write result or a verdict. Narrow on `ok`, which only
+the verdict declares.
 
 ### Seeing what a prompt becomes — and what it costs to ask
 

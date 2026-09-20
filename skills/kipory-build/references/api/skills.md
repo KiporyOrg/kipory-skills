@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: aa81228d8f26 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 102be7cda147 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Skills (flow steps)
 
@@ -152,6 +152,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | no | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
 | `reuseResultsForMinutes` | `integer \| null` | no | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
 | `confirmedOutputSlotRenames` | `object[]` | no | Confirm output-slot renames and cascade them. Every sibling skill referencing an old name is rewritten to the new one in the same transaction. A skill may rename several slots at once, so this is a list. Omit it and a rename leaves referencing siblings pointing at a slot that no longer exists. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `capturedVersion` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate-draft`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -160,6 +161,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `skill` | `object` | yes | The skill as saved. |
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
 | `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed. Present only when the body confirmed an output-slot rename — there is nothing else a skill patch derives that the caller does not already hold. |
 
 ### `DELETE /v1/skills/{id}`
 
@@ -339,6 +344,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `systemPrompt` | `string \| null` | no | The draft's system prompt. Counted toward the inputs only where the handler declares it reads one — a placeholder written there wires a slot exactly as one in the prompt does. |
 | `inputSchemas` | `unknown[]` | no | The draft's input `SchemaRef`s, positionally aligned with `inputStreams`. Needed only by a multimodal handler, where a wired FILE input is attached without any placeholder naming it: without these the derivation cannot recognise one and would answer a list the save does not pin. |
 | `outputSchema` | `unknown` | no | The `SchemaRef` the draft step DECLARES it writes. Optional, and omitting it costs exactly one check: without it the route cannot say whether the expression's result could ever satisfy the declaration, so it stays silent about that. Every other diagnostic is unaffected. Typed `unknown` for the reason every SchemaRef on this plane is — the shape is the type system's, and re-declaring it here would be a second copy to keep in step. |
+| `name` | `string` | no | What the step is called, used ONLY to word a run-settings finding — every one of them opens by naming the step. Nothing validates it. Omit it and the findings say `this step` instead. |
+| `run` | `object` | no | The draft's run settings — how long it may take, how many times it is tried and how long it waits between, how long a saved result stays reusable, and what a failure does. Omit it and no rule about them runs. ⚠️ THE RULES ARE ABOUT THE HANDLER: tries belong to a queued step, a time limit above the handler's own budget can never fire, and a reuse period needs something that saves a result. A diagnostic names the field it is about. |
 
 **Response `200`**
 
