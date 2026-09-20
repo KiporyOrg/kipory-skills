@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 0b3c483144f7ca2f8a7849c2351790e691ab56c09c71dc63ca35749cc34cc26b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 520b926651160e3a59c0ea86af3cc06c9db8572a500fe748477b12b9eda11162 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `text.generate` — Generate text
 
@@ -19,8 +19,8 @@ Call an LLM with a prompt and return text or structured output.
 | `facetFields` | object[] | no | — | Which fields of the answer are facet values, so they can be resolved into terms. Press Adopt to re-read them from the type. |
 | `modelSlot` | string | no | — | Names a slot holding the model to use, picked while the flow runs. Leave it empty to use the model set on this step. ⚠️ The model named while the flow runs has to be one that is enabled and can generate text. An unknown or disabled one fails the run — nothing falls back to the step's own model. |
 | `outputs` | object[] | no | — | Extra slots this step writes besides its main answer. Set from the fields above; you do not fill it in by hand. |
-| `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How much thinking to buy on models that reason before answering. More of it costs time and tokens. Models that do not reason ignore this. ⚠️ Also part of the cache key, and higher settings are what dominate both the time and the token bill on models that reason. |
-| `temperature` | number | no | — | How much the model may vary its answer. Low values keep the same input on the same answer; leave it empty for the model's default. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
+| `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How hard the model thinks first. Costs time and tokens. ⚠️ Also part of the cache key, and higher settings are what dominate both the time and the token bill on models that reason. |
+| `temperature` | number | no | — | How much the answer may vary. Empty means the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
 
 ## Worked example
 

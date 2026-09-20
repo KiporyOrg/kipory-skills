@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 502054b7e77f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 7a10c0476c1b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -469,6 +469,19 @@ save would pin `userInfo`. Omitting them is correct and free for a step you are 
 pins onto the step**, because the route runs the platform's own derivation rather than a second one.
 Send `order.total + shipping` and it answers `["order", "shipping"]`.
 
+⭐ **A prompt-shaped step names its inputs in its placeholders, so send the template too.** For a
+handler whose inputs come from its template — `derivedFrom: "template"` — send `promptTemplate`, and
+`systemPrompt` when the handler reads one. The answer is the slot list those placeholders name, on
+the same terms as the config case: the save's own derivation, so an editor can show what the step
+reads while it is being typed rather than only after it is saved. A placeholder written in the
+system prompt wires a slot exactly as one in the prompt does, but only where the handler declares it
+reads a system prompt at all — `text.generate` does, `text.interpolate` does not.
+
+⛔ **Send `inputSchemas` with it, or a wired FILE is dropped from the answer.** A multimodal handler
+attaches a file input that no placeholder mentions, and the save counts that slot; without the refs
+this route cannot recognise one and answers a list without it. Saving that list would unwire the
+file. This route takes no step id — the step may not exist yet — so it cannot look the shapes up.
+
 `derivedInputSchemas` sits beside it, one entry per slot, and is the shape the save types a wire on
 that slot from — the step that writes it, else the flow input, else the platform's own type. When
 the derived list differs from the step's wiring, send it as `inputSchemas` for every position you do
@@ -519,12 +532,11 @@ carry any of them, so those sentences stayed prose that nothing enforced and no 
 `position` and `token` are unchanged and remain meaningful only for a single-field diagnostic: a
 character offset into "two fields" is not a thing.
 
-⚠️ **`derivedInputStreams: null` is not an empty list, and there are three reasons for it.** Read
+⚠️ **`derivedInputStreams: null` is not an empty list, and there are two reasons for it.** Read
 `derivedFrom` to tell them apart: `row` means the handler takes inputs from the step row so there was
-nothing to derive; `template` means they come from the prompt, which this route does not yet answer
-for; and a null with `derivedFrom: "handler-config"` means a check failed, so any list would have
-been read off an expression that does not parse. An empty ARRAY means the config was read and names
-no slots.
+nothing to derive; and a null with `derivedFrom: "handler-config"` or `"template"` means a check
+failed, so any list would have been read off a configuration that does not parse. An empty ARRAY
+means the config or the template was read and names no slots.
 
 ⛔ **So `derivedFrom: "handler-config"` is not a promise that the list is there.** Check `diagnostics`
 first, or check the list for null — the half-typed expression this route exists to answer for is
@@ -549,6 +561,57 @@ so an editor can underline the offending character rather than pointing at the f
 <!-- field-ok: maxNodeCount — same open `details` map -->
 <!-- field-ok: maxDepth — same open `details` map -->
 <!-- field-ok: functionName — same open `details` map -->
+
+### Seeing what a prompt becomes — and what it costs to ask
+
+`validate-draft` answers what a configuration READS. A prompt-shaped step has a second question
+that nothing above answers: with the slots filled in, what text does the model actually receive?
+
+```
+POST /v1/skills/preview           ask the model, and bill for it
+POST /v1/skills/interpolate       render the prompt, and stop
+```
+
+Both take `flowId` — the authorization anchor — plus `handlerKey`, `promptTemplate`, your
+`slotValues`, and optionally `systemPrompt`. `/preview` additionally takes `taskKey` and
+`modelIdOverride`, because only it picks a model. Nothing is persisted either way: no row is
+written and no slot is touched.
+
+⚠️ **`/preview` makes one real model call on `text.generate` and bills the project.** It is the
+only `/v1/skills` route that spends money, and it is floored at ADMIN for that reason. Every other
+step type returns its interpolated text without calling anything, because what those handlers DO
+depends on slot I/O the caller has not supplied.
+
+⭐ **`/interpolate` cannot bill, and is floored at EDITOR** — the bar for SAVING the step it stands
+in for, which is the same floor `validate-draft` carries. It calls no model, resolves no project
+and names no payer. Its reply is the interpolated prompt and the elapsed time; there is no
+`response` and there are no token counts, because there is no call to report.
+
+<!-- field-ok: interpolateOnly — REMOVED, and named here on purpose: this paragraph is the
+     migration note telling a caller that still sends it where the request goes now. The guard is
+     right that no wire contract declares it; that is the fact being reported. -->
+
+⛔ **It was a flag on `/preview` and is now a route, and the reason is the role floor.**
+`interpolateOnly: true` made a SPENDING route not spend — which meant the floor had to depend on
+the request BODY, and a floor that does that cannot be graded by the gate whose whole job is to
+prove that a spending route sits at ADMIN. A route either spends or it does not, and now each one
+says which in its own name. **If you were sending `interpolateOnly`, send the request to
+`/v1/skills/interpolate` instead; the field is gone.**
+
+⛔ **Both still take `handlerKey`, and you should not lie about it.** That field decides TWO things,
+not one: whether a model is called AND whether `{{#slot}}` sections ITERATE. Before the free render
+existed, the only way to get one was to claim to be `text.interpolate` — so the cheap render came
+back with arrays rendered keep/drop where the real run loops, which is a preview that lies about
+precisely the thing being previewed. `/interpolate` takes `handlerKey` for the iteration half
+alone, so the text is what the model would have received.
+
+⭐ **A platform flow's step can use `/interpolate` and cannot use `/preview` without a project.**
+A platform flow belongs to no project, so there is nobody to bill and no binding to resolve;
+`/preview` therefore requires `projectId` there and refuses without it, while `/interpolate` asks
+neither question.
+
+⚠️ **A template fault is a 422, not a 500.** `PREVIEW_TEMPLATE_ERROR` carries the interpolation
+error verbatim — it is your input, and the route says so rather than swallowing it.
 
 ## Choosing what a step reads
 
@@ -838,6 +901,29 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 
   ⚠️ `source: "environment"` is worth a second look rather than a shrug: that layer carries only a
   model id and forces the provider to OpenAI, so a non-OpenAI model set that way mis-routes.
+
+- **A `temperature` or a `reasoningEffort` the model does not take is DISCARDED, not refused.**
+  Both are `text.generate` config fields and both save cleanly on any model. What happens next
+  depends on the model, and nothing reports it: the platform strips a temperature before the call
+  for a model whose provider rejects one, and an effort sent to a model with no effort dial is
+  ignored upstream. There is no error, no warning in the run, and the stored config goes on saying
+  what you set.
+
+  **`GET /v1/ai-models` answers both before you write.** `supportsTemperature` is false for a model
+  that will have the parameter removed. `reasoningEfforts` is the levels that model actually
+  accepts, in the vendor's own words — **empty means no dial**, which includes models that reason
+  at a fixed depth, and is much the commoner case than it looks: on one deployment's catalog, 12 of
+  16 chat models expose no dial while all but one accept a temperature.
+
+  ⚠️ **`canReason` and a non-empty `reasoningEfforts` are different questions.** A model can reason
+  and still take no instruction about how hard — so `canReason: true` is not permission to send an
+  effort, and reading it as one is how a config ends up carrying a setting that has never once been
+  applied. Ask for the dial, not for the capability.
+
+  ⚠️ **Ask the model that will RESOLVE, not the one the skill names.** A skill with no `modelId`
+  follows its task binding, so the capability that matters belongs to whatever
+  `GET /v1/projects/{projectId}/task-models` reports for its task kind — and it changes under the
+  skill when the operator rebinds.
 
 ## Related
 

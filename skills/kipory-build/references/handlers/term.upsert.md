@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 0b3c483144f7ca2f8a7849c2351790e691ab56c09c71dc63ca35749cc34cc26b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 520b926651160e3a59c0ea86af3cc06c9db8572a500fe748477b12b9eda11162 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `term.upsert` — Upsert terms
 

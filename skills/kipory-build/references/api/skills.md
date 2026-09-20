@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: e6a21d0dd2e9 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: aa81228d8f26 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Skills (flow steps)
 
@@ -19,6 +19,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `POST` | [`/v1/skills/batch`](#post-v1-skills-batch) |  |
 | `GET` | [`/v1/skills/condition-operators`](#get-v1-skills-condition-operators) |  |
 | `GET` | [`/v1/skills/input-options`](#get-v1-skills-input-options) |  |
+| `POST` | [`/v1/skills/interpolate`](#post-v1-skills-interpolate) |  |
 | `POST` | [`/v1/skills/preview`](#post-v1-skills-preview) |  |
 | `GET` | [`/v1/skills/rename-preview`](#get-v1-skills-rename-preview) |  |
 | `POST` | [`/v1/skills/replace`](#post-v1-skills-replace) |  |
@@ -240,6 +241,25 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `stepScopedTo` | `object \| null` | yes | The fan-out or loop the step runs inside, as it is saved. Null when it runs outside both, or is not saved yet. |
 | `candidates` | `object[]` | yes | Every slot the step could read: earlier steps' outputs, then the flow's inputs, then the platform's. |
 
+### `POST /v1/skills/interpolate`
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow this step is being authored into. It decides who may render the prompt; nothing here is billed, so it names no payer. |
+| `handlerKey` | `string` | yes | Which step type to render as. ⚠️ No model is called whatever this says — it decides only whether `{{#slot}}` sections iterate, so the text that comes back is exactly what that step type would have produced. |
+| `promptTemplate` | `string` | yes | The prompt to interpolate. |
+| `systemPrompt` | `string \| null` | no | A system prompt, interpolated against the same values. Only read by step types that accept one — supplying it elsewhere is ignored rather than an error. |
+| `slotValues` | `object` | no | The values to interpolate, keyed by slot name. Deliberately unvalidated here — supply whatever the step's inputs would be. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `interpolatedPrompt` | `string` | yes | The prompt after interpolation — exactly what the model would receive. |
+| `latencyMs` | `number` | yes | How long the render took, in milliseconds. |
+
 ### `POST /v1/skills/preview`
 
 **Request body**
@@ -260,7 +280,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `interpolatedPrompt` | `string` | yes | The prompt after interpolation — exactly what the model would receive. |
-| `response` | `string \| null` | yes | What the model said, when one was called. For a step type that does not call a model this is the interpolated prompt instead. |
+| `response` | `string \| null` | yes | What the model said, when one was called. For a step type that does not call a model this is the interpolated prompt instead, because that text IS its answer. |
 | `tokensIn` | `number \| null` | yes | Tokens sent. NULL MEANS NO MODEL WAS CALLED, which is a different thing from a call that used zero. |
 | `tokensOut` | `number \| null` | yes | Tokens returned. Null when no model was called. |
 | `latencyMs` | `number` | yes | How long the preview took, in milliseconds. |
@@ -315,6 +335,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `inputStreams` | `string[]` | no | The draft's currently wired input slots, IN ROW ORDER — the list the two fields below are positionally aligned with. Send it whenever the step has wiring; absent is treated as none wired. |
 | `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
 | `inputProjectionNames` | `string \| null[] \| null` | no | Names each input is exposed under inside the prompt, POSITIONALLY ALIGNED with `inputStreams`. Null at a position uses the source slot's own name. |
+| `promptTemplate` | `string` | no | The draft's prompt template. Only read for a handler whose inputs are named by its template; ignored otherwise. Absent means the empty template, which names no slots. |
+| `systemPrompt` | `string \| null` | no | The draft's system prompt. Counted toward the inputs only where the handler declares it reads one — a placeholder written there wires a slot exactly as one in the prompt does. |
+| `inputSchemas` | `unknown[]` | no | The draft's input `SchemaRef`s, positionally aligned with `inputStreams`. Needed only by a multimodal handler, where a wired FILE input is attached without any placeholder naming it: without these the derivation cannot recognise one and would answer a list the save does not pin. |
 | `outputSchema` | `unknown` | no | The `SchemaRef` the draft step DECLARES it writes. Optional, and omitting it costs exactly one check: without it the route cannot say whether the expression's result could ever satisfy the declaration, so it stays silent about that. Every other diagnostic is unaffected. Typed `unknown` for the reason every SchemaRef on this plane is — the shape is the type system's, and re-declaring it here would be a second copy to keep in step. |
 
 **Response `200`**
@@ -322,6 +345,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `diagnostics` | `object[]` | yes | Everything wrong with this draft's configuration. An EMPTY LIST means the configuration is well-formed — it does NOT mean the step will save, because graph-level rules (dangling slots, cycles) are not asked here. See `GET /v1/flows/{id}/health` for those. |
-| `derivedInputStreams` | `string[] \| null` | yes | The input slots this configuration NAMES, sorted — the same list the save pins onto the step, PROVIDED you sent the wiring columns below for a step that has them. NULL IS NOT AN EMPTY LIST, and it has THREE causes, told apart by `derivedFrom` plus `diagnostics`: the inputs come from the step row (`row`); the handler derives them from a prompt template, which this route does not yet answer for (`template`); or a check failed, so any list would have been read off a config that did not parse (`handler-config` WITH a non-empty `diagnostics`). An empty ARRAY means the config was read and names no slots. |
-| `derivedFrom` | `"row" \| "handler-config" \| "template"` | yes | How to READ `derivedInputStreams` above — nothing more. `handler-config` means this route CAN derive from the config; the list is then the authoritative set that config names — but it is still null when `diagnostics` is non-empty, because a config that did not parse names nothing knowable. ⛔ SO `handler-config` IS NOT A NON-NULL GUARANTEE: check `diagnostics` first, or check the list for null. `row` and `template` always mean null, and say which reason. ⚠️ THIS IS NOT THE FIELD THAT DECIDES WHETHER TO SHOW AN INPUT PICKER. That is `editor.inputStreams` on the handler catalog, and the two answer DIFFERENT questions: this one reports which source this route could derive from (a handler's `freeFormInput` bag), that one reports whether the step row is where the operator wires inputs. They disagree for 7 of 70 handlers — `flow.merge` and `flow.invoke` hide the picker while deriving nothing here; `entity.count` shows it while naming slots in config. Branch the UI on the catalog field. |
+| `derivedInputStreams` | `string[] \| null` | yes | The input slots this configuration NAMES, sorted — the same list the save pins onto the step, PROVIDED you sent the wiring columns below for a step that has them. NULL IS NOT AN EMPTY LIST, and it has TWO causes, told apart by `derivedFrom` plus `diagnostics`: the inputs come from the step row, so there is nothing to derive (`row`); or a config-derived list could not be read because the config did not parse or a check failed (`handler-config` WITH an ERROR in `diagnostics`). An empty ARRAY means the source was read and names no slots. ⚠️ `template` USED TO BE A THIRD CAUSE AND IS NOT ANY MORE: a prompt-template handler now answers a real list, including the FILE inputs a multimodal handler attaches without a `{{slot}}` naming them. A template list is NOT nulled by a broken `handlerConfig`, because the names come from the prompt and the save reads them the same way. |
+| `derivedFrom` | `"row" \| "handler-config" \| "template"` | yes | How to READ `derivedInputStreams` above — nothing more. `handler-config` means this route CAN derive from the config; the list is then the authoritative set that config names — but it is still null when `diagnostics` carries an ERROR, because a config that did not parse names nothing knowable. ⛔ SO `handler-config` IS NOT A NON-NULL GUARANTEE: check `diagnostics` first, or check the list for null. `template` IS one: the names come off the prompt, so it answers a list whatever the config says. `row` always means null — the step row is where those inputs are wired. ⚠️ THIS IS NOT THE FIELD THAT DECIDES WHETHER TO SHOW AN INPUT PICKER. That is `editor.inputStreams` on the handler catalog, and the two answer DIFFERENT questions: this one reports which source this route could derive from (a handler's `freeFormInput` bag), that one reports whether the step row is where the operator wires inputs. They disagree for 7 of 70 handlers — `flow.merge` and `flow.invoke` hide the picker while deriving nothing here; `entity.count` shows it while naming slots in config. Branch the UI on the catalog field. |
 | `derivedInputSchemas` | `object[] \| null` | yes | One entry per slot in `derivedInputStreams`, same position: the shape the save types a wire on that slot from — the step that writes it (its per-slot output shape where it declares one), else the flow input it is declared as, else the platform's own type for a slot the platform supplies on every run. Send it as the step's `inputSchemas` for any position you do not already hold a stored shape for. An ENTRY is null when nothing declares that slot's shape — no step writes it with a shape that reads, and the flow does not declare it — and there is no neutral shape to send in its place. The whole field is null exactly when `derivedInputStreams` is. |

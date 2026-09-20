@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: e6a21d0dd2e9 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: aa81228d8f26 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Handler catalog and model reads
 
@@ -70,6 +70,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `requiredApiKey` | `string` | no | The environment variable this handler needs at run time. Present means the handler CANNOT run without it configured. |
 | `externalDep` | `object` | no | An outside service this handler depends on, when it needs one. |
 | `followsTaskModel` | `boolean` | yes | True when the model this handler runs on is decided by the step's `taskKey` binding, so changing that binding moves this step. False when the handler uses no model at all, or picks one a task binding cannot move. |
+| `templateFilters` | `object[]` | yes | The `{{slot\|filter}}` suffixes this handler's templates may use, sorted by name and already narrowed to what its own save would accept. A handler that caches its results omits the clock-reading filters, because a cached answer would keep a phrase like "5 years ago" long after it stopped being true. |
 | `config` | `object[]` | yes | The settings a step using this handler can tune. Empty for handlers with nothing to configure. |
 | `configConstraints` | `object[]` | no | Rules about SEVERAL config settings at once, which no single field carries. Absent means this handler declares none. A form reads these to draw a pair as one unit BEFORE it is broken, and to mark a setting the current config makes inert; the platform evaluates the same list, so a refusal and the drawing cannot disagree. |
 | `configOutputSlots` | `object[]` | no | Where this handler's config names the slots the step WRITES. Absent means the config names none and the step's own output slot is the whole answer. A form reads these to draw those settings as slot NAMES — which a rename has to carry across every step that reads them — rather than as free text. |
