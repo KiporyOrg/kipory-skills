@@ -1,8 +1,8 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 451f4b963485 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b32f90a5852c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Records and relations
 
-The project's own data: listing records, reading and stating a record's typed edges one hop at a time, and watching a record's processing as it happens.
+The project's own data: listing and searching records, writing and correcting one by hand, re-running or ending it, stating how it is filed, reading and stating a record's typed edges one hop at a time, and watching a record's processing as it happens.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -11,6 +11,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | [`/v1/projects/{nodeId}/records`](#get-v1-projects-nodeid-records) |  |
+| `POST` | [`/v1/projects/{nodeId}/records`](#post-v1-projects-nodeid-records) |  |
+| `GET` | [`/v1/projects/{nodeId}/records/{id}`](#get-v1-projects-nodeid-records-id) |  |
+| `PATCH` | [`/v1/projects/{nodeId}/records/{id}`](#patch-v1-projects-nodeid-records-id) |  |
+| `DELETE` | [`/v1/projects/{nodeId}/records/{id}`](#delete-v1-projects-nodeid-records-id) |  |
+| `PUT` | [`/v1/projects/{nodeId}/records/{id}/facets/{facetKey}`](#put-v1-projects-nodeid-records-id-facets-facetkey) |  |
+| `POST` | [`/v1/projects/{nodeId}/records/{id}/reprocess`](#post-v1-projects-nodeid-records-id-reprocess) |  |
 | `POST` | [`/v1/projects/{nodeId}/records/query`](#post-v1-projects-nodeid-records-query) |  |
 | `GET` | [`/v1/projects/{nodeId}/relations`](#get-v1-projects-nodeid-relations) |  |
 | `GET` | [`/v1/records/{id}/processing-stream`](#get-v1-records-id-processing-stream) | SSE |
@@ -65,6 +71,134 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `record` | `object \| null` | yes | The record `?record=` named, opened beside the result. Null when none was asked for AND when the one asked for is gone — a reader whose bookmark outlived a record is told so, with the list intact (FR-034); the page tells the two apart from its own address. |
 | `bounded` | `false \| object` | yes | Whether this page is every record that matches, or a ranking of at most `bound`. `false` on an exact-match list, which pages. On a meaning-based result: `semantic-only` when nothing narrowed it, `pushdown-cap` when the exact narrowings exceeded the pushdown cap and the ranking had to run first, `top-k` when every matching record was scored exactly but more than `topK` matched. Stated on every response so a reader who suspects the answer is further down learns there is no further down and must narrow instead. |
 | `explanation` | `object \| null` | yes | How a meaning-based result was produced — one row per clause that ran (the shorthand narrowings become exact legs, the phrase the semantic one), with the store, the index and the freshness of each, and what was pushed into the vector index. Null on an exact-match list, which is the route's own keyset read and not a plan. |
+
+### `POST /v1/projects/{nodeId}/records`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `recordType` | `string` | yes | The record type to write, as the project declares it. Must be a type this project defines; the platform's own reserved types are not special here. |
+| `data` | `object` | yes | The submission — the record's `data`, judged against the shape the type's own registry entry declares, compiled exactly as every other write path compiles it. What becomes of a key the entry does not declare is therefore the ENTRY's answer, not this route's: a strict entry refuses it, an open one carries it through, and one that says nothing drops it silently. |
+| `userId` | `string \| null` | no | Who owns the record. REQUIRED for a USER-scoped type and refused for a PROJECT-scoped (pool) one, because the scope is the type's to declare — a pool row carries no owner and a user row cannot lack one. Must be an active end user of this project. |
+| `requestId` | `string` | no | Idempotency for a USER-scoped write: two sends carrying one id converge on one record instead of two. A pool record needs none — its identity folds only what the record IS, so an identical payload converges by construction. Omitted, every send is a new record. |
+
+**Response `201`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record's id, derived rather than minted. |
+| `recordType` | `string` | yes | The type written, echoed from the request. |
+| `ownerScope` | `"user" \| "project"` | yes | Whose the row is, as the TYPE declares it — never as the request asked. |
+| `userId` | `string \| null` | yes | The owner, or null for a pool record. |
+| `status` | `"PENDING" \| "PROCESSING" \| "READY" \| "FAILED" \| "DELETING"` | yes | The record's status as it stands. With `outcome: "created"` that is where the type starts a record: one that binds a processing flow is born PENDING and handed to the queue; one that binds none is READY the moment it is written and is never enqueued. With `outcome: "existed"` it is the CURRENT status of the record this request converged onto, which is why the whole lifecycle is admitted here: that record has had a life of its own since, and may be anywhere in it. |
+| `outcome` | `"created" \| "existed"` | yes | `existed` means the derived id was already present — a converging resend, reported as the success it is. Nothing was overwritten: the writer's update branch is empty, so a record that has since advanced is never dragged back. |
+| `queued` | `boolean` | yes | Whether processing was handed off. False for a flow-less type (there is nothing to run) and false for a converging resend onto a record that is already past PENDING. |
+
+### `GET /v1/projects/{nodeId}/records/{id}`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `record` | `object` | yes | The record itself — its identity, its declared fields in the type's own order, its terms, its files and where it stands in the index. |
+| `contract` | `object \| null` | yes | What the record's TYPE declares, which the record cannot say about itself. Null when the type is gone from under the record. |
+
+### `PATCH /v1/projects/{nodeId}/records/{id}`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `data` | `object` | yes | The record's `data`, WHOLE — not a merge patch. The operator was shown every declared field seeded with its current value, so what comes back is the document as it should now stand; a partial patch from a form that drew the whole shape could not express CLEARING a field, which is the edit a correction most often is. |
+| `expectedVersion` | `integer` | yes | `version` as it stood when the form was drawn. The write is refused `RECORD_VERSION_STALE` if the row has moved since — including by a run that finished while the form was open. |
+| `requestId` | `string` | no | Correlates this write with the log line it produced. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record, unchanged — a patch never re-mints it. |
+| `recordType` | `string` | yes | Its type, echoed. |
+| `version` | `integer \| null` | yes | The row's version AFTER this write, measured by re-reading it; the next patch's `expectedVersion`. Null when it could not be read — re-open the record before saving again rather than reusing the version you sent. |
+| `status` | `string` | yes | Its processing state, which this write did not change: a patch re-indexes but never re-runs. `derived` therefore still describes the content as it was, until something re-runs the flow. |
+| `reindexed` | `boolean` | yes | Whether a vector projection was enqueued. False for a type nothing indexes; true does not mean the points are written yet. |
+
+### `DELETE /v1/projects/{nodeId}/records/{id}`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record this answers about, echoed. |
+| `outcome` | `"deleted" \| "queued"` | yes | `deleted` — the row and everything derived from it are gone. `queued` — a flow was running over it, so it is marked DELETING and drains at the run's next skill boundary. |
+
+### `PUT /v1/projects/{nodeId}/records/{id}/facets/{facetKey}`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
+| `facetKey` | `string` | yes | The facet whose assignment on this record is being replaced. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `termIds` | `string[]` | yes | Every term this record should carry on this facet, replacing what it carries now. Duplicates collapse. Empty CLEARS the facet — a real instruction, not a no-op, and the way an operator says the resolver was wrong to file this at all. A `one`-cardinality facet accepts at most one id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record that was filed. |
+| `terms` | `object[]` | yes | Every term the record carries now, across every facet. |
+
+### `POST /v1/projects/{nodeId}/records/{id}/reprocess`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
+
+**Response `202`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record a run was queued for, echoed. |
+| `status` | `"PENDING"` | yes | Where the record now sits, waiting for the worker to claim it. |
+| `mode` | `"full"` | yes | An explicit re-run is always a CLEAN SLATE — prior output, generated files, facets and vector points are swept and regenerated, and the skill cache is bypassed. ⚠️ Facets included: a filing set by hand is swept with the rest, and the resolver decides again. An edit runs no flow at all, so it is not a cheaper version of this. |
 
 ### `POST /v1/projects/{nodeId}/records/query`
 

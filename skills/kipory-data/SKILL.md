@@ -1,12 +1,14 @@
 ---
 name: kipory-data
-description: Work with a Kipory project's own data over the design API — list and search its records, read and state typed edges between them, upload and attach files, watch a record being processed, and see what the ingest workers fetched and cached. Use when the user asks to see, query, import or upload what a project holds, or asks why a record is stuck, missing, or not attached to its file. Not for defining record types (that is modelling) and not for the product's own end-user API, which is a dynamic endpoint.
+description: Work with a Kipory project's own data over the design API — create, correct, re-file, re-run and delete one record by hand, list and search its records, read and state typed edges between them, upload and attach files, watch a record being processed, and see what the ingest workers fetched and cached. Use when the user asks to add, fix, re-file, re-run or remove a record, or to see, query, import or upload what a project holds, or asks why a record is stuck, missing, or not attached to its file. Not for defining record types (that is modelling), not for authoring the flow that writes records at scale (that is building), and not for the product's own end-user API, which is a dynamic endpoint.
 license: MIT
 ---
 
 # Read and write a project's data
 
-A project's records are written by **flows**, never by a coded route: there is no `POST /v1/…/records`. A record comes into being when a step such as `entity.create` runs — inside a dynamic endpoint your product's users call, a schedule, or a processing flow. What the design API gives you directly is the **read side** (list, search, one hop of edges, the processing stream), the **file handshake**, curated edges, and the ingest report. The fact most people get wrong: a key-driven run writes the **project's shared pool** — a record type whose owner scope is per-user refuses a key with a 403, because a key carries no user.
+A project's records are normally written by **flows**: a record comes into being when a step such as `entity.create` runs — inside a dynamic endpoint your product's users call, a schedule, or a processing flow. That is still the path that scales, and the one your product should use.
+
+The design API also writes one record at a time, for an operator correcting what a flow produced: `POST /v1/projects/{nodeId}/records` creates one by hand, and `GET …/records/{id}`, `PATCH`, `DELETE`, `POST …/reprocess` and `PUT …/facets/{facetKey}` read, correct, end, re-run and re-file an existing one — five verbs, five routes. Alongside those it gives you the **read side** (list, search, one hop of edges, the processing stream), the **file handshake**, curated edges, and the ingest report. The fact most people get wrong: a key-driven run writes the **project's shared pool** — a record type whose owner scope is per-user refuses a key with a 403, because a key carries no user.
 
 Every route here answers on the **api host** with your key and addresses the project by its **node id**. Passing the project id where a node id is wanted is a uniform 403, not a helpful error.
 
@@ -87,4 +89,4 @@ The handler that writes a record is `entity.create`; its config and worked examp
 
 ## Then
 
-`kipory-extract` when a file attached to a record has to become text. `kipory-retrieve` to make what a project holds searchable. `kipory-evolve` before deleting records to clear a type. `kipory-build` to author the flow that creates or processes records — that is where a record write actually happens. `kipory-model` when the type, facet or relation kind you need does not exist yet. `kipory-diagnose` when a record processed and came back wrong: the processing stream tells you _that_ it failed, the run's steps tell you _where_. `kipory-expose` to put the record write on HTTP for your product's users.
+`kipory-extract` when a file attached to a record has to become text. `kipory-retrieve` to make what a project holds searchable. `kipory-evolve` before deleting records to clear a type. `kipory-build` to author the flow that creates or processes records at scale — the path every record your product's own users produce travels, and the one the write above is the operator's exception to. `kipory-model` when the type, facet or relation kind you need does not exist yet. `kipory-diagnose` when a record processed and came back wrong: the processing stream tells you _that_ it failed, the run's steps tell you _where_. `kipory-expose` to put the record write on HTTP for your product's users.

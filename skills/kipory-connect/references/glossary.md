@@ -14,7 +14,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Grant.** What an API key carries: one node and one role. Reach is descent from that node. A key never has a user, so it never has a `me`.
 
-**Record vs. record type.** A **record type** is a kind of record — its shape, owner scope, facets, natural key, processing flow (`/v1/record-types`). A **record** is one stored instance. Records are written by flows, never by a coded route.
+**Record vs. record type.** A **record type** is a kind of record — its shape, owner scope, facets, natural key, processing flow (`/v1/record-types`). A **record** is one stored instance. Records are normally written by flows; the design API also writes one at a time (`POST /v1/projects/{nodeId}/records` and the item routes beside it) for an operator correcting what a flow produced.
 
 **Schema entry.** A reusable typed shape a record type or flow output refers to. Builtin and library shapes are synthesized on read and have no rows.
 
