@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 862785fdbf4f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 42a2b2a46bea · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Eval suites
 
@@ -84,8 +84,10 @@ it never actually had.
 `POST /v1/eval-suites/{id}/run` would answer 409, and that includes a run that is queued and not yet
 picked up. ⛔ Do not read it off `lastRun.status === "RUNNING"`: the run row is written only when
 the worker starts, so for the whole wait the newest run is still the previous, settled one — and a
-Run control drawn from it is offered exactly when it is refused. `runInFlight` is `null` when the
-platform could not read its queue; that says nothing either way.
+Run control drawn from it is offered exactly when it is refused. It is also `true` while a run row
+still holds the suite's lock after its worker died — the platform honours that lock for twelve
+minutes and refuses a POST on it. `runInFlight` is `null` only when the platform could not read its
+queue AND no such lock is held; that says nothing either way.
 
 ### Starting a run does not wait for it
 
