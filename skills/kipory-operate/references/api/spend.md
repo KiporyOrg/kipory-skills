@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: d7a9504f5f62 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 191f366f6b69 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Spend
 
@@ -189,6 +189,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `errorCode` | `"error:rate_limit" \| "error:quota_exhausted" \| "error:transient_network" \| "error:provider_error" \| "error:schema_validation" \| "error:timeout" \| "error:unknown"` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `error:unknown` rather than passed through, so a client can switch on this exhaustively. |
 | `skill` | `object \| null` | yes | Null for a call no skill made. |
 | `flow` | `object \| null` | yes | The skill's flow. Null whenever `skill` is. |
+| `record` | `object \| null` | yes | The record this call was processing. ⛔ NO ADDRESS COMES WITH IT — unlike `flow`, which carries a slug because it has a page. A record is named so a reader recognises it, and the id is what they can search on; it is not a link. |
 | `totalTokens` | `integer \| null` | yes | NOT MEASURED when null, never zero. Embeddings, reranks and transcriptions routinely report no usage at all. |
 | `credits` | `integer \| null` | yes | What this call CHARGED, in credits — a credit is a millionth of a dollar — summed over the `CostEvent` rows linked to it. ⛔ THE CUSTOMER'S FIGURE, NOT KIPORY'S: this used to serve `providerCostMicroUsd`, which is what Kipory paid its vendor and is never shaped onto a `/v1` response. ⛔ Null means NO COST EVENT LANDED — the call was not free, it is unpriced, and a call that has just run sits here for a moment. |
 | `latencyMs` | `integer` | yes | Wall time. On a timeout this is OUR deadline rather than the provider's answer, which is why it is never null. |
@@ -198,7 +199,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `correlationId` | `string` | yes | ⚠️ TODAY THIS EQUALS THE CALL'S OWN ID ON EVERY ROW — 114,862 of 114,862 measured on production 2026-08-25 — because the chokepoint's `?? id` fallback fires every time. It is sent because it is what the platform stored, NOT because it can yet gather the calls of one run. |
 | `sessionId` | `string \| null` | yes | The end-user session, when the call was made inside one. |
 | `userId` | `string \| null` | yes | The end user the call was made on behalf of. |
-| `record` | `object \| null` | yes | The record this call was processing. ⛔ NO ADDRESS COMES WITH IT — unlike `flow`, which carries a slug because it has a page. A record is named so a reader recognises it, and the id is what they can search on; it is not a link. |
 | `redactedPatternCounts` | `object` | yes | Pattern name → how many matches were removed before the PROMPT and the RESPONSE were stored. ⚠️ SPARSE: a pattern that matched nothing is absent rather than zero. An empty map is a MEASURED fact — the map is written on every row. ⛔ IT DOES NOT COVER `errorMessage`: the redactor runs over a provider's error text too and its counts are discarded, so a stored message may carry a `[REDACTED:…]` marker this map does not account for. |
 | `stored` | `object` | yes | What was kept, how big it is, and where it went. |
 | `payload` | `object` | yes | ⛔ NULL MEANS THE CALLER DID NOT ASK, which is none of the four absences inside the object. Send `payload=prompt` or `payload=response` to get one. |
