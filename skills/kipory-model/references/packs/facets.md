@@ -415,11 +415,15 @@ different claims, and only one of them is true.
 ## What will bite you
 
 - **Deleting a facet cascades** — it unlinks the facet from every record type that used it, removes
-  its whole vocabulary, and can strip labels off records. ⛔ Ask
-  `GET /v1/facets/{id}/delete-preflight` FIRST: that is where the blast radius is named, before
-  anything is written. The delete response carries only COUNTS, not the list of what was hit.
-  ⚠️ A destructive delete is refused without `confirm=true`, and a facet with assigned terms also
-  needs an `assignedTerms` disposition — a plain `DELETE` on a facet in use is a 409, not a delete.
+  its whole vocabulary, and can strip labels off records. ⛔ Ask the delete itself first, with
+  `validateOnly=true` in the query: it answers a 200 verdict saying whether the delete would be
+  allowed and, under `derived`, the blast radius it would reach — before anything is written. The
+  real delete's response carries only COUNTS, not the list of what was hit.
+  ⚠️ Send the SAME query you intend to delete with. A destructive delete is refused without
+  `confirm=true`, and a facet with assigned terms also needs an `assignedTerms` disposition, so a
+  dry run that omits either answers the refusal you would have got — which is the point of asking.
+  ⭐ This replaced a sibling preflight route, which took neither of those two and could therefore
+  report the size of a delete but never whether it would succeed.
 - **`facet.resolve` runs inline, not queued.** It dispatches sub-flows bound to the live run:
   depth and cycle guards, the provider cache, the tenant scope, billing. That is precisely why it
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.

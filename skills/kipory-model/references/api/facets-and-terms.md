@@ -15,7 +15,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/facets/{id}`](#get-v1-facets-id) |  |
 | `PATCH` | [`/v1/facets/{id}`](#patch-v1-facets-id) |  |
 | `DELETE` | [`/v1/facets/{id}`](#delete-v1-facets-id) |  |
-| `GET` | [`/v1/facets/{id}/delete-preflight`](#get-v1-facets-id-delete-preflight) |  |
 | `POST` | [`/v1/facets/{id}/terms`](#post-v1-facets-id-terms) |  |
 | `GET` | [`/v1/facets/resolvers`](#get-v1-facets-resolvers) |  |
 | `GET` | [`/v1/terms`](#get-v1-terms) |  |
@@ -193,8 +192,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `confirm` | `"true" \| "false"` | no | Pass `true` to actually delete. Without it the call returns the preflight instead, so you can see what would be destroyed before committing to it. |
-| `assignedTerms` | `"delete" \| "archive"` | no | What to do with terms that records already carry. Required once the preflight reports any — there is no default, because both answers destroy something different. |
+| `confirm` | `"true" \| "false"` | no | Pass `true` to actually delete. Without it a destructive delete is refused with a 409 rather than performed — the gate is server-side, so a direct caller cannot wipe a vocabulary by accident either. ⭐ TO SEE WHAT WOULD BE DESTROYED, send `validateOnly=true` (below) with the same options you intend to delete with: that answers a 200 verdict plus the blast radius and writes nothing. |
+| `assignedTerms` | `"delete" \| "archive"` | no | What to do with terms that records already carry. Required once any term is assigned — there is no default, because both answers destroy something different. Ask `validateOnly=true` to find out whether this delete needs one. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/delete-preflight`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -208,27 +208,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `archivedTerms` | `integer` | yes | Terms archived rather than removed, keeping the labels on existing records. Always zero if you chose to delete them instead. |
 | `removedAssignments` | `integer` | yes | Labels taken off real records. Always zero if you chose to archive instead. |
 | `qdrantWarning` | `string \| null` | yes | Set when the rows are gone but their vector-store points outlived the sweep. Harmless — a background pass collects them — and reported rather than hidden, because the database is the authority and silence here would be a lie. |
-
-### `GET /v1/facets/{id}/delete-preflight`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The facet's id, as returned when it was created or listed. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `facetKey` | `string` | yes | The facet this preflight is about. |
-| `childFacetKeys` | `string[]` | yes | Facets nested under this one. If this is not empty the delete is refused outright — re-parent or delete them first. |
-| `recordTypeLinks` | `integer` | yes | How many record types surface this facet. Those attachments go with it, and that cannot be undone. |
-| `terms` | `integer` | yes | Every term on this facet. All of them go, one way or another. |
-| `assignedTerms` | `integer` | yes | How many of those terms are actually applied to a record. **If this is not zero you must choose what happens to them** — they cannot simply be deleted while records still carry them. |
-| `assignments` | `integer` | yes | How many individual labels are at stake across all records. |
-| `recordsAffected` | `integer` | yes | How many distinct records lose at least one label. This is the number that tells you how far the deletion actually reaches — the others count rows, this one counts consequences. |
-| `blocked` | `boolean` | yes | True when the delete is refused no matter what you confirm — currently only because other facets are nested under this one. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the delete would reach — the same numbers `GET /:id/delete-preflight` used to answer on its own. Present on both arms of a verdict: a refusal is about a facet that exists, and its counts are what explain the refusal. |
 
 ### `POST /v1/facets/{id}/terms`
 

@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260921.1526 — 2026-09-21
+
+Synced from the Kipory monorepo at `fcecabb20`.
+
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/facets-and-terms.md`
+- changed: `skills/kipory-model/references/api/record-types.md`
+- changed: `skills/kipory-model/references/api/schema-entries.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+
 ## 1.20260921.1507 — 2026-09-21
 
 Synced from the Kipory monorepo at `8ccc4858c`.

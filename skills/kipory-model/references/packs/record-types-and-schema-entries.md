@@ -647,10 +647,19 @@ body. A cached answer — every query reads the stores as they are now. The oper
   it, strictest wins.
 - **Deleting an entry** while it is a record type's data shape
   (`SCHEMA_ENTRY_REFERENCED_BY_RECORD_TYPE`) or referenced by the type-relation graph
-  (`SCHEMA_REFERENCED_BY_GRAPH`). `GET /v1/schema-entries?expand=graph` says which references those
-  are before you try: each entry carries `usedByGraph` and `usedByGraphRefs` — the flows, steps,
-  handlers and sibling types that name it DIRECTLY. A flow taking a type that `$ref`s this one is
-  listed under that type, not here.
+  (`SCHEMA_REFERENCED_BY_GRAPH`). ⭐ Ask the delete with `validateOnly=true` in the query: it runs
+  the same gate the delete runs and answers a 200 verdict, with `derived` carrying the census of
+  everything pointing at the entry — record types, event types, configuration namespaces, relation
+  kinds, entries reaching it through a reference, and whether a project binds it as its end-user
+  profile. ⚠️ `derived` is absent when the verdict refuses: the gate stops inside its own walk, and
+  a census loaded afterwards would be a different read from the one that refused. The refusal
+  sentence names the consumer that blocked it.
+
+  `GET /v1/schema-entries?expand=graph` says which graph references those are before you try: each
+  entry carries `usedByGraph` and `usedByGraphRefs` — the flows, steps, handlers and sibling types
+  that name it DIRECTLY. A flow taking a type that references this one is listed under that type,
+  not here.
+
 - **Deleting a record type** that has records (`RECORD_TYPE_PINNED_BY_RECORDS`), was seeded
   (`RECORD_TYPE_SEEDED_READONLY`), or carries a reserved type name
   (`RECORD_TYPE_NAME_RESERVED` — a platform-wide set, not something your project defines).
@@ -664,11 +673,18 @@ body. A cached answer — every query reads the stores as they are now. The oper
   `invalidatedJoins`, beside it, reports the OTHER record types whose `joins` declaration this
   delete voided. Both exist because you asked to remove one thing and something else changed.
 
-  **Ask first: `GET /v1/record-types/{id}?expand=dependents`.** It counts, through the delete's
-  own reads, the records that refuse it (`refuses: true`) and the paired relation kinds and other
-  types' `joins` it would change (`refuses: false`). `total` sums only the refusing counts, so
-  `total > 0` means the delete will be refused; a seeded or reserved type is refused whatever it
-  says.
+  **Ask the delete itself first, with `validateOnly=true` in the query.** It answers a 200
+  verdict — whether the delete would be allowed, and why not — from the same function the real
+  delete runs, so all three refusals above are covered including the two an expand does not know
+  about. ⛔ It carries no `derived`, deliberately: the count that refuses a pinned type rides the
+  refusal's own sentence, and a structured member beside it would have read zero on every refusal —
+  the check stops at the first rule that refuses, so nothing later is counted.
+
+  **`GET /v1/record-types/{id}?expand=dependents` is still the read for the page**, and it answers
+  a different question: it counts, through the delete's own reads, the records that refuse it
+  (`refuses: true`) and the paired relation kinds and other types' `joins` it would change
+  (`refuses: false`). ⛔ `total` sums only the refusing counts, so a seeded or reserved type reads
+  `total: 0` and is refused anyway — which is exactly why the verdict above is what gates a button.
 
 - **A declaration the contract has moved out from under.** Each declaration is validated when it is
   saved; editing the shape or re-capturing the flow afterwards can leave one naming a field the

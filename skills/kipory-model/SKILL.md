@@ -63,7 +63,7 @@ POST /v1/facets                                { matching: exact | semantic, res
 POST /v1/facets/{id}/terms                     bulk-seed the vocabulary
 PATCH /v1/record-types/{id}                    `uses.facets: [...]` — which facets a type surfaces, in order; read back with `expand=facets`
 GET  /v1/facets/resolvers                      the resolver flows available
-GET  /v1/facets/{id}/delete-preflight          what deleting would reach
+DELETE /v1/facets/{id}?validateOnly=true      whether the delete would be allowed, and what it would reach
 GET  /v1/facets/{id}?expand=readiness
 ```
 

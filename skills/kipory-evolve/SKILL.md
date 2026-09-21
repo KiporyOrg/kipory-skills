@@ -38,7 +38,7 @@ eleven names, and an agent that does not know they exist discovers a cascade by 
 | ----------------------------------------------- | ------------------------------------------------------------- |
 | `GET /v1/projects/{nodeId}/usage`               | what the project holds, before you touch any of it            |
 | `GET /v1/projects/{nodeId}/deletion-preview`    | what deleting the whole project would take with it            |
-| `GET /v1/facets/{id}/delete-preflight`          | what deleting a facet reaches — the blast radius, named       |
+| `DELETE /v1/facets/{id}` + `validateOnly`       | whether a facet delete would be allowed, and what it reaches  |
 | `GET /v1/record-types/{id}/contract-preview`    | the field vocabulary as **stored**, not as you have staged it |
 | `PATCH /v1/record-types/{id}` + `validateOnly`  | whether a record of the new shape would actually save         |
 | `GET /v1/skills/rename-preview`                 | every step whose wiring a slot rename would rewrite           |
