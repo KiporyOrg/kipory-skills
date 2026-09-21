@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b7b8543fd333 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: d7a9504f5f62 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Skills (flow steps)
 
@@ -240,7 +240,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `picker` | `"row" \| "config" \| "prompt"` | yes | Where this step's inputs are chosen. `row` — picked for the step itself, and only then are `bounds` and `candidates` filled. `config` — the step's settings name them. `prompt` — the prompt's placeholders name the step's text inputs. A file input a multimodal prompt attaches is named by no placeholder: it is wired through the step's own `inputStreams` and `inputSchemas` on its write, no picker offers one, and this read lists no candidates for either. |
+| `picker` | `"row" \| "config" \| "prompt"` | yes | Where this step's inputs are chosen. `row` — picked for the step itself. `config` — the step's settings name them. `prompt` — the prompt's placeholders name the step's TEXT inputs. `bounds` and `candidates` are filled for `row`, and for a `prompt` step whose `attaches` is set — never for `config`, whose settings are where its slots are named. |
+| `attaches` | `"files"` | yes | What this step attaches beside the inputs named in its prompt, or null for nothing. `files` — a file-shaped input is built into what the model is sent without any placeholder naming it, so `bounds` describes what may be attached, `candidates` judges every slot against it, and `count` is null: any number, none required. |
 | `count` | `integer \| null` | yes | How many inputs the step takes, or null for any number. |
 | `bounds` | `object[]` | yes | What each input must hold. With a `count`, one entry per position, in order. Without one, a single entry every position shares. |
 | `stepScopedTo` | `object \| null` | yes | The fan-out or loop the step runs inside, as it is saved. Null when it runs outside both, or is not saved yet. |

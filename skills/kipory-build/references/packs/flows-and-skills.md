@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 320555c0adef · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: b1026f9be706 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -706,27 +706,53 @@ GET /v1/skills/input-options    every slot this step could read, each checked
 Send `flowId` and `handlerKey`, and `stepId` when the step is saved. Omit `stepId` for a step you
 are creating. Nothing is persisted.
 
-Read `picker` first. Only `row` means the inputs are chosen here, and only then are `bounds` and
-`candidates` filled in. `config` means the step's settings name its inputs. `prompt` means the
-prompt's placeholders name its text inputs. A file input that a multimodal prompt attaches is named
-by no placeholder: it is wired through the step's own `inputStreams` and `inputSchemas` on
-`PATCH /v1/skills/{id}`, no picker offers one today, and this read lists no candidates for either.
+Read `picker` and `attaches` together. `row` means the step's own inputs are chosen here. `config`
+means the step's settings name its inputs. `prompt` means the prompt's placeholders name its TEXT
+inputs — not all of them.
 
-`count` is how many inputs the step takes, or null for any number. `bounds` says what each must
-hold: with a `count`, one entry per position in order; without one, a single entry every position
-shares. Its `rule` is `contract` (the handler declares the shape, in `wants`), `list` (a fan-out's
-one input), `none` (the handler declares nothing) or `unresolved`. `words` says what the input must
-hold when no declared shape says it — `a list that is always there` for a fan-out — and is null
-otherwise. A variadic contract is enforced at every position, exactly as a fixed one is.
+⭐ **`attaches` is what a prompt step takes beside the inputs its placeholders name.** A multimodal
+handler builds a file-shaped input into what the model is sent, and no placeholder mentions it; on
+such a step `attaches` is `files`, and `bounds` and `candidates` are filled exactly as they are for
+`row` — every slot in scope, judged as an attachment. It is null everywhere else, including on a
+prompt handler that refuses file inputs outright, so `picker === "prompt"` is not the test for
+"may this step take a file": `attaches` is. A step's handler says the same thing ahead of this
+read, as `attachesFiles` on its `GET /v1/handlers` entry.
+
+`bounds` and `candidates` are filled for `row` and for a step that attaches; they are empty for
+`config`, whose settings are where its slots are named.
+
+`count` is how many inputs the step takes, or null for any number — and null for an attachment,
+which takes any number and requires none. `bounds` says what each must hold: with a `count`, one
+entry per position in order; without one, a single entry every position shares. Its `rule` is
+`contract` (the handler declares the shape, in `wants`), `list` (a fan-out's one input), `file`
+(something the step attaches: a slot holding a file or a list of files, or a field inside one that
+does), `none` (the handler declares nothing) or `unresolved`. `words` says what the input must hold
+when no declared shape says it — `a list that is always there` for a fan-out, `a file, or a list of
+files` for an attachment — and is null otherwise. A variadic contract is enforced at every
+position, exactly as a fixed one is.
+
+⛔ **Whether a slot holds a file is nominal, so do not decide it yourself.** The check resolves the
+project's builtin `file` entry and asks assignability against it: an object of your own that
+carries a key, a name and a MIME type is not a file, and neither is an entry whose definition
+points at the builtin. A wire you choose by comparing printed shapes will be refused by the save
+and will look right in every test you build from a real file. Take the verdict from this read, and
+store an attachment exactly as it is offered — a `reach-in` path keeps its `path` and its `label`,
+because the leaf is the file and the slot's root is not.
 
 Each candidate carries `verdicts`, aligned with `bounds`:
 
-- `fits` — the slot fits as it is.
+- `fits` — the slot fits as it is. ⭐ **It may carry `parts` as well**: places
+  INSIDE it that also fit, in the same shape `reach-in` uses. A slot that fits
+  is not an atom — a list of files offered to a handler that takes files can
+  still be wired as exactly one of them — so read `parts` if you want to offer
+  that, and ignore it to keep offering the slot whole.
 - `adapter` — it fits with one step: `first` takes a list's first item, `wrap` turns one value into
   a one-item list.
-- `reach-in` — a field inside the value fits, though the slot does not; `paths` lists every such
-  field, at most three levels deep — shallower fields first — leaving out any field whose name a
-  path cannot carry.
+- `reach-in` — something inside the value fits, though the slot does not; `paths` lists every such
+  part, at most three levels deep — shallower first — leaving out any field whose name a path
+  cannot carry. ⭐ **A part is a field, or — where the value is a LIST — its first item, its last,
+  or one field taken from every item.** The stored `path` says which; a list has no fields of its
+  own, so a path never walks a bare field off one.
 - `no` — nothing in it fits, with the save's `code` and `message`.
 - `unchecked` — nothing was checked.
 
@@ -925,7 +951,21 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 - **`FREE_FORM_INPUT_STREAMS_MISMATCH`** — your declared input streams must exactly equal the set
   of slots the handler's free-form config actually references, whether through dotted paths,
   expressions, or template placeholders. The refusal names the streams you are missing, so this
-  is a loop worth leaning on rather than avoiding.
+  is a loop worth leaning on rather than avoiding. ⛔ **A prompt edit is a wiring edit.** The set
+  is what the template names PLUS every file-shaped wire the step attaches plus any slot named by
+  a non-prompt config field the handler declares (`text.generate`'s `modelSlot` is one), so
+  sending `promptTemplate` alone — or `handlerConfig` alone — is refused whenever the set moved.
+  Ask `POST /v1/skills/validate-draft` for the list and send it with the text.
+- **`CONFIG_SLOT_PATH_CROSSES_LIST`** — a config slot path takes a bare FIELD step off a LIST,
+  which reads nothing: a list has no fields, so the value resolves to `undefined` on every run and
+  the step behaves as though nothing were wired. `hits.chunks.text` is refused where
+  `hits` holds a list. ⭐ **Say which item instead** — a config path carries the same steps
+  a wire does: `hits[0].id` for one item, `hits[first]` / `hits[last]`, and `hits[].id` for that
+  field taken from every item. Naming the list itself passes the whole list. ⚠️ **A WIRE's printed
+  path is not always a config path.** A wire chip may render an item step as the suffix `.first`,
+  `.last` or `.asList`; typed into a config slot those read as FIELDS of those names, so spell an
+  item with brackets. `.asList` has no config spelling at all — lifting a value into a one-element
+  list is a wire projection — and a path carrying it resolves to nothing without being refused.
 - **Editing a skill requires the version you last read.** A stale one is refused unless you
   explicitly force the save. Re-read and reconcile; do not blind-retry. Batch updates lock each
   item the same way.

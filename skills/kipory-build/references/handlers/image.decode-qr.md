@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 520b926651160e3a59c0ea86af3cc06c9db8572a500fe748477b12b9eda11162 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: ab29c271f280e4f85ac8e498c81a05dee34a3cd7192f599be16a34452e3e39fc · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `image.decode-qr` — Decode QR codes
 

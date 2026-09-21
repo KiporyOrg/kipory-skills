@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: 520b926651160e3a59c0ea86af3cc06c9db8572a500fe748477b12b9eda11162 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · version: ab29c271f280e4f85ac8e498c81a05dee34a3cd7192f599be16a34452e3e39fc · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # `entity.read` — Read records by ID
 
@@ -16,7 +16,7 @@ Read records by ID so later steps can use their text, files, or metadata.
 | `dataNullChecks` | object[] | no | — | Keep rows by whether a path inside `data` is empty or filled. With `failIfEmpty`, this is how a soft-deleted record reads as missing. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. |
 | `failIfEmpty` | boolean | no | `false` | Fail the step when nothing resolves, instead of returning an empty list. Turn it on for a read that should answer not-found. ⚠️ Off by default, because a list read treats missing ids as ordinary. Leaving it off on a single-id read turns a missing record into a confusing downstream failure instead of a clean one. |
 | `fields` | string[] | no | `[]` | Which of the record type's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A name the record type does not declare is ignored, and a list of only unknown names falls back to emitting every field rather than blanking the row. |
-| `idsSlot` | string | yes | — | The slot holding the ids to read. Accepts plain ids or the candidate objects a vector search emits, and dot-paths work. |
+| `idsSlot` | string | yes | — | The slot holding the ids to read. Accepts plain ids, the candidate objects a vector search emits, or a path into either. ⚠️ A path says which value: `hit.recordId` a field, `hits[0].recordId` one item, `hits[last]` the last, `hits[].recordId` that field from every item. A bare field off a list reads nothing. |
 | `include` | object | no | `{}` | Extra dimensions per row. Terms come back by default; files, relations and cost are opt-in. None appears in the step's output type. ⚠️ Turning on files signs a download URL for every file on the record. Relations come back grouped by kind, with one property bag per time the pair was named. |
 | `recordType` | string | yes | — | The record type to read. Required: only rows of this one type are ever returned. |
 | `scalars` | object | no | `{}` | Opt-in scalar fields. `statusError` adds the failure summary (string\|null); `fileCount` adds the attached-file count. |
