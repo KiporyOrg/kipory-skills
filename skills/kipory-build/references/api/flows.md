@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b33ba07e711b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 216f491414a3 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Flows
 
@@ -82,6 +82,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
+| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flow=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 
 ### `GET /v1/flows/{id}`
 
@@ -95,7 +96,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: dependents. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: dependents, timeLimits. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -115,6 +116,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
+| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flow=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 
 ### `PATCH /v1/flows/{id}`
 
@@ -154,6 +156,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
+| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flow=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

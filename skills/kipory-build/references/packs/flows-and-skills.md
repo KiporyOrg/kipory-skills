@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 5aedbce1f155 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 1b4d8de34321 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -425,7 +425,11 @@ step that sets none behaves as it always has.
   unset limit falls back to — it can be the step's task limit, the deployment's generation default
   or the handler's own wait, and which one depends on the handler. Read `effectiveTimeLimit` on
   `GET /v1/skills?flow=` instead: the limit a run applies, the layer that decided it, and
-  `whenUnset`, what clearing the step's own falls back to. `run.budgetMs` is a limit the handler
+  `whenUnset`, what clearing the step's own falls back to. Holding a flow's steps already — off
+  the bootstrap, which carries every row — ask `GET /v1/flows/{id}?expand=timeLimits` for the
+  same figure keyed by skill id, without the rows; it rides beside `expand=dependents` on one
+  read. Neither is on the bootstrap: the deployment's limits move it without a design write.
+  `run.budgetMs` is a limit the handler
   keeps whatever you set — 5 s for `value.transform` — so only a shorter limit changes anything
   there.
 - **`tries`, `tryDelayMs`** — the number of tries including the first (1–5), and a fixed wait between
