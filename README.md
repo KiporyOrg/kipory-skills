@@ -38,7 +38,7 @@ Three layers. The first two come from the deployment you build on; the third is 
 | **Judgment** — how to think about each capability    | `GET /v1/capability-packs` on your deployment (public, no credential) | `references/packs/*.md`, mirrored                                                                         |
 | **Procedure** — which job, in what order, what bites | this repo                                                             | every `SKILL.md`, plus the hand-written references beside it                                              |
 
-Every generated file opens with a stamp naming the content hash it was generated from. The deployment serves the same hashes live — `version` on `GET /v1/capability-packs` and on `GET /v1/handlers` — and `kipory-connect` runs a small script at turn zero that compares them. **When they differ, the deployment wins.** That is also why these skills name endpoints and never hosts: Kipory is deployed per installation, and a URL baked into documentation belongs to whoever wrote the documentation.
+Every generated file opens with a stamp naming its source, and the content hashes the whole layer was generated from are recorded once, in `kipory-connect/references/versions.md`. The deployment serves the same hashes live — `version` on `GET /v1/capability-packs` and on `GET /v1/handlers` — and `kipory-connect` runs a small script at turn zero that compares them. **When they differ, the deployment wins.** That is also why these skills name endpoints and never hosts: Kipory is deployed per installation, and a URL baked into documentation belongs to whoever wrote the documentation.
 
 ## The skills
 
@@ -76,7 +76,7 @@ What stands behind them: on every build of the monorepo, each skill's frontmatte
 
 ## Versions
 
-`VERSION` and `CHANGELOG.md` are written by the publish job; every publish is also a git tag. The stamps inside the generated references carry the content hashes that matter for correctness.
+`VERSION` and `CHANGELOG.md` are written by the publish job; every publish is also a git tag. `kipory-connect/references/versions.md` carries the content hashes that matter for correctness.
 
 ## License
 
