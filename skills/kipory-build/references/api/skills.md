@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 216f491414a3 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b6c076e1a27c · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Skills (flow steps)
 
@@ -279,6 +279,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `promptTemplate` | `string` | yes | The prompt to interpolate. |
 | `systemPrompt` | `string \| null` | no | A system prompt, interpolated against the same values. Only read by step types that accept one — supplying it elsewhere is ignored rather than an error. |
 | `slotValues` | `object` | no | The values to interpolate, keyed by slot name. Deliberately unvalidated here — supply whatever the step's inputs would be. |
+| `attachments` | `object` | no | Files to attach beside the prompt, keyed by the slot the step reads them from. Each value is the ids of files this project holds, in the order that slot's wires are in — never storage keys. |
 | `modelIdOverride` | `string \| null` | no | Try a specific model instead of the task preset's. Null or omitted uses the preset. |
 
 **Response `200`**

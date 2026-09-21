@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 1b4d8de34321 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: f3b1d191680f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Flows & skills
 
@@ -695,6 +695,38 @@ neither question.
 
 ⚠️ **A template fault is a 422, not a 500.** `PREVIEW_TEMPLATE_ERROR` carries the interpolation
 error verbatim — it is your input, and the route says so rather than swallowing it.
+
+⭐ **`/preview` can attach files, and it names them by ID rather than by key.** A step whose model
+reads an image or a PDF is answered on the prompt alone unless you say which files to send, so
+`/preview` takes `attachments`: an object keyed by the slot the files stand in for, whose values
+are LISTS of ids of files the project holds — a record's files and the project's own library
+alike. The platform resolves each id against the project the preview runs in, confirms the upload
+finished and the bytes are still in storage, and builds the reference itself.
+
+⚠️ **A list per slot, because a slot can carry more than one file.** A step attaches a file per
+WIRE, and two wires may read different paths out of one slot — so a run hands the model every one
+of them under that single slot. Send `{"post": ["file_a", "file_b"]}` to preview the same thing.
+A single id on its own is refused: the shape is always a list, even for one file.
+
+⚠️ **Which project that is follows the flow, except on a platform flow.** A project flow's step
+resolves its attachments against that flow's project. A platform flow has none, so it resolves
+against the `projectId` you name — the same one it bills and picks a model from.
+
+⚠️ **The order you send them in is the order the model sees, both ways.** A JSON object's key
+order is preserved and each slot's list is taken as written, so the file parts follow the prompt in
+that order — send the slots, and the files within a slot, in the step's own input order if the
+prompt refers to "the first image".
+
+⛔ **A storage key is not accepted, and that is deliberate.** A key is an address; an id is a name
+the platform has to look up and can refuse. An id this project does not hold answers 404 — the
+same answer a file that does not exist gets, because telling those apart would make the route an
+existence oracle for other projects. A file whose bytes are gone answers 422 and names it. Both
+happen before any model call, so a wrong id costs nothing.
+
+⚠️ **At most twelve FILES, counted across every slot and not deduplicated.** Each one is
+downloaded in full before the call, so a dozen names pointing at one large PDF is a dozen
+downloads — whether they sit on a dozen slots or on one. `/interpolate` takes no attachments at
+all: it calls no model, so there is nothing to attach one to.
 
 ## Choosing what a step reads
 
