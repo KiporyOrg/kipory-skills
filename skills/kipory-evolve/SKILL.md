@@ -40,7 +40,7 @@ eleven names, and an agent that does not know they exist discovers a cascade by 
 | `GET /v1/projects/{nodeId}/deletion-preview`    | what deleting the whole project would take with it            |
 | `GET /v1/facets/{id}/delete-preflight`          | what deleting a facet reaches — the blast radius, named       |
 | `GET /v1/record-types/{id}/contract-preview`    | the field vocabulary as **stored**, not as you have staged it |
-| `POST /v1/record-types/{id}/write-preview`      | whether a record of the new shape would actually save         |
+| `PATCH /v1/record-types/{id}` + `validateOnly`  | whether a record of the new shape would actually save         |
 | `GET /v1/skills/rename-preview`                 | every step whose wiring a slot rename would rewrite           |
 | `POST /v1/skills/validate-draft`                | whether an unsaved step is valid — it executes nothing        |
 | `GET /v1/flows/{id}/health`                     | whether the flow is whole after the edit                      |
@@ -63,7 +63,8 @@ schedule before the flow it fires. Delete the leaf, then what it hung from.
 
 **Changing a shape under live records** is neither. It is three steps, in this order:
 
-1. **Rehearse.** `contract-preview` for what the stored descriptor actually says; `write-preview`
+1. **Rehearse.** `contract-preview` for what the stored descriptor actually says; the PATCH with
+   `validateOnly: true`
    for whether a record of the new shape saves.
 2. **Widen, never narrow, in the first write.** Add the new field as optional. Existing records stay
    valid, and nothing has to be backfilled before the change lands.

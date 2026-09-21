@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 63ba6bafd615 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b33ba07e711b · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Record types
 
@@ -17,7 +17,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `DELETE` | [`/v1/record-types/{id}`](#delete-v1-record-types-id) |  |
 | `GET` | [`/v1/record-types/{id}/contract-preview`](#get-v1-record-types-id-contract-preview) |  |
 | `POST` | [`/v1/record-types/{id}/natural-key-preview`](#post-v1-record-types-id-natural-key-preview) |  |
-| `POST` | [`/v1/record-types/{id}/write-preview`](#post-v1-record-types-id-write-preview) |  |
 
 ### `GET /v1/record-types`
 
@@ -48,6 +47,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
 | `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type: USER for one person's own records, PROJECT for the project's shared content pool. Required — it is immutable once the type has records, so there is no safe default. |
 | `uses` | `object` | no | What each field is for. Omit for a type whose fields are stored with the record and read whole. Every projection — `searchable`, `queryable`, `relations`, the natural key, the facet links — is derived from this and cannot be sent directly. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/write-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. |
 
 **Response `201`**
 
@@ -160,6 +169,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ownerScope` | `"USER" \| "PROJECT"` | no | Change who owns records of this type. Refused once the type has records. Omit to keep. |
 | `uses` | `object` | no | Replace the type's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order, and a merge cannot express a reorder. Every projection is re-derived from it in the same transaction. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored type and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/write-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -199,6 +209,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
 | `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. |
 
 ### `DELETE /v1/record-types/{id}`
 
@@ -263,34 +276,3 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `declared` | `string \| null` | yes | The field declared today, or null when the type declares none. |
 | `examined` | `integer` | yes | Records every candidate below was measured against. |
 | `candidates` | `object[]` | yes | One verdict per field asked about, in the order asked. |
-
-### `POST /v1/record-types/{id}/write-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The record type's id, as returned when it was created or listed. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `name` | `string` | no | New name. Refused once the type has records. |
-| `dataEntryId` | `string` | no | Point the type at a different schema entry. Refused once the type has records. Omit to keep the current one. |
-| `description` | `string \| null` | no | This type's own description, separate from the entry's. |
-| `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
-| `ownerScope` | `"USER" \| "PROJECT"` | no | Change who owns records of this type. Refused once the type has records. Omit to keep. |
-| `uses` | `object` | no | Replace the type's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order, and a merge cannot express a reorder. Every projection is re-derived from it in the same transaction. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `accepted` | `boolean` | yes | Whether the platform would take this write. False carries the refusal below; it is an ANSWER rather than an error, which is why this route returns 200 for it. |
-| `refusal` | `object \| null` | yes | Why the write would be refused. Null when it would be taken. |
-| `staleVersion` | `boolean` | yes | Whether the `version` you sent is already behind the stored one — the save would answer 409. ⚠️ Reported separately from `refusal` because everything else about the plan is still true: this tells you to re-read and reconcile, not that the patch is wrong. |
-| `writes` | `string[]` | yes | The record-type columns this save would write, sorted. `version` is excluded — every save bumps it. An EMPTY list on an accepted write means the request changes nothing, which is the silent outcome this route exists to surface. |
-| `resolved` | `object` | yes | What would land in each declaration column, with the platform's own resolutions applied. Null where the type would declare nothing. |
-| `effects` | `object` | yes | What the save sets in motion AFTER it commits. Neither has a symptom at the call site, which is why they are here. |

@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 42a2b2a46bea · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 5aedbce1f155 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Sources
 
@@ -99,6 +99,27 @@ An edited message is a second event with a different id; a deleted one a third.
   (409 naming the source that has it).
 - A delete while any trigger listens (409, with the count). Delete the triggers first, on purpose.
 - A category or type of your own already holding the provider's key (409 at the first create).
+
+### Ask before you write: `validateOnly`
+
+Send `validateOnly: true` on the create or the patch and the platform answers a **verdict** at 200
+instead of writing: whether the write would be taken (`ok`), what it found (`diagnostics`), whether
+every rule ran (`complete`), and what it would compute (`derived`). Read `severity`, never `code`.
+
+⛔ **Two of the refusals above used to be reachable only by attempting the write.** A key already
+taken was a caught database violation, and a channel already watched was a query inside the
+transaction — so the only way to ask "does this project already watch that channel" was to try to
+watch it again. Both are decided before anything is written now, and both paths meet the same
+answer.
+
+⚠️ **A stale `version` is NOT reported here.** The optimistic lock is about when the write lands,
+not about whether your draft is coherent — the save answers 409 for it and the verdict says nothing,
+because `ok` answers only the second question.
+
+⚠️ **`derived` carries the key the source would be addressed by — or `null`.** A source with no
+key of your choosing and no channel in its config is named from the clock at save time, so naming
+one here would name the one key the save is guaranteed not to use. Null means "assigned when you
+save"; anything else is exactly what lands.
 
 ## What the platform guarantees
 

@@ -32,7 +32,7 @@ Each names the one before it, so the reverse order is a save refused for naming 
 3  make it required                     → now nothing is invalidated
 ```
 
-Check step 3 with `POST /v1/record-types/{id}/write-preview` before committing to it.
+Check step 3 with `PATCH /v1/record-types/{id}` and `validateOnly: true` before committing to it.
 
 **Subtractive.** Reverse dependency order, inside-out:
 

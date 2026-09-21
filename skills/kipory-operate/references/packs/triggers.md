@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 42a2b2a46bea · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 5aedbce1f155 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Triggers
 
@@ -130,6 +130,25 @@ message. A filter cannot stall the other triggers on the same event.
   active, durable, non-run type — the same question enable asks.
 - **Deleting a flow a trigger binds** is refused, counting the triggers it would strand, by the
   same guard that protects a flow a schedule binds.
+
+### Ask before you write: `validateOnly`
+
+Send `validateOnly: true` on the create or the patch and the platform answers a **verdict** at 200
+instead of writing: whether the write would be taken (`ok`), what it found (`diagnostics`) and
+whether every rule ran (`complete`). Read `severity`, never `code`.
+
+⛔ **A key already taken used to be reachable only by attempting the write** — a caught database
+violation, with no way to ask first. It is decided before anything is written now, and both paths
+meet the same answer. The selector and binding rules above were already decided before the write
+and are unchanged; what moved is that you can now hear all of them without making one.
+
+⚠️ **A stale `version` is NOT reported here.** The optimistic lock is about when the write lands,
+not about whether your draft is coherent — the save answers 409 for it and the verdict says nothing,
+because `ok` answers only the second question.
+
+⚠️ **There is no `derived`.** A trigger's stored row is the body you sent — the platform resolves
+no slot, binds no stage and mints no key of its own — so there is nothing to report back that you
+did not already have.
 
 ## What the platform guarantees
 

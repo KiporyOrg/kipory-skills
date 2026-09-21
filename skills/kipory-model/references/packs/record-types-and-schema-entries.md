@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 42a2b2a46bea · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 5aedbce1f155 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Record types & schema entries
 
@@ -806,43 +806,54 @@ route is how you find that out before you send it.
 the flow's captured signature, and re-implementing it in an editor is how a declaration gets
 approved against one vocabulary and indexed against another. Ask.
 
-### And ask what the SAVE would do: `POST /v1/record-types/{id}/write-preview`
+### And ask what the SAVE would do: `validateOnly` on the write itself
 
 The contract preview above answers what the field vocabulary would be. This one answers what your
-PATCH would DO — send it the same body you are about to save, and nothing is written.
+write would DO — send `PATCH /v1/record-types/{id}` (or `POST /v1/record-types`) with the body you
+are about to save and `validateOnly: true`, and nothing is written.
+
+⚠️ **The former write-preview sibling under this id is retired.** It asked this exact question at a
+second address, taking the PATCH body verbatim so the two could not disagree — an alias holding
+them together by hand. The flag on the write's own body is the same question with nothing to hold.
+
+**A verdict comes back 200.** It says whether the write would be taken (`ok`), what the platform
+found (`diagnostics`), whether every rule ran (`complete`) and what the save would compute
+(`derived`). A refusal is
+`ok: false` with a finding per rule that fired, each carrying its own `code`, a `severity` and the
+`field` it is about — read `severity`, never `code`. ⚠️ **A stale `version` is NOT one of them**, and that is deliberate. The save guards on the version
+you send and answers 409 when the row has moved — but the optimistic lock is about when the write
+lands rather than about whether your draft is coherent, so reporting it through `ok` would call a
+stale read a fault in the body. It arrives as `staleVersion` under `derived`, beside everything
+else about the plan, which is still true.
 
 ⛔ **The two answers worth having are the two a save gives you no way to see.** A 200 that quietly
-enqueues a full reindex, and a 200 that writes fewer columns than you meant. `effects.reindex` is
-the expensive one (a declaration change, a re-bind, a re-point — and a RENAME, which invalidates
-every stored point's payload namespace); `effects.restamp` says every row's query slots would be
-re-stamped. An **empty `writes`** means your request changes nothing at all, which is otherwise
-indistinguishable from a save that changed everything you intended.
+enqueues a full reindex, and a 200 that writes fewer columns than you meant.
+`derived.effects.reindex` is the expensive one (a declaration change, a re-bind, a re-point — and a
+RENAME, which invalidates every stored point's payload namespace); `derived.effects.restamp` says
+every row's query slots would be re-stamped. An **empty `writes`** under `derived` means your request
+changes nothing at all, which is otherwise indistinguishable from a save that changed everything
+you intended.
 
-**`effects.reembed` is the one that spends credits.** `reindex` says a reconcile is QUEUED, and a
-queued reconcile can find nothing to embed — a slot moved on a profile whose model resolves to no
-collection finds nothing at all, and a filter change finds only payloads to rewrite. `reembed`
-resolves the stored and the saved declaration the way the reconcile sweep does, asks its own
-divergence classifier whether a record indexed under the first is out of date under the second, and
-asks which repair that divergence takes — so `true` means every indexed record is projected again,
-embedding calls included. Two saves diverge every record and are still `false`: turning search off
-removes vectors, and adding or dropping a `filter` rewrites each record's stored payload in place —
-neither embeds anything.
+**`derived.effects.reembed` is the one that spends credits.** `reindex` says a reconcile is QUEUED,
+and a queued reconcile can find nothing to embed — a slot moved on a profile whose model resolves
+to no collection finds nothing at all, and a filter change finds only payloads to rewrite.
+`reembed` resolves the stored and the saved declaration the way the reconcile sweep does, asks its
+own divergence classifier whether a record indexed under the first is out of date under the second,
+and asks which repair that divergence takes — so `true` means every indexed record is projected
+again, embedding calls included. Two saves diverge every record and are still `false`: turning
+search off removes vectors, and adding or dropping a `filter` rewrites each record's stored payload
+in place — neither embeds anything.
 
-- **`resolved`** is each derived declaration as it would be STORED — the `searchable` document and the `queryable` and
-  `relations` documents your `uses` derives to, with the platform's own resolutions applied:
-  `queryable` carries the storage slot each `filter` field resolved to and `searchable` has its
-  per-record derive stages bound to concrete flow ids — the half you cannot compute yourself. Each
-  one is a full document, or `null` where the type would declare nothing, so you can see exactly
-  what a statement becomes before you commit to it.
-- **`accepted: false` comes back 200**, carrying the status the save would answer, its code and the
-  platform's own sentence — a `uses` refusal included, so a bad statement is found here rather than
-  by saving it.
-- **`staleVersion`** is reported on its own, because everything else about the plan is still true.
-  It means re-read and reconcile, not that your patch is wrong.
+- **`resolved`** under `derived` is each derived declaration as it would be STORED — the `searchable`
+  document and the `queryable` and `relations` documents your `uses` derives to, with the platform's
+  own resolutions applied: `queryable` carries the storage slot each `filter` field resolved to and
+  `searchable` has its per-record derive stages bound to concrete flow ids — the half you cannot
+  compute yourself. Each one is a full document, or `null` where the type would declare nothing.
+- ⚠️ **`derived` is absent entirely when the planner stopped at a refusal.** There is no plan to
+  describe, and an absent key says so where an empty list would read as a measurement.
 
 It runs the save's own decision phase rather than a description of it, so an answer here cannot
-disagree with the write. **EDITOR**, and a POST: the body is the PATCH body you are about to send,
-and the question is what YOUR save would do.
+disagree with the write. **EDITOR**, like the save it asks about.
 
 ## Identity — the field that says two records are the same thing
 

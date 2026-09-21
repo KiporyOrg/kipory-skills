@@ -36,7 +36,7 @@ POST /v1/record-types                          name, shape, owner scope, process
 PATCH /v1/record-types/{id}                    replace `uses` whole; `searchable`/`queryable`/`relations` in a body are a 422
 GET  /v1/record-types/{id}?expand=uses         where each use landed, and which use kinds this deployment supports
 GET  /v1/record-types/{id}/contract-preview    the field vocabulary a proposed shape or flow would give the type
-POST /v1/record-types/{id}/write-preview       what your PATCH body would do — derived declarations, reindex, restamp — writing nothing
+PATCH /v1/record-types/{id} validateOnly:true  what your PATCH body would do — derived declarations, reindex, restamp — writing nothing
 POST /v1/record-types/{id}/natural-key-preview the verdict a `key` use would get, per candidate field, before you send it
 ```
 
@@ -80,7 +80,7 @@ A facet whose `matching` is `exact` needs no resolver. A `semantic` one created 
 - **`expand=embedding` and `expand=vectorProgress` are refused on the record-types list.** They are per-row scans; ask them on `GET /v1/record-types/{id}`.
 - **Readiness is the diagnostic here, not `outstandingIssues`.** That array belongs to skill writes; none of the saves in this skill carry it. Re-read the facet or kind with `expand=readiness`: `blocked` cannot work (`RESOLVER_UNBOUND` on an unbound semantic facet), `inert` is wired to nothing, `unproven` has never resolved — expected an hour after authoring, a question a year later.
 - **An embedding profile's `version` is not a lock.** Its PATCH accepts `label`, `isDefault`, `defaultChunking` and `defaultStages`, and sending `version` is a 422. Changing the model or the slots goes through a version and re-embeds everything; changing a default re-derives and re-embeds every type that inherits it, without a version.
-- **`uses` is sent whole.** A PATCH carrying it replaces the statement; reordering two `filter` fields moves their storage slots and re-stamps every record of the type. Read it, change it, send it back with the `version` you read — and ask `write-preview` first if you are not sure what it derives to.
+- **`uses` is sent whole.** A PATCH carrying it replaces the statement; reordering two `filter` fields moves their storage slots and re-stamps every record of the type. Read it, change it, send it back with the `version` you read — and ask the same PATCH with `validateOnly: true` first if you are not sure what it derives to.
 - **A search step left behind after activation keeps querying the superseded collection** — stale results, not an error. Read `repointedSteps`.
 - **Vector search is ADMIN and bills.** `POST /v1/vector-collections/{name}/search` embeds the query text on every call. The collections surface is otherwise read-only; `{name}` is the collection's name without its project prefix, and `storeState: absent` is a divergence to act on while `unreachable` is an outage — never fold them.
 - **A 2xx is not a promise it will run** — see `kipory-connect`'s conventions. Runtime is stricter than authoring.
