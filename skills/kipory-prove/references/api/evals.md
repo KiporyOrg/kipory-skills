@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: 191f366f6b69 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · version: b1f28ed9374e · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Eval suites, cases and runs
 
@@ -413,6 +413,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `caseKeys` | `string[]` | no | Run exactly these cases, by their `key`. Omit to run every enabled case in the suite. |
 | `includeDisabled` | `boolean` | no | Also run cases marked disabled. |
 | `note` | `string` | no | Free-text note recorded on the run, for saying what you were testing. |
+| `validateOnly` | `boolean` | no | Check this run request and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/run/dry-run`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the run WOULD do. Present whenever the run would be accepted; absent when the platform refused to start it. |
 
 **Response `202`**
 
@@ -420,6 +430,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `suiteId` | `string` | yes | The suite whose run was accepted. |
 | `queued` | `true` | yes | Always true. The run is on the queue and has not started; re-read the suite's runs to see it once the worker picks it up. |
+| `diagnostics` | `object[]` | yes | What this run will and will not have measured — the same findings `validateOnly: true` answers with, on the request that actually queued it. ⛔ EVERY ONE IS A WARNING BY CONSTRUCTION: anything that stops a run is a 422 and you are not reading this. Carried here so a caller who did not ask first is told anyway, which is what stops these from being rules only the dry run runs. |
 
 ### `GET /v1/eval-suites/{id}/runs`
 

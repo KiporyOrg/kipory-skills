@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: b1026f9be706 · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · version: 862785fdbf4f · regenerated on every publish, so an edit here is overwritten; the deployment you are building on may serve a newer version — compare and prefer the live one -->
 
 # Capability pack — Eval suites
 
@@ -40,6 +40,7 @@ POST /v1/eval-suites            create — bind the flow
 POST /v1/eval-cases             add cases: a REQUIRED stable `key`, then inputs, expected
                                 (if any), labels, assertions
 POST /v1/eval-suites/{id}/run   queue a run — 202, the run has NOT happened yet
+                                … with `validateOnly: true` — 200 with a verdict, nothing queued
 GET  /v1/eval-suites/{id}/runs  poll here for the row the worker writes
 GET  /v1/eval-runs/{id}         read one run back, WITH its delta against the previous
 GET  /v1/eval-suites/{id}/trend across runs — one suite, its whole recent history
@@ -110,6 +111,35 @@ suite that is gone (404), a subject flow that no longer resolves, a `runAsUserId
 the project, an unknown case key (422), and a suite that already has a run going (409). What cannot be
 refused up front is SPEND — the run meters as it goes, so a run accepted here can still stop part
 way when the balance runs out, and that shows on the run.
+
+⛔ **This paragraph was one refusal ahead of the platform until 2026-09-20.** The subject flow was
+NOT checked when a run was queued — only when the worker came to execute it, where a 404 is a log
+line and the run simply never appears. Read it as current now; the check is where the sentence
+always said it was.
+
+### What the run WILL measure: `validateOnly`
+
+⭐ **`POST /v1/eval-suites/{id}/run` with `validateOnly: true` answers `200` with a verdict and
+queues nothing.** It is the same route and the same rules — a flag on the real route rather than a
+sibling, so a check that passes and a run that refuses cannot come apart. It is the standard dry-run
+envelope — a verdict, its findings, and whether every rule ran — plus one derived figure.
+
+`derived.gradedCaseCount` is how many cases this run would grade under the selection you sent, which
+is NOT the suite's case count.
+
+⛔ **`ok: true` WITH findings is the normal answer here.** On a write surface a finding usually
+means the row will not save. On this one the run is almost always accepted; the findings say what it
+will and will not have measured when it finishes. Gate on `severity`, never on `code`:
+
+| code                              | what it means                                                    | the run still happens |
+| --------------------------------- | ---------------------------------------------------------------- | --------------------- |
+| `EVAL_RUN_NO_CASES`               | the selection grades nothing, so the run lands `ERROR`           | yes                   |
+| `EVAL_RUN_SCORER_UNRESOLVABLE`    | a named scorer flow is gone; its cases come back ungraded        | yes                   |
+| `EVAL_SUITE_DISABLED`             | the sweep skips this suite; only a run asked for by hand happens | yes                   |
+| `EVAL_REGRESSION_EVENT_UNDEFINED` | a detected regression is recorded and emitted to nobody          | yes                   |
+
+⚠️ **The same four findings ride the 202.** A caller who queued a run without asking first gets
+them on `diagnostics` of the accept body, so this is not advice you can only have by asking for it.
 
 ⚠️ **A queued run is attributed to you.** `triggeredBy` is `MANUAL` and the run is owned by the
 caller — the same row a sweep would have written, with a different provenance.
