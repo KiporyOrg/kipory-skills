@@ -60,7 +60,8 @@ entry, the record type and the ownership together. Such an entry is OWNED:
 
 `POST /v1/schema-entries/{id}/promote` with the entry's `version` makes it an ordinary shared
 entry. It is one way — by then other rows may depend on it — and it changes no shape and re-points
-nothing. Deleting the owning record type releases the shape the same way rather than deleting it.
+nothing. Deleting the owning record type — or re-pointing it at another shape — releases the shape
+the same way rather than deleting it or stranding it.
 
 Both are scoped by `project`. Reads take useful expansions: the synthesised derived output shape,
 a **drift** verdict, and the type-relation graph.

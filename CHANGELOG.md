@@ -2,6 +2,17 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260922.2223 — 2026-09-22
+
+Synced from the Kipory monorepo at `532bb30c7`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-plan/SKILL.md`
+
 ## 1.20260922.1920 — 2026-09-22
 
 Synced from the Kipory monorepo at `6edf9efcd`.

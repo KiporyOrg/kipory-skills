@@ -26,8 +26,11 @@ license: MIT
    (served by `kipory-build`) is the judgment: names not ids, a partial document leaves the rest
    untouched, absence never deletes. **Plan it, show the plan, and stop again.** A plan writes
    nothing, so it is as cheap to reject as the sheet was.
-8. **Apply it** — `POST /v1/projects/{nodeId}/document` with the export's `version` — only after
-   the plan was read. One transaction, one history entry, however many rows.
+8. **Apply it** — `POST /v1/projects/{nodeId}/document` with the `version` the export or the
+   plan answered — only after the plan was read. One transaction, one history entry, however many
+   rows. For a project that does not exist yet, `POST /v1/projects` takes the `document` itself
+   (in place of a `template` slug) and applies it in the transaction that creates the project: a
+   refused document is a `422` with the plan, and no project exists afterwards.
 
 ## Three the protocol states that an agent most often skims past
 

@@ -90,9 +90,15 @@ refuses is exactly what an apply would refuse.
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
 required here too — but of its optional fields only the ones you state are compared and written;
-one you omit keeps its value. The simplest edit is the exported row with one field changed. The
-exception is the owned collections (a flow's `skills` and `tests`, a suite's `cases`, a kind's `pairings`, a
-facet's `terms`): each is stated whole, so when present it replaces the owner's collection.
+one you omit keeps its value. The simplest edit is the exported row with one field changed. A
+field the row's own PATCH does not take — a facet's `cardinality`, a profile's `modelId`, a
+trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
+it is fine (an export states everything), stated CHANGED it is refused on its own path, never
+dropped. To change one, state the row under a new key without the `id` and remove the old one.
+The exception is the owned collections (a flow's `skills` and `tests`, a suite's `cases`, a kind's `pairings`, a
+facet's `terms`): each is stated whole, so when present it replaces the owner's collection — and a
+member the project holds that the collection no longer names is REMOVED, which makes that
+document one that removes something, with the ADMIN floor an apply that removes has.
 A shape or a flow may also carry `adoptSnapshots: true`. Endpoints, schedules and record types
 FREEZE the types they bind, so an edit that re-shapes one is refused by the row's own write,
 naming what it would leave behind, unless you grant this. A document does not get to assume it:
@@ -139,7 +145,9 @@ same row, and everything that named it follows. Every other key is permanent (a 
 slug, an endpoint key: other rows are linked to it by key), so the same move is refused on the row;
 state the new key without the `id` and remove the old one with `delete: true`. An `id` that belongs to no row here — the usual
 case when a document exported from one project is planned against another — is ignored, listed
-under `ignoredIds`, and the row is matched by its key instead. It is never a refusal.
+under `ignoredIds`, and the row is matched by its key instead. It is never a refusal. Two stated
+rows that resolve to one current row — one by its id, one by its key — are two statements about
+one thing, and are refused on both paths: state it once.
 
 A name that resolves to nothing is `DOCUMENT_NAME_UNRESOLVED` on the path that spelled it. When
 exactly one name of the same kind is within two edits, the message offers it; when two are equally

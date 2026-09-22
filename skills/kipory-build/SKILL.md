@@ -79,7 +79,11 @@ along by cascade.
 - **Absence never deletes.** Removal is `delete: true` on a row, or `prune: true` on a map to
   remove every row of that map you did not name — and any document that removes something needs
   ADMIN. Owned collections (a flow's `skills` and `tests`, a facet's `terms`, a suite's `cases`,
-  a kind's `pairings`) are stated whole and replace the owner's.
+  a kind's `pairings`) are stated whole and replace the owner's, so a member you leave out of one
+  IS a removal, with the same floor.
+- **A field the row's PATCH does not take is permanent.** A facet's `cardinality`, a profile's
+  `modelId`, a trigger's `source`: stated as exported it is fine, stated changed it is refused on
+  its path — the document never drops it in silence. A new value is a new row under a new key.
 - **A shape may be stated inline under the record type that uses it.** That type then OWNS it:
   the shape is edited only through the type and refused to every other consumer until it is
   promoted (`POST /v1/schema-entries/{id}/promote`, one way).

@@ -58,6 +58,10 @@ POST /v1/projects  { name, slug, parentNodeId }       → 201 { id, slug, name }
 GET  /v1/projects/by-project-id/{projectId}           → { nodeId, … }
 ```
 
+The create also takes a `template` slug (`GET /v1/templates` lists them) or a whole `document`
+(`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
+transaction — a refused one leaves no project behind.
+
 ⚠️ Pass `parentNodeId` explicitly. It defaults to the platform organisation, which your grant almost certainly does not reach, so omitting it turns a correct request into a 403 that looks like a broken key.
 
 **4. Confirm facts live, never from memory.** Handler keys come from `GET /v1/handlers`, request shapes from `GET /v1/openapi.json`, the platform's own paths from `GET /v1/coded-routes` — all on _this_ deployment. The bundled `references/` are a snapshot of the same sources with the hash they were taken at; step 1 told you whether it is current.
