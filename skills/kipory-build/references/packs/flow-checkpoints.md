@@ -42,7 +42,8 @@ that is what the preview is for.
 
 `restore-preview` is read-only and never refuses. It returns the current skills, the snapshot's
 skills, and a `warnings` list naming references that no longer resolve — a model that is gone, a
-handler no longer registered, an invoke target that has since been deleted.
+handler no longer registered, an invoke target that has since been deleted, or a pinned model its
+step can no longer use (`model-unsuited`).
 
 ⚠️ **A restore always resets how each step runs, and the preview shows that.** A step's per-call
 deadline (`timeoutMs`) and its run settings — `tries`, `tryDelayMs`, `onFailure`,
@@ -55,7 +56,9 @@ absent value on the payload side means "this record does not say", which for a r
 
 Those warnings are the early signal for the one way a restore fails: **the captured graph is
 validated against the project as it is now, not as it was.** A snapshot taken when a handler
-existed will not restore after that handler goes away. Empty warnings mean a clean restore.
+existed will not restore after that handler goes away, and a step pinned to a model its call cannot
+be sent to — an embedding model on a step that generates text — is refused until the pin changes.
+Empty warnings mean a clean restore.
 
 ## What the platform guarantees
 
