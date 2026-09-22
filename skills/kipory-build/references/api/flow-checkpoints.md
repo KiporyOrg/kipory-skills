@@ -53,8 +53,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
 | `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
-| `createdById` | `string \| null` | yes | Who took it. Null for an automatic snapshot, a token, or a departed account. |
-| `createdByEmail` | `string \| null` | yes | Their email, copied at capture time, so it does not follow a later address change. |
+| `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
+| `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key — a machine credential is shown no roster of humans. |
+| `createdByName` | `string \| null` | yes | Their display name as the account holds it now. Null when they never set one (or only spaces), and wherever `createdByEmail` is null. |
+| `createdByImage` | `string \| null` | yes | Their avatar URL from the sign-in provider, or null when there is none, and wherever `createdByEmail` is null. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `GET /v1/flow-checkpoints/{id}`
@@ -76,8 +78,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
 | `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
-| `createdById` | `string \| null` | yes | Who took it. Null for an automatic snapshot, a token, or a departed account. |
-| `createdByEmail` | `string \| null` | yes | Their email, copied at capture time, so it does not follow a later address change. |
+| `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
+| `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key — a machine credential is shown no roster of humans. |
+| `createdByName` | `string \| null` | yes | Their display name as the account holds it now. Null when they never set one (or only spaces), and wherever `createdByEmail` is null. |
+| `createdByImage` | `string \| null` | yes | Their avatar URL from the sign-in provider, or null when there is none, and wherever `createdByEmail` is null. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `PATCH /v1/flow-checkpoints/{id}`
@@ -106,8 +110,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
 | `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
-| `createdById` | `string \| null` | yes | Who took it. Null for an automatic snapshot, a token, or a departed account. |
-| `createdByEmail` | `string \| null` | yes | Their email, copied at capture time, so it does not follow a later address change. |
+| `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
+| `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key — a machine credential is shown no roster of humans. |
+| `createdByName` | `string \| null` | yes | Their display name as the account holds it now. Null when they never set one (or only spaces), and wherever `createdByEmail` is null. |
+| `createdByImage` | `string \| null` | yes | Their avatar URL from the sign-in provider, or null when there is none, and wherever `createdByEmail` is null. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `DELETE /v1/flow-checkpoints/{id}`
@@ -157,4 +163,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `checkpoint` | `object` | yes | Which checkpoint this preview is of. |
 | `currentSkills` | `object[]` | yes | The flow's steps as they are NOW — the left side of the diff. |
 | `payloadSkills` | `object[]` | yes | The steps the checkpoint holds — what restoring would leave you with. A restore REPLACES the current steps with these; it does not merge. |
-| `warnings` | `object[]` | yes | References in the checkpoint that no longer resolve. These NEVER block a restore — you get the steps back and fix them afterwards — so an empty list is the only thing that means a clean restore. |
+| `warnings` | `object[]` | yes | References in the checkpoint that no longer resolve. These do not block a restore — you get the steps back and fix them afterwards — except `model-unsuited`, which the restore refuses and which is therefore also in `refusals`. Read `refusals` for what blocks. |
+| `refusals` | `object[]` | yes | Every captured step a restore would refuse that the preview can see: run settings held to today's handlers, and a pinned model its call cannot use. ANY entry here means the restore fails with a 422 and changes nothing; an empty list says only that neither blocks it. |
+| `signatureChanges` | `object` | yes | What a restore would change about the flow itself, beside its steps — the signature is put back exactly as captured, `null` (undeclared) included. |

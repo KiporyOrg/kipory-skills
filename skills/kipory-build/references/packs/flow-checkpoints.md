@@ -38,27 +38,47 @@ individual checkpoint is addressed by its own id.
 who made it and when — but not the snapshot itself. If you want to know what a restore would do,
 that is what the preview is for.
 
+**Who made it is the account as it is now, not as it was.** `createdByName`, `createdByEmail` and
+`createdByImage` are read through the author's account on every request — enough to draw the person —
+so a renamed author shows their new name on every old checkpoint. The checkpoint a restore takes of
+what it replaces is authored by whoever restored. All three are null where nobody is recorded — a
+checkpoint the platform took before a write to one of its own flows, one taken with a token, and one
+whose author's account is gone — and those cases look the same. They are also null whenever YOU call
+with an API key: a machine credential is shown no roster of humans, so a key reads `createdById` and
+nothing that names the person.
+
 ## Preview before you restore
 
-`restore-preview` is read-only and never refuses. It returns the current skills, the snapshot's
-skills, and a `warnings` list naming references that no longer resolve — a model that is gone, a
-handler no longer registered, an invoke target that has since been deleted, or a pinned model its
-step can no longer use (`model-unsuited`).
+`restore-preview` is read-only, and it never refuses on what it finds — only on a stored payload it
+cannot parse (422). It returns the current skills, the snapshot's skills, and a `warnings` list naming
+references that no longer resolve — a model that is gone, a handler no longer registered, an invoke
+target that has since been deleted, or a pinned model its step can no longer use (`model-unsuited`).
+Pair the two skill lists by `name`, never by position: they are ordered separately and need not be the
+same length.
 
-⚠️ **A restore always resets how each step runs, and the preview shows that.** A step's per-call
+It also answers what the skill lists cannot. `signatureChanges` says whether a restore would rewrite the
+flow's inputs, outputs and output binding — it puts the captured signature back, so a flow whose only
+change was its outputs is NOT a no-op restore. `refusals` names every step the restore would refuse that the preview can see —
+captured run settings held to today's handlers, and a pinned model its call cannot use (also listed as
+a `model-unsuited` warning); **any entry means the restore fails with a 422 and changes nothing**, so
+read it before you call restore.
+
+⚠️ **A restore puts back how each step runs — if the checkpoint recorded it.** A step's per-call
 deadline (`timeoutMs`) and its run settings — `tries`, `tryDelayMs`, `onFailure`,
-`reuseResultsForMinutes` — are persisted, operator-set columns, and the checkpoint FORMAT carries none
-of them. So a restored step comes back with no per-step deadline, its handler's own tries and reuse
-period, and a failure that fails the run. You can SEE it before committing: `currentSkills[i]` carries
-the live values, and `payloadSkills[i]` lacks them because the snapshot does not record them. An
-absent value on the payload side means "this record does not say", which for a restore is the same as
-"it will be reset". Read the pair before restoring a flow whose steps were tuned by hand.
+`reuseResultsForMinutes` — are captured with the step and written back by a restore. A checkpoint
+taken before the format recorded them does not carry them, and restoring one resets those steps: no
+per-step deadline, the handler's own tries and reuse period, and a failure that fails the run. The
+preview tells the two apart: a `currentSkills` entry always carries the live values, and on the
+`payloadSkills` entry with the same `name` an ABSENT key means "this record does not say", which for a
+restore is the same as "it will be reset". Read the pair before restoring an older checkpoint of a flow
+whose steps were tuned by hand.
 
-Those warnings are the early signal for the one way a restore fails: **the captured graph is
-validated against the project as it is now, not as it was.** A snapshot taken when a handler
-existed will not restore after that handler goes away, and a step pinned to a model its call cannot
-be sent to — an embedding model on a step that generates text — is refused until the pin changes.
-Empty warnings mean a clean restore.
+Those warnings and refusals are the early signal for the one way a restore fails: **the captured graph
+is validated against the project as it is now, not as it was.** A snapshot taken when a handler
+existed will not restore after that handler goes away, a step pinned to a model its call cannot be
+sent to — an embedding model on a step that generates text — is refused until the pin changes, and a
+step's run settings are held to its handler's rules today. Empty warnings and empty refusals mean a
+clean restore.
 
 ## What the platform guarantees
 

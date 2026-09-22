@@ -394,16 +394,17 @@ to notice was missing. `GET /v1/flows/{id}/export` carries it now, and `POST /v1
 persists it; a payload that omits it still parses and means "no per-step deadline", which is what an
 older stored export honestly says.
 
-⛔ **The CHECKPOINT format is a different format and does not carry it.** Run flow-snapshots and
-checkpoint payloads are serialized by the checkpoint entry shape, which has no `timeoutMs` — so
-`timeoutMs: null` on a snapshot means "this record does not say", NOT "the run had no deadline". Do
-not read a snapshot as evidence about a deadline, and expect a checkpoint restore to clear one. The
-restore preview shows the pair so the loss is visible before you commit to it; see
-`capability-packs/flow-checkpoints.md`.
+⚠️ **Checkpoints and run flow-snapshots carry it too — but only the ones captured since.** Both are
+serialized by the checkpoint entry shape, which records `timeoutMs` now. An older checkpoint or
+snapshot lacks the key, and there an absent `timeoutMs` means "this record does not say", NOT "the
+run had no deadline". Do not read an older snapshot as evidence about a deadline, and expect restoring
+an older checkpoint to clear one. The restore preview shows the pair so the loss is visible before
+you commit to it; see `capability-packs/flow-checkpoints.md`.
 
 The four run settings — `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes` — travel the
-same way `timeoutMs` does: the export carries them and `replace` persists them, while the checkpoint
-format carries none of them, so their absence on a snapshot means "not recorded".
+same way `timeoutMs` does: the export carries them, `replace` persists them, and the checkpoint
+format records them for anything captured since — so their absence on an older snapshot or checkpoint
+means "not recorded".
 
 ⚠️ **There is no `schemaVersion` on the export, deliberately.** The format is the replace entry
 shape, whose evolution is already governed; a version integer beside it would be a second, weaker

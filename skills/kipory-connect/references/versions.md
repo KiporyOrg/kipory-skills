@@ -6,6 +6,6 @@ Every page under `references/api/`, `references/handlers/` and `references/packs
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `96e8c75ea636` | `version` on `GET /v1/capability-packs` |
+| packs | `13c347875ab3` | `version` on `GET /v1/capability-packs` |
 | handlers | `898092b44218b559418ac6947f71dc9ff7bd3ff7adbabd050800f7671bf62789` | `version` on `GET /v1/handlers` |
-| api | `49512ec1bff3` | not served — `GET /v1/openapi.json` is the authority for shapes |
+| api | `179d5309136e` | not served — `GET /v1/openapi.json` is the authority for shapes |
