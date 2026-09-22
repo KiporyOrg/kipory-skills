@@ -681,10 +681,12 @@ body. A cached answer — every query reads the stores as they are now. The oper
   that name it DIRECTLY. A flow taking a type that references this one is listed under that type,
   not here.
 
-- **Deleting a record type** that has records (`RECORD_TYPE_PINNED_BY_RECORDS`), was seeded
-  (`RECORD_TYPE_SEEDED_READONLY`), or carries a reserved type name
-  (`RECORD_TYPE_NAME_RESERVED` — a platform-wide set, not something your project defines).
-  Deleting a type removes only the descriptor; the entry outlives it.
+- **Deleting a record type** that has records, was seeded, or carries a reserved type name (a
+  platform-wide set, not something your project defines). The DELETE answers 409 `CONFLICT` for
+  records, naming the rule at the head of its message (`RECORD_TYPE_PINNED_BY_RECORDS: …`); 409
+  `RECORD_TYPE_SEEDED_READONLY` for a seeded type; and 422 `VALIDATION_FAILED` for a reserved name,
+  again named at the head of the message (`RECORD_TYPE_NAME_RESERVED: …`). Deleting a type
+  removes only the descriptor; the entry outlives it.
 
   ⚠️ It does **not** leave the relation graph alone, and the response says what went. A record-type
   pair naming the deleted type disappears with it — so a link that applied to no other pair is now a
@@ -694,18 +696,21 @@ body. A cached answer — every query reads the stores as they are now. The oper
   `invalidatedJoins`, beside it, reports the OTHER record types whose `joins` declaration this
   delete voided. Both exist because you asked to remove one thing and something else changed.
 
-  **Ask the delete itself first, with `validateOnly=true` in the query.** It answers a 200
-  verdict — whether the delete would be allowed, and why not — from the same function the real
-  delete runs, so all three refusals above are covered including the two an expand does not know
-  about. ⛔ It carries no `derived`, deliberately: the count that refuses a pinned type rides the
-  refusal's own sentence, and a structured member beside it would have read zero on every refusal —
-  the check stops at the first rule that refuses, so nothing later is counted.
-
-  **`GET /v1/record-types/{id}?expand=dependents` is still the read for the page**, and it answers
-  a different question: it counts, through the delete's own reads, the records that refuse it
+  **Ask before you delete: `GET /v1/record-types/{id}?expand=dependents` carries
+  `deleteRefusal`** — the refusal the delete would answer right now, from the function the delete
+  throws from, or null when nothing stands in the way. It covers all three refusals above. Its
+  `code` is the envelope's (`CONFLICT`, `RECORD_TYPE_SEEDED_READONLY` or `VALIDATION_FAILED`), and
+  its `message` is the delete's sentence with the rule's name taken off the front. Gate a button
+  on it. The same read counts, through the delete's own reads, the records that refuse it
   (`refuses: true`) and the paired relation kinds and other types' `joins` it would change
   (`refuses: false`). ⛔ `total` sums only the refusing counts, so a seeded or reserved type reads
-  `total: 0` and is refused anyway — which is exactly why the verdict above is what gates a button.
+  `total: 0` and is refused anyway — never gate on `total`.
+
+  **`validateOnly=true` on the DELETE asks the same function** and answers a 200 verdict in the
+  same code and words — the way to ask when you are about to delete and hold no read. ⛔ It
+  carries no `derived`, deliberately: the count that refuses a pinned type rides the refusal's own
+  sentence, and a structured member beside it would have read zero on every refusal — the planner
+  throws before any verdict could carry a count.
 
 - **A declaration the contract has moved out from under.** Each declaration is validated when it is
   saved; editing the shape or re-capturing the flow afterwards can leave one naming a field the

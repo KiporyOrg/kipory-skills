@@ -50,7 +50,7 @@ PUT  <uploadUrl>                                 the bytes, within 15 minutes
 POST /v1/projects/{nodeId}/files/{fileId}/confirm → { fileId, status, uploadConfirmedAt }
 ```
 
-Then **attach it from a flow**: `entity.create` takes a `fileIdsSlot` and attaches the ids in the same transaction as the record write. There is no attach route and no delete route; `POST /v1/projects/{nodeId}/files/{fileId}/detach` releases a file from its record.
+Then **attach it from a flow**: `entity.create` takes a `fileIdsSlot` and attaches the ids in the same transaction as the record write. There is no attach route. `POST /v1/projects/{nodeId}/files/{fileId}/detach` releases a file from its record and keeps its bytes; `DELETE /v1/projects/{nodeId}/files/{fileId}` (ADMIN) removes the file, and its bytes once no other file row still names them. Both refuse (409) a file a flow produced.
 
 **See what processing did.**
 

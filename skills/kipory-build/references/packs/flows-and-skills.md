@@ -1034,12 +1034,20 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   explicitly force the save. Re-read and reconcile; do not blind-retry. Batch updates lock each
   item the same way.
 - **A flow cannot be deleted while another flow invokes it, or while anything live points at it**
-  (`FLOW_HAS_DEPENDENTS` — ⚠️ a **wider** set than the signature guard's, not the same one: five
-  kinds, adding schedules, triggers and facet resolvers to the endpoint and
-  record-type bindings that freeze a shape. Those three bind a flow by id and capture nothing, so
-  they cannot go stale on a signature edit — but they very much break on a delete). None of those is a
-  database-level foreign key, so this check is the only thing standing between the delete and a
-  dangling reference. A skill cannot be deleted while a sibling reads its slot.
+  — one 409 `FLOW_HAS_DEPENDENTS` naming every kind that holds it, the calling flows included
+  (⚠️ a **wider** set than the signature guard's, not the same one: to the endpoint and
+  record-type bindings that freeze a shape it adds schedules, triggers, facet resolvers, record
+  types' derive stages and — for a platform flow — the platform jobs it does. Those bind a flow by
+  id, or a job by the flow fitting it, and capture nothing, so they cannot go stale on a signature
+  edit — but they very much break on a delete). Only a platform job's stored default is a
+  database-level foreign key; every other holder is a loose id, so this check is the only thing
+  standing between the delete and a dangling reference. Ask before you press: `GET /v1/flows/{id}?expand=dependents` carries the
+  counts and `deleteRefusal` — that 409 in the delete's own words, or null — from the function the
+  delete throws from. Offer Delete where it is null; do not decide from `total`.
+- **A skill cannot be deleted while another skill in its flow reads a slot it writes** — as an
+  input or in its condition — a 409 `SKILL_HAS_DEPENDENTS` naming the slot and the readers. Every
+  entry of `GET /v1/skills?flow=`, and every skill on the bootstrap, carries that refusal as
+  `deleteRefusal` (or null), from the function the delete throws from.
 - **A flow whose project is off the design surface is a 404**, indistinguishable from one that
   never existed.
 

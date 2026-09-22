@@ -265,3 +265,18 @@ Gate: `requireUser`
 Gate: `requireUser`
 
 - `POST /v1/me/projects`
+
+## an invite decides who ELSE may act — a credential that can seat a person is a credential that can mint a human path around its own revocation, which is why the `/v1/nodes` member writes refuse a key too
+
+Gate: `membershipPrincipal (a person or the internal token)`
+
+- `DELETE /v1/nodes/{…}/invites/{…}`
+- `GET /v1/nodes/{…}/invites`
+- `POST /v1/nodes/{…}/invites`
+
+## suspending a person's seat or erasing their account is person governance, not workload — refused to a key for the invites' reason. POST /v1/projects/{nodeId}/members/{userId}/credits stays open to a key
+
+Gate: `membershipPrincipal (a person or the internal token)`
+
+- `POST /v1/projects/{…}/members/{…}/account-deletion`
+- `PUT /v1/projects/{…}/members/{…}/standing`

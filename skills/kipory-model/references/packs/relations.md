@@ -170,7 +170,15 @@ required**, so a kind is never born without one. The key is immutable. Pairings 
 recreating. ⚠️ But that recipe stops working the moment edges exist: a pairing carrying live edges
 is refused outright (`RELATION_PAIRING_PINNED_BY_EDGES`), and that is ANY pairing, not just the
 last one, because removing it would strand the links sitting on it. Remove those edges first, or
-delete the kind. (Separately, the LAST pairing can never be deleted at all.) Both resources are scoped by the project's `OrgNode` id.
+delete the kind. (Separately, the LAST pairing can never be deleted at all.) A `symmetric` kind
+that declares the same two types both ways round refuses either ordering too while links stand on
+the pair. Ask before you press: a read of ONE kind,
+`GET /v1/relation-kinds/{id}?expand=pairings`, gives each pair its `id` and `deleteRefusal` — either
+409 in the delete's own words, or null — from the function the delete throws from. The list gives
+each pair its `id` but no `deleteRefusal`: judging every pair there means counting every live link
+in the project. The live links are counted when you read, so a link written in between can still
+make the delete refuse, with that same sentence. Both resources are scoped by the project's
+`OrgNode` id.
 
 ### `declaration` — the producer's own half, in the same transaction
 

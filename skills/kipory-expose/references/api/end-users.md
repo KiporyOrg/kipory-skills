@@ -17,11 +17,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/projects/{nodeId}/auth-config`](#get-v1-projects-nodeid-auth-config) |  |
 | `PUT` | [`/v1/projects/{nodeId}/auth-config`](#put-v1-projects-nodeid-auth-config) |  |
 | `GET` | [`/v1/projects/{nodeId}/members`](#get-v1-projects-nodeid-members) |  |
-| `POST` | [`/v1/projects/{nodeId}/members/{userId}/account-deletion`](#post-v1-projects-nodeid-members-userid-account-deletion) |  |
 | `POST` | [`/v1/projects/{nodeId}/members/{userId}/credits`](#post-v1-projects-nodeid-members-userid-credits) |  |
 | `GET` | [`/v1/projects/{nodeId}/members/{userId}/deletion-preview`](#get-v1-projects-nodeid-members-userid-deletion-preview) |  |
 | `GET` | [`/v1/projects/{nodeId}/members/{userId}/deletion-preview/external`](#get-v1-projects-nodeid-members-userid-deletion-preview-external) |  |
-| `PUT` | [`/v1/projects/{nodeId}/members/{userId}/standing`](#put-v1-projects-nodeid-members-userid-standing) |  |
 | `GET` | [`/v1/projects/{nodeId}/profile-schema`](#get-v1-projects-nodeid-profile-schema) |  |
 | `PUT` | [`/v1/projects/{nodeId}/profile-schema`](#put-v1-projects-nodeid-profile-schema) |  |
 | `DELETE` | [`/v1/projects/{nodeId}/profile-schema`](#delete-v1-projects-nodeid-profile-schema) |  |
@@ -170,30 +168,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page of members who joined AFTER these. NULL means this is the first page — measured, never inferred from whether the request carried a cursor. |
 | `standingCounts` | `object` | yes | How many seats each standing holds, across the WHOLE roster rather than this page — the filter chips' counts. They sum to the unfiltered total; a chip whose count came from the filtered page would report the narrowing it is offering to apply. |
 
-### `POST /v1/projects/{nodeId}/members/{userId}/account-deletion`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id. |
-| `userId` | `string` | yes | The member's user id. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `confirmation` | `string` | yes | The member's email, typed back. Compared trimmed and case-insensitively; a mismatch refuses the request. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `changed` | `boolean` | yes | False only when another request deleted the account a moment earlier — two deletions racing — which is a success, not an error. A deletion AFTER that answers 404 `MEMBER_NOT_FOUND`: a deleted account holds no seat on this project any more. |
-| `deletedMemberships` | `integer` | yes | Seats ended across the WHOLE platform, not only this project. Ending an account ends it everywhere. |
-| `revokedApiKeys` | `integer` | yes | API keys this person had minted, now revoked. |
-| `walletWrittenOff` | `integer` | yes | Credits written off to settle the account's own wallet, if it had one. |
-
 ### `POST /v1/projects/{nodeId}/members/{userId}/credits`
 
 **Path parameters**
@@ -251,29 +225,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `files` | `integer` | yes | Files this member uploaded, counted by listing object storage. |
 | `vectorPoints` | `integer` | yes | Vector points derived from their content, counted per collection the project declares. |
-
-### `PUT /v1/projects/{nodeId}/members/{userId}/standing`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id. |
-| `userId` | `string` | yes | The member's user id. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `standing` | `"active" \| "suspended"` | yes | The standing to move this seat to. `suspended` withholds it; `active` reinstates a suspended one. Withdrawing a seat is its own route. |
-| `reason` | `string` | no | Why, for the audit trail. Optional and never gating — it is recorded on the `membership.status_changed` event when given and omitted entirely when not, so an empty reason is never stored as one. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `standing` | `"active" \| "suspended"` | yes | The seat's standing after the call — which is its standing BEFORE the call whenever `changed` is false. |
-| `changed` | `boolean` | yes | Whether this call moved the seat. False when it already held that standing. Idempotent, never an error. ⚠️ NOT `false` for a seat that does not exist: that is a 404. |
 
 ### `GET /v1/projects/{nodeId}/profile-schema`
 

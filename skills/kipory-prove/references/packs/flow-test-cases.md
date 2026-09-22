@@ -109,7 +109,8 @@ and you get no results back at all, for cases you have already paid for.
 billing exactly, and the spend lands on the project.
 
 The suite's time budget bounds **duration, not spend**. What bounds spend is the project's
-**design-time ceiling** — a project setting on a rolling window, refused as `402`
+**design-time ceiling** — a project setting over a UTC calendar day, week or month (a day unless
+set otherwise) or over the project's lifetime, refused as `402`
 `DESIGN_SPEND_CAP_EXCEEDED` — and behind it the payer's wallet, refused as `402`
 `BALANCE_BELOW_SOFT_CAP`. ⚠️ The two look identical on the status line and their remedies are not
 interchangeable: one is a project setting, the other a top-up. The per-END-USER cap never applies to

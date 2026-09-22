@@ -67,7 +67,7 @@ The two 402 codes have **opposite remedies** — top up the wallet, or raise tha
 - `Idempotency-Key` — read on the way in and threaded into the run and the credit scope. Ignored, not truncated, over 255 characters. Under a streaming retry the attempt index is folded in so attempt two cannot cache-hit attempt one.
 - `X-Credits-Charged` — on every billable response, 2xx, 4xx and 5xx alike.
 - `x-request-id` — the run id for a synchronous invocation. A client-supplied value is ignored.
-- Rate limits are per minute, keyed per API key (with a per-key override) or per user; the limiter **fails open** if its store is unreachable and suppresses the limit header on a 429, so a client cannot pre-empt from headers alone.
+- Rate limits are per minute, keyed per API key (with a per-key override) or per signed-in user, whether the session arrives as a cookie or a bearer; a user's `/v1/me*` and `/v1/credits*` calls have a bucket apart from the rest. A response under the limit carries `x-ratelimit-remaining` and `x-ratelimit-reset` but not the limit itself; a 429 carries all three and `retry-after`, so pace on `x-ratelimit-remaining`. A request whose count the limiter's store refuses is let through. If the store goes down while the API is running, requests wait for it rather than pass unlimited; if it was already down when the API started, each API process counts on its own.
 
 ## What a signed-in user is to a flow
 

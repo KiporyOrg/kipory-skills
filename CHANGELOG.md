@@ -2,6 +2,25 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260922.1920 — 2026-09-22
+
+Synced from the Kipory monorepo at `6edf9efcd`.
+
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-channels/references/api/sources.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/api/nodes-and-organizations.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-model/references/packs/relations.md`
+- changed: `skills/kipory-prove/references/packs/flow-test-cases.md`
+
 ## 1.20260922.1246 — 2026-09-22
 
 Synced from the Kipory monorepo at `47024b100`.

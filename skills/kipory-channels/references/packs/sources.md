@@ -35,13 +35,13 @@ one for the clock: a schedule (capability pack `schedules` — `GET /v1/capabili
 
 ```
 GET    /v1/sources/providers                                 the provider registry: concerns, specs, availability, announced names
-GET    /v1/sources?project={nodeId}[&provider=telegram]      every source, newest first, with health and the listening count
+GET    /v1/sources?project={nodeId}[&provider=telegram]      every source, newest first, with health, the listening count and deleteRefusal
 POST   /v1/sources                                           { project, provider, config, key?, name? } → 201
 GET    /v1/sources/{id}
 PATCH  /v1/sources/{id}                                       { version, name?, config? }   — config REPLACES wholesale
 POST   /v1/sources/{id}/enable                                { version }
 POST   /v1/sources/{id}/disable                               { version }
-DELETE /v1/sources/{id}                                       409 while a trigger listens
+DELETE /v1/sources/{id}                                       409 SOURCE_HAS_LISTENERS while a trigger listens
 GET    /v1/sources/{id}/events?limit=50                       the newest events this source wrote
 ```
 
@@ -97,7 +97,10 @@ An edited message is a second event with a different id; a deleted one a third.
 - A key already taken for the provider in the project (409).
 - A create or a patch that would point a second source at a channel this project already watches
   (409 naming the source that has it).
-- A delete while any trigger listens (409, with the count). Delete the triggers first, on purpose.
+- A delete while any trigger listens (409 `SOURCE_HAS_LISTENERS`, with the count). Delete the
+  triggers first, on purpose. Every source on the read carries `deleteRefusal` — that refusal in
+  the delete's own words, or null — from the function the delete throws from, so offer Delete
+  where it is null rather than deciding from `listening` yourself.
 - A category or type of your own already holding the provider's key (409 at the first create).
 
 ### Ask before you write: `validateOnly`

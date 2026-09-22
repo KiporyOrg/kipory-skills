@@ -32,13 +32,13 @@ Then, in the flow, an `email.send` step names the address in its **config** (`ad
 **A channel to watch.**
 
 ```
-GET    /v1/sources?project={nodeId}[&provider=telegram]     every source, with health and how many triggers listen
+GET    /v1/sources?project={nodeId}[&provider=telegram]     every source, with health, how many triggers listen and deleteRefusal
 POST   /v1/sources                { project, provider: "telegram", config: { channel }, key?, name? } → 201
 GET    /v1/sources/{id}
 PATCH  /v1/sources/{id}           { version, name?, config? }   — config REPLACES wholesale; the provider cannot change
 POST   /v1/sources/{id}/enable    { version }
 POST   /v1/sources/{id}/disable   { version }
-DELETE /v1/sources/{id}           409 while a trigger listens
+DELETE /v1/sources/{id}           409 SOURCE_HAS_LISTENERS while a trigger listens — the read's deleteRefusal says so first
 GET    /v1/sources/{id}/events    the newest events this source wrote
 ```
 

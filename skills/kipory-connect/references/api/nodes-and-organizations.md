@@ -11,9 +11,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | [`/v1/nodes/{nodeId}/effective-role`](#get-v1-nodes-nodeid-effective-role) |  |
-| `GET` | [`/v1/nodes/{nodeId}/invites`](#get-v1-nodes-nodeid-invites) |  |
-| `POST` | [`/v1/nodes/{nodeId}/invites`](#post-v1-nodes-nodeid-invites) |  |
-| `DELETE` | [`/v1/nodes/{nodeId}/invites/{inviteId}`](#delete-v1-nodes-nodeid-invites-inviteid) |  |
 | `POST` | [`/v1/organizations`](#post-v1-organizations) |  |
 
 ### `GET /v1/nodes/{nodeId}/effective-role`
@@ -37,56 +34,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `nodeId` | `string` | yes | The node the role was resolved at. |
 | `userId` | `string` | yes | Whose role this is. |
 | `role` | `"OWNER" \| "ADMIN" \| "EDITOR" \| "VIEWER" \| "NONE"` | yes | What that user may do at that node, inherited from anywhere above it. `NONE` is an ORDINARY ANSWER meaning they hold nothing here — not an error, and not a refusal to say. Handle it explicitly. |
-
-### `GET /v1/nodes/{nodeId}/invites`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The node the invitation is for. Not a project id. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `items` | `object[]` | yes | Pending invites on this node, newest first. Claimed and expired invites are not listed. |
-
-### `POST /v1/nodes/{nodeId}/invites`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The node the invitation is for. Not a project id. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `email` | `string` | yes | Address to invite. Must be a valid email. |
-| `role` | `"VIEWER" \| "EDITOR" \| "ADMIN" \| "OWNER"` | yes | Role the invitee receives on this node once they claim. |
-| `projectId` | `string` | yes | The project the invitee signs in through to claim. For a project node this is that project; for an organization node the caller picks one, since it cannot be derived from the node. |
-
-**Response `201`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `inviteId` | `string` | yes | Id of the created invite. Read the list endpoint for the full record. |
-| `notified` | `boolean` | yes | Whether the invitation email was accepted by the mail transport. `false` means the invite stands and is claimable, but the invited person has NOT been told — tell them another way, or re-issue after the transport is fixed. |
-
-### `DELETE /v1/nodes/{nodeId}/invites/{inviteId}`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The node the invitation belongs to. |
-| `inviteId` | `string` | yes | The invitation to revoke. |
-
-**Response `204`**
-
-_No fields._
 
 ### `POST /v1/organizations`
 
