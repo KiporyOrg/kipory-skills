@@ -55,7 +55,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outputSlot` | `string` | yes | Slot this skill writes its result to. |
 | `promptTemplate` | `string` | yes | Prompt body for model-backed handlers, with inputs interpolated. |
 | `systemPrompt` | `string \| null` | no | System-role instruction sent alongside `promptTemplate`. |
-| `taskKey` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak"` | yes | Task this skill bills and resolves its model under. One of the writable pipeline tasks. |
+| `taskKey` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak"` | no | Task this skill bills and resolves its model under. One of the writable pipeline tasks. Omit it and the skill starts on `extraction` — change it with a PATCH. It decides the model only for a handler whose model follows its task, but every step still bills under it, and a handler whose catalog entry says `run.timeLimitFromTask` takes this task's time limit when the step sets no `timeoutMs`. |
 | `outputSchema` | `object` | no | Schema the skill's output must conform to. Omit or send null for no constraint. |
 | `inputSchemas` | `object[]` | yes | Expected shape of each input, POSITIONALLY ALIGNED with `inputStreams` and required to be the same length. |
 | `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
@@ -67,6 +67,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `tryDelayMs` | `integer \| null` | no | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
 | `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | no | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. Defaults to `FAIL_RUN`. |
 | `reuseResultsForMinutes` | `integer \| null` | no | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate-draft`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 **Response `201`**
 
@@ -275,7 +284,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | The flow this step is being authored into. It decides who may run the preview, which project's models are available, and who is billed for it. |
 | `projectId` | `string` | no | The project a step of a platform flow previews as — required there, since a platform flow belongs to no project, and the platform pays for the call. Refused for a step of a project's own flow. Requires EDITOR on it. |
 | `handlerKey` | `string` | yes | Which step type to simulate. ⚠️ It decides whether a MODEL IS ACTUALLY CALLED — `text.generate` calls one and bills for it, while the others just interpolate. It also decides whether `{{#slot}}` sections iterate, so a mismatch here renders arrays differently than the real run will. |
-| `taskKey` | `string` | yes | Which task preset supplies the model, when one is called. |
+| `taskKey` | `string` | no | Which task preset supplies the model, when one is called. Omit it and the preview uses `extraction` — the task a step created without one starts on. |
 | `promptTemplate` | `string` | yes | The prompt to interpolate. |
 | `systemPrompt` | `string \| null` | no | A system prompt, interpolated against the same values. Only read by step types that accept one — supplying it elsewhere is ignored rather than an error. |
 | `slotValues` | `object` | no | The values to interpolate, keyed by slot name. Deliberately unvalidated here — supply whatever the step's inputs would be. |

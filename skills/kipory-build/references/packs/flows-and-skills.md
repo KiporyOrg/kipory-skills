@@ -645,6 +645,28 @@ describe a state you cannot see. Re-read, then ask again.
 the `200` is either the write result or a verdict. Narrow on `ok`, which only
 the verdict declares.
 
+## Asking before you add a step — `validateOnly` on the create
+
+`POST /v1/skills` takes **`validateOnly: true`** as well. It runs every rule
+the create runs — the normalization, the flow-graph gate, whether the name or
+the output slot is already held in the flow, whether a pinned model is in the
+catalog — writes nothing, and answers **200** with a verdict. The create itself
+answers **201**, so the status alone tells the two apart.
+
+⚠️ **`validate-draft` is not this question.** It judges a configuration — what
+it reads, whether it parses — and says a clean answer does not mean the step
+will save. A name another step holds, an input count the handler refuses, an
+empty prompt a prompt-driven handler needs: those are answered here, not there.
+
+⭐ **A taken name is a verdict on `name` (or `outputSlot`)**, carrying the free
+value the create's 409 would have suggested — not a 409.
+
+⚠️ **`taskKey` is optional on this body alone.** Omit it and the step starts on
+`extraction`; change it with a PATCH. It decides the model only for a handler
+whose model follows its task — but every step bills under its task, and a
+handler whose catalog entry says `run.timeLimitFromTask` takes its task's time
+limit when the step sets no `timeoutMs`.
+
 ### Seeing what a prompt becomes — and what it costs to ask
 
 `validate-draft` answers what a configuration READS. A prompt-shaped step has a second question
@@ -825,15 +847,20 @@ reports it as an outstanding issue once both are saved.
 ⚠️ **A fan-out needs a list that is always there.** A slot declared as a list that may be missing
 comes back `no`, because the save checks the input's shape exactly as stored.
 
-For a SAVED step whose inputs are named in its configuration, ask what it may name instead:
+For a step whose inputs are named in its configuration, ask what it may name instead:
 
 ```
-GET /v1/flows/{id}/steps/{stepId}/scope    every slot the step may read, typed
+GET /v1/flows/{id}/scope?step={stepId}    every slot a saved step may read, typed
+GET /v1/flows/{id}/scope                  the same, for a step you are about to add
 ```
 
 It lists the flow's inputs, the platform's own slots, and every slot written by a step that does not
 wait on this one — by an input **or by its condition**, which is the save's cycle rule. Each slot
 carries the shape the save types a wire on it from, the same resolution as the candidates above.
+Without `step`, nothing can wait on the step yet, so every slot the flow's steps write is listed.
+⚠️ Except one kind of step: a saved step that already reads the slot your new step will write starts
+waiting on it once the new step is saved. The stepless form does not know that slot, so such a step's
+outputs stay listed — naming one closes a cycle, which the create reports as a warning, not a refusal.
 
 ## Which condition operator fits which value
 

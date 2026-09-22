@@ -6,15 +6,15 @@
 
 ## Groups
 
-- **AI** (3) — Nodes whose whole job is a model call — strip the model and there is no node left. What comes back is text, a vector, or a ranking.
-- **Text** (5) — Working on text that is already in hand, with no model involved: splitting it, matching it, filling it into a template, and cleaning it before it reaches a prompt.
-- **Sources** (17) — Where a project gets data it did not already have — pages, videos, feeds, places. These are the handlers that cross the network, so they are the ones that cost money, that can be slow, and that cache what they bring back.
-- **Files** (10) — Reading what a file already contains, rather than fetching it — metadata, text, frames and transcripts — plus the few that write a derived file back.
-- **Search** (5) — Vectors and the collections they live in: encoding a value, writing a point, and finding the nearest ones to it.
-- **Entities** (17) — Reading and changing the records a project holds, and the terms they are filed under. Every handler that can rewrite a record is here, and each one says so.
-- **Outbound** (1) — Steps that reach a person outside the platform. A message that leaves is the one thing a run cannot take back, so nothing here delivers until the run's writes have committed.
-- **Flow** (9) — Steps that steer the run rather than carry data — branching, looping, calling a sub-flow — and the run state that outlives a single step.
-- **Utility** (3) — Plumbing with no domain of its own: reshaping a value, or picking between values that came from somewhere else.
+- **AI** (3) — Model calls: generate text, turn text into a vector, or rank a list.
+- **Text** (5) — Work on text without a model: split, match, fill a template, clean.
+- **Sources** (17) — Fetch data from outside — pages, videos, feeds, places. Can be slow and cost money.
+- **Files** (10) — Read what a file holds — metadata, text, transcripts — make a resized or rendered copy, or a download link.
+- **Search** (5) — Vectors: encode a value, store it, and find the nearest matches.
+- **Entities** (17) — Read and change the project's records and terms. Only these steps can change a record.
+- **Outbound** (1) — Reach a person outside the platform. Nothing is sent until the run's changes are saved.
+- **Flow** (9) — Steer the run: branch, loop, call another flow, keep state between steps.
+- **Utility** (3) — Reshape a value, or pick between values from earlier steps.
 
 ## ingest (30)
 

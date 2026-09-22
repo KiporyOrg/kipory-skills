@@ -20,7 +20,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/flows/{id}/health`](#get-v1-flows-id-health) |  |
 | `POST` | [`/v1/flows/{id}/preview`](#post-v1-flows-id-preview) |  |
 | `POST` | [`/v1/flows/{id}/preview/stream`](#post-v1-flows-id-preview-stream) |  |
-| `GET` | [`/v1/flows/{id}/steps/{stepId}/scope`](#get-v1-flows-id-steps-stepid-scope) |  |
+| `GET` | [`/v1/flows/{id}/scope`](#get-v1-flows-id-scope) |  |
 | `GET` | [`/v1/flows/{id}/steps/{stepId}/switch-off-preview`](#get-v1-flows-id-steps-stepid-switch-off-preview) |  |
 
 ### `GET /v1/flows`
@@ -344,22 +344,27 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself — so the failure can be attributed. |
 | `diagnostics` | `unknown[]` | no | Per-problem detail for a draft graph that failed validation. These are the same diagnostics saving that graph would return. |
 
-### `GET /v1/flows/{id}/steps/{stepId}/scope`
+### `GET /v1/flows/{id}/scope`
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
-| `stepId` | `string` | yes | Unique id of a saved step (skill) in that flow — the one whose scope is read. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `step` | `string` | no | Unique id of a saved step (skill) in that flow — the one whose scope is read. Omit it for a step being added: nothing can wait on one yet, so every slot the flow's steps write is in its scope. ⚠️ A saved step that already reads the slot the new step will write is not left out — naming its output closes a cycle, which the create reports as a warning rather than refuses. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `flowId` | `string` | yes | The flow asked about. |
-| `stepId` | `string` | yes | The step whose scope this is. |
-| `slots` | `object[]` | yes | Every slot the step may read: the flow's inputs, the platform's own slots, and every slot written by a step that does not wait on this one — directly or through others, by an input or by a condition. The step's own outputs are never listed. Sorted by name. |
+| `stepId` | `string \| null` | yes | The saved step whose scope this is, or null for a step being added — one nothing can wait on yet, so every slot the flow's steps write is in its scope. |
+| `slots` | `object[]` | yes | Every slot the step may read: the flow's inputs, the platform's own slots, and every slot written by a step that does not wait on this one — directly or through others, by an input or by a condition. A saved step's own outputs are never listed. Sorted by name. |
 
 ### `GET /v1/flows/{id}/steps/{stepId}/switch-off-preview`
 
