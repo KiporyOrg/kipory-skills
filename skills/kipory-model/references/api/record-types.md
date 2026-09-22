@@ -42,7 +42,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the type. |
 | `name` | `string` | yes | Name for the record type. |
-| `dataEntryId` | `string` | yes | Existing schema entry in the same project that defines the type's data shape. Shapes are authored on the registry — a definition cannot be supplied inline here. |
+| `dataEntryId` | `string` | yes | Existing schema entry in the same project that defines the type's data shape. On this route a shape is always an entry that already exists. To declare a type together with a shape of its OWN, state it inline in a project document (`records.<name>.shape`); an entry another record type owns is refused here with SCHEMA_ENTRY_OWNED. |
 | `description` | `string \| null` | no | This type's own description, separate from the entry's. |
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
 | `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type: USER for one person's own records, PROJECT for the project's shared content pool. Required — it is immutable once the type has records, so there is no safe default. |
@@ -96,6 +96,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
 | `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 ### `GET /v1/record-types/{id}`
 
@@ -168,7 +169,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
 | `ownerScope` | `"USER" \| "PROJECT"` | no | Change who owns records of this type. Refused once the type has records. Omit to keep. |
 | `uses` | `object` | no | Replace the type's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order, and a merge cannot express a reorder. Every projection is re-derived from it in the same transaction. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored type and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/write-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -209,6 +210,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
 | `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. |
@@ -234,6 +236,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `name` | `string` | yes | Name of the record type that was removed. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `invalidatedJoins` | `string[]` | yes | Other record types whose join declarations this delete voided, because they named the type you removed. You asked to remove one type and a declaration on a different one changed as a result, so it is reported rather than left to be discovered. |
 | `deletedRelationKinds` | `string[]` | yes | Relation kinds removed with this type, because it was the only record-type pair they applied to. A link that applies to no pair connects nothing and cannot be traversed, so it goes rather than being left behind — and every link it had made goes with it. Same reason as the field above: you asked to remove one type and something else changed, so it is reported. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |

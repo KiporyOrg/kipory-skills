@@ -260,7 +260,7 @@ nothing to validate against: a `PATCH` to an id that does not exist answers **40
 
 ⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added to
 the platform tomorrow arrives with a code your build has never heard of and a severity it has.
-Treat an unrecognised code as a generic finding of its stated severity.
+Treat an unrecognised code as a generic finding of its stated severity. A severity is one of three: `error` (the body will not save as it stands), `warning` (advisory, blocks nothing) and `info` (a note about something the platform left alone — a whole-project plan reports the ids it ignored this way; a row-level verdict rarely carries one).
 
 ⚠️ **`complete: false` means checking stopped early**, because an earlier finding made the later
 rules unanswerable. Fix what is listed, ask again, and expect more. **A shorter list is not a

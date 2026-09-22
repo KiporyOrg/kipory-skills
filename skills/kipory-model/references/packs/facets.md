@@ -446,3 +446,5 @@ different claims, and only one of them is true.
   and the `uses.facets` list that says which types surface it.
 - Relations (capability pack `relations` — `GET /v1/capability-packs/relations`) — when the value is a record rather than a term.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — building the resolver, and the ingest flow that uses it.
+- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — a facet before the record type that uses it; a parent
+  facet and a parent term before their children.

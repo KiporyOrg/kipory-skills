@@ -1114,6 +1114,8 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 - Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`) — snapshot before a risky edit.
 - Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`) — make "it works" a stored, replayable claim.
 - Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — read before assuming a step exists.
+- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — producers before consumers, and how two flows that
+  invoke each other are created.
 
 <!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire
      field a caller sends. It is deliberately absent from every request contract: binding a

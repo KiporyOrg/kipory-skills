@@ -103,7 +103,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `inputs` | `object` | no | REPLACES the inputs wholesale rather than merging into them. |
 | `assertions` | `object[]` | no | REPLACES the assertion list wholesale. |
 | `enabled` | `boolean` | no | Park the case, or bring it back into plain suite runs. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 

@@ -168,7 +168,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | no | Bind a different flow. Omit to leave it alone. |
 | `inputs` | `object` | no | Replace the fixed inputs entirely — this is not a merge. Omit to leave them alone. |
 | `overlapPolicy` | `"skip" \| "allow"` | no | New overlap policy. Omit to leave it alone. |
-| `version` | `integer` | yes | The `version` you last read. Required here — a trigger patch is refused with 409 rather than silently overwriting a concurrent edit. |
+| `version` | `integer` | yes | The `version` you last read. Required here — a trigger patch is refused with 409 rather than silently overwriting a concurrent edit. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored trigger and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -228,7 +228,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The `version` you last read. Required — enabling or disabling is refused with 409 rather than overwriting a concurrent change. |
+| `version` | `integer` | yes | The `version` you last read. Required — enabling or disabling is refused with 409 rather than overwriting a concurrent change. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 
@@ -269,7 +269,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The `version` you last read. Required — enabling or disabling is refused with 409 rather than overwriting a concurrent change. |
+| `version` | `integer` | yes | The `version` you last read. Required — enabling or disabling is refused with 409 rather than overwriting a concurrent change. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 

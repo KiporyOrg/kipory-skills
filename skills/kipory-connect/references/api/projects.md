@@ -38,6 +38,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `name` | `string` | yes | The project's display name. |
 | `slug` | `string` | yes | The project's URL-safe short name. It must be free across the whole platform, and it decides the subdomain the project's API is served at. |
 | `parentNodeId` | `string` | no | The organization node the project hangs under. Omit it and the project goes under the platform organization. |
+| `template` | `string` | no | Slug of a project template (`GET /v1/templates`) to start the project with. Its configuration is applied in the SAME transaction that creates the project: if the platform refuses any of it, no project exists afterwards. Omit it for an empty project. The project keeps no link to the template. |
+| `document` | `unknown` | no | A project document (`GET /v1/project-document/schema`) to start the project with — one of your own, or another project's export. Applied in the SAME transaction that creates the project, like a template: if the platform refuses any of it, no project exists afterwards, and the refusal carries the plan with every finding's path. The body's `name` wins over the document's `project.name`. Exclusive with `template`. |
 
 **Response `201`**
 
@@ -46,6 +48,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | The new project's `projectId` — what the `/v1/projects/{projectId}/*` routes take. NOT the org-node id: the `{nodeId}` routes address the hosting node, which is a different value created in the same transaction and not reported here. |
 | `slug` | `string` | yes | The slug the project was created with. |
 | `name` | `string` | yes | The project's display name. |
+| `requires` | `object` | no | Present when the project was created from a template: what the project needs that a template cannot carry — the secrets to store next. Absent for an empty project. |
 
 ### `GET /v1/projects/{nodeId}`
 
@@ -214,6 +217,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `structureVersion` | `string` | yes | The project configuration version this action produced, as a decimal string. Compare for equality and display it; do not parse it to a number — it is a 64-bit value and JSON cannot carry one. |
+| `document` | `object \| null` | yes | Set when this action was ONE project-document apply: what the document's plan counted. NULL for every other action. ⭐ The one place the trail records what the operator DID rather than only which objects moved — so a title may say 'document applied' here, and nowhere else may it name an operation. |
 | `at` | `string` | yes | When the action was applied. Shared by every change in it. |
 | `actor` | `object` | yes | Who applied this action. Resolved the same way as on the list, and repeated here because a reader who deep-links to one action never saw the list. |
 | `changes` | `object[]` | yes | Every recorded change of this action, in a stable total order (the record id, which carries a millisecond timestamp and a counter, so it approximates the order they were written in — the ORDER is a paging guarantee, the approximation is not). ⛔ Every RECORDED one: read `elidedCount` before concluding this is all of them. |

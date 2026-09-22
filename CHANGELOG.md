@@ -2,6 +2,48 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260922.1246 — 2026-09-22
+
+Synced from the Kipory monorepo at `47024b100`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- added: `skills/kipory-build/references/api/project-document.md`
+- added: `skills/kipory-build/references/packs/authoring-order.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- added: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-channels/references/api/sources.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- added: `skills/kipory-connect/references/api/templates.md`
+- changed: `skills/kipory-connect/references/packs/project-provisioning.md`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- added: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/api/embedding-profiles.md`
+- changed: `skills/kipory-model/references/api/facets-and-terms.md`
+- changed: `skills/kipory-model/references/api/record-types.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/schema-entries.md`
+- changed: `skills/kipory-model/references/packs/embedding-profiles.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-model/references/packs/relations.md`
+- changed: `skills/kipory-operate/references/api/events.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/api/schedules.md`
+- changed: `skills/kipory-operate/references/api/triggers.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-plan/SKILL.md`
+- changed: `skills/kipory-plan/references/packs/planning-protocol.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+- changed: `skills/kipory-prove/references/api/flow-test-cases.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+
 ## 1.20260922.937 — 2026-09-22
 
 Synced from the Kipory monorepo at `15d2eafbc`.

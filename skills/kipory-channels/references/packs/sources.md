@@ -104,7 +104,8 @@ An edited message is a second event with a different id; a deleted one a third.
 
 Send `validateOnly: true` on the create or the patch and the platform answers a **verdict** at 200
 instead of writing: whether the write would be taken (`ok`), what it found (`diagnostics`), whether
-every rule ran (`complete`), and what it would compute (`derived`). Read `severity`, never `code`.
+every rule ran (`complete`), and what it would compute (`derived`). Read `severity`, never `code`:
+`error` will not save, `warning` blocks nothing, and `info` notes something the platform left alone.
 
 ⛔ **Two of the refusals above used to be reachable only by attempting the write.** A key already
 taken was a caught database violation, and a channel already watched was a query inside the

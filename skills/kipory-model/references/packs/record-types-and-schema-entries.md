@@ -41,6 +41,27 @@ PATCH /v1/record-types/{id}   bind a flowId to make it flow-backed; replace `use
 POST /v1/schema-entries/seed
 ```
 
+### A shape of the type's own
+
+A shape only one record type will ever use does not have to be a shared registry entry. In a
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`), state the shape INLINE under the type —
+`records.<name>.shape` as the shape itself rather than an entry's name — and one apply creates the
+entry, the record type and the ownership together. Such an entry is OWNED:
+
+- it is edited only through its record type's `shape`; a registry PATCH answers
+  `SCHEMA_ENTRY_OWNED`, naming the type. A registry PATCH that lands answers the row and its
+  `touched` list — every event type and record type whose version moved with it — as the record
+  type and flow PATCHes do;
+- no other record type, event payload, relation kind, config namespace or profile may use it —
+  same code, same naming. A flow's slots and a step's schema references MAY name it: the type's
+  own processing flow has to;
+- the registry read marks it `owned: { recordType }`, and the document exports it nested under
+  its owner and not under `schema`.
+
+`POST /v1/schema-entries/{id}/promote` with the entry's `version` makes it an ordinary shared
+entry. It is one way — by then other rows may depend on it — and it changes no shape and re-points
+nothing. Deleting the owning record type releases the shape the same way rather than deleting it.
+
 Both are scoped by `project`. Reads take useful expansions: the synthesised derived output shape,
 a **drift** verdict, and the type-relation graph.
 
@@ -1179,3 +1200,5 @@ healthier draft.**
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the flow a record type binds.
 - Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) — what `uses.search` names, and where chunking defaults live.
 - Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) and Relations (capability pack `relations` — `GET /v1/capability-packs/relations`) — classifying and linking records.
+- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — the shape comes first, and what a relation kind's
+  declaration moves on the type.

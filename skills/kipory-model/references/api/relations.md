@@ -162,6 +162,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `liveRelationCount` | `integer` | no | How many edges of this kind are currently valid, present only when you pass `expand=liveRelationCount`. NOT `relationCount`, which also counts retracted edges — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its edges. This is the number that matches what a read of the edges returns. |
 | `pairings` | `object[]` | no | Which record-type pairs this kind connects, present only when you pass `expand=pairings`. Never empty — a kind must apply to at least one pair, and the last one cannot be removed. |
 | `readiness` | `object` | no | Whether this kind is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce an edge; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying edges. NOT derivable from the counts — an unpaired kind and a kind declared a minute ago both report zero. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 ### `GET /v1/relation-kinds/{id}`
 
@@ -229,7 +230,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `cardinality` | `"manyToOne" \| "manyToMany"` | no | Change how many edges one record may have. Existing edges that now exceed it are not removed. |
 | `propertiesEntryId` | `string \| null` | no | Point at a different schema entry for edge properties, or null for none. |
 | `sortOrder` | `integer` | no | Change the position. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 

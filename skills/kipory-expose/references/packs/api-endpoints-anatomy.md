@@ -345,7 +345,7 @@ database constraint the write learns about by attempting it — a collision foun
 absence is not.
 
 ⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added
-tomorrow arrives with a code your build has never heard of and a severity it has.
+tomorrow arrives with a code your build has never heard of and a severity it has. A severity is one of three: `error` (the body will not save as it stands), `warning` (advisory, blocks nothing) and `info` (a note about something the platform left alone — a whole-project plan reports the ids it ignored this way; a row-level verdict rarely carries one).
 
 ## Checklist for an endpoint that actually works
 

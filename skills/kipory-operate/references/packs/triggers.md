@@ -135,7 +135,8 @@ message. A filter cannot stall the other triggers on the same event.
 
 Send `validateOnly: true` on the create or the patch and the platform answers a **verdict** at 200
 instead of writing: whether the write would be taken (`ok`), what it found (`diagnostics`) and
-whether every rule ran (`complete`). Read `severity`, never `code`.
+whether every rule ran (`complete`). Read `severity`, never `code`: `error` will not save,
+`warning` blocks nothing, and `info` notes something the platform left alone.
 
 ⛔ **A key already taken used to be reachable only by attempting the write** — a caught database
 violation, with no way to ask first. It is decided before anything is written now, and both paths

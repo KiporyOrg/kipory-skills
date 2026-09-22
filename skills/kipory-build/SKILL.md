@@ -1,6 +1,6 @@
 ---
 name: kipory-build
-description: Build or edit a Kipory flow — create it with its typed signature, add steps over the handler catalog, wire slots between them, bind the output so a call actually returns something, check the whole-flow health, and preview against real inputs. Use when implementing the processing a plan called for, changing a flow that already exists, choosing a handler for a job, adding a fan-out, merge, loop, branch or sub-flow, or when a flow saved but health says it cannot run. Not for putting the flow on HTTP (that is expose) and not for reading a past run (that is diagnose).
+description: Build or edit a Kipory flow — create it with its typed signature, add steps over the handler catalog, wire slots between them, bind the output so a call actually returns something, check the whole-flow health, and preview against real inputs — or state a whole project as one document and plan it before applying it. Use when implementing the processing a plan called for, when a plan has been accepted and its document is the next artifact, changing a flow that already exists, choosing a handler for a job, adding a fan-out, merge, loop, branch or sub-flow, or when a flow saved but health says it cannot run. Not for putting the flow on HTTP (that is expose) and not for reading a past run (that is diagnose).
 license: MIT
 ---
 
@@ -48,6 +48,49 @@ Cheap checks before a save: `validateOnly: true` on `POST /v1/skills` (and on `P
 - **Changing `text.embed`'s model or provider invalidates every stored vector** and needs an index rebuild.
 - **A save-time collision is half the guarantee.** Nothing re-validates a graph at run time, so a flow saved with blocking edge issues runs and leaves a trace — usually the fastest way to see what the diagnostic was predicting.
 
+## Author the whole project as one document
+
+When a plan was accepted, or the change touches more than a handful of rows, do not author row by
+row. State the project as one **document** and let the platform order the writes.
+
+```
+GET   /v1/projects/{nodeId}/document          the project now, with the version an apply must present
+POST  /v1/projects/{nodeId}/document/plan     what applying it would do — writes nothing, VIEWER
+POST  /v1/projects/{nodeId}/document          { version, document } — one transaction, one version, one history entry
+GET   /v1/project-document/schema · /example  the format and a complete document, public
+```
+
+The loop is **export → edit → plan → read → apply**. A plan is not a simulation: the platform
+applies the document through every row's own write, in one transaction, and rolls it back — so
+what a plan refuses is exactly what an apply refuses. Read three things off it before applying:
+`diagnostics` (each on a path in YOUR document, such as `records.member.shape` — gate on
+`severity`, never on `code`), `consequences` (what the change does to stored data: records
+re-stamped, vectors re-indexed, and `records-invalid`, the stored records that would no longer
+fit a shape you changed), and the `delete` rows of `changes`, which include what a removal takes
+along by cascade.
+
+- **Everything is addressed by name** — a shape by its entry name, a flow by its slug, a facet by
+  its key. Where the row API takes an id (`dataEntryId`, `flowId`, `resolverFlowId`) the document
+  takes the name (`shape`, `flow`, `resolver`). A bare flow slug is this project's; a platform
+  flow is `system:<slug>`. A step's `ref` is a schema entry's name.
+- **A partial document is fine.** A section left out is untouched, and so is every row you do not
+  name; of an existing row's optional fields, only the ones you state are compared. A row's
+  required fields are required, because a row is its create body.
+- **Absence never deletes.** Removal is `delete: true` on a row, or `prune: true` on a map to
+  remove every row of that map you did not name — and any document that removes something needs
+  ADMIN. Owned collections (a flow's `skills` and `tests`, a facet's `terms`, a suite's `cases`,
+  a kind's `pairings`) are stated whole and replace the owner's.
+- **A shape may be stated inline under the record type that uses it.** That type then OWNS it:
+  the shape is edited only through the type and refused to every other consumer until it is
+  promoted (`POST /v1/schema-entries/{id}/promote`, one way).
+- **`version` is required on the apply** and is the export's. A stale one answers `409` with the
+  current document under `details` — re-base on it rather than resending.
+- **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most
+  2 MiB and 2 000 rows, refused with `413` past either.
+
+`references/packs/project-document.md` carries the rest, and `references/packs/authoring-order.md`
+says what must exist before what if you author row by row anyway.
+
 ## If a facet sent you here
 
 First check you need a flow at all — usually you do not. A facet whose `matching` is `exact` needs no resolver, and a `semantic` one created without an explicit `null` is bound to a platform default. Author your own resolver only when the default is not what you want, then patch `resolverFlowId` onto the facet (`kipory-model`).
@@ -61,7 +104,10 @@ First check you need a flow at all — usually you do not. A facet whose `matchi
 | `references/patterns.md`                                                                   | ingest pipeline, fan-out and merge, sub-flow, loop, branch — the control handlers' one rule each                          |
 | `references/packs/flows-and-skills.md`                                                     | the judgment: output binding, preview, what travels between skills                                                        |
 | `references/packs/flow-checkpoints.md`                                                     | snapshot and restore                                                                                                      |
+| `references/packs/project-document.md`                                                     | the whole project as one document: reference forms, the plan's three lists, what does not travel                          |
+| `references/packs/authoring-order.md`                                                      | what must exist before what, when you author row by row                                                                   |
 | `references/api/flows.md` · `skills.md` · `flow-checkpoints.md` · `handlers-and-models.md` | every route's fields                                                                                                      |
+| `references/api/project-document.md`                                                       | the export, plan and apply routes, and the two public reads                                                               |
 
 ## Then
 

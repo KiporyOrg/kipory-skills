@@ -187,6 +187,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `profile` | `object` | yes | The profile version that is now active. |
 | `movedRecordTypes` | `string[]` | yes | Record types moved onto this version by this call. Empty when it was already the active one — activation is safe to repeat. |
 | `repointedSteps` | `string[]` | yes | Names of saved search steps whose stored collection name was rewritten onto the new version. A step stores that name as a literal and the version is part of it, so a step left behind keeps querying the superseded collection — which still exists, so it returns stale results rather than an error. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 ### `POST /v1/embedding-profiles/{id}/versions`
 

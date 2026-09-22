@@ -56,6 +56,9 @@ POST  /v1/embedding-profiles/{id}/versions mint the next version (free, inert)
 POST  /v1/embedding-profiles/{id}/activate repoint declarations and reindex (expensive)
 ```
 
+An activation answers `touched`: every record type it re-pointed, each with the version it holds
+now. Update the copies you hold, or the next PATCH to one of them is refused as stale.
+
 Reading a profile — one, or the project's list with the default first — gives you the derived
 geometry and how many record types use it. Ask for the collections expansion to see the physical
 collections your declarations actually imply.

@@ -122,7 +122,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `assertions` | `object[]` | no | Deterministic checks. Replaces the existing list. |
 | `labels` | `string[]` | no | Tags. Replaces the existing list. |
 | `enabled` | `boolean` | no | Whether this case runs. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 
@@ -334,7 +334,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `regressionEventCategory` | `string \| null` | no | Category of the event emitted when a run regresses. |
 | `regressionEventKey` | `string \| null` | no | Key of that event type. |
 | `enabled` | `boolean` | no | Whether the suite can run. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 

@@ -131,7 +131,8 @@ is NOT the suite's case count.
 
 ⛔ **`ok: true` WITH findings is the normal answer here.** On a write surface a finding usually
 means the row will not save. On this one the run is almost always accepted; the findings say what it
-will and will not have measured when it finishes. Gate on `severity`, never on `code`:
+will and will not have measured when it finishes. Gate on `severity`, never on `code` — `error`,
+`warning`, or `info` for a note about something the platform left alone:
 
 | code                              | what it means                                                    | the run still happens |
 | --------------------------------- | ---------------------------------------------------------------- | --------------------- |

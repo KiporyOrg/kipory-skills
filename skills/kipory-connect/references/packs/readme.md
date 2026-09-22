@@ -49,6 +49,9 @@ quietly working around it.
 | I want to…                                                              | Pack                                                                |
 | ----------------------------------------------------------------------- | ------------------------------------------------------------------- |
 | **Turn an idea into a plan and see everything that will be built**      | Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`)                           |
+| Read, plan or apply a whole project as one document                     | The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)                         |
+| Know what must exist before what, when authoring row by row             | Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`)                               |
+| Start a project from a shipped template                                 | Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`)                                   |
 | Know what Kipory **cannot** do before committing to a design            | Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)                                                 |
 | Create a project, or find its `OrgNode` id                              | Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)                     |
 | Understand how a request to a project's own host is served, end to end  | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)           |
@@ -79,6 +82,12 @@ quietly working around it.
 
 - **Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`)** — start here for anything new. The eight-step walk
   from idea to build sheet, and the rule that facts are confirmed live, never recalled.
+- **The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)** — a whole project as one name-addressed file:
+  export, plan, apply. Read it before authoring anything larger than one row.
+- **Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`)** — what must exist before what, and the two cycles the
+  row-by-row API cannot express in one call.
+- **Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`)** — shipped documents a project can start from, and what a
+  new user's first project is seeded with.
 - **Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)** — the negative space. Verified backwards, so a lifted limit forces a
   rewrite instead of quietly becoming a lie.
 - **Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)** — turn zero: creating a project, what the one

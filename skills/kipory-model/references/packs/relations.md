@@ -587,3 +587,5 @@ Do not promise these:
 - Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — where the declaration
   lives.
 - Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) — when the other end is a term rather than a record.
+- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — the record type ↔ relation kind cycle, and the rows a
+  create with a declaration touches.

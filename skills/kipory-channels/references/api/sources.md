@@ -116,7 +116,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The version you read. Refused with 409 if it has moved. |
+| `version` | `integer` | yes | The version you read. Refused with 409 if it has moved. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `name` | `string \| null` | no | New display name, or null to clear it. Omit to leave it alone. |
 | `config` | `object` | no | A replacement configuration, whole, in the provider's shape. Omit to leave it alone. The provider itself cannot change. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored source and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
@@ -171,7 +171,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The version you read. Refused with 409 if it has moved. |
+| `version` | `integer` | yes | The version you read. Refused with 409 if it has moved. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 
@@ -204,7 +204,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The version you read. Refused with 409 if it has moved. |
+| `version` | `integer` | yes | The version you read. Refused with 409 if it has moved. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 

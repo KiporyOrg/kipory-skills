@@ -96,7 +96,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `label` | `string` | no | New name. Omit to leave it alone. |
 | `durableDefault` | `boolean` | no | Change the storage default. Types that set `durable` explicitly are unaffected. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 
@@ -222,7 +222,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `payloadEntryId` | `string \| null` | no | Point at a different payload schema, or null for no payload. |
 | `durable` | `boolean \| null` | no | Change whether events are stored; pass null to go back to following the category default. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | no | Retire the type or bring it back. ⚠️ This is MANAGEMENT METADATA and does not gate emitting: the emit path drops `status`, so a retired type still fires exactly like an active one. Retiring says 'stop authoring against this'; removing the `event.emit` node is how you stop it firing. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 

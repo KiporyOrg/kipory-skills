@@ -52,12 +52,20 @@ the entries that matter.
 
 ## Rule 1 — the build sheet is for a human to reject
 
-It is a conversational artifact. There is no schema for it, no validator, no machine-readable
-form, and **nothing anywhere that executes it**.
+The build sheet is a conversational artifact: prose for a person to read and say no to. It has no
+schema and no validator, and it is not what the platform runs.
 
-Executing a plan is ordinary design-API use — the same calls a person would make by hand. There is
-no privileged path and no plan runner. Everything the walk produces, you build with the endpoints
-the other packs document.
+What the platform runs is a project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the same project, stated
+as one name-addressed file. When the sheet is accepted, write the document it describes and
+**plan it** (`POST /v1/projects/{nodeId}/document/plan`). The plan response is the second moment a
+person can say no, and a better-informed one: it lists every row that would be created, changed
+and removed, every refusal on the path that caused it, and what the change does to stored data.
+Nothing has been written when they read it.
+
+The reason the old rule gave still holds, and it is why this one is safe: **there is no privileged
+path.** Applying a document is ordinary design semantics — every row goes through the same write a
+person makes by hand, with the same refusals — composed into one transaction. Nothing a document
+can do is something the row API cannot, and nothing runs a plan that a person has not seen.
 
 ## Rule 2 — ask only what changes the build
 
@@ -176,11 +184,13 @@ Follow the table with:
 
 ## After the build sheet
 
-Stop. The walk ends here.
+The sheet is delivered in the conversation. Nothing on the platform stores a plan, so nothing is
+left behind when one is rejected — which is what makes rejecting a plan cheap, and why it is worth
+writing one before building.
 
-The sheet is the deliverable and it is delivered in the conversation. Nothing on the platform
-stores a plan, so nothing is left behind when one is rejected — which is what makes rejecting a
-plan cheap, and why it is worth writing one before building.
+Once it is accepted, the next artifact is the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) it
+describes, planned before it is applied. A plan writes nothing either, so it is as cheap to reject
+as the sheet was.
 
 ## Related
 

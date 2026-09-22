@@ -63,6 +63,16 @@ attached to it: the node comes first because the link column cannot be null, and
 trailing step that joins them. The subdomain starts equal to the slug, so the project is addressable
 immediately.
 
+**With a template, the same transaction also applies it.** `POST /v1/projects` takes an optional
+`template` — a slug from `GET /v1/templates` — and the template's configuration is written before
+the commit, so "atomic" covers it too: a template the platform refuses leaves no project, no node,
+and the address free. A new account's first project — created by a signed-in person, on a route an
+API key cannot call <!-- key-unreachable-ok: POST /v1/me/projects --> — always starts from
+the platform's starter template, the same way: a starter that cannot be applied refuses the whole
+registration rather than seating someone in an empty project. Both answers carry `requires` — the
+secrets the template's project needs and could not carry. Without `template`, a project starts
+empty. See Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`).
+
 ⚠️ **Nothing seeds your builtin shapes, and nothing needs to.** The builtin and library tiers are
 virtual — synthesized from the platform's own catalog on read, with no rows in your project — so do
 not read a fresh project's empty schema-entry list as a provisioning failure.

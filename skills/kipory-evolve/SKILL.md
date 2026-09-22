@@ -1,6 +1,6 @@
 ---
 name: kipory-evolve
-description: Change a Kipory project that is already live — rename or re-shape a record type that holds records, remove a flow, facet, term or relation kind something else depends on, and roll an edit back when it goes wrong. Use whenever the project is not empty: before any delete, before changing a type's fields or its searchable declaration, when a delete is refused and the message names dependents, when an edit has to be undone, or when a change has to be rehearsed before it is committed.
+description: Change a Kipory project that is already live — rename or re-shape a record type that holds records, remove a flow, facet, term or relation kind something else depends on, rehearse a many-row change as one planned document, and roll an edit back when it goes wrong. Use whenever the project is not empty: before any delete, before changing a type's fields or its searchable declaration, when a delete is refused and the message names dependents, when an edit has to be undone, or when a change has to be rehearsed before it is committed.
 license: MIT
 ---
 
@@ -13,7 +13,9 @@ already cached by everything that read it.
 
 **The fact most people get wrong: the platform rehearses almost every dangerous change for you, and
 each rehearsal has a different name.** There is no single dry-run flag. There are eleven routes with
-eleven names, and an agent that does not know they exist discovers a cascade by causing it.
+eleven names, and an agent that does not know they exist discovers a cascade by causing it. There is
+one rehearsal that covers a whole change at once — a planned **document** — and it is the one to
+reach for when the change touches more than a handful of rows.
 
 ## Before the first call
 
@@ -34,22 +36,47 @@ eleven names, and an agent that does not know they exist discovers a cascade by 
 
 ## Rehearse first
 
-| Route                                           | Answers                                                       |
-| ----------------------------------------------- | ------------------------------------------------------------- |
-| `GET /v1/projects/{nodeId}/usage`               | what the project holds, before you touch any of it            |
-| `GET /v1/projects/{nodeId}/deletion-preview`    | what deleting the whole project would take with it            |
-| `DELETE /v1/facets/{id}` + `validateOnly`       | whether a facet delete would be allowed, and what it reaches  |
-| `GET /v1/record-types/{id}/contract-preview`    | the field vocabulary as **stored**, not as you have staged it |
-| `PATCH /v1/record-types/{id}` + `validateOnly`  | whether a record of the new shape would actually save         |
-| `GET /v1/skills/rename-preview`                 | every step whose wiring a slot rename would rewrite           |
-| `POST /v1/skills/validate-draft`                | whether an unsaved step is valid — it executes nothing        |
-| `GET /v1/flows/{id}/health`                     | whether the flow is whole after the edit                      |
-| `GET /v1/flow-checkpoints/{id}/restore-preview` | what restoring would change back                              |
-| `GET /v1/eval-suites/{id}/readiness`            | whether the suite can still judge the thing you changed       |
+| Route                                           | Answers                                                                                                                                               |
+| ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/projects/{nodeId}/usage`               | what the project holds, before you touch any of it                                                                                                    |
+| `GET /v1/projects/{nodeId}/deletion-preview`    | what deleting the whole project would take with it                                                                                                    |
+| `DELETE /v1/facets/{id}` + `validateOnly`       | whether a facet delete would be allowed, and what it reaches                                                                                          |
+| `GET /v1/record-types/{id}/contract-preview`    | the field vocabulary as **stored**, not as you have staged it                                                                                         |
+| `PATCH /v1/record-types/{id}` + `validateOnly`  | whether a record of the new shape would actually save                                                                                                 |
+| `GET /v1/skills/rename-preview`                 | every step whose wiring a slot rename would rewrite                                                                                                   |
+| `POST /v1/skills/validate-draft`                | whether an unsaved step is valid — it executes nothing                                                                                                |
+| `GET /v1/flows/{id}/health`                     | whether the flow is whole after the edit                                                                                                              |
+| `GET /v1/flow-checkpoints/{id}/restore-preview` | what restoring would change back                                                                                                                      |
+| `GET /v1/eval-suites/{id}/readiness`            | whether the suite can still judge the thing you changed                                                                                               |
+| `POST /v1/projects/{nodeId}/document/plan`      | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing |
 
 ⚠️ **`POST /v1/flows/{id}/preview` is not one of these.** It runs the flow for real and **applies
 its writes** unless you pass `apply: false`, it bills the payer, and it needs ADMIN. It is a test
 run, not a rehearsal. `kipory-build` covers it.
+
+## Change many things at once: the document
+
+Export the project (`GET /v1/projects/{nodeId}/document`), edit the file, plan it, apply it with
+the export's `version`. The plan is the apply rolled back, so it answers the same refusals a
+row-by-row change would meet, in one read, and three things a row write never tells you:
+
+- **`consequences`** — how many stored records the change re-stamps or re-indexes, and
+  `records-invalid`: the records that would no longer fit a shape you changed, found by reach
+  (a shape another shape references is checked through every type that reaches it). A
+  consequence is never a refusal; the platform tells you and lets you.
+- **Cascades before the fact.** A removal that takes other rows along — the relation kinds that
+  pair a deleted record type, the types of a deleted event category — is in `changes` as a
+  `delete` with `because: "cascade"` and a `DOCUMENT_DELETE_CASCADED` warning. Read the plan's
+  delete list before applying; it is the true list, not only yours.
+- **Nothing partial.** A refused apply answers `422` with the plan and has written nothing — not
+  the rows before the refused one either. A document that changes nothing answers `applied: true`
+  and moves no version.
+
+Removal is explicit (`delete: true`, or `prune: true` on a map) and needs ADMIN; absence never
+deletes. The record-type pins still hold inside a document: a type with records refuses a rename,
+a re-pointed shape and an ownership change exactly as its own PATCH does, and the finding lands
+on the row's path in your document. `kipory-build` has the loop; the pack it points to has the
+rest.
 
 ## The order of operations
 
@@ -109,6 +136,12 @@ one is the one that costs money while you are not looking.
 **Flows have checkpoints; nothing else does.** Take one before a risky edit — `POST /v1/flow-checkpoints`
 with the flow and a name — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
 reading `GET /v1/flow-checkpoints/{id}/restore-preview`. `kipory-build` owns the detail.
+
+**An export is the nearest thing to a checkpoint of the whole configuration.** Keep the document
+you exported before a change. Planning and applying it again puts its rows back — a row deleted
+since returns as a new row with a new id, and a row added since stays unless the document says
+`prune` — under the same refusals as any other apply. It covers configuration only: no records,
+no vectors, no secret values.
 
 For everything else, the undo is a forward change you author yourself, and some things have no undo
 at all:

@@ -152,7 +152,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `proposal` | `object \| null` | no | Change how ingest may propose new terms. |
 | `resolverFlowId` | `string \| null` | no | Bind a different resolver flow, or pass null to unbind. This is what `matching: semantic` dispatches to, and unbinding a semantic facet leaves it unable to resolve at all. It does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `object \| null` | no | Change the parameters passed to that resolver flow. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. |
+| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 
@@ -203,6 +203,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `facetKey` | `string` | yes | The facet that was deleted. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `unlinkedRecordTypes` | `integer` | yes | How many record types stopped surfacing it. |
 | `deletedTerms` | `integer` | yes | Terms removed outright. |
 | `archivedTerms` | `integer` | yes | Terms archived rather than removed, keeping the labels on existing records. Always zero if you chose to delete them instead. |

@@ -38,7 +38,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `namespace` | `string` | yes | Namespace to set. Together with the project this is the natural key — the write is an idempotent upsert, not a create. |
 | `data` | `object` | yes | Explicit overrides, replacing whatever was stored. Serialized size is capped at 32768 bytes: this map is seeded into every flow run, so anything larger is content and belongs in a record. |
 | `schemaEntryId` | `string` | no | Schema entry to type this namespace by. Required when creating the namespace; on update, omit to keep the current binding or pass a different id to re-bind. |
-| `version` | `integer` | no | The version you last read. Required when the namespace already exists — a stale value is refused with 409. Ignored on create. |
+| `version` | `integer` | no | The version you last read. Required when the namespace already exists — a stale value is refused with 409. Ignored on create. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 
 **Response `200`**
 
