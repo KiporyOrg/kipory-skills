@@ -18,6 +18,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `POST` | [`/v1/runs/{runId}/retries`](#post-v1-runs-runid-retries) |  |
 | `GET` | [`/v1/runs/{runId}/steps`](#get-v1-runs-runid-steps) |  |
 | `GET` | [`/v1/runs/{runId}/steps/stream`](#get-v1-runs-runid-steps-stream) |  |
+| `GET` | [`/v1/runs/{runId}/trace`](#get-v1-runs-runid-trace) |  |
 
 ### `GET /v1/activity/stream`
 
@@ -183,3 +184,29 @@ Server-Sent Events. Emits `steps` with whatever the caller missed (empty when it
 | `truncated` | `boolean` | yes | True once the RUN has outrun the writer's per-run cap, so events occurred that were never recorded at all. ⛔ It does NOT end the stream and it is not a paging flag — the run continues and still finishes. Read it as: this timeline is INCOMPLETE rather than short. |
 | `type` | `"close"` | yes | Always `close`. The server is ending the stream deliberately — this is an orderly goodbye, not a fault. |
 | `reason` | `"lifetime" \| "transport-unavailable" \| "revoked" \| "terminal" \| "too-slow"` | yes | Why the stream is ending. ⚠️ If you do not recognise the value, treat it as `lifetime` and reconnect with jitter — that is the only default safe in both directions, since it neither abandons a live subject nor hammers a dead one. |
+
+### `GET /v1/runs/{runId}/trace`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `runId` | `string` | yes | The run whose trace to read. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The trace's id. |
+| `subject` | `string` | yes | What kind of thing the flow was invoked for: `request` when it ran with an input bag (an endpoint or a search), `record` when it ran to process one record. Those are the only two values. |
+| `source` | `string` | yes | Where the run came from: `production` is real traffic, while `eval` and `manual` are runs someone deliberately provoked. |
+| `tag` | `string \| null` | yes | A label attached to the run, or null. |
+| `flowId` | `string \| null` | yes | The flow that ran. |
+| `recordId` | `string \| null` | yes | The record being processed, when `subject` is `record`. Null otherwise. |
+| `inputs` | `unknown` | no | What the run received. |
+| `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
+| `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |
+| `stepOutputs` | `object \| null` | yes | What each STEP wrote, for the writes a slot name cannot name. Null when the writer recorded no steps. |
+| `durationMs` | `integer \| null` | yes | How long the run took, in milliseconds. ⚠️ NULL MEANS UNTIMED, not instant — an old row, or a run that crashed before it got going. Render the difference. |
+| `createdAt` | `string` | yes | When the run happened. |
+| `expiresAt` | `string` | yes | When this trace will be deleted. Reading it after this point returns 404 by design, not because the reference is broken. |

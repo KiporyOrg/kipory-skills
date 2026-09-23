@@ -21,6 +21,7 @@ GET /v1/runs/{runId}                               one run and how many attempts
 GET /v1/runs/{runId}/steps                         the ordered step log: started, applied, skipped, no-op, failed, warned, cache hit or miss
 GET /v1/runs/{runId}/change-set                    what it wrote: captured · applied · rejected · discarded
 GET /v1/runs/{runId}/flow-snapshots                the graph version that actually ran
+GET /v1/runs/{runId}/trace                         the run's values: inputs, output, slotOutputs, stepOutputs (a queued preview writes it live)
 GET /v1/flows/{id}/traces?source=production&limit=20   the sampled traces — read the rates in the response first
 GET /v1/flows/{id}/traces/{traceId}                one trace: inputs, output, slotOutputs, stepOutputs
 ```

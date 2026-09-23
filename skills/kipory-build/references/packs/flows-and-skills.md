@@ -257,6 +257,20 @@ because there is no record for them to attach to.
 record really does, and the row is still there afterwards. The isolation above covers files,
 vectors and spend tagging — not your project's data.
 
+⭐ **A preview can also be a queued RUN.** `POST /v1/flows/{id}/preview-runs` takes the same body
+and answers `202 { "runId" }` instead of the result: a worker runs the preview under that id, and
+the run is read back like any other — `GET /v1/runs/{runId}`, `/steps`, `/steps/stream`, `/spend`,
+`/change-set` — with `source.kind: "preview"`. ⚠️ The 202 promises the id, not the run: those
+routes answer 404 until the worker writes the opening frame, so poll the run, then follow its step
+stream. Same spend, same authorization; nothing cancels it once queued, and it is bounded by the
+same wall clock and fan-out cap as the synchronous preview.
+
+The step log carries no values. A queued preview of a project's own flow also writes its **trace
+live** — `GET /v1/runs/{runId}/trace` answers the flow's inputs, each step's output by slot
+(`slotOutputs`, `stepOutputs`) and a failed step's words (`stepOutputs.steps[].kind: "failed"`,
+`error`) while the run is still going; re-read it as the step stream moves, and treat it as final
+once the run has ended. A platform flow or a preview run as another project writes none (404).
+
 `apply: false` is what turns preview into a genuine dry run:
 
 ```json

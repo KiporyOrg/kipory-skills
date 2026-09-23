@@ -19,6 +19,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/flows/{id}/export`](#get-v1-flows-id-export) |  |
 | `GET` | [`/v1/flows/{id}/health`](#get-v1-flows-id-health) |  |
 | `POST` | [`/v1/flows/{id}/preview`](#post-v1-flows-id-preview) |  |
+| `POST` | [`/v1/flows/{id}/preview-runs`](#post-v1-flows-id-preview-runs) |  |
 | `POST` | [`/v1/flows/{id}/preview/stream`](#post-v1-flows-id-preview-stream) |  |
 | `GET` | [`/v1/flows/{id}/scope`](#get-v1-flows-id-scope) |  |
 | `GET` | [`/v1/flows/{id}/steps/{stepId}/switch-off-preview`](#get-v1-flows-id-steps-stepid-switch-off-preview) |  |
@@ -289,6 +290,30 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `latencyMs` | `number` | yes | How long the whole call took, end to end, including preparation. |
 | `pipelineMs` | `number` | yes | How long the flow itself took. Compare this rather than `latencyMs` when measuring a flow across runs — `latencyMs` also spans platform preparation, so it moves when something outside the flow gets slower. `0` when the run failed before reaching the flow. |
 | `timings` | `object` | yes | Full breakdown of where the run's wall clock went. |
+
+### `POST /v1/flows/{id}/preview-runs`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `graph` | `object` | no | Which graph to run: the flow's saved skills, or a draft supplied here. Defaults to the saved graph. |
+| `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
+| `projectId` | `string` | no | Resolve project-scoped context — relation kinds, project config, facets, the caller's profile — against this project instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
+| `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
+| `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true, matching what a preview has always done. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
+
+**Response `202`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `runId` | `string` | yes | The queued run's id. It appears at GET /v1/runs/{runId} — and on /steps, /steps/stream, /spend, /change-set, /flow-snapshots and /trace — once the worker writes its opening frame; until then those routes answer 404. Poll the run, then follow its step stream. |
 
 ### `POST /v1/flows/{id}/preview/stream`
 
