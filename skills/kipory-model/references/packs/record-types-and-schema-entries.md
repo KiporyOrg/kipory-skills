@@ -151,6 +151,12 @@ save would refuse still gets an answer, which is how you see the unread keyword
 the save would refuse before you send it. It needs EDITOR on the type, like the
 PATCH, and a retired project refuses it like any other write.
 
+For a type you have **not created yet**, ask `POST /v1/schema-entries/keywords-preview`
+with `{ "project": "<node id>", "definition": { ... } }` — the same answer for a
+type nothing binds, which is what a new type is until something does. It needs
+EDITOR on the project node. To check the create itself, send the create body to
+`POST /v1/schema-entries` with `validateOnly: true`.
+
 ## Owner scope — whose records are these?
 
 Declared on the type, and every generic reader, writer and processor branches on it.

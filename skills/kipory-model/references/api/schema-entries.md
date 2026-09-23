@@ -17,6 +17,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `DELETE` | [`/v1/schema-entries/{id}`](#delete-v1-schema-entries-id) |  |
 | `POST` | [`/v1/schema-entries/{id}/keywords-preview`](#post-v1-schema-entries-id-keywords-preview) |  |
 | `POST` | [`/v1/schema-entries/{id}/promote`](#post-v1-schema-entries-id-promote) |  |
+| `POST` | [`/v1/schema-entries/keywords-preview`](#post-v1-schema-entries-keywords-preview) |  |
 | `POST` | [`/v1/schema-entries/seed`](#post-v1-schema-entries-seed) |  |
 
 ### `GET /v1/schema-entries`
@@ -207,6 +208,21 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+
+### `POST /v1/schema-entries/keywords-preview`
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | Node id of the project the type is being created in. |
+| `definition` | `object` | yes | The type as you are drafting it — the whole JSON Schema document, exactly as the create would send it. Nothing is saved or checked against the registry; the answer only says what each keyword in it would do. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `keywordVerdicts` | `object[]` | yes | What each keyword in the definition you sent would do — the rows `GET /v1/schema-entries?expand=keywords` would return for a type with that definition that nothing binds yet (no config namespace, not the end-user profile). The definition's structural keywords and its labels carry no row, as on the read. |
 
 ### `POST /v1/schema-entries/seed`
 
