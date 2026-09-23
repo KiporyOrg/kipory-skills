@@ -196,12 +196,9 @@ Gate: `assertPlatformStaffActor`
 Gate: `assertPlatformStaffActor`
 
 - `GET /v1/rate-cards`
-- `GET /v1/rate-cards/active`
-- `GET /v1/rate-cards/coverage`
 - `GET /v1/rate-cards/{…}`
 - `GET /v1/rate-cards/{…}/prices`
 - `POST /v1/rate-cards`
-- `POST /v1/rate-cards/quote`
 - `POST /v1/rate-cards/{…}/activate`
 
 ## the installation's credential roster and who holds each key — an API key is NEVER platform staff, and the rest of this hub stays reachable to one
@@ -260,6 +257,13 @@ Gate: `requireUser`
 - `POST /v1/files/upload-url`
 - `POST /v1/files/{…}/confirm`
 
+## a GuardSignal is evidence ABOUT a guard — an identity resolver that failed closed, a payer that would not resolve — and its `details` name the principal under investigation. An API key is never platform staff, and letting the subject of the record mark its own evidence reviewed is the one outcome this surface exists to prevent. The alert it answers is read at GET /v1/alerts, which is staff for the same reason
+
+Gate: `assertPlatformStaffActor`
+
+- `DELETE /v1/guard-signals/acknowledge`
+- `POST /v1/guard-signals/acknowledge`
+
 ## the first-project create path, for an account that holds no memberships. A key is a machine principal with no person and therefore no memberships to lack — it would satisfy the zero-membership gate for the wrong reason, so the per-user gate refuses it before that can be asked
 
 Gate: `requireUser`
@@ -273,6 +277,13 @@ Gate: `membershipPrincipal (a person or the internal token)`
 - `DELETE /v1/nodes/{…}/invites/{…}`
 - `GET /v1/nodes/{…}/invites`
 - `POST /v1/nodes/{…}/invites`
+
+## an ExternalQuotaPolicy governs a pool SHARED by the whole installation — the three YouTube Data API handlers draw on one budget — so raising your own allowance spends everyone else's, and an API key is never platform staff. ⚠️ Only the WRITES are listed: GET /v1/organizations/{nodeId}/quota is MEMBER-level on the node and a document may prescribe it, because seeing the cap that will fail your ingest is a legitimate interest of any member
+
+Gate: `assertPlatformStaffActor`
+
+- `DELETE /v1/organizations/{…}/quota/{…}`
+- `PUT /v1/organizations/{…}/quota/{…}`
 
 ## suspending a person's seat or erasing their account is person governance, not workload — refused to a key for the invites' reason. POST /v1/projects/{nodeId}/members/{userId}/credits stays open to a key
 
