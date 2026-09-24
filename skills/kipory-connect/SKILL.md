@@ -18,7 +18,7 @@ Three things, and **all three come from the human**:
 | An **API key**                   | Only a signed-in person can mint one — a key cannot mint a key.                              |
 | The **project's node id**        | The design plane addresses a project by its node id, and a key is told nothing at mint time. |
 
-⚠️ **Two ids, and they are different values for the same project.** The _project id_ is what the create call returns; the _node id_ is what almost every design route scopes by. `GET /v1/projects/by-project-id/{projectId}` is the bridge. Two sub-resources want the project id instead, and their paths say so: `/v1/projects/{projectId}/feature-map` and `/v1/projects/{projectId}/handlers`.
+⚠️ **Two ids, and they are different values for the same project.** The _project id_ is what the create call returns; the _node id_ is what almost every design route scopes by. `GET /v1/projects/by-project-id/{projectId}` is the bridge. A few sub-resources want the project id instead, and their paths say so: `/v1/projects/{projectId}/handlers`, `…/handler-activity`, `…/task-models`, `…/descriptions` and `…/describer`.
 
 > Never ask the human to paste the key into a file you will write, a commit, or a log line. Read it from the environment.
 
@@ -103,7 +103,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `references/conventions.md`                  | the rules every design resource shares: hosts, ids, roles, `expand=`, `version`, readiness, errors, paging, streams, preview |
 | `references/glossary.md`                     | the words that collide — skill, handler, record, term, event, preview — and which meaning the API uses                       |
-| `references/api/projects.md`                 | create, lifecycle, address, settings, history, feature map                                                                   |
+| `references/api/projects.md`                 | create, lifecycle, address, settings, history                                                                                |
 | `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                |
 | `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                    |
 | `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                               |

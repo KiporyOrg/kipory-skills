@@ -22,8 +22,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `POST` | [`/v1/projects/{nodeId}/restore`](#post-v1-projects-nodeid-restore) |  |
 | `GET` | [`/v1/projects/{nodeId}/settings`](#get-v1-projects-nodeid-settings) |  |
 | `PATCH` | [`/v1/projects/{nodeId}/settings`](#patch-v1-projects-nodeid-settings) |  |
-| `GET` | [`/v1/projects/{projectId}/feature-map`](#get-v1-projects-projectid-feature-map) |  |
-| `POST` | [`/v1/projects/{projectId}/feature-map/derive`](#post-v1-projects-projectid-feature-map-derive) |  |
+| `PATCH` | [`/v1/projects/{projectId}/describer`](#patch-v1-projects-projectid-describer) |  |
+| `GET` | [`/v1/projects/{projectId}/descriptions`](#get-v1-projects-projectid-descriptions) |  |
+| `POST` | [`/v1/projects/{projectId}/descriptions/describe`](#post-v1-projects-projectid-descriptions-describe) |  |
+| `GET` | [`/v1/projects/{projectId}/descriptions/history`](#get-v1-projects-projectid-descriptions-history) |  |
 | `GET` | [`/v1/projects/{projectId}/handler-activity`](#get-v1-projects-projectid-handler-activity) |  |
 | `GET` | [`/v1/projects/{projectId}/handlers`](#get-v1-projects-projectid-handlers) |  |
 | `GET` | [`/v1/projects/address-availability`](#get-v1-projects-address-availability) |  |
@@ -317,7 +319,25 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `spendCapWarnPercent` | `integer \| null` | yes | Warn the project's operators when design-time spend passes this share of the build ceiling (`designSpendCapCredits`), in whole percent. Null = no warning. It watches the build ceiling only — the per-user ceiling raises no warning. The ceilings refuse at 100% regardless. |
 | `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 
-### `GET /v1/projects/{projectId}/feature-map`
+### `PATCH /v1/projects/{projectId}/describer`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `projectId` | `string` | yes | The project's own id. Not the `nodeId`, which is a different value on the same project and is what the `{nodeId}` routes take. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | `boolean` | yes | Turn the platform's describer on or off for this project. |
+
+**Response `204`**
+
+_No fields._
+
+### `GET /v1/projects/{projectId}/descriptions`
 
 **Path parameters**
 
@@ -329,12 +349,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `graph` | `object` | yes | Always present, including before anything has been grouped — it is read straight from your configuration. |
-| `featureSet` | `object \| null` | yes | The grouped view. NULL when this project has never completed a grouping run — `graph` and `coverage` are still usable in that case. |
-| `coverage` | `object` | yes | What nothing declared reaches. Never null, and computed with or without a feature set. |
-| `freshness` | `object` | yes | Whether this map still reflects your configuration. |
+| `describer` | `object` | yes | The state of the platform's describer for this project: whether it is on, how far the configuration has been described, and how its last run ended. |
+| `elements` | `object[]` | yes | The newest description of every described element. |
 
-### `POST /v1/projects/{projectId}/feature-map/derive`
+### `POST /v1/projects/{projectId}/descriptions/describe`
 
 **Path parameters**
 
@@ -346,8 +364,29 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `enqueued` | `boolean` | yes | Whether this request started a derive. False is not an error — see `reason`. |
-| `reason` | `"already-queued" \| "ceiling-reached"` | no | Why nothing was started, present only when `enqueued` is false. `already-queued` means a derive is already coming, so do nothing; `ceiling-reached` means this project has used its allowance and the map stays behind until the window resets. |
+| `enqueued` | `boolean` | yes | Whether this request started a run. False is not an error — see `reason`. |
+| `reason` | `"already-queued" \| "switched-off" \| "ceiling-reached"` | no | Why nothing started, present only when `enqueued` is false. `already-queued` — a run is already coming; `switched-off` — the project's describer is off; `ceiling-reached` — the project spent its daily allowance of model calls. |
+
+### `GET /v1/projects/{projectId}/descriptions/history`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `projectId` | `string` | yes | The project's own id. Not the `nodeId`, which is a different value on the same project and is what the `{nodeId}` routes take. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `element` | `string` | yes | The element's key, `<kind>:<elementId>` — as `elementKey` reads on the list. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `elementKey` | `string` | yes | The element asked about, `<kind>:<elementId>`. |
+| `versions` | `object[]` | yes | Every stored description of the element, newest first. |
 
 ### `GET /v1/projects/{projectId}/handler-activity`
 

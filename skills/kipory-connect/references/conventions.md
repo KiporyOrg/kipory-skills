@@ -11,7 +11,7 @@ The rules below hold across the whole design API. Each resource's own page under
 
 ## Ids
 
-- A project has **two ids**: the project id (returned by create, `proj_…`) and its node id (`orgnode_…`). Design routes scope by the **node id** as `?project=` or `{nodeId}`; the exceptions spell `{projectId}` in the path (`feature-map`, `handlers`, `handler-activity`, `task-models`, `by-project-id`).
+- A project has **two ids**: the project id (returned by create, `proj_…`) and its node id (`orgnode_…`). Design routes scope by the **node id** as `?project=` or `{nodeId}`; the exceptions spell `{projectId}` in the path (`handlers`, `handler-activity`, `task-models`, `descriptions`, `describer`, `by-project-id`).
 - A resource with a parent design object scopes by **that**: skills by `?flow=`, checkpoints by `?flow=`, test cases by `?flow=`, event types by `?category=` (the category's row id, not its key), eval cases by `?suite=`.
 - Item routes address a row by its **id**, which is a cuid — never by its key or slug. A relation kind's traversal (`/v1/records/{id}/relations/{kind}`) is the exception: `{kind}` is the kind's key.
 - A key is a **machine principal**: one node, one role, no user. It never has a `me`.
