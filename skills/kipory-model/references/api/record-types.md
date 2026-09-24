@@ -16,6 +16,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `PATCH` | [`/v1/record-types/{id}`](#patch-v1-record-types-id) |  |
 | `DELETE` | [`/v1/record-types/{id}`](#delete-v1-record-types-id) |  |
 | `GET` | [`/v1/record-types/{id}/contract-preview`](#get-v1-record-types-id-contract-preview) |  |
+| `POST` | [`/v1/record-types/{id}/contract-preview`](#post-v1-record-types-id-contract-preview) |  |
 | `POST` | [`/v1/record-types/{id}/natural-key-preview`](#post-v1-record-types-id-natural-key-preview) |  |
 
 ### `GET /v1/record-types`
@@ -74,7 +75,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type. `USER` — each record belongs to one end user, who sees only their own. `PROJECT` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
-| `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `file` to object storage; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
+| `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `stream` to the stream store; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
 | `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: what is indexed for search, or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`, so the two cannot disagree. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: edges this type produces, or null when no field carries `link` and the type declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this type may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
@@ -128,7 +129,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type. `USER` — each record belongs to one end user, who sees only their own. `PROJECT` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
-| `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `file` to object storage; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
+| `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `stream` to the stream store; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
 | `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: what is indexed for search, or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`, so the two cannot disagree. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: edges this type produces, or null when no field carries `link` and the type declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this type may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
@@ -188,7 +189,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type. `USER` — each record belongs to one end user, who sees only their own. `PROJECT` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
-| `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `file` to object storage; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
+| `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `stream` to the stream store; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
 | `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: what is indexed for search, or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`, so the two cannot disagree. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: edges this type produces, or null when no field carries `link` and the type declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this type may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
@@ -256,6 +257,30 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `dataEntryId` | `string` | no | Propose re-pointing the data shape at this operator entry. Omit to keep the stored one. Validated by the same resolver the PATCH uses, so an entry this refuses is one the save would refuse too. |
+| `flow` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `contract` | `object[]` | yes | The field vocabulary the proposed descriptor would have — the same shape `expand=contract` returns for the stored one. |
+| `definition` | `unknown` | no | The PROPOSED shape's JSON Schema. ⚠️ Carried because a consumer that draws the contract needs each field's own declared type, which the contract section deliberately does not hold — it carries the derived INDEX type. Without it a preview would redraw the grid and lose a column the stored read can fill. |
+| `outputDefinition` | `unknown` | no | What the PROPOSED binding would produce, synthesized from the signature this preview resolved. Null when the proposal is flow-less — the same meaning `expand=outputDefinition` gives it. |
+| `declarations` | `object` | yes | One verdict per declaration this type actually holds; null where it declares nothing, which is a different answer from surviving. |
+
+### `POST /v1/record-types/{id}/contract-preview`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record type's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `definition` | `object` | yes | The drafted JSON Schema of the shape this type already points at. Gated by the rules a save of it meets — field names, an object schema, and the stored flow's binding when `flow` is omitted — each a 422. Judged against the binding as stored: a save that re-shapes a frozen signature is refused until re-sent with `adoptSnapshots`, and a removal with stored records is refused; the document plan answers both. The `declarations` verdicts are the STORED declarations under this draft — a save restating `uses` is judged by those instead. |
 | `flow` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
 
 **Response `200`**

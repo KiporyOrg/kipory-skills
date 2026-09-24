@@ -79,6 +79,14 @@ inline under the record type that uses it,
 in which case that record type OWNS it: the shape is edited only through the type, and every
 other consumer is refused until it is promoted to a shared entry.
 
+Editing an owned shape and its owner's `uses` in the same row is ONE change: when the row states
+`uses`, the owner's search and link declarations are judged against those uses and the new shape
+together, so removing a field along with the uses that name it plans clean. With `uses` left out,
+the stored declarations are judged against the new shape, and a field they still name cannot be
+removed. A record type's `uses` names each field's use as the record-type API does — `filter`,
+`key`, `search`, `link`, `stream`; there is no `file` use (retired 2026-09-24), and a document
+naming one is refused.
+
 ## Plan a document before applying it
 
 `POST /v1/projects/{nodeId}/document/plan` takes the document itself as the body — JSON, or YAML
@@ -118,13 +126,19 @@ The answer holds the `version` the project was read at — the lock an apply pre
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
   (`records.member.shape`), never a path in some row's request body. Gate on `severity`.
 - `consequences` — what the change does to stored data, with counts measured in the planning
-  transaction: records re-stamped, vectors re-indexed, stream fields moved, edges re-stamped, and
-  `records-invalid` — stored records that do not fit a shape you changed. That last one is found by
+  transaction: records re-stamped, a vector reconcile queued, stream fields moved, edges
+  re-stamped, and `records-invalid` — stored records that do not fit a shape you changed. That last one is found by
   reach, not by name: change a shape and every record type whose shape is it, or reaches it
   through a reference, has its stored records checked, whether or not your document mentions the
   type. The count is of records that do not fit, not only newly broken ones; past 5 000 records
   of one type it is a floor and says so. A consequence is never a refusal — the platform tells
   you, and lets you.
+  `reembed` is the one that costs money: this type's stored records are re-embedded for search,
+  which spends credits on embedding usage (billed by tokens, so it grows with the records and the
+  text each holds), because what its search indexes moved. It is per type, a plan reports it (an
+  apply's answer does not repeat it), and it is the one to ask a person about before applying.
+  `reindex` is not that: it says a reconcile is queued, which may find nothing to redo (a filter
+  change queues one and embeds nothing).
 - `ok` — true exactly when no diagnostic is an `error`. An apply of the same document commits
   exactly when this is true.
 

@@ -6,7 +6,7 @@ license: MIT
 
 # Model a project's data
 
-Five resources, five packs, and an order the packs do not state because each answers for one capability. Two facts most people get wrong: **a record type has ONE storage declaration, `uses`** — per field, what it is for (`filter`, `search`, `link`, `key`, `file`), plus the type-level `search` settings, `join` and `facets`; `searchable`, `queryable`, `relations`, the natural key and the facet links are derived from it and read-only, and it is sent whole. And **creating an embedding profile does nothing until you activate it** — activation is the one expensive move here; it repoints every declaration and reindexes.
+Five resources, five packs, and an order the packs do not state because each answers for one capability. Two facts most people get wrong: **a record type has ONE storage declaration, `uses`** — per field, what it is for (`filter`, `search`, `link`, `key`, `stream`), plus the type-level `search` settings, `join` and `facets`; `searchable`, `queryable`, `relations`, the natural key and the facet links are derived from it and read-only, and it is sent whole. And **creating an embedding profile does nothing until you activate it** — activation is the one expensive move here; it repoints every declaration and reindexes.
 
 ## Before the first call
 

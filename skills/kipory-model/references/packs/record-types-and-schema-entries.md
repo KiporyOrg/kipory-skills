@@ -202,7 +202,11 @@ its fields is derived from it. Per field, a list of what the field is **for**:
   a list of timed events that grows without bound, appended never assigned — see "A list that grows
   without bound" below.
 - `key` — the natural-key index; the field identifies the record (the derived `naturalKey`).
-- `file` — object storage; the field is a file reference.
+
+There is no `file` use any more. It was retired on 2026-09-24: it derived nothing, nothing read it,
+and it was legal only on a field whose type was already File — which is what uploads, storage and
+processing go by. A statement still naming it fails request validation (`422 VALIDATION_FAILED`),
+not a `RECORD_TYPE_USES_INVALID` issue.
 
 And three statements about the **type**, beside the fields: `search` (the embedding profile, with
 optional overrides of `chunking` and `stages`, and of `indexWhen` and `isolationGroup` — required iff a field is
@@ -788,6 +792,28 @@ GET /v1/record-types/{id}/contract-preview?dataEntryId=<entry>&flow=<flowId>|non
 Both parameters are optional. Omit one to keep what is stored; `flow=none` proposes unbinding.
 `none` is safe as a sentinel because flow ids are cuids.
 
+To ask the same question about a **draft of the type's own shape** — fields added or changed but
+not saved — send the drafted document instead:
+
+```
+POST /v1/record-types/{id}/contract-preview
+{ "definition": { /* the drafted JSON Schema */ }, "flow": "<flowId>" | "none" }
+```
+
+`flow` is optional, as above; `dataEntryId` is refused (a draft of this shape and a move to another
+are two different saves). The drafted document replaces the stored one and nothing is re-pointed,
+so the preview judges against the binding as stored. It is a POST because a document does not fit a
+query string, and it is floored at EDITOR: only an editor has a draft to ask about. The answer has
+the same shape as the GET's.
+
+The draft is gated first by the rules a save of it meets: field names (letter-led, no reserved
+name), an object schema, and — with `flow` left out on a bound type — the stored flow's binding
+against the draft. Any of those is a `422`. What it does NOT answer is the save's own business: a
+removal with stored records, and an edit that re-shapes a signature an endpoint or this type froze
+(`SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, which a re-send with `adoptSnapshots` re-captures — this
+type's included). Plan the document for those. The `declarations` verdicts are the STORED
+declarations under the draft: a save that restates `uses` is judged by the uses it states instead.
+
 ⚠️ **They are not independent, and the shape one is the reason.** Re-pointing the shape re-binds the
 flow against it, so a `dataEntryId`-only proposal is resolved against the flow's **live** signature
 too — its `processed` fields and its declaration verdicts can both move, and it can be refused for a
@@ -877,8 +903,8 @@ else about the plan, which is still true.
 
 ⛔ **The two answers worth having are the two a save gives you no way to see.** A 200 that quietly
 enqueues a full reindex, and a 200 that writes fewer columns than you meant.
-`derived.effects.reindex` is the expensive one (a declaration change, a re-bind, a re-point — and a
-RENAME, which invalidates every stored point's payload namespace); `derived.effects.restamp` says
+`derived.effects.reindex` says a reconcile is queued (a declaration change, a re-bind, a re-point —
+and a RENAME, which invalidates every stored point's payload namespace); `derived.effects.restamp` says
 every row's query slots would be re-stamped. An **empty `writes`** under `derived` means your request
 changes nothing at all, which is otherwise indistinguishable from a save that changed everything
 you intended.
