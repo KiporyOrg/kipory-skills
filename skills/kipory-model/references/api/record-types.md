@@ -95,6 +95,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
+| `processingGaps` | `object[]` | no | The flows of this project that create records of this type without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/record-types/{id}`; always empty for a type that binds no processing flow. |
 | `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
@@ -111,7 +112,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, facets, uses, restamp, migration, embedding, vectorProgress, diagnostics, dependents. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, facets, uses, restamp, migration, embedding, vectorProgress, diagnostics, dependents, processingGaps. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -149,6 +150,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
+| `processingGaps` | `object[]` | no | The flows of this project that create records of this type without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/record-types/{id}`; always empty for a type that binds no processing flow. |
 | `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
@@ -209,6 +211,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
+| `processingGaps` | `object[]` | no | The flows of this project that create records of this type without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/record-types/{id}`; always empty for a type that binds no processing flow. |
 | `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |

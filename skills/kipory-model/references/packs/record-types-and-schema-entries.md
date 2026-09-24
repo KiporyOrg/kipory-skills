@@ -735,6 +735,17 @@ body. A cached answer — every query reads the stores as they are now. The oper
   copies. A natural key no future record could supply is a refused `key` use, so it arrives as a
   `uses` issue. Both expansions are item-route only.
 
+- **Records created and never queued.** A record of a type that binds a processing flow is born
+  `PENDING`, and `entity.create` does not queue it — only an `entity.enqueue-process` step does. A
+  flow that creates the record without one leaves it waiting with no run coming, and the flow's own
+  run still reads as succeeded. `GET /v1/record-types/{id}?expand=processingGaps` names every flow
+  of the project with an enabled `entity.create` of this type and no enabled
+  `entity.enqueue-process` step (`code: "RECORD_CREATED_NOT_QUEUED"`, the flow, the create step
+  and a sentence saying what to add); always empty for a type with no processing flow. Item-route
+  only. A record already stranded this way is processed with
+  `POST /v1/projects/{nodeId}/records/{id}/reprocess`, which accepts a `PENDING` record only when
+  no processing job is waiting or running for it — the record read's `pendingRun` says which.
+
 - **Re-pointing or renaming a type that already has records.**
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than
   optional. The update runs in a transaction, so a rejected write rolls back the whole rename

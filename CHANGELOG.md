@@ -2,6 +2,18 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260924.1626 — 2026-09-24
+
+Synced from the Kipory monorepo at `986a4f4de`.
+
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- added: `skills/kipory-diagnose/references/api/rejected-requests.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-model/references/api/record-types.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+
 ## 1.20260924.1551 — 2026-09-24
 
 Synced from the Kipory monorepo at `cbb4ceb41`.

@@ -118,6 +118,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `record` | `object` | yes | The record itself — its identity, its declared fields in the type's own order, its terms, its files and where it stands in the index. |
 | `contract` | `object \| null` | yes | What the record's TYPE declares, which the record cannot say about itself. Null when the type is gone from under the record. |
+| `pendingRun` | `"queued" \| "unqueued" \| "unreadable"` | yes | For a PENDING record whose type binds a processing flow, whether a run is coming: `queued` when a processing job is waiting or running for it; `unqueued` when none is, so nothing will process it until someone asks (`POST .../reprocess` accepts it); `unreadable` when the queue could not be read. Null for any other record. |
 
 ### `PATCH /v1/projects/{nodeId}/records/{id}`
 

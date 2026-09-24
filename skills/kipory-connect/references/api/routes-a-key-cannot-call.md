@@ -242,11 +242,14 @@ Gate: `assertPlatformStaffActor`
 - `GET /v1/vendors/{…}`
 - `POST /v1/vendors/{…}/probe`
 
-## every wallet in the installation — each tenant's balance, overdraft and runway, and every person's own wallet — an API key is NEVER platform staff, and a staff-mode hub never resolves a presented key in the first place. A customer reads its own payer on GET /v1/projects/{nodeId}/usage and GET /v1/organizations/{nodeId}/usage, with the balance only for an admin of the wallet's holder
+## every wallet in the installation — each tenant's balance, overdraft and runway, and every person's own wallet — the staff grant that mints credits into any of them, and the starter grant minted into every new organization's; an API key is NEVER platform staff, and a staff-mode hub never resolves a presented key in the first place. A customer reads its own payer on GET /v1/projects/{nodeId}/usage and GET /v1/organizations/{nodeId}/usage, with the balance only for an admin of the wallet's holder; the one grant a customer key may make is into its own member's wallet, POST /v1/projects/{nodeId}/members/{userId}/credits
 
 Gate: `assertPlatformStaffActor`
 
 - `GET /v1/wallets`
+- `GET /v1/wallets/starter-grant`
+- `POST /v1/wallets/{…}/grants`
+- `PUT /v1/wallets/starter-grant`
 
 ## owner-scoped file operations resolve the acting USER; a key has none. (GET /v1/files/raw/{token} is deliberately public — the HMAC is the credential — and is NOT listed here)
 
