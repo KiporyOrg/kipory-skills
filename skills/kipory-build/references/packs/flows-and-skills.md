@@ -311,6 +311,13 @@ the way it will really run, and an eval suite's `runAsUserId`, which names an ar
 ⚠️ `recordOwner` is an impersonation capability — it needs EDITOR on the record's project as well as
 on the flow, and refuses a record with no owner.
 
+⚠️ **A record preview takes a record of a type BOUND to the flow — any such type, and only such.**
+The record's inputs are built the way a real record run builds them: each declared input slot reads
+the same-named field of the record's submission, with the record's id, creation time and submitted
+files available by those slot names. A record of a type this flow does not process is refused with
+422, and the refusal names the types that are bound. `GET /v1/flows/{id}/recent-records` lists the
+records the flow ran on lately — the ones most worth previewing.
+
 ⛔ **The same seam bites the OTHER way, and this one is why a broken schedule can preview green.**
 Preview always resolves _somebody_ — you, by default. A **schedule resolves nobody**, and the
 engine then omits `userInfo` entirely rather than handing down an empty one. An absent input makes

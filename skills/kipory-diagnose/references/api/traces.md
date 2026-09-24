@@ -2,7 +2,7 @@
 
 # Flow traces
 
-What a run received, produced, and held in each output slot. Sampled per project, dropped on a TTL, and the list carries no payloads.
+What a run received, produced, and held in each output slot. Sampled per project, dropped on a TTL, and the list carries no payloads. `recent-records` names the records a flow ran on lately, from its traces and its run log together.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -10,8 +10,29 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Method | Path | Notes |
 | --- | --- | --- |
+| `GET` | [`/v1/flows/{id}/recent-records`](#get-v1-flows-id-recent-records) |  |
 | `GET` | [`/v1/flows/{id}/traces`](#get-v1-flows-id-traces) |  |
 | `GET` | [`/v1/flows/{id}/traces/{traceId}`](#get-v1-flows-id-traces-traceid) |  |
+
+### `GET /v1/flows/{id}/recent-records`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `limit` | `integer` | no | How many records to return, most recently run first, up to 50. A CAP, not a page: there is no cursor, and records deleted since their run are dropped, so fewer may come back. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `records` | `object[]` | yes | Distinct records, most recently run first. Empty for a flow no record has run through lately — and for a PLATFORM flow, whose runs belong to the projects that bind it rather than to any one project a reader of this flow could be shown. |
 
 ### `GET /v1/flows/{id}/traces`
 

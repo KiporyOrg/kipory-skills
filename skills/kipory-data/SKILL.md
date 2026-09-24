@@ -27,6 +27,8 @@ GET /v1/projects/{nodeId}/records?type=<recordType>&limit=50        one page, ne
 GET /v1/projects/{nodeId}/records?type=<recordType>&q=<text>         natural key + declared text fields, case-insensitive
 GET /v1/projects/{nodeId}/records?type=<recordType>&mode=semantic&q=<text>   a bounded ranking, no pages
 GET /v1/projects/{nodeId}/records?type=<recordType>&record=<id>      the page plus one record's detail beside it
+GET /v1/projects/{nodeId}/records?id=<id>&id=<id>                    name records by id (up to 100), any type; missing ids are absent
+GET /v1/projects/{nodeId}/records?type=<recordType>&key=<naturalKey> the one record with exactly that natural key
 ```
 
 Narrow with repeated `field=name:operator:value` and `term=facet:slug` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100.
@@ -64,7 +66,8 @@ GET /v1/projects/{nodeId}/ingest/summary?window=7d   what the ingest workers fet
 - **A per-user record type refuses a key.** `entity.create` on a type whose owner scope is per-user raises a 403 naming the wrong credential. A key's runs are project-owned; only a signed-in end user writes person-owned records.
 - **A pool record's identity is its content.** For a project-scoped type the record id derives from (project, type, data), so the same payload from two runs, two schedules or a retry converges on one record — and that convergence is a success, not an error. Two _different_ payloads claiming one natural key are refused whatever the order.
 - **A record is READY or PENDING depending on its type.** A type with no processing flow creates records READY. A type bound to a flow creates them PENDING, and the flow must run an `entity.enqueue-process` step; a flow that omits it leaves rows PENDING until the watchdog finalises them FAILED.
-- **`paging` on the records list is nullable, and null is normal.** An unnarrowed corpus over the count threshold, or any semantic ranking, declines to count; `declinedCountReason` says which. Do not compute page numbers yourself.
+- **`paging` on the records list is nullable, and null is normal.** An unnarrowed corpus over the count threshold, a literal `q` search, any semantic ranking, or a read by `id` declines to count; `declinedCountReason` says which. A search still answers `nextCursor` — whether there is more — so walk it; a filter, not a phrase, brings a total back. Do not compute page numbers yourself.
+- **A read that runs past the 4 s budget is a 422 `QUERY_TOO_BROAD`, not a 500.** A very short phrase over a large type is the usual cause; add a filter or a longer phrase and ask again.
 - **`terms` on a row is capped at two chips.** `termCount` is the real number. An empty `terms` array is a cap artefact, not evidence.
 - **`null` means not measured, never zero** — on `hitRate`, `unindexedCount`, `quotaDay`, and every null in the ingest summary.
 - **An unknown relation kind answers 200 with no edges**, not 404. An empty traversal is not proof of no edges; check the kind exists.
