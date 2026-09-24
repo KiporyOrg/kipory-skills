@@ -21,8 +21,7 @@ Re-rank candidate documents by relevance to a query.
 | `documentItemsSlot` | string | yes | — | The slot holding the documents to score. Each one carries its own id, which comes back on the result. |
 | `maxDocumentChars` | integer | no | `50000` | How long a single document may be. A longer one is rejected rather than quietly cut short. |
 | `maxDocuments` | integer | no | `100` | How many documents to score at most. Anything past this is dropped before scoring, with a warning. ⚠️ Cost is billed per hundred documents scored, so raising this past the default multiplies what every call costs. |
-| `model` | string | no | `"rerank-v3.5"` | Which re-ranking model to score with. The default is the stable multilingual one. |
-| `provider` | string | no | `"cohere"` | Which service does the scoring. Only providers with a re-ranking model can be picked. |
+| `model` | string | no | `"cohere/rerank-v3.5"` | Which re-ranking model to score with, by its catalog id (creator/slug, as GET /v1/ai-models lists it). The default is the stable multilingual one. |
 | `queryStreams` | string | yes | — | The slot holding the text to match against. |
 | `topN` | integer | no | `10` | How many results to return, best first. It cannot be higher than the number of documents scored. ⚠️ Saving is refused when this is higher than the number of documents scored — otherwise the extra rows would silently never arrive. |
 

@@ -2,6 +2,17 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260924.552 — 2026-09-24
+
+Synced from the Kipory monorepo at `c0632cea2`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/handlers/audio.transcribe.md`
+- changed: `skills/kipory-build/references/handlers/facet.resolve.md`
+- changed: `skills/kipory-build/references/handlers/text.embed.md`
+- changed: `skills/kipory-build/references/handlers/text.rerank.md`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20260924.418 — 2026-09-24
 
 Synced from the Kipory monorepo at `c876f5018`.

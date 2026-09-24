@@ -45,7 +45,7 @@ Cheap checks before a save: `validateOnly: true` on `POST /v1/skills` (and on `P
 - **A condition that fails is a skip, not a failure**, and so is a condition that throws. Its `path` is a plain dot-string, while `inputPaths` entries are structured objects — two path notations on one row.
 - **`flow.dispatch` with no `default` silently skips an unmatched input**, and every step below the unwritten branch slot skips too.
 - **Pinning `modelId` opts a step out of the project's next model change, silently.** Omit it to inherit through `taskKey`; read `GET /v1/projects/{projectId}/task-models` and its `source` first. A `text.generate` step's `modelSlot` naming an unknown or disabled model fails the run with no fallback.
-- **Changing `text.embed`'s model or provider invalidates every stored vector** and needs an index rebuild.
+- **Changing `text.embed`'s model invalidates every stored vector** and needs an index rebuild. `model` is a catalog id (`creator/slug`); the account that serves it is not part of the config.
 - **A save-time collision is half the guarantee.** Nothing re-validates a graph at run time, so a flow saved with blocking edge issues runs and leaves a trace — usually the fastest way to see what the diagnostic was predicting.
 
 ## Author the whole project as one document

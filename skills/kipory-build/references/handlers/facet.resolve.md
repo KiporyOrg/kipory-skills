@@ -18,7 +18,7 @@ Propose and resolve a set of facets for a record in one node, emitting term reso
 | `extractedFacetsSlots` | string[] | no | — | Which slots hold facet values an earlier step already extracted. No proposal runs for these — the values are read straight out. |
 | `facetKeys` | string[] | no | — | Which facets this step proposes values for. Every key has to be one the project declares. ⚠️ A key the project does not declare is refused when the step runs. |
 | `maxValues` | object | no | — | How many values each multi-value facet may resolve. Leave a facet out for no cap. ⚠️ Only applies to facets that accept many values. One that accepts a single value is capped at one already. |
-| `model` | string | no | — | Optional model id for the batched proposal LLM call. Node-level (never per-facet); falls back to the extraction-task default model. |
+| `model` | string | no | — | The model for the batched proposal call, by catalog id (creator/slug). One per node; defaults to the extraction model. |
 
 ## Worked example
 

@@ -17,8 +17,7 @@ Turn text into a dense vector for semantic search or matching.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `model` | string | no | `""` | Which model to embed with. Leave empty to use the project's embedding default, which supplies the provider too. ⚠️ The model decides how long the vector is, and that length has to match the room the search index reserves for it. Changing the model means embedding everything again and rebuilding the index. |
-| `provider` | `openai` \| `google` | no | `"openai"` | Which service computes the embedding. The model id must be one of theirs. ⚠️ A different provider produces different vectors, and usually a different length. It costs the same as changing the model: everything already embedded has to be embedded again. |
+| `model` | string | no | `""` | The model to embed with, by catalog id (e.g. openai/text-embedding-3-large). Leave empty for the project's embedding default. ⚠️ The model decides how long the vector is, and that length has to match the room the search index reserves for it. Changing the model means embedding everything again and rebuilding the index. |
 
 ## Worked example
 

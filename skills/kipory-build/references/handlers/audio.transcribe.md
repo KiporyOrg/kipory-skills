@@ -19,7 +19,7 @@ Transcribe an audio file into text.
 | --- | --- | --- | --- | --- |
 | `language` | string | no | — | ISO 639-1 language hint (e.g. 'en', 'es'). Auto-detect when omitted; setting explicitly improves accuracy on short clips. |
 | `maxBytes` | integer | no | `25000000` | Reject files larger than this before calling the provider. Default 25 MB matches OpenAI's hard cap on Whisper requests; tune down for cost ceilings. |
-| `model` | string | no | `""` | Which model transcribes. Leave it empty to use the project's transcription setting. |
+| `model` | string | no | `""` | Which model transcribes, by its catalog id (creator/slug, as GET /v1/ai-models lists it — e.g. openai/whisper-1). Leave it empty to use the project's transcription setting. |
 
 ## Worked example
 
