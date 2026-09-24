@@ -7,5 +7,5 @@ Every page under `references/api/`, `references/handlers/` and `references/packs
 | Source | Version | Served live as |
 | --- | --- | --- |
 | packs | `f1ec72c334d2` | `version` on `GET /v1/capability-packs` |
-| handlers | `e4bad944b15bf5f0219b128a82894bada9ee8900d4c2cb7dfd29416e89b1003c` | `version` on `GET /v1/handlers` |
-| api | `9daf1d1d9181` | not served — `GET /v1/openapi.json` is the authority for shapes |
+| handlers | `d55c1e205481a2792b12c5c36af63ce600c6605cec8375fa66055ec06c499947` | `version` on `GET /v1/handlers` |
+| api | `d0cf711e09c5` | not served — `GET /v1/openapi.json` is the authority for shapes |

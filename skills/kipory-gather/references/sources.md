@@ -25,6 +25,7 @@ apify      30/min   web.search · web.rankings · web.traffic · x.posts · tele
 youtube    60/min   youtube.video · youtube.channel · youtube.trending    + a daily unit quota
 firecrawl  10/min   url.scrape · url.screenshot
 supadata   30/min   youtube.transcript
+twitterapi 60/min   x.posts, on a step that chose twitterapi.io
 ```
 
 The unkeyed handlers get their own buckets and are far wider: `url.fetch` and `url.metadata` at 120
