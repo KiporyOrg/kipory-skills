@@ -8,4 +8,4 @@ Every page under `references/api/`, `references/handlers/` and `references/packs
 | --- | --- | --- |
 | packs | `19635a0fa707` | `version` on `GET /v1/capability-packs` |
 | handlers | `e73423478bb735aeb6eb5fdc79a924d02662350bb2797dd02cf20f38906c2aea` | `version` on `GET /v1/handlers` |
-| api | `a31b0caf128c` | not served — `GET /v1/openapi.json` is the authority for shapes |
+| api | `a1f90f8b7499` | not served — `GET /v1/openapi.json` is the authority for shapes |

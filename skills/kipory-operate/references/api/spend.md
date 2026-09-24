@@ -196,6 +196,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `errorMessage` | `string \| null` | yes | The provider's own words, null on success. ⚠️ Free text from a vendor, so it is neither a closed set nor safe to parse — `errorCode` is the field to switch on. |
 | `promptTokens` | `integer \| null` | yes | NOT MEASURED when null, never zero — and it goes null INDEPENDENTLY of `totalTokens`: a provider can report a total with no split. |
 | `completionTokens` | `integer \| null` | yes | Null for NOT MEASURED, on the same terms as `promptTokens`. |
+| `cachedPromptTokens` | `integer \| null` | yes | Prompt tokens the provider served from its cache — part of `promptTokens`, not in addition to it. Null when the provider reported nothing, which is not zero cache hits. |
+| `cacheWriteTokens` | `integer \| null` | yes | Prompt tokens written into the provider's cache (reported by providers that bill a cache write apart). Null when not reported. |
+| `reasoningTokens` | `integer \| null` | yes | Hidden reasoning tokens — part of `completionTokens`. Null when the provider reported nothing. |
 | `correlationId` | `string` | yes | ⚠️ TODAY THIS EQUALS THE CALL'S OWN ID ON EVERY ROW — 114,862 of 114,862 measured on production 2026-08-25 — because the chokepoint's `?? id` fallback fires every time. It is sent because it is what the platform stored, NOT because it can yet gather the calls of one run. |
 | `sessionId` | `string \| null` | yes | The end-user session, when the call was made inside one. |
 | `userId` | `string \| null` | yes | The end user the call was made on behalf of. |
