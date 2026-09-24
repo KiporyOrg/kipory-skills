@@ -58,7 +58,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `payerNodeId` | `string` | yes | The wallet's node — always the organization itself on this route. |
 | `entries` | `object[]` | yes | Newest first, whichever direction the page was walked. |
-| `paging` | `"null"` | yes | Always `null`: the history merges two tables and a page count would be two unbounded counts per click. Walk by the cursors. |
+| `paging` | `null` | yes | Always `null`: the history merges two tables and a page count would be two unbounded counts per click. Walk by the cursors. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
@@ -117,6 +117,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `narrowed` | `object` | yes | The narrowing the server applied, echoed so a client draws exactly the chips that are in force. |
 | `models` | `object[]` | yes | Every model with calls in the window across the subtree, under the scope and narrowing, costliest first. |
 | `projects` | `object[]` | yes | Every project in the subtree, by name. |
+| `nearestCap` | `object \| null` | yes | The ceiling closest to refusing across every project: one already refusing first, then the highest share. Only a ceiling with something consumed against it — or one already refusing — is ranked. `null` when no such ceiling exists, whether because none is set or nothing has been consumed; `projects[].caps` says which. |
 | `payer` | `object \| null` | yes | The wallet that pays for this organization's work — its own, or the ancestor's it bills up to. `null` when no wallet resolves anywhere on the chain, in which case the platform serves the work unbilled and records the fact elsewhere. |
 | `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but handler runs, which are most of the events and charge nothing. Only cells with events are listed. |
 
@@ -155,7 +156,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `calls` | `object[]` | yes | Newest first, whichever direction the page was reached from. |
-| `paging` | `"null"` | yes | Always NULL here. A page count needs a COUNT over an unreapered ledger, paid on every click; `rollup.totals.calls` answers the same question once, for the same window. Read `null` as `cursor walking only`, never as `not measured yet`. |
+| `paging` | `null` | yes | Always NULL here. A page count needs a COUNT over an unreapered ledger, paid on every click; `rollup.totals.calls` answers the same question once, for the same window. Read `null` as `cursor walking only`, never as `not measured yet`. |
 | `nextCursor` | `string \| null` | yes | Pass as `after` for the older page. Null on the oldest page. |
 | `prevCursor` | `string \| null` | yes | Pass as `before` for the newer page. Null on the newest page. |
 | `excludedOrigins` | `string[]` | yes | The `origin` values this request filtered OUT, so the page can say so instead of quietly under-reporting. Empty when the caller named its own `origins`. ⚠️ A statement about the FILTER, not about the data: it does not claim rows with these origins exist in the window. The count of what was dropped needs an aggregate this route does not run. |
@@ -323,7 +324,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `window` | `object` | yes | The window actually listed, echoed — the same frame the usage figure under the same query measures. |
 | `events` | `object[]` | yes | This page of charges, newest first by `occurredAt`. |
-| `paging` | `"null"` | yes | Always NULL here. A page count needs a COUNT over the window on every page, which grows with the window, so this route declines it and walks with `after`/`before` instead. Read `null` as `cursor walking only`, never as `not measured yet`. |
+| `paging` | `null` | yes | Always NULL here. A page count needs a COUNT over the window on every page, which grows with the window, so this route declines it and walks with `after`/`before` instead. Read `null` as `cursor walking only`, never as `not measured yet`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 

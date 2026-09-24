@@ -57,6 +57,10 @@ parsed, so the field comes back on every read whether or not you sent it.
 Read the registry rather than remembering it. Each provider names the config field that says what
 a source watches (`naturalKeyField` — `channel` for Telegram), and every source comes back with
 that value already read out as `naturalKey`, so a client never needs to know which field it was.
+Each also declares `overlapDefault` — what a new trigger on it does when an event arrives while the
+previous run is still going. A trigger create that omits `overlapPolicy` stores it: `allow` for
+Telegram, where skipping would drop that message for good, and `skip` for the rest. Start a form
+from it rather than from a rule of your own.
 
 The key is slugified from the channel when you do not supply one (`@alexavni` → `alexavni`), and is
 unique per project and provider. That uniqueness is not what keeps a channel from being watched

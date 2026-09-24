@@ -106,8 +106,9 @@ A third, **`facetExtractable`**, answers a question the save never asks: would a
 `text.generate` step answers with exactly this type does a marker become that
 step's facet extraction. Anywhere else — including a step answering with a
 _list_ of the type — a marker saves cleanly and extracts nothing, because the
-save checks the marker's name, uniqueness and facet, never whether anything
-reads it.
+save checks the marker's name, uniqueness, facet, placement (top level only)
+and field type (a string or a list of strings), never whether anything reads
+it.
 
 ⚠️ **Do not re-derive any of them.** Object-shapedness is not the gate, and
 treating it as one is a live way to build a picker that offers a shape the save
@@ -677,6 +678,26 @@ body. A cached answer — every query reads the stores as they are now. The oper
 - **Removing a field from an entry while a referencing type has records**
   (`SCHEMA_ENTRY_UNSAFE_FOR_RECORD_TYPE`). Editing an entry re-validates every type referencing
   it, strictest wins.
+- **A definition that contradicts itself or carries a `$facet` marker no extraction can honour.**
+  `SCHEMA_DEFINITION_MALFORMED_CONSTRAINT`: a range no value satisfies, a negative or fractional
+  count bound, an `enum` member listed twice, two `oneOf` / `anyOf` branches pinning one `const`, or
+  an empty `pattern` — every one found is named, with its path. `SCHEMA_DEFINITION_FACET_FIELD`: a
+  marked field below the top level of the type (a facet value is harvested by name from the top of
+  the response, so a nested one is never filled), or one whose type is not a string or a list of
+  strings. ⚠️ Both are **flat**: the save judges the whole definition it would store, touched or
+  not, so an entry that already carries one takes no save — not even a rename or a description
+  edit — until it is fixed. The message names the path and the fix (for a nested marker: move the
+  field to the top level, or remove its `$facet`). Create, PATCH and their `validateOnly` dry runs
+  all say it; a stored entry carrying one goes on deriving what it derived before.
+- **Closing an entry's root while a configuration namespace stores a key it does not declare**
+  (`SCHEMA_ENTRY_UNSAFE_FOR_PROJECT_CONFIG`) — flat, like the two above. See
+  project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`).
+- **A type's own chunking that cannot advance.** `uses.search.chunking` with an `overlap` not
+  smaller than its `tokens` is refused 422 on `uses.search.chunking.overlap`, code
+  `RECORD_TYPE_CHUNKING_INVALID` on the finding — the same rule a profile's `defaultChunking` meets
+  (embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)). ⚠️ Flat: it is judged on the `uses` the save
+  would store, sent or not, so a type already carrying one takes no save — a description edit
+  included — until the numbers are fixed.
 - **Deleting an entry** while it is a record type's data shape
   (`SCHEMA_ENTRY_REFERENCED_BY_RECORD_TYPE`) or referenced by the type-relation graph
   (`SCHEMA_REFERENCED_BY_GRAPH`). ⭐ Ask the delete with `validateOnly=true` in the query: it runs

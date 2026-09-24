@@ -81,6 +81,15 @@ Three corners worth holding:
   **schema**, never partial against the **stored row**: see the replacement warning above.
 - **Updating requires the version you last read**, and a stale one is refused. Re-read and
   reconcile.
+- **The schema entry can refuse on the namespace's behalf** — 422
+  `SCHEMA_ENTRY_UNSAFE_FOR_PROJECT_CONFIG` on a `PATCH /v1/schema-entries/{id}`. Removing a declared
+  field a namespace stores an override for strands that override, and so does closing the entry's
+  root (`additionalProperties: false`) while a namespace bound to that very entry stores a
+  top-level key the entry does not declare: the namespace's next write would be refused for a value it already holds. ⚠️ The
+  closed-root refusal is **flat** — it judges the entry as it would be stored, so an entry already
+  in that state takes no save at all, not even a rename, until the override is removed here, the
+  key is declared there, or the root is opened again. The message names the namespaces and the
+  keys, and the entry's `validateOnly` dry run says the same.
 
 ## What will bite you
 

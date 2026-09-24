@@ -196,7 +196,12 @@ drifted before the guards, but it is no longer the only way to find out — the 
 | **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                    |
 | **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**                                                                                    |
 | **502** | Skill failure; a **declared-required output the run did not produce**; response fails validation                                                                              |
-| **504** | A synchronous flow exceeding its timeout                                                                                                                                      |
+| **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                        |
+
+⭐ **How long a synchronous invoke waits is on the endpoint you read**: `syncWaitMs` is the wait the
+dispatcher applies — your `syncTimeoutMs` clamped to the ceiling, or the platform default when you
+set none — and `null` for an asynchronous invoke, a stream or a subscription. Compare a step's time
+limit against it rather than against a default you remember.
 
 ⚠️ **The undeclared query key is the notorious one.** The query schema forbids extra properties,
 so an unexpected `?foo=bar` is a 422 rather than being ignored. Callers who add a tracking

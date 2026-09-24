@@ -60,7 +60,7 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `runs` | `object[]` | yes | The page, NEWEST FIRST by `seq`. ⛔ Ordered by insertion, not by start time — see `startedAt`. |
-| `paging` | `"null"` | yes | Always `null`: this route declines a page COUNT over an unbounded run history and pages by cursor alone. Not a missing field — the route's answer (API-12). |
+| `paging` | `null` | yes | Always `null`: this route declines a page COUNT over an unbounded run history and pages by cursor alone. Not a missing field — the route's answer (API-12). |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the page of OLDER runs. `null` means this was the last page. Independent of anything a row says about itself. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page of NEWER runs. `null` on page one. ⛔ MEASURED, NEVER INFERRED FROM THE REQUEST. It was once taken from `after !== undefined` — 'a caller that passed a cursor came from somewhere' — which is true of a caller who walked here and false of every other way of arriving, and is the reasoning `/files` shipped and withdrew after it drew the newer control inert on every jumped page. It is an existence probe now, in both directions. |
 | `since` | `string \| null` | yes | The instant `window` resolved to, or `null` when no window was asked — so a reader states the range the list was read over rather than re-deriving it from a label and a clock that may differ. |
@@ -93,7 +93,7 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `runId` | `string` | yes | The run this set belongs to. Heterogeneous by construction — a record-processing attempt id, a flow run's request id, or an endpoint invocation id, depending on which surface ran the flow. |
-| `state` | `"captured" \| "applied" \| "rejected" \| "discarded"` | yes | What became of the run's staged changes. `captured` — the writes went straight to Postgres and the set recorded them (the pass-through mode production runs today); `applied` — the set was applied whole, inside one transaction; `rejected` — a precondition failed or the transaction was refused, and NOTHING was written; `discarded` — the run failed, so the set was dropped unapplied. |
+| `state` | `"captured" \| "applied" \| "rejected" \| "discarded"` | yes | What became of the run's staged changes. `captured` — the writes went straight to Postgres and the set only recorded them (the pass-through mode; every production runner defers its writes now, so only a set written before that reads `captured`); `applied` — the set was applied whole, inside one transaction; `rejected` — a precondition failed or the transaction was refused, and NOTHING was written; `discarded` — the run failed, so the set was dropped unapplied. |
 | `effects` | `object[]` | yes | Every change the run staged, in `seq` order. |
 | `bound` | `object` | yes | The run's effect cap and its usage. Exceeding the cap rejects the whole set rather than truncating it — a truncated change set is a partial commit wearing a different hat. |
 | `rejection` | `object` | no | Present only when the change set was rejected. |

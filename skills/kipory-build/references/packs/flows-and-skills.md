@@ -1051,6 +1051,11 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   `.last` or `.asList`; typed into a config slot those read as FIELDS of those names, so spell an
   item with brackets. `.asList` has no config spelling at all — lifting a value into a one-element
   list is a wire projection — and a path carrying it resolves to nothing without being refused.
+- **A step condition may nest at most 16 levels** — each `not`, all-of and any-of is one level,
+  and a lone leaf is none. A deeper one is `INVALID_CONDITION`, whose message says how deep it is
+  and what the bound is; flatten it (an all-of inside an all-of is one all-of). The same bound
+  holds wherever a condition is stored: a trigger's `filter`, and a handler config that carries
+  one. A condition already stored deeper still runs — only the write is refused.
 - **Editing a skill requires the version you last read.** A stale one is refused unless you
   explicitly force the save. Re-read and reconcile; do not blind-retry. Batch updates lock each
   item the same way.

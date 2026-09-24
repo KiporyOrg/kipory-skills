@@ -63,7 +63,9 @@ GET  /v1/project-events?project=…        the log itself, newest first
 Scoped by `project`. Create takes a **key** (the same charset and immutability as a schedule's or
 an endpoint's — see schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)), the `category` and `event`, an
 optional `filter`, the flow, and the inputs keyed by input slot; optionally a display `name` and an
-`overlapPolicy` of `skip` or `allow` — ⚠️ omitting the policy means `skip`.
+`overlapPolicy` of `skip` or `allow` — ⚠️ omitting the policy means the source provider's
+`overlapDefault` for a trigger on a source (capability pack `sources` — `GET /v1/capability-packs/sources`) (`allow` for Telegram), and `skip` for a
+trigger on your own events.
 
 ## A trigger on a source
 
@@ -76,6 +78,14 @@ write "channel is @x" as a filter clause, and a source renamed or re-pointed nev
 clause behind. `sourceId` is permanent; a trigger on another source is a new trigger. A trigger
 without a source listens to every event of its type, whoever wrote it — which is what a trigger on
 your own flows' events is.
+
+**Watching a channel the project does not watch yet** is one write, not two: send `newSource` —
+`provider`, `config`, and optionally `key` and `name`, the body a source create takes — instead of
+`sourceId`. The source and the trigger are created in one transaction, so a trigger the platform
+refuses (a blank input, a filter, a taken key) leaves no source behind, and a `validateOnly: true`
+create judges both halves — the source exactly as `POST /v1/sources` would, then the trigger against
+it — and keeps neither. A channel the project already watches is refused as the source create
+refuses it; point `sourceId` at that source instead. Sending both `sourceId` and `newSource` is a 422.
 
 Every recorded event says who wrote it: `source` on the log is `run` for a flow's own emission,
 or the provider (`telegram`, `webhook`, `postgres`, `apify`) for a source's.
@@ -93,8 +103,10 @@ they may not appear in `inputs` — the write refuses either by name with a 422:
 
 Everything else the flow declares must be in `inputs`, fixed in advance — a trigger, like a
 schedule, has no caller to fill gaps. Coverage is checked at save: a missing slot is a 422 naming
-it. ⚠️ Coverage is **presence, not type** — the same omission schedules carry, for the same
-reason.
+it, and so is a **blank** one — an empty string, `null` or an empty list — under its own code,
+`FLOW_INPUT_BLANK`. Both carry one issue per slot whose `field` is that slot's place in the body
+(`inputs.<slot>`), so a form can mark the box. ⚠️ Coverage is
+**presence, not type** — the same omission schedules carry, for the same reason.
 
 Shaping belongs in the flow. There is no template language on the trigger; the first step of the
 bound flow is where the payload under the `event` slot becomes whatever the rest of the flow wants,
@@ -111,6 +123,11 @@ not — compose as they do in a step condition.
 ⚠️ A `path` is **one key** of the slot's object, not a dotted walk. That is why the payload is its
 own slot rather than reached through `event`.
 
+A filter may nest at most **16** levels — each `not`, all-of and any-of is one level, and a lone
+leaf is none. A deeper one is refused at the write with a 422 on `filter` that says how deep it is
+and what the bound is; flatten it (an all-of inside an all-of is one all-of). The bound is the
+same one every step condition meets.
+
 An event the filter rejects is recorded as **`filtered`** in the runs with the reason, never
 silently dropped; a filter that fails to evaluate is recorded the same way with the evaluator's
 message. A filter cannot stall the other triggers on the same event.
@@ -121,7 +138,12 @@ message. A filter cannot stall the other triggers on the same event.
   not `active`, is `run`-scoped, or is not durable — is refused at the write, naming the one thing
   to change. Enabling re-asks the same question, so a trigger whose type was retired in the
   meantime is refused rather than enabled and quietly ignored.
-- **Every declared input slot the two reserved slots do not cover must have a value.**
+- **Every declared input slot the two reserved slots do not cover must have a value** — present,
+  and not blank (`""`, `null` or `[]`; 422 `FLOW_INPUT_BLANK`, one issue per slot). A trigger stored
+  with a blank before this rule still fires; the next write that sends its inputs must fill it.
+- **A filter nested deeper than 16 levels**, or one that is not a condition at all, is a 422 on
+  `filter`.
+- **`sourceId` and `newSource` together** — a trigger listens to one source.
 - **Updating, enabling and disabling all require the version you last read.**
 - **A replay of an event this trigger never decided** is a 422. The ledger row is what you are
   re-running; there is no backfill through the back door. A replay is also refused while the

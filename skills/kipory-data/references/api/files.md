@@ -108,7 +108,7 @@ _No fields._
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The file that was released. |
-| `record` | `"null"` | yes | Always null after a detach — echoed so a client can update its row in place. The BYTES are untouched and the file stays in the library. To remove it entirely, DELETE the file itself. |
+| `record` | `null` | yes | Always null after a detach — echoed so a client can update its row in place. The BYTES are untouched and the file stays in the library. To remove it entirely, DELETE the file itself. |
 
 ### `GET /v1/projects/{nodeId}/files/{fileId}/download-url`
 

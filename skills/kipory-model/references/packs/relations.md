@@ -445,6 +445,46 @@ of rules, so a check that passes and a save that refuses cannot come apart.
   at read time.
 - **A field that is not on the type's contract** (`CONTRACT_FIELD_NOT_FOUND`) or that cannot hold
   a reference at all (`RELATION_SOURCE_FIELD_TYPE`).
+- **Values carried onto each edge with no properties type to validate them**
+  (`RELATION_PROPERTIES_UNDECLARED`) — the `blocked` readiness `PROPERTIES_UNDECLARED`, refused at
+  the write instead of reported after it. A create whose declaration ticks element properties
+  while `propertiesEntryId` is empty is refused, in the save and the `validateOnly` dry run; and
+  every PATCH of a kind left in that state is refused (`RELATION_KIND_INVALID`) until the patch
+  names a properties type or the declaring type's `uses` stops carrying the values.
+- **A declaration that could connect nothing**, judged the same way on the kind create, on the
+  kind's PATCH and on the record type's own save: a join type that is one of the kind's ends
+  (`RELATION_JOIN_TYPE_IS_AN_END`), both join ends read from one field
+  (`RELATION_JOIN_ENDS_SAME_FIELD`), a source whose `x-record-ref` names a type the kind does not
+  pair it with (`RELATION_SOURCE_TARGET_MISMATCH`), carried values the properties type refuses — a
+  required one not carried, or an undeclared one on a closed type (`RELATION_PROPERTIES_UNSATISFIED`)
+  — or of a type it cannot take (`RELATION_PROPERTIES_TYPE_MISMATCH`), and
+  `RELATION_PROPERTIES_UNDECLARED` above. On the record type they arrive inside a
+  `RECORD_TYPE_RELATIONS_INVALID` 422 (and its `validateOnly` dry run), each message naming the
+  link. ⚠️ **The refusal is flat:** every declaration on the type is judged on every save that
+  re-derives it, touched or not, and an edit of the type's schema entry too — a type holding one
+  such declaration saves nothing until that link is fixed. A join kind no type declares yet is not
+  judged; declare it later. The kind's own PATCH is flat the same way: it judges EVERY type's
+  declaration of the kind against the kind the patch leaves behind (its direction, its properties
+  type), so a label-only patch of a kind standing on a defective declaration is refused too — a
+  `RELATION_KIND_INVALID` 422 whose issues sit under `recordTypes.<type>.relations…`, each message
+  naming the type that declares it, because the fix is usually there. The same judgement, over
+  the state the write leaves behind, runs on the three other writes that move a link:
+  `POST /v1/relation-kind-pairings` (with the new pair in), `DELETE /v1/relation-kind-pairings/{id}`
+  (with the pair gone — a field still pointing at the type that pair connected, or a declaring type
+  left on no pair's source side, `RELATION_SOURCE_TYPE_UNPAIRED`), and a PATCH of the kind's
+  properties schema entry (a `required` value no declaration carries, a closed root, a re-typed
+  property — and its `validateOnly` dry run says so). Each answers the same `RELATION_KIND_INVALID` 422. The delete's refusal is published before you press it: `expand=pairings` on the kind's read
+  carries it as that pair's `deleteRefusal` (`code: RELATION_KIND_INVALID`), in the delete's own
+  words. When the kind create's dry run finds a fault in one of the type's OTHER links, it is
+  addressed under that type (`recordTypes.<type>.relations…`), not under the create's
+  `declaration`; and an edit of a type's schema entry refused over a link names the record type
+  that declares it.
+- **A project document is judged on the state it leaves behind**, not write by write. A document
+  that moves both halves of a link at once — the kind's properties type AND the values the type
+  carries, or the kind's pairs AND the field's `x-record-ref` — plans and applies cleanly when the
+  result is valid; each owed judgement runs once, after the document's last write, with the same
+  codes and the same flat reach, and lands on the row whose write owed it. Moving one half alone is
+  refused exactly as the row write would refuse it.
 - **A declaration on a type the kind does not connect** (`RELATION_SOURCE_TYPE_UNPAIRED`). The
   declaring record type must be on the SOURCE side of one of the kind's pairings — `from` for a
   directed kind, either end for a symmetric one, whose pairing is unordered. Otherwise every edge

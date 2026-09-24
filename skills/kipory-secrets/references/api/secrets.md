@@ -51,7 +51,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | The secret's id — what you rotate or delete by. |
 | `node` | `string` | yes | The node this secret is attached to. |
 | `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
-| `purpose` | `string` | yes | Your label distinguishing several secrets of the same type — e.g. "google". Unique within a node and type. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a handler reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/coverage` reports that pair as `rostered: false`. Unique within a node and type. |
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
@@ -77,7 +77,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | The secret's id — what you rotate or delete by. |
 | `node` | `string` | yes | The node this secret is attached to. |
 | `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
-| `purpose` | `string` | yes | Your label distinguishing several secrets of the same type — e.g. "google". Unique within a node and type. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a handler reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/coverage` reports that pair as `rostered: false`. Unique within a node and type. |
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |

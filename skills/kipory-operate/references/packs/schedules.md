@@ -112,7 +112,12 @@ read the one schedule you are about to show from it when the list left it `null`
 ## What the platform refuses
 
 - **Every declared input slot must have a value.** A scheduled fire has no request to fill gaps,
-  so there is no such thing as an optional slot here. The flow's _live_ signature is read at save
+  so there is no such thing as an optional slot here — and a blank is not a value: an empty
+  string, `null` or an empty list is refused with a 422 `FLOW_INPUT_BLANK`, in the save and the
+  `validateOnly` dry run, carrying one issue per blank slot whose `field` is its place in the body
+  (`inputs.<slot>`). A missing slot is addressed the same way under
+  `VALIDATION_FAILED`. A schedule stored with a blank before this rule still fires; the next
+  write that sends its inputs (or moves its flow) must fill it. The flow's _live_ signature is read at save
   time to check it, and **nothing is stored** — the same question is asked again at fire time,
   from the same code, so the two cannot drift apart.
 

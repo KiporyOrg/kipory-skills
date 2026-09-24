@@ -249,6 +249,14 @@ Both trend reads also answer `numericSeries` — one `{ name, skillName, source 
 across the whole window, its `source` merged over every run by the same rule. Order or filter a
 chart's series by it rather than folding the points' sources yourself.
 
+When `numericSeries` is empty, `emptyReason` says why — decided from what the runs MEASURED, never
+from their statuses: `never-run` (no settled run in the window), `categorical-only` (the runs
+produced verdicts and no number — a suite working as authored), or `nothing-measured` (no score of
+either kind — a coverage failure to look into). It is `null` whenever there is a line to draw.
+The three reasons are a field of the trend response, not a named schema of their own: read them off
+`emptyReason`, which is unchanged.
+⚠️ Do not infer it from `status`: a categorical suite with one `PARTIAL` run is still categorical.
+
 ⚠️ **Two more sources were published here until 2026-08-19 and never existed** — one naming a
 human reviewer, one naming end-user feedback. Both were declared alongside the others in
 anticipation of a review surface and a feedback surface, neither of which was built, so no score

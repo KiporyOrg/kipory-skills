@@ -4,7 +4,7 @@
 
 Emit a registered event (with a payload) onto the live stream from within a flow.
 
-- **Group:** Flow · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** Flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **I/O:** `event payload` → `nothing`
 - **Reads:** Reads the configured payload slot; its value becomes the event payload (validated against the event type's payload schema). _(shape hint: `event payload`)_
 - **Emits:** Nothing — the node emits the configured event onto the live stream and produces no output, so it sits transparently anywhere in the graph.

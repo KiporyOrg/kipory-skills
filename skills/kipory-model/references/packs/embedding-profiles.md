@@ -117,6 +117,25 @@ not invisible.
   for the reason at the top of this pack.
 - **A version bump that changes nothing** about the vector space.
 
+## Asking before you write — `validateOnly`
+
+The create (`POST /v1/embedding-profiles`), the PATCH (`PATCH /v1/embedding-profiles/{id}`) and the
+version mint (`POST /v1/embedding-profiles/{id}/versions`) each take **`validateOnly: true`** in the
+body. It runs the same decisions the write runs, writes nothing, and answers **200** with the
+verdict every design dry run answers. Each finding carries the body `field` it is about where there
+is one — an overlap the chunker could not advance past is reported on `defaultChunking.overlap` —
+and the rule's own code (`EMBEDDING_PROFILE_NAME_INVALID`, `EMBEDDING_PROFILE_CHUNKING_INVALID`, …),
+the same token the save's refusal names.
+
+- **The PATCH dry run plans every inheriting record type**, exactly as the save does. A default
+  that one of them cannot take comes back as a finding naming the type, before anything commits.
+- **A taken name is a finding on `name`, not a 409.** Its absence is a snapshot, not a reservation:
+  a create that lands in between still takes the name, and the save then answers 409 itself.
+- ⚠️ **An invalid draft is not a failed request.** A 4xx still means the platform could not look at
+  the draft — a profile id that addresses nothing, or a role it will not serve.
+- ⛔ **Gate on `severity`, never on `code`.** An unrecognised code is a generic finding of its stated
+  severity.
+
 ## What will bite you
 
 - **Version numbers are never reused.** They are allocated above every version the name has ever

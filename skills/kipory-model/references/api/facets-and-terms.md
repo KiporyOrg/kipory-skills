@@ -267,13 +267,14 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose terms to list. |
 | `facet` | `string` | no | Keep only terms belonging to this facet — one facet's vocabulary. Omit for every term in the project. |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: usage. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: usage, findings. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `terms` | `object[]` | yes | The project's terms, including archived ones and merge aliases — filter on `status` and `aliasOfId` if you want only live canonical terms. |
+| `findings` | `object[]` | no | `expand=findings` — what is wrong with the vocabulary, most severe kind first. Computed over EVERY term of the project, whatever `facet` narrows `terms` to — a parent or canonical term in another facet is still held — and then narrowed to that facet. Absent unless asked for; an empty list means the check ran and found nothing. |
 
 ### `POST /v1/terms`
 

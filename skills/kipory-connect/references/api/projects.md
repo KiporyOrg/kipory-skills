@@ -192,7 +192,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `actions` | `object[]` | yes | Newest first by `structureVersion`, whichever direction the page was reached from. |
-| `paging` | `"null"` | yes | Always NULL here. A page count needs a COUNT DISTINCT over a trail with no retention, paid on every click, to support a jump this route does not offer. Read `null` as `cursor walking only`, never as `not measured yet`. |
+| `paging` | `null` | yes | Always NULL here. A page count needs a COUNT DISTINCT over a trail with no retention, paid on every click, to support a jump this route does not offer. Read `null` as `cursor walking only`, never as `not measured yet`. |
 | `nextCursor` | `string \| null` | yes | Pass as `after` for the older page. Null on the oldest page. |
 | `prevCursor` | `string \| null` | yes | Pass as `before` for the newer page. Null on the newest page. |
 | `recordingSince` | `string \| null` | yes | When this deployment began recording configuration changes — the instant the audit migration finished. Changes applied before it were not recorded and never will be. ⛔ A client MUST show this alongside an empty result: without it, 'no changes' reads as 'this project has never changed', which is false for any project older than the trail. ⚠️ NULL means the date itself could not be established, NOT that recording never started — a client says it cannot date the start rather than omitting the caveat. |
@@ -225,7 +225,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `changes` | `object[]` | yes | Every recorded change of this action, in a stable total order (the record id, which carries a millisecond timestamp and a counter, so it approximates the order they were written in — the ORDER is a paging guarantee, the approximation is not). ⛔ Every RECORDED one: read `elidedCount` before concluding this is all of them. |
 | `changeCount` | `integer` | yes | How many changes this action RECORDED, in total — NOT how many this page returned. ⛔ The two differ whenever `changes` is paged, and the truncation sentence needs the total: `247 recorded, 253 not` is only true of the action, and a client computing it from `changes.length` would report the page's size as the action's. |
 | `elidedCount` | `integer \| null` | yes | How many changes this action made that were NOT recorded, or NULL when it was recorded in full. Non-null means `changes` is incomplete by this many BEYOND whatever paging has yet to return — the two shortfalls are different and a client may not add them. |
-| `paging` | `"null"` | yes | Always NULL here. The total is `changes.length` plus what paging has yet to return, and neither this route nor its page offers a jump. |
+| `paging` | `null` | yes | Always NULL here. The total is `changes.length` plus what paging has yet to return, and neither this route nor its page offers a jump. |
 | `nextCursor` | `string \| null` | yes | Pass as `after` for the next changes. Null on the last page. |
 | `prevCursor` | `string \| null` | yes | Pass as `before` for the previous changes. Null on the first page. |
 

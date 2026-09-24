@@ -473,6 +473,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `points` | `object[]` | yes | Points oldest first, so the series reads left to right. Check each point's `comparableWithPrevious` before connecting it to the last. |
 | `numericSeries` | `object[]` | yes | Every pooled numeric series measured in at least one point, in the order first met reading the points oldest first, each with the producer its values share across the whole window. Empty when no point carries a numeric aggregate. |
+| `emptyReason` | `"never-run" \| "categorical-only" \| "nothing-measured"` | yes | Why `numericSeries` is empty, or null when it is not. `never-run` — no settled run in the window; `categorical-only` — the runs measured verdicts and no number, which is a suite working as authored; `nothing-measured` — the runs produced no score of either kind, which is a coverage failure to look into. |
 | `truncated` | `boolean` | yes | True when runs exist OLDER than the first point here — the series is a window, not the suite's whole history. Distinguishes a genuinely new suite from one whose earlier runs fell outside `limit`. |
 
 ### `GET /v1/eval-suites/trend`

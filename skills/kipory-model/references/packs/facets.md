@@ -436,6 +436,15 @@ different claims, and only one of them is true.
   the delete where it is `null` rather than re-comparing the three counts beside it. ⚠️ Absent means
   you did not ask for usage, which is not the same as deletable, and a reference that lands between
   the read and the delete still refuses it (`TERM_DELETE_RACE`).
+- **What is wrong with a vocabulary is a read, not something to recompute.** `GET /v1/terms`
+  with `expand=findings` answers `findings`, most severe kind first: `dangling-alias` (a merged
+  term whose canonical is gone), `orphan-parent` (a `parentId` naming a term the project does not
+  hold), `unattached` (a parentless term on a facet that nests) and `duplicate` (canonical terms of
+  one facet and one parent whose labels make the same slug — one finding per colliding group). ⛔
+  The checks always run over the WHOLE project; `facet` narrows only which findings come back. ⚠️
+  Absent means you did not ask, and an empty list means the check ran and found nothing. Every
+  kind is certain — there is no fuzzy near-duplicate pass, because the remedy is a merge and a
+  merge has no undo.
 - **A facet that looks builtin is just a row.** Anything shipped as a default is an ordinary,
   editable facet — but its resolver wiring may never have been bound. Verify a facet's live
   binding before assuming it resolves anything.
