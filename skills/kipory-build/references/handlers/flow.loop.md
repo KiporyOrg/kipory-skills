@@ -5,6 +5,7 @@
 Start a bounded loop that repeats the enclosed steps.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `seed` → `string`
 - **Reads:** The slots that seed the first pass. The stop condition and the feedback wiring live on the paired closing step. _(shape hint: `seed`)_
 - **Emits:** The carry slot for this pass — the seed on the first one, and whatever the closing step rebound after that.

@@ -5,6 +5,7 @@
 Read a named run-scoped state cell into a slot.
 
 - **Group:** Flow · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `none` → `string`
 - **Reads:** No slots. It returns whatever the named cell holds, or empty if nothing has written it. _(shape hint: `none`)_
 - **Emits:** The current value of a named run-state cell, materialized into this skill's output slot (a string for set/add cells, a list for append/union cells).

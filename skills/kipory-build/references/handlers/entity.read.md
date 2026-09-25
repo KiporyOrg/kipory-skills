@@ -5,6 +5,7 @@
 Read records by ID so later steps can use their text, files, or metadata.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `RecordRead[]`
 - **Reads:** The id list, from the slot `idsSlot` names — either plain ids or the candidate objects a vector search emits. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_
 - **Emits:** A `RecordRead` per record, in the order the ids came in and deduplicated. An id that does not resolve is dropped, so the list can come back shorter.

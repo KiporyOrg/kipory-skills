@@ -5,6 +5,7 @@
 Run another saved flow and map selected inputs and outputs.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `slot map` → `nothing`
 - **Reads:** Reads 0 direct streams — the parent → sub-flow input mapping is configured via the inputSlotMap editor. _(shape hint: `slot map`)_
 - **Emits:** Output is determined by the sub-flow's output-slot map — the invoke skill itself writes no primary slot.

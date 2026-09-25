@@ -5,6 +5,7 @@
 Find public Telegram channels matching one or more search terms.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelSearchResults`
 - **Reads:** One string of comma-separated search terms. The terms are sorted for the cache key, so the same set in any order shares one entry. _(shape hint: `string`)_
 - **Emits:** `TelegramChannelSearchResults` — candidate channels, deduped by username. A bare `{}` when nothing matches.

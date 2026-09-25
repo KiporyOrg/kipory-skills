@@ -5,6 +5,7 @@
 Choose whether a proposed term should match, create, or ask for review based on similarity thresholds.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `candidates + thresholds + proposal` → `GateDecision`
 - **Reads:** Reads the candidate hits, the facet's high/low thresholds, and the proposed slug/label/parent for the create-new case. _(shape hint: `candidates + thresholds + proposal`)_
 - **Emits:** A `GateDecision`: either the finished resolution, or a signal that the score landed in the middle and something else has to decide.

@@ -5,6 +5,7 @@
 Run a web search query and return the organic results.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `WebSearchResults`
 - **Reads:** One search query. A single page of results is one billable call, whatever `maxResults` says. _(shape hint: `string`)_
 - **Emits:** A `WebSearchResults`. One SERP page of organic results; paid ads and other SERP furniture are dropped at the handler boundary. A bare `{}` when the search returns nothing.

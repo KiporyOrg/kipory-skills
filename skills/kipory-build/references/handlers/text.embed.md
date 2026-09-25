@@ -5,6 +5,7 @@
 Turn text into a dense vector for semantic search or matching.
 
 - **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Vector`
 - **Reads:** One string. Empty or missing returns an empty vector without calling the model; anything that is not a string is a shape error. _(shape hint: `string`)_
 - **Emits:** A `Vector`. Empty when the input was empty, which is how a later write leaves that vector alone. The same text and model hit the cache.

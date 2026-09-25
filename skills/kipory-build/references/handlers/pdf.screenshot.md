@@ -5,6 +5,7 @@
 Render one page of a PDF as an image file for downstream vision steps.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `file` → `file`
 - **Reads:** One PDF file. Anything else fails, so route non-PDFs elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the rendered page. A retry on the same item reuses the previous render. An empty input gives an empty file back.

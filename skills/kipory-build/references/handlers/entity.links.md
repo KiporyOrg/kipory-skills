@@ -5,6 +5,7 @@
 Read a record's declared links, grouped by kind.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `RecordLink[]`
 - **Reads:** One slot carrying the record id to read links for. An empty or non-text slot gives an empty list rather than an error. _(shape hint: `string`)_
 - **Emits:** A `RecordLink` per edge, with the far end, the kind, the direction, and any declared properties. A record with no links gives an empty list.

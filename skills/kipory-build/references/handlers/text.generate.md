@@ -5,6 +5,7 @@
 Call an LLM with a prompt and return text or structured output.
 
 - **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `nothing`
 - **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_
 - **Emits:** The model's answer — text, or a structured value when the step declares an output shape.

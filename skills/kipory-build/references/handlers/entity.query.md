@@ -5,6 +5,7 @@
 Ask one question across a record type's stores: fields, terms, links, streams and meaning, answered exactly.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `cursor + user slots` → `RecordQueryPage`
 - **Reads:** Optionally a prior answer's cursor from the slot `cursorSlot` names, and on a user-owned type the user id from `userIdSlot`; the question itself is config. _(shape hint: `cursor + user slots`)_
 - **Emits:** A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.

@@ -5,6 +5,7 @@
 Search a vector collection and return the closest hits.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `TermHit[]`
 - **Reads:** One slot holding the query: a vector from `text.embed` or `text.embed-sparse`, the text to search for, or the id of a record to find neighbours of. _(shape hint: `any+`)_
 - **Emits:** A hit list, best first, capped at `topK` — a `TermHit`, `GenericHit`, `CandidateHit` or `RecordHit`, depending on `hitShape`. Empty when nothing matches.

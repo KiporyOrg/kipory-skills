@@ -5,6 +5,7 @@
 Resolve a public Telegram channel by handle (members, name, description, avatar).
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelResolution`
 - **Reads:** One handle — `@name`, `name`, or a `t.me` link. An invite link is not a handle and cannot be resolved. _(shape hint: `string`)_
 - **Emits:** A `TelegramChannelResolution`. The channel is present exactly when the lookup succeeded, so gate on it; otherwise the reason comes back in its place.

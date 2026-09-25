@@ -5,6 +5,7 @@
 Count matching records without reading them — the answer a paged list cannot give.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id` → `number`
 - **Reads:** The user id, from the slot `userIdSlot` names. Everything else is settings on the step. There is no page size and no cursor. _(shape hint: `user id`)_
 - **Emits:** A number: how many records match every filter. An empty result is `0`, which is a real answer rather than a missing one.

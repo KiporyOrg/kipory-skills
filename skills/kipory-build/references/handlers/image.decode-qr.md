@@ -5,6 +5,7 @@
 Decode any QR codes found in an image and return their contents.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string[]`
 - **Reads:** One image — JPEG, PNG, WebP, HEIC, TIFF and the rest. Something that is not an image comes back empty rather than failing the step. _(shape hint: `file`)_
 - **Emits:** What a QR code in the image encodes — web links only, unless you turn `requireUrl` off. Empty when there was no code or the image could not be read.

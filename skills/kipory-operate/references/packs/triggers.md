@@ -132,6 +132,12 @@ An event the filter rejects is recorded as **`filtered`** in the runs with the r
 silently dropped; a filter that fails to evaluate is recorded the same way with the evaluator's
 message. A filter cannot stall the other triggers on the same event.
 
+⚠️ **A stored filter the platform can no longer read matches nothing.** Every event is recorded
+as `filtered` ("filter is not a valid condition"), the sample offers none, and the read returns
+the filter as stored — never `null`, which would mean "react to every event". Write a valid one
+to bring the trigger back. A project-document apply that leaves the filter unchanged does not
+re-judge it, so the rest of the trigger can still be edited.
+
 ## What the platform refuses
 
 - **A selector that could never fire** — an event type that does not exist in this project, is
@@ -140,7 +146,8 @@ message. A filter cannot stall the other triggers on the same event.
   meantime is refused rather than enabled and quietly ignored.
 - **Every declared input slot the two reserved slots do not cover must have a value** — present,
   and not blank (`""`, `null` or `[]`; 422 `FLOW_INPUT_BLANK`, one issue per slot). A trigger stored
-  with a blank before this rule still fires; the next write that sends its inputs must fill it.
+  with a blank before this rule still fires; the next write that sends its inputs (or moves its
+  flow) must fill it.
 - **A filter nested deeper than 16 levels**, or one that is not a condition at all, is a 422 on
   `filter`.
 - **`sourceId` and `newSource` together** — a trigger listens to one source.

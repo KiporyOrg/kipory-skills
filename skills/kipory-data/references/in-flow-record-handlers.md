@@ -18,7 +18,7 @@ runs as **the run's principal**. That single difference explains most of what su
 | `entity.link-retract`    | retracts one                            | idempotent side effect |
 | `entity.delete`          | deletes by id                           | record mutation        |
 | `entity.teardown`        | strips generated files and term links   | idempotent side effect |
-| `entity.enqueue-process` | hands the record to its processing flow | side effect            |
+| `entity.enqueue-process` | hands the record to its processing flow | idempotent side effect |
 
 `entity.create`, `entity.update` and `entity.enqueue-process` are covered where record creation is
 taught, in `kipory-build`. The rest are below.

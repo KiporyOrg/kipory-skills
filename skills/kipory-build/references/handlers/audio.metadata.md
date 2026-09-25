@@ -5,6 +5,7 @@
 Extract duration, codec, and tag metadata from an audio file.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `AudioMetadata`
 - **Reads:** One audio file. A non-audio mime fails rather than being guessed at. _(shape hint: `file`)_
 - **Emits:** An `AudioMetadata`. Every field is independently optional, so a file with no tags still returns its length and format. An empty object means nothing was readable.

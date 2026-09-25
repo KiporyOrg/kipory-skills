@@ -44,6 +44,8 @@ GET    /v1/sources/{id}/events    the newest events this source wrote
 
 The first Telegram source in a project seeds a `telegram` event category and its `message` type into the project's registry. Then bind a flow with a trigger: `POST /v1/triggers` with `sourceId`, `category: "telegram"`, `event: "message"`, the flow and its inputs (`kipory-operate` has the rest). Each message is one `telegram/message` event in the project's log, and the trigger runs the flow with the envelope in the reserved `event` slot: the text, channel and message id under `event.data`, the attachments' file ids under `event.data.fileIds`.
 
+A channel the project does not watch yet is one write, not two: `POST /v1/triggers` with `newSource` (the body a source create takes — `provider`, `config`, optionally `key` and `name`) in place of `sourceId` creates the source and the trigger in one transaction, so a trigger the platform refuses leaves no source behind. Sending both is a 422.
+
 ## What will bite you
 
 - **The address namespace is platform-wide and first-come.** A `POST` on a name someone else holds is a 409 that never says who holds it. Local parts are lowercase letters, digits, dots, hyphens and underscores, start and end alphanumeric, at most 64 characters, and **no `+`**. A reserved list (`admin`, `support`, `noreply`, `postmaster` and others) is refused for everyone; the 422 carries the whole list.

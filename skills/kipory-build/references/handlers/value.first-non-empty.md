@@ -5,6 +5,7 @@
 Choose the first populated value from a priority list.
 
 - **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `nothing`
 - **Reads:** Reads any number of root slots — useful for mixed display fallbacks such as URL string first, FileRef second. _(shape hint: `any+`)_
 - **Emits:** The first populated value from a priority-ordered list of slot paths, preserving the selected value's runtime shape.

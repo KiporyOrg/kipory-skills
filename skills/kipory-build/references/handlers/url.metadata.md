@@ -5,6 +5,7 @@
 Fetch a URL's title, description, content type, icon, and social preview.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `UrlMeta`
 - **Reads:** One URL — the page to read. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** A `UrlMeta`. Every meta field is optional — a page that declares no tag leaves it unset — and a page that could not be read comes back empty.

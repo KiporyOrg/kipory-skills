@@ -5,6 +5,7 @@
 Split long text into token-sized chunks with overlap.
 
 - **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string[]`
 - **Reads:** One long string — usually a page or a document body. Empty or non-text input emits nothing without running the chunker. _(shape hint: `string`)_
 - **Emits:** An ordered list of chunks, each within `chunkTokens` and sharing `overlapTokens` with its neighbour. Stops at `maxChunks`, warning when the tail is dropped.

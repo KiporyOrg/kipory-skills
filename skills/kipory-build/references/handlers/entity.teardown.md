@@ -5,6 +5,7 @@
 Strip a record's generated files and/or term links before a reprocess.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `slot map` → `object`
 - **Reads:** The record id, from the slot `recordIdSlot` names. The owner comes from the run, so a record owned by anyone else matches nothing. _(shape hint: `slot map`)_
 - **Emits:** One count per target actually run. A target you did not ask for is absent, so a reader can tell 'not asked' from 'nothing to delete'.

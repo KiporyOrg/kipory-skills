@@ -5,6 +5,7 @@
 Read the stored named vectors for a point ID.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Record<string, number[]>`
 - **Reads:** One input slot, read via `freeFormInput` from the `pointIdSlot` config path: the point id to retrieve. _(shape hint: `string`)_
 - **Emits:** An object keyed by vector name. A name the point does not carry is left out, so the result mirrors what is actually stored.

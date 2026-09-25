@@ -5,6 +5,7 @@
 Append one event, or a list of them, to a record's stream field.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + event(s)` → `string`
 - **Reads:** The record id, from the slot `recordIdSlot` names, and one event object or a list of them from `eventSlot`; optionally your own event ids from `eventIdSlot`. _(shape hint: `record slot + event(s)`)_
 - **Emits:** A bare string — `appended` when at least one event row was written, `unchanged` when every event already existed and the retry converged.

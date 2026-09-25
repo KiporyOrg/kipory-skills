@@ -5,6 +5,7 @@
 Delete one or more records by id.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id list` → `boolean`
 - **Reads:** A list of record ids, from the slot `idsSlot` names. A single delete passes a one-element list. _(shape hint: `record id list`)_
 - **Emits:** True when at least one record was removed or accepted for deletion, false when every id was already gone or belonged to someone else.

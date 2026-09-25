@@ -5,6 +5,7 @@
 Create a signed URL a client can use to download a file.
 
 - **Group:** Files · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
 - **Reads:** One file. Any kind — nothing is opened, inspected or transformed; only a link to it is signed. _(shape hint: `file`)_
 - **Emits:** A signed link, non-expiring by default. Bind its lifetime with the fields below. An empty string when there is no file.

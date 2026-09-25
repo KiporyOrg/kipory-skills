@@ -1054,8 +1054,12 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 - **A step condition may nest at most 16 levels** — each `not`, all-of and any-of is one level,
   and a lone leaf is none. A deeper one is `INVALID_CONDITION`, whose message says how deep it is
   and what the bound is; flatten it (an all-of inside an all-of is one all-of). The same bound
-  holds wherever a condition is stored: a trigger's `filter`, and a handler config that carries
-  one. A condition already stored deeper still runs — only the write is refused.
+  holds wherever a condition is stored, under that write's own code: a trigger's `filter` is a
+  422 `VALIDATION_FAILED` on `filter`, and a loop-end's `until` is `INVALID_HANDLER_CONFIG` at
+  `until`. A condition already stored deeper still runs, and flow health does not report it —
+  only a write is refused. ⚠️ **A write that judges the whole flow meets it too:** a replace, a
+  checkpoint restore and a project-document apply that changes the flow validate every step, so
+  a step stored that deep must be flattened before any of them lands.
 - **Editing a skill requires the version you last read.** A stale one is refused unless you
   explicitly force the save. Re-read and reconcile; do not blind-retry. Batch updates lock each
   item the same way.

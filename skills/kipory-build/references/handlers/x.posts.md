@@ -5,6 +5,7 @@
 Scrape an X/Twitter tweet, profile or search URL into a page with its posts.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `ScrapedPage`
 - **Reads:** One X URL — a single post, a profile, or a search. Results are cached for a day by default. _(shape hint: `string`)_
 - **Emits:** A `ScrapedPage` — markdown body of the posts, a `UrlMeta` header, and a `data` bag carrying author stats, per-post languages and engagement. A bare `{}` when the source returns nothing.

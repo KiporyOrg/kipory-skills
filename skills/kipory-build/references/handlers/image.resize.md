@@ -5,6 +5,7 @@
 Resize an image and return the smaller file.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `file` → `file`
 - **Reads:** One image file. A non-image input throws, so route those elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the resized image. A retry on the same item reuses the previous encode. An empty input gives an empty file back.

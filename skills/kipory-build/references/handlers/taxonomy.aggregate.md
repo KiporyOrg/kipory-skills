@@ -5,6 +5,7 @@
 Group a user's records by facet terms and count them, as a flat catalog or a browse tree.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TaxonomyAggregate`
 - **Reads:** The user id, from the slot `userIdSlot` names. Every count is scoped to that user. Everything else is settings on the step. _(shape hint: `string`)_
 - **Emits:** A `TaxonomyAggregate` — the user's terms grouped per facet with counts — or a `TaxonomyTree` when `shape` is `tree`. A user with no terms gets an empty result.

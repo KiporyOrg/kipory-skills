@@ -5,6 +5,7 @@
 Take back a curated link this flow stated earlier.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string, string` → `RelationRetraction`
 - **Reads:** Two slots: the record the link runs FROM, then the one it runs TO. The same pair the assert node was given, in the same order. _(shape hint: `string, string`)_
 - **Emits:** A `RelationRetraction`: `retracted` when a link was expired, `not-found` when this actor had nothing to take back. Finding nothing is an ordinary answer, not a failure.

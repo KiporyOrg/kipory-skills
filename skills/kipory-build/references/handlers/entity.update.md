@@ -5,6 +5,7 @@
 Patch an existing record's submitted data and/or derived output.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + data/derived patches` → `boolean`
 - **Reads:** The record id, from the slot `recordIdSlot` names, plus whichever patch slots you wire: the new data, the new derived output, and file ids to attach. _(shape hint: `record slot + data/derived patches`)_
 - **Emits:** A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `entity.delete`).

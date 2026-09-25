@@ -5,6 +5,7 @@
 Propose and resolve a set of facets for a record in one node, emitting term resolutions.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record context` → `TermResolution[]`
 - **Reads:** Reads the record context object it proposes facet values from (the configured facet keys drive which facets are resolved). _(shape hint: `record context`)_
 - **Emits:** A list of `TermResolution`, one per resolved value. Wire this into exactly one `term.upsert` step to save them.

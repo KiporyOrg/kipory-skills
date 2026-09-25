@@ -5,6 +5,7 @@
 Turn text into a sparse vector for keyword-style retrieval.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SparseVector`
 - **Reads:** One string — usually the same text you embed densely, or any text whose exact words matter. Empty or missing returns an empty vector without doing any work. _(shape hint: `string`)_
 - **Emits:** A `SparseVector` of term weights. The search index supplies the rest of the score at query time. Empty when the input was empty.

@@ -5,6 +5,7 @@
 Gather outputs from fan-out branches into one list.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]+` → `T[]`
 - **Reads:** The per-branch slots you list. The shape they carry — text or files — chooses the reducer, not the strategy. _(shape hint: `any+`)_
 - **Emits:** The branches' values reduced into one list. `concat` keeps everything; `dedup-concat` drops repeats, keeping the first of each.

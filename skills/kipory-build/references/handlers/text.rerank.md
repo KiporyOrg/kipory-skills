@@ -5,6 +5,7 @@
 Re-rank candidate documents by relevance to a query.
 
 - **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `slot map` → `RerankHit[]`
 - **Reads:** Two slots you name: the text to match against, and the documents to score. Each document carries its own id. _(shape hint: `slot map`)_
 - **Emits:** A `list<RerankHit>`, best first and capped at `topN`. Empty when either slot was empty; when the scorer cannot answer, the candidates come back in the order they arrived.

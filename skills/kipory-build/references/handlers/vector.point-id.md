@@ -5,6 +5,7 @@
 Derive the deterministic point id a record's vectors are stored under.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `string`
 - **Reads:** One slot holding a record id. A missing or empty id fails the step rather than inventing a point. _(shape hint: `any`)_
 - **Emits:** The point id this record's vectors are stored under. Same record, same id every time, so a re-run overwrites rather than duplicating. Wire it into `vector.upsert` or `vector.fetch`.

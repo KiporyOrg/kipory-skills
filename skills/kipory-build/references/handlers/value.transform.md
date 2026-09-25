@@ -5,6 +5,7 @@
 Transform slot values with a JSONata expression.
 
 - **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
 - **Reads:** Every slot your expression names. They are read out of the expression when you save, so you do not declare them separately. _(shape hint: `any+`)_
 - **Emits:** Whatever the expression evaluates to — usually an object built from several slots, a list zipped from parallel lists, or a copy of a slot with fields added.

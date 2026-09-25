@@ -5,6 +5,7 @@
 Fetch raw text or JSON from a URL.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Reads:** One URL — the thing to fetch. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** The response body as text — JSON, plain text, anything that is not a web page. Nothing is rendered or re-encoded. Empty on no URL, or a site failure.

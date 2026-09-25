@@ -5,6 +5,7 @@
 Extract image dimensions and any EXIF, IPTC, or XMP metadata.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `FileMetadata`
 - **Reads:** One image file. The type is not checked — anything without readable metadata simply comes back empty. _(shape hint: `file`)_
 - **Emits:** A `FileMetadata`, every field independently optional. An empty object means the file carried no metadata. A corrupt image fails rather than coming back empty.

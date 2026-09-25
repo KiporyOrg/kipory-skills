@@ -689,8 +689,14 @@ body. A cached answer — every query reads the stores as they are now. The oper
   edit — until it is fixed. The message names the path and the fix (for a nested marker: move the
   field to the top level, or remove its `$facet`). Create, PATCH and their `validateOnly` dry runs
   all say it; a stored entry carrying one goes on deriving what it derived before.
+- **A `"null"` arm nothing reads** (`SCHEMA_DEFINITION_DEAD_NULL_ARM`): a field whose `type`
+  lists `"null"` while another keyword on the same fragment decides what it is (an enum, a const, a
+  $ref, or a oneOf/anyOf/allOf) — that keyword is checked first, so a write of `null` is rejected however the field reads. The
+  message names each field and the spelling that works (a `null` member of the `enum`,
+  `const: null`, or none on that fragment). ⚠️ Flat, like the refusals above: an entry that already
+  carries one takes no save until it is fixed.
 - **Closing an entry's root while a configuration namespace stores a key it does not declare**
-  (`SCHEMA_ENTRY_UNSAFE_FOR_PROJECT_CONFIG`) — flat, like the two above. See
+  (`SCHEMA_ENTRY_UNSAFE_FOR_PROJECT_CONFIG`) — flat, like those above. See
   project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`).
 - **A type's own chunking that cannot advance.** `uses.search.chunking` with an `overlap` not
   smaller than its `tokens` is refused 422 on `uses.search.chunking.overlap`, code

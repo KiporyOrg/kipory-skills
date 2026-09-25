@@ -5,6 +5,7 @@
 Read a Telegram channel's latest captured member count from this project's source.
 
 - **Group:** Sources · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelStats`
 - **Reads:** One channel handle, exactly as this project stored it. A channel another project subscribes to reads as unknown here. _(shape hint: `string`)_
 - **Emits:** A `TelegramChannelStats` — the handle, the member count, and when it was captured. Empty when nothing has been captured for this channel in this project.

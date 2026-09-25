@@ -5,6 +5,7 @@
 Clean and wrap retrieved text before putting it into an LLM prompt.
 
 - **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
 - **Reads:** The slot holding the items, each an object with an id field and a text field. Optionally a slot holding the nonce; without one it makes its own. _(shape hint: `any+`)_
 - **Emits:** Either a list of `{id, sanitizedText}` or one joined string. Each body is wrapped in a `<doc>` block carrying the nonce, so the model can be told it is data.

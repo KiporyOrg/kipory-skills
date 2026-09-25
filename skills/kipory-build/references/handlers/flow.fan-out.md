@@ -5,6 +5,7 @@
 Run the next steps once for each item in a list.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]` → `T`
 - **Reads:** One list. Any kind of list — every branch carries whatever the elements are. _(shape hint: `list`)_
 - **Emits:** One downstream branch per list element — the handler itself produces no slot value.

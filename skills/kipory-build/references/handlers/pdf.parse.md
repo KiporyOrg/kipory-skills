@@ -5,6 +5,7 @@
 Extract text and document properties from a PDF file.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `PdfDocument`
 - **Reads:** One PDF file. A non-PDF mime fails rather than being guessed at — route them elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A `PdfDocument` — the embedded text and whatever the file's own metadata carried. Empty text means nothing was extractable; the locked flag says which.

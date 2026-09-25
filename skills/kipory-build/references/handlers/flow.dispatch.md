@@ -5,6 +5,7 @@
 Send a value down a branch chosen by the first matching rule.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string | file | object` → `string`
 - **Reads:** One slot. What gets matched is decided by `matchOn`; the match is the routing decision, not the payload. _(shape hint: `string | file | object`)_
 - **Emits:** The original input, forwarded to exactly one branch — the first rule that matches, or the default. With no default, an unmatched input is skipped.

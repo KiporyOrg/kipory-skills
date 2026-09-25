@@ -5,6 +5,7 @@
 End a loop, check its stop condition, and expose the final result.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `body outputs` → `nothing`
 - **Reads:** The slots the stop condition looks at, and the ones fed back as the next pass's carry. _(shape hint: `body outputs`)_
 - **Emits:** The loop's result, plus anything named as escaping it. Everything else inside the loop is discarded when the region closes.

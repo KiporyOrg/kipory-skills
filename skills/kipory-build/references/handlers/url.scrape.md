@@ -5,6 +5,7 @@
 Scrape a web page into clean markdown and page metadata.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `ScrapedPage`
 - **Reads:** One URL — the page to scrape. Anything that is not `http` or `https` is refused before a call is spent; an empty slot emits an empty result. _(shape hint: `string`)_
 - **Emits:** A `ScrapedPage` — the rendered body as markdown, plus the page's metadata read from that render. Empty when the URL is missing or the site could not be read.

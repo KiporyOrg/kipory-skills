@@ -5,6 +5,7 @@
 Create a record of a configured entity, owned by the current user.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`
 - **Reads:** The new record's fields, from the slot `dataSlot` names, and optionally a list of uploaded file ids to attach in the same write. _(shape hint: `submission object`)_
 - **Emits:** A `RecordCreate` — the new record's id and what it was created as. A retry under the same key reuses that id rather than minting another.
