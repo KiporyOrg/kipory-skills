@@ -89,7 +89,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode to price the catalog for — its project's pinned rate card decides, and the platform's active card where it pins none. ⚠️ A node id, not a project id. |
+| `nodeId` | `string` | yes | The OrgNode to price the catalog for. Prices come from the platform's price rules, which are platform-wide today; the node is the address so a tenant's own price needs no route change. ⚠️ A node id, not a project id. |
 
 **Response `200`**
 

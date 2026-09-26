@@ -96,8 +96,8 @@ as for the design plane.
 credential the platform looks up — each vendor key a handler resolves and each sign-in credential
 — which record a call there would use. Each key reports a `state` (`present`, `disabled`,
 `not_found`, `branch_inactive`), the node holding the record that state is about, `ownStatus` for
-the row stored on the node itself, and, for a vendor key, `billedBy` — whether the vendor invoices
-the holder or the call runs on the platform's key at the platform's price. It is the same walk
+the row stored on the node itself, and, for a vendor key, `billedBy` — `vendor_to_holder` when the
+vendor invoices the holder, `kipory` when the call runs on the platform's key at the platform's price. It is the same walk
 resolution performs, effective-status gate included, and nothing in it is decrypted.
 
 ⛔ **Do not rebuild this by listing every ancestor and taking the first active row.** That

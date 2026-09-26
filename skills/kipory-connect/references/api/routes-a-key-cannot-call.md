@@ -150,6 +150,17 @@ Gate: `assertPlatformStaffActor`
 - `POST /v1/people/{…}/impersonate`
 - `POST /v1/people/{…}/sessions/revoke`
 
+## the platform's price rules (feature 335, PR 3; they replaced the rate cards and the per-project pin) — installation-wide, no tenant column, and they carry the base and the margin. On a staff-mode hub a presented key is never resolved — the hook has no key branch, so it 401s like any non-matching bearer — and the per-route assert would refuse a key actor by name as a second line. What a customer may read is the CHARGED price at GET /v1/nodes/{nodeId}/model-prices, their spend at GET /v1/runs/{runId}/spend and GET /v1/projects/{nodeId}/usage, and GET /v1/credits/balance on the project's own host — NOT GET /v1/credits/events, which is listed in this same table because it 401s a key
+
+Gate: `assertPlatformStaffActor`
+
+- `DELETE /v1/pricing/rules/{…}`
+- `GET /v1/pricing/coverage`
+- `GET /v1/pricing/effective`
+- `GET /v1/pricing/rules`
+- `PATCH /v1/pricing/rules/{…}`
+- `POST /v1/pricing/rules`
+
 ## one processing attempt's ledger across every project — an API key is NEVER platform staff, and the per-tenant equivalent is the customer-plane stream `GET /v1/records/{id}/processing-stream`, floored on the record's own project
 
 Gate: `assertPlatformStaffActor`
@@ -161,13 +172,6 @@ Gate: `assertPlatformStaffActor`
 Gate: `assertPlatformStaffActor`
 
 - `GET /v1/projects`
-
-## which rate card prices the project, stored on the project row — an API key is NEVER platform staff. What a customer may read of their own spend is GET /v1/runs/{runId}/spend and GET /v1/projects/{nodeId}/usage; the price per unit is not theirs to read or set
-
-Gate: `assertPlatformStaffActor`
-
-- `GET /v1/projects/{…}/rate-card`
-- `PATCH /v1/projects/{…}/rate-card`
 
 ## Kipory's own diagnostic sampling rates, stored on the project row — an API key is NEVER platform staff. A customer reads what WAS traced on their flows (GET /v1/flows/{id}/traces); how much gets traced is not theirs to set
 
@@ -190,16 +194,6 @@ Gate: `assertPlatformStaffActor`
 - `POST /v1/queues/{…}/pause`
 - `POST /v1/queues/{…}/retries`
 - `POST /v1/queues/{…}/runs`
-
-## the platform's GLOBAL pricing catalog — one active row for the whole installation, no tenant column. Platform staff only, reads included (since 2026-09-07; the reads admitted any organization member before). On a staff-mode hub a presented key is never resolved — the hook has no key branch, so it 401s like any non-matching bearer — and the per-route assert would refuse a key actor by name as a second line. What a customer may read of their own spend is GET /v1/runs/{runId}/spend and GET /v1/projects/{nodeId}/usage on this host, and GET /v1/credits/balance on the project's own host — NOT GET /v1/credits/events, which is listed in this same table because it 401s a key
-
-Gate: `assertPlatformStaffActor`
-
-- `GET /v1/rate-cards`
-- `GET /v1/rate-cards/{…}`
-- `GET /v1/rate-cards/{…}/prices`
-- `POST /v1/rate-cards`
-- `POST /v1/rate-cards/{…}/activate`
 
 ## the installation's credential roster and who holds each key — an API key is NEVER platform staff, and the rest of this hub stays reachable to one
 

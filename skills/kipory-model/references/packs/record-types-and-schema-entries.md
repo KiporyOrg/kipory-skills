@@ -312,7 +312,7 @@ the edit: re-sending the same `uses` derives the same document and enqueues noth
 `GET /v1/record-types/{id}?expand=embedding`** carries the profile's model, its current rate in
 `creditsPerMillionTokens`, and `avgTokensPerRecord` — averaged over the project's recent
 embedding calls narrowed to this type's records (`measuredCalls` says how many the average stands
-on). Multiply by your record count for the estimate — an upper bound: a rate-card entry carrying an
+on). Multiply by your record count for the estimate — an upper bound: a price rule carrying an
 included-units allowance makes each call's first tokens free, and the estimate does not model
 that. A type never embedded has nulls, which means "not yet measured", never free. **And the drain is countable while it runs:
 `expand=vectorProgress`** answers `{examined, remaining, scanCapped}` by the reconcile sweep's
