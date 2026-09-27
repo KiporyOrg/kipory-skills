@@ -365,7 +365,7 @@ _No fields._
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `enqueued` | `boolean` | yes | Whether this request started a run. False is not an error — see `reason`. |
-| `reason` | `"already-queued" \| "switched-off" \| "ceiling-reached"` | no | Why nothing started, present only when `enqueued` is false. `already-queued` — a run is already coming; `switched-off` — the project's describer is off; `ceiling-reached` — the project spent its daily allowance of model calls. |
+| `reason` | `"already-queued" \| "switched-off" \| "switched-off-platform" \| "ceiling-reached"` | no | Why nothing started, present only when `enqueued` is false. `already-queued` — a run is already coming; `switched-off` — the project's describer is off; `switched-off-platform` — the platform's describer is off for every project; `ceiling-reached` — the project spent its daily allowance of model calls. |
 
 ### `GET /v1/projects/{projectId}/descriptions/history`
 
