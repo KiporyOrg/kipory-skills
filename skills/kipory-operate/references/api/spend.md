@@ -182,7 +182,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The `AiCall` row id. |
 | `createdAt` | `string` | yes | When the call was recorded. |
-| `taskKind` | `string` | yes | The kind of model work. ⚠️ A STRING, not the enum: `AiCall.taskKind` is a text column and a row written before a member existed must still render. Match against `callLogTaskKindSchema` for the six the platform emits today, and show anything else verbatim. |
+| `taskKind` | `string` | yes | The kind of model work. ⚠️ A STRING, not the enum: `AiCall.taskKind` is a text column and a row written before a member existed must still render. Match against `callLogTaskKindSchema` for the kinds the platform emits today, and show anything else verbatim. |
 | `origin` | `string \| null` | yes | What made the call — free text, null for the majority of rows. See `NON_PRODUCTION_ORIGINS` for why this reaches the client at all rather than being filtered away silently. |
 | `provider` | `string` | yes | The vendor that served it. |
 | `model` | `string` | yes | The exact model identifier. |

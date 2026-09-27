@@ -2,11 +2,11 @@
 
 # Handler catalog
 
-70 system handlers, one page each. A step in a flow is one of these plus its config. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+71 system handlers, one page each. A step in a flow is one of these plus its config. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 ## Groups
 
-- **AI** (3) — Model calls: generate text, turn text into a vector, or rank a list.
+- **AI** (4) — Model calls: generate text, turn text into a vector, or rank a list.
 - **Text** (5) — Work on text without a model: split, match, fill a template, clean.
 - **Sources** (17) — Fetch data from outside — pages, videos, feeds, places. Can be slow and cost money.
 - **Files** (10) — Read what a file holds — metadata, text, transcripts — make a resized or rendered copy, or a download link.
@@ -16,7 +16,7 @@
 - **Flow** (9) — Steer the run: branch, loop, call another flow, keep state between steps.
 - **Utility** (3) — Reshape a value, or pick between values from earlier steps.
 
-## ingest (30)
+## ingest (31)
 
 _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound steps._
 
@@ -33,6 +33,7 @@ _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO
 - [`telegram.resolve-channel`](telegram.resolve-channel.md) — Resolve a Telegram channel · Sources · `string` → `TelegramChannelResolution`
 - [`telegram.search-channels`](telegram.search-channels.md) — Search Telegram channels · Sources · `string` → `TelegramChannelSearchResults`
 - [`term.upsert`](term.upsert.md) — Upsert terms · Entities · `1` → `nothing`
+- [`text.decide`](text.decide.md) — Answer typed questions · AI · `any` → `nothing`
 - [`text.embed`](text.embed.md) — Embed text · AI · `string` → `Vector`
 - [`text.generate`](text.generate.md) — Generate text · AI · `any+` → `nothing`
 - [`text.rerank`](text.rerank.md) — Re-rank documents · AI · `slot map` → `RerankHit[]`

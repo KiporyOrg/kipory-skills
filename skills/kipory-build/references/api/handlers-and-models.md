@@ -25,7 +25,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `type` | `"chat" \| "embedding" \| "transcription" \| "rerank"` | no | Narrow to one capability class. Omit for the whole catalog. |
+| `type` | `"chat" \| "embedding" \| "transcription" \| "rerank" \| "decision"` | no | Narrow to one capability class. Omit for the whole catalog. |
 
 **Response `200`**
 

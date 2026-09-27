@@ -2,6 +2,16 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260927.910 — 2026-09-27
+
+Synced from the Kipory monorepo at `7f051ffc6`.
+
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-build/references/handlers/README.md`
+- added: `skills/kipory-build/references/handlers/text.decide.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+
 ## 1.20260927.750 — 2026-09-27
 
 Synced from the Kipory monorepo at `fe9a34f2d`.
