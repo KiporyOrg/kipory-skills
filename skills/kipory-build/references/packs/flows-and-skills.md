@@ -901,6 +901,11 @@ negated, to say so. `mismatch` compares the wrong type (`slotGt` on text):
 finding beside it, and the flow's health marks it `blocksActivation`. It is the table both
 validation and the run decide by, so offer only what `fits`.
 
+A field that `$ref`s the `probability` builtin has its own column. It reads as a number to every
+operator except `slotIsTruthy` / `slotIsFalsy`, which are a `mismatch` on a field: a chance of 0.03
+would read as true, so the save refuses that leaf outright (`CONDITION_PROBABILITY_TRUTHINESS`).
+Compare with a threshold instead, such as `slotGte` with `0.5`.
+
 ## Renaming a slot — look before you commit
 
 Slots connect steps by NAME, and the name appears in five places: a step's
