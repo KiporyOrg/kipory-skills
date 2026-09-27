@@ -14,6 +14,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/handlers`](#get-v1-handlers) |  |
 | `GET` | [`/v1/handlers/{key}`](#get-v1-handlers-key) |  |
 | `GET` | [`/v1/nodes/{nodeId}/model-prices`](#get-v1-nodes-nodeid-model-prices) |  |
+| `GET` | [`/v1/nodes/{nodeId}/routing`](#get-v1-nodes-nodeid-routing) |  |
+| `PUT` | [`/v1/nodes/{nodeId}/routing/{modelId}`](#put-v1-nodes-nodeid-routing-modelid) |  |
+| `DELETE` | [`/v1/nodes/{nodeId}/routing/{modelId}`](#delete-v1-nodes-nodeid-routing-modelid) |  |
 | `GET` | [`/v1/nodes/{nodeId}/task-models`](#get-v1-nodes-nodeid-task-models) |  |
 | `PUT` | [`/v1/nodes/{nodeId}/task-models/{task}`](#put-v1-nodes-nodeid-task-models-task) |  |
 | `DELETE` | [`/v1/nodes/{nodeId}/task-models/{task}`](#delete-v1-nodes-nodeid-task-models-task) |  |
@@ -97,6 +100,60 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The node these prices were resolved for. |
 | `prices` | `object[]` | yes | Every ENABLED model's billable operations — the same models `/v1/ai-models` lists. A model appears once per operation it bills. Ordered by address, not by catalog position. |
+
+### `GET /v1/nodes/{nodeId}/routing`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The OrgNode. ⚠️ A node id, not a project id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The node read. |
+| `policies` | `object[]` | yes | Every model a policy routes at this node — the nearest policy up the chain, per model. A model absent here uses the default: its creator's own offer when it is on, else the enabled offer with the lowest provider id, and no failover. |
+
+### `PUT /v1/nodes/{nodeId}/routing/{modelId}`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The OrgNode. ⚠️ A node id, not a project id. |
+| `modelId` | `string` | yes | The model, `creator/slug` — URL-encode the slash. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `providerOrder` | `string[]` | yes | The provider accounts to use for this model, first choice first. Each must offer the model and have that offer switched on. An offer not listed still serves when none listed is on. |
+| `failover` | `"none" \| "on-exhaustion"` | yes | `none` — a call uses the first enabled offer and fails if that account cannot serve it. `on-exhaustion` — when the account is out of quota or credit, the call is retried once through each next offer in order; each attempt is its own AI call, billed at the offer that served it. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The node read. |
+| `policies` | `object[]` | yes | Every model a policy routes at this node — the nearest policy up the chain, per model. A model absent here uses the default: its creator's own offer when it is on, else the enabled offer with the lowest provider id, and no failover. |
+
+### `DELETE /v1/nodes/{nodeId}/routing/{modelId}`
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The OrgNode. ⚠️ A node id, not a project id. |
+| `modelId` | `string` | yes | The model, `creator/slug` — URL-encode the slash. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The node read. |
+| `policies` | `object[]` | yes | Every model a policy routes at this node — the nearest policy up the chain, per model. A model absent here uses the default: its creator's own offer when it is on, else the enabled offer with the lowest provider id, and no failover. |
 
 ### `GET /v1/nodes/{nodeId}/task-models`
 

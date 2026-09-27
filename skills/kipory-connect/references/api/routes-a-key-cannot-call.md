@@ -114,12 +114,13 @@ Gate: `assertSessionAuth`
 
 Gate: `assertPlatformStaffActor`
 
-- `DELETE /v1/model-registry/models/{…}`
 - `GET /v1/model-registry`
 - `GET /v1/model-registry/changes`
+- `GET /v1/model-registry/models/{…}/bindings`
 - `PATCH /v1/model-registry/models/{…}`
 - `POST /v1/model-registry/apply`
 - `POST /v1/model-registry/refresh`
+- `PUT /v1/model-registry/models/{…}/lifecycle`
 
 ## administering the tenancy tree is not a workload act, and `StructuralEvent` has no honest actor string for a key — attributing one as `system:api` would name the platform's own token for a customer's action
 
