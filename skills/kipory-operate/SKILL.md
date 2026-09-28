@@ -70,7 +70,7 @@ Reach for this instead of editing a flow whenever the thing being changed is a t
 <!-- key-unreachable-ok: GET /v1/credits/events — named ONLY to warn that it 401s an API key, never prescribed -->
 
 ```
-GET /v1/runs/{runId}/spend                        what one run cost, by step — api host
+GET /v1/runs/{runId}/spend                        every charge one run made, by step, model calls included — api host
 GET /v1/projects/{nodeId}/usage?window=7d          credits and events over a window, by kind and step
 GET /v1/projects/{nodeId}/ai-calls                the model-call ledger, filterable; /rollup by hour or day; /{callId}?payload=prompt for one
 GET /v1/organizations/{nodeId}/quota              the organisation's resource ceilings and what is used
@@ -79,11 +79,14 @@ GET /v1/credits/balance                            the wallet — on the PROJECT
 
 A machine caller has no ledger of its own: `GET /v1/credits/events` scopes to a person and answers 401 to a key from inside the handler. Account for key-driven spend per run, or per project through `usage`.
 
+Two reads answer "what did this run cost", and they are not the same sum. A schedule occurrence's `creditCost` totals that occurrence's customer-billed charges; `/runs/{runId}/spend` counts every charge one run made, design-time and zero-credit platform rows included, broken down by step. A step that calls a model — `text.generate` above all — runs on a worker, and its charge carries the run like any other.
+
 ## What will bite you
 
 - **The balance read 404s on the api host.** Group `usage` is served on the project's host only, and a project may switch that group off. On the project host a key reads the payer's wallet with `perUserSpendCap` null — there is no person to cap — so for a key exactly one gate can 402 it: `creditsRemaining` against `softCapCredits`, reported as `status`. The read stays available while over cap, deliberately.
 - **Two 402 codes with opposite remedies.** `BALANCE_BELOW_SOFT_CAP` means top up; `USER_SPEND_CAP_EXCEEDED` means a person hit their own ceiling on a healthy wallet. The gate skips GET, so an over-cap project degrades to read-only.
 - **The per-person ceiling lives on project settings and is ADMIN**: `PATCH /v1/projects/{nodeId}/settings` with `perUserSpendCapCredits`, where `null` means no ceiling and `0` means block everything — opposites, and a falsy check turns one into the other. That PATCH has no `version` lock.
+- **A run from before 2026-09-28 reads short on `/spend`.** Charges made on a worker — model calls, paid fetches — carried no run until then, so an older run shows only its in-process fees. Its occurrence's `creditCost` is complete; use that for older runs.
 - **A schedule's `key` never changes** and is not on the patch body — sending it is a 422. Rename through `name`; a blank string is a 422, `null` clears.
 - **`runs` is a cap, not a page.** `limit` goes to 200, there is no cursor, and `truncated` is the only word you get about what was cut.
 - **Choose `overlapPolicy` deliberately.** `allow` on a flow slower than its interval runs copies of itself concurrently.

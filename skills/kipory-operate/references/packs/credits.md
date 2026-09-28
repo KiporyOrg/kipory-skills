@@ -129,11 +129,17 @@ deliberate about which credential the question is being asked with.
 
 ## The calls
 
-| To                                                  | Call                         |
-| --------------------------------------------------- | ---------------------------- |
-| See the wallet, the ceiling and the window          | `GET /v1/credits/balance`    |
-| Page one person's charge ledger (session bearers)   | `GET /v1/credits/events`     |
-| Attribute a machine-driven charge to what caused it | `GET /v1/runs/{runId}/spend` |
+| To                                                  | Call                                                   |
+| --------------------------------------------------- | ------------------------------------------------------ |
+| See the wallet, the ceiling and the window          | `GET /v1/credits/balance`                              |
+| Page one person's charge ledger (session bearers)   | `GET /v1/credits/events`                               |
+| Attribute a machine-driven charge to what caused it | `GET /v1/runs/{runId}/spend`                           |
+| Total one schedule occurrence's billed charges      | the occurrence's `creditCost` on the schedule's `runs` |
+
+`/runs/{runId}/spend` holds every charge the run made, by step — a model call a `text.generate` step
+makes on a worker included. ⚠️ **Not for a run from before 2026-09-28.** Until then a worker-side
+charge carried no run, so an older run reads only its in-process fees. Its occurrence's `creditCost`
+never depended on the run and is complete.
 
 ## Mistakes already made
 
