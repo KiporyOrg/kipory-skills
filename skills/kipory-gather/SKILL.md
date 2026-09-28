@@ -120,8 +120,11 @@ network request.", not as a network error.
   page skips, but a transform or `entity.create` that also reads the URL still runs and can write a
   record with the summary missing. Read `warnings` on the preview, use the fallback above, and put
   `slotPresent` conditions on writes. A refused scrape is **not charged** — the handler bills only a
-  page it got — but a preview's `ingestSpend` still counts it, as it counts every call that was not
-  a cache hit: read that figure as an upper bound, and the run's own spend for what was charged.
+  page it got. A preview's `ingestSpend` totals are what the preview was actually charged for vendor
+  fetches so far, read from your credit ledger; `calls[]` counts every call, cache hits and refusals
+  included, so a refused call shows there at no cost. A call that timed out waiting keeps running
+  and can be charged after the preview returns, so its cost may be missing from that preview's
+  totals. A fetch on your own vendor key is never charged, and a platform-paid preview reports $0.
 - **The cache is the design, not an optimisation.** A repeated call inside the cache window costs
   nothing and returns the same answer, so a flow that re-runs is cheap — and a source that changed
   inside the window is one your flow cannot see. The windows differ by an order of magnitude across

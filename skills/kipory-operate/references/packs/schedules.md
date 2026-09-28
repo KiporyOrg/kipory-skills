@@ -178,7 +178,8 @@ run's invocation. Reach for them in this order:
   step that failed** and the category of failure. Present only for a step-level failure.
 - **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary skill failure
   it is the fixed string _"The flow failed to run."_ on every run, because the raw error can carry
-  provider bodies and prompt fragments and is deliberately not published. Three other shapes exist:
+  provider bodies and prompt fragments and is deliberately not put there. The step's own words, cut
+  to 500 characters, are on its `step_failed` row in `GET /v1/runs/{runId}/steps`. Three other shapes exist:
   a validation failure surfaces the operator-authored message verbatim, a missing record says so,
   and a flow that produced none of its declared output reports that instead.
 
@@ -229,10 +230,8 @@ sets it disabled with no next run, by itself: its `version` does not move, so a 
 from before still matches, and nothing tells you it happened except `enabled: false` on the next
 read.
 
-⚠️ **A schedule you disable yourself keeps its old `nextRunAt`.** `POST /v1/schedules/{id}/disable`
-sets `enabled: false` and moves the version but leaves `nextRunAt` as it was, although the route
-reference describes it as null when disabled. Read `enabled`, never `nextRunAt`, to decide whether
-it will fire. ⭐ **Re-enabling an exhausted schedule is then REFUSED with a
+`POST /v1/schedules/{id}/disable` sets `enabled: false`, clears `nextRunAt` to null and moves the
+version. ⭐ **Re-enabling an exhausted schedule is REFUSED with a
 `422` naming the spent bound**, rather than quietly granting it a new lease. Raise `maxRuns` or move
 `endsAt` in a PATCH first, then enable. (Enable does recompute the next run forward from now, so a
 schedule disabled across a window still fires no backlog — that is a different thing.)

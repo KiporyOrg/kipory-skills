@@ -29,7 +29,7 @@ step_applied   write        …
 run_finished
 ```
 
-The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `data` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, and the flow's required `summary` output was filled with the type's empty value on the way out — which is why the caller saw `""` and a 200 rather than a 502. Had the step failed, `step_failed` would name the step but carry no phase and no message — those are in the endpoint's `502` body (`details.phase`), the trace's `stepOutputs[].error`, and the model-call ledger.
+The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `data` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, and the flow's required `summary` output was filled with the type's empty value on the way out — which is why the caller saw `""` and a 200 rather than a 502. Had the step failed, `step_failed` would name the step and carry its `phase` and a `message` cut to 500 characters; longer text (up to 2,000 characters) is in the trace's `stepOutputs[].error` and, for a model step, the model-call ledger.
 
 ## 3. Read the trace for the values
 

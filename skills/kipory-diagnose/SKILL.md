@@ -30,7 +30,7 @@ GET /v1/flows/{id}/traces/{traceId}                one trace: inputs, output, sl
 
 A product call that came back 4xx may never have started a run at all — a bad credential, a body the contract refused, a limit. Those are logged apart, with no run id: `GET /v1/rejected-requests?project={nodeId}`, narrowed by `class` (`auth`, `validation`, `not-found`, `limit`, `other`) or `endpoint`.
 
-Start with the step log — it is complete and it names the failing **step**, but not why: a `step_failed` row carries only `tries` (and `cacheHit` / `rateLimitWaitMs` when they apply) — no phase, no error text. The phase is in a sync endpoint's `502` body (`details.phase`) and in the preview's `errors`; the error text is in the trace's `stepOutputs[].error` (when the run was sampled) and, for a model step, in `GET /v1/projects/{nodeId}/ai-calls?outcome=error&origins=all`. Reach for the trace when you need the **values** a step emitted, which is the one thing only a trace carries.
+Start with the step log — it is complete, it names the failing **step**, and its `step_failed` row says why: `data.phase` (`handler-error`, `condition-error`, `fanout-error`, `sub-flow-failed`, …) and `data.message`, the step's error text cut to 500 characters (an ellipsis marks the cut; a step that failed the same way earlier in the run carries `data.messageRepeated: true` instead), beside `tries` (and `cacheHit` / `rateLimitWaitMs` when they apply). For longer text read the trace's `stepOutputs[].error` (up to 2,000 characters, when the run was sampled) or, for a model step, `GET /v1/projects/{nodeId}/ai-calls?outcome=error&origins=all`. Reach for the trace when you need the **values** a step emitted, which is the one thing only a trace carries.
 
 ## Reading a trace
 

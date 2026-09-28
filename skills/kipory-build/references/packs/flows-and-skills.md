@@ -276,7 +276,8 @@ routes answer 404 until the worker writes the opening frame, so poll the run, th
 stream. Same spend, same authorization; nothing cancels it once queued, and it is bounded by the
 same wall clock and fan-out cap as the synchronous preview.
 
-The step log carries no values. A queued preview of a project's own flow also writes its **trace
+The step log carries no slot values; a `step_failed` row does carry its `phase` and a `message` cut
+to 500 characters — the step's own error text, which can quote what it was processing. A queued preview of a project's own flow also writes its **trace
 live** — `GET /v1/runs/{runId}/trace` answers the flow's inputs, each step's output by slot
 (`slotOutputs`, `stepOutputs`) and a failed step's words (`stepOutputs.steps[].kind: "failed"`,
 `error`) while the run is still going; re-read it as the step stream moves, and treat it as final
