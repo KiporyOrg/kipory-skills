@@ -14,10 +14,9 @@ searches them, and only a hybrid search step ever reads them. The **geometry** �
 metric — is **derived** from the model and returned read-only.
 
 A profile is also **the default way records enter the space**: `defaultChunking` (required on
-create — `{ "kind": "whole" }` is one point per record) and optional `defaultStages`, the per-record
-projection stages. Every record type that marks a field `search` against this profile inherits both
-unless its own `uses.search.chunking` / `uses.search.stages` overrides them — and omitting the
-override is the common case.
+create — `{ "kind": "whole" }` is one point per record). Every record type that marks a field
+`search` against this profile inherits it unless its own `uses.search.chunking` overrides it — and
+omitting the override is the common case.
 
 **You pick a model. You never pick a dimension count, and you never pick a distance metric.**
 
@@ -51,7 +50,7 @@ outside everything on this page.
 
 ```
 POST  /v1/embedding-profiles               create — model + slots + defaultChunking; geometry is derived
-PATCH /v1/embedding-profiles/{id}          label, isDefault, defaultChunking, defaultStages
+PATCH /v1/embedding-profiles/{id}          label, isDefault, defaultChunking
 POST  /v1/embedding-profiles/{id}/versions mint the next version (free, inert)
 POST  /v1/embedding-profiles/{id}/activate repoint declarations and reindex (expensive)
 ```
@@ -63,14 +62,14 @@ Reading a profile — one, or the project's list with the default first — give
 geometry and how many record types use it. Ask for the collections expansion to see the physical
 collections your declarations actually imply.
 
-Updating a profile in place covers its label, whether it is the default, and the two **defaults**.
+Updating a profile in place covers its label, whether it is the default, and `defaultChunking`.
 Everything that defines the vector space — the model, the slots — moves through a version instead.
 
-⚠️ **Changing `defaultChunking` or `defaultStages` is not a geometry change, and it is not free
-either.** No version is minted; instead every record type on the profile that does NOT override the
-default is re-derived on the spot, and each one whose derived declaration moved is re-embedded in
+⚠️ **Changing `defaultChunking` is not a geometry change, and it is not free either.** No version
+is minted; instead every record type on the profile that does NOT override the default is
+re-derived on the spot, and each one whose derived declaration moved is re-embedded in
 the background — with the credits that costs. A type that sets its own `uses.search.chunking` is
-untouched. A version bump copies the defaults onto the new version.
+untouched. A version bump copies the default onto the new version.
 
 **Geometry is resolved before the row is written**, so a model with no recorded dimensions or no
 recorded distance is refused rather than stored half-usable.

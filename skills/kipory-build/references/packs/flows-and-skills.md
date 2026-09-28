@@ -1071,8 +1071,8 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 - **A flow cannot be deleted while another flow invokes it, or while anything live points at it**
   — one 409 `FLOW_HAS_DEPENDENTS` naming every kind that holds it, the calling flows included
   (⚠️ a **wider** set than the signature guard's, not the same one: to the endpoint and
-  record-type bindings that freeze a shape it adds schedules, triggers, facet resolvers, record
-  types' derive stages and — for a platform flow — the platform jobs it does. Those bind a flow by
+  record-type bindings that freeze a shape it adds schedules, triggers, facet resolvers and — for a
+  platform flow — the platform jobs it does. Those bind a flow by
   id, or a job by the flow fitting it, and capture nothing, so they cannot go stale on a signature
   edit — but they very much break on a delete). Only a platform job's stored default is a
   database-level foreign key; every other holder is a loose id, so this check is the only thing
@@ -1120,9 +1120,9 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   reports is what a step will actually run on.
 
   ⚠️ Offer only tasks carrying `assignableToStep` in a `taskKey` picker. The taxonomy is wider than
-  what a step may name, and a step naming an unassignable task is refused at the write. Four of the
-  nine are unassignable today — `transcription` and `rerank`, resolved by their handlers directly,
-  plus `substrate-embedding` and `chunk-context`. Filter on the field, not on that list: it is a
+  what a step may name, and a step naming an unassignable task is refused at the write. Three of the
+  eight are unassignable today — `transcription` and `rerank`, resolved by their handlers directly,
+  plus `substrate-embedding`. Filter on the field, not on that list: it is a
   measurement of two constants and it has already been wrong once here.
 
   ⚠️ `source: "environment"` is worth a second look rather than a shrug: that layer carries only a

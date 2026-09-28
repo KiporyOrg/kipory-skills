@@ -44,7 +44,8 @@ An unknown slug is refused before anything is made (`details.reason: "TEMPLATE_U
 The same call takes a `document` instead — a whole project document of your own, applied the same
 way; the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) says how a refusal reads there. A template's
 record types speak the same `uses` vocabulary as that document — there is no `file` use any more,
-so a template naming one is refused like any other document would be.
+no `derived` field family and no projection stages, on a type or as a profile default, so a
+template naming any of them is refused like any other document would be.
 
 Three things to know about the result:
 

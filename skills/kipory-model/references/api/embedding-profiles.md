@@ -51,7 +51,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `sparseSlot` | `string \| null` | no | Optional name for a sparse vector slot. Declaring one makes every record carry sparse vectors from then on, so only add it if a search step will read them. |
 | `isDefault` | `boolean` | no | Make this the profile used when a searchable declaration names none. Setting it moves the default off whichever profile currently holds it. |
 | `defaultChunking` | `object` | yes | The chunking every record type on this profile inherits. Required: a profile is a vector space AND the default way records enter it. `{ kind: "whole" }` is one point per record. |
-| `defaultStages` | `object[] \| null` | no | Per-record projection stages every type on this profile inherits. Omit or null for none. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -77,7 +76,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
-| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
@@ -115,7 +113,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
-| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
@@ -139,7 +136,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `label` | `string \| null` | no | New human-readable name, or null to clear it. |
 | `isDefault` | `boolean` | no | Make this the project's default profile. Anything that changes the vector space — the model, the slots — is refused here and needs a version bump instead. |
 | `defaultChunking` | `object` | no | Change the chunking every non-overriding type on this profile inherits. Re-derives and re-indexes each of them; not a geometry change, so no version bump. |
-| `defaultStages` | `object[] \| null` | no | Change the inherited per-record stages; null clears them. Re-derives every non-overriding type. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -157,7 +153,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
-| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
@@ -165,7 +160,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
-| `rederive` | `object` | no | Present when `defaultChunking` or `defaultStages` changed: which inheriting record types followed. |
+| `rederive` | `object` | no | Present when `defaultChunking` changed: which inheriting record types followed. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -243,7 +238,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
-| `defaultStages` | `object[] \| null` | yes | Per-record projection stages every type on this profile inherits unless it overrides them, or null for none. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
 | `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |

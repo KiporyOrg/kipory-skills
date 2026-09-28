@@ -210,7 +210,7 @@ processing go by. A statement still naming it fails request validation (`422 VAL
 not a `RECORD_TYPE_USES_INVALID` issue.
 
 And three statements about the **type**, beside the fields: `search` (the embedding profile, with
-optional overrides of `chunking` and `stages`, and of `indexWhen` and `isolationGroup` — required iff a field is
+optional overrides of `chunking`, `indexWhen` and `isolationGroup` — required iff a field is
 marked `search`), `join` (this type IS an edge), and `facets` (the ordered facet keys the type
 surfaces — a facet is not a field, so it is not a use of one; see "Which facets a type surfaces").
 
@@ -327,17 +327,19 @@ only**: the list route refuses them, because a page of types multiplied by a row
 cost nobody asked for. Poll during a re-embed rather than attaching either to routine reads.
 
 **A `search` use needs text, and the platform says so before it derives anything.** `search` on a
-number, a date, a boolean, an object or a list of objects is refused `USES_SEARCH_NO_TEXT` with a
-remedy (render the value into a text field with a per-record stage, and search that); `search` on a
-file is `USES_SEARCH_NEEDS_STAGE` — bind an extraction stage and search its output. It used to be
+number, a date, a boolean, a file, an object or a list of objects is refused `USES_SEARCH_NO_TEXT`
+with a remedy: have the type's processing flow write the text into a text field (for a file, extract
+its text), and search that field. It used to be
 possible to save such a slot, and the result was the worst of the three possible outcomes: nothing
 errored, every record rendered to an empty string, each one was skipped as having no content, and
 the type sat there looking searchable while indexing nothing at all.
 
 The refusal is about the field's **shape**: a record that happens to be empty is reported per
-record, which is a fact about data rather than about the declaration. There is no template slot to
-compose several fields into one: put a per-record stage in `uses.search.stages` (or on the profile's
-`defaultStages`) and mark its output `search`.
+record, which is a fact about data rather than about the declaration.
+
+**A search slot reads exactly one field.** There is no way to compose several fields into one
+slot. To search text built from more than one field, have the type's processing flow write the
+combined text into a field of its own, and mark that field `search`.
 
 The contract read carries the same answer per field, so an editor can grey the option out and say
 why instead of offering it and indexing silence. It is a **separate** question from whether a
@@ -401,8 +403,8 @@ Things to know before you declare one:
   hold more than one kind of value are refused when you save, with the reason. Project the value
   you actually want to filter on into its own field.
 - **You do not choose the storage.** The platform assigns each `filter` field a slot when you save
-  — by family and position in your `uses.fields` — and records it on the derived declaration, the
-  same way it resolves a derive stage's flow. `expand=uses` shows the column. Send the field; leave
+  — by family and position in your `uses.fields` — and records it on the derived declaration.
+  `expand=uses` shows the column. Send the field; leave
   the slot alone, and know that **reordering two `filter` fields moves their values** and re-stamps
   the type.
 - **Dropping `filter` from a field removes the filter, not the data.** Records keep their values,
@@ -959,9 +961,8 @@ in place — neither embeds anything.
 
 - **`resolved`** under `derived` is each derived declaration as it would be STORED — the `searchable`
   document and the `queryable` and `relations` documents your `uses` derives to, with the platform's
-  own resolutions applied: `queryable` carries the storage slot each `filter` field resolved to and
-  `searchable` has its per-record derive stages bound to concrete flow ids — the half you cannot
-  compute yourself. Each one is a full document, or `null` where the type would declare nothing.
+  own resolutions applied: `queryable` carries the storage slot each `filter` field resolved to —
+  the half you cannot compute yourself. Each one is a full document, or `null` where the type would declare nothing.
 - ⚠️ **`derived` is absent entirely when the planner stopped at a refusal.** There is no plan to
   describe, and an absent key says so where an empty list would read as a measurement.
 

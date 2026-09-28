@@ -16,11 +16,11 @@ Five resources, five packs, and an order the packs do not state because each ans
 
 ## The order, and why it is not arbitrary
 
-**1. Embedding profile first, if anything will be searchable.** A record type names a profile in `uses.search`, so the profile has to exist to be named — and it carries the `defaultChunking` (required) and `defaultStages` every type on it inherits unless the type overrides them.
+**1. Embedding profile first, if anything will be searchable.** A record type names a profile in `uses.search`, so the profile has to exist to be named — and it carries the `defaultChunking` (required) every type on it inherits unless the type overrides it.
 
 ```
 POST /v1/embedding-profiles                    { project, defaultChunking, … }   → inert: nothing references it yet
-PATCH /v1/embedding-profiles/{id}              label, isDefault, defaultChunking, defaultStages — a default change re-derives and re-embeds every inheriting type
+PATCH /v1/embedding-profiles/{id}              label, isDefault, defaultChunking — a chunking change re-derives and re-embeds every inheriting type
 POST /v1/embedding-profiles/{id}/versions      mint the next geometry — still changes nothing
 POST /v1/embedding-profiles/{id}/activate      repoint every declaration onto it and reindex
 ```
@@ -79,7 +79,7 @@ A facet whose `matching` is `exact` needs no resolver. A `semantic` one created 
 - **A schema edit cascades.** Read the record-types pack on what an entry change reaches before editing one that types already reference.
 - **`expand=embedding` and `expand=vectorProgress` are refused on the record-types list.** They are per-row scans; ask them on `GET /v1/record-types/{id}`.
 - **Readiness is the diagnostic here, not `outstandingIssues`.** That array belongs to skill writes; none of the saves in this skill carry it. Re-read the facet or kind with `expand=readiness`: `blocked` cannot work (`RESOLVER_UNBOUND` on an unbound semantic facet), `inert` is wired to nothing, `unproven` has never resolved — expected an hour after authoring, a question a year later.
-- **An embedding profile's `version` is not a lock.** Its PATCH accepts `label`, `isDefault`, `defaultChunking` and `defaultStages`, and sending `version` is a 422. Changing the model or the slots goes through a version and re-embeds everything; changing a default re-derives and re-embeds every type that inherits it, without a version.
+- **An embedding profile's `version` is not a lock.** Its PATCH accepts `label`, `isDefault` and `defaultChunking`, and sending `version` is a 422. Changing the model or the slots goes through a version and re-embeds everything; changing `defaultChunking` re-derives and re-embeds every type that inherits it, without a version.
 - **`uses` is sent whole.** A PATCH carrying it replaces the statement; reordering two `filter` fields moves their storage slots and re-stamps every record of the type. Read it, change it, send it back with the `version` you read — and ask the same PATCH with `validateOnly: true` first if you are not sure what it derives to.
 - **A search step left behind after activation keeps querying the superseded collection** — stale results, not an error. Read `repointedSteps`.
 - **Vector search is ADMIN and bills.** `POST /v1/vector-collections/{name}/search` embeds the query text on every call. The collections surface is otherwise read-only; `{name}` is the collection's name without its project prefix, and `storeState: absent` is a divergence to act on while `unreachable` is an outage — never fold them.

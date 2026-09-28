@@ -222,8 +222,8 @@ Gate: `assertPlatformStaffActor`
 Gate: `assertPlatformStaffActor`
 
 - `DELETE /v1/system-flows/defaults/{…}`
-- `GET /v1/system-flows/defaults`
 - `GET /v1/system-flows/handlers`
+- `GET /v1/system-flows/jobs`
 - `GET /v1/system-flows/schema-entries`
 - `GET /v1/system-flows/task-models`
 - `GET /v1/system-flows/{…}/used-by`

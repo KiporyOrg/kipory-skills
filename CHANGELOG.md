@@ -2,6 +2,22 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260928.839 — 2026-09-28
+
+Synced from the Kipory monorepo at `de337fee2`.
+
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/embedding-profiles.md`
+- changed: `skills/kipory-model/references/packs/embedding-profiles.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-model/references/packs/relations.md`
+
 ## 1.20260928.811 — 2026-09-28
 
 Synced from the Kipory monorepo at `5b8790896`.

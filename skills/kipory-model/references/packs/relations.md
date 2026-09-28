@@ -198,6 +198,9 @@ inside the kind's own transaction. **Three** arms, and which one is legal follow
                               "to":   { "family": "submission", "field": "sourceId" } } } }
 ```
 
+A field reference's `family` is one of `submission`, `processed` or `system` — the fields the
+record stores. There is no `derived` family (removed 2026-09-27); a reference naming it is refused.
+
 ⭐ **`generate` is the link bringing its own field.** The other `produces` arm names a property that
 already exists, which made one link two jobs: model a reference field on the entity, then come back
 and point a kind at it. This arm inverts it — the property is composed and written beside the kind

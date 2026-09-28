@@ -183,7 +183,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The OrgNode whose bindings to read. ⚠️ A node id, not a project id — `Project.id` and `Project.orgNodeId` are different values on the same project. |
-| `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding" \| "chunk-context"` | yes | The pipeline task kind this binding is for. |
+| `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding"` | yes | The pipeline task kind this binding is for. |
 
 **Request body**
 
@@ -210,7 +210,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The OrgNode whose bindings to read. ⚠️ A node id, not a project id — `Project.id` and `Project.orgNodeId` are different values on the same project. |
-| `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding" \| "chunk-context"` | yes | The pipeline task kind this binding is for. |
+| `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding"` | yes | The pipeline task kind this binding is for. |
 
 **Response `200`**
 
