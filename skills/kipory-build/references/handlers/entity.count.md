@@ -24,6 +24,29 @@ Count the records that match, without reading them.
 | `statuses` | string[] | no | — | Count only rows with one of these statuses. Leave it empty to count them all. A catalog total usually keeps just `READY`. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Only record types owned by a user are filtered by it; a project-wide type ignores it. ⚠️ A count discloses how many records exist outside the caller's scope without naming one, so nothing downstream looks wrong. The owner pin matters here at least as much as on a list. |
 
+### `edgeFilters` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | string | yes | — |  |
+| `peerRecordIdSlot` | string | no | — |  |
+
+### `facetFilter` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `facet` | string | yes | — |  |
+| `slug` | string | yes | — |  |
+| `parentSlug` | string | no | — |  |
+
+### `fieldFilters` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — |  |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — |  |
+| `value` | union | yes | — |  |
+
 ## Worked example
 
 Counts every record matching its filters, so a step can answer a total without reading the rows.

@@ -10,7 +10,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Slot.** A named value in a run. A skill reads its `inputStreams` (slot names) and writes its `outputSlot`. Slot names are letters and digits only, starting with a letter — no underscores.
 
-**Project vs. node.** A **project** is your product's container. It has a project id (`proj_…`) and lives at a **node** (`orgnode_…`) in the ownership tree under an **organisation** node. The design API scopes by node id; two sub-resources and the bridge route scope by project id. `GET /v1/projects/by-project-id/{projectId}` converts one to the other.
+**Project vs. node.** A **project** is your product's container. It has a project id (`proj_…`) and lives at a **node** (a bare cuid such as `cmukzzjhc0001hlq36d38bun1`; ids are opaque, so never tell them apart by prefix) in the ownership tree under an **organisation** node. The design API scopes by node id; two sub-resources and the bridge route scope by project id. `GET /v1/projects/by-project-id/{projectId}` converts one to the other.
 
 **Grant.** What an API key carries: one node and one role. Reach is descent from that node. A key never has a user, so it never has a `me`.
 
@@ -26,7 +26,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Event.** In the design API, an **event type** is a declared, emittable signal in a **category**, with a scope of `run`, `record`, `user` or `project`. It is unrelated to the spend ledger's "credit events", to the run step log's events, and to server-sent events on a stream.
 
-**Dynamic endpoint vs. coded route.** A **coded route** is a `/v1/...` path the platform itself serves (`GET /v1/coded-routes` lists them). A **dynamic endpoint** is one you author for your product, served on the project's host and backed by a flow. A coded route always wins a path collision.
+**Dynamic endpoint vs. coded route.** A **coded route** is a `/v1/...` path the platform itself serves (`GET /v1/coded-routes`, with a key, lists them). A **dynamic endpoint** is one you author for your product, served on the project's host and backed by a flow. A coded route always wins a path collision, and its first path word is reserved whole: an endpoint under it is served only as far as that route group is (`kipory-expose`).
 
 **Plane.** The design plane is where you author (api host). The dynamic, or project, plane is where your product's users are served (project host). The credit balance is a project-plane read.
 

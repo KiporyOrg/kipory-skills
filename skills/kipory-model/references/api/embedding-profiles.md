@@ -29,7 +29,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Id of the project node whose profiles to list. Required. |
-| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Repeat the parameter to ask for more than one. Currently only `collections`. |
+| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Currently only `collections`, so send `expand=collections`. (The record-types routes take a comma-separated list instead, and refuse a repeated parameter.) |
 
 **Response `200`**
 
@@ -46,11 +46,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Id of the project node that will own the profile. |
 | `name` | `string` | yes | Kebab-case name, used verbatim in the profile's collection names. Permanent — to change what people read, set `label`. |
 | `label` | `string \| null` | no | Optional human-readable name. |
-| `modelId` | `string` | yes | Id of the embedding model to use. Pick the model, not the dimensions or the distance metric — both come from it. |
+| `modelId` | `string` | yes | Id of the embedding model to use — one `GET /v1/ai-models?type=embedding` lists. Pick the model, not the dimensions or the distance metric — both come from it. |
 | `denseSlots` | `string[]` | yes | Names for the dense vector slots this profile writes. At least one is required — a profile with no dense slot could back nothing searchable. |
 | `sparseSlot` | `string \| null` | no | Optional name for a sparse vector slot. Declaring one makes every record carry sparse vectors from then on, so only add it if a search step will read them. |
 | `isDefault` | `boolean` | no | Make this the profile used when a searchable declaration names none. Setting it moves the default off whichever profile currently holds it. |
-| `defaultChunking` | `object` | yes | The chunking every record type on this profile inherits. Required: a profile is a vector space AND the default way records enter it. `{ kind: "whole" }` is one point per record. |
+| `defaultChunking` | `object` | yes | The chunking every record type on this profile inherits. Required: a profile is a vector space AND the default way records enter it. Exactly one of `{ kind: "whole" }` (one point per record) or `{ kind: "chunks", tokens, overlap }` (pieces of `tokens` tokens, each repeating `overlap` tokens of the previous; `overlap` below `tokens`). |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -96,7 +96,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Repeat the parameter to ask for more than one. Currently only `collections`. |
+| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Currently only `collections`, so send `expand=collections`. (The record-types routes take a comma-separated list instead, and refuse a repeated parameter.) |
 
 **Response `200`**
 

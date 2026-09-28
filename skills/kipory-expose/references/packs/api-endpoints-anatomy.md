@@ -6,8 +6,9 @@
 > resource wire shape → live `GET /v1/openapi.json`. Which paths the platform itself occupies →
 > `GET /v1/coded-routes`, the whole manifest as rows, before you pick a path. Whether a coded route
 > already occupies one you have ALREADY saved → request `expand=shadowed` on the api-endpoints read,
-> which returns the occupying route's method, path and group; the save refuses a collision
-> regardless. This pack is the narrative and the judgment; the schemas are the truth.
+> which returns the occupying route's method, path and group as `shadowedBy`, and in
+> `partiallyShadowedBy` every coded route with a literal where your path has a parameter; the save
+> refuses a collision regardless. This pack is the narrative and the judgment; the schemas are the truth.
 
 **Read this one early.** It traces the whole life of a request, and every other capability —
 schedules, events, record processing — rides the same machinery.
@@ -33,7 +34,8 @@ flow, and confusing them produces a 404 that looks like the endpoint was never m
 
 ⭐ **Never reconstruct the call URL by hand.** Every endpoint read carries a computed, read-only
 `invokeUrl` — the absolute dynamic-plane URL. Use it. ⚠️ It is `null` on a deployment with no
-derivable public host (bare local dev), so handle that arm rather than sending the literal.
+derivable public host (bare local dev), so handle that arm rather than sending the literal: there,
+call the api's own base URL with the endpoint's path and the header `x-kipory-project-slug: <slug>`.
 
 Every read also carries a computed, read-only `access`: whether a VIEWER-level caller may make the
 call, whether the method or the bound flow decided that, and which handlers in the flow write. It
@@ -84,12 +86,25 @@ parameters adjacent. Path and query parameters can only carry string slots.
 
 Collisions are computed on the **parameter-name-agnostic template**, so `/v1/x/{id}` and
 `/v1/x/{key}` are the same path. It must not collide with a coded platform route or with a sibling
-endpoint. `GET /v1/coded-routes` lists every coded path so you can check before saving rather than
+endpoint. A coded route with a parameter where yours has a literal collides too: it matches every
+call yours would, and wins. The other way round is not refused: a coded **literal** under your
+parameter answers that one value (the path `/v1/me/{text}` never receives `text` = `stats`), and
+`expand=shadowed` lists each such route in `partiallyShadowedBy`. `GET /v1/coded-routes` lists every coded path so you can check before saving rather than
 discover it in a refusal.
 
 A coded route occupies its path on **every** host, including one where it answers 404 — a group a
 project has disabled, or a management-plane group addressed on a project subdomain, is still a
 registered route and still wins the match. So "it 404s here" is never a reason to author onto it.
+
+⚠️ **A coded route's first path word is reserved whole, and the save does not say so.** The
+collision check and `expand=shadowed` compare whole paths, so an endpoint on `/v1/docs/add` saves
+cleanly beside the platform's own docs reads. At run time the host gate maps the first word after
+`/v1/` to its coded group before any endpoint is matched. Under a word the design API owns (records,
+flows, projects, runs and the rest of the management plane) the endpoint answers 404 on every call;
+under one of the groups a project host serves (auth, me, files, docs, credits) it answers only while
+that group is enabled for the project, and a later route-enablement change takes it down with the
+group. Read the first words off `GET /v1/coded-routes` — it needs a key, any role — and start your
+paths with a word none of its rows uses.
 
 There is **no read-only flag to set.** Whether a VIEWER-level caller may make a call is the
 platform's decision, not a declaration: an asynchronous invoke and a DELETE are writes; any other
@@ -105,7 +120,9 @@ Three kinds:
 - **Invoke** — a buffered call. Synchronous returns the result and has a timeout ceiling;
   asynchronous returns an acknowledgement immediately.
 - **Stream** — server-sent events, naming which output slot streams as deltas, with an optional
-  allowlist of events to surface.
+  allowlist of events to surface. Deltas come only from a `text.generate` step with structured
+  output whose text field carries the same name as that slot; any other flow streams `stage`
+  frames and then its `result`, with no deltas at all.
 - **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
 
 **Input mapping** binds each flow input slot to a request location: the body, a path parameter or
@@ -338,8 +355,11 @@ carries the same findings on `details.issues`, so a form does not need two reade
 
 ⭐ **Both ways an address can be taken come back the same way.** A `CONFLICT` finding on `endpoint`
 means the key is already used; a `CONFLICT` finding on `contractConfig.path` means another endpoint
-already serves that method and path. Neither is an exception — both are findings you can put under
-the input that caused them.
+already serves that method and path. Neither is an exception in the verdict — both are findings you
+can put under the input that caused them. A real save answers the same two as a `409 CONFLICT`
+with no `details`, told apart by the suffix of its message. And not every finding names a field:
+a binding rule may carry only `code` and `message`, while a body the request schema refuses before
+any rule runs answers issues of `{ message, keyword, instancePath, params }` instead.
 
 ⚠️ **An invalid draft is not a failed request.** The dry run succeeded — it computed a verdict, and
 the verdict is "no". A 4xx means the _validate request itself_ could not be served: a `PATCH` to an

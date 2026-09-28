@@ -16,8 +16,8 @@ Run the next steps once for each item in a list.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `branchTargetsAreDisjoint` | boolean | no | `false` | Tick this when every branch writes its own record and no two ever touch the same one. ⚠️ It lets the engine overlap branches that write records, which it otherwise cannot. Leave it off if unsure: if two branches DO hit one record, the last write wins. |
-| `dedupe` | boolean | no | `true` | Exact-string, case-sensitive deduplication of list elements before fan-out. |
-| `maxItems` | integer | no | `20` | Maximum branches per ProjectRecord. Bounded by KIPORY_SYSTEM_MAX_FAN_OUT to prevent runaway sessions. |
+| `dedupe` | boolean | no | `true` | Drop repeated list elements before fan-out: text compared exactly (case-sensitive), a file by its storage key, anything else by its value. |
+| `maxItems` | integer | no | `20` | The most branches one run starts; later items are dropped. ⚠️ Above the system ceiling (100 unless the deployment changed it) the save answers INVALID_HANDLER_CONFIG naming neither field nor limit. One run handles at most that many items, so split a bigger import. |
 | `maxParallelBranches` | integer | no | — | How many branches may run at once. Leave it empty to let the engine decide from what the branches touch. ⚠️ 1 forces one at a time — the only setting where a branch reliably sees what earlier ones wrote. Higher forces overlap, so two branches writing one record become a race. |
 
 ## Worked example

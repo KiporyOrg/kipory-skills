@@ -68,11 +68,60 @@ real browser.
 - **`url.fetch-as-file`** when you want the bytes rather than the text — a PDF, an image, an
   archive. It stores them and emits a file reference for `kipory-extract` to open.
 
+**A page read that must not come back empty: scrape with a plain-fetch fallback.** Run the two
+side by side off the same `url` slot and keep whichever filled:
+
+```
+scrape   url.scrape                  url → page            (page.content: rendered markdown, or "")
+fetch    url.fetch                   url → raw             (the raw HTML/text, no vendor)
+strip    value.transform             raw → plain           (tags stripped, below)
+body     value.first-non-empty       { "inputs": ["page.content", "plain"], "valueKind": "string" } → body
+```
+
+The two sources emit different types — `url.scrape` a `ScrapedPage` object, `url.fetch` the raw
+body as one string — so coalesce text with text: `page.content` (the scraped markdown) against
+`plain`, never the bare `page` against `raw`. The `body` step lists every root it reads in
+`inputStreams` (`page`, `plain`), types them `ScrapedPage` and `string` in `inputSchemas`, and
+states `outputSchema` `string`. The `strip` expression (in a JSON document every `\` doubles):
+
+```
+$trim($replace($replace($replace(raw, /<(script|style)[\s\S]*?<\/(script|style)>/i, " "), /<[^>]+>/, " "), /\s+/, " "))
+```
+
+**No vendor at all** — no Firecrawl key, or its credit spent: drop `scrape` and read `url.fetch` →
+`strip` as the body, and take the title from `url.metadata` on the same `url` (its `title`, from
+the page's `<title>` or `og:title`; also `onFailure: CONTINUE`). A page that builds its text in the
+browser comes back nearly empty this way; `$assert` on the length (`kipory-build`'s
+`patterns.md` §8) turns that into a clear refusal. ⚠️ **Set `"onFailure": "CONTINUE"` on the `fetch` step.** The two sources fail differently:
+`url.scrape` turns a vendor refusal into a warning and an empty page, but `url.fetch` fails the
+step on a 4xx page, on an address that does not resolve and on a refused one — and one failed
+step fails the whole run, even when the scrape beside it worked: a sync endpoint answers `502`
+(`details.phase: "handler-error"`), or `400` "blocked network request" for a lookup failure or a
+private address. Only a 5xx from the site comes back as an empty value with a `FETCH_FAILED`
+warning. With `CONTINUE` a failed fetch is a warning, its readers skip, and `body` takes the scrape.
+Then guard **every step that reads `body` beside another slot** — `condition: { "op":
+"slotPresent", "slot": "body" }` — model steps included, not only writes. A step runs while any
+one input is present: a key-point `text.generate` that also reads `url` (to cite it) runs on the
+URL alone when every read failed, and the model invents a page. Guard the writes the same way on
+the slot they store, so such a run writes nothing instead of a half-empty record.
+
 `url.fetch`, `url.fetch-as-file` and `url.metadata` go through an SSRF guard: they reach the open
-web, not the deployment's own network.
+web, not the deployment's own network. A host name that does not resolve is refused by the same
+guard, so a typo in a URL reaches the caller as `400 BAD_REQUEST` "The flow attempted a blocked
+network request.", not as a network error.
 
 ## What will bite you
 
+- **A vendor failure is a warning, not an error, and the flow keeps going.** When Firecrawl
+  refuses — out of credit (402), a site error — `url.scrape` emits an empty page with a soft
+  `SCRAPE_FAILED` warning (`RATE_LIMITED` for a 429, retried in-handler first); the run does not
+  fail and the empty result is not cached. A step skips only when **every** input it reads is
+  absent — it runs while **any one** is present — so a `text.generate` reading only the empty
+  page skips, but a transform or `entity.create` that also reads the URL still runs and can write a
+  record with the summary missing. Read `warnings` on the preview, use the fallback above, and put
+  `slotPresent` conditions on writes. A refused scrape is **not charged** — the handler bills only a
+  page it got — but a preview's `ingestSpend` still counts it, as it counts every call that was not
+  a cache hit: read that figure as an upper bound, and the run's own spend for what was charged.
 - **The cache is the design, not an optimisation.** A repeated call inside the cache window costs
   nothing and returns the same answer, so a flow that re-runs is cheap — and a source that changed
   inside the window is one your flow cannot see. The windows differ by an order of magnitude across
@@ -87,7 +136,8 @@ web, not the deployment's own network.
   `web.search` returns a bare object when a search genuinely found nothing. `web.rankings` treats an
   empty ranking as a **source failure** and refuses to cache it, because a country with no popular
   websites does not exist. `location.resolve` returns empty when the provider found nothing but
-  **throws** when the provider itself failed. Read each one's contract before you branch on empty.
+  **throws** when the provider itself failed. `url.fetch` returns empty on a site's 5xx and fails
+  the step on any other non-2xx. Read each one's contract before you branch on empty.
 - **Every field on a scraped or looked-up object is optional.** `web.traffic` nulls every metric for
   a site too small to profile; `youtube.video` returns only the parts you asked for and any of them
   may be absent; `url.metadata` leaves unset whatever the page never declared. A flow that assumes a
@@ -98,9 +148,14 @@ web, not the deployment's own network.
 - **A fan-out multiplies the vendor call, not just the step.** `flow.fan-out` defaults to 20 items,
   and twenty branches each making an Apify call is most of a minute's budget in one run. Set
   `maxParallelBranches` deliberately when the branch body reaches a shared bucket.
-- **Retries are already configured and they are not free.** Most of these make three attempts with
-  exponential backoff and wait up to five minutes. A step that looks hung is usually a source that
-  is slow, and the wait ceiling is the handler's, not something the flow overrides.
+- **Retries are already configured and they are not free.** They differ per handler — each handler
+  page's **Queue** line in `kipory-build` has the numbers. The five Apify handlers and `url.scrape`
+  make three attempts with exponential backoff and wait up to five minutes; `url.screenshot` waits
+  up to two minutes; `url.fetch` and `url.fetch-as-file` make three attempts within one and
+  one-and-a-half minutes; `url.metadata` and the four YouTube handlers make two, waiting up to a
+  minute (two for `youtube.transcript`); `location.resolve` makes two within a minute. A step that
+  looks hung is usually a source that is slow, and the wait ceiling is the handler's, not something
+  the flow overrides.
 
 ## References
 

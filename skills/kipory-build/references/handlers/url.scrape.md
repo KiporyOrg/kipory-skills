@@ -8,7 +8,7 @@ Read a web page and return its main text and details.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `ScrapedPage`
 - **Reads:** One URL — the page to scrape. Anything that is not `http` or `https` is refused before a call is spent; an empty slot emits an empty result. _(shape hint: `string`)_
-- **Emits:** A `ScrapedPage` — the rendered body as markdown, plus the page's metadata read from that render. Empty when the URL is missing or the site could not be read.
+- **Emits:** A `ScrapedPage` — the rendered body as markdown, plus its metadata. Empty, with a `SCRAPE_FAILED` or `RATE_LIMITED` warning rather than a failed run, when the page could not be rendered.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API (KIPORY_FIRECRAWL_API_KEY).
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.

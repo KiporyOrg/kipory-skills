@@ -165,7 +165,9 @@ POST  /v1/relation-kinds        the kind, its pairings AND its declaration — o
 GET   /v1/records/{id}/relations/{kind}   walk one hop
 ```
 
-Creating a kind is deliberately wide: it seeds its pairings atomically, and **at least one is
+Creating a kind is deliberately wide: it seeds its pairings atomically — each pairing is
+`{ "from": "<record type name>", "to": "<record type name>" }`, types by **name**, e.g.
+`"pairings": [{ "from": "recipe", "to": "ingredient" }]` — and **at least one is
 required**, so a kind is never born without one. The key is immutable. Pairings have **no update** — re-target by deleting and
 recreating. ⚠️ But that recipe stops working the moment edges exist: a pairing carrying live edges
 is refused outright (`RELATION_PAIRING_PINNED_BY_EDGES`), and that is ANY pairing, not just the
@@ -306,7 +308,9 @@ second spelling could only disagree with it.
 
 `GET /v1/records/{id}/relations/{kind}` returns the peers, one hop, with the direction resolved for
 you — you get _the other end_, never a raw pair you have to work out which side of. It takes a
-direction (ignored for a symmetric kind, whose stored pair is canonical rather than meaningful), a
+`direction` of `outgoing` (the default), `incoming` or `either` — any other word is a 422, and a
+symmetric kind ignores it, its stored pair being canonical rather than meaningful — so walking from
+the target of a kind back to its sources is `?direction=incoming`. It also takes a
 limit, whether to include expired edges, and an ordering by one of the kind's declared edge
 properties.
 
@@ -417,7 +421,9 @@ always did.
 returns for a link that exists, computed against your draft — so you can see that a link will land
 `inert` (no pairing, no producing field, a properties type nothing ticks) _before_ creating it,
 rather than by noticing a count that never leaves zero. It is not the resource: there is no id and
-no version, because nothing was created.
+no version, because nothing was created. ⚠️ A draft has no edges to count, so the forecast cannot
+say `unproven`: a healthy draft reads `ready` here, and the same kind reads `unproven` once saved
+until its first edge lands. Read the forecast for `blocked` and `inert`, not as proof of edges.
 
 It is a flag on the real route rather than a sibling `/validate`, deliberately. One route is one set
 of rules, so a check that passes and a save that refuses cannot come apart.

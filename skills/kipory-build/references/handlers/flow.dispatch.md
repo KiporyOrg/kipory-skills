@@ -17,9 +17,33 @@ Send a value down the first branch whose rule it matches.
 | --- | --- | --- | --- | --- |
 | `default` | object | no | — | Fallback branch invoked when no explicit rule matches. When omitted, unmatched inputs are silently skipped. |
 | `flags` | string[] | no | `["i"]` | Regex flags for every rule: `i` ignores case, `m` makes `^`/`$` match per line, `s` lets `.` match newlines, `u` enables Unicode. ⚠️ Glob patterns ignore these flags and always ignore case. |
-| `matchOn` | union | no | `"value"` | What the rules are tested against: the value itself, the host of a URL, or a named field of an object. ⚠️ Whatever is matched, the ORIGINAL input is what gets forwarded — so a file in stays a file out. |
+| `matchOn` | union | no | `"value"` | What the rules are tested against: the value itself, the host of a URL, or a named field of an object. ⚠️ The ORIGINAL input is forwarded, whatever is matched — a file in stays a file out. The branch slots take the step's output type, text unless you set it. |
 | `patternSyntax` | `regex` \| `glob` | no | `"regex"` | How the rule patterns are written. `regex` is full JavaScript regex; `glob` allows `*` and treats the rest literally. |
 | `rules` | object[] | no | `[]` | Ordered list of pattern → output-slot routing rules. Evaluated in declared order; first match wins. |
+
+### `default`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `outputSlot` | string | yes | — | The slot the input is forwarded to when no rule matches. |
+
+### `matchOn` — one of
+
+- the value `value`
+- the value `url-host`
+
+**Alternative 3**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — | Name of the string field read off the object-shaped input as the matchable. |
+
+### `rules` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `pattern` | string | yes | — | The pattern to test. A JavaScript regex, or a glob when the syntax above says so. |
+| `outputSlot` | string | yes | — | The slot the input is forwarded to when this rule matches. |
 
 ## Worked example
 

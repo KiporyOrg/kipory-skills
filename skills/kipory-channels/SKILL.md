@@ -6,7 +6,7 @@ license: MIT
 
 # Email addresses and sources
 
-Two resources at the edge of a project. A **managed email address** is a sending identity the outbound mail step sends _as_; a **source** is something outside your flows that writes events into the project's log — a Telegram channel the platform watches today, a webhook, a Postgres table and an Apify actor next. A source never runs a flow: a **trigger** pointing at it does (`kipory-operate`). The fact most people get wrong about addresses: they are checked when the run happens, not when you save — a flow referencing an address nobody minted saves cleanly and refuses at send time with one indistinguishable refusal.
+Two resources at the edge of a project. A **managed email address** is a sending identity the outbound mail step sends _as_; a **source** is something outside your flows that writes events into the project's log — a Telegram channel the platform watches today, a webhook, a Postgres table and an Apify actor next. A source never runs a flow: a **trigger** pointing at it does (`kipory-operate`). The fact most people get wrong about addresses: they are checked when the run happens, not when you save — a flow referencing an address nobody minted saves cleanly and its mail step fails on every run with one indistinguishable refusal.
 
 ## Before the first call
 
@@ -50,10 +50,10 @@ A channel the project does not watch yet is one write, not two: `POST /v1/trigge
 
 - **The address namespace is platform-wide and first-come.** A `POST` on a name someone else holds is a 409 that never says who holds it. Local parts are lowercase letters, digits, dots, hyphens and underscores, start and end alphanumeric, at most 64 characters, and **no `+`**. A reserved list (`admin`, `support`, `noreply`, `postmaster` and others) is refused for everyone; the 422 carries the whole list.
 - **Two grades, and the platform records but cannot create one.** `relay` has no account; replies fall to the catch-all. `mailbox` is a real provisioned account with a daily send cap — and it must be created in the delivery service's own console; the API only records the grade. There is no verification state and no DNS step to perform or poll.
-- **Which domains are sendable is the deployment's decision**, not yours. A `domain-not-sendable` 422 names the sendable ones.
-- **Disable is not off for an inheriting node.** Ownership reaches downward; a disabled address is skipped, not switched off for the tree. A root-owned address serves only the root itself.
-- **At send time there is exactly one refusal.** Absent, disabled and out-of-reach all give the same `address-not-available`. Nothing at save time checks the address exists or that this project may use it.
-- **The mail step's `true` means queued, not delivered.** Delivery is handed off after the run's writes commit; a step that fails afterwards, a discarded fan-out branch, or a failed precondition means it never goes. And the step is **not** convergent across branches: two fan-out branches reaching it send two messages, and a re-run schedule sends again.
+- **Which domains are sendable is the deployment's decision**, not yours. Where the deployment restricts them, claiming an address on another domain is a `domain-not-sendable` 422 whose `details.sendableDomains` names the allowed ones — that 422 is the only read of the list. Where it restricts nothing (a local stack, typically) every well-formed domain claims with 201, which proves nothing about whether mail from it can be delivered.
+- **Disable is off for the whole tree.** A send names one exact address, and a disabled one is refused for every node — there is no fallback to another address. Ownership reaches downward, so an organisation's address serves its projects and a project's does not serve its organisation; a root-owned address serves only the root itself.
+- **An address that cannot send fails the step, not the save.** When the mail step runs it checks the sender and the recipient before queueing anything: absent, disabled and out-of-reach all give the same `address-not-available`; an active address on a domain this deployment does not send from gives `domain-not-sendable`; a recipient who is not a member of the project gives `recipient-not-a-member`. The step fails with that reason in the run's step log, and no message is queued. Nothing at save time checks any of it, so run the flow once against a mailbox you can read before relying on it. The delivery job asks again when it sends; an address disabled between the run and the send is refused there, after the step answered `true`, and only an operator sees that.
+- **The mail step's `true` means queued, not delivered** — not even accepted. Delivery is handed off after the run's writes commit; a step that fails afterwards, a discarded fan-out branch, or a failed precondition means it never goes. And the step is **not** convergent across branches: two fan-out branches reaching it send two messages, and a re-run schedule sends again.
 - **One recipient per step.** A list in the recipient slot does not fan out.
 - **A source that reports `enabled: true` with health `unknown` is not being read.** The platform's own Telegram accounts are what watch channels; `health.health` is `live` or `stale` only when a watcher shard owns the channel. Nothing on your row provisions those accounts.
 - **A source nothing listens to still costs its connection** and a media copy per message. `listening: 0` is the tell.
@@ -73,7 +73,7 @@ A channel the project does not watch yet is one write, not two: `POST /v1/trigge
 | `references/api/managed-email-addresses.md` | the mint body, grades, refusal codes, the release response          |
 | `references/api/sources.md`                 | the provider configs, health, the listening count, the version lock |
 
-The sending step is `email.send`; the handlers that read Telegram channels are `telegram.stats` and `telegram.resolve-channel`. Their config and examples are under `kipory-build`'s `references/handlers/`.
+The sending step is `email.send`; the handlers that read Telegram channels are `telegram.stats`, `telegram.resolve-channel` and `telegram.search-channels`. Their config and examples are under `kipory-build`'s `references/handlers/`.
 
 ## Then
 

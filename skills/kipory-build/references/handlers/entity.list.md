@@ -8,7 +8,7 @@ List a user's records, newest first, one page at a time.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id + cursor` → `RecordPage`
 - **Reads:** The user id, from the slot `userIdSlot` names. To read past the first page, wire the previous page's cursor into `cursorSlot`. Everything else is settings on the step. _(shape hint: `user id + cursor`)_
-- **Emits:** A `RecordPage`: the rows, newest first, and a cursor to fetch the next page when more remain. An empty catalog gives an empty page.
+- **Emits:** A `RecordPage`: the rows, newest first, each record's submitted and processed fields flattened to the top level, and a cursor when more remain.
 
 ## Config
 
@@ -24,7 +24,7 @@ List a user's records, newest first, one page at a time.
 | `dataNullChecks` | object[] | no | — | Keep rows by whether a path inside `data` is empty or filled — for example, to hide rows whose `deletedAt` is set. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. And no index can serve a `data` path, so this reads every row. |
 | `edgeFilters` | object[] | no | — | Keep only rows that carry a link. Each entry names a link kind and, optionally, a slot naming the record on the other end. ⚠️ This is the only filter that reads the link graph rather than the row itself. An entry whose slot does not resolve is dropped whole, rather than widening to every link of that kind. |
 | `facetFilter` | object[] | no | — | Keep only rows tagged with these terms. Each entry names a facet and a term; a row must match all of them. ⚠️ In a facet with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
-| `fieldFilterSlots` | object | no | — | A map of queryable field to the slot carrying its value. One value matches exactly, a list matches any of them. ⚠️ A slot that does not resolve drops its filter rather than matching nothing — `vector.search` does the opposite with the same map. Ranges have no live form; put those in `fieldFilters`. |
+| `fieldFilterSlots` | object | no | — | A map of queryable field to the slot carrying its value. One value matches exactly, a list matches any of them. ⚠️ A slot that does not resolve drops its filter, but a step with no real input present skips — route an optional filter through a step that always runs. Ranges belong in `fieldFilters`. |
 | `fieldFilters` | object[] | no | — | Filters on fields the record type declared queryable. These are the fast ones, and the only ones that support ranges like `gte` and `lt`. ⚠️ A field the record type never declared queryable is refused when the step runs. A date window on a domain date belongs here, not in `createdAfter`, which bounds insert time. |
 | `fields` | string[] | no | `[]` | Which of the record type's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A whole page has one size budget, and an over-budget page collapses to nothing — page and cursor both. Narrow this to a summary slice when the type has long text columns. |
 | `include` | object | no | `{}` | Extra dimensions per row. Terms come back by default; files, relations and cost are opt-in. None appears in the step's output type. ⚠️ Turning on files signs a download URL for every file on every row, so keep the page small when you do. |
@@ -36,7 +36,53 @@ List a user's records, newest first, one page at a time.
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order the page by when a row was created or when it was last changed. Created is the default. |
 | `sortField` | string | no | — | Order the page by one of the record type's own queryable fields instead. It replaces `sort`; the direction still comes from `order`. ⚠️ Rows with no value for the field are left out of the page entirely, and the field has to be a date — any other kind is refused when the step runs. |
 | `statuses` | string[] | no | — | Keep only rows with one of these statuses. Leave it empty to allow every status. A catalog summary usually keeps just `READY`. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Only record types owned by a user are filtered by it; a project-wide type ignores it. ⚠️ On a user-owned record type this value is mandatory: an empty one fails the step rather than returning an unfiltered page. An unattended run has no signed-in user at all. |
+| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Only user-owned types filter by it, yet its slot is an input on every type. ⚠️ On a user-owned type an empty value fails the step. Key, schedule and trigger runs have none, so a step also reading an absent filter or cursor slot is skipped, not unfiltered. |
+
+### `dataNullChecks` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `path` | string | yes | — |  |
+| `op` | `isNull` \| `isNotNull` | yes | — |  |
+
+### `edgeFilters` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | string | yes | — |  |
+| `peerRecordIdSlot` | string | no | — |  |
+
+### `facetFilter` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `facet` | string | yes | — |  |
+| `slug` | string | yes | — |  |
+| `parentSlug` | string | no | — |  |
+
+### `fieldFilters` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — |  |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — |  |
+| `value` | union | yes | — |  |
+
+### `include`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `facets` | boolean | no | `true` |  |
+| `relations` | boolean | no | `false` |  |
+| `files` | boolean | no | `false` |  |
+| `cost` | boolean | no | `false` |  |
+
+### `scalars`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `statusError` | boolean | no | `false` |  |
+| `fileCount` | boolean | no | `false` |  |
 
 ## Worked example
 

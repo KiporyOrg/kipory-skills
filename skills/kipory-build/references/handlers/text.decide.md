@@ -22,6 +22,13 @@ Answer typed questions about a value: yes/no, pick one, or score.
 | `model` | string | no | `"typesafe/jev-latest"` | Which decision model answers, by its catalog id (creator/slug, as GET /v1/ai-models lists it). ⚠️ Only a decision model can answer. A chat model is refused when the step saves. |
 | `outputs` | object[] | no | — | An extra slot for how sure the model was of each answer. Type it DecisionConfidence; leave it out to write the answers alone. |
 
+### `outputs` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `slot` | string | yes | — |  |
+| `schema` | union | yes | — |  |
+
 ## Worked example
 
 A support message goes in; the step's output type asks three questions of it, and each field comes back answered.

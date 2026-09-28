@@ -81,6 +81,8 @@ way.
 ## When it fires — ask, do not expand the pattern
 
 `GET /v1/schedules?project=…&expand=timing` (and the item read) answers three things per schedule,
+as fields at the top level of each schedule row — there is no `timing` object; `timing` is only the
+expand word —
 walked by the rule the tick advances by — each occurrence found from the one before, each spending
 one of `maxRuns`, `startsAt` opening the walk and `endsAt` closing it:
 
@@ -123,7 +125,10 @@ read the one schedule you are about to show from it when the list left it `null`
 
   ⚠️ Coverage is **presence, not type**. A slot whose declared type changed is still "covered" by
   the old value, and nothing type-checks the input bag. A schedule can therefore keep firing a
-  flow it no longer fits.
+  flow it no longer fits. The same holds when the SHAPE behind a slot narrows: make a field
+  required on a schema entry and no plan, apply or health check looks at the schedule's stored
+  `inputs`, so the next fire fails. After narrowing a shape, re-read every schedule and trigger
+  bound to a flow that reads it and patch their `inputs`.
 
 - **A schedule that could never fire is refused at the write**, not stored and quietly ignored:
   an end at or before the start, a maximum already spent, or a pattern whose next occurrence
@@ -220,7 +225,14 @@ window can therefore be complete (`truncated: false`) and still be missing every
 retention edge; the flag answers for the window, not for time.
 
 **Exhausting the bounds disables the schedule** — crossing the end date or spending the maximum
-sets it disabled with no next run. ⭐ **Re-enabling an exhausted schedule is then REFUSED with a
+sets it disabled with no next run, by itself: its `version` does not move, so a `version` you held
+from before still matches, and nothing tells you it happened except `enabled: false` on the next
+read.
+
+⚠️ **A schedule you disable yourself keeps its old `nextRunAt`.** `POST /v1/schedules/{id}/disable`
+sets `enabled: false` and moves the version but leaves `nextRunAt` as it was, although the route
+reference describes it as null when disabled. Read `enabled`, never `nextRunAt`, to decide whether
+it will fire. ⭐ **Re-enabling an exhausted schedule is then REFUSED with a
 `422` naming the spent bound**, rather than quietly granting it a new lease. Raise `maxRuns` or move
 `endsAt` in a PATCH first, then enable. (Enable does recompute the next run forward from now, so a
 schedule disabled across a window still fires no backlog — that is a different thing.)

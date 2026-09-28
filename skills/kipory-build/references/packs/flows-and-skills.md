@@ -43,8 +43,13 @@ by their own id.
 ⚠️ **There is no activation step, and no flow lifecycle state.** A flow has no active/inactive flag,
 and nothing publishes one — a flow becomes reachable by being _bound_ to something (an endpoint, a
 schedule, a record type, a facet resolver), and unreachable by not being. If you went looking for an
-activate call, that is why you did not find one. What "activation is stricter than authoring" means
-here is the bind and the run, not a state change.
+activate call, that is why you did not find one.
+
+⚠️ **Nothing refuses to run a flow because its health has errors.** Preview, endpoints, triggers,
+schedules, record processing and sub-flow calls all run a flow whatever `GET /v1/flows/{id}/health`
+says. An error there tells you what the flow will get wrong — a step reading a slot nothing writes
+reads nothing — not that it is stopped. Fix errors before you bind a flow; a bound flow with errors
+runs and produces wrong results.
 
 <!-- absent: flows-have-no-activation-state -->
 
@@ -82,9 +87,8 @@ The cheapest way to close this gap is a preview, below, which tells you directly
 
 ### Asking the same question about a whole project
 
-`GET /v1/flows/{id}/health` answers it for one flow: every diagnostic, classified, plus
-`isActivatable` — which already accounts for both severity and what each diagnostic is about, so
-read it rather than deriving a verdict from the counts yourself.
+`GET /v1/flows/{id}/health` answers it for one flow: every diagnostic, classified, and
+how many are `errors` in `counts` — 0 means the flow is sound. An error does not stop the flow from running.
 
 Each diagnostic carries its words in two halves and two forms:
 
@@ -115,18 +119,17 @@ GET /v1/flows?project={node}&expand=health
 Each row then carries a `health` summary, folded from the same report the per-flow route returns
 in full, so the two cannot disagree:
 
-| field             | what it says                                                                                                                                                               |
-| ----------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `isActivatable`   | ⚠️ a PREDICTION, not a gate: no error-severity diagnostic about the graph or its edges. Nothing consults it at run time, so a flow reading `false` still runs              |
-| `errors`          | how many diagnostics are errors; not all of them block                                                                                                                     |
-| `warnings`        | how many are warnings                                                                                                                                                      |
-| `blockingCode`    | the first diagnostic preventing activation, or `null` when nothing does                                                                                                    |
-| `blockingMessage` | that diagnostic's message — a sentence naming the skill or slot at fault. ⚠️ the SUMMARY carries the sentence only; the per-flow route carries its segments and its remedy |
+| field               | what it says                                                                                                                                                          |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `errors`            | how many diagnostics are errors; 0 means the flow is sound. ⚠️ an error does not stop the flow from running                                                           |
+| `warnings`          | how many are warnings                                                                                                                                                 |
+| `firstErrorCode`    | the first error's code, or `null` when there is none                                                                                                                  |
+| `firstErrorMessage` | that error's message — a sentence naming the skill or slot at fault. ⚠️ the SUMMARY carries the sentence only; the per-flow route carries its segments and its remedy |
 
-Show `blockingMessage`, not `blockingCode`. The code is one machine name out of roughly a hundred
+Show `firstErrorMessage`, not `firstErrorCode`. The code is one machine name out of roughly a hundred
 and fifty, and reads as one; the message is the sentence the validator wrote, and it names the particulars a per-code
-phrase never could — which skill, which handler key. Both are the head of one array, so they are
-`null` together and can never describe different diagnostics. The message embeds operator-authored
+phrase never could — which skill, which handler key. Both come off one diagnostic, so they are
+`null` together and can never describe different ones. The message embeds operator-authored
 names, so render it as text and never as markup.
 
 Two things to know before you reach for it:
@@ -138,7 +141,7 @@ Two things to know before you reach for it:
   validity, not on a picker that needs names.
 - **A missing `health` is not a clean bill of health.** A flow the platform could not measure is
   returned WITHOUT the field rather than with a passing one. Treat absence as "not measured" and
-  say so; defaulting it to `isActivatable: true` reports a flow nobody managed to check as healthy.
+  say so; defaulting it to `errors: 0` reports a flow nobody managed to check as healthy.
 
 ### What the skill list already tells you about the order
 
@@ -195,6 +198,14 @@ sufficient cache key for this read.
 
 The binding maps internal slots onto the flow's declared outputs. Without it a flow computes
 correctly and returns nothing.
+
+Each entry is `{ fromSlot, path? }`. `path` omitted or `null` returns the step's whole value; to
+return part of it, `path` is an object — `{ "segments": [{ "kind": "field", "name": "recordId" }] }`
+— never a dotted string. The segments are the ones `inputPaths` uses: `field` (one property),
+`first` (a list's first element), `last` (its last), `index` (the element at a position), `pluck`
+(one property of every element) and `wrap` (a value as a one-element list). ⚠️ **A `field` segment is checked against the step's declared output
+shape**, so it needs a step whose `outputSchema` is a shape declaring that field. A step typed as the
+open builtin `object` refuses it as a type mismatch; give the step a schema entry.
 
 - **On create** it is optional, and only its shape is checked: every key must name a declared
   output slot. There are no skills yet, so nothing else _can_ be checked.
@@ -856,8 +867,8 @@ outside it. For such a slot only the slot itself is judged: its fields are not w
 verdicts never say `reach-in`.
 
 ⚠️ **`unreachable` is not a refusal.** The save keeps such wiring and reports it as an outstanding
-issue, and the flow will not activate or run until it is resolved — the picker is telling you before
-you make it.
+issue, and the flow's health reports an error until it is resolved — the picker is telling you
+before you make it.
 
 `scopedTo` names the step whose repetition a slot exists inside, with its `kind`: a `fan-out`
 delivers a list's items one at a time, and a `loop` re-runs its body over a carried value, one
@@ -885,6 +896,39 @@ Without `step`, nothing can wait on the step yet, so every slot the flow's steps
 waiting on it once the new step is saved. The stepless form does not know that slot, so such a step's
 outputs stay listed — naming one closes a cycle, which the create reports as a warning, not a refusal.
 
+### When the step's settings or prompt name its inputs
+
+For a `config` or `prompt` picker the inputs are not chosen here: they are whatever the settings or
+the prompt name, and `inputStreams` must list **exactly** those root slots — no more, no fewer, in
+any order (a prompt step's attached files aside). A difference is refused with
+`FREE_FORM_INPUT_STREAMS_MISMATCH`, whose message names the missing and the extra, and
+`inputSchemas` follows position for position. A single create may add a missing provider root to
+`inputStreams` for you and then refuse an `inputSchemas` of the wrong length
+(`INPUT_SCHEMAS_LENGTH_MISMATCH`), so state both lists yourself.
+
+<!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
+<!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
+
+- **Provider slots are roots like any other.** `entity.list` and `entity.read` default `userIdSlot`
+  to `userInfo.userId`, so `userInfo` is an input even on a project-wide type; a prompt reading
+  `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo`. Their shapes are the
+  platform's entries `UserInfo`, `ProjectInfo`, `RunInfo` and `RecordTypeInfo` — by name in a
+  document, by id on the row API (`GET /v1/schema-entries?project={nodeId}&name=UserInfo`), and
+  typed in `/scope` above.
+- **A run with no signed-in user has no `userInfo` at all** — a key's call, a schedule, a trigger.
+  A step whose inputs are all provider slots still runs: a project-wide read ignores the missing
+  user, a per-user one refuses. A step reading `userInfo` beside a real slot waits for that slot
+  only when there is no signed-in user: a present provider counts like any other input, and
+  `projectInfo` and `runInfo` are always present, so a step reading one beside a real slot runs at
+  once. Guard such a step with `slotPresent` on the real slot.
+- **In JSONata, a bare name at the start of any path is a slot** — inside a projection too, so
+  `docs.{"id": id}` reads a slot called `id`. Reach into items through a bound variable:
+  `$map(docs, function($d){ {"id": $d.id} })`. The same rule makes `undefined` a slot, since
+  JSONata has no such literal: to emit nothing, write a conditional with no else
+  (`$count(text) > 0 ? {"text": text}`). The step writes an empty value, which a `slotPresent`
+  guard reads as absent. `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused with
+  `JSONATA_FORBIDDEN_FUNCTION`.
+
 ## Which condition operator fits which value
 
 ```
@@ -899,7 +943,7 @@ one never matches). `listEmpty` on a number, true/false or an object is the exce
 empty and anything present is not, so it asks only whether a value is there — write `slotPresent`,
 negated, to say so. `mismatch` compares the wrong type (`slotGt` on text):
 `CONDITION_VALUE_TYPE_MISMATCH`, an error on the flow, not the step — the step still saves with the
-finding beside it, and the flow's health marks it `blocksActivation`. It is the table both
+finding beside it, and the flow's health reports it as an error. It is the table both
 validation and the run decide by, so offer only what `fits`.
 
 A field that `$ref`s the `probability` builtin has its own column. It reads as a number to every
@@ -945,7 +989,7 @@ its figure can be larger.
 
 ⛔ **Renaming without confirming does not fail loudly.** The rename lands and every reader keeps
 naming a slot nothing produces. `INPUT_STREAM_DANGLING_SLOT` reports that, but it is an edge-target
-diagnostic — it rides in `outstandingIssues` on a 200 and blocks activation, not the write. Preview,
+diagnostic — it rides in `outstandingIssues` on a 200, and the flow runs with the dangling read. Preview,
 confirm, and read what came back.
 
 ## What travels between skills
@@ -1109,14 +1153,13 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   around.** It reports, per task kind, the model that resolves for this project and — the field
   worth reading — `source`: which layer decided.
 
-  | `source`         | what it means                                                      |
-  | ---------------- | ------------------------------------------------------------------ |
-  | `project`        | this project chose it, at /platform/models                         |
-  | `system-default` | the deployment chose it; every project without its own follows     |
-  | `environment`    | a deployment environment variable                                  |
-  | `code-default`   | nobody has configured this task anywhere — the platform's built-in |
+  | `source`       | what it means                                                                                                                                   |
+  | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+  | `node`         | a binding on the ownership tree — this project or an ancestor; `decidedAt` names the node, and its `kind` tells a project's from the platform's |
+  | `environment`  | a deployment environment variable                                                                                                               |
+  | `code-default` | nobody has bound this task anywhere — the platform's built-in                                                                                   |
 
-  A bare model id cannot tell `project` from `code-default`, and those are opposite situations:
+  A bare model id cannot tell `node` from `code-default`, and those are opposite situations:
   one is a decision, the other is its absence. It is the same walk the runtime performs, so what it
   reports is what a step will actually run on.
 
@@ -1128,6 +1171,15 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 
   ⚠️ `source: "environment"` is worth a second look rather than a shrug: that layer carries only a
   model id and forces the provider to OpenAI, so a non-OpenAI model set that way mis-routes.
+
+- **A provider out of quota is a binding problem, not a flow problem.** The step fails with
+  `… provider account exhausted (quota/billing)` in preview's `errors[]` and the run's step log.
+  Move the task: bind it to an enabled model from another creator at the project node,
+  `PUT /v1/nodes/{nodeId}/task-models/{task} { modelId }` (ADMIN), and every step following that
+  task moves with it. A routing policy's `failover: "on-exhaustion"` retries the same model through
+  the next account listed in `providerOrder`, and only those — it never picks a different model and
+  never tries an account you did not list. Naming an account that does not offer the model is
+  refused (`PROVIDER_HAS_NO_OFFER`); a one-account order is accepted and has nothing to fail over to.
 
 - **A `temperature` or a `reasoningEffort` the model does not take is DISCARDED, not refused.**
   Both are `text.generate` config fields and both save cleanly on any model. What happens next

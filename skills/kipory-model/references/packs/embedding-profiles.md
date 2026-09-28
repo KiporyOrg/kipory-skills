@@ -14,11 +14,19 @@ searches them, and only a hybrid search step ever reads them. The **geometry** �
 metric — is **derived** from the model and returned read-only.
 
 A profile is also **the default way records enter the space**: `defaultChunking` (required on
-create — `{ "kind": "whole" }` is one point per record). Every record type that marks a field
-`search` against this profile inherits it unless its own `uses.search.chunking` overrides it — and
-omitting the override is the common case.
+create). Chunking has exactly two shapes: `{ "kind": "whole" }` is one point per record, and
+`{ "kind": "chunks", "tokens": 400, "overlap": 50 }` splits each record's text into token-sized
+pieces, each repeating `overlap` tokens of the one before (`overlap` must be below `tokens`). Any
+other `kind` is refused. Every record type that marks a field `search` against this profile
+inherits it unless its own `uses.search.chunking` overrides it — and omitting the override is the
+common case.
 
 **You pick a model. You never pick a dimension count, and you never pick a distance metric.**
+The `modelId` is an embedding model's id from `GET /v1/ai-models?type=embedding`. Listed is not
+the same as working: a provider whose account is out of quota refuses every embed. Before you
+choose, read `GET /v1/projects/{nodeId}/ai-calls?origins=all&outcome=error` for recent
+rows whose `errorCode` is `error:quota_exhausted`, by provider, and prefer a model on a provider
+with none.
 
 That inversion is the whole design. The metric is a property of the model it was trained for, and
 choosing the wrong one does not raise an error — it quietly degrades every search you will ever
@@ -44,7 +52,18 @@ single system-wide space with one shared model, deliberately, so that terms stay
 every project — a per-project model there would write incomparable vectors. It has its own
 collection, no profile names it, and **activating a profile version does not reindex it**. So the
 whole of facets (capability pack `facets` — `GET /v1/capability-packs/facets`) — semantic resolution, seeded vocabularies, term matching — operates
-outside everything on this page.
+outside everything on this page. Its model is the platform's `substrate-embedding` task, read at
+the platform root: a project cannot move it. Binding that task anywhere below the root is refused
+(422, `details.reason: "TASK_READ_AT_ROOT_ONLY"`); a project-node binding of `embedding` is
+accepted, and moves record search, never terms.
+
+⚠️ **An indexing failure does not surface on the profile, the type or the record.** When the
+profile's model refuses (quota, outage), records stay `indexState: "never"` and the type's
+`?expand=vectorProgress` keeps a non-zero `remaining`. The cause is only in the model-call ledger:
+`GET /v1/projects/{nodeId}/ai-calls?origins=projection&outcome=error` lists each failed embed with
+its `errorCode` (`error:quota_exhausted`, …), and `GET /v1/projects/{nodeId}/ai-calls/{callId}`
+gives that call's `errorMessage`. A failed embed is retried three times within about fifteen seconds, then only by the daily re-index sweep (08:00 UTC). Moving to a
+working model is a new version plus activate.
 
 ## The sequence
 

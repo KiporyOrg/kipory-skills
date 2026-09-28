@@ -19,6 +19,160 @@ End a loop: stop when the condition holds, or go round again.
 | `outputSlot` | string | yes | — | The post-loop aggregate result slot in the parent scope. Mirrors Skill.outputSlot; the save action writes both. |
 | `until` | union | yes | — | When to stop. It is checked after each pass, against what that pass produced. |
 
+### `until` — one of
+
+**`op: slotEquals`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotEquals` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+| `value` | string \| number \| boolean | yes | — |  |
+
+**`op: slotIn`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotIn` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+| `values` | (string \| number \| boolean)[] | yes | — |  |
+
+**`op: slotPresent`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotPresent` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+
+**`op: slotMatches`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotMatches` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+| `pattern` | string | yes | — |  |
+
+**`op: slotStartsWith`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotStartsWith` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+| `prefix` | string | yes | — |  |
+
+**`op: slotContains`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotContains` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+| `text` | string | yes | — |  |
+
+**`op: listEmpty`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `listEmpty` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+
+**`op: slotGt`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotGt` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | yes | — |  |
+| `value` | number | yes | — |  |
+
+**`op: slotLt`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotLt` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | yes | — |  |
+| `value` | number | yes | — |  |
+
+**`op: slotGte`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotGte` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | yes | — |  |
+| `value` | number | yes | — |  |
+
+**`op: slotLte`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotLte` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | yes | — |  |
+| `value` | number | yes | — |  |
+
+**`op: slotAfter`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotAfter` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+| `value` | string | yes | — |  |
+
+**`op: slotBefore`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotBefore` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | no | — |  |
+| `value` | string | yes | — |  |
+
+**`op: slotIsTruthy`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotIsTruthy` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | yes | — |  |
+
+**`op: slotIsFalsy`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `slotIsFalsy` | yes | — |  |
+| `slot` | string | yes | — |  |
+| `path` | string | yes | — |  |
+
+**`op: not`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `not` | yes | — |  |
+| `inner` | union | yes | — |  |
+
+**`op: and`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `and` | yes | — |  |
+| `all` | any[] | yes | — |  |
+
+**`op: or`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `or` | yes | — |  |
+| `any` | any[] | yes | — |  |
+
 ## Worked example
 
 Closes the loop. After each pass it checks the stop condition, and otherwise feeds the outputs back in and goes again.

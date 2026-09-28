@@ -11,7 +11,7 @@ license: MIT
 ## Before the first call
 
 - `kipory-connect` has run: you hold the base URL, a live key and the project's node id, and you know whether the project exists.
-- Read `references/packs/limits.md` **before decomposing anything**. It is short, and it is the difference between a plan that can be built and one that dead-ends after three days of work.
+- Read `kipory-connect`'s `references/packs/limits.md` **before decomposing anything**. It is short, and it is the difference between a plan that can be built and one that dead-ends after three days of work.
 
 ## The sequence
 
@@ -43,10 +43,11 @@ license: MIT
 ## What will bite you
 
 - **Emitting the sheet and continuing straight into building it.** The sheet exists to be rejected cheaply, and it is only cheap if you stopped and let it be read. The same is true of the plan: applying a document whose plan nobody read spends the one cheap moment the loop has.
+- **No one to stop for.** When you were told to build end to end and no person will answer, the stops become records instead of waits. Put the sheet, and later the plan's `diagnostics` and `consequences`, into your report or log. Write down each question you would have asked, with the answer you chose. Then read the plan yourself against the sheet before you apply it. Stop only for something you cannot undo, such as a document that deletes rows.
 - **Writing the document with ids.** A document carries names; an id in it is matched only when this project holds a row with it, and otherwise ignored (`ignoredIds`). A document written from another project's export plans cleanly here — its ids are noise, its names are the content.
 - **Skipping step 8 because the project is small.**
-- **A per-user record type in a plan a key will execute.** A key's runs are project-owned; a type whose records belong to individual end users cannot be written by it. If the product has end users who own their data, the sheet needs an endpoint they call signed in (`kipory-expose`), and the plan should say so.
-- **Planning a record write as a coded route.** There is no `POST` for records; a record is written by a flow step reached through an endpoint, a schedule or processing. The sheet's exposure step is where the write lives.
+- **A per-user record type in a plan a key will execute.** A key's runs are project-owned; a type whose records belong to individual end users cannot be written by a flow it runs (a key can only hand-write one such record at a time, naming the owner). If the product has end users who own their data, the sheet needs an endpoint they call signed in (`kipory-expose`), and the plan should say so.
+- **Planning a record write as a coded route.** A product's record writes belong in a flow step reached through an endpoint, a schedule or processing; the sheet's exposure step is where the write lives. `POST /v1/projects/{nodeId}/records` exists, but it is an operator's one-record correction path (EDITOR, `kipory-data`), not a product's write.
 - **Forgetting the two hosts.** Every endpoint row in the sheet is served on the project's host; everything else the sheet authors is on the api host.
 
 ## References

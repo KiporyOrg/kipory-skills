@@ -247,8 +247,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | The flow this report is about. |
 | `diagnostics` | `object[]` | yes | Every diagnostic, errors and warnings together. An empty array means the flow is healthy — it is a real answer, not a missing one. |
 | `counts` | `object` | yes | Summary counts, so a caller need not tally the list itself. |
-| `blockingActivation` | `object[]` | yes | The subset of `diagnostics` that actually prevents activation. Deliberately repeated rather than left to be derived — it is the exact list the refusal reads, so two callers cannot disagree about what blocks activation. |
-| `isActivatable` | `boolean` | yes | True when nothing blocks activation right now. |
 | `danglingReads` | `object[]` | yes | Every input a skill reads that nothing in the flow supplies — one entry per skill and slot, the same findings `diagnostics` reports as `INPUT_STREAM_DANGLING_SLOT`. Such a skill never runs, and neither does anything after it. Empty when every read is supplied. |
 
 ### `POST /v1/flows/{id}/preview`
@@ -273,8 +271,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowOutput` | `object` | yes | The flow's declared output slots, projected exactly as a live invocation would return them. A slot the run did not produce stays absent rather than being filled in, so what you see here is what a caller would get. |
-| `missingRequiredOutput` | `string \| null` | yes | First required output slot the run failed to produce, or null. Non-null means a live invocation of this flow would fail. |
+| `flowOutput` | `object` | yes | The flow's declared output slots, exactly as the run produced them. A slot the run did not produce stays absent rather than being filled in — a live invocation fills a missing required slot of a text, number, true/false, list or object type with its empty value, and fails for any other type. |
+| `missingRequiredOutput` | `string \| null` | yes | First required output slot the run failed to produce, or null. Non-null means the flow is broken: a live invocation either fails or answers that slot's empty value. |
 | `transcript` | `object[]` | yes | What each skill did, in execution order. |
 | `errors` | `object[]` | yes | Failures, one entry per skill and branch that errored. |
 | `warnings` | `unknown[]` | yes | Non-fatal problems the engine noticed. The run still completed. |

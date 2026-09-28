@@ -2,21 +2,21 @@
 
 ## By the question you are answering
 
-| The question                                | Reach for                                 | Note                                                |
-| ------------------------------------------- | ----------------------------------------- | --------------------------------------------------- |
-| "What does this page say?"                  | `url.scrape`                              | renders JS; tightest bucket, slowest step           |
-| "What does this endpoint return?"           | `url.fetch`                               | no vendor, no key, 120 a minute                     |
-| "What is this link, for a preview card?"    | `url.metadata`                            | head only, no render                                |
-| "Give me the file behind this URL"          | `url.fetch-as-file`                       | emits a file for `kipory-extract`                   |
-| "What does this page look like?"            | `url.screenshot`                          | an image file, for a vision step or an archive      |
-| "Who writes about X?"                       | `web.search`                              | one SERP page, organic only                         |
-| "How big is this site?"                     | `web.traffic`                             | every metric nullable for small sites               |
-| "Which sites matter in this country?"       | `web.rankings`                            | cached a month; empty means failure, not absence    |
-| "What is being said on X about this?"       | `x.posts`                                 | a tweet, profile or search URL                      |
-| "What is this video, and what does it say?" | `youtube.video` then `youtube.transcript` | two vendors, two buckets, two credentials           |
-| "Who is trending here?"                     | `youtube.trending`                        | six-hour cache — the only genuinely fast-moving one |
-| "Which Telegram channels cover this?"       | `telegram.search-channels`                | discovery; subscribing is `kipory-channels`         |
-| "Where is this?"                            | `location.resolve`                        | free and unkeyed, rate-limited by courtesy          |
+| The question                                | Reach for                                 | Note                                                                                                                                                     |
+| ------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "What does this page say?"                  | `url.scrape`                              | renders JS; tightest bucket, slowest step                                                                                                                |
+| "What does this endpoint return?"           | `url.fetch`                               | no vendor, no key, 120 a minute                                                                                                                          |
+| "What is this link, for a preview card?"    | `url.metadata`                            | head only, no render                                                                                                                                     |
+| "Give me the file behind this URL"          | `url.fetch-as-file`                       | emits a file for `kipory-extract`                                                                                                                        |
+| "What does this page look like?"            | `url.screenshot`                          | an image file, for a vision step or an archive                                                                                                           |
+| "Who writes about X?"                       | `web.search`                              | one SERP page, organic only                                                                                                                              |
+| "How big is this site?"                     | `web.traffic`                             | every metric nullable for small sites                                                                                                                    |
+| "Which sites matter in this country?"       | `web.rankings`                            | cached a month; empty means failure, not absence                                                                                                         |
+| "What is being said on X about this?"       | `x.posts`                                 | a tweet, profile or search URL                                                                                                                           |
+| "What is this video, and what does it say?" | `youtube.video` then `youtube.transcript` | wire `youtube.video`'s `videoId` into the transcript step — it takes a bare id and drops a URL without a call; two vendors, two buckets, two credentials |
+| "Who is trending here?"                     | `youtube.trending`                        | six-hour cache — the only genuinely fast-moving one                                                                                                      |
+| "Which Telegram channels cover this?"       | `telegram.search-channels`                | discovery; subscribing is `kipory-channels`                                                                                                              |
+| "Where is this?"                            | `location.resolve`                        | free and unkeyed, rate-limited by courtesy                                                                                                               |
 
 ## The three budgets
 
@@ -46,7 +46,7 @@ Two consequences worth designing around:
 | What you see                       | Usually means                                                                   |
 | ---------------------------------- | ------------------------------------------------------------------------------- |
 | empty result, step succeeded       | the source genuinely had nothing — except `web.rankings`, where it is a failure |
-| step failed after several minutes  | the wait ceiling; the source was slow, not wrong                                |
+| step failed after its wait ceiling | the source was slow, not wrong — each handler page's Queue line has the ceiling |
 | works, then stops working at scale | a shared bucket, not this handler's own limit                                   |
 | succeeded but the bill grew        | falling through to the platform's key, or a fan-out multiplying the vendor call |
 | a field you relied on is missing   | every field on these results is independently optional                          |

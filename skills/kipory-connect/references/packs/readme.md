@@ -145,9 +145,9 @@ quietly working around it.
   because bodies are closed), and the flow PATCH carries no version field at all. On a refusal,
   re-read and reconcile — or, where a resource offers an explicit force, use that deliberately
   rather than blind-retrying.
-- **A 2xx is not a promise it will run.** Saves return success even when wiring is still
-  unresolved; only a resource's _blocking_ problems refuse the write. **Runtime is stricter than
-  authoring** — there is no activation step to be stricter than. ⚠️ `outstandingIssues` is the flow
+- **A 2xx is not a promise it will run correctly.** Saves return success even when wiring is still
+  unresolved; only a resource's _blocking_ problems refuse the write. Nothing is stricter later:
+  there is no activation step, and a flow with unresolved wiring still runs — wrongly. ⚠️ `outstandingIssues` is the flow
   plane's channel and does not appear on every save; elsewhere, re-read the resource asking for
   readiness.
 - **Seeded rows cannot be DELETED.** Anything the platform seeded refuses a delete — but a PATCH is

@@ -7,7 +7,7 @@ Run another flow, passing values in and taking results back.
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `slot map` → `nothing`
-- **Reads:** Reads 0 direct streams — the parent → sub-flow input mapping is configured via the inputSlotMap editor. _(shape hint: `slot map`)_
+- **Reads:** Reads the parent slots its `inputs` rows name. A step save fills `inputStreams` from them; a project document lists the same names itself. _(shape hint: `slot map`)_
 - **Emits:** Output is determined by the sub-flow's output-slot map — the invoke skill itself writes no primary slot.
 
 ## Config
@@ -15,8 +15,16 @@ Run another flow, passing values in and taking results back.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `inputs` | any[] | no | `[]` | Which parent slots to pass into the sub-flow, and where each one lands. Only these cross the boundary. |
-| `outputs` | object[] | no | `[]` | Which sub-flow outputs to copy back, and into which parent slots. Leave it empty for side effects only. |
-| `targetFlowId` | string | yes | — | The ID of the flow this invoke should execute. Must be a saved Flow in the library other than the one currently being edited. |
+| `outputs` | object[] | no | `[]` | Which sub-flow outputs to copy back, and into which parent slots. Leave it empty for side effects only. ⚠️ Each row also carries `derivedShape`, the sub-flow output's type. A step save fills it in; a project document does not, so state it there or the step is refused as stale. |
+| `targetFlowId` | string | yes | — | The saved flow this step runs, never its own flow. A project document names it `target`, by slug. |
+
+### `outputs` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `subFlowSlot` | string | yes | — |  |
+| `parentSlot` | string | yes | — |  |
+| `derivedShape` | union | no | — |  |
 
 ## Worked example
 

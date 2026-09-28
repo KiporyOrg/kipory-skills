@@ -99,6 +99,12 @@ nothing, so its floor is VIEWER. A plan is not a simulation: the platform applie
 through every row's own write, in one transaction, and rolls the transaction back. What a plan
 refuses is exactly what an apply would refuse.
 
+⚠️ **What an apply would refuse is not everything that can be wrong with a flow.** A step write
+validates the steps around it, not the whole graph, and the whole-flow checks — an output binding
+whose types do not match, among others — are health's, which neither a plan nor an apply runs. A
+plan can say `ok: true` for a flow whose health then reports errors. After an apply, ask
+`GET /v1/flows/{id}/health` for every flow the document touched.
+
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
 required here too — but of its optional fields only the ones you state are compared and written;
@@ -117,8 +123,14 @@ naming what it would leave behind, unless you grant this. A document does not ge
 adopting re-publishes an endpoint's request and response contract to whoever already calls that
 route. It is a statement about this apply, like `delete` — never part of the row, never exported.
 
+A schedule and a trigger carry `enabled`, which their create and PATCH bodies do not: the row API
+moves it through the enable and disable verbs, and the document writes it through the same verbs
+after the row. Export always states it. Omitted, a new row is created enabled and an existing one
+keeps its state — so a disabled schedule re-created from its export comes back disabled.
+
 Removal is always explicit — `delete: true` on a row, or `prune: true` on a map to remove every
-row of that map you did not name. Absence alone never deletes.
+row of that map you did not name. Absence alone never deletes. A `delete: true` row states nothing
+but its `id`; any other field beside it is refused `DOCUMENT_DELETE_WITH_FIELDS` on the row's path.
 
 The answer holds the `version` the project was read at — the lock an apply presents —
 `ignoredIds`, three lists, their `counts` and a verdict:
@@ -131,7 +143,7 @@ The answer holds the `version` the project was read at — the lock an apply pre
   (`records.member.shape`), never a path in some row's request body. Gate on `severity`.
 - `consequences` — what the change does to stored data, with counts measured in the planning
   transaction: records re-stamped, a vector reconcile queued, stream fields moved, edges
-  re-stamped, and `records-invalid` — stored records that do not fit a shape you changed. That last one is found by
+  re-stamped, `edges-deleted` — every stored edge a relation-kind delete takes along — and `records-invalid` — stored records that do not fit a shape you changed. That last one is found by
   reach, not by name: change a shape and every record type whose shape is it, or reaches it
   through a reference, has its stored records checked, whether or not your document mentions the
   type. The count is of records that do not fit, not only newly broken ones; past 5 000 records
@@ -155,7 +167,10 @@ that pair it, deleting an event category takes its types. That is the row's own 
 designed, and the plan says so rather than leaving it to be discovered — each such row is in
 `changes` as a `delete` with `because: "cascade"`, is counted under `delete` in `counts`, and carries a
 `warning`, `DOCUMENT_DELETE_CASCADED`, on its own path. Read a plan's `delete` list before
-applying it; it is the true list, not only yours.
+applying it; it is the true list, not only yours. A row your document still STATES is reported
+the same way: an edited full export that deletes a record type and still names the relation kind
+pairing it has that kind's change on `relations.<kind>` as the cascade, not as `unchanged` — the
+document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a shape, a
 record type and an eval suite, keeping the `id` under a new name is a RENAME — one update of the
@@ -194,9 +209,11 @@ A refused apply answers `422` with the PLAN as its body and has written nothing 
 before the refused one either. A document that changes nothing answers `applied: true` and leaves
 the version where it was, so re-applying what you exported is always safe.
 
-The answer is the plan plus `applied`, `appliedVersion` — present that on your next apply — and
-`document`, the project as it now stands with every id filled in: both read inside the apply's own
-transaction, so they are this apply's, whatever lands after it.
+The answer is the plan plus `applied`, `appliedVersion` — present that on your next apply if nothing else wrote since — and
+`document`, the project as it now stands with every id filled in. Any other write to the project —
+a row edit, a task-model binding — moves the version as well, so present the version of your most
+recent read or plan, not of your last apply. The answer's `appliedVersion` and `document` are both read inside the
+apply's own transaction, so they are this apply's, whatever lands after it.
 
 Authoring needs EDITOR. A document that REMOVES anything — a `delete: true` row, or a `prune: true`
 map that finds something to remove — needs ADMIN, and is refused with `403` before the first write
@@ -215,6 +232,19 @@ each term. The rest of the apply does not wait on it and is not undone by it. If
 `applied: true`, with a `warning` diagnostic `DOCUMENT_EFFECT_FAILED` on the path that owed it
 (`facets.topic.terms`). Read the diagnostics of a successful apply, not only its status: apply the
 same document again to retry, and only what is still missing is attempted.
+An apply whose only change is a facet's terms is still a change: it moves the version, and its
+seed runs after the commit like any other.
+
+A flow's `skills` are matched by name. A step the document leaves as it is is not written; one it
+changes is updated in place, keeps its `id` and moves its `version`; a new name is created; a name
+the map omits is deleted. So a step id held across an apply stays good — only a renamed step (a new
+name) gets a new one. What a single step save works out, the apply works out too: each
+`flow.invoke` output row's `derivedShape` is typed from the flow it calls (never state it — and a
+document that rewrites a sub-flow's steps re-types every step calling it, restated or not), and a
+flow whose signature changes is judged against the steps the document LEAVES, so retyping an input
+and replacing the step that read it is one apply. One thing it does not: a `flow.invoke` step's
+`inputStreams` are written as stated, where a single save derives them from its `kind: "slot"`
+input rows.
 
 In the project's history an apply is ONE entry, titled as a document apply with the three counts
 its plan reported — not forty entries, and not "40 changes across six kinds".
@@ -230,6 +260,18 @@ document's `project` section states, and its `description` is dropped with it �
 has none; the rest of that section (routes, config) applies. `template` and `document` together
 are refused before anything is made. Another project's export is a fine document to start from —
 its ids are ignored and its names are the content.
+
+## Roll back to an export
+
+Keep the export you took before a change: applying it again, with the project's CURRENT
+`version`, puts its rows back. A row deleted since returns as a new row with a new id, and a row
+added since stays unless the document says `prune`. A deleted record type's inline shape is not
+deleted with it — it stays as a shared entry of the same name — and the export's inline shape
+takes that entry back, so the type returns owning the same shape, id and all. It is matched by
+the `id` the export's inline shape carries — keep it — never by name: an inline shape without that
+`id` whose name an existing entry holds is refused `SCHEMA_NAME_DUPLICATE`, as it always was. It is
+taken back only while nothing else holds it: stated under `schema` in the same document, or the
+shape of another record type, it stays shared, and the inline shape is refused the same way.
 
 ## Make a project equal a document
 

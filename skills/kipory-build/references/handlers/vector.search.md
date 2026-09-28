@@ -8,7 +8,7 @@ Find the stored items closest in meaning to a query.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `TermHit[]`
 - **Reads:** One slot holding the query: a vector from `text.embed` or `text.embed-sparse`, the text to search for, or the id of a record to find neighbours of. _(shape hint: `any+`)_
-- **Emits:** A hit list, best first, capped at `topK` — a `TermHit`, `GenericHit`, `CandidateHit` or `RecordHit`, depending on `hitShape`. Empty when nothing matches.
+- **Emits:** `TermHit` (default), `GenericHit`, `CandidateHit` or `RecordHit` per `hitShape`, best first, capped at `topK`. A `RecordHit` holds matched chunks, not the record's text, unless `expand: "record"` merged it.
 - **Suggested input streams:** `vector`
 - **External dependency:** a model provider — A text query is embedded here, with the model the target collection was built with, before the search runs. A query arriving as a vector spends no model call.
 - **Rate limit:** 300 per 60000ms in bucket `ai-embed` — shared with `text.embed`
@@ -18,9 +18,9 @@ Find the stored items closest in meaning to a query.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `chunksPerRecord` | integer | no | — | How many chunks to return for each record. Record mode only, and applied before the chunks are transferred. ⚠️ A different unit from `topK`, which caps RECORDS. One shared cap could not express twenty records with three chunks each. |
-| `collection` | string | yes | — | Which collection to search. Facets are scoped by a payload filter, not by a separate collection. |
+| `collection` | string | yes | — | Which collection to search, by its full `collectionName` (`{project slug}.{name}`, as `GET /v1/vector-collections` lists it), not the short `name`. |
 | `expand` | `none` \| `neighbors` \| `record` | no | — | How much context to return around each match. Record mode only. ⚠️ `neighbors` adds the chunks either side, outside the per-record cap and marked unmatched. `record` replaces a record's chunks with its whole text once enough of it matched. |
-| `expandMergeThreshold` | integer | no | — | How many chunks of a record must match before its whole text is returned instead. Required with record expansion. ⚠️ It must be below `chunksPerRecord` — that cap is the most chunks a record can present, so a threshold at or above it can never be reached. Saving is refused. |
+| `expandMergeThreshold` | integer | no | — | Return a record's whole text instead of its chunks once MORE than this many of its chunks matched. Required with record expansion. ⚠️ A record merges only when its matched chunks EXCEED this, and the minimum is 1, so a one-chunk match never merges — read those with `entity.read` on `hits[].recordId`. Keep it below `chunksPerRecord`. |
 | `expandNeighborRadius` | integer | no | — | How many chunks either side of a match to include. Neighbour expansion only. ⚠️ Each record's chunk count grows by up to twice this per matched chunk, so a large radius is a whole-record read by another name — and record expansion does that in one read. |
 | `expandRecordMaxBytes` | integer | no | — | How many bytes of a merged record's text to return. Record expansion only. ⚠️ A truncated record is reported on the hit rather than shortened quietly — a silently cut document handed to a model is a wrong answer with no symptom. |
 | `expandRecordTextField` | string | no | — | Which field of the record holds the text to return. Required with record expansion. ⚠️ Named rather than inferred from what was embedded: the embedded form is often synthesised or shortened, and returning that instead would be a subtly wrong answer. |
@@ -38,6 +38,14 @@ Find the stored items closest in meaning to a query.
 | `topK` | integer | no | `5` | Top-K candidates to return, descending by score. Default 5; hard cap at 200 to keep tiebreak prompts bounded. |
 | `vectorName` | string | no | — | Which named vector to search along. Unset searches the collection's default one. ⚠️ Required when the query is a sparse vector — the store routes sparse only through a named slot. A name the collection does not have fails at run time, not at save. |
 | `vectorNames` | string[] | no | — | Which named vectors to search. Candidate mode only — one search per name, merged by taking each point's best score. |
+
+### `filter`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `parentTermId` | string \| null | no | — | Keep only candidates under this parent term. `null` searches the roots. |
+| `facet` | string | no | — | Which facet to search within. All facets share one collection, so this scopes the search rather than choosing a collection. |
+| `status` | `active` \| `archived` \| `READY` \| null | no | — | Which term statuses to include. Left unset, a terms collection searches active ones; `null` searches every status. |
 
 ## Worked example
 

@@ -7,14 +7,14 @@ Reshape or combine values with a short expression.
 - **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
-- **Reads:** Every slot your expression names. They are read out of the expression when you save, so you do not declare them separately. _(shape hint: `any+`)_
+- **Reads:** Every slot the expression names, and the step's inputs must list exactly those. A name inside a projection counts too, so reach into items through `$map` and a variable. _(shape hint: `any+`)_
 - **Emits:** Whatever the expression evaluates to — usually an object built from several slots, a list zipped from parallel lists, or a copy of a slot with fields added.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `expression` | string | yes | — | The expression to evaluate. Bare names refer to slots; dotted paths reach into an object slot. $humanDate and the other template filters are available. ⚠️ The result must be a shape a slot can hold: text, a file, a flat object, or a list of those. `$now`, `$millis`, `$random` and `$shuffle` are refused — they break caching. |
+| `expression` | string | yes | — | The expression to evaluate. Bare names refer to slots; dotted paths reach into an object slot. $humanDate and the other template filters are available. ⚠️ The result must fit the output type; under the default object, text, an object (fields may nest) or a list of either. `$now`, `$millis`, `$random`, `$shuffle`, `$eval` are refused. An else-less conditional emits nothing. |
 
 ## Worked example
 

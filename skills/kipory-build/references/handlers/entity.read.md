@@ -7,8 +7,8 @@ Read records so later steps can use their text, files, and details.
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `RecordRead[]`
-- **Reads:** The id list, from the slot `idsSlot` names — either plain ids or the candidate objects a vector search emits. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_
-- **Emits:** A `RecordRead` per record, in the order the ids came in and deduplicated. An id that does not resolve is dropped, so the list can come back shorter.
+- **Reads:** A list of ids from the slot `idsSlot` names — plain ids or a vector search's candidates. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_
+- **Emits:** A `RecordRead` per record, its submitted and processed fields flattened to the top level. In the order asked, deduplicated; unresolved ids drop.
 
 ## Config
 
@@ -17,11 +17,34 @@ Read records so later steps can use their text, files, and details.
 | `dataNullChecks` | object[] | no | — | Keep rows by whether a path inside `data` is empty or filled. With `failIfEmpty`, this is how a soft-deleted record reads as missing. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. |
 | `failIfEmpty` | boolean | no | `false` | Fail the step when nothing resolves, instead of returning an empty list. Turn it on for a read that should answer not-found. ⚠️ Off by default, because a list read treats missing ids as ordinary. Leaving it off on a single-id read turns a missing record into a confusing downstream failure instead of a clean one. |
 | `fields` | string[] | no | `[]` | Which of the record type's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A name the record type does not declare is ignored, and a list of only unknown names falls back to emitting every field rather than blanking the row. |
-| `idsSlot` | string | yes | — | The slot holding the ids to read. Accepts plain ids, the candidate objects a vector search emits, or a path into either. ⚠️ A path says which value: `hit.recordId` a field, `hits[0].recordId` one item, `hits[last]` the last, `hits[].recordId` that field from every item. A bare field off a list reads nothing. |
+| `idsSlot` | string | yes | — | The slot holding a list of ids to read — plain ids, the candidate objects a vector search emits, or a path into either. ⚠️ It must hold a list: a lone id reads nothing. A path picks the value: `hits[0].recordId` one item, `hits[last]` the last, `hits[].recordId` that field from every item. A bare field off a list reads nothing. |
 | `include` | object | no | `{}` | Extra dimensions per row. Terms come back by default; files, relations and cost are opt-in. None appears in the step's output type. ⚠️ Turning on files signs a download URL for every file on the record. Relations come back grouped by kind, with one property bag per time the pair was named. |
 | `recordType` | string | yes | — | The record type to read. Required: only rows of this one type are ever returned. |
 | `scalars` | object | no | `{}` | Opt-in scalar fields. `statusError` adds the failure summary (string\|null); `fileCount` adds the attached-file count. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Ids belonging to anyone else are dropped from the result. ⚠️ This value is mandatory: an empty one fails the step rather than reading across users. A dropped id is silent — the list simply comes back shorter. |
+| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Ids belonging to anyone else are dropped from the result. ⚠️ On a user-owned type an empty value fails the step rather than reading across users; a project-wide type ignores it. A dropped id is silent — the list simply comes back shorter. |
+
+### `dataNullChecks` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `path` | string | yes | — |  |
+| `op` | `isNull` \| `isNotNull` | yes | — |  |
+
+### `include`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `facets` | boolean | no | `true` |  |
+| `relations` | boolean | no | `false` |  |
+| `files` | boolean | no | `false` |  |
+| `cost` | boolean | no | `false` |  |
+
+### `scalars`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `statusError` | boolean | no | `false` |  |
+| `fileCount` | boolean | no | `false` |  |
 
 ## Worked example
 

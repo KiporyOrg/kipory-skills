@@ -8,13 +8,13 @@ Delete one or more records.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id list` → `boolean`
 - **Reads:** A list of record ids, from the slot `idsSlot` names. A single delete passes a one-element list. _(shape hint: `record id list`)_
-- **Emits:** True when at least one record was removed or accepted for deletion, false when every id was already gone or belonged to someone else.
+- **Emits:** True when at least one record was removed or accepted for deletion, false when every id was already gone or belonged to another user.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `idsSlot` | string | yes | — | The slot holding the list of record ids to delete. A single delete passes a one-element list. ⚠️ Scoped to the signed-in user, so an id owned by anyone else deletes nothing. The list is capped at 200 ids, and an oversize one fails before anything is touched. |
+| `idsSlot` | string | yes | — | The slot holding the list of record ids to delete. A single delete passes a one-element list. ⚠️ Reaches the user's own and the project's pool records, so another user's id deletes nothing. At most 200 ids; an oversize list fails before anything is touched. |
 
 ## Worked example
 

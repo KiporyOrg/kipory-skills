@@ -100,6 +100,14 @@ the row stored on the node itself, and, for a vendor key, `billedBy` — `vendor
 vendor invoices the holder, `kipory` when the call runs on the platform's key at the platform's price. It is the same walk
 resolution performs, effective-status gate included, and nothing in it is decrypted.
 
+Each key also says what happens when nothing of yours resolves, as `fallback`: `platform_key` — the
+call runs on the platform's key and the platform bills it (every vendor key today); `fails_closed` —
+nothing takes over and the operation is refused (a sign-in credential: one project's users are never
+signed in through another's client); `platform_only` — never a tenant's key at all; `not_looked_up`
+— nothing on this deployment resolves that name, so storing one changes nothing. The list of keys
+here is also the list of what is actually read: a purpose that appears nowhere in it is stored and
+never used.
+
 ⛔ **Do not rebuild this by listing every ancestor and taking the first active row.** That
 reconstruction cannot see the effective-status gate, so it reports a suspended organisation's key
 as the one in use when resolution admits nothing at all.
@@ -128,6 +136,11 @@ a tenant-scoped read rather than a public one.
 `GET /v1/secrets/catalog` returns every supported type with its fields, and each field declares
 whether it is secret. Send a value as a flat object keyed by those field keys; the type's own
 parser splits it into the clear part and the encrypted part, and rejects keys it does not know.
+The `api_key` type's value is `{ "apiKey": "…" }`. A value that does not fit is a 422 whose message
+names every failing field key, and whose `details.issues` carries each with its `path` under
+`value`. A type's `purposePlaceholder` is an example word for a form
+(`firecrawl` on `api_key`, a purpose the scrape handlers read), not a list of vendors that read the
+vault — model calls never use a stored key.
 
 The catalog is built to grow — a deployment may support a type this pack has never heard of — so
 read it rather than assuming a shape. A type absent from the catalog on your deployment is absent

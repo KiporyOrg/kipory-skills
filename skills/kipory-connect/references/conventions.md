@@ -11,7 +11,7 @@ The rules below hold across the whole design API. Each resource's own page under
 
 ## Ids
 
-- A project has **two ids**: the project id (returned by create, `proj_…`) and its node id (`orgnode_…`). Design routes scope by the **node id** as `?project=` or `{nodeId}`; the exceptions spell `{projectId}` in the path (`handlers`, `handler-activity`, `task-models`, `descriptions`, `describer`, `by-project-id`).
+- A project has **two ids**: the project id (returned by create, `proj_…`) and its node id — a bare cuid such as `cmukzzjhc0001hlq36d38bun1`, with no prefix. Treat every id as opaque: never check a prefix to decide which id you hold (only a few platform nodes carry a readable id such as `orgnode_kipory`). Design routes scope by the **node id** as `?project=` or `{nodeId}`; the exceptions spell `{projectId}` in the path (`handlers`, `handler-activity`, `task-models`, `descriptions`, `describer`, `by-project-id`).
 - A resource with a parent design object scopes by **that**: skills by `?flow=`, checkpoints by `?flow=`, test cases by `?flow=`, event types by `?category=` (the category's row id, not its key), eval cases by `?suite=`.
 - Item routes address a row by its **id**, which is a cuid — never by its key or slug. A relation kind's traversal (`/v1/records/{id}/relations/{kind}`) is the exception: `{kind}` is the kind's key.
 - A key is a **machine principal**: one node, one role, no user. It never has a `me`.
@@ -24,10 +24,10 @@ Read → `VIEWER`. Design mutation → `EDITOR`. Destructive, structural or **sp
 
 - Every error is `{ code, message, details?, requestId }`. **Branch on `code`, never on `message`** — wording may change at any time. `requestId` is also the `x-request-id` header on every response.
 - `401` — credential missing, malformed, revoked, expired; or a route that needs a person, answered to a key.
-- `403` — grant does not reach, role below the floor, or a structural refusal of the key principal. Never an existence oracle: unknown node, missing project and insufficient role refuse identically. A design route's role refusal carries `details: { reason: "insufficient_project_role", requiredRole }` — `requiredRole` is the lowest role, on the project or organization the request names, that the route accepts. It depends only on the route, so it says nothing about whether the row exists; match `details.reason` before reading it, since other `FORBIDDEN` answers carry no such details.
+- `403` — grant does not reach, role below the floor, or a structural refusal of the key principal. Never an existence oracle: unknown node, missing project and insufficient role refuse identically. A design route's role refusal carries `details: { reason: "insufficient_project_role", requiredRole }` — `requiredRole` is the lowest role, on the project or organization the request names, that the route accepts. It depends only on the route, so it says nothing about whether the row exists; match `details.reason` before reading it, since other `FORBIDDEN` answers carry no such details. ⚠️ On an item route an id that resolves to no row you may read answers this same 403 — so an ADMIN key told `requiredRole: VIEWER` (or `EDITOR`) is holding an id that does not exist here, such as an event envelope's `runId`, not a role problem.
 - `404` — wrong host, disabled route group (`This API is not enabled for this project.`), or a row that does not exist under a project you may read.
 - `409` — optimistic lock conflict (`version`), a retired project's write freeze, a single-flight run already in progress, a name or path already taken.
-- `422` — `VALIDATION_FAILED`: any schema failure, including an **undeclared query key**. Design semantic refusals arrive as one 422 whose `details.diagnostics[]` carry the rule codes.
+- `422` — `VALIDATION_FAILED`: any schema failure, including an **unlisted query key** on a route that declares query parameters, or on any DELETE. Design semantic refusals arrive as one 422 whose `details.diagnostics[]` carry the rule codes.
 - `402` — two codes with opposite remedies: `BALANCE_BELOW_SOFT_CAP` (top up the wallet) and `USER_SPEND_CAP_EXCEEDED` (raise that person's ceiling). The gate skips GET, so an over-cap project degrades to read-only.
 
 ## Optimistic locking
@@ -42,26 +42,30 @@ Read → `VIEWER`. Design mutation → `EDITOR`. Destructive, structural or **sp
 
 <!-- field-ok: flowLabels — an expand KEY on the record-types read, not a property -->
 
-A comma-separated list of computed fields a read will add. Each may cost extra queries, so ask only for what you will read. The complete vocabulary:
+A comma-separated list of computed fields a read will add. Each may cost extra queries, so ask only for what you will read. The values each read takes today — the route's own page under `api/` is authoritative when the two differ:
 
-| Resource                      | Values                                                                                                    |
-| ----------------------------- | --------------------------------------------------------------------------------------------------------- |
-| `GET /v1/flows` (list only)   | `health`                                                                                                  |
-| `GET /v1/api-endpoints`       | `drift`, `flowLabel`, `shadowed`                                                                          |
-| `GET /v1/facets`              | `stats`, `samples`, `validator`, `readiness`                                                              |
-| `GET /v1/relation-kinds`      | `relationCount`, `liveRelationCount`, `pairings`, `readiness`                                             |
-| `GET /v1/record-types/{id}`   | `drift`, `flowLabels`, `outputDefinition`, `contract`, `facets`, `restamp`, `embedding`, `vectorProgress` |
-| `GET /v1/record-types` (list) | the first six only — `embedding` and `vectorProgress` are refused on the list                             |
-| `GET /v1/schedules`           | `drift`, `flowLabel`, `lastRun`                                                                           |
-| `GET /v1/schema-entries`      | `graph`                                                                                                   |
-| `GET /v1/terms`               | `usage`                                                                                                   |
-| `GET /v1/embedding-profiles`  | `collections` — **repeat the parameter**, this one is not comma-separated                                 |
+| Resource                      | Values                                                                                                                                                                        |
+| ----------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/flows` (list)        | `health`                                                                                                                                                                      |
+| `GET /v1/flows/{id}`          | `dependents`, `timeLimits` — not `health`; ask `GET /v1/flows/{id}/health`                                                                                                    |
+| `GET /v1/api-endpoints`       | `drift`, `flowLabel`, `shadowed`                                                                                                                                              |
+| `GET /v1/facets`              | `stats`, `samples`, `validator`, `readiness`, `wiring`                                                                                                                        |
+| `GET /v1/relation-kinds`      | `relationCount`, `liveRelationCount`, `pairings`, `readiness`                                                                                                                 |
+| `GET /v1/record-types/{id}`   | `drift`, `flowLabels`, `outputDefinition`, `contract`, `facets`, `uses`, `restamp`, `migration`, `embedding`, `vectorProgress`, `diagnostics`, `dependents`, `processingGaps` |
+| `GET /v1/record-types` (list) | the first eight only                                                                                                                                                          |
+| `GET /v1/schedules`           | `drift`, `flowLabel`, `lastRun`, `timing`                                                                                                                                     |
+| `GET /v1/triggers`            | `drift`, `flowLabel`, `lastRun`                                                                                                                                               |
+| `GET /v1/schema-entries`      | `graph`, `keywords`                                                                                                                                                           |
+| `GET /v1/terms`               | `usage`, `findings`                                                                                                                                                           |
+| `GET /v1/embedding-profiles`  | `collections` — **repeat the parameter**, this one is not comma-separated                                                                                                     |
 
-Everything else takes no `expand`, and every query is strict, so asking is a 422. `GET /v1/flows/{id}` is the one route with no query schema: it ignores `expand` silently, so ask `GET /v1/flows/{id}/health` instead.
+Everywhere else the comma form is the only one: `?expand=drift&expand=contract` is a 422 on the record-types read. A route that lists query parameters but no `expand` refuses one; a route that lists no query parameters at all ignores it.
+
+⛔ **A delete rehearses only where its reference lists `validateOnly`.** `DELETE /v1/facets/{id}` and `DELETE /v1/record-types/{id}` do; most deletes — `DELETE /v1/flows/{id}` among them — do not. A current deployment answers an unknown query key on any DELETE with a 422 and deletes nothing, and the same for a JSON body with any key (`{"validateOnly": true}` included) on a DELETE that declares no body — but an older one ignores either and **deletes**: never send `validateOnly`, in the query or the body, to a delete whose reference does not list it. Rehearse a flow delete with `GET /v1/flows/{id}?expand=dependents` (its `deleteRefusal`) or a document plan that states `delete: true`.
 
 ## Readiness
 
-Facets and relation kinds report readiness under `expand=readiness`, from a four-value vocabulary, **worst first**: `blocked` (it cannot work), `inert` (it works and reaches nobody), `unproven` (nothing has flowed through it, or nothing recently), `ready`. `reasons[]` lists every reason worst-first, not just the one that set the state. `unproven` is not an error on a kind authored an hour ago. **Flows do not use this vocabulary**: a flow's health is `isActivatable` plus error and warning counts and a `blockingCode`.
+Facets and relation kinds report readiness under `expand=readiness`, from a four-value vocabulary, **worst first**: `blocked` (it cannot work), `inert` (it works and reaches nobody), `unproven` (nothing has flowed through it, or nothing recently), `ready`. `reasons[]` lists every reason worst-first, not just the one that set the state. `unproven` is not an error on a kind authored an hour ago. **Flows do not use this vocabulary**: a flow's health is error and warning counts and the first error's code, and an error there does not stop the flow from running.
 
 ## A save is not a promise it will run
 
@@ -71,7 +75,7 @@ Facets and relation kinds report readiness under `expand=readiness`, from a four
 
 ## Preview is a run
 
-`POST /v1/flows/{id}/preview` executes the flow in full. It bills the project's payer, refuses a suspended one, and **applies its record writes unless you pass `apply: false`** — the dry run still executes every step and discards the sealed change set, readable at `GET /v1/runs/{runId}/change-set` where the run id is the response's `previewSessionId`. What it withholds either way: no vectors are written, an emitted event resolves and checks its payload but is never recorded or published, so no trigger starts, produced files land in the preview area (`preview/`, expired after 7 days). What it does not withhold: an `entity.enqueue-process` step hands the record to its processing flow, which runs live once the preview applies. A withheld event does not appear in the dry run's change set; its type is checked and the drop is logged on the server. Fan-out is capped at 5 branches per node unless you raise `fanOutCap`; the wall clock is 180 seconds. Preview does **not** fill an unproduced required output — it names it in `missingRequiredOutput`; a live invocation fills it with the type's empty value or 502s.
+`POST /v1/flows/{id}/preview` executes the flow in full. It bills the project's payer, refuses a suspended one, and **applies its record writes unless you pass `apply: false`** — the dry run still executes every step and discards the sealed change set, readable at `GET /v1/runs/{runId}/change-set` where the run id is the response's `previewSessionId`. What it withholds either way: no vectors are written, an emitted event resolves and checks its payload but is never recorded or published, so no trigger starts, produced files land in the preview area (`preview/`, expired after 7 days). What it does not withhold: an `entity.enqueue-process` step hands the record to its processing flow, which runs live once the preview applies. A withheld event does not appear in the dry run's change set; its type is checked and the drop is logged on the server. Fan-out is capped at 5 branches per node by default — `fanOutCap` sets the preview's cap, up to `"uncapped"`, but never above the fan-out's own `maxItems`; the wall clock is 180 seconds. Preview does **not** fill an unproduced required output — it names it in `missingRequiredOutput`; a live invocation fills it with the type's empty value or 502s.
 
 ## Paging
 

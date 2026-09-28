@@ -23,6 +23,21 @@ Send your prompt to an AI model and return its answer.
 | `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How hard the model thinks first. Costs time and tokens. ⚠️ Also part of the cache key, and higher settings are what dominate both the time and the token bill on models that reason. |
 | `temperature` | number | no | — | How much the answer may vary. Empty means the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
 
+### `facetFields` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — |  |
+| `facet` | string | yes | — |  |
+| `subject` | string | no | — |  |
+
+### `outputs` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `slot` | string | yes | — |  |
+| `schema` | union | yes | — |  |
+
 ## Worked example
 
 A prompt goes out, an answer comes back. The variants show prose, a declared output shape, and a file attached to the prompt.

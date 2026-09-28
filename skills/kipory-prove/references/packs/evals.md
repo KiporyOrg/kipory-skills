@@ -108,6 +108,18 @@ written by the worker when the run STARTS. Read the suite's runs back — `GET
 /v1/eval-suites/{id}/runs` — and the newest one is yours. A row that has not appeared yet means the
 worker has not picked the job up; it does not mean the run failed.
 
+A run's `status` is `RUNNING` until it settles, then `SUCCESS`, `PARTIAL` (some cases errored, the
+rest were scored), `ERROR` (it could not start, or nothing completed) or `NOT_MEASURED` (everything
+ran, and coverage says the numbers are not evidence). Poll until it is not `RUNNING`.
+
+⚠️ **A suite also runs itself.** `runOnConfigChange` defaults to **true**: a sweep about every ten
+minutes queues a paid run when either (1) the subject flow's configuration differs from the one the
+suite's last run measured, once the flow has sat unedited for ten minutes — an enabled suite that
+has never run counts as differing — and the run says `triggeredBy: CONFIG_CHANGE`; or (2) the
+platform has been redeployed since that run, even with your flow untouched and with no wait, and
+the run says `triggeredBy: CODE_CHANGE`. Turn it off on a suite with paid scorers you mean to run
+by hand.
+
 ⚠️ **Everything that can be refused up front IS refused up front**, while your call is still open: a
 suite that is gone (404), a subject flow that no longer resolves, a `runAsUserId` naming somebody who has left
 the project, an unknown case key (422), and a suite that already has a run going (409). What cannot be
@@ -177,6 +189,12 @@ stopped answering, and it is the state a real flow sat in unnoticed for two days
 predate the field, and so does every run ever started by hand before detection moved into the run
 itself. "We did not look" and "we looked and it was fine" are different findings.
 
+⚠️ **A suppressed delta answers `regressed: false`, not `null`.** When the delta is withheld because
+the configuration or the cases moved, no metric is compared, so the verdict is `false` — unless the
+suite stopped measuring altogether (`SUCCESS` or `PARTIAL` → `ERROR` or `NOT_MEASURED`), which is
+judged across any delta. Read `delta.suppressedReason` before you read `false` as "compared and
+fine".
+
 ⭐ **The verdict is what this run decided, not what a fresh comparison would decide now.** A
 judgement is made against a baseline under the thresholds then in force — delete the run it compared
 against, retune a floor, add a metric, and a recomputed answer differs from the one that actually
@@ -216,7 +234,9 @@ and makes the next delta incomparable. Files land in a sandbox prefix, mail is r
 emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
 published, so no trigger starts. Records and terms are not isolated, and neither is a processing
 handoff: an `entity.enqueue-process` step runs the record's processing flow live once the case
-applies, and that flow's events publish and its mail is sent. Re-running a suite over a mutating flow is not a safe idempotent act:
+applies, and that flow's events publish and its mail is sent. An eval run's model calls are
+`origin: test` in the ledger, the same as a flow test run's; the run's own `credits` is the
+per-suite figure. Re-running a suite over a mutating flow is not a safe idempotent act:
 measure a flow that does not write, or accept that each run changes the baseline.
 
 ## Two tiers of scorer — reach for the free one first
@@ -224,6 +244,14 @@ measure a flow that does not write, or accept that each run changes the baseline
 - **Assertions** reuse the flow-test-case vocabulary: free, deterministic, sandboxed.
 - **Scorer flows** are ordinary flows that take the inputs, the expected value and the output, and
   return a name with a value or verdict and an optional comment.
+
+The contract is by slot NAME, on both sides. An input slot named `output` receives the subject's
+bound output, one named `inputs` the case's input bag, and one named `expected` the case's `expected` value; any other
+input slot receives what the subject's step wrote to the output slot of that name in the case's
+trace. The scorer's own outputs are read as `value` (a finite number → a numeric score), else
+`verdict` or `stringValue` (a non-empty string → a categorical one), `name` (the score's name —
+the scorer flow's slug when absent) and `comment`. A scorer that returns neither a value nor a
+verdict records no score.
 
 **Anything an expression can answer about the run's shape must not cost a model call.** Fifty
 cases against three model judges is a hundred and fifty billed calls _per run_, and you will run it

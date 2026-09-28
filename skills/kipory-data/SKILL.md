@@ -23,7 +23,7 @@ Every route here answers on the **api host** with your key and addresses the pro
 **Look at what is there.**
 
 ```
-GET /v1/projects/{nodeId}/records?type=<recordType>&limit=50        one page, newest first
+GET /v1/projects/{nodeId}/records?type=<recordType>&limit=50        one page, newest first — `type` here, `recordType` on the create body
 GET /v1/projects/{nodeId}/records?type=<recordType>&q=<text>         natural key + declared text fields, case-insensitive
 GET /v1/projects/{nodeId}/records?type=<recordType>&mode=semantic&q=<text>   a bounded ranking, no pages
 GET /v1/projects/{nodeId}/records?type=<recordType>&record=<id>      the page plus one record's detail beside it
@@ -32,6 +32,15 @@ GET /v1/projects/{nodeId}/records?type=<recordType>&key=<naturalKey> the one rec
 ```
 
 Narrow with repeated `field=name:operator:value` and `term=facet:slug` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100.
+
+<!-- field-ok: atLeast — a records-list `field=` operator word (RECORD_FIELD_OPERATORS), a query-string value, not a body field -->
+<!-- field-ok: atMost — a records-list `field=` operator word (RECORD_FIELD_OPERATORS), a query-string value, not a body field -->
+<!-- field-ok: onOrAfter — a records-list `field=` operator word (RECORD_FIELD_OPERATORS), a query-string value, not a body field -->
+<!-- field-ok: onOrBefore — a records-list `field=` operator word (RECORD_FIELD_OPERATORS), a query-string value, not a body field -->
+
+The `field=` operators are words, and each field family takes its own: text, reference and boolean take `is`; number takes `is`, `above`, `below`, `atLeast`, `atMost`; date takes `after`, `before`, `onOrAfter`, `onOrBefore` (a range is two conditions). So `field=cuisine:is:Italian`, `field=price:atMost:20`. **`POST /v1/projects/{nodeId}/records/query` speaks a different vocabulary** — its `field` clauses take `eq`, `lt`, `lte`, `gt`, `gte`, `in` — and so do `entity.query` and edge `where` clauses. `eq` on the list is a 422 naming the operators the field does take. Only fields with a `filter` use can be conditions; `contract.undeclaredFields` lists the rest — a `search`-only field such as an extracted `body` appears there, which is normal, not a misconfiguration.
+
+`key=` matches the stored natural key exactly, case and all. Both sides are **trimmed** of surrounding whitespace: the stored key when the record is written, the lookup when it arrives.
 
 **Walk and state edges.**
 
@@ -42,17 +51,36 @@ DELETE /v1/records/{id}/relations/{kind}/{peerRecordId}      retract your own as
 GET    /v1/projects/{nodeId}/relations?link=<kind>            every edge in the project as rows
 ```
 
-`{kind}` is the relation kind's **key**, not its id. Asserting and retracting need EDITOR on **both** records' project.
+`{kind}` is the relation kind's **key**, not its id. The walk takes `direction` — `outgoing` (the default), `incoming` or `either`; any other word is a 422, and a symmetric kind ignores it. So from a product to its supplier is the default, and from a supplier back to its products is `?direction=incoming`. Asserting and retracting need EDITOR on **both** records' project.
 
 **Get a file in.** Three steps, and the bytes never pass through the API:
 
 ```
 POST /v1/projects/{nodeId}/files/upload-url     { fileName, contentType, size } → { fileId, uploadUrl, key, expiresAt }
-PUT  <uploadUrl>                                 the bytes, within 15 minutes
+PUT  <uploadUrl>                                 the bytes, within 15 minutes, with `Content-Type: <contentType>`
 POST /v1/projects/{nodeId}/files/{fileId}/confirm → { fileId, status, uploadConfirmedAt }
 ```
 
-Then **attach it from a flow**: `entity.create` takes a `fileIdsSlot` and attaches the ids in the same transaction as the record write. There is no attach route. `POST /v1/projects/{nodeId}/files/{fileId}/detach` releases a file from its record and keeps its bytes; `DELETE /v1/projects/{nodeId}/files/{fileId}` (ADMIN) removes the file, and its bytes once no other file row still names them. Both refuse (409) a file a flow produced.
+The signed URL does not pin `Content-Type`, so another value or none does not fail the PUT. Send the `contentType` you declared anyway: on `confirm` the file's type is taken from what storage recorded, and handlers gate on it — `pdf.parse` refuses anything but `application/pdf`.
+
+Then **attach it from a flow**: `entity.create` takes a `fileIdsSlot` and attaches the ids in the same transaction as the record write. There is no attach route, and `POST /v1/projects/{nodeId}/records` takes no file field. A file uploaded here is a **project** file, so a key's upload attaches to a record of a project-scoped type — the flow runs under the same key.
+
+**Two ways to hand an upload to a flow, and they take different values.** `fileIdsSlot` names a slot holding a **list** of `fileId`s from `upload-url`; a single id string attaches nothing and nothing says so, so wrap one id in a list first (a `value.transform` returning `[ <the id> ]`). A flow input declared with the builtin `file` type takes a file reference `{ "key": "<upload-url's key>", "name": "products.csv", "mime": "text/csv" }` — all three required; a bare `fileId` string is a `422 Expected object`.
+
+**A bulk import from your key, processed on ingest.** Upload, then call an endpoint whose flow does the write (`kipory-expose`), choosing by what the file becomes:
+
+- _One file, one record_ (a document to search): the flow takes the `fileId`, wraps it in a one-item list, runs `entity.create` with that list in `fileIdsSlot`, then `entity.enqueue-process`; the type's processing flow reads the attached file from its `files` input and produces the searchable fields.
+- _One file, many records_ (a CSV): the flow takes a `file` input, reads it (`file.read-text`), parses rows in a `value.transform`, and writes each row in a `flow.fan-out` branch. Re-importing converges on the same records when the rows are unchanged (below). `POST /v1/projects/{nodeId}/files/{fileId}/detach` releases a file from its record and keeps its bytes; `DELETE /v1/projects/{nodeId}/files/{fileId}` (ADMIN) removes the file, and its bytes once no other file row still names them. Both refuse (409) a file a flow produced.
+
+**Correct or backfill existing records.** There is no bulk route; for each record:
+
+```
+GET   /v1/projects/{nodeId}/records?type=<recordType>&limit=100      walk the ids (follow `nextCursor`)
+GET   /v1/projects/{nodeId}/records/{id}                             `record.submitted` is the current data, `record.version` the version
+PATCH /v1/projects/{nodeId}/records/{id}   { "data": { …submitted, "phone": "…" }, "expectedVersion": <version> }
+```
+
+`data` is the whole submission, not a merge — send every field back with the new one added, or the others are cleared. The patch is validated against the type's current shape, re-indexes, and does **not** re-run the processing flow; `POST …/reprocess` does that. `RECORD_VERSION_STALE` means a run moved the row since you read it: re-read and resend. A flow (`entity.list` → `flow.fan-out` over the record ids → `entity.update`) does up to 100 rows a run (`maxItems` defaults to 20); for more, run it again with a filter that skips rows already done — `kipory-build`.
 
 **See what processing did.**
 
@@ -64,11 +92,13 @@ GET /v1/projects/{nodeId}/ingest/summary?window=7d   what the ingest workers fet
 ## What will bite you
 
 - **A per-user record type refuses a key.** `entity.create` on a type whose owner scope is per-user raises a 403 naming the wrong credential. A key's runs are project-owned; only a signed-in end user writes person-owned records.
-- **A pool record's identity is its content.** For a project-scoped type the record id derives from (project, type, data), so the same payload from two runs, two schedules or a retry converges on one record — and that convergence is a success, not an error. Two _different_ payloads claiming one natural key are refused whatever the order.
-- **A record is READY or PENDING depending on its type.** A type with no processing flow creates records READY. A type bound to a flow creates them PENDING, and the flow must run an `entity.enqueue-process` step; a flow that omits it leaves rows PENDING until the watchdog finalises them FAILED.
+- **A pool record's identity is its content.** For a project-scoped type the record id derives from (project, type, data), so the same payload from two runs, two schedules or a retry converges on one record — and that convergence is a success, not an error. Two _different_ payloads claiming one natural key are refused whatever the order — in a flow with a natural-key collision error; on `POST /v1/projects/{nodeId}/records` the documented answer is `409 RECORD_NATURAL_KEY_TAKEN`, though some deployments answer a bare 500 (a platform bug). Either way nothing was written: look the holder up with `?key=` and PATCH it instead. Values are trimmed before comparison, so `"tomato "` collides with `"tomato"`.
+- **A natural-key collision inside a flow discards the whole run and does not say which row.** The staged writes are checked only when the run's change set applies, so a sync endpoint answers `502 CHANGE_SET_APPLY_FAILED` ("The flow ran but its changes could not be applied."), and the run's `closing.reason` is null. On a sync endpoint `GET /v1/runs/{runId}/change-set` shows the set `discarded` with no rejection at all; the same flow behind an `async` endpoint shows it `rejected`, with only `reason: transaction-failed` and the staged write's position. Neither names the key or the value. Every other write of that run is dropped too, the new rows with it. There is no upsert mode: an importer that may meet a changed row looks each one up first — `entity.list` with `fieldFilterSlots` on the key field (the field needs a `filter` use as well as `key`) — then `entity.update` with the found id in `recordIdSlot`, and `entity.create` only when nothing was found (a `slotPresent` / `listEmpty` condition on each).
+- **A record is READY or PENDING depending on its type, and who queues it depends on who wrote it.** A type with no processing flow creates records READY. A type bound to a processing flow creates them PENDING, and something must hand each one to the queue. `POST /v1/projects/{nodeId}/records` does that itself (`queued: true` in its answer). A flow that **creates** records with `entity.create` does not: that flow — the writer, not the processing flow — must follow the create with an `entity.enqueue-process` step, or the rows sit PENDING until the watchdog finalises them FAILED. `GET /v1/record-types/{id}?expand=processingGaps` names flows that create without queuing.
+- **A processed field sits in a different place on each read.** The one-record read keeps them apart — `record.submitted` for what was sent, `record.derived` for what the processing flow produced (`null` means never produced). The list's rows carry neither in full: a row's `fields` holds one `{ key, family, value }` entry per **column** — the type's fields with a `filter` use, submitted or processed (the response's `columns` say which, as `source`) — and nothing else; every other field is named in `contract.undeclaredFields`. The whole submission is only on the one-record read. Inside a flow, an `entity.read` or `entity.list` row has both spread top-level beside `id` and `status` — `$row.body`, not `$row.derived.body` — and a submitted field wins a name clash.
 - **`paging` on the records list is nullable, and null is normal.** An unnarrowed corpus over the count threshold, a literal `q` search, any semantic ranking, or a read by `id` declines to count; `declinedCountReason` says which. A search still answers `nextCursor` — whether there is more — so walk it; a filter, not a phrase, brings a total back. Do not compute page numbers yourself.
 - **A read that runs past the 4 s budget is a 422 `QUERY_TOO_BROAD`, not a 500.** A very short phrase over a large type is the usual cause; add a filter or a longer phrase and ask again.
-- **`terms` on a row is capped at two chips.** `termCount` is the real number. An empty `terms` array is a cap artefact, not evidence.
+- **`terms` on a row is capped at two chips.** `termCount` is the real number. The cap keeps the first two, so an empty `terms` array means the record has no terms; a short one is the cap artefact — read `termCount`.
 - **`null` means not measured, never zero** — on `hitRate`, `unindexedCount`, `quotaDay`, and every null in the ingest summary.
 - **An unknown relation kind answers 200 with no edges**, not 404. An empty traversal is not proof of no edges; check the kind exists.
 - **`upload-url` promises nothing about bytes.** The row exists PENDING before any PUT, is swept within a day if never confirmed, and `confirm` answers 409 until the object is in storage. A landed object over 25,000,000 bytes is a 413 and the row stays pending.

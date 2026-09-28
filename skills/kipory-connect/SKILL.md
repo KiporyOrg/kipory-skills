@@ -20,6 +20,8 @@ Three things, and **all three come from the human**:
 
 ⚠️ **Two ids, and they are different values for the same project.** The _project id_ is what the create call returns; the _node id_ is what almost every design route scopes by. `GET /v1/projects/by-project-id/{projectId}` is the bridge. A few sub-resources want the project id instead, and their paths say so: `/v1/projects/{projectId}/handlers`, `…/handler-activity`, `…/task-models`, `…/descriptions` and `…/describer`.
 
+**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (VIEWER unless they pick one; anything that previews or runs a flow needs ADMIN) and an expiry. The plaintext is shown once. Ask them for the node id at the same time.
+
 > Never ask the human to paste the key into a file you will write, a commit, or a log line. Read it from the environment.
 
 ## The sequence
@@ -31,7 +33,7 @@ GET /health                 → 200; `sha` is the build's commit, or null
 GET /v1/capability-packs    → 200, the pack index and a `version`
 ```
 
-`/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error. Run `scripts/sync.mjs` now: it compares the `version` of the packs and handler catalog bundled with these skills against what this deployment serves and tells you which to trust. **When they differ, the deployment wins.**
+`/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error. Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare handlers) in the environment: it compares the versions of the packs, the handler catalog and the API pages bundled with these skills against what this deployment serves. Exit 0 means every layer is current; exit 1 means one differs, and it prints which layer to read live instead; exit 2 means something could not be compared — the deployment was unreachable, or a layer could not be read (without `KIPORY_API_KEY` the handler catalog cannot be), and it says which. A difference does not say which side is newer — a deployment older than these files is ordinary — and either way **the deployment wins**.
 
 **2. Prove the key is alive.**
 
@@ -94,7 +96,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 - **`parentNodeId` omitted on create** — defaults to the platform organisation, refuses, and reads like an auth failure.
 - **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider shapes are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/schema-entries/seed`.
 - **A retired project freezes writes.** Every POST, PUT, PATCH and DELETE naming it answers 409 while reads pass.
-- **Every query string is strict.** An undeclared key — `expand` on a resource that has none, a typo — is a 422, never ignored. The exception is `GET /v1/flows/{id}`, which declares no query at all and silently ignores one.
+- **A declared query string is strict.** On a route whose reference lists query parameters, an unlisted key or value — `expand` on a resource that has none, an `expand` value that resource does not offer, a typo — is a 422. A route whose reference lists no query parameters ignores any you send, so a misspelled flag there is silent — except a DELETE, which refuses any query key it does not list (422) and deletes nothing.
 - **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.
 
 ## References
@@ -107,11 +109,17 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                |
 | `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                    |
 | `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                               |
+| `references/api/templates.md`                | the project templates a create can start from                                                                                |
+| `references/packs/templates.md`              | when to start a project from a shipped template                                                                              |
 | `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                              |
 | `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                |
 | `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                       |
 | `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                         |
 | `scripts/sync.mjs`                           | compares the bundled snapshot with the live deployment                                                                       |
+
+## Your first flow
+
+`kipory-build`'s `references/first-flow.md` is one small product built end to end — a flow, its one step, its output binding, a preview, the endpoint, and the call a client makes — with every body exact, then the same project as one document. Read it before authoring anything on a new project; it is the shape every other skill assumes you know.
 
 ## Then
 

@@ -1,18 +1,18 @@
 ---
 name: kipory-secrets
-description: Store the credentials a Kipory project's flows need — vendor API keys, OAuth clients, signing keys — in the node-scoped vault, so a web-fetching handler spends the project's own key and that vendor bills the project directly. Use when a flow needs a credential, when a handler reports a missing API key, or when deciding who pays a paid vendor. Model calls are not covered: generation, embedding, transcription and reranking always run on the platform's key.
+description: Store the credentials a Kipory project's flows need — vendor API keys, OAuth clients, signing keys — in the node-scoped vault, so a web-fetching handler spends the project's own key and that vendor bills the project directly. Use when a flow needs a credential, when a handler reports a missing API key, or when deciding who pays a paid vendor. Most model calls are not covered: generation, embedding and transcription always run on the platform's key; reranking (`cohere`) and `text.decide` (`typesafe`) are the exceptions and do read the vault.
 license: MIT
 ---
 
 # Store a credential
 
-The vault holds anything a project needs and nobody should read back. The fact most people get wrong: **this does not apply to model calls, and that is where most of the money is.** Generation, embedding, transcription and reranking always run on the platform's key at the platform's price — they do not read this vault and cannot be made to. Only the handlers that fetch from an external web vendor resolve a credential this way.
+The vault holds anything a project needs and nobody should read back. The fact most people get wrong: **this does not apply to most model calls, and that is where most of the money is.** Generation, embedding and transcription always run on the platform's key at the platform's price — they do not read this vault and cannot be made to. The handlers that fetch from an external web vendor resolve a credential this way, and so do two model handlers with a single fixed vendor: `text.rerank` (purpose `cohere`) and `text.decide` (purpose `typesafe`).
 
 ## Before the first call
 
 - Fetch the judgment: `references/packs/secrets.md`, or live at `GET /v1/capability-packs/secrets`.
 - Confirm which vendor a handler wants from `GET /v1/handlers/{key}` — the entry names the credential type and purpose it resolves — before storing anything on that vendor's account.
-- Read `GET /v1/secrets/catalog` before composing a value. It returns each supported type with its field keys and says which fields are secret; the value is a flat object of those keys, and a deployment can support types this file has never heard of.
+- Read `GET /v1/secrets/catalog` before composing a value. It returns each supported type with its field keys and says which fields are secret; the value is a flat object of those keys — `{ "apiKey": "…" }` for `api_key` — and a deployment can support types this file has never heard of. A value that does not fit is a 422 naming every failing key, each also in `details.issues` with its `path` under `value`. A type's `purposePlaceholder` (`firecrawl` on `api_key`) is an example for a form, not a list of vendors the platform reads your key for — model calls never use a stored key.
 
 ## How a credential is chosen
 
@@ -25,6 +25,7 @@ Bringing your own key removes the vendor pass-through, **not the cost of the run
 ```
 GET    /v1/secrets/catalog          the supported types and their fields
 GET    /v1/secrets?node=…           one node's own credentials — metadata only
+GET    /v1/secrets/resolution?node=… which record each credential resolves to at that node, who holds it, who pays
 POST   /v1/secrets                  store one: node + type + purpose + value → 201
 PUT    /v1/secrets/{id}             rotate the value in place
 POST   /v1/secrets/{id}/disable     stop using it — the one above takes over
@@ -45,7 +46,7 @@ A secret is identified by the node it hangs on, its **type**, and a **purpose** 
 - **It fails closed.** A credential that cannot be decrypted yields nothing; it never falls back to a different node's key and never returns a value that is merely plausible.
 - **Every write is ADMIN, stricter than the design-mutation floor elsewhere**, because whose key pays a vendor is a billing decision. Listing needs VIEWER on the node. No call tells you what your own key holds, so do not plan around a permission check: attempt the write and read the refusal. A 403 means the grant is below admin or does not reach that node.
 - **A store you were not allowed to make is never silent** — it answers 403. So a 201 means the credential really is stored, and a handler still reporting a missing key afterwards is a _resolution_ problem, not a storage one: the branch is suspended, the record is disabled, or the `purpose` does not match the vendor the handler asked for.
-- **The coverage read is staff-only.** `GET /v1/secrets` lists one node's own rows; there is no customer read that says which vendors the whole tree is covered for.
+- **The list is one node's own rows; coverage is a separate read.** `GET /v1/secrets` shows only what is attached to that node. `GET /v1/secrets/resolution?node=…` (VIEWER) answers what a call there would actually use: a `state` per credential (`present`, `disabled`, `not_found`, `branch_inactive`), the node that holds it, and who pays — including the suspended-branch gate a per-ancestor list cannot show. A holder above your grant's reach still reports its `state`, with the holder's id and name null. `billedBy` is `vendor_to_holder` when your credential resolves (the vendor invoices its holder, the platform charges compute only) and `kipory` when none does (the call runs on the platform's key at its price). `fallback` is what happens with nothing of yours: `platform_key` (the call still succeeds, billed by the platform — every vendor key today), `fails_closed` (refused — sign-in credentials), `platform_only` (never a tenant's key), `not_looked_up` (nothing reads that name). A purpose absent from this read is never used, however it was stored.
 
 ## References
 

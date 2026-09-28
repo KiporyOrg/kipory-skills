@@ -101,6 +101,10 @@ they may not appear in `inputs` — the write refuses either by name with a 422:
 - **`trigger`** — `{ triggerId, key, triggerRunId, replay }`. `replay` is `true` on a replayed
   decision and `false` on a live one, which is the one branch a flow usually wants.
 
+Declare both slots on the flow with the builtin `object` type — the envelope is the platform's, not
+a shape of your project, and the save does not check what you typed them as. Read the payload in
+the first step as `event.data.<field>`.
+
 Everything else the flow declares must be in `inputs`, fixed in advance — a trigger, like a
 schedule, has no caller to fill gaps. Coverage is checked at save: a missing slot is a 422 naming
 it, and so is a **blank** one — an empty string, `null` or an empty list — under its own code,
@@ -120,8 +124,10 @@ and `data` (its payload). A payload field is addressed as
 field as `{ "slot": "event", "path": "category", … }`. The three combinators — all-of, any-of and
 not — compose as they do in a step condition.
 
-⚠️ A `path` is **one key** of the slot's object, not a dotted walk. That is why the payload is its
-own slot rather than reached through `event`.
+A `path` walks the slot the way a step condition's does: `author.profile.id` descends into objects
+(a key that itself contains a dot still matches, longest key first) and `items[0].kind` reads one
+item of a list. ⚠️ A path that reads nothing reads as absent — `slotEquals` on it is false, with
+no error — so a misspelled one records every event as `filtered` rather than failing.
 
 A filter may nest at most **16** levels — each `not`, all-of and any-of is one level, and a lone
 leaf is none. A deeper one is refused at the write with a 422 on `filter` that says how deep it is
@@ -201,6 +207,12 @@ did not already have.
 - **`skip` judges "still running" generously.** A fire whose invocation link is not yet written —
   the window between the claim and the accept — counts as in flight for five minutes, and any
   recent fire still `PENDING` or `PROCESSING` holds the next event back, not only the newest.
+- ⚠️ **So `skip` drops the second of a burst.** Two events recorded 60 ms apart — two tickets
+  arriving together, or one run that emits twice — fire the first and record the second as
+  `skipped` ("previous run still in flight"); nothing runs for it unless you replay it. `skip` is
+  right when a run works over current STATE and one run covers every event (re-sync, re-index).
+  Choose `allow` when every event must be acted on — a notification, a per-record write — and make
+  the flow safe to run concurrently.
 - **The payload cap applies to every emit**, not only to what the log stores: an `event.emit`
   whose payload exceeds 256 KiB fails the step, whatever the type's scope or durability.
 

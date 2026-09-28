@@ -80,9 +80,12 @@ Those expressions run in the same sandbox as flow wiring, which blocks the clock
 generator — so an assertion cannot itself be the thing that flakes. An expression reaching for one
 is **refused when you create the case**, not discovered later when the suite goes red.
 
-The expression sees the output, whether anything required was missing, the per-skill transcript,
-the errors and warnings, and the token and latency totals. A non-boolean result is its own kind of
-failure, not a truthy pass.
+The expression sees one object: `output` (the flow's bound outputs, keyed by output slot),
+`missingRequiredOutput` (the unbound required output, or null), `transcript` (the steps as they
+ran), `errors` (failed steps), `warnings` (step warnings), `totalTokensIn` and `totalTokensOut`
+(model tokens) and `latencyMs` (wall time). ⚠️ The root is `output` — not `flowOutput`, which is what the preview response calls
+the same value. `flowOutput.urgent = true` reads nothing and fails with `actual: "null"`. A
+non-boolean result is its own kind of failure, not a truthy pass.
 
 ## Reading a run
 
@@ -131,7 +134,8 @@ somebody goes looking for it.
   own events are not: an `event.emit` resolves and its payload is checked, but no event is
   recorded or published and no trigger starts. Mail is refused. One thing is not withheld: an
   `entity.enqueue-process` step hands the record to its processing flow, which runs live once the
-  case applies — its events publish and its mail is sent.
+  case applies — its events publish and its mail is sent. Model calls a test run makes are `origin:
+test` in the ledger.
 - **Cases are scoped to the flow, not pinned to a checkpoint.** Deliberately: a test pinned to a
   snapshot would validate a frozen copy rather than the flow anyone can currently break.
 - **Case names are unique per flow** — a clash is refused rather than silently overwriting.

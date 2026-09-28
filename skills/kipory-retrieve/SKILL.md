@@ -1,37 +1,42 @@
 ---
 name: kipory-retrieve
-description: Search a Kipory project's own records and answer questions over them — chunk and embed what the project holds, write it to a vector collection, search that collection densely or hybrid, re-rank the hits, and hand the model sanitized text to answer from. Use when the product has to answer from the project's data rather than from the model's memory, when search returns nothing or returns the wrong things, or when hits come back with ids nothing downstream can resolve.
+description: Search a Kipory project's own records and answer questions over them — declare which fields a record type searches on so the platform indexes them into a vector collection, search that collection densely or hybrid, re-rank the hits, and hand the model sanitized text to answer from. Use when the product has to answer from the project's data rather than from the model's memory, when search returns nothing or returns the wrong things, or when hits come back with ids nothing downstream can resolve.
 license: MIT
 ---
 
 # Search and answer over the project's own data
 
-Retrieval on Kipory is a chain of handlers, not a resource you configure. The write half turns records into points in a vector collection; the read half turns a question into hits, narrows them, and hands a model text it is allowed to quote. Both halves run as steps in a flow — see `kipory-build` for the flow itself.
+Retrieval on Kipory has two halves, and only one of them is yours to build. The write half is **declared**: a record type's `uses` names the fields it searches on and the embedding profile it searches with (`kipory-model`), and the platform chunks, embeds and writes every record into the collection derived from that profile — you do not create collections and there is no route that does. The read half is a chain of handlers in a flow that turns a question into hits, narrows them, and hands a model text it is allowed to quote — see `kipory-build` for the flow itself.
 
-**The fact most people get wrong: a hit's id is not a record id.** Points are stored under a UUID the vector store requires, so a search whose hits are meant to be read, cited or linked must be told which payload field carries the record id. Get that wrong and every step after it is holding an identifier that resolves to nothing.
+**The fact most people get wrong: a hit's id is not always a record id.** Points are stored under a UUID the vector store requires. `record` mode groups hits by record and every hit carries `recordId`; `candidate` mode returns point ids unless `idPayloadField: "recordId"` names the payload key the platform stamps; `term` and `generic` hits carry the raw point id. Get that wrong and every step after it is holding an identifier that resolves to nothing.
 
 ## Before the first call
 
-- **The collection has to exist already.** `GET /v1/vector-collections` lists them and `GET /v1/vector-collections/{name}` shows the vector names it reserves room for. `vector.upsert` does not create one, and a name the collection has no slot for is not written.
+- **The collection has to exist already, and only the platform makes one.** A collection is derived from an embedding profile once a record type declares `search` in its `uses` — `kipory-model` owns both. `GET /v1/vector-collections?project={nodeId}` lists the project's collections and `GET /v1/vector-collections/{name}?project={nodeId}` shows the vector names one reserves room for; both refuse a call without `project`. The collections surface is read-only apart from search.
+- **A search step names the collection by its full `collectionName`** — `{slug}.{name}`, e.g. `my-project.handbook-v2-project`, the listing's `collectionName` field (or the `collections` an embedding profile's read expands). The listing's short `name` is what the `/v1/vector-collections/{name}` routes take, and a step given the short name is refused at save with `VECTOR_SEARCH_COLLECTION_UNKNOWN`, whose remedy names the full name it matches.
 - **The embedding profile decides the width.** The profile the collection was built with fixes the vector length, and the model that produces that length is not a per-step choice — `kipory-model` owns the profile and its version bumps.
 - **Confirm every handler's config live** with `GET /v1/handlers/{key}`. The shapes below are the catalog's, and the deployment's catalog wins.
 
 ## The chain, once
 
 ```
-write   text.chunk → text.embed  (+ text.embed-sparse)  → vector.point-id → vector.upsert
-read    question   → vector.search → text.rerank → text.sanitize → text.generate
+write   record type `uses.search` (kipory-model) → the platform chunks, embeds and indexes each record
+read    question → vector.search → (text.rerank) → text.sanitize → text.generate
 ```
 
-Nothing forces both halves into one flow. The write half usually hangs off a record type's processing flow so a record is indexed as it arrives; the read half is usually the flow behind an endpoint.
+The read half is usually the flow behind an endpoint. `text.rerank` is the optional step; `text.sanitize` is not.
 
 ## The write half
+
+**Declare it; the platform does the rest.** A record type whose `uses` carries `search` is indexed as its records arrive — asynchronously, so a record can be READY before it is searchable: chunked by the profile's `defaultChunking` (or the type's `uses.search.chunking`), embedded with the profile's model, and written with the payload record-mode search reads back — `recordId`, `recordType`, `chunkIndex` and the type's fields under namespaced keys (`Article_title`). None of that is yours to wire; `record` mode drops a point that carries no `recordType`.
+
+**The hand-built chain is for points the declaration does not write.** `text.chunk → text.embed (+ text.embed-sparse) → vector.point-id → vector.upsert` writes into a collection that already exists — `vector.upsert` cannot create one, so the target is one `GET /v1/vector-collections` lists, and the vector names you map must be ones it reserves. Search such points with a `queryVectorSlot`; `queryTextSlot` only serves the collections the platform derives. The notes below apply to that chain.
 
 **Chunk before you embed.** `text.chunk` cuts on token boundaries with `overlapTokens` shared between neighbours, so a sentence split across a boundary still appears whole in one of them. `overlapTokens` must be strictly below `chunkTokens` — the handler throws at run time rather than at save. `maxChunks` defaults to 30 and **drops the tail** when a document runs past it, warning as it goes: a long document silently loses its ending unless you raise the cap or split it upstream.
 
 **Embed dense, and sparse when exact words matter.** `text.embed` gives you meaning; `text.embed-sparse` gives you the words themselves. A dense vector blurs a proper name, an invoice number or a SKU — the sparse one keeps it exact, which is why a collection that has to find `INV-2026-0412` carries both. Leave `text.embed`'s model empty to inherit the project's embedding default rather than pinning one per step.
 
-**Derive the point id, never invent it.** `vector.point-id` maps a record id to the deterministic UUID that record's vectors live under. Because it is a function of the record id, re-running the flow overwrites the same point instead of accumulating duplicates. Feed the same derived id to `vector.fetch` to read the stored vectors back.
+**Derive the point id, never invent it.** `vector.point-id` hashes whatever value its slot holds into the deterministic UUID the point lives under, so re-running the flow overwrites the same point instead of accumulating duplicates. Feed it a record id and a record maps to **one** point — inside a chunk fan-out every chunk would land on that point and overwrite the last. A point per chunk needs a value distinct per chunk (the record id joined with the chunk's index, composed upstream). Feed the same derived id to `vector.fetch` to read the stored vectors back.
 
 **Write the payload you will later filter and cite on.** `vector.upsert` takes either `payloadSlots` (a map of key to slot) or `payloadObjectSlot` (one already-shaped object) — never both. **A payload key containing a dot breaks the filter syntax that reads it back**, so keep keys plain. A vector name cannot be dense in one map and sparse in the other; saving is refused.
 
@@ -39,20 +44,26 @@ Nothing forces both halves into one flow. The write half usually hangs off a rec
 
 `vector.search` is four searches behind one key. `hitShape` picks which, and each mode requires its own companion fields:
 
-| `hitShape`  | For                                            | Needs                                                             |
-| ----------- | ---------------------------------------------- | ----------------------------------------------------------------- |
-| `term`      | resolving a value against a vocabulary         | the default; hits are terms                                       |
-| `generic`   | a bare similarity lookup                       | nothing extra                                                     |
-| `candidate` | proposing records for something else to decide | `includeRecordTypes`, and `idPayloadField` if the id must resolve |
-| `record`    | answering a question from documents            | the expansion fields below                                        |
+| `hitShape`  | For                                            | Needs                                                                                                                                                                                                                                                                                   |
+| ----------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `term`      | resolving a value against a vocabulary         | the default; `queryVectorSlot`; hits are terms                                                                                                                                                                                                                                          |
+| `generic`   | a bare similarity lookup                       | `queryVectorSlot`                                                                                                                                                                                                                                                                       |
+| `candidate` | proposing records for something else to decide | `queryVectorSlot`, `vectorNames`, `includeRecordTypes`, and `idPayloadField: "recordId"` if the id must resolve                                                                                                                                                                         |
+| `record`    | answering a question from documents            | `collection` (the full `collectionName`, required in every mode); exactly one of `queryVectorSlot`, `queryTextSlot` or `queryRecordIdSlot`; `vectorName` (`vectorNames` with `queryRecordIdSlot`); `includeRecordTypes`. `idPayloadField` is refused at save — hits are records already |
 
-**Record mode is the one that answers questions.** `topK` caps **records**; `chunksPerRecord` caps the chunks returned per record — deliberately different units, because twenty records with three chunks each cannot be said with one number. `expand` then decides how much context comes back: `neighbors` adds the chunks either side of a match, `record` swaps a record's chunks for its whole text once `expandMergeThreshold` of them matched. That threshold must be **below** `chunksPerRecord` or it can never be reached, and saving is refused. `expandRecordTextField` names which field supplies the returned text, because what was embedded is often a shortened or synthesised form and returning that instead is a subtly wrong answer.
+`queryTextSlot` — the search embeds the text itself — exists only in record mode and only against a collection the platform derived from an embedding profile, because the model is read from that profile. Every other mode takes a vector you embedded upstream.
+
+**Record mode is the one that answers questions.** `topK` caps **records**; `chunksPerRecord` caps the chunks returned per record — deliberately different units, because twenty records with three chunks each cannot be said with one number. **A record hit carries no text.** Each chunk's `payload` holds ids, the scope key and the type's filter fields under namespaced keys (`doc_title`) — never the chunk's text — and the hit's `text` is `null` unless `expand: "record"` merged it. `expand` decides how much context comes back: `neighbors` adds the chunks either side of a match, `record` swaps a record's chunks for its whole text once **more than** `expandMergeThreshold` of them matched — `1` merges a record with two or more matched chunks, and the minimum is `1`, so a record that matched with a single chunk (every short, one-chunk document) is never merged. The threshold must also be below `chunksPerRecord`, or saving is refused.
+
+**The reliable way to get the text is to read the records.** After the search, an `entity.read` step with `idsSlot: "hits[].recordId"` (a list path, not a single id) returns each hit's record with its fields — submitted and processed — in one read, both spread top-level on the row (a processed `body` is `$row.body`, not under `derived` as on the records API); a `value.transform` then shapes those rows into `{ id, text }` for `text.sanitize`. Use `expand: "record"` only when you want merged text for records that matched several chunks. `expandRecordTextField` names which field supplies the returned text, because what was embedded is often a shortened or synthesised form and returning that instead is a subtly wrong answer.
 
 **`hybrid` is record mode only.** It searches the sparse vectors too and fuses both result sets — and fusion moves the score onto a rank-derived scale, so anything that compares scores across searches sees a different scale the moment you switch it on. It is ignored when the query already arrives as a vector.
 
 **Re-rank when precision matters more than a round trip.** `text.rerank` re-scores candidates against the query with a model built for the job, best first, capped at `topN`. It bills per hundred documents scored, so raising `maxDocuments` past its default multiplies what every call costs; `topN` above the number scored is refused at save rather than silently returning fewer rows. A document longer than `maxDocumentChars` is rejected, not truncated. It resolves a Cohere credential from the vault under purpose `cohere` and falls through to the platform's key when no node holds one — `kipory-secrets` decides who pays.
 
-**Sanitize retrieved text before it reaches a prompt.** `text.sanitize` wraps each body in a `<doc>` block carrying a nonce, so the prompt can tell the model that everything inside is data rather than instruction. Retrieved text is untrusted — a record can hold whatever someone put in it, and a page fetched by `kipory-gather` is a stranger's text. Skipping this step is how a document talks your flow into ignoring its prompt.
+**Rerank hits carry no text.** `text.rerank` reads `documentItemsSlot` as a list of `{ id, text }` and emits `{ id, relevance }`, best first. `text.sanitize` reads `itemsSlot` as a list of objects with `idField` (default `id`) and `textField` (default `text`) — handed the rerank output directly, every `<doc>` comes out empty. Put a `value.transform` between them that joins each hit back to its text by `id`, in rerank order. Without a rerank step, the same transform shapes the **records `entity.read` returned** into `{ id, text }` — the search hits themselves have no text to shape.
+
+**Sanitize retrieved text before it reaches a prompt — this step is not optional.** `text.sanitize` wraps each body in a `<doc>` block carrying a nonce, so the prompt can tell the model that everything inside is data rather than instruction. Retrieved text is untrusted — a record can hold whatever someone put in it, and a page fetched by `kipory-gather` is a stranger's text. Skipping this step is how a document talks your flow into ignoring its prompt.
 
 ## What will bite you
 
@@ -62,6 +73,7 @@ Nothing forces both halves into one flow. The write half usually hangs off a rec
 - **`vector.search` embeds a text query for you**, using the model the collection was built with. That is a model call inside a step you may have been reading as a pure lookup. Passing a vector instead spends nothing.
 - **`maxSourceChunks` drives the cost of a similar-to-this-record search** — the query is chunks times slots, so a long source record is an expensive query. The step warns when the cap bites, and a silently truncated query is a silently worse result.
 - **`expandRecordMaxBytes` reports truncation on the hit rather than shortening quietly**, because a cut document handed to a model is a wrong answer with no symptom. Read that flag before trusting the answer built from it.
+- **A record that never becomes searchable says nothing on the record.** It is READY, `indexState` stays `"never"`, and the type's `?expand=vectorProgress` keeps a non-zero `remaining`. The reason is only in the model-call ledger: `GET /v1/projects/{nodeId}/ai-calls?origins=projection` lists the platform's indexing embeds with `errorCode` (`error:quota_exhausted`, …); `GET …/ai-calls/{callId}` gives one call's `errorMessage`. Moving the profile to another embedding model is a new version plus activate (`kipory-model`).
 - **A search that returns nothing is not always a bad index.** A payload filter with a key that was written containing a dot, a `filterSlots` value that arrived empty (which filters for _unset_, not for _anything_), or a collection name that exists but reserves no room for the vector you are querying all return an empty list rather than an error.
 
 ## References

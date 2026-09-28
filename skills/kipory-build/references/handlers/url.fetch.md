@@ -7,8 +7,8 @@ Download the text behind a web address.
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
-- **Reads:** One URL — the thing to fetch. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
-- **Emits:** The response body as text — JSON, plain text, anything that is not a web page. Nothing is rendered or re-encoded. Empty on no URL, or a site failure.
+- **Reads:** One URL to fetch. Anything that is not `http` or `https`, resolves to a private address, or does not resolve at all is refused as a blocked request. _(shape hint: `string`)_
+- **Emits:** The response body as text, nothing rendered. Empty on no URL or a 5xx, with a warning. Any other non-2xx answer fails the step, and with it the run.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard. No vendor and no key — the site itself is the dependency.
 - **Rate limit:** 120 per 60000ms in bucket `url.fetch`
@@ -76,7 +76,7 @@ Sitemap: https://example.com/sitemap.xml
 
 #### Bad address
 
-Non-`http(s)` URL — silently dropped at the URL parser. No request fires; output is the empty string.
+Non-`http(s)` URL — refused before any request fires. The step fails, and an endpoint over it answers 400.
 
 Reads `string` → emits `string` · 1 in → (empty)
 

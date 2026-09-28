@@ -2,10 +2,10 @@
 
 # Reference versions
 
-Every page under `references/api/`, `references/handlers/` and `references/packs/` across these skills was generated from the sources below. The deployment serves two of the hashes live; `scripts/sync.mjs` in this skill compares them and says which side to trust. **When they differ, the deployment wins.**
+Every page under `references/api/`, `references/handlers/` and `references/packs/` across these skills was generated from the sources below. The deployment serves each hash live; `scripts/sync.mjs` in this skill compares them and says which layer to read live instead. **When they differ, the deployment wins.**
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `b49643fb1be1` | `version` on `GET /v1/capability-packs` |
-| handlers | `c51cb26cf5a59efa42f08b5c7a790bbc98c4ac7cb7a6ff195f73329ef0ba668d` | `version` on `GET /v1/handlers` |
-| api | `d07101fde28f` | not served — `GET /v1/openapi.json` is the authority for shapes |
+| packs | `ffaf48e06b3a` | `version` on `GET /v1/capability-packs` |
+| handlers | `7de041e975a57aa15ae79debbee52eb0f5425840b91ec61372788b7c7f364f57` | `version` on `GET /v1/handlers` |
+| api | `2ae246d8a44f` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |

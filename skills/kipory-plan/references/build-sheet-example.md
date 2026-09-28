@@ -8,7 +8,7 @@ The idea, as the human put it: _"A link library. I paste a URL, it saves the pag
 
 **1 — Project.** Exists. Node id resolved through `GET /v1/projects/by-project-id/{projectId}` and recorded.
 
-**2 — Records.** One thing exists: a saved link. Its shape is a URL, the page text once fetched, a summary, a title. It is searchable by meaning, so it needs an embedding profile to name. Owner scope: the project's shared pool — the human said "my links" but is the only user and will call it with a key; a per-user type would refuse every key-driven write.
+**2 — Records.** One thing exists: a saved link. Its shape is a URL, the page text once fetched, a summary, a title. It is searchable by meaning, so it needs an embedding profile to name. Owner scope: the project's shared pool — the human said "my links" but is the only user and will call it with a key; a per-user type would refuse every write from a flow a key runs.
 
 **3 — Processing.** One flow, `summarise-link`: scrape the URL, generate a summary, write both back to the record. The catalog has `url.scrape`, `text.generate`, `entity.update`; nothing needs writing.
 
@@ -16,7 +16,7 @@ The idea, as the human put it: _"A link library. I paste a URL, it saves the pag
 
 **5 — Classification and linking.** One facet, `topic`, semantic, on the platform default resolver — no custom flow. No relations: links do not point at each other.
 
-**6 — Time.** A nightly schedule that re-summarises links whose summary is empty — the scrape can return nothing on a bad day.
+**6 — Time.** A nightly schedule that re-summarises links whose summary is empty — the scrape can return nothing on a bad day. A schedule runs one flow with fixed inputs and cannot select records, so it fires a small sweep flow that lists the links with an empty summary, sets each back to pending and queues it for processing.
 
 **7 — Signals.** None, because nothing listens: one user, one product, no client that would subscribe.
 
@@ -24,22 +24,23 @@ The idea, as the human put it: _"A link library. I paste a URL, it saves the pag
 
 ## The sheet
 
-| Step | Primitive         | Name                 | Disposition | Notes                                                                                                                                           |
-| ---- | ----------------- | -------------------- | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| 2    | embedding profile | `links-default`      | `seed`      | create, mint a version, activate — activation is the expensive move                                                                             |
-| 2    | schema entry      | `link-shape`         | `seed`      | url (string), title, pageText, summary (string, nullable)                                                                                       |
-| 2    | record type       | `link`               | `seed`      | shape `link-shape`, owner scope project, searchable against `links-default`, processing flow `summarise-link`, natural key `url`                |
-| 3    | flow              | `summarise-link`     | `seed`      | input `link` record; steps below                                                                                                                |
-| 3    | skill             | `scrape`             | `seed`      | `url.scrape`, reads the record's `url`, emits `pageText`; `excludeTags` for consent widgets                                                     |
-| 3    | skill             | `summarise`          | `seed`      | `text.generate`, prompt over `{{pageText}}`, condition `slotPresent` on `pageText`; inherit the model through `taskKey: summarization`          |
-| 3    | skill             | `write`              | `seed`      | `entity.update` back onto the record with `summary` and `title`                                                                                 |
-| 3    | flow              | `search-links`       | `seed`      | input `query` string; `vector.search` over the type's collection; output the hit list                                                           |
-| 4    | endpoint          | `save-link`          | `seed`      | POST on `/v1/links`, `flow.invoke` sync into a small `create-link` flow: `entity.create` with `recordType: link`, then `entity.enqueue-process` |
-| 4    | endpoint          | `search-links`       | `seed`      | GET on `/v1/links/search?q=`, `flow.invoke` sync, `q` bound to the `query` slot                                                                 |
-| 5    | facet             | `topic`              | `seed`      | semantic, platform default resolver, attached to `link`                                                                                         |
-| 6    | schedule          | `resummarise-empty`  | `seed`      | nightly, fires `summarise-link` for links with an empty summary; `overlapPolicy: skip`                                                          |
-| 8    | test case         | `summary-present`    | `seed`      | inputs: a known stable page; assertions `no-missing-required-output`, `output-present` on `summary`                                             |
-| 8    | test case         | `search-finds-saved` | `seed`      | inputs: a query matching a saved link; assertion `jsonata` — the hit list contains its id                                                       |
+| Step | Primitive         | Name                 | Disposition | Notes                                                                                                                                                                                                                                                                                                                       |
+| ---- | ----------------- | -------------------- | ----------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2    | embedding profile | `links-default`      | `seed`      | create; `link` naming its first version in `uses.search` is what makes it live — no activate (that switches versions later, and is the expensive move)                                                                                                                                                                      |
+| 2    | schema entry      | `link-shape`         | `seed`      | url (string), title, pageText, summary (string, nullable)                                                                                                                                                                                                                                                                   |
+| 2    | record type       | `link`               | `seed`      | shape `link-shape`, owner scope project, searchable against `links-default`, processing flow `summarise-link`, natural key `url`                                                                                                                                                                                            |
+| 3    | flow              | `summarise-link`     | `seed`      | input `link` record; steps below                                                                                                                                                                                                                                                                                            |
+| 3    | skill             | `scrape`             | `seed`      | `url.scrape`, reads the record's `url`, emits `pageText`; `excludeTags` for consent widgets                                                                                                                                                                                                                                 |
+| 3    | skill             | `summarise`          | `seed`      | `text.generate`, prompt over `{{pageText}}`, condition `slotPresent` on `pageText`; inherit the model through `taskKey: summarization`                                                                                                                                                                                      |
+| 3    | skill             | `write`              | `seed`      | `entity.update` back onto the record with `summary` and `title`                                                                                                                                                                                                                                                             |
+| 3    | flow              | `search-links`       | `seed`      | input `query` string; `vector.search` with `hitShape: record`, `queryTextSlot: query`, `vectorName`, `includeRecordTypes: [link]`; output the hit list                                                                                                                                                                      |
+| 4    | endpoint          | `save-link`          | `seed`      | POST on `/v1/links`, `flow.invoke` sync into a small `create-link` flow: `entity.create` with `recordType: link`, then `entity.enqueue-process`                                                                                                                                                                             |
+| 4    | endpoint          | `search-links`       | `seed`      | GET on `/v1/links/search?q=`, `flow.invoke` sync, `q` bound to the `query` slot                                                                                                                                                                                                                                             |
+| 5    | facet             | `topic`              | `seed`      | semantic, platform default resolver, attached to `link`                                                                                                                                                                                                                                                                     |
+| 6    | flow              | `sweep-empty`        | `seed`      | `entity.list` of `link` with a `dataNullChecks` null check on `summary` → `flow.fan-out` over the records' ids → per record `entity.update` (`setStatus: PENDING`), then `entity.enqueue-process` (`replay: rerun`), which re-runs `summarise-link` — the enqueue alone changes nothing, only a pending record is processed |
+| 6    | schedule          | `resummarise-empty`  | `seed`      | nightly, fires `sweep-empty` with no inputs; `overlapPolicy: skip`                                                                                                                                                                                                                                                          |
+| 8    | test case         | `summary-present`    | `seed`      | inputs: a known stable page; assertions `no-missing-required-output`, `output-present` on `summary`                                                                                                                                                                                                                         |
+| 8    | test case         | `search-finds-saved` | `seed`      | inputs: a query matching a saved link; assertion `jsonata` over `output` (the bound outputs — not `flowOutput`): the hit list contains its id                                                                                                                                                                               |
 
 **Empty steps.** 7 — none, because nothing listens to this product. 5 (relations) — none, because links do not reference each other; revisit if "related links" becomes a feature.
 
@@ -47,9 +48,15 @@ The idea, as the human put it: _"A link library. I paste a URL, it saves the pag
 
 **The `code` total: 0.** Everything is configuration. The engineering risk is in two places the sheet names rather than hides: the scrape's behaviour on sites that fight extraction (a config knob, not code), and the choice of embedding model, which is expensive to change after records exist.
 
+**From sheet to document.** The sheet is the plan; the rows it names become one project document
+(`kipory-build`). It deliberately does not spell out the parts that are easiest to get wrong when
+writing that document — a record-processing flow's input slots, a searchable type's `uses`, a flow
+that receives files. Take those from the worked patterns in `kipory-build`'s
+`references/patterns.md` and the handler pages, then plan the document before applying it.
+
 ## What made this sheet cheap to reject
 
-- The reader can see the _whole_ product in fourteen rows and disagree with any one of them before a single call is made.
+- The reader can see the _whole_ product in fifteen rows and disagree with any one of them before a single call is made.
 - Each `seed` row names the handler or shape that matters, so a reviewer who knows the catalog can spot a wrong handler at a glance.
 - The two easy-to-forget primitives — the embedding profile and the natural key — are rows, not afterthoughts.
 - Nothing has been stored. Rejecting it costs nothing.

@@ -7,7 +7,7 @@ Gather the results of parallel branches into one list.
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]+` → `T[]`
-- **Reads:** The per-branch slots you list. The shape they carry — text or files — chooses the reducer, not the strategy. _(shape hint: `any+`)_
+- **Reads:** The per-branch slots you list. The kind they carry — text, files, objects, numbers or booleans — chooses the reducer, not the strategy. _(shape hint: `any+`)_
 - **Emits:** The branches' values reduced into one list. `concat` keeps everything; `dedup-concat` drops repeats, keeping the first of each.
 
 ## Config
@@ -15,7 +15,16 @@ Gather the results of parallel branches into one list.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `lanes` | object[] | yes | — | The merge lanes, in order. The first is the step's own output; the rest are extra outputs. At least one is required. |
-| `onBranchFailure` | `proceed` \| `fail` | no | `"proceed"` | What to do when a branch failed before reaching here. `proceed` merges what succeeded; `fail` stops the record. ⚠️ It is a whole-merge policy, not per-lane — `fail` writes no lane at all. |
+| `onBranchFailure` | `proceed` \| `fail` | no | `"proceed"` | What to do when a branch failed before reaching here. `proceed` merges what succeeded; `fail` stops the record. ⚠️ It is a whole-merge policy, not per-lane — `fail` writes no lane at all. Under `proceed`, when every branch failed each lane holds `[]`, which later steps read as absent. |
+
+### `lanes` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `sourceSlots` | string[] | yes | — | The slots this lane reads from each branch that reaches the merge. |
+| `outputSlot` | string | yes | — | The post-merge slot this lane writes. Unique across lanes. lanes[0].outputSlot mirrors Skill.outputSlot. |
+| `strategy` | `concat` \| `list-union` \| `dedup-concat` | yes | — | How this lane combines what the branches contributed. It follows the shape they carry, not the name you pick. |
+| `derivedShape` | union | no | — | The shape this lane produces, worked out when you save. Metadata only; the runtime ignores it. |
 
 ## Worked example
 

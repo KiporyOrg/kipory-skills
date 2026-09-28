@@ -12,8 +12,8 @@ reference and produces text, data or another file. None of them read a file the 
 already hold.
 
 **The fact most people get wrong: `pdf.parse` extracts _embedded_ text, and a scanned document has
-none.** It returns empty text and a flag saying why, and a flow that treats empty as "no content"
-throws away every scanned page it will ever be given. The answer is to render the page and let a
+none.** It returns a `PdfDocument` whose `text` is `""`, and a flow that treats empty as "no
+content" throws away every scanned page it will ever be given. The answer is to render the page and let a
 vision model read it — which is the whole reason `pdf.screenshot` exists.
 
 ## Before the first call
@@ -51,10 +51,12 @@ pdf.parse → text?  ── yes ──→ text.chunk → …            (a gener
                  └─ no  ──→ pdf.screenshot → text.generate with a vision model → …
 ```
 
-`pdf.parse` tells you which case you are in: empty text plus its own flags, rather than an error.
-Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape. `pdf.screenshot`
-renders **one page**, so a multi-page scan is a fan-out over page numbers, and every page is a
-separate vision call with a separate bill.
+`pdf.parse` tells you which case you are in rather than erroring. Its output carries one flag,
+`isEncrypted`: `text` empty with `isEncrypted: true` is a locked file; `text` empty with no flag is
+a scan. Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
+`pdf.screenshot` renders **one page**, and that page is the static config field `page` — no slot
+sets it, so fanning out over page numbers renders the same page in every branch. A multi-page scan
+needs one `pdf.screenshot` step per page you want, each a separate vision call with a separate bill.
 
 Both PDF handlers make a single attempt with no backoff and wait up to three minutes. They do not
 retry, because a PDF that failed to parse will fail again identically.
@@ -66,7 +68,9 @@ Three text handlers matter more than their size suggests:
 - **`text.sanitize`** wraps each body in a `<doc>` block carrying a nonce, so a prompt can tell the
   model that everything inside is data and not instruction. **Extracted text is untrusted** — a PDF
   someone uploaded can contain a paragraph addressed to your model. Run it through this before it
-  reaches a prompt. `kipory-retrieve` does the same for every retrieved body.
+  reaches a prompt. It reads `itemsSlot` as a list of `{ id, text }` objects and returns `[]`
+  silently for anything else, a bare string included. `kipory-retrieve` does the same for every
+  retrieved body.
 - **`text.extract`** pulls regex matches out of the concatenation of every wired text stream,
   ordered and optionally deduped. It is the cheap, deterministic alternative to asking a model for
   the invoice numbers.
@@ -86,8 +90,9 @@ Three text handlers matter more than their size suggests:
   size with `file.stats` first if the input is unbounded.
 - **`file.stats` downloads the object to hash it.** It is not a metadata peek; it costs a read of the
   whole file. Use it when the hash is the point, not as a cheap existence check.
-- **`image.metadata` fails on a corrupt image instead of returning empty**, while a valid image with
-  no EXIF returns an empty object. Empty means "no metadata"; an error means "not an image".
+- **`image.metadata` does not fail on a corrupt image.** It comes back with `byteSize` and nothing
+  else, while a valid image with no EXIF still reports `dimensions`, `format` and `byteSize`. Branch
+  on `dimensions` being present to tell "not a readable image" from "no camera metadata".
 - **`audio.transcribe` waits up to ten minutes.** It is the longest-running handler here by a wide
   margin, and a synchronous endpoint sitting in front of it will time out long before it finishes.
   Put transcription behind an asynchronous endpoint or a schedule — see `kipory-expose`.

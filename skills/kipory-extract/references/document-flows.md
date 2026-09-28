@@ -5,22 +5,29 @@ Three shapes. Each starts from a file reference and ends with something a record
 ## A PDF becomes searchable text
 
 ```
-file → pdf.parse ─┬─ text present ──→ text.sanitize → text.chunk → (kipory-retrieve)
-                  └─ text empty ────→ pdf.screenshot → text.generate (vision) → text.sanitize → …
+file → pdf.parse ─┬─ text present ──→ text.chunk (reads `text`) → (kipory-retrieve)
+                  └─ text empty ────→ pdf.screenshot → text.generate (vision) → …
 ```
 
-`pdf.parse` returns the embedded text and the document's own properties. Empty text is a
-**result**, not a failure: it means the pages carry no extractable text layer, and its flags say
-whether the file was locked or simply scanned. Branch with `flow.dispatch`.
+`pdf.parse` emits a `PdfDocument` object: `text`, `pageCount`, the file's own `pdf*` properties,
+and `isEncrypted`. `text.chunk` reads one string, so wire the step's input to the `text` field
+(an `inputPaths` projection, `kipory-build`) rather than to the whole object. Empty `text` is a
+**result**, not a failure: `isEncrypted: true` means the file was locked; empty `text` with no
+flag means the pages carry no text layer — a scan. Branch with `flow.dispatch`.
 
-The scanned path is a page at a time. `pdf.screenshot` renders the 1-indexed `page` you name,
-defaulting to the first, so covering a document means a fan-out over page numbers — and a page
-number past the end **fails the handler** rather than returning empty, so build that list from the
-page count `pdf.parse` reported rather than from a guess. Each branch is a vision model call, so
-cost scales with pages rather than documents: a fifty-page scan is fifty model calls, against a
-`flow.fan-out` that caps at 20 items by default.
+The scanned path is a page at a time. `pdf.screenshot` renders the 1-indexed `page` set in its
+config, defaulting to the first — it is static, no slot can set it, so a fan-out over page numbers
+renders the same page in every branch. Covering several pages means one `pdf.screenshot` step per
+page, and a page past the end **fails the handler** rather than returning empty, so check
+`pageCount` before adding steps you cannot be sure the file has. Each page is a vision model call,
+so cost scales with pages rather than documents.
 
-Both paths converge on sanitized text, because both are text somebody else wrote.
+Sanitize before the text reaches a prompt, not before chunking. `text.sanitize` reads
+`itemsSlot` as a **list** of `{ id, text }` objects and returns `[]` without an error when handed
+anything else — a bare string included. Its default output is a list of `{ id, sanitizedText }`
+(`outputShape: "joined"` gives one string instead), which `text.chunk` cannot read. So shape the
+chunks or the vision output into `{ id, text }` items with `value.transform` and sanitize those
+where the prompt is assembled.
 
 ## An image becomes data
 
@@ -33,9 +40,10 @@ file ─┬─ image.metadata  → dimensions, EXIF, IPTC, XMP
 These are independent reads of the same file, not a chain — wire the ones you need in parallel and
 merge. Resize before any vision step: the model bills on what it receives.
 
-`image.metadata` distinguishes its two empty cases. An empty object means the image carried no
-metadata. A failure means the file is not a readable image — worth branching on, because the second
-usually means an upload went wrong.
+`image.metadata` does not fail on a file it downloaded. A valid image with no EXIF still returns
+`dimensions`, `format` and `byteSize`; a file that is not a readable image returns `{ byteSize }`
+alone; an empty object means the file could not be loaded at all. Branch on `dimensions` — its
+absence usually means an upload went wrong.
 
 ## Audio becomes text
 

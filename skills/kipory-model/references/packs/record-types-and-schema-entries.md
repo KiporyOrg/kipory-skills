@@ -181,8 +181,12 @@ _keep the current value_, which is a real answer. On a create there is nothing t
 is not an answer at all.
 
 ⚠️ Pool types have real limits in this version, and they are limits of the _machinery_, not
-oversights: **no file attachment**, **no per-record teardown**, and **no file-producing handlers
-in the bound flow** — all of that is per-user end to end. A pool processing run carries no user
+oversights: **no per-record teardown**, and **no file-producing handlers in the bound flow** —
+both are per-user end to end. **File attachment is not one of them**: a pool record takes the
+project's own files — `entity.create`'s `fileIdsSlot` checks each file against the record's
+owner, and a file uploaded through `POST /v1/projects/{nodeId}/files/upload-url` (the route an
+API key uses) is a project file. `POST /v1/projects/{nodeId}/records` has no file field and
+there is no attach route, so the attaching write is always a flow's. A pool processing run carries no user
 at all, so **a flow that reads user attributes cannot run under one**: the provider fails closed.
 Read configuration through the project attribute instead. Billing lands on the project's payer.
 
@@ -241,6 +245,12 @@ surfaces — a facet is not a field, so it is not a use of one; see "Which facet
 }
 ```
 
+A field's source `family` says which half of the type's contract it comes from: `submission` — the
+record's submitted data — or `processed` — an output of the processing flow bound to the type, the
+way a searchable `body` extracted from an uploaded file is named (`{ "family": "processed",
+"field": "body" }`, where `body` is that flow's output slot). The grammar also has `system`
+(platform-maintained fields); a reference the type cannot supply is refused at save, never left to produce nothing.
+
 ⛔ **`searchable` as well as `queryable` and `relations` are READ-ONLY on the wire.** They are derived from
 `uses` and reported beside it; a create or patch body naming any of them is a `422` from the strict
 schema, and there is no merge form of anything — `uses` is **sent whole**. Order matters for exactly
@@ -262,7 +272,8 @@ today, so the list is the deployment's statement, not a promise.
 that way — an object cannot be filtered, a number or a file cannot be a key), `USES_TWO_KEYS`,
 `USES_KEY_NOT_SUBMITTED` (a `key` on a field that is not submitted data, such as a flow output),
 `USES_SEARCH_NO_TEXT`, `USES_SEARCH_SETTINGS` (a `search` use with no `search` settings, or the
-reverse), `USES_FACET_UNKNOWN`, `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the entry already
+reverse), `USES_FACET_UNKNOWN`, `USES_FACET_SHADOWS_FIELD` (a surfaced facet's key is also a
+field name of the type), `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the entry already
 marks the field as a reference to a different type), and for `element.filters` on a `link`:
 `EDGE_FILTER_NOT_FILTERABLE`, `EDGE_FILTER_BUDGET_EXCEEDED`, `EDGE_FILTER_TYPE_CONFLICT` (below).
 Nothing is written on a refusal — not the statement, not a projection, not a marker.
@@ -678,8 +689,8 @@ body. A cached answer — every query reads the stores as they are now. The oper
   declared as data fields, nor collide with a derived slot
   (`RECORD_TYPE_DERIVED_FIELD_RESERVED`). Names must be letter-led alphanumeric.
 - **Removing a field from an entry while a referencing type has records**
-  (`SCHEMA_ENTRY_UNSAFE_FOR_RECORD_TYPE`). Editing an entry re-validates every type referencing
-  it, strictest wins.
+  (`SCHEMA_ENTRY_UNSAFE_FOR_RECORD_TYPE`), or adding one named like a facet a referencing type
+  surfaces (same code). Editing an entry re-validates every type referencing it, strictest wins.
 - **A definition that contradicts itself or carries a `$facet` marker no extraction can honour.**
   `SCHEMA_DEFINITION_MALFORMED_CONSTRAINT`: a range no value satisfies, a negative or fractional
   count bound, an `enum` member listed twice, two `oneOf` / `anyOf` branches pinning one `const`, or
@@ -1186,7 +1197,9 @@ keys in a different order is how you reorder. There is no separate attach verb, 
 no facet-list route, so a half-applied change is not something the API can produce.
 
 What it refuses: a key that is not a facet of this project (`USES_FACET_UNKNOWN`, one issue per
-unknown key, all at once), a key that repeats, and — like every other write — any change to a seeded
+unknown key, all at once), a key that is also one of the type's field names or a key every record
+row carries (`USES_FACET_SHADOWS_FIELD` — a record read returns facets as top-level keys, so the
+facet would replace the field), a key that repeats, and — like every other write — any change to a seeded
 record type (`RECORD_TYPE_SEEDED_READONLY`).
 
 Reading the current list is `expand=facets` on the ordinary type read rather than an endpoint of

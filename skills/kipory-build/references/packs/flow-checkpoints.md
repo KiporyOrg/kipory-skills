@@ -99,6 +99,14 @@ name, rather than trusting the automatic one to still be there.
 - **A restore rewrites; it does not merge.** Anything added to the flow after the snapshot is
   gone. That is the point, but it means a checkpoint taken before a long session throws away the
   good changes along with the bad.
+- **A restore matches steps by name.** A step the flow still holds is rewritten in place and keeps
+  its id; if the restore changes it, its `version` moves FORWARD (never back to the captured
+  number), so a `capturedVersion` you held is stale: re-read the flow's steps after a restore. A step deleted since comes back with a NEW
+  id, and one added since is deleted. History keyed by step id —
+  `GET /v1/projects/{nodeId}/ai-calls?skillId=`, the `bySkill` rows of
+  `GET /v1/runs/{runId}/spend`, a trace's `skillId` — splits only for a step that came back with a
+  new id; key your own history by step name and it never splits. A project-document apply matches
+  steps the same way.
 - **Restore and the atomic skill-replace share the same path**, so a restore accepts entries a
   single skill create would have rejected — it validates the resulting graph rather than the
   incoming format.

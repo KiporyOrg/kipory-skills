@@ -41,7 +41,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `node` | `string` | yes | The node to attach the secret to. |
 | `type` | `string` | yes | Which catalog type this is. It decides the required fields. |
-| `purpose` | `string` | yes | Your label for this one, unique within the node and type. Reusing an existing pair is refused rather than silently overwriting. |
+| `purpose` | `string` | yes | Your label for this one, unique within the node and type. Reusing an existing pair REPLACES that record's value in place (its status is left alone) — an upsert, not a refusal. |
 | `value` | `object` | yes | The secret's fields, keyed by the names its catalog type declares. WRITE-ONLY — it is never returned by any read. |
 
 **Response `201`**

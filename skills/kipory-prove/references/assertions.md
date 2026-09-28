@@ -11,6 +11,22 @@ One closed set of six kinds, shared verbatim by flow test cases and eval cases. 
 | `no-errors`                  | —                                           | the run reported no per-skill errors                                                                                                                           |
 | `jsonata`                    | `expression` (1–4000 chars), `description?` | the expression, evaluated over the run result, returns `true`. A non-boolean result **fails** rather than coercing. Validated at save time as well as run time |
 
+## What a `jsonata` expression reads
+
+The expression is evaluated over one object, the same for a test case and an eval case:
+
+| Key                                | Holds                                                                          |
+| ---------------------------------- | ------------------------------------------------------------------------------ |
+| `output`                           | the flow's bound outputs, keyed by output slot — what an endpoint would return |
+| `missingRequiredOutput`            | the first required output slot the run did not produce, as a name, or null     |
+| `transcript`                       | the per-step transcript                                                        |
+| `errors`                           | the per-step errors, each with `skillId`, `branchId`, `phase`, `message`       |
+| `warnings`                         | the run's warnings                                                             |
+| `totalTokensIn` · `totalTokensOut` | the run's token totals                                                         |
+| `latencyMs`                        | the run's wall time                                                            |
+
+⚠️ The root is `output`, not `flowOutput` — the preview response's name for the same value. `flowOutput.x = true` reads nothing and fails with `actual: "null"`. Examples: `output.urgent = true`, `$count(output.items) >= 3`, `output.category in ["billing", "bug"]`, `$count(errors) = 0`.
+
 ## What is deliberately absent
 
 There is no content-equality kind. Assertions constrain **shape and structure**; `jsonata` is the escape hatch for anything more specific, and it inherits the sandbox every expression in the platform runs in: `$now`, `$millis`, `$random` and `$shuffle` are refused, because an assertion that reads the clock is one that passes on Tuesday.

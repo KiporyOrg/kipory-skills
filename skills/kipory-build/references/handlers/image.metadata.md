@@ -7,8 +7,8 @@ Read an image's size and the camera details stored in it.
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `FileMetadata`
-- **Reads:** One image file. The type is not checked — anything without readable metadata simply comes back empty. _(shape hint: `file`)_
-- **Emits:** A `FileMetadata`, every field independently optional. An empty object means the file carried no metadata. A corrupt image fails rather than coming back empty.
+- **Reads:** One image file. The type is not checked — anything that is not a readable image comes back with only its `byteSize`. _(shape hint: `file`)_
+- **Emits:** A `FileMetadata`, every field optional. A corrupt image never fails — it comes back as `{ byteSize }` alone; one without EXIF still has its dimensions and format.
 - **Suggested input streams:** `currentFile`
 - **Queue:** 1 attempt, no backoff; waits up to 60000ms; cache no expiry (custom-derive-source)
 

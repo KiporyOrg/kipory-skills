@@ -232,6 +232,15 @@ editor you are standing in.
 - **Reserved keys are refused** with `FACET_KEY_INVALID` — the identity, content and metadata
   names the record shape already owns, along with `facets`, `terms`, `recordType` and the
   timestamps. Keys must be camelCase.
+- **Do not give a facet the key of a field of a type that surfaces it**, or a key every record
+  row already carries — its status, files and cost among them. A record read carries each facet as a
+  top-level key, so facet `cuisine` beside a submitted `cuisine` would answer every row with the
+  term in place of the value. The facet itself saves. The record type's `uses.facets` naming it is
+  refused with `USES_FACET_SHADOWS_FIELD`, and a schema-entry edit that adds the field to a type
+  already surfacing the facet is refused with `SCHEMA_ENTRY_UNSAFE_FOR_RECORD_TYPE`. A pair that
+  arises any other way (a flow output of that name, say) is not refused; the record type's
+  diagnostics report it. Pick a key no surfacing type uses as a field name (`cuisineTag`).
+  <!-- field-ok: cuisineTag — an example facet key a project would author, not a platform field -->
 - **An empty label is refused** with `FACET_LABEL_EMPTY`, on the create and the rename alike. It
   used to answer `FACET_KEY_INVALID` on the create — one rule with two codes depending on which
   verb ran it — so a client branching on the code for `POST /v1/facets` saw the key's failure over
@@ -352,6 +361,15 @@ idempotent.
 ⛔ **One status, two bodies.** Being idempotent is exactly what leaves no second
 success code for a verdict: a `200` is either the seeded batch or a verdict
 about one that was not seeded. Narrow on `ok`, which only the verdict declares.
+
+⚠️ **`ok: true` does not embed.** The real seed — like `POST /v1/terms` and a relabelling
+`PATCH /v1/terms/{id}` — embeds every term's text **before** it writes, on the platform's shared
+term model (the `substrate-embedding` task, read at the platform root; a project cannot rebind it, and
+binding it at a project node is refused with `TASK_READ_AT_ROOT_ONLY`). A provider refusal fails the whole write
+with nothing saved, **whatever the facet's `matching`** — an `exact` facet embeds its terms too.
+There is no project-side workaround; retry once the provider answers. `qdrantUpsertFailures` (and a
+single term's `reembedWarning`) is a different, later failure: the rows saved and the vector-store
+write after them did not.
 
 ⚠️ **`ok: true` does not check the parent's existence.** A parent term is
 resolved inside the write's own transaction; the dry run knows only whether one
