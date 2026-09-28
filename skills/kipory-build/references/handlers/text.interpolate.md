@@ -2,7 +2,7 @@
 
 # `text.interpolate` — Fill a template
 
-Fill a template with slot values without calling an LLM.
+Fill a text template with values from earlier steps.
 
 - **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -20,7 +20,7 @@ Every `{{slot}}` in the template is replaced with its value. No model, no networ
 
 Reads: read slot bag. Emits: interpolate template.
 
-#### single slot
+#### One value
 
 One slot, no surrounding prose. Use it to rename or repackage an upstream value.
 
@@ -40,7 +40,7 @@ Output:
 Q2 retro
 ```
 
-#### multi-slot weave
+#### Several values
 
 Newlines in the template survive. The usual use is assembling one string out of several slots.
 
@@ -63,7 +63,7 @@ Article: Q2 ingestion stats
 Throughput up 18%; cache hit rate steady at 91%.
 ```
 
-#### list slot joins
+#### A list
 
 A list referenced bare is joined with commas. Use it to flatten a list back into prose.
 
@@ -83,7 +83,7 @@ Output:
 Tags: #engineering, #metrics, #q2
 ```
 
-#### projection accessor
+#### Item and count
 
 `length`, `first` and `last` project on a list; `{{slot[N]}}` reaches any position.
 

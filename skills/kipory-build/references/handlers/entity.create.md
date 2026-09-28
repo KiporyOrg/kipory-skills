@@ -2,7 +2,7 @@
 
 # `entity.create` — Create a record
 
-Create a record of a configured entity, owned by the current user.
+Create a new record of the type you choose, owned by the signed-in user.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
@@ -24,7 +24,7 @@ Creates one record of a chosen type and hands back its id, so the next step can 
 
 Reads: the new record's fields. Emits: RecordCreate.
 
-#### a new record
+#### A new record
 
 The record is created and its id comes back. A type with no processing flow is ready at once.
 
@@ -48,7 +48,7 @@ Output:
 }
 ```
 
-#### the same request twice
+#### Sent twice
 
 A retry under the same key reuses the id already minted, so nothing is duplicated.
 

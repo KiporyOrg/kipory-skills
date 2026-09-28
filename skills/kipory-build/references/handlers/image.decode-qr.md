@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `image.decode-qr` — Decode QR codes
+# `image.decode-qr` — Scan QR codes
 
-Decode any QR codes found in an image and return their contents.
+Read the QR codes in an image and return what they say.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -24,7 +24,7 @@ Reads any QR codes in an image and returns what they say.
 
 Reads: an image. Emits: the decoded text.
 
-#### one code
+#### A QR code
 
 The image carries a single QR code, and the text encoded in it comes back.
 
@@ -42,7 +42,7 @@ Output:
 ["https://example.com/t/9f2a1c"]
 ```
 
-#### no code in the image
+#### No QR code
 
 Nothing in the image decodes, so an empty list comes back rather than an error.
 

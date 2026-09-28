@@ -66,6 +66,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this handler executes. It constrains where a step using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What a step editor must ask the operator for this handler: which work surface to show, whether a prompt and a model are required, and where this handler's inputs and output slot come from. Always fully populated — a handler that declares nothing is served the platform defaults, so a client never applies a default of its own. |
+| `glance` | `object` | yes | What goes in, what the step does, what comes out — in plain words. |
+| `essentials` | `object[]` | yes | The settings that matter, in reading order: every required one, then those that change the result. Empty when none is worth a card. |
 | `emits` | `string` | no | What it produces, in prose. |
 | `reads` | `string` | no | What it consumes, in prose. |
 | `inputHint` | `string` | no | A short hint at the input shape — "string", "file", "slot map". |

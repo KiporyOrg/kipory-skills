@@ -2,7 +2,7 @@
 
 # `file.download-url` — Create a download link
 
-Create a signed URL a client can use to download a file.
+Make a link anyone can use to download a file.
 
 - **Group:** Files · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -25,7 +25,7 @@ A link is signed locally — nothing is fetched. The variants show different fil
 
 Reads: FileRef. Emits: presign (HMAC).
 
-#### PDF
+#### A PDF
 
 A signed link, non-expiring by default. Safe to hand to a browser tab or a model's tool call.
 
@@ -43,7 +43,7 @@ Output:
 https://kipory-prod.s3.us-east-1.amazonaws.com/uploads/abc123/reports/2026-q1.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Expires=300&X-Amz-Signature=…
 ```
 
-#### Image
+#### An image
 
 Any file type works — nothing is transformed or inspected. Useful for handing an image URL to a model.
 

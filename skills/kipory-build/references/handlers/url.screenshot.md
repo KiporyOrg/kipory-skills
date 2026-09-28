@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `url.screenshot` — Capture a page screenshot
+# `url.screenshot` — Take a page screenshot
 
-Capture a web page screenshot as an image file.
+Take a picture of a web page.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
@@ -31,7 +31,7 @@ Loads the page in a headless browser and captures the whole thing as an image fi
 
 Reads: render + capture. Emits: attachFile → FileRef.
 
-#### typical PNG
+#### As a PNG
 
 Default config — full-page PNG capture at 1280px viewport. Bytes land under the record's storage prefix.
 
@@ -53,9 +53,9 @@ Output:
 }
 ```
 
-#### JPEG q=70
+#### As a JPEG
 
-JPEG output with `format: jpeg`, `jpegQuality: 70` — smaller bytes for high-volume archival flows.
+A JPEG instead of a PNG — smaller bytes for high-volume archival flows.
 
 Reads `string` → emits `file` · 1 in → 1 out
 
@@ -75,7 +75,7 @@ Output:
 }
 ```
 
-#### invalid URL
+#### Bad address
 
 Not a web address, so nothing is captured and the result is an empty file reference.
 

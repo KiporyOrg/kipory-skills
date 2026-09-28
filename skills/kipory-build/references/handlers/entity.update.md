@@ -2,7 +2,7 @@
 
 # `entity.update` — Update a record
 
-Patch an existing record's submitted data and/or derived output.
+Change an existing record's data.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -30,7 +30,7 @@ Patches an existing record in place and says whether a row changed.
 
 Reads: the record id and the patch. Emits: changed?.
 
-#### a patch lands
+#### Record updated
 
 The named fields are merged into the record and the step reports that a row changed.
 
@@ -51,7 +51,7 @@ Output:
 true
 ```
 
-#### nothing matched
+#### Nothing changed
 
 The id belongs to someone else, or the required status did not hold. Nothing changed, and no error.
 

@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `term.upsert` — Upsert terms
+# `term.upsert` — Save terms
 
-Persist resolved terms, their record assignments, and their vectors.
+Save resolved terms and link them to their records.
 
 - **Group:** Entities · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -23,7 +23,7 @@ Saves a bundle of resolved terms and links them to the record. Nothing comes bac
 
 Reads: resolved terms. Emits: nothing.
 
-#### one match, one new
+#### One new term
 
 The matched term is reused and the new one is created and embedded. The step writes no slot.
 
@@ -45,7 +45,7 @@ Output:
 
 ```
 
-#### an empty bundle
+#### Nothing to save
 
 Nothing was resolved, so nothing is written and the step still succeeds.
 

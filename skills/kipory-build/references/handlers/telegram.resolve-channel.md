@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `telegram.resolve-channel` — Resolve a Telegram channel
+# `telegram.resolve-channel` — Fetch a Telegram channel
 
-Resolve a public Telegram channel by handle (members, name, description, avatar).
+Look up a public Telegram channel: its name, members, description, and picture.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -26,7 +26,7 @@ Resolves a public Telegram channel from its handle, or says why it could not.
 
 Reads: resolve handle. Emits: resolved channel.
 
-#### resolvable channel
+#### A public channel
 
 A recent answer is reused; otherwise the lookup runs and returns the members, name, description and avatar.
 
@@ -51,7 +51,7 @@ Output:
 }
 ```
 
-#### not a channel
+#### Not a channel
 
 A real username, but a person, not a channel. The reason comes through, so a caller can reject it.
 
@@ -72,7 +72,7 @@ Output:
 }
 ```
 
-#### nothing to resolve (invite link)
+#### An invite link
 
 An invite link is not a public handle, so there is nothing to look up. The result is empty.
 

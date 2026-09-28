@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `url.fetch-as-file` — Fetch URL as file
+# `url.fetch-as-file` — Fetch a web address as a file
 
-Download a URL and save the response body as a file.
+Download a web address and save it as a file.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
@@ -10,7 +10,7 @@ Download a URL and save the response body as a file.
 - **Reads:** One URL — the thing to download. Anything that is not `http` or `https`, or that resolves to a private address, is refused. _(shape hint: `string`)_
 - **Emits:** A `FileRef` for the downloaded bytes, saved to storage. An empty one when the URL is missing, or when a soft failure turns a failed download into a warning.
 - **Suggested input streams:** `currentUrl`
-- **External dependency:** The open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard, and stores the bytes. The site itself is the dependency.
+- **External dependency:** the open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard, and stores the bytes. The site itself is the dependency.
 - **Rate limit:** 60 per 60000ms in bucket `url.fetch-as-file`
 - **Queue:** 3 attempts, exponential from 1000ms; waits up to 90000ms; cache 86400000ms (custom-derive-source)
 
@@ -30,7 +30,7 @@ Downloads what a URL returns and saves it as a file on the record, so a later st
 
 Reads: download bytes. Emits: attachFile → FileRef.
 
-#### image download
+#### An image
 
 PNG image at a CDN URL — `Content-Type: image/png` recognized, baseName derives from the URL pathname (`hero.png`).
 
@@ -52,9 +52,9 @@ Output:
 }
 ```
 
-#### mime gate hit
+#### Wrong file type
 
-The content type does not match what was allowed, so the download is refused.
+The page answers `text/html`, which the step does not accept, so the download is refused.
 
 Reads `string` → emits `file` · 1 in → 1 out
 
@@ -71,7 +71,7 @@ Error: url.fetch-as-file: Content-Type "text/html" from
   https://example.com/landing-page does not match any allowedMimePatterns
 ```
 
-#### invalid URL
+#### Bad address
 
 Not a web address, so nothing is requested and the result is an empty file reference.
 

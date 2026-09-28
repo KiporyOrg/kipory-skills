@@ -2,7 +2,7 @@
 
 # `entity.query` — Query records
 
-Ask one question across a record type's stores: fields, terms, links, streams and meaning, answered exactly.
+Find records by their fields, terms, links, or meaning, all in one question.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -26,7 +26,7 @@ Asks one question across a record type's stores and says, on every answer, wheth
 
 Reads: the cursor and user slots. Emits: records + bounded + explanation.
 
-#### three clauses, answered exactly
+#### Three conditions
 
 Term and edge legs ran first; their intersection was pushed into the index exactly, so `bounded` is false.
 
@@ -57,7 +57,7 @@ Output:
 }
 ```
 
-#### a clause emptied the set
+#### No matches
 
 The edge leg found nobody, so the semantic clause never ran: `emptiedBy` names it.
 
@@ -86,7 +86,7 @@ Output:
 }
 ```
 
-#### exact-only, paged
+#### Page by page
 
 No semantic clause, so the answer is complete and pages newest-first; the cursor resumes after this page.
 

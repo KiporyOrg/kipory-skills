@@ -2,7 +2,7 @@
 
 # `telegram.search-channels` — Search Telegram channels
 
-Find public Telegram channels matching one or more search terms.
+Find public Telegram channels that match your search words.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -28,7 +28,7 @@ Searches public Telegram channels by keyword. Its sibling `telegram.resolve-chan
 
 Reads: search terms. Emits: candidate channels.
 
-#### two Hebrew terms
+#### Two Hebrew terms
 
 Discovery, not ranking. `memberCount` is often absent, and absent means unknown, not zero.
 

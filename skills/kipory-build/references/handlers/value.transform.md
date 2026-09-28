@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `value.transform` — Transform with JSONata
+# `value.transform` — Reshape values
 
-Transform slot values with a JSONata expression.
+Reshape or combine values with a short expression.
 
 - **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -22,7 +22,7 @@ A JSONata expression runs against the slots. The variants zip two lists, build a
 
 Reads: read referenced slots. Emits: evaluate expression.
 
-#### zip two lists → list of objects
+#### Pair up lists
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
@@ -45,7 +45,7 @@ Output:
 ]
 ```
 
-#### compose object from inputs
+#### Build an object
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
@@ -69,7 +69,7 @@ Output:
 }
 ```
 
-#### extend existing object with static keys
+#### Add fields
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 

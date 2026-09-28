@@ -2,7 +2,7 @@
 
 # `pdf.parse` — Extract text from a PDF
 
-Extract text and document properties from a PDF file.
+Pull the text and document details out of a PDF.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -24,7 +24,7 @@ One pass over the file gives both its text and its metadata. The variants show a
 
 Reads: download from S3. Emits: one decode → text + metadata.
 
-#### LaTeX paper
+#### A research paper
 
 A PDF with a real text layer: the prose, the page count and the metadata come out of one pass.
 
@@ -54,7 +54,7 @@ Output:
 }
 ```
 
-#### scanned PDF
+#### A scanned PDF
 
 A scan has no text layer, so the text is empty — the page count and metadata still come through.
 
@@ -76,7 +76,7 @@ Output:
 }
 ```
 
-#### encrypted
+#### A locked PDF
 
 A locked file cannot be read. The flag distinguishes that from an ordinary empty result.
 

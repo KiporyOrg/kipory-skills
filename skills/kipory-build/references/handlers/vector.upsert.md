@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `vector.upsert` — Write vectors to a collection
+# `vector.upsert` — Store search data
 
-Write dense and sparse vectors plus payload fields to a vector collection.
+Store an item's search data so it can be found by meaning or keywords.
 
 - **Group:** Search · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -29,7 +29,7 @@ Several slots go in and one point is written; nothing comes back. The variants s
 
 Reads: read N slots. Emits: upsert point.
 
-#### full point
+#### Everything stored
 
 Reads `slots` → emits `point in notes` · 4 slots → 1 point · 2 of 2 vectors
 
@@ -47,7 +47,7 @@ Written:
 - {"index":2,"value":"vector vec.user-language","detail":"3072 dims"}
 - {"index":3,"value":"tags: [\"pasta\", \"whole-foods\", \"weekend\"]"}
 
-#### sparse user-language
+#### One vector empty
 
 Reads `slots` → emits `point in notes` · 4 slots → 1 point · 2 of 2 vectors
 
@@ -65,7 +65,7 @@ Written:
 - {"index":2,"value":"vector vec.user-language","detail":"sparse"}
 - {"index":3,"value":"tags: [\"pasta\"]"}
 
-#### payload-only
+#### No vectors
 
 Reads `slots` → emits `point in notes` · 5 slots → 1 point · 2 of 2 vectors
 

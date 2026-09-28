@@ -2,7 +2,7 @@
 
 # `image.resize` — Resize an image
 
-Resize an image and return the smaller file.
+Make an image smaller and return the new file.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
@@ -31,7 +31,7 @@ The image is rotated if its metadata says so, resized to fit the box, and re-enc
 
 Reads: decode + resize. Emits: attachFile → FileRef.
 
-#### JPEG photo → 256px
+#### A photo
 
 Default config (256×256 box, fit:inside, format:preserve, quality:80). The input keeps its JPEG encoding and shrinks proportionally.
 
@@ -53,9 +53,9 @@ Output:
 }
 ```
 
-#### PNG screenshot → WebP
+#### A screenshot
 
-`format: webp` forces a WebP re-encode (smaller bytes than the source PNG at equal visual quality).
+Re-encoded as WebP: smaller bytes than the source PNG at equal visual quality.
 
 Reads `file` → emits `file` · 1 in → 1 out
 
@@ -75,7 +75,7 @@ Output:
 }
 ```
 
-#### non-image (skipped)
+#### Not an image
 
 With a mime condition wired upstream the step is skipped. Without one it throws, so the missing routing shows up.
 

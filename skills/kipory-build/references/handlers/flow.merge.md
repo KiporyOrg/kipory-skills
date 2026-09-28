@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `flow.merge` — Merge fan-out branches
+# `flow.merge` — Gather branch results
 
-Gather outputs from fan-out branches into one list.
+Gather the results of parallel branches into one list.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -23,7 +23,7 @@ Branch results come back together as one list. The variants show keeping everyth
 
 Reads: gather branches. Emits: reduce by strategy.
 
-#### concat (text)
+#### Keep everything
 
 Reads `string[]` → emits `string[]` · 5 branches → 5 items
 
@@ -41,7 +41,7 @@ Merged:
 - {"index":3,"value":"https://github.com/kipory/sdk"}
 - {"index":4,"value":"https://github.com/kipory/cli"}
 
-#### dedup-concat (text)
+#### Drop repeats
 
 Reads `string[]` → emits `string[]` · 6 branches → 4 items
 
@@ -58,7 +58,7 @@ Merged:
 - {"index":2,"value":"https://example.com/launch"}
 - {"index":3,"value":"https://github.com/kipory/sdk"}
 
-#### dedup-concat (files)
+#### Drop repeated files
 
 Reads `file[]` → emits `file[]` · 6 branches → 4 items
 
@@ -75,7 +75,7 @@ Merged:
 - {"index":2,"value":"receipts/oct.pdf"}
 - {"index":3,"value":"receipts/nov.pdf"}
 
-#### multi-source concat
+#### Two sources
 
 Reads `string[]` → emits `string[]` · 9 branches → 9 items
 

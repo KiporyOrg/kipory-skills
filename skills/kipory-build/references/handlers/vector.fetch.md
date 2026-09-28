@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `vector.fetch` — Read stored vectors
+# `vector.fetch` — Read stored search data
 
-Read the stored named vectors for a point ID.
+Read the stored meaning numbers for an item.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -25,7 +25,7 @@ Reads the stored vectors for one point back out of the vector store.
 
 Reads: the point id. Emits: vectors by name.
 
-#### two named vectors
+#### Both found
 
 The point carries both, so both come back keyed by name.
 
@@ -34,7 +34,7 @@ Reads `string` → emits `Record<string, number[]>` · 1 in → 1 out
 Input:
 
 ```
-"ckwx0a1b2c3d"
+"18a9d333-363d-0460-77fa-f08e3f0526e0"
 ```
 
 Output:
@@ -46,7 +46,7 @@ Output:
 }
 ```
 
-#### one of them missing
+#### One missing
 
 The point never carried that vector, so it is left out rather than returned empty.
 
@@ -55,7 +55,7 @@ Reads `string` → emits `Record<string, number[]>` · 1 in → 1 out
 Input:
 
 ```
-"ckwx_older"
+"c9f6c59b-0330-2ccc-0644-68f98209a983"
 ```
 
 Output:

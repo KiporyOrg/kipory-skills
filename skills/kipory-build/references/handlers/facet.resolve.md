@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `facet.resolve` — Resolve facets
+# `facet.resolve` — Pick terms for a record
 
-Propose and resolve a set of facets for a record in one node, emitting term resolutions.
+Pick the right terms for a record in each facet you choose.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -27,7 +27,7 @@ Proposes facet values for a record and resolves each into a term, ready to be sa
 
 Reads: the record context. Emits: TermResolution[].
 
-#### two facets
+#### Two facets
 
 One value matched a term that already exists; the other is new and carries what is needed to create it.
 
@@ -51,7 +51,7 @@ Output:
 ]
 ```
 
-#### nothing to resolve
+#### Nothing found
 
 The model proposed no value for any configured facet, so an empty list comes back.
 

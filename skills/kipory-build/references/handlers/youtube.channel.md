@@ -2,7 +2,7 @@
 
 # `youtube.channel` — Fetch a YouTube channel
 
-Fetch metadata and stats for a YouTube channel.
+Look up a YouTube channel's details and numbers.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -29,7 +29,7 @@ Turns a channel URL, handle, or id into the channel's metadata and stats.
 
 Reads: parse + lookup. Emits: map fields.
 
-#### by URL (snippet + statistics)
+#### From a link
 
 Default `parts: ['snippet','statistics']` — identity fields + view / subscriber / video counts (parsed from API strings to JS numbers).
 
@@ -63,7 +63,7 @@ Output:
 }
 ```
 
-#### by bare handle
+#### From a handle
 
 Same channel resolved from a bare handle — produces the identical cached row as the URL variant.
 
@@ -86,9 +86,9 @@ Output:
 }
 ```
 
-#### with uploads listing
+#### With recent uploads
 
-Listing uploads adds a second call and fills `uploads[]` with the most recent ones.
+A second call fills `uploads[]` with the channel's most recent videos.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
@@ -118,7 +118,7 @@ Output:
 }
 ```
 
-#### no such channel
+#### No such channel
 
 No such channel. The result is empty, and the empty result is cached so a re-run costs nothing.
 

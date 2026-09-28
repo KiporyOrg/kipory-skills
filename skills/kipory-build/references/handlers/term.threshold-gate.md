@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `term.threshold-gate` — Threshold-gate term resolution
+# `term.threshold-gate` — Decide: match or new term
 
-Choose whether a proposed term should match, create, or ask for review based on similarity thresholds.
+Decide whether a proposed term matches one you have, is new, or needs review.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -29,7 +29,9 @@ Compare the top candidate's score against the facet thresholds: reuse, coin, or 
 
 Reads: score vs thresholds. Emits: resolved · or tiebreak.
 
-#### decisive match
+#### Clear match
+
+The top candidate is reused as a match on the `type` facet — no LLM call.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
@@ -48,7 +50,9 @@ Output:
 { "kind": "resolved", "resolution": { "outcome": "match", "facet": "type", "termId": "term-evt" } }
 ```
 
-#### ambiguous tiebreak
+#### Too close
+
+Neither reuse nor coin is safe, so the LLM tiebreak decides.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 

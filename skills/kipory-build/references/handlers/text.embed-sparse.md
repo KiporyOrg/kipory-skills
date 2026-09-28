@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `text.embed-sparse` — Embed text as a sparse vector
+# `text.embed-sparse` — Capture text keywords
 
-Turn text into a sparse vector for keyword-style retrieval.
+Turn text into numbers that capture its keywords, for keyword search.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -24,7 +24,7 @@ One string in, a sparse vector out — a dimension per word. The variants show a
 
 Reads: read string slot. Emits: tokenize + BM25.
 
-#### an exact identifier
+#### An exact ID
 
 Each word gets its own dimension. A dense vector blurs a proper name; this keeps it exact.
 
@@ -47,7 +47,7 @@ Output:
 }
 ```
 
-#### a repeated word
+#### Repeated word
 
 A word repeated five times weighs under twice a single one, so common words cannot dominate the vector.
 
@@ -70,7 +70,7 @@ Output:
 }
 ```
 
-#### no text
+#### No text
 
 Nothing to weigh, so nothing is computed. A later write leaves that sparse vector as it was.
 

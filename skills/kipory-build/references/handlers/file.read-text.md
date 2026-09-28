@@ -2,7 +2,7 @@
 
 # `file.read-text` — Read a text file
 
-Read a text-like file and return its UTF-8 contents.
+Read a text file and return what it says.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -26,7 +26,7 @@ A text file's bytes come back as text. The type is checked first, so a binary fi
 
 Reads: download from S3. Emits: UTF-8 decode.
 
-#### CSV
+#### A CSV file
 
 `text/csv` — passes the mime gate; bytes decoded as UTF-8 verbatim.
 
@@ -48,7 +48,7 @@ storage,2,0.0
 platform,5,0.25
 ```
 
-#### JSON
+#### A JSON file
 
 `application/json` — text-decodable application type; allowed by the allowlist (`*+json` patterns also pass).
 
@@ -73,7 +73,7 @@ Output:
 }
 ```
 
-#### PDF (rejected)
+#### A PDF
 
 Non-text mime — the handler throws a `mime-mismatch` HandlerFailure rather than silently mangling binary bytes. Use `pdf.parse` for PDFs.
 

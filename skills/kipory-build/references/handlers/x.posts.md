@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `x.posts` — Scrape X posts
+# `x.posts` — Fetch X posts
 
-Scrape an X/Twitter tweet, profile or search URL into a page with its posts.
+Read the posts from an X post, profile, or search link.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -30,7 +30,7 @@ Scrapes one X URL — a post, a profile, or a search — into a page with the po
 
 Reads: scrape posts. Emits: page + data.
 
-#### profile URL
+#### A profile
 
 A profile digest — the posts rendered into the body, with author stats and engagement alongside.
 

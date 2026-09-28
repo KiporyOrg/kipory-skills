@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `flow.invoke` — Invoke a sub-flow
+# `flow.invoke` — Run another flow
 
-Run another saved flow and map selected inputs and outputs.
+Run another flow, passing values in and taking results back.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -24,7 +24,7 @@ Runs another saved flow inline. Only the mapped slots cross in, and only the map
 
 Reads: rename + bootstrap. Emits: rename + project.
 
-#### bidirectional
+#### In and out
 
 Reads `Article scrape & summarize` → emits `mapped slots` · 2→2 slots mapped
 
@@ -38,7 +38,7 @@ Back to the parent:
 - {"index":0,"value":"summary → articleSummary"}
 - {"index":1,"value":"qualityScore → articleScore"}
 
-#### side-effects only
+#### Pass in only
 
 Reads `Embed & store in vector DB` → emits `nothing` · 2→0 slots mapped
 
@@ -51,7 +51,7 @@ Back to the parent:
 
 - {"index":0,"value":"nothing comes back — side effects only"}
 
-#### fetcher only
+#### Get back only
 
 Reads `List active users this week` → emits `mapped slots` · 0→2 slots mapped
 

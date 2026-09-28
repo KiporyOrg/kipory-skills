@@ -2,7 +2,7 @@
 
 # `entity.list` — List records
 
-List a user's records newest-first, one page at a time, so a later step can summarize the catalog.
+List a user's records, newest first, one page at a time.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -44,7 +44,7 @@ Reads the catalog one page at a time, so a later step can summarize or count eve
 
 Reads: read userId + cursor. Emits: RecordPage.
 
-#### first page — newest 50, more remain
+#### First page
 
 No cursor wired, so this is the first page: the 50 newest rows, and a cursor because more remain.
 
@@ -69,7 +69,7 @@ Output:
 }
 ```
 
-#### last page — cursor wired, no more items
+#### Last page
 
 The previous page's cursor is wired in, so this page starts after it and is the last one.
 
@@ -91,7 +91,7 @@ Output:
 }
 ```
 
-#### empty catalog
+#### No records
 
 The user has no records, or none match the filters. The page comes back empty, with no cursor.
 

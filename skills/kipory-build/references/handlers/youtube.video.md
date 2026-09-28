@@ -2,7 +2,7 @@
 
 # `youtube.video` — Fetch a YouTube video
 
-Fetch metadata, stats, and thumbnail details for a YouTube video.
+Look up a YouTube video's details, numbers, and thumbnail.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -27,7 +27,7 @@ Turns a video URL or id into its metadata and stats — cheap enough to check be
 
 Reads: parse + lookup. Emits: map fields.
 
-#### by URL (snippet + contentDetails + statistics)
+#### From a link
 
 The default parts: identity, duration, whether captions exist, view count, and whether it is live.
 
@@ -62,7 +62,7 @@ Output:
 }
 ```
 
-#### by bare videoId
+#### From an id
 
 Same video resolved from an 11-char bare videoId — produces the identical cached row as the URL variant.
 
@@ -86,7 +86,7 @@ Output:
 }
 ```
 
-#### no such video
+#### No such video
 
 No such video — deleted, private, or a typo. The result is empty, and that empty result is cached.
 

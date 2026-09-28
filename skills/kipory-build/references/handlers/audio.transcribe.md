@@ -2,7 +2,7 @@
 
 # `audio.transcribe` — Transcribe audio
 
-Transcribe an audio file into text.
+Turn speech in an audio file into text.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -10,7 +10,7 @@ Transcribe an audio file into text.
 - **Reads:** One audio file. A non-audio mime fails, and a file over the size cap is refused before anything is sent. _(shape hint: `file`)_
 - **Emits:** The spoken words as plain text. Empty when there is no file. The same file, model and language reuse the previous transcript.
 - **Suggested input streams:** `currentFile`
-- **External dependency:** Model provider — Whichever provider hosts the transcription model this step is set to. `whisper-1` is the seed, not the contract — the call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
+- **External dependency:** a model provider — Whichever provider hosts the transcription model this step is set to. `whisper-1` is the seed, not the contract — the call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
 - **Rate limit:** 50 per 60000ms in bucket `audio.transcribe`
 - **Queue:** 2 attempts, exponential from 2000ms; waits up to 600000ms; cache no expiry (custom-derive-source)
 
@@ -28,7 +28,7 @@ Audio in, text out. Video has to be converted first. A missing file or a non-aud
 
 Reads: read the file. Emits: transcribe.
 
-#### voice memo
+#### A voice memo
 
 A short personal recording. The language is detected for you.
 
@@ -48,7 +48,7 @@ ping the design team about the new onboarding flow, and book the
 flight to Berlin for the conference. That's it.
 ```
 
-#### podcast clip
+#### A podcast clip
 
 A recording with two speakers. Both are transcribed; telling them apart is a later step's job.
 

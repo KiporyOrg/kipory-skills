@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `text.embed` — Embed text
+# `text.embed` — Capture text meaning
 
-Turn text into a dense vector for semantic search or matching.
+Turn text into numbers that capture its meaning, for search by meaning.
 
 - **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -10,7 +10,7 @@ Turn text into a dense vector for semantic search or matching.
 - **Reads:** One string. Empty or missing returns an empty vector without calling the model; anything that is not a string is a shape error. _(shape hint: `string`)_
 - **Emits:** A `Vector`. Empty when the input was empty, which is how a later write leaves that vector alone. The same text and model hit the cache.
 - **Suggested input streams:** `inputText`
-- **External dependency:** Model provider — Whichever provider hosts the embedding model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
+- **External dependency:** a model provider — Whichever provider hosts the embedding model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
 - **Rate limit:** 300 per 60000ms in bucket `ai-embed` — shared with `vector.search`
 - **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (custom-derive-source)
 
@@ -26,7 +26,7 @@ One string in, one vector out. The variants show two phrasings of the same thing
 
 Reads: read string slot. Emits: embed via model.
 
-#### a description
+#### A description
 
 A plain description of the thing. Its vector answers searches worded the same way.
 
@@ -48,7 +48,7 @@ Output:
 }
 ```
 
-#### how someone asks for it
+#### A search question
 
 The same thing in the words a person would search with. Embedded separately, it finds what the description misses.
 
@@ -70,7 +70,7 @@ Output:
 }
 ```
 
-#### no text
+#### No text
 
 Nothing to embed, so no call is made and nothing is charged. A later write leaves that vector untouched.
 

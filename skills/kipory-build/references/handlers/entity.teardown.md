@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.teardown` — Tear down a record's derived state
+# `entity.teardown` — Clear generated data
 
-Strip a record's generated files and/or term links before a reprocess.
+Clear a record's generated files and terms so it can be processed again.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -23,7 +23,7 @@ Strips what a processing run produced for a record, so the next run starts clean
 
 Reads: the record id. Emits: what was cleared.
 
-#### files and terms
+#### Files and terms
 
 Both stores are cleared and each reports its own count. Files you submitted are untouched.
 
@@ -44,7 +44,7 @@ Output:
 }
 ```
 
-#### nothing to strip
+#### Nothing to clear
 
 The record has no derived state yet. Counts come back zero rather than as an error.
 

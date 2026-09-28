@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `pdf.screenshot` — Render a PDF page
+# `pdf.screenshot` — Save a PDF page as an image
 
-Render one page of a PDF as an image file for downstream vision steps.
+Save one page of a PDF as an image.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
@@ -29,7 +29,7 @@ Renders one page of a PDF as an image file.
 
 Reads: a PDF. Emits: an image file.
 
-#### the first page
+#### An invoice
 
 The chosen page is rendered and saved as a file, and a reference to it comes back.
 

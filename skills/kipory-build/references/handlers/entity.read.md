@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.read` — Read records by ID
+# `entity.read` — Read records
 
-Read records by ID so later steps can use their text, files, or metadata.
+Read records so later steps can use their text, files, and details.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -29,7 +29,7 @@ Reads the full record behind each id a search returned, so a later step can work
 
 Reads: read ids + userId. Emits: RecordRead rows.
 
-#### candidate objects from a search
+#### From a search
 
 Four hits in, three rows out: a step reads ONE record type, and the `answer` is not it.
 
@@ -56,7 +56,7 @@ Output:
 ]
 ```
 
-#### cross-tenant safety
+#### Someone else's record
 
 Three ids in, one owned by another user. That row never comes back and no error is raised.
 
@@ -77,7 +77,7 @@ Output:
 ]
 ```
 
-#### nothing to read
+#### Nothing to read
 
 The upstream search found nothing. The handler skips the database entirely and returns an empty list.
 

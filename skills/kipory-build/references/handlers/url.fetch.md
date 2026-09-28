@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `url.fetch` — Fetch raw URL content
+# `url.fetch` — Fetch text from a web address
 
-Fetch raw text or JSON from a URL.
+Download the text behind a web address.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -10,7 +10,7 @@ Fetch raw text or JSON from a URL.
 - **Reads:** One URL — the thing to fetch. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** The response body as text — JSON, plain text, anything that is not a web page. Nothing is rendered or re-encoded. Empty on no URL, or a site failure.
 - **Suggested input streams:** `currentUrl`
-- **External dependency:** The open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard. No vendor and no key — the site itself is the dependency.
+- **External dependency:** the open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard. No vendor and no key — the site itself is the dependency.
 - **Rate limit:** 120 per 60000ms in bucket `url.fetch`
 - **Queue:** 3 attempts, exponential from 500ms; waits up to 60000ms; cache 86400000ms (custom-derive-source)
 
@@ -28,7 +28,7 @@ A plain GET for a JSON or text endpoint. For a web page, use `url.scrape` instea
 
 Reads: GET (SSRF-checked). Emits: decode UTF-8.
 
-#### JSON API
+#### A JSON API
 
 Typical JSON endpoint — body returned as raw UTF-8 text (no parsing).
 
@@ -51,7 +51,7 @@ Output:
 }
 ```
 
-#### plaintext
+#### A text file
 
 Plain text endpoint — robots.txt, sitemap, etc.
 
@@ -74,7 +74,7 @@ Allow: /
 Sitemap: https://example.com/sitemap.xml
 ```
 
-#### non-http(s)
+#### Bad address
 
 Non-`http(s)` URL — silently dropped at the URL parser. No request fires; output is the empty string.
 

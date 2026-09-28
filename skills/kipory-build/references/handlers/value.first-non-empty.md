@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `value.first-non-empty` — Pick the first non-empty value
+# `value.first-non-empty` — Take the first filled value
 
-Choose the first populated value from a priority list.
+Take the first value that is filled in, from a list you rank.
 
 - **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -24,7 +24,7 @@ Walk ordered candidates and return the first populated value while preserving it
 
 Reads: walk values · in order. Emits: first populated.
 
-#### URL wins
+#### Link wins
 
 Reads `mixed` → emits `string` · 1 in → 1 out
 
@@ -43,7 +43,7 @@ Output:
 https://cdn.example.com/cover.jpg
 ```
 
-#### file fallback
+#### File fallback
 
 Reads `mixed` → emits `file` · 1 in → 1 out
 

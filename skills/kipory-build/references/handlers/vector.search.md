@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `vector.search` — Search vectors
+# `vector.search` — Search by meaning
 
-Search a vector collection and return the closest hits.
+Find the stored items closest in meaning to a query.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -10,7 +10,7 @@ Search a vector collection and return the closest hits.
 - **Reads:** One slot holding the query: a vector from `text.embed` or `text.embed-sparse`, the text to search for, or the id of a record to find neighbours of. _(shape hint: `any+`)_
 - **Emits:** A hit list, best first, capped at `topK` — a `TermHit`, `GenericHit`, `CandidateHit` or `RecordHit`, depending on `hitShape`. Empty when nothing matches.
 - **Suggested input streams:** `vector`
-- **External dependency:** Model provider — A text query is embedded here, with the model the target collection was built with, before the search runs. A query arriving as a vector spends no model call.
+- **External dependency:** a model provider — A text query is embedded here, with the model the target collection was built with, before the search runs. A query arriving as a vector spends no model call.
 - **Rate limit:** 300 per 60000ms in bucket `ai-embed` — shared with `text.embed`
 
 ## Config
@@ -45,7 +45,7 @@ A query vector goes in and the nearest points come back, best first. What each h
 
 Reads: read query. Emits: top-K by similarity.
 
-#### warm collection (term)
+#### Close matches
 
 Five hits by similarity. A high score means the same concept; a low one means the query is genuinely new.
 
@@ -71,7 +71,7 @@ Output:
 ]
 ```
 
-#### cold start
+#### Empty collection
 
 An empty collection returns an empty list rather than erroring. A later step treats that as no match.
 
@@ -91,7 +91,7 @@ Output:
 []
 ```
 
-#### parent-scoped
+#### Within one parent
 
 The search is restricted to candidates under an already-resolved parent, so only the relevant subtree is offered.
 
@@ -115,7 +115,7 @@ Output:
 ]
 ```
 
-#### generic hits
+#### Raw stored data
 
 In generic mode the stored payload passes through untouched, so a later step projects whatever fields it needs.
 
@@ -160,7 +160,7 @@ Output:
 ]
 ```
 
-#### a sparse query
+#### Keyword query
 
 A sparse query has to name the vector slot it searches. It mixes with dense search in a hybrid flow.
 

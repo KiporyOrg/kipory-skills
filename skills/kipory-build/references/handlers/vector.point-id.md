@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `vector.point-id` — Derive a vector point id
+# `vector.point-id` — Make a search data id
 
-Derive the deterministic point id a record's vectors are stored under.
+Make the stable id a record's search data is stored under.
 
 - **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -18,15 +18,15 @@ Derive the deterministic point id a record's vectors are stored under.
 
 ## Worked example
 
-Derives the stable point id a value will be stored under.
+Derives the stable point id a record's vectors are stored under.
 
-Reads: a value. Emits: the point id.
+Reads: a record id. Emits: the point id.
 
-#### the same input, the same id
+#### Always the same
 
 The id is a function of the value, so re-running writes over the same point instead of a second one.
 
-Reads `any` → emits `string` · 1 in → 1 out
+Reads `string` → emits `string` · 1 in → 1 out
 
 Input:
 

@@ -2,7 +2,7 @@
 
 # `entity.links` — Read a record's links
 
-Read a record's declared links, grouped by kind.
+Read a record's links, grouped by kind.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -25,7 +25,7 @@ Reads the links a record carries, with what is on the other end of each.
 
 Reads: the record id. Emits: RecordLink[].
 
-#### two links
+#### Two links
 
 Each link names the far end, the kind, and which way it points from this record.
 
@@ -48,7 +48,7 @@ Output:
 ]
 ```
 
-#### no links
+#### No links
 
 The record links to nothing, so an empty list comes back rather than an error.
 

@@ -2,7 +2,7 @@
 
 # `web.search` — Search the web
 
-Run a web search query and return the organic results.
+Search the web and return the results.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -29,7 +29,7 @@ Runs one search and returns the organic results. Ads and related-question blocks
 
 Reads: run query. Emits: organic results.
 
-#### typical query
+#### A topic search
 
 One page of results, one billable call. The list is bounded by `maxResults`, ten by default.
 

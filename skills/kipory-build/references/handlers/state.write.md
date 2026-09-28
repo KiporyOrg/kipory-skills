@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `state.write` — Write run state
+# `state.write` — Save a value for later
 
-Write or accumulate a value into a named run-scoped state cell.
+Save a value for later steps in this run, or add to one.
 
 - **Group:** Flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -23,7 +23,7 @@ Accumulates a value into a run-state cell that a later step can read.
 
 Reads: the value. Emits: a marker.
 
-#### adding to a set
+#### Keep unique values
 
 The value joins the cell without repeating what is already there, because the mode is union.
 
@@ -41,7 +41,7 @@ Output:
 ok
 ```
 
-#### overwriting
+#### Replace the value
 
 The mode is set, so the cell now holds this value alone and whatever was there is gone.
 

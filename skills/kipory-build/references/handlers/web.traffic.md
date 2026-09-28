@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `web.traffic` — Fetch site traffic metrics
+# `web.traffic` — Fetch website traffic
 
-Look up one site's traffic profile — visits, ranking, and audience by country.
+Look up a website's visits, ranking, and audience by country.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -25,7 +25,7 @@ Reads one domain's traffic profile. Any URL on a site reduces to the same domain
 
 Reads: look up domain. Emits: traffic metrics.
 
-#### one domain
+#### A news site
 
 Every metric can be null rather than missing, so a consumer branches on `null` without checking the key exists.
 

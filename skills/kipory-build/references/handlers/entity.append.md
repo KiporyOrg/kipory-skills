@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.append` — Append to a stream
+# `entity.append` — Add events to a record
 
-Append one event, or a list of them, to a record's stream field.
+Add one or more events to a record's history.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -26,7 +26,7 @@ Appends time-stamped events to a record's stream field and says whether anything
 
 Reads: the record id and the events. Emits: appended?.
 
-#### new events
+#### New events
 
 Each event becomes one row under the record, keyed by its time. The record itself is untouched.
 
@@ -50,7 +50,7 @@ Output:
 appended
 ```
 
-#### the same events again
+#### Sent twice
 
 A retry derives the same ids, so every row already exists and nothing is written twice.
 

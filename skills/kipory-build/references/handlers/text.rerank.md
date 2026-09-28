@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `text.rerank` — Re-rank documents
+# `text.rerank` — Rank by relevance
 
-Re-rank candidate documents by relevance to a query.
+Sort documents by how well they answer a question.
 
 - **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -32,7 +32,7 @@ A query and five candidates go in; the same five come back ordered by how well e
 
 Reads: read query + documents. Emits: score against the query.
 
-#### search verification
+#### Search results
 
 The candidate that actually answers the question wins, though the search that produced the list had ranked another one first.
 

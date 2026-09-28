@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `list.concat` — Concatenate lists
+# `list.concat` — Join into one list
 
-Combine several values or lists into one flat list.
+Join several values or lists into one list.
 
 - **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -23,7 +23,7 @@ Flatten N sibling list slots into one list, optionally deduping. Scalar contribu
 
 Reads: read sibling slots. Emits: flatten + dedup.
 
-#### concat (preserve dups)
+#### Keep repeats
 
 Reads `mixed` → emits `string[]` · 1 in → 1 out
 
@@ -43,7 +43,7 @@ Output:
 ["video", "youtube", "mp4", "video", "tutorial", "screencast"]
 ```
 
-#### dedup-concat
+#### Drop repeats
 
 Reads `mixed` → emits `string[]` · 1 in → 1 out
 
@@ -63,7 +63,7 @@ Output:
 ["video", "youtube", "mp4", "tutorial", "screencast"]
 ```
 
-#### scalar inputs lifted
+#### Single values
 
 Reads `mixed` → emits `object[]` · 1 in → 1 out
 

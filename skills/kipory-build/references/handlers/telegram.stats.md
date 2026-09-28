@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `telegram.stats` — Read Telegram channel stats
+# `telegram.stats` — Read Telegram member count
 
-Read a Telegram channel's latest captured member count from this project's source.
+Read a Telegram channel's latest member count.
 
 - **Group:** Sources · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -21,7 +21,7 @@ Reads the member count last captured for a Telegram channel this project subscri
 
 Reads: look up channel. Emits: channel stats.
 
-#### stats-swept channel
+#### A followed channel
 
 The mtproto watcher has pushed a participant count for this channel — the handler reads the freshest stamp.
 
@@ -43,7 +43,7 @@ Output:
 }
 ```
 
-#### not yet swept
+#### Nothing captured yet
 
 Subscribed, but nothing has been captured yet — or this project does not subscribe at all.
 

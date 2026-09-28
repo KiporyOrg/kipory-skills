@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `web.rankings` — Fetch top websites by country
+# `web.rankings` — Fetch top websites
 
-List a country's most-visited websites, ranked.
+List a country's most visited websites, in order.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -28,7 +28,7 @@ Lists a country's most-visited websites — ranked by where the traffic comes fr
 
 Reads: rank country. Emits: ranked sites.
 
-#### one country
+#### Sites in Israel
 
 Local publishers and global platforms mix together, so a catalogue has to filter the platforms out.
 

@@ -27,7 +27,7 @@ Sends one message that earlier steps put together. It goes out after the run sav
 
 Reads: read message. Emits: queued.
 
-#### a message the flow just wrote
+#### Run succeeds
 
 `true` means the run now owes this message. It leaves once the run finishes and its changes are saved.
 
@@ -45,7 +45,7 @@ Output:
 true
 ```
 
-#### the flow fails two steps later
+#### Run fails later
 
 The step succeeded and nothing is sent. A failed run discards what it staged, and this was staged.
 
@@ -63,7 +63,7 @@ Output:
 true
 ```
 
-#### run from a preview
+#### In a preview
 
 The step fails, on purpose. A preview shows what a flow would do; sending would make showing and doing one.
 

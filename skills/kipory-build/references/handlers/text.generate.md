@@ -2,14 +2,14 @@
 
 # `text.generate` — Generate text
 
-Call an LLM with a prompt and return text or structured output.
+Send your prompt to an AI model and return its answer.
 
 - **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `nothing`
 - **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_
 - **Emits:** The model's answer — text, or a structured value when the step declares an output shape.
-- **External dependency:** Model provider — Whichever provider hosts the model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
+- **External dependency:** a model provider — Whichever provider hosts the model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
 - **Rate limit:** 60 per 60000ms in bucket `text.generate`
 - **Queue:** 2 attempts, exponential from 1000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source)
 
@@ -29,7 +29,7 @@ A prompt goes out, an answer comes back. The variants show prose, a declared out
 
 Reads: interpolate prompt. Emits: decode response.
 
-#### text
+#### Summary
 
 No output shape declared, so the answer comes back as text. This is the usual case.
 
@@ -49,7 +49,7 @@ Output:
 The ingestion pipeline was rewired this quarter onto a unified handler registry, lifting throughput by 18% while holding the cache hit rate at 91%. The operator-facing playground replaced four separate one-off harnesses. Week-1 adoption surfaced two save-time validator gaps; the system stabilized after.
 ```
 
-#### structured output
+#### List of tasks
 
 The step declares an output shape, so the answer is parsed into it rather than returned as prose.
 
@@ -73,7 +73,7 @@ Output:
 ]
 ```
 
-#### multimodal
+#### Describe an image
 
 A file wired in is attached to the prompt without being named in it. The model has to read images.
 

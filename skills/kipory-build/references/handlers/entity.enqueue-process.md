@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.enqueue-process` — Enqueue record processing
+# `entity.enqueue-process` — Queue for processing
 
-Queue an existing record for (re)processing by its bound flow.
+Send an existing record back through its processing flow.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each call pushes a new processing job, so a new run processes the record again whenever it is pending by then, as it is when the flow resets its status before this step.
@@ -24,7 +24,7 @@ Puts an existing record back on the processing queue. It only triggers; it chang
 
 Reads: the record id. Emits: queued?.
 
-#### queued
+#### Queued
 
 The record is pending and its type binds a flow, so it goes on the queue.
 

@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `file.stats` — Extract file stats
+# `file.stats` — Extract file details
 
-Extract size, content hash, and last-modified time from a file.
+Read a file's size, fingerprint, and last change date.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -23,7 +23,7 @@ The file is read once for its size and hash. It runs before any per-type branchi
 
 Reads: download + hash. Emits: project to FileStats.
 
-#### image
+#### A photo
 
 All three facts present. The hash is computed from the bytes; the modified time comes from the store.
 
@@ -45,7 +45,7 @@ Output:
 }
 ```
 
-#### no LastModified
+#### No change date
 
 Storage backend (or unhappy path) doesn't expose `LastModified`. Handler logs at `info` and emits just `byteSize` + `sha256ContentHash`.
 
@@ -66,7 +66,7 @@ Output:
 }
 ```
 
-#### no input wired
+#### No file
 
 No file wired in, so nothing is read and the result is empty.
 

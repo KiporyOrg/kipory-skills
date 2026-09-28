@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `state.read` — Read run state
+# `state.read` — Recall a saved value
 
-Read a named run-scoped state cell into a slot.
+Recall a value saved earlier in this run.
 
 - **Group:** Flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -22,7 +22,7 @@ Reads a run-state cell that an earlier step wrote.
 
 Reads: nothing. Emits: the stored value.
 
-#### a value is there
+#### Value saved
 
 The cell was written earlier in this run, so its current value comes back.
 
@@ -31,7 +31,7 @@ Reads `none` → emits `string[]` · 1 in → 1 out
 Input:
 
 ```
-{ "cell": "seenUrls" }
+{}
 ```
 
 Output:
@@ -40,7 +40,7 @@ Output:
 ["https://example.com/a", "https://example.com/b"]
 ```
 
-#### never written
+#### Nothing saved yet
 
 No step has written this cell in this run, so the empty value comes back.
 
@@ -49,7 +49,7 @@ Reads `none` → emits `string[]` · 1 in → 1 out
 Input:
 
 ```
-{ "cell": "seenUrls" }
+{}
 ```
 
 Output:

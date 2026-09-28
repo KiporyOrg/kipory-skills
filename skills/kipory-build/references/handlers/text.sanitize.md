@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `text.sanitize` — Sanitize text for a prompt
+# `text.sanitize` — Make text safe for a prompt
 
-Clean and wrap retrieved text before putting it into an LLM prompt.
+Make retrieved text safe to put into an AI prompt.
 
 - **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -28,7 +28,7 @@ Each item is stripped of control tokens, capped, and wrapped in a nonce-stamped 
 
 Reads: items + nonce. Emits: wrapped <doc> blocks.
 
-#### a clean item
+#### Clean item
 
 Two clean items in, two wrapped blocks out, sharing one nonce. The system prompt can name that nonce literally.
 
@@ -58,7 +58,7 @@ Output:
 ]
 ```
 
-#### a poisoned item
+#### Hidden instructions
 
 A control token meant to pass as a new system turn, stripped before wrapping — the model sees only text.
 
@@ -86,7 +86,7 @@ Output:
 ]
 ```
 
-#### an over-long item
+#### Too long
 
 A body over the cap is cut and the marker appended, so one long item cannot dominate the prompt.
 
@@ -111,7 +111,7 @@ Output:
 ]
 ```
 
-#### joined output
+#### Joined text
 
 The same items as one joined string instead of a list, for a next step wanting flat text.
 

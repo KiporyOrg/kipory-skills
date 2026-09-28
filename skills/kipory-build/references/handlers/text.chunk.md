@@ -2,7 +2,7 @@
 
 # `text.chunk` — Split text into chunks
 
-Split long text into token-sized chunks with overlap.
+Split long text into smaller overlapping pieces.
 
 - **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`

@@ -2,7 +2,7 @@
 
 # `youtube.transcript` — Fetch a YouTube transcript
 
-Fetch the transcript for a YouTube video.
+Get the words spoken in a YouTube video.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -28,7 +28,7 @@ Pulls a video's transcript from its bare id. Wire the id from a `youtube.video` 
 
 Reads: fetch transcript. Emits: join segments.
 
-#### prose
+#### As plain text
 
 Default: transcript joined into flowing prose (one space between segments).
 
@@ -46,9 +46,9 @@ Output:
 Hey everyone welcome back to the channel. Today we're diving into something I've been meaning to cover for a while which is how the new ingest pipeline actually handles back-pressure. Before we get into the details I want to thank everyone who suggested this topic in the comments last week. Let's start with the basic problem...
 ```
 
-#### timestamped
+#### With timestamps
 
-With `includeTimestamps: true`: each segment prefixed with its start offset.
+The same video, each segment prefixed with its start offset.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
@@ -69,7 +69,7 @@ Output:
 [00:18] I want to thank everyone who suggested this
 ```
 
-#### no transcript
+#### No captions
 
 No captions on this video, so the result is an empty string. That empty result is cached.
 

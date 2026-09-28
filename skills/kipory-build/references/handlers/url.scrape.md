@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `url.scrape` — Scrape a web page
+# `url.scrape` — Fetch a web page
 
-Scrape a web page into clean markdown and page metadata.
+Read a web page and return its main text and details.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -31,7 +31,7 @@ Renders any web page to clean markdown and returns the body alongside the page's
 
 Reads: fetch + render. Emits: content + meta.
 
-#### typical article
+#### An article
 
 Article page with full OpenGraph metadata.
 
@@ -62,7 +62,7 @@ Output:
 }
 ```
 
-#### metadata-poor
+#### A bare page
 
 Page without OpenGraph tags — `meta` carries only the structural fields; every optional meta tag stays unset.
 
@@ -88,7 +88,7 @@ Output:
 }
 ```
 
-#### invalid URL
+#### Bad address
 
 Not an `http` or `https` URL, so it is dropped before any call. The result is empty.
 

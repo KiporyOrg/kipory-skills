@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `flow.loop-end` — Loop (end)
+# `flow.loop-end` — End a loop
 
-End a loop, check its stop condition, and expose the final result.
+End a loop: stop when the condition holds, or go round again.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`

@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `location.resolve` — Reverse-geocode coordinates
+# `location.resolve` — Find a place from a map point
 
-Convert latitude and longitude into a city, region, country, or formatted place.
+Turn a map point into a place: city, region, and country.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -26,7 +26,7 @@ Turns one pair of coordinates into a place. Repeated coordinates are answered fr
 
 Reads: round to 4dp · cache key. Emits: provider lookup.
 
-#### typical
+#### A city
 
 Urban coordinate — provider returns the full quartet (city, region, country, formatted address).
 
@@ -52,7 +52,7 @@ Output:
 }
 ```
 
-#### sparse coverage
+#### A remote spot
 
 A remote coordinate with no city or region known — only the country and a formatted name come back.
 

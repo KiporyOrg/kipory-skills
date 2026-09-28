@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `url.metadata` — Fetch page metadata
+# `url.metadata` — Fetch a page's title and preview
 
-Fetch a URL's title, description, content type, icon, and social preview.
+Read a web page's title, description, icon, and preview image.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -10,7 +10,7 @@ Fetch a URL's title, description, content type, icon, and social preview.
 - **Reads:** One URL — the page to read. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** A `UrlMeta`. Every meta field is optional — a page that declares no tag leaves it unset — and a page that could not be read comes back empty.
 - **Suggested input streams:** `currentUrl`
-- **External dependency:** The open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
+- **External dependency:** the open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
 - **Rate limit:** 120 per 60000ms in bucket `url.metadata`
 - **Queue:** 2 attempts, exponential from 1000ms; waits up to 30000ms; cache 86400000ms (custom-derive-source)
 
@@ -29,7 +29,7 @@ Reads only the head of a page, so a step can decide whether the URL is worth scr
 
 Reads: fetch + parse head. Emits: structured meta.
 
-#### typical article
+#### An article
 
 An article with full social metadata. `iconUrl` is the site's square mark; `ogImage` is the wide banner.
 
@@ -60,7 +60,7 @@ Output:
 }
 ```
 
-#### no icon declared (convention fallback)
+#### No icon declared
 
 The page declares no icon, so `iconUrl` guesses `/favicon.ico`. Nothing checks that guess before you use it.
 
@@ -85,7 +85,7 @@ Output:
 }
 ```
 
-#### image URL (parse skipped)
+#### An image link
 
 Not a web page, so only the structural fields are recorded and the body is never parsed.
 
@@ -108,7 +108,7 @@ Output:
 }
 ```
 
-#### broken URL (404)
+#### Page not found
 
 The page answered with an error, so the status is recorded and the body is skipped.
 
@@ -131,9 +131,9 @@ Output:
 }
 ```
 
-#### unreachable site (failureMode: soft)
+#### Site is down
 
-The connection never opened, so there is no status. `soft` returns an empty result with a warning.
+The connection never opened. The step still succeeds, with an empty result and a warning.
 
 Reads `string` → emits `string` · 1 in → 1 out
 

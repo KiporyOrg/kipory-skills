@@ -2,7 +2,7 @@
 
 # `entity.count` — Count records
 
-Count matching records without reading them — the answer a paged list cannot give.
+Count the records that match, without reading them.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -30,7 +30,7 @@ Counts every record matching its filters, so a step can answer a total without r
 
 Reads: read userId. Emits: number.
 
-#### the whole catalog
+#### Everything
 
 No filters beyond the type and the owner, so this is the user's total for that record type.
 
@@ -48,7 +48,7 @@ Output:
 1284
 ```
 
-#### narrowed by a declared field
+#### Filtered by field
 
 One declared field narrows the count. The value lives in that field's own column, so an index answers it.
 
@@ -66,7 +66,7 @@ Output:
 417
 ```
 
-#### nothing matches
+#### Nothing matches
 
 The filters exclude every row. `0` is a real answer, not an absence a later step must guard.
 

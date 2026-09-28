@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `taxonomy.aggregate` — Aggregate term catalog
+# `taxonomy.aggregate` — Count records by term
 
-Group a user's records by facet terms and count them, as a flat catalog or a browse tree.
+Count a user's records by term, as a list or a browsable tree.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -25,7 +25,7 @@ Groups a user's terms per facet and counts their records, so a step can answer w
 
 Reads: read userId. Emits: term catalog or tree.
 
-#### every facet the user has
+#### Every facet
 
 No facet filter, so every facet the user has surfaces, each with its count and the biggest first.
 
@@ -57,7 +57,7 @@ Output:
 }
 ```
 
-#### a user with no terms
+#### No terms yet
 
 Nothing has been categorized yet, so the handler stops early and emits an empty catalog.
 
@@ -75,7 +75,7 @@ Output:
 { "facets": [] }
 ```
 
-#### the user's browse tree
+#### Browse tree
 
 The same counts, nested instead of flat. Empty branches are pruned unless they lead to a term that survives.
 

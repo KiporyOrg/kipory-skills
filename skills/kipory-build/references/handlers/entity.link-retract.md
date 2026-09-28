@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.link-retract` — Take back a stated link
+# `entity.link-retract` — Remove a link
 
-Take back a curated link this flow stated earlier.
+Remove a link this flow made earlier.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -24,7 +24,7 @@ Takes back one link this node's own label stated, and says whether there was one
 
 Reads: the two record ids. Emits: RelationRetraction.
 
-#### retracted
+#### Link removed
 
 The link was expired rather than deleted, so who stated it and when both survive it.
 
@@ -45,7 +45,7 @@ Output:
 { "outcome": "retracted" }
 ```
 
-#### not-found
+#### Someone else's link
 
 Nothing stood under THIS label. Somebody else's assertion looks identical from here, and cannot be retracted.
 

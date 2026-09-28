@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `youtube.trending` — Fetch trending channels
+# `youtube.trending` — Fetch trending YouTube channels
 
-Fetch the channels behind a region's currently trending YouTube videos.
+List the channels behind a region's trending YouTube videos.
 
 - **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -78,7 +78,7 @@ Output:
 }
 ```
 
-#### unknown region
+#### Unknown region
 
 No chart exists for that code. A warning is recorded, the result is empty, and the run continues.
 

@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `flow.dispatch` — Dispatch by pattern
+# `flow.dispatch` — Pick a branch
 
-Send a value down a branch chosen by the first matching rule.
+Send a value down the first branch whose rule it matches.
 
 - **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -27,7 +27,7 @@ One input goes down one branch — the first rule that matches wins. The variant
 
 Reads: test rules in order. Emits: first match · forward input.
 
-#### youtube
+#### Video link
 
 Reads `string` → emits `slot` · 1 URL → 1 of 4 categories
 
@@ -44,7 +44,7 @@ Routes to:
 - {"index":2,"value":"docUrl","detail":"(?:^\|\\.)docs\\.","chosen":false}
 - {"index":3,"value":"otherUrl","detail":"no rule matched","chosen":false}
 
-#### github
+#### Code link
 
 Reads `string` → emits `slot` · 1 URL → 1 of 4 categories
 
@@ -61,7 +61,7 @@ Routes to:
 - {"index":2,"value":"docUrl","detail":"(?:^\|\\.)docs\\.","chosen":false}
 - {"index":3,"value":"otherUrl","detail":"no rule matched","chosen":false}
 
-#### docs subdomain
+#### Docs link
 
 Reads `string` → emits `slot` · 1 URL → 1 of 4 categories
 
@@ -78,7 +78,7 @@ Routes to:
 - {"index":2,"value":"docUrl","detail":"(?:^\|\\.)docs\\.","chosen":true}
 - {"index":3,"value":"otherUrl","detail":"no rule matched","chosen":false}
 
-#### no match
+#### Nothing matches
 
 Reads `string` → emits `slot` · 1 URL → 1 of 4 categories
 

@@ -2,7 +2,7 @@
 
 # `entity.delete` — Delete records
 
-Delete one or more records by id.
+Delete one or more records.
 
 - **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -22,7 +22,7 @@ Deletes records by id and says whether anything went.
 
 Reads: record ids. Emits: removed anything?.
 
-#### two of three
+#### Someone else's record
 
 One id belongs to another user, so two records go and the third is untouched.
 
@@ -40,7 +40,7 @@ Output:
 true
 ```
 
-#### already gone
+#### Already deleted
 
 Every id was already deleted, so nothing happens and the step reports it plainly.
 

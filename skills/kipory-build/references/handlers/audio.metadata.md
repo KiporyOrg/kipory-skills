@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `audio.metadata` — Extract audio metadata
+# `audio.metadata` — Extract audio details
 
-Extract duration, codec, and tag metadata from an audio file.
+Read an audio file's length, format, and tags.
 
 - **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -24,7 +24,7 @@ An audio file's header and tags, read in one pass. The variants show a tagged tr
 
 Reads: music-metadata.parseBuffer. Emits: project to AudioMetadata.
 
-#### podcast episode
+#### A podcast episode
 
 MP3 with ID3v2 tags. Title / artist / album / genre / year populate alongside the codec and bitrate.
 
@@ -55,7 +55,7 @@ Output:
 }
 ```
 
-#### voice memo
+#### A voice memo
 
 Tagless m4a from iOS Voice Memos — no ID3 tags. Only the technical fields survive.
 
@@ -80,7 +80,7 @@ Output:
 }
 ```
 
-#### corrupt file
+#### A broken file
 
 Unparseable bytes (truncated upload, unknown codec). `music-metadata` rejects; we degrade to the empty `AudioMetadata` sentinel.
 

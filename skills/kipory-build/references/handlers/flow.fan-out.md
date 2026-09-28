@@ -1,6 +1,6 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `flow.fan-out` — Fan out over a list
+# `flow.fan-out` — Run once per item
 
 Run the next steps once for each item in a list.
 

@@ -2,7 +2,7 @@
 
 # `text.detect-language` — Detect language
 
-Detect the ISO 639-1 language code of text (deterministic, no LLM).
+Tell which language a text is written in.
 
 - **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -26,7 +26,7 @@ Guesses which language a piece of text is written in.
 
 Reads: the text. Emits: a language code.
 
-#### recognisable text
+#### Clear text
 
 Enough text to be sure, so the two-letter code for it comes back.
 
@@ -44,7 +44,7 @@ Output:
 "de"
 ```
 
-#### too little to tell
+#### Too little text
 
 A few characters carry no signal, so an empty string says so honestly.
 
