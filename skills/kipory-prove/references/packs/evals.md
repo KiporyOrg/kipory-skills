@@ -212,8 +212,11 @@ Each case carries an input bag, and the suite binds the flow every case runs thr
 ⛔ **A suite runs through the preview engine, and a preview APPLIES its writes.** `apply` defaults to
 true and the eval runner does not pass `apply: false`, so a suite over a flow that creates or
 updates records **mutates the very corpus it is measuring** — which also moves the case fingerprint
-and makes the next delta incomparable. Files land in a sandbox prefix and mail is refused; records
-and terms are not isolated. Re-running a suite over a mutating flow is not a safe idempotent act:
+and makes the next delta incomparable. Files land in a sandbox prefix, mail is refused, and an
+emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
+published, so no trigger starts. Records and terms are not isolated, and neither is a processing
+handoff: an `entity.enqueue-process` step runs the record's processing flow live once the case
+applies, and that flow's events publish and its mail is sent. Re-running a suite over a mutating flow is not a safe idempotent act:
 measure a flow that does not write, or accept that each run changes the baseline.
 
 ## Two tiers of scorer — reach for the free one first

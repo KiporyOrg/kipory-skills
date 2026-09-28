@@ -73,4 +73,4 @@ The endpoint read returns `invokeUrl`, the project-host URL with its `{param}` p
 
 ## Then
 
-`kipory-prove` to pin the behaviour before you change the flow again. `kipory-operate` to run it on a clock or emit signals from it. `kipory-diagnose` when a call came back wrong: the `x-request-id` header on a sync response **is the run id**, and an async ack's `id` is too.
+`kipory-prove` to pin the behaviour before you change the flow again. `kipory-operate` to run it on a clock or emit signals from it. `kipory-diagnose` when a call came back wrong: the `x-request-id` header on a sync response **is the run id**, and an async ack's `id` is too once the run has started. An invocation refused before its first step has no run, so `/v1/runs/{id}` answers 403 for it; read its `statusPath`, whose `error` says why.

@@ -280,7 +280,8 @@ once the run has ended. A platform flow or a preview run as another project writ
 The flow runs in FULL — every skill, every model call, every precondition — and the writes it
 would have made are recorded and then thrown away. Read them back at
 `GET /v1/runs/{runId}/change-set`, which lists each write by kind and target. Nothing reaches
-your records.
+your records. A bus event the flow emits is not in that list: a preview withholds every bus
+event, applied or not, so it is never staged.
 
 ⚠️ **It defaults to `true`, matching what preview has always done.** Omitting it is not a dry
 run. This is deliberate: flipping the default would silently change every preview anyone has

@@ -2,6 +2,21 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260928.1807 — 2026-09-28
+
+Synced from the Kipory monorepo at `41d5e67e5`.
+
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-operate/references/api/schedules.md`
+- changed: `skills/kipory-operate/references/api/triggers.md`
+- changed: `skills/kipory-operate/references/packs/events.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+- changed: `skills/kipory-prove/references/packs/flow-test-cases.md`
+
 ## 1.20260928.1555 — 2026-09-28
 
 Synced from the Kipory monorepo at `641ab1c08`.

@@ -127,6 +127,11 @@ the user you mean as data.
   per-type `durable` flag is read on that path — a durable emission is written to the project's
   event log before the publish, and that row is what a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) consumes. It changes
   nothing for a streaming subscriber: the bus is still at-most-once to whoever is connected.
+- ⚠️ **A preview, stored test or eval run never publishes a bus event.** Its `event.emit` resolves
+  and the payload is checked, then the event is dropped: no event-log row, no publish, no trigger.
+  So a preview or a test case cannot prove the emit → trigger half of a chain; the trigger → flow
+  half previews with the event from `GET /v1/triggers/{id}/sample` (triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)). A
+  withheld event does not appear in a dry run's change set either.
 - **The payload version moves on its own.** It increments both when you re-point a type at a
   different shape _and_ when someone edits that shape in place — which bumps every type bound to
   it. It is not the optimistic-lock version, and it counts per event type, so two types sharing a

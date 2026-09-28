@@ -126,6 +126,12 @@ somebody goes looking for it.
 
 ## What will bite you
 
+- **A test run applies its record writes.** Each case runs through the preview engine and the
+  runner does not pass `apply: false`, so records the flow creates are really created. The run's
+  own events are not: an `event.emit` resolves and its payload is checked, but no event is
+  recorded or published and no trigger starts. Mail is refused. One thing is not withheld: an
+  `entity.enqueue-process` step hands the record to its processing flow, which runs live once the
+  case applies — its events publish and its mail is sent.
 - **Cases are scoped to the flow, not pinned to a checkpoint.** Deliberately: a test pinned to a
   snapshot would validate a frozen copy rather than the flow anyone can currently break.
 - **Case names are unique per flow** — a clash is refused rather than silently overwriting.
