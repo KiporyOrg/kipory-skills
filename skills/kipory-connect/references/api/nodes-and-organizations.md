@@ -15,6 +15,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/nodes/{nodeId}/effective-role`
 
+What another person (`?userId=`) may do at this node, inherited from anywhere above it — `none` when they hold nothing, an ordinary answer. Requires **ADMIN** at the node. Your own role is `role` on `GET /v1/nodes/{nodeId}`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -33,9 +35,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The node the role was resolved at. |
 | `userId` | `string` | yes | Whose role this is. |
-| `role` | `"OWNER" \| "ADMIN" \| "EDITOR" \| "VIEWER" \| "NONE"` | yes | What that user may do at that node, inherited from anywhere above it. `NONE` is an ORDINARY ANSWER meaning they hold nothing here — not an error, and not a refusal to say. Handle it explicitly. |
+| `role` | `"owner" \| "admin" \| "editor" \| "viewer" \| "none"` | yes | What that user may do at that node, inherited from anywhere above it. `none` is an ORDINARY ANSWER meaning they hold nothing here — not an error, and not a refusal to say. Handle it explicitly. |
 
 ### `POST /v1/organizations`
+
+Create an organization under `parent` (the platform root when omitted). Requires **OWNER** at the parent. Rename it with `PATCH /v1/nodes/{nodeId}`; destroy it with `DELETE /v1/nodes/{nodeId}`. A first project with its own organization is `POST /v1/me/projects`.
 
 **Request body**
 

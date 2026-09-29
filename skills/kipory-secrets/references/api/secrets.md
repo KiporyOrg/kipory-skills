@@ -13,13 +13,14 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/secrets`](#get-v1-secrets) |  |
 | `POST` | [`/v1/secrets`](#post-v1-secrets) |  |
 | `PUT` | [`/v1/secrets/{id}`](#put-v1-secrets-id) |  |
+| `PATCH` | [`/v1/secrets/{id}`](#patch-v1-secrets-id) |  |
 | `DELETE` | [`/v1/secrets/{id}`](#delete-v1-secrets-id) |  |
-| `POST` | [`/v1/secrets/{id}/disable`](#post-v1-secrets-id-disable) |  |
-| `POST` | [`/v1/secrets/{id}/enable`](#post-v1-secrets-id-enable) |  |
 | `GET` | [`/v1/secrets/catalog`](#get-v1-secrets-catalog) |  |
 | `GET` | [`/v1/secrets/resolution`](#get-v1-secrets-resolution) |  |
 
 ### `GET /v1/secrets`
+
+The credentials a node stores itself (`?node=`) — metadata only, never a value. Requires **VIEWER**. Whether one actually resolves there, including an ancestor's, is `GET /v1/secrets/resolution?node=`; the types you can store are `GET /v1/secrets/catalog`; which keys the installation looks up and who brought their own is `GET /v1/secrets/coverage` (staff).
 
 **Query**
 
@@ -34,6 +35,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `secrets` | `object[]` | yes | The node's secrets — metadata only, never any stored value. |
 
 ### `POST /v1/secrets`
+
+Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is encrypted and never read back. ⚠️ A second one with the same type and purpose on the same node REPLACES the stored value (an upsert, 201) and the old value is unrecoverable — list the node first. Requires **ADMIN**. Rotate it later with `PUT /v1/secrets/{id}`.
 
 **Request body**
 
@@ -57,6 +60,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
 
 ### `PUT /v1/secrets/{id}`
+
+Rotate a stored credential: replace its value in full. It never re-enables a switched-off credential — that is `PATCH /v1/secrets/{id}` with `enabled: true`. Requires **ADMIN** at the node that holds it.
 
 **Path parameters**
 
@@ -82,22 +87,34 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
 
+### `PATCH /v1/secrets/{id}`
+
+Switch a stored credential off (`{"enabled": false}`) or back on (`{"enabled": true}`). Off, it stops resolving for calls made at its node and below — an active credential of the same key on an ancestor node takes over, or the key falls back as `GET /v1/secrets/resolution` shows — and its value is kept. `enabled: true` is the only way back to active: rotating the value with `PUT /v1/secrets/{id}` never re-enables it.
+
+To destroy the value instead, `DELETE /v1/secrets/{id}`. On a retired project only switching off is accepted (409 otherwise). Requires **ADMIN** at the node that holds the secret.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The secret's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `enabled` | `boolean` | yes | `false` stops the credential resolving — an active one on an ancestor node may take over — and keeps its value; `true` is the only way back to active (rotating the value with `PUT` never re-enables it). On a retired project only `false` is accepted. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The secret's id. |
+| `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
+
 ### `DELETE /v1/secrets/{id}`
 
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The secret's id, as returned when it was created or listed. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | Id of the secret that was removed. |
-| `removed` | `true` | yes | Always `true`. The stored value is gone for good — disable it instead if you may want it back. |
-
-### `POST /v1/secrets/{id}/disable`
+Destroy a stored credential's value for good, answering `{id, deleted: true}`. To stop it resolving but keep it, switch it off instead (`PATCH /v1/secrets/{id}`). Requires **ADMIN**; still allowed on a retired project.
 
 **Path parameters**
 
@@ -109,25 +126,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The secret's id. |
-| `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
-
-### `POST /v1/secrets/{id}/enable`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The secret's id, as returned when it was created or listed. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The secret's id. |
-| `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
+| `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
+| `id` | `string` | yes | Id of the secret that was deleted. The stored value is gone for good — switch it off (`PATCH` with `enabled: false`) instead if you may want it back. |
 
 ### `GET /v1/secrets/catalog`
+
+The credential types this deployment can store, and the fields each takes. Any signed-in caller; read it before storing a first credential with `POST /v1/secrets`.
 
 **Response `200`**
 
@@ -136,6 +140,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `types` | `object[]` | yes | Every kind of secret this platform can store, and its fields. |
 
 ### `GET /v1/secrets/resolution`
+
+How every credential key the platform looks up resolves at one node (`?node=`): whose credential a call would use, what happens when none resolves (`fallback`) and who pays (`billedBy`). Requires **VIEWER**.
+
+The credentials a node stores itself are `GET /v1/secrets?node=`.
 
 **Query**
 

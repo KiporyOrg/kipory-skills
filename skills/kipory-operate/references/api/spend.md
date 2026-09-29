@@ -24,6 +24,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/credits/balance`
 
+Your own standing: the balance of the wallet that pays for you, and your per-user spend cap and what you have consumed of it. An organization's spend is `GET /v1/organizations/{nodeId}/usage` (ADMIN); the installation's is `GET /v1/spend` (staff).
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
@@ -37,6 +39,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `perUserSpendWindowStart` | `string \| null` | yes | The instant the consumed figure was actually summed from, or null for a lifetime window. Read it rather than recomputing it from the period — recomputing is how a client shows a window the server did not enforce. |
 
 ### `GET /v1/organizations/{nodeId}/ledger`
+
+The organization wallet's history — charges, grants, top-ups — newest first, cursor-paged. Requires **ADMIN**. What the charges were for is `GET /v1/organizations/{nodeId}/usage`.
 
 **Path parameters**
 
@@ -64,6 +68,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/organizations/{nodeId}/quota`
 
+Today's consumption of each shared external quota pool (e.g. `youtube-data-api`) at this organization, with the per-project split (`project` is its node id), the daily allowance and when it resets. Requires a membership here. The installation-wide view is `GET /v1/ingest/quota` (staff).
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -77,6 +83,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `resources` | `object[]` | yes | One entry per external quota pool this organization draws on. |
 
 ### `GET /v1/organizations/{nodeId}/usage`
+
+What the projects under this organization spent over a window, by kind, model, project, person or key, with the paying wallet's state. Requires **ADMIN**. The wallet's movements are `GET /v1/organizations/{nodeId}/ledger`; one project's view is `GET /v1/projects/{nodeId}/usage`; your own spend is `GET /v1/credits/balance`.
 
 **Path parameters**
 

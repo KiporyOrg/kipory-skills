@@ -95,15 +95,15 @@ as for the design plane.
 `GET /v1/secrets/resolution` answers, for one node, the question the list declines to: for every
 credential the platform looks up — each vendor key a handler resolves and each sign-in credential
 — which record a call there would use. Each key reports a `state` (`present`, `disabled`,
-`not_found`, `branch_inactive`), the node holding the record that state is about, `ownStatus` for
-the row stored on the node itself, and, for a vendor key, `billedBy` — `vendor_to_holder` when the
+`not-found`, `branch-inactive`), the node holding the record that state is about, `ownStatus` for
+the row stored on the node itself, and, for a vendor key, `billedBy` — `vendor-to-holder` when the
 vendor invoices the holder, `kipory` when the call runs on the platform's key at the platform's price. It is the same walk
 resolution performs, effective-status gate included, and nothing in it is decrypted.
 
-Each key also says what happens when nothing of yours resolves, as `fallback`: `platform_key` — the
-call runs on the platform's key and the platform bills it (every vendor key today); `fails_closed` —
+Each key also says what happens when nothing of yours resolves, as `fallback`: `platform-key` — the
+call runs on the platform's key and the platform bills it (every vendor key today); `fails-closed` —
 nothing takes over and the operation is refused (a sign-in credential: one project's users are never
-signed in through another's client); `platform_only` — never a tenant's key at all; `not_looked_up`
+signed in through another's client); `platform-only` — never a tenant's key at all; `not-looked-up`
 — nothing on this deployment resolves that name, so storing one changes nothing. The list of keys
 here is also the list of what is actually read: a purpose that appears nowhere in it is stored and
 never used.
@@ -148,7 +148,7 @@ from the vault too, however well documented it is elsewhere.
 
 ## Who may call it
 
-Listing is a viewer-floor call on the node. Every write — create, rotate, enable, disable, delete
+Listing is a viewer-floor call on the node. Every write — create, rotate, switch on or off, delete
 — requires admin on that node, which is stricter than the design-mutation floor elsewhere because
 whose key pays a vendor is a billing decision.
 
@@ -162,16 +162,16 @@ the check is exactly the one it refuses.
 
 ## The calls
 
-| To                                   | Call                            |
-| ------------------------------------ | ------------------------------- |
-| Learn the supported types and fields | `GET /v1/secrets/catalog`       |
-| List one node's own credentials      | `GET /v1/secrets`               |
-| See which credential each key uses   | `GET /v1/secrets/resolution`    |
-| Store a new credential               | `POST /v1/secrets`              |
-| Replace a value in place             | `PUT /v1/secrets/{id}`          |
-| Stop using one, keeping the record   | `POST /v1/secrets/{id}/disable` |
-| Resume using it                      | `POST /v1/secrets/{id}/enable`  |
-| Remove it entirely                   | `DELETE /v1/secrets/{id}`       |
+| To                                   | Call                                               |
+| ------------------------------------ | -------------------------------------------------- |
+| Learn the supported types and fields | `GET /v1/secrets/catalog`                          |
+| List one node's own credentials      | `GET /v1/secrets`                                  |
+| See which credential each key uses   | `GET /v1/secrets/resolution`                       |
+| Store a new credential               | `POST /v1/secrets`                                 |
+| Replace a value in place             | `PUT /v1/secrets/{id}`                             |
+| Stop using one, keeping the record   | `PATCH /v1/secrets/{id}` with `{"enabled": false}` |
+| Resume using it                      | `PATCH /v1/secrets/{id}` with `{"enabled": true}`  |
+| Remove it entirely                   | `DELETE /v1/secrets/{id}` → `{id, deleted: true}`  |
 
 ⛔ **Storing a second credential with the same type and purpose on the same node is an UPSERT, not
 a refusal.** It replaces the stored value in place and answers `201`, exactly as a rotation would —

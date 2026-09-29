@@ -298,7 +298,7 @@ acts at, a role, and an expiry. It acts at that node and everything beneath it. 
 admin rights at that node and cannot grant a role above their own. The platform root is refused.
 
 ⚠️ **Two defaults on that grant that bite in opposite directions.** The **role** is optional and
-omitting it mints a `VIEWER` — the least power, never the minter's — so a key minted without one
+omitting it mints a `viewer` — the least power, never the minter's — so a key minted without one
 reaches the whole subtree and can write nothing, and every non-GET comes back `403`. The **expiry**
 field must be present, but `null` is legal and means the key **never expires**, stopped only by
 revoking it; a date must be in the future and at most 365 days out. State both deliberately: one

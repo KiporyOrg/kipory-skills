@@ -106,6 +106,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/nodes/{nodeId}/routing`
 
+Which provider account each model's calls go to at this node — the nearest routing policy up the tree, per model. Requires **VIEWER**. The platform-wide default is `PUT /v1/model-registry/models/{modelId}/route` (staff); which model a task uses here is `GET /v1/nodes/{nodeId}/task-models`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -120,6 +122,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `policies` | `object[]` | yes | Every model a policy routes at this node — the nearest policy up the chain, per model. A model absent here uses the default: its creator's own offer when it is on, else the enabled offer with the lowest provider id, and no failover. |
 
 ### `PUT /v1/nodes/{nodeId}/routing/{modelId}`
+
+Set this node's routing policy for one model — the provider order and failover — which its descendants inherit. Requires **ADMIN**. The platform-wide route every node falls back to is `PUT /v1/model-registry/models/{modelId}/route` (staff); clearing this node's own policy is `DELETE`. Which model a task uses is `PUT /v1/nodes/{nodeId}/task-models/{task}`.
 
 **Path parameters**
 
@@ -144,6 +148,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/nodes/{nodeId}/routing/{modelId}`
 
+Clear this node's own routing policy for one model, answering `{id: <modelId>, deleted: true}` with the node's routing as it now stands — an ancestor's policy, or the default. Idempotent: a node with no policy of its own for the model answers the same, since after the call it has none either way. Requires **ADMIN**.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -155,8 +161,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
+| `id` | `string` | yes | The model whose policy on this node was cleared. |
 | `nodeId` | `string` | yes | The node read. |
-| `policies` | `object[]` | yes | Every model a policy routes at this node — the nearest policy up the chain, per model. A model absent here uses the default: its creator's own offer when it is on, else the enabled offer with the lowest provider id, and no failover. |
+| `policies` | `object[]` | yes | Every model a policy routes at this node now — the nearest policy up the chain, per model. The cleared model is here again only when an ancestor routes it. |
 
 ### `GET /v1/nodes/{nodeId}/task-models`
 

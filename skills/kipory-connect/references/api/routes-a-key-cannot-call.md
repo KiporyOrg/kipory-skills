@@ -15,8 +15,8 @@ Key management needs a signed-in person, so a leaked key cannot mint siblings th
 - `DELETE /v1/keys/{…}`
 - `GET /v1/keys`
 - `GET /v1/keys/spend`
+- `PATCH /v1/keys/{…}`
 - `POST /v1/keys`
-- `POST /v1/keys/{…}/remove`
 
 The keys a person minted. A key has no minter.
 
@@ -110,7 +110,6 @@ These serve the people who run the installation — every tenant at once — and
 - `GET /v1/model-registry/update`
 - `GET /v1/model-registry/updates`
 - `GET /v1/people`
-- `GET /v1/people/{…}/deletion-preview`
 - `GET /v1/pricing/coverage`
 - `GET /v1/pricing/effective`
 - `GET /v1/pricing/rules`

@@ -65,7 +65,7 @@ Every generated file opens with a stamp naming its source, and the content hashe
 You need three things, and **an agent cannot discover any of them** — they come from you:
 
 1. **The base URL** of your Kipory deployment's api host.
-2. **An API key.** Only a signed-in human can mint one: a key cannot mint another key, so that a leaked key cannot manufacture siblings that outlive revoking the original. Mint it with the role the work needs — a key is `VIEWER` unless you ask, and anything that runs a flow is `ADMIN`.
+2. **An API key.** Only a signed-in human can mint one: a key cannot mint another key, so that a leaked key cannot manufacture siblings that outlive revoking the original. Mint it with the role the work needs — a key is `viewer` unless you ask, and anything that runs a flow is `admin`.
 3. **The node id your key was granted at**, or the project's node id. `kipory-connect` explains how a key reads its own grant back once it is connected.
 
 ## Contributing

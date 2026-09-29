@@ -2,6 +2,25 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260929.230722 — 2026-09-29
+
+Synced from the Kipory monorepo at `d2ec30aa2`.
+
+- changed: `README.md`
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-channels/references/api/managed-email-addresses.md`
+- changed: `skills/kipory-connect/references/api/nodes-and-organizations.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/packs/project-provisioning.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+- changed: `skills/kipory-secrets/references/api/secrets.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20260929.222247 — 2026-09-29
 
 Synced from the Kipory monorepo at `3a57c7dc4`.

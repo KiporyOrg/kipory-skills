@@ -155,7 +155,7 @@ A bearer API key, any valid session, or a system token authenticates. **Authoriz
 node**: the caller must hold **ownership at the _parent_ organisation node**.
 
 For a key that means both halves of its grant, and neither implies the other: the grant's role must
-be `OWNER`, _and_ the node it was granted at must reach the parent. So a key scoped to one project
+be `owner`, _and_ the node it was granted at must reach the parent. So a key scoped to one project
 cannot create a sibling project — its reach descends, and the parent organisation is above it.
 
 The parent defaults to the platform organisation; an organisation owner passes their own node id.

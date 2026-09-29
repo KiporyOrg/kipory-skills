@@ -28,9 +28,9 @@ GET    /v1/secrets?node=…           one node's own credentials — metadata on
 GET    /v1/secrets/resolution?node=… which record each credential resolves to at that node, who holds it, who pays
 POST   /v1/secrets                  store one: node + type + purpose + value → 201
 PUT    /v1/secrets/{id}             rotate the value in place
-POST   /v1/secrets/{id}/disable     stop using it — the one above takes over
-POST   /v1/secrets/{id}/enable      use it again
-DELETE /v1/secrets/{id}             remove it
+PATCH  /v1/secrets/{id}             { enabled: false } stop using it — the one above takes over
+                                    { enabled: true }  use it again
+DELETE /v1/secrets/{id}             remove it → { id, deleted: true }
 ```
 
 A secret is identified by the node it hangs on, its **type**, and a **purpose** you choose. When a handler says the key is missing, the failure names the vendor it wanted: store a credential whose purpose is that vendor's name, on the node the flow runs under or any ancestor of it, then run again. There is nothing to redeploy and no flow edit to make.
@@ -46,7 +46,7 @@ A secret is identified by the node it hangs on, its **type**, and a **purpose** 
 - **It fails closed.** A credential that cannot be decrypted yields nothing; it never falls back to a different node's key and never returns a value that is merely plausible.
 - **Every write is ADMIN, stricter than the design-mutation floor elsewhere**, because whose key pays a vendor is a billing decision. Listing needs VIEWER on the node. No call tells you what your own key holds, so do not plan around a permission check: attempt the write and read the refusal. A 403 means the grant is below admin or does not reach that node.
 - **A store you were not allowed to make is never silent** — it answers 403. So a 201 means the credential really is stored, and a handler still reporting a missing key afterwards is a _resolution_ problem, not a storage one: the branch is suspended, the record is disabled, or the `purpose` does not match the vendor the handler asked for.
-- **The list is one node's own rows; coverage is a separate read.** `GET /v1/secrets` shows only what is attached to that node. `GET /v1/secrets/resolution?node=…` (VIEWER) answers what a call there would actually use: a `state` per credential (`present`, `disabled`, `not_found`, `branch_inactive`), the node that holds it, and who pays — including the suspended-branch gate a per-ancestor list cannot show. A holder above your grant's reach still reports its `state`, with the holder's id and name null. `billedBy` is `vendor_to_holder` when your credential resolves (the vendor invoices its holder, the platform charges compute only) and `kipory` when none does (the call runs on the platform's key at its price). `fallback` is what happens with nothing of yours: `platform_key` (the call still succeeds, billed by the platform — every vendor key today), `fails_closed` (refused — sign-in credentials), `platform_only` (never a tenant's key), `not_looked_up` (nothing reads that name). A purpose absent from this read is never used, however it was stored.
+- **The list is one node's own rows; coverage is a separate read.** `GET /v1/secrets` shows only what is attached to that node. `GET /v1/secrets/resolution?node=…` (VIEWER) answers what a call there would actually use: a `state` per credential (`present`, `disabled`, `not-found`, `branch-inactive`), the node that holds it, and who pays — including the suspended-branch gate a per-ancestor list cannot show. A holder above your grant's reach still reports its `state`, with the holder's id and name null. `billedBy` is `vendor-to-holder` when your credential resolves (the vendor invoices its holder, the platform charges compute only) and `kipory` when none does (the call runs on the platform's key at its price). `fallback` is what happens with nothing of yours: `platform-key` (the call still succeeds, billed by the platform — every vendor key today), `fails-closed` (refused — sign-in credentials), `platform-only` (never a tenant's key), `not-looked-up` (nothing reads that name). A purpose absent from this read is never used, however it was stored.
 
 ## References
 

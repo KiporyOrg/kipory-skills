@@ -22,8 +22,7 @@ Two resources at the edge of a project. A **managed email address** is a sending
 GET    /v1/managed-email-addresses?node={nodeId}        this node's OWN addresses — inherited ones are not listed
 POST   /v1/managed-email-addresses                      { node, localPart, domain, grade, displayName?, replyTo? } → 201
 PATCH  /v1/managed-email-addresses/{id}                  displayName · replyTo · grade — the address itself never renames
-POST   /v1/managed-email-addresses/{id}/disable          stop it sending, keep the claim
-POST   /v1/managed-email-addresses/{id}/enable
+                                                          enabled: false stops it sending and keeps the claim; true resumes
 DELETE /v1/managed-email-addresses/{id}                  release the name — anyone on the platform may claim it next
 ```
 

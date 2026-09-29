@@ -321,6 +321,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/users`
 
+A project's end users (`?project=`) — the people who have signed in to its app — as `id`, `name` and `email`, for pickers. Requires **VIEWER**.
+
+Not its operators: the people who can change the project are `GET /v1/projects/{nodeId}/members` (its roster) and `GET /v1/nodes/{nodeId}/members` (seats at any node).
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -334,6 +338,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `users` | `object[]` | yes | The project's END USERS — the people who use what you built, not your team. |
 
 ### `GET /v1/users/{userId}/profile`
+
+One end user's profile in a project (`?project=`), with the shape it is validated against and any drift from it. Requires **VIEWER**. The person reads their own with `GET /v1/me/profile`.
 
 **Path parameters**
 
@@ -361,6 +367,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `hasRow` | `boolean` | yes | Whether this user has ever saved a profile. FALSE with a non-null `data` is the ordinary case for someone who has not filled it in — the values you are seeing are defaults, not their answers. |
 
 ### `PATCH /v1/users/{userId}/profile`
+
+Change fields of one end user's profile in a project (`?project=`), validated against the project's profile schema. Requires **EDITOR**. The person edits their own with `PATCH /v1/me/profile`.
 
 **Path parameters**
 
