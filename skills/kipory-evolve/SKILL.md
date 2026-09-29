@@ -75,7 +75,7 @@ row-by-row change would meet, in one read, and three things a row write never te
   (a shape another shape references is checked through every type that reaches it). A
   consequence is never a refusal; the platform tells you and lets you. Deleting a relation kind
   deletes every stored edge of that kind, and the plan counts them as `edges-deleted` on the
-  kind's path — save them first (`GET /v1/projects/{nodeId}/relations?link=<kind>`) if they matter.
+  kind's path — save them first (`GET /v1/relations?project=<node>&link=<kind>`) if they matter.
 - **Cascades before the fact.** A removal that takes other rows along — the relation kinds that
   pair a deleted record type, the types of a deleted event category — is in `changes` as a
   `delete` with `because: "cascade"` and a `DOCUMENT_DELETE_CASCADED` warning. Read the plan's
@@ -220,7 +220,7 @@ state the export recorded. What it does not restore as you left them:
   the rollback document's shape.
 - **Edges are data, not configuration.** A relation kind the change deleted comes back EMPTY:
   every edge asserted by hand (`POST /v1/records/{id}/relations/{kind}`) is gone for good, and only
-  re-asserting it restores it. Save them (`GET /v1/projects/{nodeId}/relations?link=<kind>`)
+  re-asserting it restores it. Save them (`GET /v1/relations?project=<node>&link=<kind>`)
   before any change that deletes a kind, and count the edges again after the rollback.
 
 For everything else, the undo is a forward change you author yourself, and some things have no undo

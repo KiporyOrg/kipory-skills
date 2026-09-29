@@ -60,13 +60,6 @@ A node's member roster lists people, which is a signed-in person's surface. Your
 - `PATCH /v1/nodes/{…}/members/{…}`
 - `POST /v1/nodes/{…}/members`
 
-These file routes act as the signed-in user. A key uses the project's own file routes under `/v1/projects/{nodeId}/files/`.
-
-- `DELETE /v1/files/{…}`
-- `GET /v1/files/{…}/download-url`
-- `POST /v1/files/upload-url`
-- `POST /v1/files/{…}/confirm`
-
 A person's first-project path. A key creates a project with `POST /v1/projects` and an explicit `parentNodeId`.
 
 - `POST /v1/me/projects`

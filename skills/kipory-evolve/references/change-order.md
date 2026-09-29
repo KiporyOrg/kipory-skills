@@ -44,17 +44,19 @@ true`, or a document plan: both rehearse the edit and answer the same `records-i
 they name: a schedule's or trigger's stored `inputs` that no longer fit is
 `SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`.
 
-**The backfill, record by record** (a handful to a few hundred records):
+**The backfill, in one change set** (up to 500 records a call):
 
 ```
-GET   /v1/projects/{nodeId}/records?type=<type>&limit=…     page on, passing `nextCursor` back as `after`
-GET   /v1/projects/{nodeId}/records/{id}                    the current data (under `record.submitted`) and the `version`
-PATCH /v1/projects/{nodeId}/records/{id}                    { data: <the WHOLE data, plus the new field>, expectedVersion: <version> }
+GET  /v1/records?project=<node>&recordType=<type>&limit=100   ids and versions — every row carries `version`
+POST /v1/records/bulk   { project, items: [ { id, version, merge: { <the new field>: … } }, … ] }
 ```
 
-`data` replaces, it does not merge, and a stale `expectedVersion` is `RECORD_VERSION_STALE` —
-re-read and retry that one record. A patch re-indexes but never re-runs the processing flow. A flow
-does the same write for up to 100 records a run: `entity.list` over the type (`limit` up to 100,
+`merge` sets only the keys it names (`null` removes one), so no record has to be read whole first.
+Every item is judged before anything is written; one refused item refuses the bulk, and
+`details.issues[].path` names it (`items.<n>`, with the item's own code — a stale `version` is
+`RECORD_VERSION_STALE`: re-read that row and resend). `validateOnly: true` rehearses it. A bulk
+re-indexes but never re-runs the processing flow. So adding a required field is four calls — widen,
+list, bulk, narrow. A flow can do the same write for up to 100 records a run: `entity.list` over the type (`limit` up to 100,
 filtered to the rows still to change) → `flow.fan-out` over the records' ids (an `inputPaths`
 projection plucking `id` from `records`; `maxItems` defaults to 20, at most 100) → `entity.update`.
 Past 100, run it again and the filter picks up the rest (`kipory-data`).
@@ -130,7 +132,7 @@ Keep the response. It is the only record of what a change reached.
 
 **Before.** Take a checkpoint if a flow is involved — it is the only rollback the platform offers.
 Export the document (`GET /v1/projects/{nodeId}/document`) and keep it — and, if a relation kind
-may go, its edges (`GET /v1/projects/{nodeId}/relations?link=<kind>`), which no export carries.
+may go, its edges (`GET /v1/relations?project=<node>&link=<kind>`), which no export carries.
 Re-applied later, that export is the rollback: a type it re-creates takes back the inline shape its
 delete left behind, and a schedule or trigger it re-creates keeps the `enabled` it recorded.
 Read `GET /v1/bootstrap` so you know what the project holds, then `GET /v1/record-types/{id}` for

@@ -99,6 +99,8 @@ discover it in a refusal.
 A coded route occupies its path on **every** host, including one where it answers 404 — a group a
 project has disabled, or a management-plane group addressed on a project subdomain, is still a
 registered route and still wins the match. So "it 404s here" is never a reason to author onto it.
+Each row's `plane` says who a route is served to — usually its group's, but a route may declare its
+own (the project file library on `/v1/files` is `management` inside a `both` group).
 
 ⚠️ **A coded route's first path word is reserved whole, and the save refuses it.** At run time the
 host gate maps the first word after `/v1/` to its coded group before any endpoint is matched, so an

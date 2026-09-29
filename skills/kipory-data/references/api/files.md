@@ -10,34 +10,23 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Method | Path | Notes |
 | --- | --- | --- |
+| `GET` | [`/v1/files`](#get-v1-files) |  |
+| `DELETE` | [`/v1/files/{id}`](#delete-v1-files-id) |  |
+| `POST` | [`/v1/files/{id}/confirm`](#post-v1-files-id-confirm) |  |
+| `POST` | [`/v1/files/{id}/detach`](#post-v1-files-id-detach) |  |
+| `GET` | [`/v1/files/{id}/download-url`](#get-v1-files-id-download-url) |  |
 | `GET` | [`/v1/files/raw/{token}`](#get-v1-files-raw-token) |  |
-| `GET` | [`/v1/projects/{nodeId}/files`](#get-v1-projects-nodeid-files) |  |
-| `DELETE` | [`/v1/projects/{nodeId}/files/{fileId}`](#delete-v1-projects-nodeid-files-fileid) |  |
-| `POST` | [`/v1/projects/{nodeId}/files/{fileId}/confirm`](#post-v1-projects-nodeid-files-fileid-confirm) |  |
-| `POST` | [`/v1/projects/{nodeId}/files/{fileId}/detach`](#post-v1-projects-nodeid-files-fileid-detach) |  |
-| `GET` | [`/v1/projects/{nodeId}/files/{fileId}/download-url`](#get-v1-projects-nodeid-files-fileid-download-url) |  |
-| `POST` | [`/v1/projects/{nodeId}/files/upload-url`](#post-v1-projects-nodeid-files-upload-url) |  |
+| `POST` | [`/v1/files/upload-url`](#post-v1-files-upload-url) |  |
 
-### `GET /v1/files/raw/{token}`
+### `GET /v1/files`
 
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `token` | `string` | yes | The signed token from a download URL. It carries its own authority, so treat it as a credential rather than an id. |
-
-### `GET /v1/projects/{nodeId}/files`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+A project's file library — every file it holds, uploaded or produced by a flow, with who sent it, the record it hangs off and totals, cursor-paged; narrowed by scope, kind, owner, record and time. VIEWER on `project`. On the api host only. To sign one, `GET /v1/files/{id}/download-url`; to read one record's files, `GET /v1/records/{id}`.
 
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `project` | `string` | yes | The project whose files to list — its node id. |
 | `scope` | `"sent-in" \| "produced" \| "all"` | no | Which files to list. `sent-in` is what arrived from outside (uploads, channel media, imports); `produced` is what a flow made. Defaults to `sent-in`, because handler output outnumbers it in a busy project and buries the handful of things a person actually sent. |
 | `owner` | `string` | no | Narrow to the files ONE person HOLDS, by their user id — the ones stored under their own owner prefix, which is the population account deletion erases. ⚠️ THREE different people can be called a file's owner: whoever holds it, whoever uploaded the bytes (`uploadedByUserId`, written only by the presign route and null on every handler-produced file), and whoever owns the record it landed on. `source` on the row below reports the latter two because they come apart routinely; this filter is the first, and it is the one the Members roster counts. |
 | `kind` | `"image" \| "pdf" \| "audio" \| "video" \| "text" \| "other"` | no | Narrow to one content class. Omit for all of them. Like `q`, this is a scan within the project — `fileMimeType` carries no index — so it costs what the scope filter beside it already costs, and no more. |
@@ -68,46 +57,50 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
-### `DELETE /v1/projects/{nodeId}/files/{fileId}`
+### `DELETE /v1/files/{id}`
 
-Delete one of the project's files: the row, and its bytes when no other file row still names them. Refuses (409) a file a flow produced.
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
-| `fileId` | `string` | yes | The `RecordFile` row id. |
-
-**Response `204`**
-
-_No fields._
-
-### `POST /v1/projects/{nodeId}/files/{fileId}/confirm`
+Delete a file: the row, and its bytes when no other file row still names them. Your own file: while it is attached to no project, or from its project's host. A file a project holds: ADMIN on the project, from the api host. Refuses (409) a file a flow produced. To keep the bytes and only release the file from its record, `POST /v1/files/{id}/detach`.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
-| `fileId` | `string` | yes | The `RecordFile` row id. |
+| `id` | `string` | yes | The file's id, as returned when it was created or listed. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The file that was deleted. |
+| `deleted` | `true` | yes | Always true: the file is gone. |
+
+### `POST /v1/files/{id}/confirm`
+
+Confirm that an upload's bytes have landed: the platform reads the object, records its real size and type, and marks the file uploaded. Idempotent. Your own file: while it is attached to no project, or from its project's host. A file a project holds: EDITOR on the project, from the api host.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The file's id, as returned when it was created or listed. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `fileId` | `string` | yes | The file that was confirmed. |
-| `status` | `"PENDING_UPLOAD" \| "UPLOADED"` | yes | Whether the bytes have actually arrived. A row is `PENDING_UPLOAD` from the moment the upload URL is issued, so its existence is not evidence that anything was uploaded. |
+| `status` | `"pending-upload" \| "uploaded"` | yes | Whether the bytes have actually arrived. A row is `pending-upload` from the moment the upload URL is issued, so its existence is not evidence that anything was uploaded. |
 | `uploadConfirmedAt` | `string \| null` | yes | When the upload was confirmed. Confirming twice is safe — the second call returns the first one's answer rather than failing. |
 
-### `POST /v1/projects/{nodeId}/files/{fileId}/detach`
+### `POST /v1/files/{id}/detach`
+
+Release a file from the record it hangs off, keeping it in the project's library — the reversible half of removing one (EDITOR, api host). Refuses (409) a file a flow produced: the record that generated it owns it. To remove the file and its bytes, `DELETE /v1/files/{id}`.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
-| `fileId` | `string` | yes | The `RecordFile` row id. |
+| `id` | `string` | yes | The file's id, as returned when it was created or listed. |
 
 **Response `200`**
 
@@ -116,14 +109,15 @@ _No fields._
 | `id` | `string` | yes | The file that was released. |
 | `record` | `null` | yes | Always null after a detach — echoed so a client can update its row in place. The BYTES are untouched and the file stays in the library. To remove it entirely, DELETE the file itself. |
 
-### `GET /v1/projects/{nodeId}/files/{fileId}/download-url`
+### `GET /v1/files/{id}/download-url`
+
+A signed URL for one file's bytes. Your own file: a URL that does not expire, for embedding. A file of a project you hold VIEWER on (api host): a URL valid for 15 minutes. Refuses (409) a file whose upload is not confirmed yet.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
-| `fileId` | `string` | yes | The `RecordFile` row id. |
+| `id` | `string` | yes | The file's id, as returned when it was created or listed. |
 
 **Response `200`**
 
@@ -131,13 +125,19 @@ _No fields._
 | --- | --- | --- | --- |
 | `downloadUrl` | `string` | yes | A signed URL for the file. ⚠️ It carries its own authority and does NOT expire on a timer — anyone holding it can read the file until the file is deleted or the signing key is rotated. Treat it as a credential. |
 
-### `POST /v1/projects/{nodeId}/files/upload-url`
+### `GET /v1/files/raw/{token}`
+
+Resolve a signed file URL: a 302 to a short-lived storage URL for the bytes. The token IS the credential — no sign-in, no key — which is what lets a page embed it in `<img src>`. Minted by `GET /v1/files/{id}/download-url` and by flows; 410 once it has expired, 403 when its signature does not verify.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `token` | `string` | yes | The signed token from a download URL. It carries its own authority, so treat it as a credential rather than an id. |
+
+### `POST /v1/files/upload-url`
+
+Ask for somewhere to put a file: answers the file's id and a presigned URL to PUT the bytes to, then `POST /v1/files/{id}/confirm`. Without `project` the file is yours. With `project` (EDITOR, api host only) the project owns it, so it outlives your account and any run of the project can read it — at most 25 MB.
 
 **Request body**
 
@@ -145,7 +145,8 @@ _No fields._
 | --- | --- | --- | --- |
 | `fileName` | `string` | yes | The file's name, kept for display. |
 | `contentType` | `string` | yes | The file's MIME type. It is recorded and served back on download, so getting it wrong makes the file arrive as the wrong kind. |
-| `size` | `integer` | yes | The file's size in bytes, as the client believes it. A CLAIM, not a measurement — the confirm step replaces it with what the store reports, and refuses the object if that is over the maximum. |
+| `size` | `integer` | yes | The file's size in bytes, so quota can be checked up front. With `project`, at most 25000000 — a claim the confirm step measures again. |
+| `project` | `string` | no | Put the file into this PROJECT (its node id) rather than into your own files: the stored object belongs to the project, so it outlives your account and any run of the project can read it. Needs EDITOR on the project, and is refused on a project's own host — a project's end users upload their own files. Omitted, the file is yours. |
 
 **Response `200`**
 

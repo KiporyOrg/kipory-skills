@@ -199,7 +199,7 @@ In a document:
 }
 ```
 
-Plan it first (`kipory-build`'s SKILL.md): the plan checks the flow's health as it will stand. A record created with `POST /v1/projects/{nodeId}/records { recordType: "note", data: { title, body } }` goes `PENDING`, then `READY` with `derived.summary`. Preview the flow on a stored record with `input: { kind: "record", recordId }`.
+Plan it first (`kipory-build`'s SKILL.md): the plan checks the flow's health as it will stand. A record created with `POST /v1/records { project, recordType: "note", data: { title, body } }` goes `pending`, then `ready` with `derived.summary`. Preview the flow on a stored record with `input: { kind: "record", recordId }`.
 
 **File in, searchable text out.** The most common processing flow: the record carries one uploaded file, a PDF or a text file, and the flow produces one `body` to index (`uses` `{ "source": { "family": "processed", "field": "body" }, "uses": [{ "kind": "search" }] }` on the type). Inputs `files` (`isList: true`) and output `body` (required). `files` is a list, so the dispatch takes the first item with an `inputPaths` entry; the two readers each run only on their branch, and the last step keeps whichever wrote. Each step also states `description: null`, `condition: null`, `promptTemplate: ""`, `taskKey: "extraction"` and `enabled: true`, left out here:
 
@@ -240,7 +240,7 @@ Plan it first (`kipory-build`'s SKILL.md): the plan checks the flow's health as 
 
 `inputPaths` is positional with `inputStreams`; a step that projects nothing omits it (or holds `null` in that position). A key reaches this flow on a project-wide type by creating the record from its own flow — `entity.create` with `fileIdsSlot` holding the `fileId`s the upload handshake confirmed, then `entity.enqueue-process` — since the records API takes no files.
 
-**A file as a flow input.** A flow input of type `file` (not a processing flow's `files`) takes a file reference `{ "key", "name", "mime" }` — never a `fileId`, which is refused `Expected object`. `key` is the one `POST /v1/projects/{nodeId}/files/upload-url` returned; `name` and `mime` are the `fileName` and `contentType` you sent it (`kipory-data` has the handshake). The same object goes in a preview's `inputs` and in an endpoint's request body: `{ "csv": { "key": "<key>", "name": "products.csv", "mime": "text/csv" } }`.
+**A file as a flow input.** A flow input of type `file` (not a processing flow's `files`) takes a file reference `{ "key", "name", "mime" }` — never a `fileId`, which is refused `Expected object`. `key` is the one `POST /v1/files/upload-url` (with `project`) returned; `name` and `mime` are the `fileName` and `contentType` you sent it (`kipory-data` has the handshake). The same object goes in a preview's `inputs` and in an endpoint's request body: `{ "csv": { "key": "<key>", "name": "products.csv", "mime": "text/csv" } }`.
 
 ## 8. Answer, refuse or miss from an endpoint
 

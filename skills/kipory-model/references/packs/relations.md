@@ -20,8 +20,8 @@ Edges themselves arrive on more than one surface, and picking the wrong one is w
   kind and for every kind at once, and the list and count steps can keep only rows that carry a
   link. Both are step configuration, opt-in and off by default — check the handler catalog for the
   field names rather than trusting this pack's vocabulary.
-- **Over HTTP**, a project-scoped relations read anchored on a record returns its edges across every
-  kind in one call.
+- **Over HTTP**, the project's relations sweep (`GET /v1/relations?project=`) anchored on a record
+  (`record=`) returns its edges across every kind in one call.
 
 So "show this record and its neighbours" is one call on the surfaces that expand, not one call per
 kind. Reach for the per-kind walk when you want exactly one kind, or when the kind is join-backed.
@@ -355,7 +355,7 @@ stamped into an indexed edge column, and two clauses read those columns:
   not a complete one.
 
 Both work on the per-kind walk (`GET /v1/records/{id}/relations/{kind}`) and on the project sweep
-(`GET /v1/projects/{nodeId}/relations?link=K&where=…`).
+(`GET /v1/relations?project=…&link=K&where=…`).
 
 ⚠️ **A property nobody declared is a 422 `EDGE_FILTER_UNDECLARED`, never a scan.** This is the one
 run-time refusal in the vocabulary: the read has no save step where the clause could be validated.

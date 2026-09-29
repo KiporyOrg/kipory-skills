@@ -47,7 +47,7 @@ license: MIT
 - **Writing the document with ids.** A document carries names; an id in it is matched only when this project holds a row with it, and otherwise ignored (`ignoredIds`). A document written from another project's export plans cleanly here — its ids are noise, its names are the content.
 - **Skipping step 8 because the project is small.**
 - **A per-user record type in a plan a key will execute.** A key's runs are project-owned; a type whose records belong to individual end users cannot be written by a flow it runs (a key can only hand-write one such record at a time, naming the owner). If the product has end users who own their data, the sheet needs an endpoint they call signed in (`kipory-expose`), and the plan should say so.
-- **Planning a record write as a coded route.** A product's record writes belong in a flow step reached through an endpoint, a schedule or processing; the sheet's exposure step is where the write lives. `POST /v1/projects/{nodeId}/records` exists, but it is an operator's one-record correction path (EDITOR, `kipory-data`), not a product's write.
+- **Planning a record write as a coded route.** A product's record writes belong in a flow step reached through an endpoint, a schedule or processing; the sheet's exposure step is where the write lives. `POST /v1/records` exists, but it is an operator's one-record correction path (EDITOR, `kipory-data`), not a product's write.
 - **Forgetting the two hosts.** Every endpoint row in the sheet is served on the project's host; everything else the sheet authors is on the api host.
 
 ## References

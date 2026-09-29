@@ -163,6 +163,28 @@ type nothing binds, which is what a new type is until something does. It needs
 EDITOR on the project node. To check the create itself, send the create body to
 `POST /v1/schema-entries` with `validateOnly: true`.
 
+## Writing records from outside a flow
+
+Records are written by flows; an operator or an importer writes them over HTTP at one prefix,
+`/v1/records` (the project named by `project`):
+
+- `POST /v1/records` — one record. When another record of the type already holds the natural key
+  the payload carries, the default refuses 409 `RECORD_NATURAL_KEY_TAKEN`;
+  `onKeyTaken: "update"` replaces that record's `data` instead (an **upsert**, `outcome: "updated"`,
+  same id, re-indexed, flow not re-run). A type with no natural key refuses the upsert 422.
+- `PATCH /v1/records/{id}` — one correction: `version` (the lock every list row and detail
+  carries) and either `data` (the whole document; keys left out are removed) or `merge` (only the
+  keys that change; `null` removes one). The result is judged by the type's shape either way.
+- `POST /v1/records/bulk` — up to 500 of either kind in **one change set**: every item is judged by
+  its single twin's rules first, and if any is refused nothing is written and the 422 names each
+  item (`details.issues[].path` = `items.<n>`). `validateOnly: true` answers the verdict and writes
+  nothing.
+
+⭐ **Adding a required field to a type that already holds records is four calls**, not two per
+record: widen the shape (the field optional), read the ids and versions (`GET /v1/records`, one
+page of up to 100), set the field on all of them (`POST /v1/records/bulk`, one `merge` item per
+record), then make it required. An import is one bulk of creates with `onKeyTaken: "update"`.
+
 ## Owner scope — whose records are these?
 
 Declared on the type, and every generic reader, writer and processor branches on it.
@@ -189,8 +211,8 @@ is not an answer at all.
 oversights: **no per-record teardown**, and **no file-producing handlers in the bound flow** —
 both are per-user end to end. **File attachment is not one of them**: a pool record takes the
 project's own files — `entity.create`'s `fileIdsSlot` checks each file against the record's
-owner, and a file uploaded through `POST /v1/projects/{nodeId}/files/upload-url` (the route an
-API key uses) is a project file. `POST /v1/projects/{nodeId}/records` has no file field and
+owner, and a file uploaded through `POST /v1/files/upload-url` with `project` (the form an
+API key uses) is a project file. `POST /v1/records` has no file field and
 there is no attach route, so the attaching write is always a flow's. A pool processing run carries no user
 at all, so **a flow that reads user attributes cannot run under one**: the provider fails closed.
 Read configuration through the project attribute instead. Billing lands on the project's payer.
@@ -593,8 +615,10 @@ Every use above routes a part of a record to a store that answers its own kind o
 none of those stores can answer another's. A **query** asks several of them at once and returns the
 records that satisfy ALL of its clauses — a conjunction, never an OR — with two fields on every
 answer that say how complete it is. One grammar, two places to state it: the config of an
-`entity.query` step inside a flow, and the body of `POST /v1/projects/{nodeId}/records/query` from
-outside one. A body, not query-string parameters, because clauses nest.
+`entity.query` step inside a flow, and the body of `POST /v1/records/query` (with `project`) from
+outside one. A body, not query-string parameters, because clauses nest. The records list
+(`GET /v1/records?project=&recordType=`) speaks the same operator words in its `field=name:op:value`
+conditions — `eq`, `gt`, `gte`, `lt`, `lte`.
 
 ```json
 {
@@ -790,7 +814,7 @@ body. A cached answer — every query reads the stores as they are now. The oper
   `entity.enqueue-process` step (`code: "RECORD_CREATED_NOT_QUEUED"`, the flow, the create step
   and a sentence saying what to add); always empty for a type with no processing flow. Item-route
   only. A record already stranded this way is processed with
-  `POST /v1/projects/{nodeId}/records/{id}/reprocess`, which accepts a `PENDING` record only when
+  `POST /v1/records/{id}/reprocess`, which accepts a `pending` record only when
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
 
 - **Re-pointing or renaming a type that already has records**, and renaming — changing the `key`

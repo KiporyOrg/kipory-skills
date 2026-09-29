@@ -72,7 +72,7 @@ Skipping the teardown is how a record ends up with two generations of derived da
 `entity.teardown` is per-user end to end: it **fails the step on a run with no signed-in user** —
 every run your key starts — and reaches only that user's own records, never pool records. To
 reprocess from your key (a run with no signed-in user), or to reprocess a pool record, use
-`POST /v1/projects/{nodeId}/records/{id}/reprocess` (`references/api/records.md`), which sweeps
+`POST /v1/records/{id}/reprocess` (`references/api/records.md`), which sweeps
 the prior output itself — generated files, facets and vector points — before the run.
 
 ## The scoping that catches people
