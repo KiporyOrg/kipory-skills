@@ -2,6 +2,32 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260929.100019 — 2026-09-29
+
+Synced from the Kipory monorepo at `013afda6f`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/schema-entries.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-model/references/packs/relations.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+
 ## 1.20260929.72318 — 2026-09-29
 
 Synced from the Kipory monorepo at `8b41712f0`.

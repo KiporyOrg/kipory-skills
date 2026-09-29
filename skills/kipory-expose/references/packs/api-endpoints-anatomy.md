@@ -90,24 +90,24 @@ parameters adjacent. Path and query parameters can only carry string slots.
 Collisions are computed on the **parameter-name-agnostic template**, so `/v1/x/{id}` and
 `/v1/x/{key}` are the same path. It must not collide with a coded platform route or with a sibling
 endpoint. A coded route with a parameter where yours has a literal collides too: it matches every
-call yours would, and wins. The other way round is not refused: a coded **literal** under your
-parameter answers that one value (the path `/v1/me/{text}` never receives `text` = `stats`), and
-`expand=shadowed` lists each such route in `partiallyShadowedBy`. `GET /v1/coded-routes` lists every coded path so you can check before saving rather than
+call yours would, and wins. A coded **literal** under your parameter does not collide — your
+endpoint still answers every other value — and `expand=shadowed` lists each such route in
+`partiallyShadowedBy`. You meet one on a path whose first segment is a parameter, or on an
+endpoint stored before the reserved-word rule below. `GET /v1/coded-routes` lists every coded path so you can check before saving rather than
 discover it in a refusal.
 
 A coded route occupies its path on **every** host, including one where it answers 404 — a group a
 project has disabled, or a management-plane group addressed on a project subdomain, is still a
 registered route and still wins the match. So "it 404s here" is never a reason to author onto it.
 
-⚠️ **A coded route's first path word is reserved whole, and the save does not say so.** The
-collision check and `expand=shadowed` compare whole paths, so an endpoint on `/v1/docs/add` saves
-cleanly beside the platform's own docs reads. At run time the host gate maps the first word after
-`/v1/` to its coded group before any endpoint is matched. Under a word the design API owns (records,
-flows, projects, runs and the rest of the management plane) the endpoint answers 404 on every call;
-under one of the groups a project host serves (auth, me, files, docs, credits) it answers only while
-that group is enabled for the project, and a later route-enablement change takes it down with the
-group. Read the first words off `GET /v1/coded-routes` — it needs a key, any role — and start your
-paths with a word none of its rows uses.
+⚠️ **A coded route's first path word is reserved whole, and the save refuses it.** At run time the
+host gate maps the first word after `/v1/` to its coded group before any endpoint is matched, so an
+endpoint under one (`/v1/docs/add`, `/v1/records/…`) would never be reached — under a management
+word never, under a group a project host serves only while that group is enabled. The save, its
+`validateOnly` and a document plan refuse such a path as `ENDPOINT_PATH_RESERVED_WORD`, naming the
+word and its group, whether or not the group is enabled. A path whose FIRST segment is a parameter
+(`/v1/{kind}/…`) saves; its `validateOnly` warns `ENDPOINT_PATH_PARTLY_PREEMPTED`, because those
+words never reach it. Read the first words off `GET /v1/coded-routes` — it needs a key, any role.
 
 There is **no read-only flag to set.** Whether a VIEWER-level caller may make a call is the
 platform's decision, not a declaration: an asynchronous invoke and a DELETE are writes; any other

@@ -266,6 +266,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The relation kind's id, as returned when it was created or listed. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `GET /v1/relation-kinds/{id}?expand=relationCount`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
@@ -273,3 +279,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `deletedCounts` | `object` | yes | What the deletion took with it. Deleting a kind cascades — read this before, not after. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports. ⚠️ THEY DO NOT DECIDE `ok`: `ok` is whether THIS ROW would save, and a row saves while what it leaves is broken (a step saves while its flow is half-wired). Absent when the dry run did not rehearse — a create, or a draft its planner refused. |
+| `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |

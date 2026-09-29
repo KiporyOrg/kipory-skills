@@ -37,10 +37,12 @@ order is a save refused for naming something absent.
 
 The shape is edited on `PATCH /v1/schema-entries/{id}`, with `adoptSnapshots: true` while an
 endpoint, or a record type through its processing flow, holds a snapshot of a flow that reads it
-(without it: `409`, naming them). Check step 3 with a document plan and read `records-invalid` —
-that is the only rehearsal that counts stored records; the schema-entry PATCH with `validateOnly:
-true` answers `ok: true` over records that would no longer fit. Step 4 is yours alone: no plan,
-apply or health check re-reads a schedule's or trigger's stored `inputs` against the new shape.
+(without it: `409`, naming them). Check step 3 with the schema-entry PATCH and `validateOnly:
+true`, or a document plan: both rehearse the edit and answer the same `records-invalid` count under
+`consequences`, and the flows, schedules and triggers it would break (the PATCH lists them under
+`leavesBehind`, the plan among its findings, each with `introduced`). Step 4 is the fix for what
+they name: a schedule's or trigger's stored `inputs` that no longer fit is
+`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`.
 
 **The backfill, record by record** (a handful to a few hundred records):
 
@@ -101,7 +103,7 @@ thing you were trying to change.
 
 | The refusal says                         | Deal with                                                                                                                |
 | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| the type has N existing records          | the records, in `kipory-data` — or leave the type alone. The `code` is `CONFLICT`; gate on the status, not the message   |
+| the type has N existing records          | the records, in `kipory-data` — or leave the type alone. The rule is `RECORD_TYPE_PINNED_BY_RECORDS` (`details.reason`)  |
 | the type is reserved or seeded           | nothing; it is not yours to delete                                                                                       |
 | a related row still references this flow | whatever references it — an endpoint, a schedule (even disabled), a trigger, a record type, a resolver, an invoking flow |
 | N dependents read these slots            | re-wire those steps first, then delete                                                                                   |

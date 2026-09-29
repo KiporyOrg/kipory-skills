@@ -110,8 +110,9 @@ Everything else the flow declares must be in `inputs`, fixed in advance — a tr
 schedule, has no caller to fill gaps. Coverage is checked at save: a missing slot is a 422 naming
 it, and so is a **blank** one — an empty string, `null` or an empty list — under its own code,
 `FLOW_INPUT_BLANK`. Both carry one issue per slot whose `field` is that slot's place in the body
-(`inputs.<slot>`), so a form can mark the box. ⚠️ Coverage is
-**presence, not type** — the same omission schedules carry, for the same reason.
+(`inputs.<slot>`), so a form can mark the box. A value its slot's type refuses is refused too, as
+`TRIGGER_INPUT_MISTYPED`, one issue per slot; the reserved `event` and `trigger` slots are filled
+per event and never judged.
 
 Shaping belongs in the flow. There is no template language on the trigger; the first step of the
 bound flow is where the payload under the `event` slot becomes whatever the rest of the flow wants,

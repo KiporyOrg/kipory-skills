@@ -561,6 +561,9 @@ well-typed.
   runner rewrites the rows in batches. Until it converges, your `where` clauses resolve against
   the map the rows are stamped for, not the one you just saved — coherent, and stale.
 - **Deleting a kind cascades** to its edges _and_ its pairings, and tells you how many of each.
+  Ask first with `DELETE /v1/relation-kinds/{id}?validateOnly=true`: it rehearses the delete,
+  rolls it back, and answers a verdict whose `consequences` carry the `edges-deleted` count — the
+  same count a document plan reports — and whose `leavesBehind` names any flow the delete breaks.
   Deleting a pairing cascades nothing — but the **last** pairing cannot be deleted at all, because a
   kind that applies to no record types can connect nothing. Delete the kind instead.
 

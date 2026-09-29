@@ -234,7 +234,9 @@ Other things bind a flow without capturing its shape: a schedule, a trigger, a
 facet resolver. None of them blocks a signature change, because none froze a copy
 to go stale. What a schedule needs is that its stored inputs still cover the flow's declared input
 slots, and that is reported live on the schedule itself (`uncoveredInputSlots`) and re-checked when
-it fires.
+it fires. A signature change does not refuse on a schedule or trigger it leaves uncovered or
+mistyped, but the PATCH's `validateOnly` names each one in `leavesBehind`, and so does a document
+plan.
 
 Renaming, or rewriting only the binding, never touches a captured shape and is always allowed —
 **including when you send the type arrays back unchanged**, which a client that PATCHes the whole
@@ -1046,7 +1048,17 @@ binding-only rewrite.
 
 ⭐⭐ **It runs the graph blockers too**, so a signature change the graph refuses
 is visible before you commit to it — the refusal that is otherwise discovered
-only after a save has begun.
+only after a save has begun. A refusal that is a `409` on the save
+(`FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`) is a verdict here — `ok: false` with that
+code; a flow that does not exist, or a role below the floor, is still a thrown status.
+
+⭐⭐ **A PATCH's `validateOnly` rehearses the save.** It makes the write and rolls it
+back, then judges what it leaves: `leavesBehind` lists health's findings on this
+flow and on every flow invoking it, and on the schedules, triggers and endpoints
+that start them — each with `introduced` (`false` means it was already there).
+`consequences` says what the change does to stored data. Neither decides `ok`,
+which stays whether the PATCH itself would save; a create does not rehearse and
+carries neither.
 
 ⛔ **A PATCH answers one status with two bodies**: the saved flow, or a verdict
 about one that was not saved. Narrow on `ok`, which only the verdict declares,

@@ -39,23 +39,24 @@ reach for when the change touches more than a handful of rows.
 
 ## Rehearse first
 
-| Route                                            | Answers                                                                                                                                               |
-| ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /v1/bootstrap?project={nodeId}`             | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                    |
-| `GET /v1/projects/{nodeId}/deletion-preview`     | what deleting the whole project would take with it                                                                                                    |
-| `DELETE /v1/facets/{id}` + `validateOnly`        | whether a facet delete would be allowed, and what it reaches                                                                                          |
-| `DELETE /v1/record-types/{id}` + `validateOnly`  | whether a record-type delete would be allowed — the verdict only; a document plan lists what it would cascade into                                    |
-| `GET /v1/flows/{id}?expand=dependents`           | everything that blocks a flow delete, with `deleteRefusal` — `DELETE /v1/flows/{id}` itself has NO rehearsal flag (below)                             |
-| `GET /v1/record-types/{id}/contract-preview`     | the field vocabulary under a **proposed** shape entry (`dataEntryId`) and/or flow binding (`flowId`, or `none`)                                       |
-| `POST /v1/record-types/{id}/contract-preview`    | the same under a **drafted** `definition` of the shape the type points at — EDITOR                                                                    |
-| `PATCH /v1/schema-entries/{id}` + `validateOnly` | what a shape edit would do; a 409 (not a verdict) when it re-shapes a bound snapshot without `adoptSnapshots: true`                                   |
-| `PATCH /v1/record-types/{id}` + `validateOnly`   | what a `uses`, binding or key change derives to — declarations, reindex, restamp                                                                      |
-| `GET /v1/skills/rename-preview`                  | every step whose wiring a slot rename would rewrite                                                                                                   |
-| `POST /v1/skills/validate-draft`                 | whether an unsaved step is valid — it executes nothing                                                                                                |
-| `GET /v1/flows/{id}/health`                      | whether the flow is whole after the edit                                                                                                              |
-| `GET /v1/flow-checkpoints/{id}/restore-preview`  | what restoring would change back                                                                                                                      |
-| `GET /v1/eval-suites/{id}/readiness`             | whether the suite can still judge the thing you changed                                                                                               |
-| `POST /v1/projects/{nodeId}/document/plan`       | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing |
+| Route                                             | Answers                                                                                                                                               |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/bootstrap?project={nodeId}`              | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                    |
+| `GET /v1/projects/{nodeId}/deletion-preview`      | what deleting the whole project would take with it                                                                                                    |
+| `DELETE /v1/facets/{id}` + `validateOnly`         | whether a facet delete would be allowed, and what it reaches                                                                                          |
+| `DELETE /v1/record-types/{id}` + `validateOnly`   | whether a record-type delete would be allowed — the verdict only; a document plan lists what it would cascade into                                    |
+| `DELETE /v1/relation-kinds/{id}` + `validateOnly` | the edges the delete would take, as `edges-deleted` under `consequences`                                                                              |
+| `GET /v1/flows/{id}?expand=dependents`            | everything that blocks a flow delete, with `deleteRefusal` — `DELETE /v1/flows/{id}` itself has NO rehearsal flag (below)                             |
+| `GET /v1/record-types/{id}/contract-preview`      | the field vocabulary under a **proposed** shape entry (`dataEntryId`) and/or flow binding (`flowId`, or `none`)                                       |
+| `POST /v1/record-types/{id}/contract-preview`     | the same under a **drafted** `definition` of the shape the type points at — EDITOR                                                                    |
+| `PATCH /v1/schema-entries/{id}` + `validateOnly`  | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                         |
+| `PATCH /v1/record-types/{id}` + `validateOnly`    | what a `uses`, binding or key change derives to — declarations, reindex, restamp                                                                      |
+| `GET /v1/skills/rename-preview`                   | every step whose wiring a slot rename would rewrite                                                                                                   |
+| `POST /v1/skills/validate-draft`                  | whether an unsaved step is valid — it executes nothing                                                                                                |
+| `GET /v1/flows/{id}/health`                       | whether the flow is whole after the edit                                                                                                              |
+| `GET /v1/flow-checkpoints/{id}/restore-preview`   | what restoring would change back                                                                                                                      |
+| `GET /v1/eval-suites/{id}/readiness`              | whether the suite can still judge the thing you changed                                                                                               |
+| `POST /v1/projects/{nodeId}/document/plan`        | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing |
 
 ⚠️ **`POST /v1/flows/{id}/preview` is not one of these.** It runs the flow for real and **applies
 its writes** unless you pass `apply: false`, it bills the payer, and it needs ADMIN. It is a test
@@ -120,23 +121,24 @@ Delete the leaf, then what it hung from.
 that reads the shape is frozen into a published contract — an endpoint in front of it, or a record
 type whose processing flow (`flowId`) it is — that PATCH answers `409
 SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, naming those holders, unless it carries `adoptSnapshots:
-true`. Schedules and triggers freeze nothing, so they are neither named nor checked: their stored
-`inputs` are not re-validated against the new shape (see step 3) — and even a schedule write that
-re-sends its `inputs` checks only that every input slot has a key and none is blank, never the
-values against the shape, so its `validateOnly` answers `ok: true` over inputs that will fail. Removing a field is refused once
+true`. Schedules and triggers freeze nothing, so the 409 neither names nor waits for them. The
+edit's `validateOnly` rehearsal judges their stored `inputs` against the new shape (see step 3): a
+value its slot's type now refuses is `SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED` in
+`leavesBehind`. The PATCH itself does not refuse on them; a schedule or trigger write that sends
+such a value is refused with the same code. Removing a field is refused once
 the type has records. It is three steps, in this order:
 
 1. **Rehearse.** `POST /v1/record-types/{id}/contract-preview` with the drafted `definition` for
    the vocabulary it would give the type; the schema-entry PATCH with `validateOnly: true` (and
-   `adoptSnapshots: true`) for whether the edit is allowed; and a document plan for what it does
-   to stored data. ⚠️ Only the plan counts records: its `records-invalid` names how many would no
-   longer fit, while the PATCH verdict answers `ok: true` over the same records.
+   `adoptSnapshots: true`) for whether the edit is allowed and what it does to stored data — it
+   rehearses the edit and answers `records-invalid` under `consequences`, and the flows, schedules
+   and triggers it would break under `leavesBehind`, as a document plan does.
 2. **Widen, never narrow, in the first write.** Add the new field as optional. Existing records stay
    valid, and nothing has to be backfilled before the change lands.
 3. **Backfill, then narrow.** Populate the field on existing records (`references/change-order.md`
-   has the loop), and only then make it required. Then re-read every schedule and trigger whose
-   flow reads the shape and add the field to their fixed `inputs` — nothing else will tell you, and
-   the next fire fails.
+   has the loop), and only then make it required. The narrowing write's rehearsal (or plan) names
+   every schedule and trigger whose fixed `inputs` it would leave unable to fire
+   (`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`); add the field to their `inputs`.
 
 Narrowing first is what turns a change into an outage: every record that lacks the field becomes
 invalid at once, and there is no partial state to recover from.
@@ -146,11 +148,9 @@ invalid at once, and there is no partial state to recover from.
 Some destructive changes are refused outright:
 
 - **A record type with records cannot be deleted.** The refusal names the count. Delete the records
-  first, or leave the type alone. ⚠️ Its `code` is the generic `CONFLICT` on the `validateOnly`
-  verdict, the plan and the real 409 alike; the rule name (`RECORD_TYPE_PINNED_BY_RECORDS: …`) heads
-  the `message` of the real 409 only — the verdict and the plan say just `"<type>" has N existing
-record(s)…`. Gate on the status (409, or a verdict with `ok: false`), not on the code or the
-  message.
+  first, or leave the type alone. The rule is `RECORD_TYPE_PINNED_BY_RECORDS` everywhere: the
+  finding's `code` on the `validateOnly` verdict and in a plan, and `details.reason` on the real
+  409 (whose `code` stays `CONFLICT`). Any refusal that names a rule does the same.
 - **Reserved and seeded record types cannot be deleted**, whatever they hold.
 - **A flow something still references cannot be deleted** — the refusal names what references it.
 - **A step whose output later steps read cannot be deleted** — the refusal counts the dependents and
@@ -246,7 +246,8 @@ at all:
   re-read. If you built something that caches configuration, this is the signal it was waiting for.
 - **A flow's signature is frozen by what publishes it.** Changing its input or output slots (a
   rename, a new required input, a type) while an endpoint — or a record type processing through it
-  — holds a snapshot answers `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`, even under `validateOnly`.
+  — holds a snapshot answers `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an
+  `ok: false` verdict with that code).
   `PATCH /v1/flows/{id}` with `adoptSnapshots: true` lands it and re-publishes those contracts in
   the same transaction: every client of that endpoint sees the new response keys at once. Treat it
   as an API change to the product's callers, not an internal edit (`kipory-expose`). A change to

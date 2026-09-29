@@ -1241,10 +1241,11 @@ COMPUTES something you could not otherwise see — a schedule's occurrences, an 
 type edit computes nothing of that kind: what it produces is the document you sent. A field with
 nothing true to put in it is worse than an absent one.
 
-⚠️ **The 409 is not a verdict.** An edit that re-shapes bound snapshots without `adoptSnapshots`
-is refused with **409** `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, listing what it would re-shape —
-and a dry run answers that 409 too, because it is the status the save gives. Send
-`adoptSnapshots: true` alongside the check to ask what the permitted edit would do instead.
+**A 409 is a verdict on the dry run.** An edit that re-shapes bound snapshots without
+`adoptSnapshots` is refused with **409** `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, listing what it
+would re-shape; the same check under `validateOnly` answers `ok: false` with that code. Send
+`adoptSnapshots: true` alongside the check to ask what the permitted edit would do instead — the
+dry run then rehearses it and reports `records-invalid` and what it would break.
 
 ⚠️ **An invalid draft is not a failed request.** A 4xx means the _validate request itself_ could not
 be served — an id that addresses nothing answers **404**, not a verdict.

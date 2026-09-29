@@ -83,7 +83,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `ok` | `boolean` | yes | True when `diagnostics` holds no `error`. An apply of this document would commit exactly when this is true. |
+| `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | Every row the document states, in the order an apply writes them. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
@@ -110,7 +110,7 @@ _No fields._
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `ok` | `boolean` | yes | True when `diagnostics` holds no `error`. An apply of this document would commit exactly when this is true. |
+| `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
 | `changes` | `object[]` | yes | Every row the document states, in the order an apply writes them. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |

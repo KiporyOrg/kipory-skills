@@ -126,12 +126,12 @@ read the one schedule you are about to show from it when the list left it `null`
   time to check it, and **nothing is stored** — the same question is asked again at fire time,
   from the same code, so the two cannot drift apart.
 
-  ⚠️ Coverage is **presence, not type**. A slot whose declared type changed is still "covered" by
-  the old value, and nothing type-checks the input bag. A schedule can therefore keep firing a
-  flow it no longer fits. The same holds when the SHAPE behind a slot narrows: make a field
-  required on a schema entry and no plan, apply or health check looks at the schedule's stored
-  `inputs`, so the next fire fails. After narrowing a shape, re-read every schedule and trigger
-  bound to a flow that reads it and patch their `inputs`.
+  Coverage is presence; the TYPE is judged where inputs are stored. A value its slot's type
+  refuses is refused at the schedule's save (`SCHEDULE_INPUT_MISTYPED`, one issue per slot), and
+  a change that narrows the flow or a shape under it — a document plan, or a schema-entry or flow
+  PATCH with `validateOnly` — reports every schedule and trigger it would leave unable to fire,
+  with the same code, even when it never names them. The fire itself asks only presence, so a
+  schedule stored before a change keeps firing until you patch its `inputs`.
 
 - **A schedule that could never fire is refused at the write**, not stored and quietly ignored:
   an end at or before the start, a maximum already spent, or a pattern whose next occurrence
@@ -303,9 +303,9 @@ of rules, so a check that passes and a save that refuses cannot come apart.
 - **There is no owner to name.** A schedule belongs to the project. The creator is recorded as
   provenance only, read by nothing at fire time, and is empty for a token-authenticated caller.
   This is deliberate: a departed creator's account can never stop or misattribute a run.
-- **Presence-not-type coverage, again**, because it is the failure that looks like nothing is
-  wrong: the schedule stays green, fires on time, and hands the flow a value it can no longer
-  use.
+- **A schedule stored before a change keeps firing.** The fire asks only presence, so a value a
+  later change made the wrong type still reaches the flow. The change's own rehearsal or plan
+  named it (`SCHEDULE_INPUT_MISTYPED`); patch the schedule's `inputs` when it does.
 
 ## Related
 

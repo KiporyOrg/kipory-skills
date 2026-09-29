@@ -106,11 +106,14 @@ nothing, so its floor is VIEWER. A plan is not a simulation: the platform applie
 through every row's own write, in one transaction, and rolls the transaction back. What a plan
 refuses is exactly what an apply would refuse.
 
-⚠️ **What an apply would refuse is not everything that can be wrong with a flow.** A step write
-validates the steps around it, not the whole graph, and the whole-flow checks — an output binding
-whose types do not match, among others — are health's, which neither a plan nor an apply runs. A
-plan can say `ok: true` for a flow whose health then reports errors. After an apply, ask
-`GET /v1/flows/{id}/health` for every flow the document touched.
+⭐ **A plan judges the state the document leaves, not only the rows it writes.** Every flow the
+document can move — the ones it writes, the ones invoking them, the ones reading a shape or a table
+it changes — is judged with the rules `GET /v1/flows/{id}/health` runs, once before the writes and
+once after, and so are the schedules, triggers and endpoints that start those flows, by the rules
+their own saves run. A finding the document causes carries `introduced: true`; one already there
+carries `introduced: false`. Only an introduced error makes `ok` false and refuses the apply, so an
+`ok` plan leaves no flow with an error it did not name, and a broken project can be repaired one
+document at a time.
 
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
@@ -125,8 +128,8 @@ The exception is the owned collections (a flow's `skills` and `tests`, a suite's
 facet's `terms`): each is stated whole, so when present it replaces the owner's collection — and a
 member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
-A shape or a flow may also carry `adoptSnapshots: true`. Endpoints, schedules and record types
-FREEZE the types they bind, so an edit that re-shapes one is refused by the row's own write,
+A shape or a flow may also carry `adoptSnapshots: true`. Endpoints, and record types through their
+processing flow, FREEZE the types they bind (schedules and triggers freeze nothing), so an edit that re-shapes one is refused by the row's own write,
 naming what it would leave behind, unless you grant this. A document does not get to assume it:
 adopting re-publishes an endpoint's request and response contract to whoever already calls that
 route. It is a statement about this apply, like `delete` — never part of the row, never exported.
@@ -148,14 +151,17 @@ The answer holds the `version` the project was read at — the lock an apply pre
   attempt early, because it comes from comparing your document with the project, not from the
   attempt.
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
-  (`records.member.shape`), never a path in some row's request body. Gate on `severity`.
+  (`records.member.shape`), never a path in some row's request body. Gate on `severity` and
+  `introduced`: a finding about the state the document leaves carries `introduced` — `false` when
+  it was already in the project, which reports it without gating.
 - `consequences` — what the change does to stored data, with counts measured in the planning
   transaction: records re-stamped, a vector reconcile queued, stream fields moved, edges
-  re-stamped, `edges-deleted` — every stored edge a relation-kind delete takes along — and `records-invalid` — stored records that do not fit a shape you changed. That last one is found by
+  re-stamped, `edges-deleted` — every stored edge a relation-kind delete takes along, including a
+  kind a record-type delete removes with it — and `records-invalid` — stored records that do not fit a shape you changed. That last one is found by
   reach, not by name: change a shape and every record type whose shape is it, or reaches it
   through a reference, has its stored records checked, whether or not your document mentions the
   type. The count is of records that do not fit, not only newly broken ones; past 5 000 records
-  of one type it is a floor and says so. A consequence is never a refusal — the platform tells
+  of one type it is a floor and says so (`lowerBound: true`). A consequence is never a refusal — the platform tells
   you, and lets you.
   `reembed` is the one that costs money: this type's stored records are re-embedded for search,
   which spends credits on embedding usage (billed by tokens, so it grows with the records and the
@@ -163,8 +169,9 @@ The answer holds the `version` the project was read at — the lock an apply pre
   apply's answer does not repeat it), and it is the one to ask a person about before applying.
   `reindex` is not that: it says a reconcile is queued, which may find nothing to redo (a filter
   change queues one and embeds nothing).
-- `ok` — true exactly when no diagnostic is an `error`. An apply of the same document commits
-  exactly when this is true.
+- `ok` — true exactly when no `error` the document introduces remains; an error carrying
+  `introduced: false` was already in the project and does not gate. An apply of the same document
+  commits exactly when this is true.
 
 A row is `skipped` when something it names was refused; `because` holds the path of the refused
 row. Fix that row and plan again — the skipped rows were never judged, so they may still hold
@@ -227,7 +234,9 @@ apply's own transaction, so they are this apply's, whatever lands after it.
 
 Authoring needs EDITOR. A document that REMOVES anything — a `delete: true` row, or a `prune: true`
 map that finds something to remove — needs ADMIN, and is refused with `403` before the first write
-when the caller holds less. Every removal still goes through that row's own delete, so whatever
+when the caller holds less. The plan says so first: a caller below EDITOR gets
+`DOCUMENT_APPLY_FORBIDDEN`, and one below ADMIN gets `DOCUMENT_DELETE_FORBIDDEN` on each row that
+removes something, so `ok` is false. Every removal still goes through that row's own delete, so whatever
 protects the row there (a flow a schedule still binds, a source something still listens to)
 protects it here, and surfaces as a finding on the row's path.
 

@@ -153,7 +153,7 @@ GET /v1/flows/{id}/health
 }
 ```
 
-`counts.errors: 0` is the answer; `diagnostics` name the step and edge at fault. An error does not stop the flow from running — it says what the run will get wrong, so fix it before you bind the flow. A clean write in steps 2–3 is not this — only health runs the whole graph.
+`counts.errors: 0` is the answer; `diagnostics` name the step and edge at fault. An error does not stop the flow from running — it says what the run will get wrong, so fix it before you bind the flow. A clean write in steps 2–3 is not this — health, a document plan and a flow PATCH's `validateOnly` run the whole graph; a step write does not.
 
 ## 5. Preview it
 
@@ -190,7 +190,7 @@ POST /v1/flows/{id}/preview
 
 ## 6. Put it on HTTP
 
-Check the path is free first: `GET /v1/coded-routes` (api host, with your key — any role) lists every path the platform itself occupies, and a coded route always wins. Keep your path's first word off every word those rows start with — `/v1/docs/add` saves cleanly and is served only while the project's docs group is on; under a design-API word such as `records` it never answers (`kipory-expose`).
+Check the path is free first: `GET /v1/coded-routes` (api host, with your key — any role) lists every path the platform itself occupies, and a coded route always wins. Keep your path's first word off every word those rows start with — the save refuses `/v1/docs/add` or `/v1/records/…` as `ENDPOINT_PATH_RESERVED_WORD` (`kipory-expose`).
 
 ```
 POST /v1/api-endpoints
@@ -323,8 +323,8 @@ POST /v1/projects/{nodeId}/document   { version, document }
 }
 ```
 
-`200` with `applied: true`, `appliedVersion` (present it on your next apply) and `document` — the project as it now stands with every `id` filled in. `document.flows.summarise.id` is the flow id for health and preview (steps 4–5, which a document does not do for you — **a plan and an apply do not run the whole-flow health check**, so `ok: true` can still leave a flow with errors; call health for every flow the document touched); `document.surfaces.endpoints.summarise.id` is the endpoint to read `invokeUrl` from with `GET /v1/api-endpoints/{id}`. A refused apply answers `422` with the plan as its body; a stale `version` answers `409` with the current document under `details`. The rest of the format is `packs/project-document.md`.
+`200` with `applied: true`, `appliedVersion` (present it on your next apply) and `document` — the project as it now stands with every `id` filled in. `document.flows.summarise.id` is the flow id for health and preview (step 5 — preview — is still yours; step 4's health checks the plan already ran for every flow it touched, so `/health` after an apply confirms what the plan said); `document.surfaces.endpoints.summarise.id` is the endpoint to read `invokeUrl` from with `GET /v1/api-endpoints/{id}`. A refused apply answers `422` with the plan as its body; a stale `version` answers `409` with the current document under `details`. The rest of the format is `packs/project-document.md`.
 
 ## How this page was checked
 
-Sections 1–7 were run as written, with an ADMIN key on a fresh project: every status, the step-2 warning, the health answer, the preview output, the endpoint's `access`, and the product call's body and headers. Of section 8, the document was planned against that project and a second project was created from it in one call (`POST /v1/projects` with `document`); the separate apply route was not exercised. What depends on your deployment — the model a task binds to, the project host, prices — is read from the responses, not from this page.
+Sections 1–7 were run as written, with an ADMIN key on a fresh project: every status, the step-2 warning, the health answer, the preview output, the endpoint's `access`, and the product call's body and headers. Of section 8, the document was planned against that project and a second project was created from it in one call (`POST /v1/projects` with `document`); the separate apply route was not exercised. Section 8's note on what a plan checks, and section 6's reserved-word line, were changed on 2026-09-29 to follow the platform and have not been re-run. What depends on your deployment — the model a task binds to, the project host, prices — is read from the responses, not from this page.
