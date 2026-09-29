@@ -2,7 +2,7 @@
 
 # Templates
 
-The project documents a new project can be created from, shipped with the platform. Both reads are public; `POST /v1/projects` takes the slug as `template` and applies it inside the transaction that creates the project. A new account's first project is always the one marked `starter`.
+The project documents a new project can be created from, shipped with the platform. Both reads are public; `POST /v1/projects` and a first project's `POST /v1/me/projects` take the slug as `template` and apply it inside the transaction that creates the project. Naming none creates an empty project; `starter` marks the one to suggest to somebody new.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -37,6 +37,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `slug` | `string` | yes | The template's slug, as `GET /v1/templates` lists it: lowercase words joined by hyphens. |
 | `name` | `string` | yes | The template's name, for a person. |
 | `description` | `string` | yes | What a project made from it is. |
-| `starter` | `boolean` | yes | True on exactly one template: the STARTER, which a new account's first project is always created from (`POST /v1/me/projects` takes no `template`). Every other creation — `POST /v1/projects` — starts from the template it names, or from nothing. |
+| `starter` | `boolean` | yes | True on exactly one template: the STARTER, the one to suggest to somebody new. Nothing applies it on its own — every creation, `POST /v1/projects` and a first project's `POST /v1/me/projects` alike, starts from the template it names, a document, or nothing. |
 | `requires` | `object` | yes |  |
 | `document` | `object` | yes | The project document the template applies — read it to see exactly what a project created from this template will hold. Plan it against an existing project to see what it would add there. |

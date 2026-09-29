@@ -14,15 +14,15 @@ that creates a project. A project created from a template holds a COPY of its ro
 editing the project never touches the template, and a later platform release never rewrites a
 project a template once seeded.
 
-A project created by an API call names the template it wants, or none. A new account's first
-project always starts from the platform's starter template — applied inside the registration, so
-a starter the platform refuses leaves nobody seated in an empty project.
+A project created by an API call names the template it wants, or none — a new account's first
+project included. There, the template is applied inside the registration, so one the platform
+refuses leaves nobody seated in a half-built project.
 
 ## See what is shipped
 
 `GET /v1/templates` lists every template this deployment ships — each with its slug, its name, a
-description, what it requires, and `starter`, true on exactly the one a first project is made
-from — with a `version` that is a content hash: it moves when, and only when, a template
+description, what it requires, and `starter`, true on exactly the one to suggest to somebody
+new — with a `version` that is a content hash: it moves when, and only when, a template
 changed. `GET /v1/templates/{slug}` adds `document`, the project document the template applies.
 Both are public, like these packs: they are documentation, byte-identical for every caller. An
 unknown slug answers `404` and names the slugs that exist — any string is an unknown slug, one the

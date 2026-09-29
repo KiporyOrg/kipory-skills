@@ -41,7 +41,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `name` | `string` | yes | The project's display name. |
 | `slug` | `string` | yes | The project's URL-safe short name. It must be free across the whole platform, and it decides the subdomain the project's API is served at. |
 | `parentNodeId` | `string` | no | The organization node the project hangs under. Omit it and the project goes under the platform organization. |
-| `template` | `string` | no | Slug of a project template (`GET /v1/templates`) to start the project with. Its configuration is applied in the SAME transaction that creates the project: if the platform refuses any of it, no project exists afterwards. Omit it for an empty project. The project keeps no link to the template. |
+| `template` | `string` | no | Slug of a project template (`GET /v1/templates`) to start the project with. Its configuration is applied in the SAME transaction that creates the project: if the platform refuses any of it, no project exists afterwards. Omit it and `document` for an empty project. The project keeps no link to the template. |
 | `document` | `unknown` | no | A project document (`GET /v1/project-document/schema`) to start the project with — one of your own, or another project's export. Applied in the SAME transaction that creates the project, like a template: if the platform refuses any of it, no project exists afterwards, and the refusal carries the plan with every finding's path. The body's `name` wins over the document's `project.name`. Exclusive with `template`. |
 
 **Response `201`**
