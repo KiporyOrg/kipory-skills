@@ -8,4 +8,4 @@ Every page under `references/api/`, `references/handlers/` and `references/packs
 | --- | --- | --- |
 | packs | `f55e390431fc` | `version` on `GET /v1/capability-packs` |
 | handlers | `d8d44038c8a28a35f61a41897a9fb34a65259f3dd180e65894e7e9a9e4f06af8` | `version` on `GET /v1/handlers` |
-| api | `142a2b8799ec` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| api | `70e8ce8e4ec3` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |

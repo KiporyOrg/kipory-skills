@@ -200,21 +200,24 @@ Every element of the project — flows, steps, record types, endpoints, schedule
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `after` | `string` | no | The page OLDER than this action — pass back the `nextCursor` you were given. Opaque: read it from a response, never build one. |
-| `before` | `string` | no | The page NEWER than this action — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `after` | `string` | no | The next page along `order` — pass back the `nextCursor` you were given. Opaque: read it from a response, never build one. |
+| `before` | `string` | no | The previous page along `order` — pass back the `prevCursor` you were given. Refused together with `after`. |
 | `limit` | `integer` | no | How many ACTIONS per page, up to 100. Defaults to 25. ⚠️ Actions, not changes — one action can carry hundreds. |
 | `actor` | `string` | no | Only actions applied by this principal, matched exactly as recorded — for example `key:key_7fj2q8`. Read it off an action's `actor.raw`. |
 | `since` | `string` | no | Only actions applied at or after this instant. |
 | `until` | `string` | no | Only actions applied at or before this instant. |
+| `order` | `"desc" \| "asc"` | no | Which way the list runs by configuration version: `desc` (the default) is newest first, `asc` oldest first. ⚠️ A cursor is read back only under the order it was issued in — change the order and start from the first page. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `actions` | `object[]` | yes | Newest first by `structureVersion`, whichever direction the page was reached from. |
-| `paging` | `null` | yes | Always NULL here. A page count needs a COUNT DISTINCT over a trail with no retention, paid on every click, to support a jump this route does not offer. Read `null` as `cursor walking only`, never as `not measured yet`. |
-| `nextCursor` | `string \| null` | yes | Pass as `after` for the older page. Null on the oldest page. |
-| `prevCursor` | `string \| null` | yes | Pass as `before` for the newer page. Null on the newest page. |
+| `actions` | `object[]` | yes | In `order` by `structureVersion`, whichever direction the page was reached from. |
+| `order` | `"desc" \| "asc"` | yes | Which way the actions run by `structureVersion` — the `order` sent, or `desc` (newest first). |
+| `total` | `integer` | yes | Actions matching this query's `actor`, `since` and `until`, across every page — not the size of the whole trail, and not moved by the cursor. |
+| `paging` | `null` | yes | Always NULL here: this route walks by cursor and offers no page jump. The number of matching actions is `total`. |
+| `nextCursor` | `string \| null` | yes | Pass as `after`, with the same `order`, for the next page along `order` — older under `desc`, newer under `asc`. Null on the last page. |
+| `prevCursor` | `string \| null` | yes | Pass as `before`, with the same `order`, for the previous page along `order`. Null on the first page. |
 | `recordingSince` | `string \| null` | yes | When this deployment began recording configuration changes — the instant the audit migration finished. Changes applied before it were not recorded and never will be. ⛔ A client MUST show this alongside an empty result: without it, 'no changes' reads as 'this project has never changed', which is false for any project older than the trail. ⚠️ NULL means the date itself could not be established, NOT that recording never started — a client says it cannot date the start rather than omitting the caveat. |
 
 ### `GET /v1/projects/{nodeId}/history/{structureVersion}`

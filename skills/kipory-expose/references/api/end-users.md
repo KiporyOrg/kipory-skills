@@ -153,6 +153,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `standing` | `"active" \| "suspended"` | no | Show only seats in this standing. Omitted means every standing — an unfiltered roster, not just the healthy part of it. |
 | `q` | `string` | no | Case-insensitive substring over the member's email and name. A member who set no name is matched on their email alone. |
+| `sort` | `"joined-at" \| "name" \| "last-seen-at"` | no | The ordering. Omitted is `joined-at` — when the seat was created. `name` and `last-seen-at` are the person's and may be null: a member with none sits LAST in both directions. The response echoes it. |
+| `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Omitted is `desc`. A cursor is bound to the `sort` and `order` it was minted under: replayed under another it is refused with a 400, never reinterpreted. |
 | `limit` | `integer` | no | Rows per page. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
 | `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
@@ -164,8 +166,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `members` | `object[]` | yes | This page of seats. |
 | `paging` | `object` | yes | Where this page sits in the whole roster. |
-| `nextCursor` | `string \| null` | yes | Pass back as `after` for the page of members who joined BEFORE these. NULL means there is nothing further; a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page of members who joined AFTER these. NULL means this is the first page — measured, never inferred from whether the request carried a cursor. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the page that follows these in the ordering (with the same `sort` and `order`). NULL means there is nothing further; a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page that precedes these in the ordering (with the same `sort` and `order`). NULL means this is the first page — measured, never inferred from whether the request carried a cursor. |
+| `sort` | `"joined-at" \| "name" \| "last-seen-at"` | yes | The ordering this page was read with — the `sort` sent, or `joined-at`. |
+| `order` | `"asc" \| "desc"` | yes | Which way it ran — the `order` sent, or `desc`. |
+| `atCeiling` | `integer \| null` | yes | Seats across the WHOLE roster, every standing, whose spend in the current window has reached the project's per-person ceiling — the members the spend gate is refusing now. Null when the project sets no ceiling, which is not the same as nobody at it. |
 | `standingCounts` | `object` | yes | How many seats each standing holds, across the WHOLE roster rather than this page — the filter chips' counts. They sum to the unfiltered total; a chip whose count came from the filtered page would report the narrowing it is offering to apply. |
 
 ### `POST /v1/projects/{nodeId}/members/{userId}/credits`

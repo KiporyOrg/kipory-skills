@@ -45,8 +45,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `recordType` | `string` | no | Narrow to files on records of ONE type, by the type's key — the same string a record's `recordType` carries. Implies `attached=record`. A type the project does not declare matches nothing rather than being refused: records can outlive their declaration. |
 | `record` | `string` | no | Narrow to the files ONE record carries, by its id. Implies `attached=record`; `recordType` beside it is redundant and ignored, since a record has one type. |
 | `q` | `string` | no | Match against the file NAME only, case-insensitively. Deliberately narrow: the name column is not indexed, so this is a scan over one project's files and must not be widened into a content search. |
-| `after` | `string` | no | The page OLDER than this row — pass back the `nextCursor` you were given. Omit for the newest page. |
-| `before` | `string` | no | The page NEWER than this row — pass back the `prevCursor` you were given. Refused together with `after`: they name opposite directions from one row, so a request carrying both has not said which it wants. |
+| `since` | `string` | no | Only files received at or after this instant. |
+| `until` | `string` | no | Only files received STRICTLY BEFORE this instant. Refused (400) at or before `since`: that window is empty by construction. |
+| `sort` | `"created-at" \| "file-name" \| "file-size"` | no | What the page is ordered by: `created-at` (when the file arrived — the default), `file-name`, or `file-size`. Ties break on the row id. ⚠️ `file-size` orders an awaiting-upload row by the size its uploader DECLARED, which the row reports as null until the bytes are confirmed. |
+| `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Defaults to `desc` — newest first under the default sort. |
+| `after` | `string` | no | The page AFTER this row in the ordering — pass back the `nextCursor` you were given. Omit for the first page. A cursor carries the `sort` and `order` it was minted under and is refused (400) beside different ones. |
+| `before` | `string` | no | The page BEFORE this row in the ordering — pass back the `prevCursor` you were given. Refused together with `after`: they name opposite directions from one row, so a request carrying both has not said which it wants. |
 | `page` | `integer` | no | Jump to this page, 1-based. Resolved as an OFFSET and therefore approximate while files are arriving — walking with `after`/`before` is exact and is what the response's cursors are for. Past the last page it CLAMPS to the last one rather than answering empty: an out-of-range page is a URL somebody typed, and an empty list reads as an empty library. Refused together with `after` or `before`. |
 | `limit` | `integer` | no | How many files per page, up to 100. Defaults to 50. |
 | `totals` | `"full" \| "none"` | no | `none` omits `totals` and answers `fileCount` alone. The totals need an aggregate over columns no index covers, so its cost tracks the project's file count; `fileCount` is an index-only scan. Ask for `none` when you want the number and not the breakdown. |
@@ -55,12 +59,14 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `files` | `object[]` | yes | This page of files, newest first. |
-| `fileCount` | `integer` | yes | Every file the project holds, ignoring `scope` and `q` alike — what a menu row means by a number. An index-only count, so it is cheap enough to ask for on a navigation. |
+| `files` | `object[]` | yes | This page of files, in `sort` / `order` — whichever direction it was reached from. |
+| `sort` | `"created-at" \| "file-name" \| "file-size"` | yes | The ordering this page was read in: the `sort` sent, or `created-at`. |
+| `order` | `"asc" \| "desc"` | yes | Which way `sort` ran: the `order` sent, or `desc`. |
+| `fileCount` | `integer` | yes | Every file the project holds, ignoring every narrowing — `scope`, `q`, the `since`/`until` window — which is what a menu row means by a number. An index-only count, so it is cheap enough to ask for on a navigation. |
 | `totals` | `object \| null` | yes | Figures over THIS QUERY — the same predicate the list uses, including the search. NULL when `totals=none` was asked for, which is a statement about the request rather than about the project. |
 | `paging` | `object` | yes | Where this page sits in the whole result — the questions a cursor cannot answer. Always present on this route: it is an index-only count, unlike `totals`. Its `total` counts THIS query, search and scope included, which `fileCount` deliberately does not. |
-| `nextCursor` | `string \| null` | yes | Pass back as `after` for the page OLDER than this one. NULL means there is nothing older — a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page NEWER than this one. NULL means this is the newest page, which is the only honest way for a client to know it is at the top: it cannot infer that from a full page. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
 ### `DELETE /v1/projects/{nodeId}/files/{fileId}`
 

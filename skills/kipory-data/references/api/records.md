@@ -250,6 +250,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `validity` | `"live" \| "retracted" \| "all"` | no | Which edges to include. `live` is the default because a retracted edge is history: it is still readable, and it is not what the graph says now. ⚠️ Only a CURATED link can have any — a field producer rewrites by deleting, so `retracted` over a field-only corpus is correctly empty rather than broken. |
 | `record` | `string` | no | Anchor the result on one record: only edges with this record at either end. Cheap — both endpoint columns are indexed — and it is what makes `direction` meaningful. |
 | `direction` | `"outgoing" \| "incoming" \| "either"` | no | Which way the edges point RELATIVE TO `record`. Refused without it, because there is no anchor for it to be relative to. IGNORED for a symmetric link — see the schema's own note. |
+| `type` | `string` | no | Narrow to edges with a record of this type (table) at EITHER end. A type the project does not declare narrows to nothing. |
+| `q` | `string` | no | Narrow to edges where either end's natural key CONTAINS this, ignoring case, or either end's id IS it. Taken literally — `%` and `_` match themselves. ⚠️ Not matched against a record's content: an end drawn with `labelKind: preview` is found by its id, never by that guessed line, because matching it would read the JSON of every record at either end. |
+| `sort` | `"valid-from" \| "link"` | no | The ordering. `valid-from` is when each edge came to be, with the edge id as the tiebreak. `link` groups the edges by link, the links in the order their names read, each link's edges newest first. The response echoes it. |
+| `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Under `link` it turns the links round and leaves each link's edges newest first. |
 | `relation` | `string` | no | Open this edge beside the result. An edge has no page of its own, so which one is open is part of the query rather than a second address. |
 | `limit` | `integer` | no | Rows per page. |
 | `where` | `string \| string[]` | no | Narrow to edges whose STAMPED filter column matches. Each value is `<property>:<op>:<value>` — `tag:eq:childhood`, `since:gte:2019-01-01`, `tag:in:a,b` — and the parameter is REPEATED to AND several clauses. `op` is one of eq, ne, in, lt, lte, gt, gte. `property` must be one of the relation kind's declared edge filters (a record type's link use names them in `element.filters`); any other name is 422 `EDGE_FILTER_UNDECLARED` — a refusal, never a scan over the properties bag. The value is typed by the filter's column: a date filter takes an ISO instant, a number filter a number, a boolean `true`/`false`; a value that cannot be typed is 422. `ne` matches an edge that CARRIES the property with another value — an edge without it is unstamped and is not returned. Retracted edges are out unless the read's history switch is on. While a declaration change is restamping the kind, clauses resolve against the map the rows are stamped for. |
@@ -260,14 +264,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `relations` | `object[]` | yes | The page, newest first. |
+| `relations` | `object[]` | yes | The page, in the ordering `sort` and `order` name. |
+| `sort` | `"valid-from" \| "link"` | yes | The ordering this page was read in — the `sort` sent, or the default. |
+| `order` | `"asc" \| "desc"` | yes | Which way `sort` ran — the `order` sent, or the default. |
 | `elsewhere` | `object[]` | yes | Links this sweep cannot answer for. See the member's own note. |
 | `links` | `object[]` | yes | The link vocabulary, so a picker can be drawn without a second call. Every link the project has, including the join-backed ones this sweep excludes — a picker that could not offer them would hide the existence of relations that are merely somewhere else. |
 | `paging` | `object \| null` | yes | Null when this route declined to count — see `declinedCountReason`. Never computed by the client: a cursor names a row, so nothing on the far side knows which page it is on. |
 | `declinedCountReason` | `"corpus-too-large"` | yes | Why `paging` is null, when it is. One arm today, and it stays an enum rather than a boolean because the records list has two and the second has no remedy — a client drawing 'narrow the view for a total' over the wrong one offers a control that cannot work. |
 | `detail` | `object \| null` | yes | The edge `?relation=` named, or null. ⚠️ NULL IS TWO STATES AND THE CLIENT ALREADY KNOWS WHICH: it asked for none, or the id names no edge of this project — a stale bookmark, or one from another tenant, which are answered identically and on purpose. |
-| `nextCursor` | `string \| null` | yes | Pass back as `after` for the next page of OLDER rows, or null at the end. Minted from this page's LAST row and sent only where a row beyond it was measured. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the previous page of NEWER rows, or null at the start. ⛔ MINTED FROM THIS PAGE'S FIRST ROW, never from the cursor the caller arrived on — that address reproduces the page they are already reading, which is a control that goes nowhere. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` — with the same `sort` and `order` — for the next page along the ordering, or null at the end. Minted from this page's LAST row and sent only where a row beyond it was measured. A cursor replayed under another ordering is refused (400). |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` — with the same `sort` and `order` — for the previous page, or null at the start. ⛔ MINTED FROM THIS PAGE'S FIRST ROW, never from the cursor the caller arrived on — that address reproduces the page they are already reading, which is a control that goes nowhere. |
 
 ### `GET /v1/records/{id}/processing-stream`
 

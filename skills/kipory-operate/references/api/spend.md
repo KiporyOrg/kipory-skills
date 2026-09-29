@@ -147,18 +147,22 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `sessionId` | `string` | no | The session the call was made inside. ⭐ THE ONE HANDLE THAT GATHERS A CONVERSATION'S CALLS, and the most populated optional dimension on the table: 73,300 of 117,211 rows carry one (production 2026-08-26) against 53,882 for `userId` and 17,706 for `recordId`. `correlationId` reads like the field for this and is not — it equals the row's own id on every production row, as its own note records. ⚠️ Served by `@@index([sessionId, createdAt(sort: Desc)])`, which is the same shape the keyset reads in, so this narrows without a scan. |
 | `correlationId` | `string` | no | The call's correlation handle. ⚠️ Measured on production 2026-08-25, `correlationId` equals the row's own id on 114,862 of 114,862 rows — the `?? id` fallback in the chokepoint's call scaffold fires every time — so today this is an id lookup wearing another name, and it cannot yet gather the calls of one run. |
 | `q` | `string` | no | Case-insensitive match against the row's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the skill that made the call, which is resolved to skill ids first because an `AiCall` records only the id. That set is every text column a ledger of these draws, so a reader can search for what is in front of them. ⛔ IT MUST NOT BE WIDENED TO THE PROMPT, and the reason is size rather than taste: a prompt spills to object storage past 256 kB (production 2026-08-25: 174 rows, median 567 kB, max 10.06 MB), so a match over it cannot reach a spilled payload at all and would answer confidently about a subset with no way to say which. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
-| `after` | `string` | no | The page OLDER than this row — pass back the `nextCursor` you were given. Opaque: read it from a response, never build one. |
-| `before` | `string` | no | The page NEWER than this row — pass back the `prevCursor` you were given. Refused together with `after`: the two name opposite directions from one row, so a request carrying both has not said which it wants. |
+| `sort` | `"created-at" \| "latency-ms" \| "total-tokens"` | no | The column the ledger is ordered by: `created-at` (the default), `latency-ms`, or `total-tokens`. Ties break on the call id, in the same direction. ⚠️ `totalTokens` is null where the provider reported no usage, and those calls sort LAST in both directions — a null is not measured, never the smallest figure. Credits are not a sort: they are summed from cost events at read time, not stored on the call. |
+| `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Defaults to `desc` — newest, slowest, largest first. |
+| `after` | `string` | no | The NEXT page along this ordering — pass back the `nextCursor` you were given. Opaque: read it from a response, never build one. ⛔ A cursor carries the ordering it was minted in, and replaying it under a different `sort` or `order` is refused (400) rather than paged from a position that ordering does not have. |
+| `before` | `string` | no | The PREVIOUS page along this ordering — pass back the `prevCursor` you were given. Refused together with `after`: the two name opposite directions from one row, so a request carrying both has not said which it wants. |
 | `limit` | `integer` | no | How many calls per page, up to 100. Defaults to 50. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `calls` | `object[]` | yes | Newest first, whichever direction the page was reached from. |
+| `calls` | `object[]` | yes | In the ordering `sort` and `order` name, whichever direction the page was reached from. |
+| `sort` | `"created-at" \| "latency-ms" \| "total-tokens"` | yes | The column this page was ordered by — the one sent, or `created-at`. |
+| `order` | `"asc" \| "desc"` | yes | Which way `sort` ran — the one sent, or `desc`. |
 | `paging` | `null` | yes | Always NULL here. A page count needs a COUNT over an unreapered ledger, paid on every click; `rollup.totals.calls` answers the same question once, for the same window. Read `null` as `cursor walking only`, never as `not measured yet`. |
-| `nextCursor` | `string \| null` | yes | Pass as `after` for the older page. Null on the oldest page. |
-| `prevCursor` | `string \| null` | yes | Pass as `before` for the newer page. Null on the newest page. |
+| `nextCursor` | `string \| null` | yes | Pass as `after` for the next page along this ordering. Null on the last. |
+| `prevCursor` | `string \| null` | yes | Pass as `before` for the previous page along this ordering. Null on the first. |
 | `excludedOrigins` | `string[]` | yes | The `origin` values this request filtered OUT, so the page can say so instead of quietly under-reporting. Empty when the caller named its own `origins`. ⚠️ A statement about the FILTER, not about the data: it does not claim rows with these origins exist in the window. The count of what was dropped needs an aggregate this route does not run. |
 
 ### `GET /v1/projects/{nodeId}/ai-calls/{callId}`
