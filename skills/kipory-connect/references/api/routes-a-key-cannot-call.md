@@ -113,6 +113,9 @@ These serve the people who run the installation — every tenant at once — and
 - `GET /v1/model-registry`
 - `GET /v1/model-registry/changes`
 - `GET /v1/model-registry/models/{…}/bindings`
+- `GET /v1/model-registry/refresh`
+- `GET /v1/model-registry/update`
+- `GET /v1/model-registry/updates`
 - `GET /v1/people`
 - `GET /v1/people/{…}/deletion-preview`
 - `GET /v1/pricing/coverage`
@@ -151,6 +154,7 @@ These serve the people who run the installation — every tenant at once — and
 - `POST /v1/ingest/maintenance/runs`
 - `POST /v1/model-registry/apply`
 - `POST /v1/model-registry/refresh`
+- `POST /v1/model-registry/update`
 - `POST /v1/people/{…}/account-deletion`
 - `POST /v1/people/{…}/impersonate`
 - `POST /v1/people/{…}/sessions/revoke`
@@ -162,6 +166,7 @@ These serve the people who run the installation — every tenant at once — and
 - `POST /v1/vendors/{…}/probe`
 - `POST /v1/wallets/{…}/grants`
 - `PUT /v1/model-registry/models/{…}/lifecycle`
+- `PUT /v1/model-registry/models/{…}/route`
 - `PUT /v1/organizations/{…}/quota/{…}`
 - `PUT /v1/system-flows/defaults/{…}`
 - `PUT /v1/wallets/starter-grant`

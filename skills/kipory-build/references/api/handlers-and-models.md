@@ -102,6 +102,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The node these prices were resolved for. |
 | `prices` | `object[]` | yes | Every ENABLED model's billable operations — the same models `/v1/ai-models` lists. A model appears once per operation it bills. Ordered by address, not by catalog position. |
+| `tiers` | `object[]` | yes | Each rated model's price tier, `$` to `$$$` against its kind. Ordered by model id. |
 
 ### `GET /v1/nodes/{nodeId}/routing`
 
