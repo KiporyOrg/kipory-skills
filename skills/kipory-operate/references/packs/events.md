@@ -58,9 +58,12 @@ POST /v1/event-types        create the event inside it (scoped by CATEGORY id, n
 Categories are scoped by `project`. **Event types are scoped by their category's id, not by the
 project directly** — the one addressing surprise in this resource.
 
-A category takes a key and a label. A type takes its category, an event key, a label, a default
+A category takes a `key` and a `label`. A type takes `categoryId` (its category's row id), its own
+`key`, a `label`, a default
 scope of `run`, `record`, `user` or `project`, and optionally a payload shape — omit it and the
-event is a payload-less marker.
+event is a payload-less marker. Both keys are lower-case kebab (`order-placed`), because each
+becomes a segment of the event's `category/event` address on the bus; both are permanent. List a
+category's types with `GET /v1/event-types?categoryId=<id>`.
 
 ## Raising one from a flow
 

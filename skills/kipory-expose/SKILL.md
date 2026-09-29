@@ -23,7 +23,7 @@ A **dynamic endpoint** is a `/v1/…` route you author for your product, served 
 <!-- field-ok: instancePath — a key inside a request-schema refusal's `details.issues[]`, produced by the validator rather than a wire contract -->
 
 ```
-POST  /v1/api-endpoints   { project, endpoint, contractConfig, actionConfig }   → 201
+POST  /v1/api-endpoints   { project, key, contractConfig, actionConfig }        → 201
 GET   /v1/api-endpoints/{id}?expand=shadowed                                    shadowedBy is a verdict: null means nothing shadows you; partiallyShadowedBy lists coded literals under your parameters
 PATCH /v1/api-endpoints/{id}   { version, contractConfig, actionConfig }        replaces both configs; version required
 DELETE /v1/api-endpoints/{id}                                                    the only off switch — there is no disable
@@ -37,7 +37,7 @@ DELETE /v1/api-endpoints/{id}                                                   
 | ------------------ | ------------- | --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
 | `flow.invoke`      | any           | `flow: {id}`, `inputs`, `execution: sync \| async` (**required**), `syncTimeoutMs?` (1–120 s) | sync: the bound output with `successStatus`; async: `202 { id, status, statusPath }` |
 | `flow.stream`      | **POST only** | `flow`, `inputs`, `deltaSlot` (**required, may be null**), `retry?`, `surfaceEvents?`         | server-sent events `stage`, `delta`, `result`                                        |
-| `events.subscribe` | **GET only**  | `source: { category, scope: record \| user \| project, events?, id? }`                        | one `event` frame per emitted event                                                  |
+| `events.subscribe` | **GET only**  | `source: { categoryKey, scope: record \| user \| project, eventKeys?, id? }`                  | one `event` frame per emitted event                                                  |
 
 **`inputs`** maps each flow input slot to `{ from: "body" }`, `{ from: "path.<name>" }` or `{ from: "query.<name>" }`. `body` means **the request-body field named after the slot** — there is no rename. Every required non-provider slot must be bound; provider slots (`userInfo`, `projectInfo`, `runInfo`, `recordTypeInfo`) cannot be. A GET or DELETE cannot bind `body`.
 

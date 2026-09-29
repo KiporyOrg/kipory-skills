@@ -36,19 +36,21 @@ deterministic as a test case (capability pack `flow-test-cases` — `GET /v1/cap
 ## The sequence
 
 ```
-POST /v1/eval-suites            create — bind the flow
-POST /v1/eval-cases             add cases: a REQUIRED stable `key`, then inputs, expected
-                                (if any), labels, assertions
+POST /v1/eval-suites            create — a `key`, a `label`, and the flow (`flowId`)
+POST /v1/eval-cases             add cases: the `suiteId`, a REQUIRED `key`, then inputs, expected
+                                (if any), labels, assertions (the test-case vocabulary: a
+                                `skill-outcome` names its step by `skillKey`)
 POST /v1/eval-suites/{id}/run   queue a run — 202, the run has NOT happened yet
                                 … with `validateOnly: true` — 200 with a verdict, nothing queued
-GET  /v1/eval-suites/{id}/runs  poll here for the row the worker writes
+GET  /v1/eval-suites/{id}/runs  poll here for the row the worker writes (each run names its `suiteId`)
 GET  /v1/eval-runs/{id}         read one run back, WITH its delta against the previous
 GET  /v1/eval-suites/{id}/trend across runs — one suite, its whole recent history
 GET  /v1/eval-suites/trend      across runs AND suites — every series in one answer
 ```
 
-Suites are scoped by `project`; cases are scoped by their suite. Individual traces are readable
-per run for drill-down.
+Suites are scoped by `project`; cases are scoped by their suite. Both keys are address keys and
+both are renameable; a suite's display text is `label`. Individual traces are readable per run for
+drill-down.
 
 ### The suite list carries each suite's standing
 
@@ -219,7 +221,8 @@ announce _and_ when there was something and it could not be — the suite names 
 project does not define the one it names, or the payload failed its contract. `regressed: true` with
 `announced: false` is a real regression nobody was told about, and it is worth looking for.
 
-⚠️ **A suite that names no regression event type does not emit**, and that is a complete
+⚠️ **A suite that names no regression event type (`regressionCategoryKey` + `regressionEventKey`)
+does not emit**, and that is a complete
 configuration rather than a broken one. Kipory ships no project configuration, so the event a
 regression announces is one your own project already defines.
 
@@ -250,7 +253,7 @@ bound output, one named `inputs` the case's input bag, and one named `expected` 
 input slot receives what the subject's step wrote to the output slot of that name in the case's
 trace. The scorer's own outputs are read as `value` (a finite number → a numeric score), else
 `verdict` or `stringValue` (a non-empty string → a categorical one), `name` (the score's name —
-the scorer flow's slug when absent) and `comment`. A scorer that returns neither a value nor a
+the scorer flow's key when absent) and `comment`. A scorer that returns neither a value nor a
 verdict records no score.
 
 **Anything an expression can answer about the run's shape must not cost a model call.** Fifty
@@ -276,7 +279,7 @@ trend point — has a `source`, so telling a suite's own answers from the platfo
 never needs a list of system metric names, which would go stale the day the platform adds one.
 ⚠️ It is `null` when one series pools scores from more than one producer: a scorer is free to name
 its score `cost.credits`, and that series then holds both.
-Both trend reads also answer `numericSeries` — one `{ name, skillName, source }` per numeric series
+Both trend reads also answer `numericSeries` — one `{ name, skillKey, source }` per numeric series
 across the whole window, its `source` merged over every run by the same rule. Order or filter a
 chart's series by it rather than folding the points' sources yourself.
 

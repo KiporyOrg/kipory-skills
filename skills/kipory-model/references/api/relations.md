@@ -27,7 +27,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose pairings to list. |
-| `recordType` | `string` | no | Keep only pairings where this record type appears at EITHER end. Omit for all pairings in the project. |
+| `recordTypeKey` | `string` | no | Key of a record type: keep only pairings where it appears at EITHER end. Omit for all pairings in the project. |
 
 **Response `200`**
 
@@ -42,9 +42,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the owning project. |
-| `kind` | `string` | yes | Key of an existing relation kind in this project. |
-| `from` | `string` | yes | Name of an existing record type — the source end. |
-| `to` | `string` | yes | Name of an existing record type — the target end. |
+| `kindKey` | `string` | yes | Key of an existing relation kind in this project. |
+| `fromRecordTypeKey` | `string` | yes | Key of an existing record type — the source end. |
+| `toRecordTypeKey` | `string` | yes | Key of an existing record type — the target end. |
 
 **Response `201`**
 
@@ -52,9 +52,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Row id — the address for a delete. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `kind` | `string` | yes | Key of the relation kind this pairing applies to. |
-| `from` | `string` | yes | Record-type name at the source end, for a directional kind. |
-| `to` | `string` | yes | Record-type name at the target end, for a directional kind. |
+| `kindKey` | `string` | yes | Key of the relation kind this pairing applies to. |
+| `fromRecordTypeKey` | `string` | yes | Key of the record type at the source end, for a directional kind. |
+| `toRecordTypeKey` | `string` | yes | Key of the record type at the target end, for a directional kind. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
@@ -72,9 +72,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Row id — the address for a delete. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `kind` | `string` | yes | Key of the relation kind this pairing applies to. |
-| `from` | `string` | yes | Record-type name at the source end, for a directional kind. |
-| `to` | `string` | yes | Record-type name at the target end, for a directional kind. |
+| `kindKey` | `string` | yes | Key of the relation kind this pairing applies to. |
+| `fromRecordTypeKey` | `string` | yes | Key of the record type at the source end, for a directional kind. |
+| `toRecordTypeKey` | `string` | yes | Key of the record type at the target end, for a directional kind. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
@@ -115,16 +115,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the kind. |
-| `key` | `string` | yes | Kebab-case key, unique within the project. Permanent once created — pairings link to it by key. |
+| `key` | `string` | yes | The kind's key, unique within the project. Permanent once created — pairings link to it by key. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. Required. |
 | `minConfidence` | `number \| null` | no | Reserved; has no effect today. |
-| `direction` | `"directed" \| "symmetric"` | no | Whether the two ends mean different things. Choose deliberately — it decides whether `(from, to)` order is meaningful. |
+| `direction` | `"directed" \| "symmetric"` | no | Whether the two ends mean different things. Choose deliberately — it decides whether `(fromRecordTypeKey, toRecordTypeKey)` order is meaningful. |
 | `producer` | `"field" \| "joinRecord" \| "curated"` | no | How edges of this kind come into existence. |
 | `cardinality` | `"manyToOne" \| "manyToMany"` | no | How many edges of this kind one record may have. Leave unset for a curated kind, where it does not apply. |
 | `propertiesEntryId` | `string \| null` | no | Schema entry describing properties edges may carry. Omit for edges with none. |
 | `sortOrder` | `integer` | no | Position among the project's relation kinds. |
-| `pairings` | `object[]` | yes | Record-type pairs to apply the kind to, created in the same transaction, each `{ from, to }` naming record types by name — e.g. `[{ "from": "recipe", "to": "ingredient" }]`. At least one is required — a kind that applies to no pair can connect nothing. Every type named must already exist. |
+| `pairings` | `object[]` | yes | Record-type pairs to apply the kind to, created in the same transaction, each `{ fromRecordTypeKey, toRecordTypeKey }` naming record types by key — e.g. `[{ "fromRecordTypeKey": "recipe", "toRecordTypeKey": "ingredient" }]`. At least one is required — a kind that applies to no pair can connect nothing. Every type named must already exist. |
 | `declaration` | `object` | no | The producer's own declaration, spliced into `recordType.relations` in the same transaction as the kind. Omit to declare it later. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
@@ -143,11 +143,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the relation kind — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | Kebab-case key for this kind, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
+| `key` | `string` | yes | The kind's key, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
-| `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(from, to)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
+| `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(fromRecordTypeKey, toRecordTypeKey)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
 | `producer` | `"field" \| "joinRecord" \| "curated"` | yes | How edges of this kind come into existence — derived automatically, or curated by hand. |
 | `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
 | `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
@@ -184,11 +184,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the relation kind — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | Kebab-case key for this kind, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
+| `key` | `string` | yes | The kind's key, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
-| `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(from, to)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
+| `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(fromRecordTypeKey, toRecordTypeKey)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
 | `producer` | `"field" \| "joinRecord" \| "curated"` | yes | How edges of this kind come into existence — derived automatically, or curated by hand. |
 | `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
 | `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
@@ -238,11 +238,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the relation kind — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | Kebab-case key for this kind, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
+| `key` | `string` | yes | The kind's key, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
-| `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(from, to)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
+| `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(fromRecordTypeKey, toRecordTypeKey)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
 | `producer` | `"field" \| "joinRecord" \| "curated"` | yes | How edges of this kind come into existence — derived automatically, or curated by hand. |
 | `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
 | `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |

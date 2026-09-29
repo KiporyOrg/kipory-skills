@@ -34,7 +34,9 @@ POST /v1/flow-test-cases    store an input bag and its assertions, scoped to the
 POST /v1/flows/{id}/test    run the suite — omit the body to run every enabled case
 ```
 
-Cases are scoped by `flow` and addressed by their own id. Running takes an optional list of case
+Cases are scoped by their flow (`flowId`, and `GET /v1/flow-test-cases?flowId=` lists them) and
+addressed by their own id; a run answers the flow it tested as `flowId`. Each carries a `key` — an
+address key, unique within the flow and renameable — and a display `label`. Running takes an optional list of case
 ids and a flag for including disabled ones. ⚠️ **Naming ids runs exactly those, enabled or not** —
 the disabled flag is ignored the moment you name any, so it only governs an unnamed run.
 
@@ -49,14 +51,14 @@ so an assertion you learn here transfers there unchanged.
 
 Six kinds, a closed set:
 
-| Kind                         | Asserts                                                 |
-| ---------------------------- | ------------------------------------------------------- |
-| `no-missing-required-output` | the flow produced everything its signature promises     |
-| `output-present`             | a named slot exists and is non-empty                    |
-| `output-matches-schema`      | a slot's value validates against its declared type      |
-| `skill-outcome`              | a named skill reached applied, skipped, no-op or failed |
-| `no-errors`                  | the run produced no skill errors                        |
-| `jsonata`                    | a boolean expression over the whole run result          |
+| Kind                         | Asserts                                                       |
+| ---------------------------- | ------------------------------------------------------------- |
+| `no-missing-required-output` | the flow produced everything its signature promises           |
+| `output-present`             | a named slot exists and is non-empty                          |
+| `output-matches-schema`      | a slot's value validates against its declared type            |
+| `skill-outcome`              | the step `skillKey` reached applied, skipped, no-op or failed |
+| `no-errors`                  | the run produced no skill errors                              |
+| `jsonata`                    | a boolean expression over the whole run result                |
 
 **Write `no-missing-required-output` first.** It is the highest-value assertion in the list: a
 failure means a real invocation of this flow would fail outright. If you write only one assertion

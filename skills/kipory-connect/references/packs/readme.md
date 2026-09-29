@@ -82,7 +82,7 @@ quietly working around it.
 
 - **Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`)** — start here for anything new. The eight-step walk
   from idea to build sheet, and the rule that facts are confirmed live, never recalled.
-- **The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)** — a whole project as one name-addressed file:
+- **The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)** — a whole project as one key-addressed file:
   export, plan, apply. Read it before authoring anything larger than one row.
 - **Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`)** — what must exist before what, and the two cycles the
   row-by-row API cannot express in one call.

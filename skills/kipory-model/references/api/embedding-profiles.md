@@ -35,7 +35,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `profiles` | `object[]` | yes | Every profile version in the project, including superseded ones — a name can have several versions and only one is active. |
+| `profiles` | `object[]` | yes | Every profile version in the project, including superseded ones — a key can have several versions and only one is active. |
 
 ### `POST /v1/embedding-profiles`
 
@@ -44,8 +44,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Id of the project node that will own the profile. |
-| `name` | `string` | yes | Kebab-case name, used verbatim in the profile's collection names. Permanent — to change what people read, set `label`. |
-| `label` | `string \| null` | no | Optional human-readable name. |
+| `key` | `string` | yes | The profile's key, used verbatim in its collection names. Permanent — to change what people read, set `label`. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
+| `label` | `string \| null` | no | Optional display text. |
 | `modelId` | `string` | yes | Id of the embedding model to use — one `GET /v1/ai-models?type=embedding` lists. Pick the model, not the dimensions or the distance metric — both come from it. |
 | `denseSlots` | `string[]` | yes | Names for the dense vector slots this profile writes. At least one is required — a profile with no dense slot could back nothing searchable. |
 | `sparseSlot` | `string \| null` | no | Optional name for a sparse vector slot. Declaring one makes every record carry sparse vectors from then on, so only add it if a search step will read them. |
@@ -67,9 +67,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of this profile version. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `name` | `string` | yes | Kebab-case name, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display name through `label` instead. |
-| `label` | `string \| null` | yes | Human-readable name, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile name this is. Each version owns its own collections, so several can exist at once and only one is active. |
+| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `label` | `string \| null` | yes | Display text, or null if none was set. |
+| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
 | `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
@@ -104,9 +104,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of this profile version. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `name` | `string` | yes | Kebab-case name, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display name through `label` instead. |
-| `label` | `string \| null` | yes | Human-readable name, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile name this is. Each version owns its own collections, so several can exist at once and only one is active. |
+| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `label` | `string \| null` | yes | Display text, or null if none was set. |
+| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
 | `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
@@ -133,7 +133,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `label` | `string \| null` | no | New human-readable name, or null to clear it. |
+| `label` | `string \| null` | no | New display text, or null to clear it. |
 | `isDefault` | `boolean` | no | Make this the project's default profile. Anything that changes the vector space — the model, the slots — is refused here and needs a version bump instead. |
 | `defaultChunking` | `object` | no | Change the chunking every non-overriding type on this profile inherits. Re-derives and re-indexes each of them; not a geometry change, so no version bump. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
@@ -144,9 +144,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of this profile version. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `name` | `string` | yes | Kebab-case name, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display name through `label` instead. |
-| `label` | `string \| null` | yes | Human-readable name, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile name this is. Each version owns its own collections, so several can exist at once and only one is active. |
+| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `label` | `string \| null` | yes | Display text, or null if none was set. |
+| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
 | `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
@@ -212,7 +212,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `modelId` | `string` | no | Embedding model for the new version. Omit to keep the current one. |
 | `denseSlots` | `string[]` | no | Dense slot names for the new version. Omit to keep the current ones. |
 | `sparseSlot` | `string \| null` | no | Sparse slot name for the new version; null removes it. Omit to keep the current one. |
-| `label` | `string \| null` | no | Human-readable name for the new version. Omit to keep the current one. |
+| `label` | `string \| null` | no | Display text for the new version. Omit to keep the current one. |
 | `validateOnly` | `boolean` | no | Check this bump against the version it starts from and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -229,9 +229,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of this profile version. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `name` | `string` | yes | Kebab-case name, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display name through `label` instead. |
-| `label` | `string \| null` | yes | Human-readable name, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile name this is. Each version owns its own collections, so several can exist at once and only one is active. |
+| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `label` | `string \| null` | yes | Display text, or null if none was set. |
+| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
 | `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
@@ -287,7 +287,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `role` | `"derived" \| "terms" \| "preview" \| "unregistered"` | yes | What this collection is. `derived`: a registry row claims it — the record vectors of one embedding profile version, for one scope and isolation group; `identity` names them. `terms`: the project's facet vocabulary. `preview`: the project's flow-preview store, partitioned by session. `unregistered`: none of those — nothing on the platform owns it, so it is residue to investigate. Decided by the registry and the two fixed names, never by parsing the rest of the name. |
 | `identity` | `object` | yes | The tuple the physical name was computed from, read from the registry. Nobody parses the name: for anything but a `derived` collection `registered` is false and every profile field is null. |
 | `payloadIndexes` | `object[] \| null` | yes | Every INDEXED payload key. A key absent from this list cannot be filtered on — Qdrant answers a filter over an unindexed key without complaining. ⛔ NULL MEANS THE LIST WAS NOT READ, and `[]` cannot say that: an empty array is a collection that genuinely indexes nothing, and folding the two renders an outage as “nothing here is filterable”. ⚠️ NULL DOES NOT IMPLY A NON-`present` `storeState`: the index list is a SECOND store call, so a collection dropped between the two — or a list this reader could not parse — is `present` with a null list. Read this field's own nullness, never `storeState`, to decide whether the list is known. |
-| `recordTypes` | `string[]` | yes | Record types whose points land here, from the registry's own reads. Empty for a collection no declaration owns. |
+| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose points land here, from the registry's own reads. Empty for a collection no declaration owns. |
 | `counts` | `object` | yes | How much is in the collection, and of what. |
 
 ### `GET /v1/vector-collections/{name}/points`

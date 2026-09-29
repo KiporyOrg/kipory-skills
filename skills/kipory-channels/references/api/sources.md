@@ -45,7 +45,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the project to create the source in. |
 | `provider` | `"telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Which kind of source to create. A provider the platform cannot run yet is refused with 422. |
 | `key` | `string` | no | Your identifier for this source within the project and provider. Letters, digits, dots, dashes and underscores. When omitted, it is slugified from what the source watches. |
-| `name` | `string` | no | Display name. Omit to leave the source unnamed. |
+| `label` | `string` | no | Display text. Omit to leave the source unlabelled. |
 | `config` | `object` | yes | The provider's configuration, in that provider's shape (see the `config` shapes on the source row). Validated against the provider's schema; a field that does not parse is refused with 422 naming it. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
@@ -66,7 +66,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `provider` | `"telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Which kind of source this is. Permanent — a patch cannot change it. |
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
@@ -94,7 +94,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `provider` | `"telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Which kind of source this is. Permanent — a patch cannot change it. |
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
@@ -119,7 +119,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `version` | `integer` | yes | The version you read. Refused with 409 if it has moved. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-| `name` | `string \| null` | no | New display name, or null to clear it. Omit to leave it alone. |
+| `label` | `string \| null` | no | New display text, or null to clear it. Omit to leave it alone. |
 | `config` | `object` | no | A replacement configuration, whole, in the provider's shape. Omit to leave it alone. The provider itself cannot change. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored source and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
@@ -131,7 +131,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `provider` | `"telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Which kind of source this is. Permanent — a patch cannot change it. |
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
@@ -184,7 +184,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `provider` | `"telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Which kind of source this is. Permanent — a patch cannot change it. |
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |
@@ -218,7 +218,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the owning project. |
 | `provider` | `"telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Which kind of source this is. Permanent — a patch cannot change it. |
 | `key` | `string` | yes | Your identifier for this source within the project and provider, slugified from what it watches when you do not supply one. Permanent. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this source. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a Telegram channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
 | `enabled` | `boolean` | yes | Whether the source writes events. Change it through the enable and disable endpoints rather than a patch. Disabling is not instant for Telegram: the watcher fleet drops the channel on the next pass of its own reconcile loop, on a cadence the watcher service sets rather than this API. |

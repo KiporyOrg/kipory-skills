@@ -19,10 +19,10 @@ Five resources, five packs, and an order the packs do not state because each ans
 **1. Embedding profile first, if anything will be searchable.** A record type names a profile version in `uses.search.profileId`, so the profile has to exist to be named — and it carries the `defaultChunking` (required) every type on it inherits unless the type overrides it. Naming it is what makes it serve; the active version is derived from the declarations, so a fresh profile needs no activate.
 
 ```
-POST /v1/embedding-profiles                    { project, name, modelId, denseSlots, defaultChunking, … }   → inert until a type names it
+POST /v1/embedding-profiles                    { project, key, modelId, denseSlots, defaultChunking, … }   → inert until a type names it
 PATCH /v1/embedding-profiles/{id}              label, isDefault, defaultChunking — a chunking change re-derives and re-embeds every inheriting type
 POST /v1/embedding-profiles/{id}/versions      mint the next geometry — changes nothing until activated
-POST /v1/embedding-profiles/{id}/activate      repoint every declaration on the name onto this version and reindex
+POST /v1/embedding-profiles/{id}/activate      repoint every declaration on the key onto this version and reindex
 ```
 
 - **`modelId`** is an embedding model's id from `GET /v1/ai-models?type=embedding` — nothing else lists them. A listed model is not a working one: before you choose, read `GET /v1/projects/{nodeId}/ai-calls?origins=all&outcome=error` for recent rows with `errorCode: "error:quota_exhausted"` by provider and pick another provider's model if its account is out. On a project with no history the first failed embed is the probe — see the indexing failure below.
@@ -35,7 +35,7 @@ Activation is direction-agnostic — pointing at a superseded version is the rol
 ```
 POST /v1/schema-entries                        a reusable typed shape
 POST /v1/schema-entries/seed                   { project } — materialise the flow-provider entries, idempotent
-POST /v1/record-types                          name, shape, owner scope, processing flow, `uses`
+POST /v1/record-types                          key, shape, owner scope, processing flow, `uses`
 PATCH /v1/record-types/{id}                    replace `uses` whole; `searchable`/`queryable`/`relations` in a body are a 422
 GET  /v1/record-types/{id}?expand=uses         where each use landed, and which use kinds this deployment supports
 GET  /v1/record-types/{id}/contract-preview    the field vocabulary a proposed shape or flow would give the type
@@ -49,7 +49,7 @@ The natural key is the `key` use on a field in `uses`: the save verifies every e
 
 The builtin and library shapes are **synthesized on read**: they have no rows and nothing creates them. There is no `?seed=` flag on the read; the seed is the POST.
 
-**3. Decide owner scope before any record exists.** Scope freezes the moment the first record is written, and so do the type's **name** and its **data-shape reference** (`RECORD_TYPE_PINNED_BY_RECORDS`). None can be revised afterwards without deleting the rows. A per-user type cannot be written by a flow a key runs — a key's runs carry no end user; a key can only hand-write one record at a time naming its owner — see `kipory-data`.
+**3. Decide owner scope before any record exists.** Scope freezes the moment the first record is written, and so do the type's **key** and its **data-shape reference** (`RECORD_TYPE_PINNED_BY_RECORDS`); a key a step's configuration names is refused a rename too (`RECORD_TYPE_NAMED_BY_CONFIG`). None can be revised afterwards without deleting the rows. A per-user type cannot be written by a flow a key runs — a key's runs carry no end user; a key can only hand-write one record at a time naming its owner — see `kipory-data`.
 
 **4. Relation kinds, and the field that feeds them.**
 
@@ -59,14 +59,14 @@ POST /v1/relation-kind-pairings                which (typeA, typeB) pairs the ki
 GET  /v1/relation-kinds/{id}?expand=readiness,liveRelationCount  blocked · inert · unproven · ready
 ```
 
-A pairing names record types by **name**, not id: `"pairings": [{ "from": "recipe", "to": "ingredient" }]`. The same `{ from, to }` goes to `POST /v1/relation-kind-pairings` with the kind. A `validateOnly` create forecasts readiness without counting edges, so a draft can read `ready` there. The saved kind reads `unproven` until it carries its first edge — but only on a read that also asks `expand=liveRelationCount`; without it an edgeless field or curated kind reads `ready`.
+A pairing names record types by **key**, not id: `"pairings": [{ "fromRecordTypeKey": "recipe", "toRecordTypeKey": "ingredient" }]`. The same `{ fromRecordTypeKey, toRecordTypeKey }` goes to `POST /v1/relation-kind-pairings` with the kind's `kindKey`. A `validateOnly` create forecasts readiness without counting edges, so a draft can read `ready` there. The saved kind reads `unproven` until it carries its first edge — but only on a read that also asks `expand=liveRelationCount`; without it an edgeless field or curated kind reads `ready`.
 
 Omit `declaration` and the kind is legal but produces nothing; readiness reports it `inert`. The field that feeds a kind is otherwise a `link` use on the record type — `{ "kind": "link", "relation": "<key>" }` in its `uses`, `element.ref` for a list of objects — and the type's `relations` is derived from it. A pairing has no update — delete and recreate. The kind's key is immutable.
 
 **5. Facets, and most of the time they need no flow at all.**
 
 ```
-POST /v1/facets                                { project, facetKey, label, cardinality, matching: exact | semantic, resolverFlowId? }
+POST /v1/facets                                { project, key, label, cardinality, matching: exact | semantic, resolverFlowId? }
 POST /v1/facets/{id}/terms                     bulk-seed the vocabulary
 PATCH /v1/record-types/{id}                    `uses.facets: [...]` — which facets a type surfaces, in order; read back with `expand=facets`
 GET  /v1/facets/resolvers                      the resolver flows available

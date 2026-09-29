@@ -46,10 +46,10 @@ reach for when the change touches more than a handful of rows.
 | `DELETE /v1/facets/{id}` + `validateOnly`        | whether a facet delete would be allowed, and what it reaches                                                                                          |
 | `DELETE /v1/record-types/{id}` + `validateOnly`  | whether a record-type delete would be allowed — the verdict only; a document plan lists what it would cascade into                                    |
 | `GET /v1/flows/{id}?expand=dependents`           | everything that blocks a flow delete, with `deleteRefusal` — `DELETE /v1/flows/{id}` itself has NO rehearsal flag (below)                             |
-| `GET /v1/record-types/{id}/contract-preview`     | the field vocabulary under a **proposed** shape entry (`dataEntryId`) and/or flow binding (`flow`, or `none`)                                         |
+| `GET /v1/record-types/{id}/contract-preview`     | the field vocabulary under a **proposed** shape entry (`dataEntryId`) and/or flow binding (`flowId`, or `none`)                                       |
 | `POST /v1/record-types/{id}/contract-preview`    | the same under a **drafted** `definition` of the shape the type points at — EDITOR                                                                    |
 | `PATCH /v1/schema-entries/{id}` + `validateOnly` | what a shape edit would do; a 409 (not a verdict) when it re-shapes a bound snapshot without `adoptSnapshots: true`                                   |
-| `PATCH /v1/record-types/{id}` + `validateOnly`   | what a `uses`, binding or name change derives to — declarations, reindex, restamp                                                                     |
+| `PATCH /v1/record-types/{id}` + `validateOnly`   | what a `uses`, binding or key change derives to — declarations, reindex, restamp                                                                      |
 | `GET /v1/skills/rename-preview`                  | every step whose wiring a slot rename would rewrite                                                                                                   |
 | `POST /v1/skills/validate-draft`                 | whether an unsaved step is valid — it executes nothing                                                                                                |
 | `GET /v1/flows/{id}/health`                      | whether the flow is whole after the edit                                                                                                              |
@@ -93,7 +93,8 @@ its own. A flow row whose only change is its `outputBinding` has been reported `
 `document`, not the row kind, to confirm a binding moved.
 
 Removal is explicit (`delete: true`, or `prune: true` on a map) and needs ADMIN; absence never
-deletes. The record-type pins still hold inside a document: a type with records refuses a rename,
+deletes. The record-type pins still hold inside a document: a type with records, or one a step's
+configuration names, refuses a rename (a change of its `key`),
 a re-pointed shape and an ownership change exactly as its own PATCH does, and the finding lands
 on the row's path in your document. `kipory-build` has the loop; the pack it points to has the
 rest.
@@ -197,7 +198,7 @@ one is the one that costs money while you are not looking.
 
 **Flows have checkpoints; nothing else does.** Take one before a risky edit — `POST /v1/flow-checkpoints`
 with the flow and a name — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
-reading `GET /v1/flow-checkpoints/{id}/restore-preview`. A restore keeps each step's id by name (a
+reading `GET /v1/flow-checkpoints/{id}/restore-preview`. A restore keeps each step's id by key (a
 step deleted since comes back with a new one) and moves a changed step's version forward, so re-read the steps
 before your next step edit. `kipory-build` owns the detail.
 
@@ -233,7 +234,7 @@ at all:
 
 - **Ask `contract-preview` about the edit, not the stored type.** The plain GET answers for what
   is stored; an agent holding an edited-but-unsaved shape must send it — the drafted `definition`
-  on the POST, or the proposed `dataEntryId`/`flow` on the GET — or it derives declarations
+  on the POST, or the proposed `dataEntryId`/`flowId` on the GET — or it derives declarations
   against a vocabulary it is about to replace.
 - **A refused delete is the good outcome.** The dangerous ones are the changes that succeed and
   quietly invalidate something — a join declaration, a cached digest, an endpoint whose flow no

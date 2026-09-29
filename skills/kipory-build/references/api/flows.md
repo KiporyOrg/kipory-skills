@@ -48,8 +48,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `project` | `string` | no | Node id of the project that will own the flow. Pass exactly one of this or `scope: "system"`. |
 | `scope` | `"system"` | no | Pass `system` to create a platform-owned flow with no owning project. Mutually exclusive with `project`. |
-| `name` | `string` | yes | Display name. |
-| `slug` | `string` | yes | Kebab-case identifier, lower-cased for you. Permanent once created — pick it deliberately. |
+| `label` | `string` | yes | Display text. |
+| `key` | `string` | yes | The flow's key, permanent once created — pick it deliberately. Uppercase is refused, not folded. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 100 characters. |
 | `description` | `string \| null` | no | Optional prose about what the flow is for. Whitespace is trimmed before the length limit applies. |
 | `inputTypeNames` | `object[]` | yes | The flow's inputs, as registered type names. |
 | `outputTypeNames` | `object[]` | yes | The flow's outputs, as registered type names. |
@@ -72,8 +72,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the flow — what `{id}` routes address. |
 | `scope` | `"PROJECT" \| "SYSTEM"` | yes | `PROJECT` for a flow a project owns, `SYSTEM` for a platform-owned one. A `SYSTEM` flow has no owning project, so exactly one of these two facts is always set. |
 | `project` | `string \| null` | yes | Node id of the owning project, or null for a platform-owned flow. |
-| `name` | `string` | yes | Display name, editable at any time. |
-| `slug` | `string` | yes | Kebab-case identifier, fixed when the flow is created. It cannot be changed afterwards — rename through `name`. |
+| `label` | `string` | yes | Display text, editable at any time. |
+| `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `inputSlots` | `unknown` | no | The flow's resolved input signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
 | `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
@@ -83,7 +83,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
-| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flow=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
+| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 
 ### `GET /v1/flows/{id}`
 
@@ -106,8 +106,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the flow — what `{id}` routes address. |
 | `scope` | `"PROJECT" \| "SYSTEM"` | yes | `PROJECT` for a flow a project owns, `SYSTEM` for a platform-owned one. A `SYSTEM` flow has no owning project, so exactly one of these two facts is always set. |
 | `project` | `string \| null` | yes | Node id of the owning project, or null for a platform-owned flow. |
-| `name` | `string` | yes | Display name, editable at any time. |
-| `slug` | `string` | yes | Kebab-case identifier, fixed when the flow is created. It cannot be changed afterwards — rename through `name`. |
+| `label` | `string` | yes | Display text, editable at any time. |
+| `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `inputSlots` | `unknown` | no | The flow's resolved input signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
 | `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
@@ -117,7 +117,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
-| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flow=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
+| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 
 ### `PATCH /v1/flows/{id}`
 
@@ -131,7 +131,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | no | New display name. Omit to leave it alone. |
+| `label` | `string` | no | New display text. Omit to leave it alone. |
 | `description` | `string \| null` | no | Three distinct states: omit to leave the description alone, pass null (or an empty string) to clear it, pass text to replace it. |
 | `inputTypeNames` | `object[]` | no | Replacement input signature. Omit to leave it alone. Changing it re-validates every skill in the flow. |
 | `outputTypeNames` | `object[]` | no | Replacement output signature. Omit to leave it alone. Changing it re-validates the whole flow. |
@@ -146,8 +146,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the flow — what `{id}` routes address. |
 | `scope` | `"PROJECT" \| "SYSTEM"` | yes | `PROJECT` for a flow a project owns, `SYSTEM` for a platform-owned one. A `SYSTEM` flow has no owning project, so exactly one of these two facts is always set. |
 | `project` | `string \| null` | yes | Node id of the owning project, or null for a platform-owned flow. |
-| `name` | `string` | yes | Display name, editable at any time. |
-| `slug` | `string` | yes | Kebab-case identifier, fixed when the flow is created. It cannot be changed afterwards — rename through `name`. |
+| `label` | `string` | yes | Display text, editable at any time. |
+| `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `inputSlots` | `unknown` | no | The flow's resolved input signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
 | `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
@@ -157,7 +157,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
-| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flow=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
+| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/skills?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
@@ -211,7 +211,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `unknownSkillIds` | `string[]` | yes | Skills seen in the run history that are no longer in the flow — usually the trace of an edit. |
 | `verdict` | `"measured" \| "not-measured"` | yes | Whether this report measured anything at all. `not-measured` is not a pass — see `reason`. |
 | `reason` | `"no-attempts" \| "vacuous-skills"` | yes | Why the verdict is `not-measured`, or null when it is `measured`. |
-| `recordTypes` | `string[]` | yes | Record types the covered flows touch. |
+| `recordTypeKeys` | `string[]` | yes | Keys of the record types the covered flows touch. |
 | `graphChangedAt` | `string \| null` | yes | When the flow last changed. Runs from before this are excluded, because they exercised a different graph. |
 | `truncated` | `boolean` | yes | True when the read hit `attemptLimit` and covers only the most recent attempts. A truncated report is a sample, so read its counts as such. |
 | `attemptLimit` | `integer` | yes | The cap that was applied, echoed back. |
@@ -343,7 +343,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `fanOutBranchCap` | `integer \| null` | yes | Branch ceiling in force for this run, or null if uncapped. |
 | `ts` | `string` | yes | When the run started. |
 | `skillId` | `string` | yes | Skill this frame is about. |
-| `skillName` | `string` | yes | Label of that skill. |
+| `skillKey` | `string` | yes | Key of that skill. |
 | `branchId` | `string \| null` | yes | Branch the skill ran in, or null when it is not inside a fan-out. |
 | `branchPath` | `unknown[]` | no | Position within nested fan-outs, outermost first. |
 | `outcome` | `"applied" \| "skipped" \| "failed" \| "no-op"` | yes | `applied` — ran and wrote its output. `skipped` — its condition was not satisfied, or it is disabled. `failed` — it ran and errored. `no-op` — it ran and had nothing to do. |
@@ -380,7 +380,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `step` | `string` | no | Unique id of a saved step (skill) in that flow — the one whose scope is read. Omit it for a step being added: nothing can wait on one yet, so every slot the flow's steps write is in its scope. ⚠️ A saved step that already reads the slot the new step will write is not left out — naming its output closes a cycle, which the create reports as a warning rather than refuses. |
+| `stepId` | `string` | no | Unique id of a saved step (skill) in that flow — the one whose scope is read. Omit it for a step being added: nothing can wait on one yet, so every slot the flow's steps write is in its scope. ⚠️ A saved step that already reads the slot the new step will write is not left out — naming its output closes a cycle, which the create reports as a warning rather than refuses. |
 
 **Response `200`**
 

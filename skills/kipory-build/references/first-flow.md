@@ -34,8 +34,8 @@ POST /v1/flows
 ```json
 {
   "project": "<nodeId>",
-  "name": "Summarise",
-  "slug": "summarise",
+  "label": "Summarise",
+  "key": "summarise",
   "inputTypeNames": [{ "slot": "text", "typeName": "string" }],
   "outputTypeNames": [
     { "slot": "summary", "typeName": "string", "required": true }
@@ -48,7 +48,7 @@ POST /v1/flows
 ```json
 {
   "id": "<flowId>",
-  "slug": "summarise",
+  "key": "summarise",
   "inputSlots": [
     { "slot": "text", "type": { "kind": "ref", "entryId": "<stringEntryId>" } }
   ],
@@ -63,15 +63,15 @@ POST /v1/flows
 }
 ```
 
-- A signature entry is an object — `{ typeName, slot?, isList?, required? }` — never a bare string, and the body is strict. `typeName` is a registered type's name; `string`, `number`, `boolean` and the other built-ins resolve without being declared. An unknown name is a 422.
+- A signature entry is an object — `{ typeName, slot?, isList?, required? }` — never a bare string, and the body is strict. `typeName` is a registered type's key; `string`, `number`, `boolean` and the other built-ins resolve without being declared. An unknown key is a 422.
 - `slot` omitted derives one from the type name. Name it: slot names are letters and digits, starting with a letter.
 - An input is required unless you say `"required": false` (and then its `type` arrives wrapped as `{ "kind": "optional", … }`). An output is **not** required unless you say `"required": true` — and only a required output makes preview report it missing, so say it.
-- `slug` is permanent. `outputBinding` is accepted here too, but only its shape is checked while the flow has no steps; step 3 binds it once the step exists.
+- `key` is permanent — lower-case kebab, refused (never folded) otherwise; `label` is display text you can change any time. `outputBinding` is accepted here too, but only its shape is checked while the flow has no steps; step 3 binds it once the step exists.
 - `validateOnly: true` on the same body answers a verdict with the slot names it would store, and writes nothing.
 
 ## 2. Add the step
 
-A step's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "entryId": "<id>" }`, where the id is the built-in `string` entry's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/schema-entries?project={nodeId}&name=string` answers the same id as `entries[0].id`. It is per project; do not reuse one from another project's export by hand.
+A step's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "entryId": "<id>" }`, where the id is the built-in `string` entry's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/schema-entries?project={nodeId}&key=string` answers the same id as `entries[0].id`. It is per project; do not reuse one from another project's export by hand.
 
 ```
 POST /v1/skills
@@ -79,8 +79,8 @@ POST /v1/skills
 
 ```json
 {
-  "flow": "<flowId>",
-  "name": "write-summary",
+  "flowId": "<flowId>",
+  "key": "write-summary",
   "handlerKey": "text.generate",
   "handlerConfig": {},
   "inputStreams": ["text"],
@@ -100,7 +100,7 @@ POST /v1/skills
 - `handlerConfig` for `text.generate` is optional throughout (`temperature`, `reasoningEffort`, `modelSlot`, …); `{}` takes the defaults. See `handlers/text.generate.md`.
 - `taskKey` decides the model: this step runs on whatever model the project binds to `summarization` (`GET /v1/projects/{projectId}/task-models`, which takes the project id). It is one of `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`; omitted, a single create starts the step on `extraction`. Do not set `modelId` unless you mean to pin this one step.
 - `promptTemplate` is a string on every step. A step whose handler sends no prompt — `value.transform`, `entity.create`, `url.fetch` — sends `""`, never `null`.
-- `name` is slug-case, dots allowed. `outputSlot` is a slot name — no hyphens, no underscores.
+- `key` is the step's name: lower-case kebab, dots allowed. `outputSlot` is a slot name — no hyphens, no underscores.
 - Add `"validateOnly": true` to ask for the verdict first; it runs every rule the write runs and writes nothing.
 
 ## 3. Bind the output
@@ -199,7 +199,7 @@ POST /v1/api-endpoints
 ```json
 {
   "project": "<nodeId>",
-  "endpoint": "summarise",
+  "key": "summarise",
   "contractConfig": {
     "method": "POST",
     "path": "/v1/summarise",
@@ -225,7 +225,7 @@ POST /v1/api-endpoints
 ```
 
 - `params` is required even when empty. `successStatus` defaults to `200`; an `async` endpoint needs `202`.
-- `flow` is `{ id }` only. The server fills the slug and the signature snapshot; sending either is a 422.
+- `flow` is `{ id }` only. The server fills the flow's `key` and the signature snapshot; sending either is a 422.
 - `inputs.text.from: "body"` means the request-body field named `text` — the slot's name, no rename. Every required input slot must be bound. `execution` has no default.
 - `access` is derived, never set. A sync `flow.invoke` on a flow whose steps only read, like this one, comes back `viewers: true`, so a VIEWER key may call it.
 - `invokeUrl` is `null` on a deployment with no public host — a local stack, for one. Never hardcode a host; ask the human for the project host, or, on a bare `localhost`, call the api's own port with the header `x-kipory-project-slug: <project slug>`.
@@ -245,14 +245,14 @@ curl -sS -X POST "$INVOKE_URL" \
 
 ## 8. The same project as one document
 
-State steps 1, 2, 3 and 6 as one document. Inside a document everything is addressed by **name**: a schema reference is `{ "kind": "ref", "ref": "string" }` instead of an entry id, a step is keyed by its name, and the endpoint's `flow` is the flow's slug.
+State steps 1, 2, 3 and 6 as one document. Inside a document everything is addressed by **key**: a schema reference is `{ "kind": "ref", "ref": "string" }` instead of an entry id, a step is keyed by its key, and the endpoint's `flow` is the flow's key.
 
 ```json
 {
-  "kipory": 1,
+  "kipory": 2,
   "flows": {
     "summarise": {
-      "name": "Summarise",
+      "label": "Summarise",
       "inputTypeNames": [{ "slot": "text", "typeName": "string" }],
       "outputTypeNames": [
         { "slot": "summary", "typeName": "string", "required": true }
@@ -316,7 +316,7 @@ POST /v1/projects/{nodeId}/document   { version, document }
 {
   "version": "<version from the plan>",
   "document": {
-    "kipory": 1,
+    "kipory": 2,
     "flows": { "summarise": { "…": "…" } },
     "surfaces": { "…": "…" }
   }

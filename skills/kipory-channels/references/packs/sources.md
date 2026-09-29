@@ -34,18 +34,18 @@ one for the clock: a schedule (capability pack `schedules` — `GET /v1/capabili
 ## The sequence
 
 ```
-GET    /v1/sources/providers                                 the provider registry: concerns, specs, availability, announced names
+GET    /v1/sources/providers                                 the provider registry: concerns, specs (each naming its `categoryKey`), availability, announced names
 GET    /v1/sources?project={nodeId}[&provider=telegram]      every source, newest first, with health, the listening count and deleteRefusal
-POST   /v1/sources                                           { project, provider, config, key?, name? } → 201
+POST   /v1/sources                                           { project, provider, config, key?, label? } → 201
 GET    /v1/sources/{id}
-PATCH  /v1/sources/{id}                                       { version, name?, config? }   — config REPLACES wholesale
+PATCH  /v1/sources/{id}                                       { version, label?, config? }  — config REPLACES wholesale
 POST   /v1/sources/{id}/enable                                { version }
 POST   /v1/sources/{id}/disable                               { version }
 DELETE /v1/sources/{id}                                       409 SOURCE_HAS_LISTENERS while a trigger listens
 GET    /v1/sources/{id}/events?limit=50                       the newest events this source wrote
 ```
 
-Then a trigger: `POST /v1/triggers` with `sourceId`, `category: "telegram"`, `event: "message"`,
+Then a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`,
 the flow and its inputs. The trigger hears that source's events and no other's — the match is
 structural, not a filter clause, so you never write `channel is @x` yourself.
 

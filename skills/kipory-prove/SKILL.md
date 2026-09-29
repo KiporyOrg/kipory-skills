@@ -19,8 +19,8 @@ Two surfaces answering two different questions. **Does this still work?** — fl
 **Test cases — pass or fail.**
 
 ```
-POST  /v1/flow-test-cases            { flow, name, inputs, assertions (1–50), enabled? }
-GET   /v1/flow-test-cases?flow={flowId}
+POST  /v1/flow-test-cases            { flowId, key, label, inputs, assertions (1–50), enabled? }
+GET   /v1/flow-test-cases?flowId={flowId}
 PATCH /v1/flow-test-cases/{id}       { version, … }  — inputs and assertions REPLACE wholesale
 POST  /v1/flows/{id}/test            { testCaseIds?, includeDisabled? }  → 200 with every result
 ```
@@ -30,8 +30,8 @@ The test run answers with the results themselves: per case an outcome of `passed
 **Evals — a matter of degree.**
 
 ```
-POST /v1/eval-suites                 { project, name, flow, scorerFlowIds?, … }
-POST /v1/eval-cases                  { suite, key (1–200, stable), inputs, expected?, labels?, assertions? (0–50) }
+POST /v1/eval-suites                 { project, key, label, flowId, scorerFlowIds?, … }
+POST /v1/eval-cases                  { suiteId, key (1–64, stable), inputs, expected?, labels?, assertions? (0–50) }
 GET  /v1/eval-suites/{id}/readiness  what the configuration alone says will happen — read before the first run
 POST /v1/eval-suites/{id}/run        202 { suiteId, queued: true, diagnostics } — ADMIN, 409 while one is in flight; validateOnly: true is a VIEWER dry run
 GET  /v1/eval-suites/{id}/runs       poll for the row the worker writes
@@ -42,7 +42,7 @@ GET  /v1/eval-suites/trend?project=  every suite in the project
 
 Scorers are **flows**, not a vocabulary: `scorerFlowIds` names them, and each scorer call is a billed model call, unlike a case's own assertions, which are free and deterministic. An eval case may carry no assertions at all and be graded by scorers alone.
 
-**The scorer-flow contract is by slot name.** Its input slots are filled by name: `output` gets the subject's bound flow output, `inputs` the case's input bag, `expected` the case's `expected` (left unfilled when the case has none), and any other name gets the value the subject's step wrote to the output slot of that name, read from the case's trace. Its outputs are read by name: `value` (a finite number) makes a numeric score, else `verdict` (or `stringValue`, which wins when both are set) — a non-empty string — a categorical one; `name` names the score (the scorer flow's slug when absent) and `comment` annotates it. A scorer that returns neither `value` nor `verdict` records no score, not a zero. Declare `output` and `expected` typed as the subject's output shape (or the builtin `object`).
+**The scorer-flow contract is by slot name.** Its input slots are filled by name: `output` gets the subject's bound flow output, `inputs` the case's input bag, `expected` the case's `expected` (left unfilled when the case has none), and any other name gets the value the subject's step wrote to the output slot of that name, read from the case's trace. Its outputs are read by name: `value` (a finite number) makes a numeric score, else `verdict` (or `stringValue`, which wins when both are set) — a non-empty string — a categorical one; `name` names the score (the scorer flow's key when absent) and `comment` annotates it. A scorer that returns neither `value` nor `verdict` records no score, not a zero. Declare `output` and `expected` typed as the subject's output shape (or the builtin `object`).
 
 ## What will bite you
 
@@ -60,7 +60,7 @@ Scorers are **flows**, not a vocabulary: `scorerFlowIds` names them, and each sc
 - **There is no content-equality assertion**, deliberately. Shape and structure only; the `jsonata` kind is the escape hatch, validated at save time, and a non-boolean result fails rather than coercing truthy. It inherits the sandbox that bans `$now`, `$millis`, `$random`, `$shuffle`.
 - **A `jsonata` assertion's root is `output`, not the preview's `flowOutput`.** The expression sees `{ output, missingRequiredOutput, transcript, errors, warnings, totalTokensIn, totalTokensOut, latencyMs }`, where `output` is the flow's bound outputs — so `output.urgent = true`, never `flowOutput.urgent`. A misspelled root reads as absent and the assertion fails with `actual: "null"`.
 - **The project-wide trend is capped at 20 runs**, because it is multiplied by the suite count; the per-suite trend allows 100.
-- **A suite measures one flow.** Every suite binds a `flow`, and every case carries its own inputs; there is no record-set subject.
+- **A suite measures one flow.** Every suite binds a flow (`flowId`), and every case carries its own inputs; there is no record-set subject.
 - **Do not skip this because the project is small.** The assertions are the only part of a design that survives a later rewrite.
 
 ## Before a risky edit

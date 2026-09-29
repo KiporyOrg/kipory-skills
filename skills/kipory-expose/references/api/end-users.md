@@ -239,7 +239,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `schemaEntryId` | `string \| null` | yes | Schema entry the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
+| `entryKey` | `string \| null` | yes | Key of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
@@ -264,7 +264,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `schemaEntryId` | `string \| null` | yes | Schema entry the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
+| `entryKey` | `string \| null` | yes | Key of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
@@ -283,7 +283,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `schemaEntryId` | `string \| null` | yes | Schema entry the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
+| `entryKey` | `string \| null` | yes | Key of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
@@ -301,14 +301,14 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | yes | A name for the new type. Required: the platform no longer names it for you. Letters, digits, dots, dashes and underscores only, starting with a letter or digit, up to 64 characters. It is used as an address, so it may not contain slashes, spaces or braces. |
+| `key` | `string` | yes | The new type's key. Required: the platform no longer picks one for you. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `schemaEntryId` | `string \| null` | yes | Schema entry the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryName` | `string \| null` | yes | Name of the connected schema entry; null when unconnected. |
+| `entryKey` | `string \| null` | yes | Key of the connected schema entry; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |

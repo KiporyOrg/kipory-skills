@@ -20,7 +20,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose rejected requests to read. Required. |
 | `class` | `"auth" \| "validation" \| "not-found" \| "limit" \| "other"` | no | Only one family of refusal: `auth` (401, 403), `validation` (400, 413, 415, 422), `not-found` (404, 405), `limit` (402, 429), or `other` (every other 4xx). |
-| `endpoint` | `string` | no | Only requests that matched this configured endpoint, by name. A refusal answered before any endpoint matched (a bad credential, a path nothing serves) has no endpoint and never matches. |
+| `endpointKey` | `string` | no | Only requests that matched this configured endpoint, by key. A refusal answered before any endpoint matched (a bad credential, a path nothing serves) has no endpoint and never matches. |
 | `limit` | `integer` | no | How many of the most recent rejected requests to return, newest first. Defaults to 50. A cap, not a page — the log keeps a row for `retentionDays` days. |
 
 **Response `200`**

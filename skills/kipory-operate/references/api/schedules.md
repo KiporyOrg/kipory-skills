@@ -42,8 +42,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the schedule. |
-| `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch will not change it, so pick it deliberately. Letters, digits, dots, dashes and underscores only, starting with a letter or digit, up to 64 characters. It is used as an address, so it may not contain slashes, spaces or braces. |
-| `name` | `string \| null` | no | Display name, unlike the key changeable later. Omit it or pass null and the schedule has none. |
+| `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch will not change it, so pick it deliberately. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string \| null` | no | Display text, unlike the key changeable later. Omit it or pass null and the schedule has none. |
 | `flowId` | `string` | yes | The flow to run on each firing. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow every time. A schedule has no caller, so whatever the flow needs must be here. |
 | `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
@@ -70,7 +70,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this schedule. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
 | `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
@@ -116,7 +116,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this schedule. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
 | `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
@@ -152,7 +152,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string \| null` | no | New display name. Omit to leave it alone, or pass null to clear it. |
+| `label` | `string \| null` | no | New display text. Omit to leave it alone, or pass null to clear it. |
 | `flowId` | `string` | no | Bind a different flow. Omit to leave it alone. |
 | `inputs` | `object` | no | Replace the fixed inputs entirely — this is not a merge. Omit to leave them alone. |
 | `cronPattern` | `string` | no | New cron pattern. Omit to leave it alone. |
@@ -171,7 +171,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this schedule. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
 | `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
@@ -235,7 +235,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this schedule. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
 | `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
@@ -280,7 +280,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this schedule. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
 | `flowId` | `string` | yes | The flow this schedule runs. |
 | `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
 | `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |

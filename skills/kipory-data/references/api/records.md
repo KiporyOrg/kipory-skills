@@ -42,7 +42,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `mode` | `"exact" \| "semantic"` | no | `semantic` ranks by resemblance instead of matching literally, and is refused for a type that declares no meaning index. It returns a BOUNDED, UNPAGED ranking: no cursors, no page numbers. |
 | `q` | `string` | no | With `mode=exact`, matched against the natural key and the type's declared TEXT fields, case-insensitively. ⛔ It is NOT matched against the record's submitted content: there is deliberately no index on that column, so a predicate there reads every row of the type. With `mode=semantic`, the phrase to resemble. |
 | `field` | `string \| string[]` | no | A condition on a declared field, as `name:operator:value`. Repeat for more than one; they are combined with AND. Split on the FIRST TWO colons — the value is everything after the second, so a timestamp keeps its own. Operators by field family: text, reference and boolean take `is`; number takes `is`, `above`, `below`, `atLeast`, `atMost`; date takes `after`, `before`, `onOrAfter`, `onOrBefore`. (`POST …/records/query` uses `eq`/`lt`/`gt`… instead; those are refused here.) Refused, by name, when the field is not declared queryable, when the operator does not belong to its family, or when it has no resolved storage behind it. |
-| `term` | `string \| string[]` | no | A vocabulary condition, as `facet:slug`. Repeat for more than one. |
+| `term` | `string \| string[]` | no | A vocabulary condition, as `facet:key`. Repeat for more than one. |
 | `owner` | `string` | no | Narrow to the records ONE end-user owns, by their user id. Omitted, the list reads across every owner in the project — which is what it has always done, and is now a choice the caller makes rather than one the route makes for them. ⚠️ Records owned by the PROJECT rather than a person are excluded when this is set: they have no owner to match. |
 | `status` | `"PENDING" \| "PROCESSING" \| "READY" \| "FAILED"` | no | Narrow to one processing state. |
 | `createdAfter` | `string` | no | Inclusive lower bound on when the record arrived, regardless of how the result is ordered. |
@@ -216,7 +216,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `recordType` | `string` | yes | The record type the question is asked of. Every clause is validated against this type's `uses`: a field needs `filter`, a facet `facet`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the type. |
-| `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column: eq/lt/lte/gt/gte/in), `term` (a facet assignment by slug), `edge` (a relation, optionally with stamped edge filters, a count, and one hop of `peer` clauses on the far record), `stream` (event rows: exists/none/count inside a window), and at most one `semantic` (a phrase ranked by meaning). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
+| `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column: eq/lt/lte/gt/gte/in), `term` (a facet assignment by term key), `edge` (a relation, optionally with stamped edge filters, a count, and one hop of `peer` clauses on the far record), `stream` (event rows: exists/none/count inside a window), and at most one `semantic` (a phrase ranked by meaning). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
 | `limit` | `integer` | no | How many records come back at most. For an exact-only query this is the page size; with a semantic clause the clause's own `topK` bounds the ranking and this caps what is returned of it. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
 | `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
@@ -288,7 +288,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `statusError` | `string \| null` | yes | Why it failed, when it has. Null in every other state. |
 | `statusUpdatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `at` | `integer` | yes | When the server emitted this frame, in unix milliseconds. For correlating logs, not for ordering. |
-| `skill` | `string` | no | The step now starting. Present only while processing is under way. |
+| `skillId` | `string` | no | Id of the step now starting. Present only while processing is under way. |
 | `error` | `string` | no | Why it failed. Present only on the failing frame. |
 | `requestId` | `string` | yes | The request that started this processing run, for correlation. |
 | `code` | `"CLIENT_TOO_SLOW" \| "INTERNAL"` | yes | A TRANSPORT fault, not a record failure — the connection broke. `CLIENT_TOO_SLOW` means you were not reading fast enough. Reconnect and take the snapshot again. |

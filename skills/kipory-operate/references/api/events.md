@@ -42,7 +42,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the category. |
-| `categoryKey` | `string` | yes | Stable key for the category, unique within the project. Permanent once created. |
+| `key` | `string` | yes | The category's key, unique within the project. Permanent once created. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
 | `label` | `string` | yes | Human-readable name. |
 | `durableDefault` | `boolean` | no | Whether event types in this category are stored by default. An individual type can still override it. |
 
@@ -52,7 +52,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the category. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `categoryKey` | `string` | yes | Stable key for the category, unique within the project. |
+| `key` | `string` | yes | The category's key, unique within the project. |
 | `label` | `string` | yes | Human-readable name. |
 | `durableDefault` | `boolean` | yes | Whether event types in this category are stored by default. An individual type can override it. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this category was authored in the project or installed by the platform. |
@@ -74,7 +74,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the category. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `categoryKey` | `string` | yes | Stable key for the category, unique within the project. |
+| `key` | `string` | yes | The category's key, unique within the project. |
 | `label` | `string` | yes | Human-readable name. |
 | `durableDefault` | `boolean` | yes | Whether event types in this category are stored by default. An individual type can override it. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this category was authored in the project or installed by the platform. |
@@ -104,7 +104,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the category. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `categoryKey` | `string` | yes | Stable key for the category, unique within the project. |
+| `key` | `string` | yes | The category's key, unique within the project. |
 | `label` | `string` | yes | Human-readable name. |
 | `durableDefault` | `boolean` | yes | Whether event types in this category are stored by default. An individual type can override it. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this category was authored in the project or installed by the platform. |
@@ -134,7 +134,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `category` | `string` | yes | The event category whose types to list, by its ROW ID rather than its key. |
+| `categoryId` | `string` | yes | The event category whose types to list, by its ROW ID rather than its key. |
 
 **Response `200`**
 
@@ -148,8 +148,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `category` | `string` | yes | Id of the category this type belongs to. |
-| `eventKey` | `string` | yes | Stable key for the event, unique within its category. Permanent once created. |
+| `categoryId` | `string` | yes | Id of the category this type belongs to. |
+| `key` | `string` | yes | The event type's key, unique within its category. Permanent once created. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
 | `payloadEntryId` | `string \| null` | no | Schema entry describing the payload events carry. Omit or pass null for an event with no payload. |
@@ -160,9 +160,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the event type. |
-| `category` | `string` | yes | Id of the category this type belongs to. |
+| `categoryId` | `string` | yes | Id of the category this type belongs to. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `eventKey` | `string` | yes | Stable key for the event, unique within its category. |
+| `key` | `string` | yes | The event type's key, unique within its category. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
 | `payloadEntryId` | `string \| null` | yes | Schema entry describing the payload an event of this type carries, or null when it carries none. |
@@ -189,9 +189,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the event type. |
-| `category` | `string` | yes | Id of the category this type belongs to. |
+| `categoryId` | `string` | yes | Id of the category this type belongs to. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `eventKey` | `string` | yes | Stable key for the event, unique within its category. |
+| `key` | `string` | yes | The event type's key, unique within its category. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
 | `payloadEntryId` | `string \| null` | yes | Schema entry describing the payload an event of this type carries, or null when it carries none. |
@@ -229,9 +229,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the event type. |
-| `category` | `string` | yes | Id of the category this type belongs to. |
+| `categoryId` | `string` | yes | Id of the category this type belongs to. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `eventKey` | `string` | yes | Stable key for the event, unique within its category. |
+| `key` | `string` | yes | The event type's key, unique within its category. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
 | `payloadEntryId` | `string \| null` | yes | Schema entry describing the payload an event of this type carries, or null when it carries none. |

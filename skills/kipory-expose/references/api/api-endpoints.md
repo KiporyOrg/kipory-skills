@@ -39,9 +39,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the endpoint. |
-| `endpoint` | `string` | yes | Your identifier for this endpoint within the project. Permanent — PATCH will not change it, so pick it deliberately. Letters, digits, dots, dashes and underscores only, starting with a letter or digit, up to 64 characters. It is used as an address, so it may not contain slashes, spaces or braces. |
+| `key` | `string` | yes | The endpoint's key within the project. Permanent — PATCH will not change it, so pick it deliberately. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `contractConfig` | `object` | yes | The request contract of a dynamic endpoint: method + path template + declared parameters. Unknown keys are rejected (422). |
-| `actionConfig` | `object` | yes | The executable action to bind, discriminated on `kind`: flow.invoke (run a flow, buffered output), flow.stream (run a flow, SSE), or events.subscribe (stream registry events, SSE). A flow-backed action names its flow by id only — the save reads the flow's slug and snapshots its signature authoritatively, so neither is accepted here. Unknown keys are rejected (422). |
+| `actionConfig` | `object` | yes | The executable action to bind, discriminated on `kind`: flow.invoke (run a flow, buffered output), flow.stream (run a flow, SSE), or events.subscribe (stream registry events, SSE). A flow-backed action names its flow by id only — the save reads the flow's key and snapshots its signature authoritatively, so neither is accepted here. Unknown keys are rejected (422). |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -59,7 +59,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Endpoint id — the address for read, patch, delete. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `endpoint` | `string` | yes | Your identifier for this endpoint within the project. Immutable. |
+| `key` | `string` | yes | The endpoint's key within the project. Immutable. |
 | `contractConfig` | `object` | yes | What the endpoint ACCEPTS: method, path template, declared parameters. |
 | `actionConfig` | `object` | yes | What the endpoint DOES when called — which flow it runs, how its inputs are bound, and whether it answers synchronously or streams. |
 | `invokeUrl` | `string \| null` | yes | COMPUTED, read-only. Absolute URL the endpoint is served at — the project's dynamic plane (https://{subdomain}.<env-host>{path}), NOT this design API's host. Path templates keep their {param} placeholders. null when the deployment has no derivable public host (local dev). |
@@ -70,7 +70,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `signatureDrift` | `boolean \| null` | no | `expand=drift` — whether the bound flow's signature has changed since this endpoint snapshotted it, which means the published request or response contract no longer matches the flow. Null for a non-flow-backed action. Absent unless asked for. |
-| `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, slug and name. Null when the action is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
+| `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the action is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
 | `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path: `GET /v1/me/stats` answers the path `/v1/me/{text}` when `text` is `stats`, so your endpoint never receives that value. Empty when none does. Absent unless asked for. It compares routes only: a path whose first word after `/v1/` a platform route also starts with is gated with that route's group whatever this says — pick a first word no row of `GET /v1/coded-routes` uses. |
 
@@ -94,7 +94,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Endpoint id — the address for read, patch, delete. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `endpoint` | `string` | yes | Your identifier for this endpoint within the project. Immutable. |
+| `key` | `string` | yes | The endpoint's key within the project. Immutable. |
 | `contractConfig` | `object` | yes | What the endpoint ACCEPTS: method, path template, declared parameters. |
 | `actionConfig` | `object` | yes | What the endpoint DOES when called — which flow it runs, how its inputs are bound, and whether it answers synchronously or streams. |
 | `invokeUrl` | `string \| null` | yes | COMPUTED, read-only. Absolute URL the endpoint is served at — the project's dynamic plane (https://{subdomain}.<env-host>{path}), NOT this design API's host. Path templates keep their {param} placeholders. null when the deployment has no derivable public host (local dev). |
@@ -105,7 +105,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `signatureDrift` | `boolean \| null` | no | `expand=drift` — whether the bound flow's signature has changed since this endpoint snapshotted it, which means the published request or response contract no longer matches the flow. Null for a non-flow-backed action. Absent unless asked for. |
-| `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, slug and name. Null when the action is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
+| `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the action is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
 | `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path: `GET /v1/me/stats` answers the path `/v1/me/{text}` when `text` is `stats`, so your endpoint never receives that value. Empty when none does. Absent unless asked for. It compares routes only: a path whose first word after `/v1/` a platform route also starts with is gated with that route's group whatever this says — pick a first word no row of `GET /v1/coded-routes` uses. |
 
@@ -123,7 +123,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `version` | `integer` | yes | The `version` you last read. REQUIRED here, unlike most design resources where it is optional: both configs are replaced wholesale, so a blind write would silently discard a concurrent edit. A mismatch is refused with 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `contractConfig` | `object` | yes | The request contract of a dynamic endpoint: method + path template + declared parameters. Unknown keys are rejected (422). |
-| `actionConfig` | `object` | yes | The executable action to bind, discriminated on `kind`: flow.invoke (run a flow, buffered output), flow.stream (run a flow, SSE), or events.subscribe (stream registry events, SSE). A flow-backed action names its flow by id only — the save reads the flow's slug and snapshots its signature authoritatively, so neither is accepted here. Unknown keys are rejected (422). |
+| `actionConfig` | `object` | yes | The executable action to bind, discriminated on `kind`: flow.invoke (run a flow, buffered output), flow.stream (run a flow, SSE), or events.subscribe (stream registry events, SSE). A flow-backed action names its flow by id only — the save reads the flow's key and snapshots its signature authoritatively, so neither is accepted here. Unknown keys are rejected (422). |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -132,7 +132,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Endpoint id — the address for read, patch, delete. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `endpoint` | `string` | yes | Your identifier for this endpoint within the project. Immutable. |
+| `key` | `string` | yes | The endpoint's key within the project. Immutable. |
 | `contractConfig` | `object` | yes | What the endpoint ACCEPTS: method, path template, declared parameters. |
 | `actionConfig` | `object` | yes | What the endpoint DOES when called — which flow it runs, how its inputs are bound, and whether it answers synchronously or streams. |
 | `invokeUrl` | `string \| null` | yes | COMPUTED, read-only. Absolute URL the endpoint is served at — the project's dynamic plane (https://{subdomain}.<env-host>{path}), NOT this design API's host. Path templates keep their {param} placeholders. null when the deployment has no derivable public host (local dev). |
@@ -143,7 +143,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `signatureDrift` | `boolean \| null` | no | `expand=drift` — whether the bound flow's signature has changed since this endpoint snapshotted it, which means the published request or response contract no longer matches the flow. Null for a non-flow-backed action. Absent unless asked for. |
-| `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, slug and name. Null when the action is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
+| `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the action is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
 | `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path: `GET /v1/me/stats` answers the path `/v1/me/{text}` when `text` is `stats`, so your endpoint never receives that value. Empty when none does. Absent unless asked for. It compares routes only: a path whose first word after `/v1/` a platform route also starts with is gated with that route's group whatever this says — pick a first word no row of `GET /v1/coded-routes` uses. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
@@ -165,4 +165,4 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `endpoint` | `string` | yes | The deleted endpoint's key, echoed so a log line names what went. The key is free again immediately — a new endpoint may reuse it. |
+| `key` | `string` | yes | The deleted endpoint's key, echoed so a log line names what went. The key is free again immediately — a new endpoint may reuse it. |

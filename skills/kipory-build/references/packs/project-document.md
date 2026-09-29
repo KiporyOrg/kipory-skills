@@ -9,7 +9,7 @@
 ## What it is
 
 A project's whole configuration — its shapes, record types, relations, facets, events, flows,
-entry points and eval suites — as ONE nested document addressed by name. Nesting expresses
+entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
 ownership: a flow's steps sit under the flow, a facet's terms under the facet, a suite's cases under
 the suite, a record type's own shape under the record type. Ids are optional; the platform fills
 them in on export and matches by them on apply. The document you write is the document the
@@ -18,7 +18,7 @@ platform hands back.
 Read it before authoring anything larger than one row. The row-by-row API has an order — a record
 type needs its shape first, a relation kind its record types, a trigger its flow — and the
 Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) page states it. The document exists so that you need not
-know it: state the whole project by name, and the platform resolves the order.
+know it: state the whole project by key, and the platform resolves the order.
 
 ## Read a project as one document
 
@@ -30,7 +30,9 @@ bootstrap performs, in the same transaction, so it carries the same `ETag`: send
 - `?section=schema,flows` narrows to those sections, each complete. A partial read carries no
   `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 1`, saved as `<name>.kipory.yaml` and sent back to plan as it is. The wire is JSON,
+  `kipory: 2`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  states any other format version, `kipory: 1` included, is refused with
+  `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
   `ETag` is an opaque validator, so the version an apply needs is taken from the PLAN, which
   answers it.
@@ -44,34 +46,39 @@ public: documentation, byte-identical for every caller.
 
 The schema is COMPOSED from the design surfaces' own create bodies, never restated: each row is
 the surface's create body minus the addressing the document supplies by position (`project` and
-the natural key), the request-only `validateOnly` flag, and every field that holds an id of another
+the element's `key`), the request-only `validateOnly` flag, and every field that holds an id of another
 row. So a field a surface grows appears in the document the same day, spelled the same way.
 
 ## Three reference forms
 
-Everything is addressed by the name the platform already enforces as unique within a project — a
-record type by name, a flow by slug, a facet by key, an endpoint by its own key, an event type by
-`<category>/<key>`, a source by `<provider>/<key>`. A few references are ids on the row API and
-names in the document — flows, shapes, sources, and a search profile:
+Every element is addressed by its `key` — the one the platform already enforces as unique within
+a project, and the key each section's map is keyed by. An event type is `<category>/<key>`, a
+source `<provider>/<key>`. A row's display text, where it has one, is `label`. A few references
+are ids on the row API and keys in the document — flows, shapes, sources, and a search profile:
 
-| The row API spells        | The document spells   | Meaning                                                       |
-| ------------------------- | --------------------- | ------------------------------------------------------------- |
-| `dataEntryId`             | `shape`               | a record type's shape, by entry name                          |
-| `payloadEntryId`          | `payload`             | an event type's payload, by entry name                        |
-| `propertiesEntryId`       | `properties`          | a relation kind's edge properties, by name                    |
-| `schemaEntryId`           | `shape`               | a config namespace's shape, by entry name                     |
-| `flowId`                  | `flow`                | a record type's, a trigger's or a schedule's flow, by slug    |
-| `sourceId`                | `source`              | a trigger's source, as `<provider>/<key>`                     |
-| `actionConfig.flow.id`    | `actionConfig.flow`   | an endpoint action's flow, by slug                            |
-| `flow`                    | `flow`                | an eval suite's subject — an id on the row API, a slug here   |
-| `resolverFlowId`          | `resolver`            | a facet's resolving flow, by slug                             |
-| `scorerFlowIds`           | `scorers`             | an eval suite's scorer flows, by slug                         |
-| `uses.search.profileId`   | `uses.search.profile` | a record type's embedding profile, by name — its live version |
-| `targetFlowId`            | `target`              | a `flow.invoke` step's target, by slug                        |
-| `entryId` in a schema ref | `ref`                 | a step's schema reference, by entry name                      |
+| The row API spells        | The document spells   | Meaning                                                      |
+| ------------------------- | --------------------- | ------------------------------------------------------------ |
+| `dataEntryId`             | `shape`               | a record type's shape, by entry key                          |
+| `payloadEntryId`          | `payload`             | an event type's payload, by entry key                        |
+| `propertiesEntryId`       | `properties`          | a relation kind's edge properties, by entry key              |
+| `schemaEntryId`           | `shape`               | a config namespace's shape, by entry key                     |
+| `flowId`                  | `flow`                | a record type's, trigger's, schedule's or eval suite's flow  |
+| `sourceId`                | `source`              | a trigger's source, as `<provider>/<key>`                    |
+| `actionConfig.flow.id`    | `actionConfig.flow`   | an endpoint action's flow, by key                            |
+| `resolverFlowId`          | `resolver`            | a facet's resolving flow, by key                             |
+| `scorerFlowIds`           | `scorers`             | an eval suite's scorer flows, by key                         |
+| `uses.search.profileId`   | `uses.search.profile` | a record type's embedding profile, by key — its live version |
+| `targetFlowId`            | `target`              | a `flow.invoke` step's target, by key                        |
+| `entryId` in a schema ref | `ref`                 | a step's schema reference, by entry key                      |
 
-A bare flow slug always means this project's flow. A library or system flow — one that belongs to
-no project — is `system:<slug>`. A facet's `resolver` is the one reference with a default: omit it
+Not every nested reference is re-spelled: a record type's `uses.join` names its relation kind as
+`kindKey`, exactly as the record-type API does, because the document passes that object to the same
+create body unchanged.
+
+A facet's proposal examples are worked examples, each a term `key` and its `label`; the key is
+checked like a real term's (lowercase segments joined by `-`, at most 128 characters). A bare flow
+key always means this project's flow. A library or system flow — one that belongs to
+no project — is `system:<key>`. A facet's `resolver` is the one reference with a default: omit it
 on a new facet and the platform binds a semantic facet to its default resolver where it holds one,
 so "none" is stated as `resolver: null` — which is how an unbound facet exports, and why that export
 re-applies as unbound rather than picking up a resolver on the way back in. A shape may be stated
@@ -113,7 +120,8 @@ field the row's own PATCH does not take — a facet's `cardinality`, a profile's
 trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
 it is fine (an export states everything), stated CHANGED it is refused on its own path, never
 dropped. To change one, state the row under a new key without the `id` and remove the old one.
-The exception is the owned collections (a flow's `skills` and `tests`, a suite's `cases`, a kind's `pairings`, a
+The exception is the owned collections (a flow's `skills` and `tests`, a suite's `cases`, a kind's `pairings`
+— each `{ fromRecordTypeKey, toRecordTypeKey }`, as the kind's create takes them — a
 facet's `terms`): each is stated whole, so when present it replaces the owner's collection — and a
 member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
@@ -173,17 +181,19 @@ pairing it has that kind's change on `relations.<kind>` as the cascade, not as `
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a shape, a
-record type and an eval suite, keeping the `id` under a new name is a RENAME — one update of the
-same row, and everything that named it follows. Every other key is permanent (a facet key, a flow
-slug, an endpoint key: other rows are linked to it by key), so the same move is refused on the row;
+record type (while it holds no records and no step's config names it), a skill, a flow test case,
+an eval suite and an eval case, keeping the `id` under a new key is a RENAME — one update of the
+same row, and everything that named it follows; the row API renames exactly the same kinds. Every
+other key is permanent (a facet, a flow, an endpoint: other rows or stored data are linked to it
+by key), so the same move is refused on the row;
 state the new key without the `id` and remove the old one with `delete: true`. An `id` that belongs to no row here — the usual
 case when a document exported from one project is planned against another — is ignored, listed
 under `ignoredIds`, and the row is matched by its key instead. It is never a refusal. Two stated
 rows that resolve to one current row — one by its id, one by its key — are two statements about
 one thing, and are refused on both paths: state it once.
 
-A name that resolves to nothing is `DOCUMENT_NAME_UNRESOLVED` on the path that spelled it. When
-exactly one name of the same kind is within two edits, the message offers it; when two are equally
+A key that resolves to nothing is `DOCUMENT_KEY_UNRESOLVED` on the path that spelled it. When
+exactly one key of the same kind is within two edits, the message offers it; when two are equally
 close, it offers none rather than guess. Forward references need no care: a flow may be named by a
 row that appears before it, because the platform writes in a fixed order, not yours.
 
@@ -235,10 +245,11 @@ same document again to retry, and only what is still missing is attempted.
 An apply whose only change is a facet's terms is still a change: it moves the version, and its
 seed runs after the commit like any other.
 
-A flow's `skills` are matched by name. A step the document leaves as it is is not written; one it
-changes is updated in place, keeps its `id` and moves its `version`; a new name is created; a name
-the map omits is deleted. So a step id held across an apply stays good — only a renamed step (a new
-name) gets a new one. What a single step save works out, the apply works out too: each
+A flow's `skills` are matched by `id`, then by key. A step the document leaves as it is is not
+written; one it changes is updated in place, keeps its `id` and moves its `version`; a new key is
+created; a key the map omits is deleted. So a step id held across an apply stays good — a step
+renamed by keeping its `id` under the new key keeps it too; only one restated under a new key
+without its `id` gets a new one. What a single step save works out, the apply works out too: each
 `flow.invoke` output row's `derivedShape` is typed from the flow it calls (never state it — and a
 document that rewrites a sub-flow's steps re-types every step calling it, restated or not), and a
 flow whose signature changes is judged against the steps the document LEAVES, so retyping an input
@@ -259,17 +270,17 @@ no node, and the address is still free. The body's `name` wins over the name the
 document's `project` section states, and its `description` is dropped with it — the create body
 has none; the rest of that section (routes, config) applies. `template` and `document` together
 are refused before anything is made. Another project's export is a fine document to start from —
-its ids are ignored and its names are the content.
+its ids are ignored and its keys are the content.
 
 ## Roll back to an export
 
 Keep the export you took before a change: applying it again, with the project's CURRENT
 `version`, puts its rows back. A row deleted since returns as a new row with a new id, and a row
 added since stays unless the document says `prune`. A deleted record type's inline shape is not
-deleted with it — it stays as a shared entry of the same name — and the export's inline shape
+deleted with it — it stays as a shared entry of the same key — and the export's inline shape
 takes that entry back, so the type returns owning the same shape, id and all. It is matched by
-the `id` the export's inline shape carries — keep it — never by name: an inline shape without that
-`id` whose name an existing entry holds is refused `SCHEMA_NAME_DUPLICATE`, as it always was. It is
+the `id` the export's inline shape carries — keep it — never by key: an inline shape without that
+`id` whose key an existing entry holds is refused `SCHEMA_KEY_DUPLICATE`, as it always was. It is
 taken back only while nothing else holds it: stated under `schema` in the same document, or the
 shape of another record type, it stays shared, and the inline shape is refused the same way.
 

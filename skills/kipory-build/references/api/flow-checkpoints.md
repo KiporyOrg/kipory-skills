@@ -24,7 +24,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | Id of the flow whose checkpoints to list. |
+| `flowId` | `string` | yes | Id of the flow whose checkpoints to list. |
 
 **Response `200`**
 
@@ -38,7 +38,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | The flow to capture. |
+| `flowId` | `string` | yes | Id of the flow to capture. |
 | `name` | `string` | yes | A name for the checkpoint. Trimmed; blank is refused. |
 | `description` | `string \| null` | no | An optional note on why you are taking it. |
 
@@ -47,7 +47,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Checkpoint id — the address for read, patch, delete, restore. |
-| `flow` | `string` | yes | The flow this checkpoint was taken from. |
+| `flowId` | `string` | yes | Id of the flow this checkpoint was taken from. |
 | `name` | `string` | yes | The checkpoint's name. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
@@ -72,7 +72,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Checkpoint id — the address for read, patch, delete, restore. |
-| `flow` | `string` | yes | The flow this checkpoint was taken from. |
+| `flowId` | `string` | yes | Id of the flow this checkpoint was taken from. |
 | `name` | `string` | yes | The checkpoint's name. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
@@ -104,7 +104,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Checkpoint id — the address for read, patch, delete, restore. |
-| `flow` | `string` | yes | The flow this checkpoint was taken from. |
+| `flowId` | `string` | yes | Id of the flow this checkpoint was taken from. |
 | `name` | `string` | yes | The checkpoint's name. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
@@ -143,7 +143,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | The flow whose steps were restored, so you can navigate to it. |
+| `flowId` | `string` | yes | Id of the flow whose steps were restored, so you can navigate to it. |
 | `restoredSkillCount` | `integer` | yes | How many steps the flow now has — the checkpoint's count. |
 | `autoCheckpointId` | `string` | yes | A checkpoint taken of the PREVIOUS state, automatically, just before this restore. Restore it to undo what you just did. |
 | `outstandingIssues` | `object[]` | yes | Problems found on re-validating the restored flow. These did NOT block the restore — the steps are back either way, and these are what to fix next. |

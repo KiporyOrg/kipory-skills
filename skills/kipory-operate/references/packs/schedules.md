@@ -35,15 +35,15 @@ POST /v1/schedules/{id}/enable        start it, recomputing the next run from no
 ```
 
 Scoped by `project`. Create takes a **key**, the flow, the inputs keyed by input slot, the cron
-pattern and the timezone; optionally a display **name**, a start, an end, a maximum number of runs,
+pattern and the timezone; optionally a display **label**, a start, an end, a maximum number of runs,
 and an overlap policy of `skip` or `allow` — ⚠️ omitting the policy means `skip`, which is the one
 that suppresses fires, so state it when you meant `allow`.
 
 ## The key you author
 
-Three design objects are addressed by a string **you** choose rather than by the row id: an
-endpoint's `endpoint`, a schema entry's `name`, and a schedule's `key`. All three share one charset
-rule, and it is checked on write:
+Every project element is addressed by its `key`, a string **you** choose rather than the row id.
+Endpoints, schedules and schema entries — with triggers, sources, eval suites, eval cases and flow
+test cases — share one format, the **address key**, and it is checked on write:
 
 ```
 letters, digits, dots, dashes, underscores
@@ -53,9 +53,12 @@ first character a letter or a digit
 
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
-⚠️ **This is not the flow-slug rule.** A flow's `slug` is strict lower-case kebab; these are not,
-and deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here.
-Do not assume one rule from the other.
+⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
+event categories and types, relation kinds and embedding profiles), a facet's is camelCase, a record
+type's is a type name and a skill's a dotted kebab step name. Address keys are none of those, and
+deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
+element's key has exactly one format; do not assume one from another. A key outside its format is
+refused, never re-cased for you.
 
 The reason for the charset is narrow and worth knowing: these keys end up as **one segment of a
 URL**. Anything needing an escape to survive that — a slash, a space, a `{}` placeholder, a `?` or
@@ -64,14 +67,14 @@ a `#` — is refused at the write rather than mangled later.
 ⚠️ The schedule key is **immutable**, and the patch body has no `key` member at all — sending one
 is a 422 naming the field, not a silent no-op. An address that moves is a link that breaks.
 
-**Rename through `name`.** A schedule carries a display name beside its key, editable at any time —
-the pair a flow has as `slug`+`name` and an event as `key`+`label`. On the read it is **nullable**:
-`null` means nobody has named this schedule, which is true of every row created before the field
-existed, and tooling should fall back to the bound flow's name there. On the create it is optional
-**and nullable** — omitting it and passing `null` both mean "no name", so a client holding the
+**Rename through `label`.** A schedule carries a display label beside its key, editable at any time —
+the same `key`+`label` pair a flow, a trigger and a source carry. On the read it is **nullable**:
+`null` means nobody has labelled this schedule, which is true of every row created before the field
+existed, and tooling should fall back to the bound flow's label there. On the create it is optional
+**and nullable** — omitting it and passing `null` both mean "no label", so a client holding the
 `string | null` the read gave it can post that value back without branching first. On
-the patch it is a tri-state — omit it to leave the name alone, pass a string to replace it, pass
-`null` to clear it back to unnamed. A blank string is a 422 rather than a clear, so emptying a name
+the patch it is a tri-state — omit it to leave the label alone, pass a string to replace it, pass
+`null` to clear it back to unnamed. A blank string is a 422 rather than a clear, so emptying a label
 by accident and removing one on purpose are not the same request.
 
 The next-run time you get back is derived by the same computation the tick uses to decide what to

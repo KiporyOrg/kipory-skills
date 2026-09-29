@@ -13,6 +13,11 @@
   _references_ an entry for its data shape, and optionally binds a flow whose output slots become
   the type's derived fields.
 
+Both are addressed by their `key`. A record type's key is a **type name** — letters and digits,
+starting with a letter — and it is the value its records carry as `recordType`; it is renameable
+only while the type holds no records and no step's configuration names it. A schema entry's key
+is an address key (below) and renameable at any time.
+
 They are separate resources on purpose: shapes are authored once and reused, while a record type
 is a thin descriptor pointing at one.
 
@@ -45,7 +50,7 @@ POST /v1/schema-entries/seed
 
 A shape only one record type will ever use does not have to be a shared registry entry. In a
 project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`), state the shape INLINE under the type —
-`records.<name>.shape` as the shape itself rather than an entry's name — and one apply creates the
+`records.<key>.shape` as the shape itself rather than an entry's key — and one apply creates the
 entry, the record type and the ownership together. Such an entry is OWNED:
 
 - it is edited only through its record type's `shape`; a registry PATCH answers
@@ -215,7 +220,8 @@ not a `RECORD_TYPE_USES_INVALID` issue.
 
 And three statements about the **type**, beside the fields: `search` (the embedding profile, with
 optional overrides of `chunking`, `indexWhen` and `isolationGroup` — required iff a field is
-marked `search`), `join` (this type IS an edge), and `facets` (the ordered facet keys the type
+marked `search`), `join` (this type IS an edge — `{ kindKey, from, to }`, the relation kind by its
+key), and `facets` (the ordered facet keys the type
 surfaces — a facet is not a field, so it is not a use of one; see "Which facets a type surfaces").
 
 ```jsonc
@@ -510,7 +516,7 @@ pack has the read side (`where` and `count` on an edge walk). Before you declare
   in one type and an object in another is `EDGE_FILTER_TYPE_CONFLICT`, and the message names the
   other type. The map is the kind's — `edgeFilters` on the relation-kind read, `{ property →
 column }`, read-only there; `GET /v1/record-types/{id}?expand=uses` routes the use as
-  `{ store: "edge-store", relation, producerKey, filters: { quote: "eText0" } }`.
+  `{ store: "edge-store", kindKey, producerKey, filters: { quote: "eText0" } }`.
 - **A property already on a column keeps it** when another type adds or drops a filter. A property
   no type names any more leaves the map. So one type's edit never moves another's columns.
 - ⚠️ **Changing the filters restamps every live edge of the kind, after the save returns.** As with
@@ -730,13 +736,14 @@ body. A cached answer — every query reads the stores as they are now. The oper
   `GET /v1/schema-entries?expand=graph` says which graph references those are before you try: each
   entry carries `usedByGraph` and `usedByGraphRefs` — the flows, steps, handlers and sibling types
   that name it DIRECTLY. A flow taking a type that references this one is listed under that type,
-  not here.
+  not here. The `graph` section beside the entries resolves a relation's source ids through three
+  maps: `flowLabels` (flow id → label), `skillKeys` (step id → key) and `entryKeys` (type id → key).
 
 - **Deleting a record type** that has records, was seeded, or carries a reserved type name (a
   platform-wide set, not something your project defines). The DELETE answers 409 `CONFLICT` for
   records, naming the rule at the head of its message (`RECORD_TYPE_PINNED_BY_RECORDS: …`); 409
   `RECORD_TYPE_SEEDED_READONLY` for a seeded type; and 422 `VALIDATION_FAILED` for a reserved name,
-  again named at the head of the message (`RECORD_TYPE_NAME_RESERVED: …`). Deleting a type
+  again named at the head of the message (`RECORD_TYPE_KEY_RESERVED: …`). Deleting a type
   removes only the descriptor; the entry outlives it.
 
   ⚠️ It does **not** leave the relation graph alone, and the response says what went. A record-type
@@ -786,7 +793,9 @@ body. A cached answer — every query reads the stores as they are now. The oper
   `POST /v1/projects/{nodeId}/records/{id}/reprocess`, which accepts a `PENDING` record only when
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
 
-- **Re-pointing or renaming a type that already has records.**
+- **Re-pointing or renaming a type that already has records**, and renaming — changing the `key`
+  of — a type any flow step's configuration names (`RECORD_TYPE_NAMED_BY_CONFIG`, listing the
+  flows): step configuration names a record type by key, so a rename would strand it.
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than
   optional. The update runs in a transaction, so a rejected write rolls back the whole rename
   cascade rather than leaving it half-applied.
@@ -801,19 +810,19 @@ offers against that contract is being written against the wrong vocabulary.
 ⭐ **Each field also says whether a LINK may be declared on it, and what it points at.**
 `relationSource` carries `flat` (the field itself is a reference) or `element` (it is a list of
 objects whose properties are), each with `typed` — whether the reference names its target — and
-`targets`, the record types it names.
+`targetRecordTypeKeys`, the keys of the record types it names.
 
-⚠️ **`typed` and `targets` answer different questions, and only the second can be checked against
+⚠️ **`typed` and `targetRecordTypeKeys` answer different questions, and only the second can be checked against
 the link you are making.** A declaration whose source points at `article` on a kind paired
 `article → note` **saves**: the save asks whether the field IS a reference and never what it points
 AT. Every edge it then produces is refused at write time as `UNDECLARED_PAIR` and reported rather
-than raised, so the kind reads `0 edges` and nothing says why. `targets` is what lets an editor say
+than raised, so the kind reads `0 edges` and nothing says why. `targetRecordTypeKeys` is what lets an editor say
 so before the save instead of after it.
 
-⚠️ **`targets` is a LIST, and empty means untyped.** A union of two annotated references names two
+⚠️ **`targetRecordTypeKeys` is a LIST, and empty means untyped.** A union of two annotated references names two
 types and is right for a link to either, so it cannot collapse to one value. An untyped reference —
 a plain string that happens to hold an id — is still legal: the save warns with
-`RELATION_SOURCE_FIELD_UNTYPED` rather than refusing, so do not treat an empty `targets` as a
+`RELATION_SOURCE_FIELD_UNTYPED` rather than refusing, so do not treat an empty `targetRecordTypeKeys` as a
 refusal.
 
 ⭐ **`element.properties` carries each sibling's NAME and the JSON types it declares.** These are the
@@ -837,10 +846,10 @@ check. Fold them in your own reader, not in what you read.
 `GET /v1/record-types/{id}/contract-preview` answers for a **proposed** descriptor instead:
 
 ```
-GET /v1/record-types/{id}/contract-preview?dataEntryId=<entry>&flow=<flowId>|none
+GET /v1/record-types/{id}/contract-preview?dataEntryId=<entry>&flowId=<flowId>|none
 ```
 
-Both parameters are optional. Omit one to keep what is stored; `flow=none` proposes unbinding.
+Both parameters are optional. Omit one to keep what is stored; `flowId=none` proposes unbinding.
 `none` is safe as a sentinel because flow ids are cuids.
 
 To ask the same question about a **draft of the type's own shape** — fields added or changed but
@@ -848,10 +857,10 @@ not saved — send the drafted document instead:
 
 ```
 POST /v1/record-types/{id}/contract-preview
-{ "definition": { /* the drafted JSON Schema */ }, "flow": "<flowId>" | "none" }
+{ "definition": { /* the drafted JSON Schema */ }, "flowId": "<flowId>" | "none" }
 ```
 
-`flow` is optional, as above; `dataEntryId` is refused (a draft of this shape and a move to another
+`flowId` is optional, as above; `dataEntryId` is refused (a draft of this shape and a move to another
 are two different saves). The drafted document replaces the stored one and nothing is re-pointed,
 so the preview judges against the binding as stored. It is a POST because a document does not fit a
 query string, and it is floored at EDITOR: only an editor has a draft to ask about. The answer has
@@ -919,7 +928,7 @@ Three things to hold about it:
   type you cannot edit is still one worth understanding. Check `origin` before offering the answer
   as something to act on.
 
-⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the name,
+⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the key,
 the data shape and the owner scope; the binding can change at any point in a type's life. But a
 re-bind re-derives the `processed` family and re-derives the type's whole `uses` against the new
 signature — every use is re-resolved and the three derived documents re-validated **before the
@@ -1092,9 +1101,9 @@ reach — measured against every record the type has, writing nothing.
 
 ## The key you author
 
-Three design objects are addressed by a string **you** choose rather than by the row id: an
-endpoint's `endpoint`, a schema entry's `name`, and a schedule's `key`. All three share one charset
-rule, and it is checked on write:
+Every project element is addressed by its `key`, a string **you** choose rather than the row id.
+Endpoints, schedules and schema entries — with triggers, sources, eval suites, eval cases and flow
+test cases — share one format, the **address key**, and it is checked on write:
 
 ```
 letters, digits, dots, dashes, underscores
@@ -1104,43 +1113,32 @@ first character a letter or a digit
 
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
-⚠️ **This is not the flow-slug rule.** A flow's `slug` is strict lower-case kebab; these are not,
-and deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here.
-Do not assume one rule from the other.
+⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
+event categories and types, relation kinds and embedding profiles), a facet's is camelCase, a record
+type's is a type name and a skill's a dotted kebab step name. Address keys are none of those, and
+deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
+element's key has exactly one format; do not assume one from another. A key outside its format is
+refused, never re-cased for you.
 
 The reason for the charset is narrow and worth knowing: these keys end up as **one segment of a
 URL**. Anything needing an escape to survive that — a slash, a space, a `{}` placeholder, a `?` or
 a `#` — is refused at the write rather than mangled later.
 
-⚠️ Unlike the other two, a schema entry's `name` **is** renameable — references resolve by id, so a
-rename breaks nothing. The charset rule applies to the rename exactly as it does to the create.
+⚠️ Unlike an endpoint's or a schedule's key, a schema entry's `key` **is** renameable — references
+resolve by id, so a rename breaks nothing. The charset rule applies to the rename exactly as it does to the create.
 
-### A schema entry also carries a `slug`, and you do not author it
+### Two keys that differ only by case or separator are refused
 
-Every schema entry on the wire — in the flat CRUD reply, in the registry read, and in the project
-bootstrap — now carries a **`slug`** beside its `name`. It is the entry's **address**: the operator
-UI reaches a type at `/<project>/types/<slug>`, the way it already reaches a flow by `Flow.slug`.
+The operator UI reaches a type at `/<project>/types/<key>` — the key is both the identity and the
+address, and a rename moves the URL. References are untouched, because they resolve by id.
 
-```
-RecordPage   → record-page        FileMetadata → file-metadata
-PDFDocument  → pdf-document       string       → string
-```
-
-Three things to know about it:
-
-- **It is derived from the name, not stored.** There is no column and nothing to set: the platform
-  folds the name on every read. That is what lets it cover the `builtin` and `library` tiers, which
-  have no rows at all — a stored slug could only ever have covered half the registry.
-- **It moves when you rename.** The slug is a function of the name, so renaming a type changes its
-  URL. References are untouched, as before, because they resolve by id.
-- **Two names can fold onto one slug, and the second is refused.** `OrderItem`, `Order_Item` and
-  `Order.Item` are three legal names sharing one address, so a create or rename that lands on an
-  address another type already holds is a `409` — including against a `builtin` or `library` name,
-  which has no row to collide with in the table.
-
-For the same reason, a name that differs from an existing one **only by capitalisation** is now
-refused as well: `String` beside the builtin `string` is two entries a reader cannot tell apart and
-one address. Rows written before this rule keep resolving; only new writes are refused.
+`OrderItem`, `Order_Item` and `Order.Item` are three legal keys a reader cannot tell apart, so a
+create or rename whose key folds (lower-case, `.` `-` `_` dropped to one dash) onto a key another
+type already holds is a `409` (`SCHEMA_SLUG_DUPLICATE`) — including against a `builtin` or
+`library` name, which has no row to collide with in the table. For the same reason a key that
+differs from an existing one **only by capitalisation** is refused as well: `String` beside the
+builtin `string` is two entries a reader cannot tell apart. Rows written before these rules keep
+resolving; only new writes are refused.
 
 ### The registry read carries the `version` a PATCH needs
 
@@ -1148,7 +1146,7 @@ Every schema entry on the wire — the flat CRUD reply, the registry read and th
 carries **`version`**, the optimistic lock. Send it back on a PATCH:
 
 ```jsonc
-{ "name": "OrderLine", "version": 7 }
+{ "key": "OrderLine", "version": 7 }
 ```
 
 - **It is REQUIRED on the PATCH.** An omitted lock is not a lighter check, it is no check: two
@@ -1211,7 +1209,7 @@ Each entry carries the facet's own label, binding, cardinality and BOTH of its a
 settings — `mint` (what a value the facet has never seen may become: `none`, `active` or
 `candidate`) and `matching` (how an existing term is found: `exact` or `semantic`) — so a client
 can render the list without a second call. These two replaced a single `mode` field that conflated
-them; a reader that showed one word could not distinguish a fixed vocabulary matched by slug from
+them; a reader that showed one word could not distinguish a fixed vocabulary matched by key from
 one searched by meaning, which are very different facets to hand a record type. See
 Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) for what to choose.
 
@@ -1221,7 +1219,7 @@ is projected, never what is stored, so re-linking brings the same values back.
 ## Asking whether a type edit would be accepted — `validateOnly`
 
 `POST /v1/schema-entries` and `PATCH /v1/schema-entries/{id}` take **`validateOnly: true`** in the
-body. Each runs every rule its write runs — the name clash, the definition compile gate, the
+body. Each runs every rule its write runs — the key clash, the definition compile gate, the
 unread-keyword and dead-null-arm refusals, the cycle detector, and every consumer guard (record-type
 declarations, flow bindings, user profiles, event payloads) — writes nothing, and answers **200**
 with a verdict:
@@ -1267,8 +1265,8 @@ healthier draft.**
   rewritten.** The drift read is what owns the live comparison — which is why `uncaptured` matters.
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
-- **A record type is named by name in handler config**, not by id — which means a rename is not
-  something the id-based delete guards can see coming.
+- **A record type is named by key in handler config**, not by id — which is why a rename is
+  refused while any step's config names the type (`RECORD_TYPE_NAMED_BY_CONFIG`).
 - **A schema entry lists every consumer that blocks its delete, and `usedByRelationKinds` is one
   of them.** Alongside `usedByRecordTypes`, `usedByEventTypes`, `usedByConfigNamespaces` and
   `usedAsProfile`, an entry reports the relation kinds whose edge properties it describes. It was
@@ -1278,11 +1276,11 @@ healthier draft.**
 
 ## How they connect to flows
 
-- The record-creating handler names a record type **by name**, plus the slot carrying the
+- The record-creating handler names a record type **by key**, plus the slot carrying the
   submission. Flow-less types are born ready; flow-backed types start pending and are processed.
 - `text.generate` does **not** carry its output schema in handler config — the shape lives on the
   skill and points at a schema entry. That is the main link between the registry and a skill.
-- A reference to a record-type _instance_ names the type by name too, and is deliberately
+- A reference to a record-type _instance_ names the type by key too, and is deliberately
   invisible to the id-based delete checks.
 
 ## Related

@@ -26,7 +26,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose record types to list. |
-| `name` | `string` | no | Return only the type with this exact name. |
+| `key` | `string` | no | Return only the type with this exact key. |
 | `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, facets, uses, restamp, migration. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
@@ -42,7 +42,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the type. |
-| `name` | `string` | yes | Name for the record type. |
+| `key` | `string` | yes | The record type's key. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
 | `dataEntryId` | `string` | yes | Existing schema entry in the same project that defines the type's data shape. On this route a shape is always an entry that already exists. To declare a type together with a shape of its OWN, state it inline in a project document (`records.<name>.shape`); an entry another record type owns is refused here with SCHEMA_ENTRY_OWNED. |
 | `description` | `string \| null` | no | This type's own description, separate from the entry's. |
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
@@ -65,9 +65,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Record type id — the address for every type verb. |
 | `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference, not ownership — the entry is edited on its own surface and renaming it does not break this link. |
-| `dataEntryName` | `string` | yes | Current name of that schema entry, for display. |
+| `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `name` | `string` | yes | Name of the record type. |
+| `key` | `string` | yes | The record type's key. |
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data. Read-only here — edit it on the schema entry this type references. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
@@ -86,7 +86,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `drift` | `"ok" \| "drift" \| "flow-missing" \| "uncaptured" \| "not-flow-backed"` | no | Present when `expand=drift` was requested. |
-| `flowLabel` | `string \| null` | no | Name of the bound flow. Present when `expand=flowLabels` was requested; null when the type binds no flow, or binds one outside this project. |
+| `flowLabel` | `string \| null` | no | Label of the bound flow. Present when `expand=flowLabels` was requested; null when the type binds no flow, or binds one outside this project. |
 | `outputDefinition` | `unknown` | no | JSON Schema of what the bound flow produces, derived from its captured snapshot. Present when `expand=outputDefinition` was requested; null when the type binds no flow or no snapshot was captured. |
 | `contract` | `object[]` | no | Fields a searchable or relations declaration may reference, each with its derived index type. Present when `expand=contract` was requested. |
 | `facets` | `object[]` | no | The facets this type surfaces, in order. Present when `expand=facets` was requested; an empty array means the type surfaces none, which is not the same as the project having none. |
@@ -120,9 +120,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Record type id — the address for every type verb. |
 | `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference, not ownership — the entry is edited on its own surface and renaming it does not break this link. |
-| `dataEntryName` | `string` | yes | Current name of that schema entry, for display. |
+| `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `name` | `string` | yes | Name of the record type. |
+| `key` | `string` | yes | The record type's key. |
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data. Read-only here — edit it on the schema entry this type references. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
@@ -141,7 +141,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `drift` | `"ok" \| "drift" \| "flow-missing" \| "uncaptured" \| "not-flow-backed"` | no | Present when `expand=drift` was requested. |
-| `flowLabel` | `string \| null` | no | Name of the bound flow. Present when `expand=flowLabels` was requested; null when the type binds no flow, or binds one outside this project. |
+| `flowLabel` | `string \| null` | no | Label of the bound flow. Present when `expand=flowLabels` was requested; null when the type binds no flow, or binds one outside this project. |
 | `outputDefinition` | `unknown` | no | JSON Schema of what the bound flow produces, derived from its captured snapshot. Present when `expand=outputDefinition` was requested; null when the type binds no flow or no snapshot was captured. |
 | `contract` | `object[]` | no | Fields a searchable or relations declaration may reference, each with its derived index type. Present when `expand=contract` was requested. |
 | `facets` | `object[]` | no | The facets this type surfaces, in order. Present when `expand=facets` was requested; an empty array means the type surfaces none, which is not the same as the project having none. |
@@ -166,7 +166,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | no | New name. Refused once the type has records. |
+| `key` | `string` | no | The record type's new key. Refused once the type has records, or while a flow step names it. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
 | `dataEntryId` | `string` | no | Point the type at a different schema entry. Refused once the type has records. Omit to keep the current one. |
 | `description` | `string \| null` | no | This type's own description, separate from the entry's. |
 | `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
@@ -181,9 +181,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Record type id — the address for every type verb. |
 | `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference, not ownership — the entry is edited on its own surface and renaming it does not break this link. |
-| `dataEntryName` | `string` | yes | Current name of that schema entry, for display. |
+| `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `name` | `string` | yes | Name of the record type. |
+| `key` | `string` | yes | The record type's key. |
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data. Read-only here — edit it on the schema entry this type references. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
@@ -202,7 +202,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `drift` | `"ok" \| "drift" \| "flow-missing" \| "uncaptured" \| "not-flow-backed"` | no | Present when `expand=drift` was requested. |
-| `flowLabel` | `string \| null` | no | Name of the bound flow. Present when `expand=flowLabels` was requested; null when the type binds no flow, or binds one outside this project. |
+| `flowLabel` | `string \| null` | no | Label of the bound flow. Present when `expand=flowLabels` was requested; null when the type binds no flow, or binds one outside this project. |
 | `outputDefinition` | `unknown` | no | JSON Schema of what the bound flow produces, derived from its captured snapshot. Present when `expand=outputDefinition` was requested; null when the type binds no flow or no snapshot was captured. |
 | `contract` | `object[]` | no | Fields a searchable or relations declaration may reference, each with its derived index type. Present when `expand=contract` was requested. |
 | `facets` | `object[]` | no | The facets this type surfaces, in order. Present when `expand=facets` was requested; an empty array means the type surfaces none, which is not the same as the project having none. |
@@ -239,7 +239,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `name` | `string` | yes | Name of the record type that was removed. |
+| `key` | `string` | yes | Key of the record type that was removed. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `invalidatedJoins` | `string[]` | yes | Other record types whose join declarations this delete voided, because they named the type you removed. You asked to remove one type and a declaration on a different one changed as a result, so it is reported rather than left to be discovered. |
 | `deletedRelationKinds` | `string[]` | yes | Relation kinds removed with this type, because it was the only record-type pair they applied to. A link that applies to no pair connects nothing and cannot be traversed, so it goes rather than being left behind — and every link it had made goes with it. Same reason as the field above: you asked to remove one type and something else changed, so it is reported. |
@@ -260,7 +260,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `dataEntryId` | `string` | no | Propose re-pointing the data shape at this operator entry. Omit to keep the stored one. Validated by the same resolver the PATCH uses, so an entry this refuses is one the save would refuse too. |
-| `flow` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
+| `flowId` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
 
 **Response `200`**
 
@@ -283,8 +283,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `definition` | `object` | yes | The drafted JSON Schema of the shape this type already points at. Gated by the rules a save of it meets — field names, an object schema, and the stored flow's binding when `flow` is omitted — each a 422. Judged against the binding as stored: a save that re-shapes a frozen signature is refused until re-sent with `adoptSnapshots`, and a removal with stored records is refused; the document plan answers both. The `declarations` verdicts are the STORED declarations under this draft — a save restating `uses` is judged by those instead. |
-| `flow` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
+| `definition` | `object` | yes | The drafted JSON Schema of the shape this type already points at. Gated by the rules a save of it meets — field names, an object schema, and the stored flow's binding when `flowId` is omitted — each a 422. Judged against the binding as stored: a save that re-shapes a frozen signature is refused until re-sent with `adoptSnapshots`, and a removal with stored records is refused; the document plan answers both. The `declarations` verdicts are the STORED declarations under this draft — a save restating `uses` is judged by those instead. |
+| `flowId` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
 
 **Response `200`**
 

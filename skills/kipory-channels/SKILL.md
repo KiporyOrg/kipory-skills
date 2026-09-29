@@ -33,18 +33,18 @@ Then, in the flow, an `email.send` step names the address in its **config** (`ad
 
 ```
 GET    /v1/sources?project={nodeId}[&provider=telegram]     every source, with health, how many triggers listen and deleteRefusal
-POST   /v1/sources                { project, provider: "telegram", config: { channel }, key?, name? } → 201
+POST   /v1/sources                { project, provider: "telegram", config: { channel }, key?, label? } → 201
 GET    /v1/sources/{id}
-PATCH  /v1/sources/{id}           { version, name?, config? }   — config REPLACES wholesale; the provider cannot change
+PATCH  /v1/sources/{id}           { version, label?, config? }  — config REPLACES wholesale; the provider cannot change
 POST   /v1/sources/{id}/enable    { version }
 POST   /v1/sources/{id}/disable   { version }
 DELETE /v1/sources/{id}           409 SOURCE_HAS_LISTENERS while a trigger listens — the read's deleteRefusal says so first
 GET    /v1/sources/{id}/events    the newest events this source wrote
 ```
 
-The first Telegram source in a project seeds a `telegram` event category and its `message` type into the project's registry. Then bind a flow with a trigger: `POST /v1/triggers` with `sourceId`, `category: "telegram"`, `event: "message"`, the flow and its inputs (`kipory-operate` has the rest). Each message is one `telegram/message` event in the project's log, and the trigger runs the flow with the envelope in the reserved `event` slot: the text, channel and message id under `event.data`, the attachments' file ids under `event.data.fileIds`.
+The first Telegram source in a project seeds a `telegram` event category and its `message` type into the project's registry. Then bind a flow with a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`, the flow and its inputs (`kipory-operate` has the rest). Each message is one `telegram/message` event in the project's log, and the trigger runs the flow with the envelope in the reserved `event` slot: the text, channel and message id under `event.data`, the attachments' file ids under `event.data.fileIds`.
 
-A channel the project does not watch yet is one write, not two: `POST /v1/triggers` with `newSource` (the body a source create takes — `provider`, `config`, optionally `key` and `name`) in place of `sourceId` creates the source and the trigger in one transaction, so a trigger the platform refuses leaves no source behind. Sending both is a 422.
+A channel the project does not watch yet is one write, not two: `POST /v1/triggers` with `newSource` (the body a source create takes — `provider`, `config`, optionally `key` and `label`) in place of `sourceId` creates the source and the trigger in one transaction, so a trigger the platform refuses leaves no source behind. Sending both is a 422.
 
 ## What will bite you
 

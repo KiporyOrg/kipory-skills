@@ -31,7 +31,7 @@ GET /v1/projects/{nodeId}/records?id=<id>&id=<id>                    name record
 GET /v1/projects/{nodeId}/records?type=<recordType>&key=<naturalKey> the one record with exactly that natural key
 ```
 
-Narrow with repeated `field=name:operator:value` and `term=facet:slug` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100.
+Narrow with repeated `field=name:operator:value` and `term=facet:key` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100.
 
 <!-- field-ok: atLeast — a records-list `field=` operator word (RECORD_FIELD_OPERATORS), a query-string value, not a body field -->
 <!-- field-ok: atMost — a records-list `field=` operator word (RECORD_FIELD_OPERATORS), a query-string value, not a body field -->

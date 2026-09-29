@@ -30,7 +30,11 @@ slug grammar would refuse included; there is no `422` on this read.
 
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
-answers YAML.
+answers YAML. The document is in the current format, `kipory: 2`, and reads exactly as the
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) pack describes — elements by `key` and `label`, a
+relation kind's pairings by `fromRecordTypeKey`/`toRecordTypeKey`, a `skill-outcome` assertion
+by `skillKey`, a facet's worked examples by term `key` and `label` — a template whose example
+key is not a valid term key (lowercase segments joined by `-`) is refused like any document.
 
 ## Create a project from one
 
@@ -43,7 +47,8 @@ platform's own CI), so treat it as a platform defect to report, not something to
 An unknown slug is refused before anything is made (`details.reason: "TEMPLATE_UNKNOWN"`).
 The same call takes a `document` instead — a whole project document of your own, applied the same
 way; the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) says how a refusal reads there. A template's
-record types speak the same `uses` vocabulary as that document — there is no `file` use any more,
+record types speak the same `uses` vocabulary as that document (a join type names its relation kind
+as `uses.join.kindKey`) — there is no `file` use any more,
 no `derived` field family and no projection stages, on a type or as a profile default, so a
 template naming any of them is refused like any other document would be.
 
@@ -66,7 +71,7 @@ project document, with the document's own rules — a facet that omits `resolver
 platform's default binding on the deployment it lands on, and one that states `resolver: null`
 lands unbound everywhere. Read it with `GET /v1/templates/{slug}`, plan it against your project to see
 what it would add or change, and apply it like any other document. Rows your project already has
-under the same names are UPDATED to the template's, which is rarely what you want for a whole
+under the same keys are UPDATED to the template's, which is rarely what you want for a whole
 template — plan first, and send the sections you mean.
 
 ## When not to use one

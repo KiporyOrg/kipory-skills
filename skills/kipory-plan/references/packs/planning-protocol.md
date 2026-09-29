@@ -56,7 +56,7 @@ The build sheet is a conversational artifact: prose for a person to read and say
 schema and no validator, and it is not what the platform runs.
 
 What the platform runs is a project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the same project, stated
-as one name-addressed file. When the sheet is accepted, write the document it describes and
+as one key-addressed file. When the sheet is accepted, write the document it describes and
 **plan it** (`POST /v1/projects/{nodeId}/document/plan`). The plan response is the second moment a
 person can say no, and a better-informed one: it lists every row that would be created, changed
 and removed, every refusal on the path that caused it, and what the change does to stored data.

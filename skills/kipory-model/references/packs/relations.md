@@ -165,11 +165,14 @@ POST  /v1/relation-kinds        the kind, its pairings AND its declaration — o
 GET   /v1/records/{id}/relations/{kind}   walk one hop
 ```
 
-Creating a kind is deliberately wide: it seeds its pairings atomically — each pairing is
-`{ "from": "<record type name>", "to": "<record type name>" }`, types by **name**, e.g.
-`"pairings": [{ "from": "recipe", "to": "ingredient" }]` — and **at least one is
-required**, so a kind is never born without one. The key is immutable. Pairings have **no update** — re-target by deleting and
-recreating. ⚠️ But that recipe stops working the moment edges exist: a pairing carrying live edges
+Creating a kind is deliberately wide: it seeds its pairings atomically, and **at least one is
+required**, so a kind is never born without one; a seed pair states `fromRecordTypeKey` and
+`toRecordTypeKey` — record types by **key**, e.g.
+`"pairings": [{ "fromRecordTypeKey": "recipe", "toRecordTypeKey": "ingredient" }]` — the same two
+fields a pair added later carries. The key is lower-case kebab and immutable. A pair added later is its own resource,
+`POST /v1/relation-kind-pairings` with `kindKey`, `fromRecordTypeKey` and `toRecordTypeKey`;
+`GET /v1/relation-kind-pairings?project=…&recordTypeKey=…` lists the pairs touching one type.
+Pairings have **no update** — re-target by deleting and recreating. ⚠️ But that recipe stops working the moment edges exist: a pairing carrying live edges
 is refused outright (`RELATION_PAIRING_PINNED_BY_EDGES`), and that is ANY pairing, not just the
 last one, because removing it would strand the links sitting on it. Remove those edges first, or
 delete the kind. (Separately, the LAST pairing can never be deleted at all.) A `symmetric` kind
@@ -189,13 +192,13 @@ inside the kind's own transaction. **Three** arms, and which one is legal follow
 
 ```jsonc
 // producer: "field" — name a field the type already has
-{ "declaration": { "recordType": "post", "produces": { "source": { "family": "submission", "field": "sourceId" } } } }
+{ "declaration": { "recordTypeKey": "post", "produces": { "source": { "family": "submission", "field": "sourceId" } } } }
 
 // producer: "field" — have the field WRITTEN for you, in the same transaction
-{ "declaration": { "recordType": "post", "generate": { "field": "sources" } } }
+{ "declaration": { "recordTypeKey": "post", "generate": { "field": "sources" } } }
 
 // producer: "joinRecord"
-{ "declaration": { "recordType": "subscription",
+{ "declaration": { "recordTypeKey": "subscription",
                    "joins": { "from": { "family": "submission", "field": "spaceId" },
                               "to":   { "family": "submission", "field": "sourceId" } } } }
 ```
@@ -219,7 +222,7 @@ The generated property is exactly what a `recordRef` compiles to, as a list:
       "ref": {
         "type": "string",
         "minLength": 1,
-        "x-record-ref": "<the pairing's `to`>",
+        "x-record-ref": "<the pairing's `toRecordTypeKey`>",
       },
     },
     "required": ["ref"],
@@ -251,7 +254,7 @@ no reader. Emitting it made the record type's own schema entry refuse its next e
 on it to grey the field out, read `x-owned-by-link` instead: its presence is the same signal and it
 is a fact the platform actually keeps.
 
-⛔ **`generate` requires exactly ONE pairing, and the holder must be that pair's `from`.** The
+⛔ **`generate` requires exactly ONE pairing, and the holder must be that pair's `fromRecordTypeKey`.** The
 annotation `x-record-ref` holds a single string and every reader of it checks presence rather than
 value, so a two-target generated field would carry an annotation that is a lie for half its rows
 with nothing to catch it. Both refusals are `RECORD_TYPE_RELATIONS_INVALID`. Model the field
@@ -301,7 +304,7 @@ refused (`USES_MARKER_DISAGREES`) rather than overwritten; a kind with several t
 field unmarked.
 
 ⚠️ **The `kind` is implied, not spelled.** The stored `produces[]`/`joins` shapes each carry a
-`kind` because they live in a list on the record type; here it is the kind being created, and a
+`kindKey` because they live in a list on the record type; here it is the kind being created, and a
 second spelling could only disagree with it.
 
 ## Walking an edge
@@ -495,7 +498,7 @@ of rules, so a check that passes and a save that refuses cannot come apart.
   codes and the same flat reach, and lands on the row whose write owed it. Moving one half alone is
   refused exactly as the row write would refuse it.
 - **A declaration on a type the kind does not connect** (`RELATION_SOURCE_TYPE_UNPAIRED`). The
-  declaring record type must be on the SOURCE side of one of the kind's pairings — `from` for a
+  declaring record type must be on the SOURCE side of one of the kind's pairings — `fromRecordTypeKey` for a
   directed kind, either end for a symmetric one, whose pairing is unordered. Otherwise every edge
   the field could produce is one the write path drops as an undeclared pair, so the declaration
   could only ever produce nothing.

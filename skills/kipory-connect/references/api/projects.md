@@ -379,13 +379,13 @@ _No fields._
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `element` | `string` | yes | The element's key, `<kind>:<elementId>` — as `elementKey` reads on the list. |
+| `element` | `string` | yes | The element's reference, `<kind>:<elementId>` — as `elementRef` reads on the list. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `elementKey` | `string` | yes | The element asked about, `<kind>:<elementId>`. |
+| `elementRef` | `string` | yes | The element asked about, `<kind>:<elementId>`. |
 | `versions` | `object[]` | yes | Every stored description of the element, newest first. |
 
 ### `GET /v1/projects/{projectId}/handler-activity`

@@ -46,19 +46,19 @@ is derived on each read from the same rule the write gate applies — never stor
 ⚠️ **The write body is the read shape minus everything the server derives.**
 
 A flow-backed action names its flow **by id only** and carries **no signature** — the save reads
-the slug and snapshots the signature off the live flow, so neither is a field you may send.
+the flow's key and snapshots the signature off the live flow, so neither is a field you may send.
 Both come back on every read.
 
-**So you cannot echo a stored action config back verbatim.** Strip the signature and the flow slug
+**So you cannot echo a stored action config back verbatim.** Strip the signature and the flow key
 first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
 is the right behaviour and also means a round-trip that "should" work fails until you understand
 why.
 
 ## The key you author
 
-Three design objects are addressed by a string **you** choose rather than by the row id: an
-endpoint's `endpoint`, a schema entry's `name`, and a schedule's `key`. All three share one charset
-rule, and it is checked on write:
+Every project element is addressed by its `key`, a string **you** choose rather than the row id.
+Endpoints, schedules and schema entries — with triggers, sources, eval suites, eval cases and flow
+test cases — share one format, the **address key**, and it is checked on write:
 
 ```
 letters, digits, dots, dashes, underscores
@@ -68,9 +68,12 @@ first character a letter or a digit
 
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
-⚠️ **This is not the flow-slug rule.** A flow's `slug` is strict lower-case kebab; these are not,
-and deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here.
-Do not assume one rule from the other.
+⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
+event categories and types, relation kinds and embedding profiles), a facet's is camelCase, a record
+type's is a type name and a skill's a dotted kebab step name. Address keys are none of those, and
+deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
+element's key has exactly one format; do not assume one from another. A key outside its format is
+refused, never re-cased for you.
 
 The reason for the charset is narrow and worth knowing: these keys end up as **one segment of a
 URL**. Anything needing an escape to survive that — a slash, a space, a `{}` placeholder, a `?` or
@@ -263,7 +266,7 @@ Each entry carries `contractIssues` and `actionIssues` — **one entry per faile
 
 ```json
 {
-  "endpoint": "legacyExport",
+  "key": "legacyExport",
   "contractIssues": [],
   "actionIssues": [
     {
@@ -348,12 +351,12 @@ project's OTHER endpoints, so a sibling saved before yours moves it; `access` is
 bound flow inside the write's own transaction. That is what the `DERIVED_SNAPSHOT` warning is for —
 it is a warning, not an error, so `ok` stays true.
 
-⛔ **The findings name the field you sent.** A config rule reports `category` or `events[0]` because
-the action config is the document it reads — the verdict rewrites those to `actionConfig.category`,
+⛔ **The findings name the field you sent.** A config rule reports `categoryKey` or `eventKeys[0]` because
+the action config is the document it reads — the verdict rewrites those to `actionConfig.categoryKey`,
 the path in your request body. The same is now true of a refused SAVE: a real POST that fails
 carries the same findings on `details.issues`, so a form does not need two readers.
 
-⭐ **Both ways an address can be taken come back the same way.** A `CONFLICT` finding on `endpoint`
+⭐ **Both ways an address can be taken come back the same way.** A `CONFLICT` finding on `key`
 means the key is already used; a `CONFLICT` finding on `contractConfig.path` means another endpoint
 already serves that method and path. Neither is an exception in the verdict — both are findings you
 can put under the input that caused them. A real save answers the same two as a `409 CONFLICT`

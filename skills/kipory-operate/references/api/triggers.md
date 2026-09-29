@@ -29,8 +29,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose event log to read. Required. |
-| `category` | `string` | no | Only events of this category. |
-| `event` | `string` | no | Only this event within the category. Needs `category` too. |
+| `categoryKey` | `string` | no | Key of an event category: only events of it. |
+| `eventKey` | `string` | no | Key of an event type: only this event within the category. Needs `categoryKey` too. |
 | `limit` | `integer` | no | How many of the most recent events to return, newest first. Defaults to 50. A cap, not a page — the log is reaped after 30 days. |
 
 **Response `200`**
@@ -62,11 +62,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the trigger. |
-| `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch will not change it, so pick it deliberately. Letters, digits, dots, dashes and underscores only, starting with a letter or digit, up to 64 characters. It is used as an address, so it may not contain slashes, spaces or braces. |
-| `name` | `string \| null` | no | Display name, unlike the key changeable later. Omit it or pass null and the trigger has none. |
-| `category` | `string` | yes | The event category to listen to — a registry key. |
-| `event` | `string` | yes | The event within that category. Its type must be active, durable and not run-scoped, or the write is refused with 422. |
-| `sourceId` | `string` | no | The source to listen to (see `/v1/sources`). When given, `category` must be the provider's category and `event` one of the events it writes, or the write is refused with 422; the trigger then hears that source's events and no other's. Omit for a trigger on an event the project's own flows emit. Permanent. |
+| `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch will not change it, so pick it deliberately. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string \| null` | no | Display text, unlike the key changeable later. Omit it or pass null and the trigger has none. |
+| `categoryKey` | `string` | yes | Key of the event category to listen to, in the registry. |
+| `eventKey` | `string` | yes | The event within that category. Its type must be active, durable and not run-scoped, or the write is refused with 422. |
+| `sourceId` | `string` | no | The source to listen to (see `/v1/sources`). When given, `categoryKey` must be the provider's category and `eventKey` one of the events it writes, or the write is refused with 422; the trigger then hears that source's events and no other's. Omit for a trigger on an event the project's own flows emit. Permanent. |
 | `newSource` | `object` | no | A source this project does not have yet — a channel to start watching — created by THIS write, in the same transaction as the trigger: both land or neither does, so a trigger the platform refuses leaves no source behind. It is judged exactly as `POST /v1/sources` judges a create (the provider's config, a taken key, a channel already watched — point `sourceId` at that one instead), and the trigger is then judged against it as against `sourceId`. `validateOnly: true` judges both halves and keeps neither. Send `newSource` or `sourceId`, never both (422). Permanent, like `sourceId`. |
 | `filter` | `object \| null` | no | A condition over `event` and `data`, or omit / null to react to every event of the type. |
 | `flowId` | `string` | yes | The flow to run on each fire. |
@@ -89,9 +89,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this trigger. |
-| `category` | `string` | yes | The event category this trigger listens to — a key in the project's event registry. |
-| `event` | `string` | yes | The event within that category. The type it names must be durable and not run-scoped. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
+| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
+| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
 | `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
@@ -130,9 +130,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this trigger. |
-| `category` | `string` | yes | The event category this trigger listens to — a key in the project's event registry. |
-| `event` | `string` | yes | The event within that category. The type it names must be durable and not run-scoped. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
+| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
+| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
 | `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
@@ -162,9 +162,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string \| null` | no | New display name. Omit to leave it alone, or pass null to clear it. |
-| `category` | `string` | no | Listen to a different category. Omit to leave it alone. |
-| `event` | `string` | no | Listen to a different event. Omit to leave it alone. |
+| `label` | `string \| null` | no | New display text. Omit to leave it alone, or pass null to clear it. |
+| `categoryKey` | `string` | no | Key of a different category to listen to. Omit to leave it alone. |
+| `eventKey` | `string` | no | Key of a different event type to listen to. Omit to leave it alone. |
 | `filter` | `object \| null` | no | Replace the filter, or pass null to react to every event. Omit to leave it alone. |
 | `flowId` | `string` | no | Bind a different flow. Omit to leave it alone. |
 | `inputs` | `object` | no | Replace the fixed inputs entirely — this is not a merge. Omit to leave them alone. |
@@ -179,9 +179,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this trigger. |
-| `category` | `string` | yes | The event category this trigger listens to — a key in the project's event registry. |
-| `event` | `string` | yes | The event within that category. The type it names must be durable and not run-scoped. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
+| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
+| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
 | `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
@@ -238,9 +238,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this trigger. |
-| `category` | `string` | yes | The event category this trigger listens to — a key in the project's event registry. |
-| `event` | `string` | yes | The event within that category. The type it names must be durable and not run-scoped. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
+| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
+| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
 | `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |
@@ -279,9 +279,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
-| `name` | `string \| null` | yes | Display name, editable at any time — or null when nobody has named this trigger. |
-| `category` | `string` | yes | The event category this trigger listens to — a key in the project's event registry. |
-| `event` | `string` | yes | The event within that category. The type it names must be durable and not run-scoped. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
+| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
+| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
 | `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
 | `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
 | `flowId` | `string` | yes | The flow this trigger runs. |

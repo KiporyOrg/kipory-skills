@@ -32,7 +32,7 @@ Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked
 ## Triggers
 
 ```
-POST /v1/triggers                          { project, key, category, event, flowId, inputs, filter?, overlapPolicy?, name? }
+POST /v1/triggers                          { project, key, categoryKey, eventKey, flowId, inputs, filter?, overlapPolicy?, label? }
 GET  /v1/triggers?project={nodeId}&expand=lastRun,drift,flowLabel
 PATCH /v1/triggers/{id}                    { version, … } — inputs REPLACE; key is immutable and not a body field
 POST /v1/triggers/{id}/disable             { version }
@@ -48,9 +48,9 @@ A trigger fires a flow every time a matching event is **recorded** in the projec
 ## Events
 
 ```
-POST /v1/event-categories        { project, categoryKey, label, durableDefault? }
-POST /v1/event-types             { category, eventKey, label, defaultScope, payloadEntryId?, durable? }   ← scoped by the CATEGORY's row id
-GET  /v1/event-types?category={categoryId}
+POST /v1/event-categories        { project, key, label, durableDefault? }
+POST /v1/event-types             { categoryId, key, label, defaultScope, payloadEntryId?, durable? }   ← scoped by the CATEGORY's row id
+GET  /v1/event-types?categoryId={categoryId}
 ```
 
 A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload shape is optional; omit it and the event is a marker. When you give one, `payloadEntryId` must be a schema entry of this project — a builtin such as the `string` entry a flow's slot hands back is refused as unknown; wrap a scalar in an object shape. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`, whose `changed` frames name only which domain moved — never an event, id or payload — so it is a cue to re-read, not a feed; another flow reacts through a trigger, which needs the type to be `durable`.
@@ -103,7 +103,7 @@ Every amount is **credits, and one credit is one micro-USD** — `x-credits-char
 - **Three 402 codes, three remedies.** `BALANCE_BELOW_SOFT_CAP` means top up; `USER_SPEND_CAP_EXCEEDED` means a person hit their own ceiling on a healthy wallet; `DESIGN_SPEND_CAP_EXCEEDED` means the project's design-time work (previews, eval runs and other spend you start from the api host) reached its own ceiling, `designSpendCapCredits` on project settings. The end-user gate skips GET, so an over-cap project degrades to read-only.
 - **Both ceilings live on project settings and are ADMIN**: `PATCH /v1/projects/{nodeId}/settings` with `perUserSpendCapCredits` or `designSpendCapCredits`, where `null` means no ceiling and `0` means block everything — opposites, and a falsy check turns one into the other. That PATCH has no `version` lock.
 - **A run from before 2026-09-28 reads short on `/spend`.** Charges made on a worker — model calls, paid fetches — carried no run until then, so an older run shows only its in-process fees. Its occurrence's `creditCost` is complete; use that for older runs.
-- **A schedule's `key` never changes** and is not on the patch body — sending it is a 422. Rename through `name`; a blank string is a 422, `null` clears.
+- **A schedule's `key` never changes** and is not on the patch body — sending it is a 422. Rename through `label`; a blank string is a 422, `null` clears.
 - **`runs` is a cap, not a page.** `limit` goes to 200, there is no cursor, and `truncated` is the only word you get about what was cut.
 - **Choose `overlapPolicy` deliberately.** `allow` on a flow slower than its interval runs copies of itself concurrently. On a trigger, omitting it means `skip` for your own events — and `skip` records the second of two events that arrive together as `skipped`, running nothing for it. Use `allow` for a trigger whose every event must be acted on (a notification, a per-record write); keep `skip` for a flow that re-syncs state, where one run covers them all.
 - **A trigger never catches up.** Enabling one, or creating one, reacts to events recorded from then on; earlier events are in `GET /v1/project-events` and only a decision the trigger already took can be replayed. There is no backfill, on purpose.

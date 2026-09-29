@@ -7,7 +7,7 @@ How a request to `https://<project-host>/v1/<your-path>` is served. The project 
 
 ## Matching
 
-- One catch-all serves every method under `/v1/`. A **coded route always wins** over it; among your endpoints, fewer path params wins, then more literal characters, then the endpoint name.
+- One catch-all serves every method under `/v1/`. A **coded route always wins** over it; among your endpoints, fewer path params wins, then more literal characters, then the endpoint key.
 - Method is matched, not leaked: the right path with the wrong method is the same 404 as no path. A path over 2048 characters is a 404. Any `/v1/_…` path other than the built-in invocation status is a 404.
 - The write gate runs **after** matching, so an unknown path 404s rather than revealing itself as a 403.
 

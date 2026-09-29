@@ -34,7 +34,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `suite` | `string` | yes | Suite whose cases to list. |
+| `suiteId` | `string` | yes | Id of the suite whose cases to list. |
 
 **Response `200`**
 
@@ -48,8 +48,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `suite` | `string` | yes | Suite to add this case to. |
-| `key` | `string` | yes | Stable identifier you choose. Run-to-run comparison matches on it, so keeping it stable preserves the case's history. |
+| `suiteId` | `string` | yes | Id of the suite to add this case to. |
+| `key` | `string` | yes | The case's key, which you choose. Run-to-run comparison matches on it, so keeping it stable preserves the case's history. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `description` | `string \| null` | no | Why this case exists. Never read by a scorer. |
 | `inputs` | `object \| null` | no | Input values for the suite's flow, keyed by slot name. Required: a case without inputs is refused. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -62,8 +62,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Case id — the address for every case verb. |
-| `suite` | `string` | yes | Suite this case belongs to. |
-| `key` | `string` | yes | Stable identifier you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
+| `suiteId` | `string` | yes | Id of the suite this case belongs to. |
+| `key` | `string` | yes | The case's key, which you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
 | `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -89,8 +89,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Case id — the address for every case verb. |
-| `suite` | `string` | yes | Suite this case belongs to. |
-| `key` | `string` | yes | Stable identifier you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
+| `suiteId` | `string` | yes | Id of the suite this case belongs to. |
+| `key` | `string` | yes | The case's key, which you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
 | `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -115,7 +115,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `key` | `string` | no | New stable identifier. Changing it detaches the case from its own history, since comparison matches on this value. |
+| `key` | `string` | no | The case's new key. Changing it detaches the case from its own history, since comparison matches on this value. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `description` | `string \| null` | no | Why this case exists. Never read by a scorer. |
 | `inputs` | `object \| null` | no | Input values for the suite's flow, keyed by slot name. Cannot be cleared: a case without inputs is refused. |
 | `expected` | `unknown` | no | What a correct result looks like. |
@@ -129,8 +129,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Case id — the address for every case verb. |
-| `suite` | `string` | yes | Suite this case belongs to. |
-| `key` | `string` | yes | Stable identifier you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
+| `suiteId` | `string` | yes | Id of the suite this case belongs to. |
+| `key` | `string` | yes | The case's key, which you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
 | `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -223,9 +223,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the suite. |
-| `name` | `string` | yes | Display name for the suite. |
+| `key` | `string` | yes | The suite's key, which you choose — unique in the project and what a link to the suite and the project document name it by. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string` | yes | Display label for the suite. |
 | `description` | `string \| null` | no | Free-text note about what this suite measures. |
-| `flow` | `string` | yes | Flow under test. It must exist in this project or be a platform flow. |
+| `flowId` | `string` | yes | Id of the flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. These are billed model calls; a case's own assertions are free. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | no | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -235,7 +236,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `subjectUncached` | `boolean` | no | Run the flow with the ingest cache out of the path. |
 | `perSkillLatency` | `boolean` | no | Also record latency per skill, not just per run. |
 | `bracketed` | `boolean` | no | Run the baseline configuration alongside the live one. Doubles spend. |
-| `regressionEventCategory` | `string \| null` | no | Category of the event emitted when a run regresses. |
+| `regressionCategoryKey` | `string \| null` | no | Key of the category of the event emitted when a run regresses. |
 | `regressionEventKey` | `string \| null` | no | Key of that event type. It must already exist. |
 | `enabled` | `boolean` | no | Whether the suite can run. |
 
@@ -245,9 +246,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Suite id — the address for every suite verb. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `name` | `string` | yes | Display name of the suite. |
+| `key` | `string` | yes | The suite's key, which you choose — unique in the project and what a link to the suite and the project document name it by. |
+| `label` | `string` | yes | Display label of the suite. |
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
-| `flow` | `string` | yes | Flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
+| `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -257,7 +259,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says SUCCESS. |
 | `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
-| `regressionEventCategory` | `string \| null` | yes | Category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
+| `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
 | `regressionEventKey` | `string \| null` | yes | Key of that event type. Null emits nothing. |
 | `enabled` | `boolean` | yes | Whether this suite can run at all. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a PATCH to be told about a concurrent edit instead of overwriting one. |
@@ -283,9 +285,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Suite id — the address for every suite verb. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `name` | `string` | yes | Display name of the suite. |
+| `key` | `string` | yes | The suite's key, which you choose — unique in the project and what a link to the suite and the project document name it by. |
+| `label` | `string` | yes | Display label of the suite. |
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
-| `flow` | `string` | yes | Flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
+| `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -295,7 +298,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says SUCCESS. |
 | `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
-| `regressionEventCategory` | `string \| null` | yes | Category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
+| `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
 | `regressionEventKey` | `string \| null` | yes | Key of that event type. Null emits nothing. |
 | `enabled` | `boolean` | yes | Whether this suite can run at all. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a PATCH to be told about a concurrent edit instead of overwriting one. |
@@ -319,9 +322,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | no | New display name. |
+| `key` | `string` | no | The suite's new key. A link or document naming the old key stops resolving. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string` | no | New display label. |
 | `description` | `string \| null` | no | New free-text note. |
-| `flow` | `string` | no | New flow under test. It must exist in this project or be a platform flow. |
+| `flowId` | `string` | no | Id of the new flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. Replaces the existing list. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | no | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -331,7 +335,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `subjectUncached` | `boolean` | no | Run the flow with the ingest cache out of the path. |
 | `perSkillLatency` | `boolean` | no | Also record latency per skill, not just per run. |
 | `bracketed` | `boolean` | no | Run the baseline configuration alongside the live one. |
-| `regressionEventCategory` | `string \| null` | no | Category of the event emitted when a run regresses. |
+| `regressionCategoryKey` | `string \| null` | no | Key of the category of the event emitted when a run regresses. |
 | `regressionEventKey` | `string \| null` | no | Key of that event type. |
 | `enabled` | `boolean` | no | Whether the suite can run. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
@@ -342,9 +346,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Suite id — the address for every suite verb. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `name` | `string` | yes | Display name of the suite. |
+| `key` | `string` | yes | The suite's key, which you choose — unique in the project and what a link to the suite and the project document name it by. |
+| `label` | `string` | yes | Display label of the suite. |
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
-| `flow` | `string` | yes | Flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
+| `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
@@ -354,7 +359,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says SUCCESS. |
 | `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
-| `regressionEventCategory` | `string \| null` | yes | Category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
+| `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
 | `regressionEventKey` | `string \| null` | yes | Key of that event type. Null emits nothing. |
 | `enabled` | `boolean` | yes | Whether this suite can run at all. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a PATCH to be told about a concurrent edit instead of overwriting one. |

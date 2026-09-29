@@ -19,14 +19,14 @@ Flows are the main build target and where most time is spent. A flow is a named 
 For a new project, or any change of more than a few rows, author the document instead ([below](#author-the-whole-project-as-one-document)); the row-by-row sequence here is for single-step edits.
 
 ```
-POST  /v1/flows                          { project, name, slug, inputTypeNames, outputTypeNames, outputBinding? }
+POST  /v1/flows                          { project, key, label, inputTypeNames, outputTypeNames, outputBinding? }
 POST  /v1/skills                         one step — or POST /v1/skills/batch for creates, updates and deletes in one transaction
 PATCH /v1/flows/{id}                     { outputBinding }  ← without this the flow returns nothing
 GET   /v1/flows/{id}/health              the whole-flow verdict: diagnostics, counts, danglingReads
 POST  /v1/flows/{id}/preview             run it — ADMIN, bills the payer, applies writes unless apply: false
 ```
 
-A skill body carries `flow`, `name`, `handlerKey`, `handlerConfig`, `inputStreams`, `inputSchemas` (same length), `outputSlot`, `promptTemplate`, and optionally `taskKey` (a single `POST /v1/skills` starts a step without one on `extraction`; batch, replace and document entries require it), `condition`, `inputPaths`, `inputProjectionNames` (both positional, same length as `inputStreams`), `outputSchema`, `modelId`, `timeoutMs`, `enabled`, and how it runs — `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes`. `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName, slot?, isList?, required? }`, not bare names. There is **no position field**: execution order is derived from slot edges. A PATCH requires `capturedVersion`.
+A skill body carries `flowId`, `key`, `handlerKey`, `handlerConfig`, `inputStreams`, `inputSchemas` (same length), `outputSlot`, `promptTemplate`, and optionally `taskKey` (a single `POST /v1/skills` starts a step without one on `extraction`; batch, replace and document entries require it), `condition`, `inputPaths`, `inputProjectionNames` (both positional, same length as `inputStreams`), `outputSchema`, `modelId`, `timeoutMs`, `enabled`, and how it runs — `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes`. `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName, slot?, isList?, required? }`, not bare names. There is **no position field**: execution order is derived from slot edges. A PATCH requires `capturedVersion`.
 
 Three fields every step carries, whatever its handler:
 
@@ -58,7 +58,7 @@ Three fields every step carries, whatever its handler:
 
 Segments apply in order: `{kind:"field",name}` one property, `{kind:"first"}` / `{kind:"last"}` / `{kind:"index",index}` one list item, `{kind:"pluck",name}` that property from every item (a list), `{kind:"wrap"}` one value lifted into a one-item list. The same object is what `inputPaths[i]` holds. **A `field` segment needs a typed source**: the step's `outputSchema` must be a shape that declares that field. A step typed as the builtin `object` (or a list) refuses a field path with a type mismatch — give the step a schema entry and bind into it.
 
-**Schema references** — what `inputSchemas[]` and `outputSchema` hold. On the row API a named shape is `{ "kind": "ref", "entryId": "<id>" }`; inside a document it is `{ "kind": "ref", "ref": "<entry name>" }`. The other forms wrap one of those:
+**Schema references** — what `inputSchemas[]` and `outputSchema` hold. On the row API a named shape is `{ "kind": "ref", "entryId": "<id>" }`; inside a document it is `{ "kind": "ref", "ref": "<entry key>" }`. The other forms wrap one of those:
 
 | Form                                              | Means                                                                                                              |
 | ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
@@ -68,11 +68,11 @@ Segments apply in order: `{kind:"field",name}` one property, `{kind:"first"}` / 
 | `{ "kind": "record", "valueType": <ref> }`        | a string-keyed map                                                                                                 |
 | `{ "kind": "recordRef", "recordType": "<type>" }` | one stored record's id                                                                                             |
 
-The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own shapes (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) are entries like yours: in a document name them; on the row API read the id with `GET /v1/schema-entries?project={nodeId}&name=<Name>`. `GET /v1/flows/{id}/scope` lists every slot a step may read already typed.
+The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own shapes (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) are entries like yours: in a document name them by key; on the row API read the id with `GET /v1/schema-entries?project={nodeId}&key=<Key>`. `GET /v1/flows/{id}/scope` lists every slot a step may read already typed.
 
-Before a risky edit: `POST /v1/flow-checkpoints { flow, name }`. Before committing to a rollback: `GET /v1/flow-checkpoints/{id}/restore-preview`, which never refuses and shows the current and captured steps side by side; the restore itself (`POST /v1/flow-checkpoints/{id}/restore`, no body, ADMIN) swaps the whole step set, signature and binding, and takes an automatic checkpoint of the previous state first.
+Before a risky edit: `POST /v1/flow-checkpoints { flowId, name }`. Before committing to a rollback: `GET /v1/flow-checkpoints/{id}/restore-preview`, which never refuses and shows the current and captured steps side by side; the restore itself (`POST /v1/flow-checkpoints/{id}/restore`, no body, ADMIN) swaps the whole step set, signature and binding, and takes an automatic checkpoint of the previous state first.
 
-Cheap checks before a save: `validateOnly: true` on `POST /v1/skills` (and on `PATCH /v1/skills/{id}`) runs every rule that write runs — the flow-graph gate, a name or output slot another step holds, the pinned model, how the step runs — writes nothing, and answers a verdict; ask it before a create or an edit. `POST /v1/skills/validate-draft` answers a different question — what a configuration reads and whether it parses — and a clean answer there does not mean the step will save. `GET /v1/skills/rename-preview` says what renaming a slot would touch; `POST /v1/skills/preview` interpolates one prompt and, for `text.generate` only, makes one model call — it is not a flow run.
+Cheap checks before a save: `validateOnly: true` on `POST /v1/skills` (and on `PATCH /v1/skills/{id}`) runs every rule that write runs — the flow-graph gate, a key or output slot another step holds, the pinned model, how the step runs — writes nothing, and answers a verdict; ask it before a create or an edit. `POST /v1/skills/validate-draft` answers a different question — what a configuration reads and whether it parses — and a clean answer there does not mean the step will save. `GET /v1/skills/rename-preview` says what renaming a slot would touch; `POST /v1/skills/preview` interpolates one prompt and, for `text.generate` only, makes one model call — it is not a flow run.
 
 ## What will bite you
 
@@ -122,10 +122,11 @@ re-stamped, vectors re-indexed, and `records-invalid`, the stored records that w
 fit a shape you changed), and the `delete` rows of `changes`, which include what a removal takes
 along by cascade.
 
-- **Everything is addressed by name** — a shape by its entry name, a flow by its slug, a facet by
-  its key. Where the row API takes an id (`dataEntryId`, `flowId`, `resolverFlowId`) the document
-  takes the name (`shape`, `flow`, `resolver`). A bare flow slug is this project's; a platform
-  flow is `system:<slug>`. A step's `ref` is a schema entry's name.
+- **Every element is addressed by its `key`** — the key each section's map is keyed by; display
+  text is `label`. Where the row API takes an id (`dataEntryId`, `flowId`, `resolverFlowId`) the
+  document takes the key (`shape`, `flow`, `resolver`). A bare flow key is this project's; a
+  platform flow is `system:<key>`. A step's `ref` is a schema entry's key. The document states
+  `kipory: 2`; a `kipory: 1` document is refused with `DOCUMENT_VERSION_UNSUPPORTED`.
 - **A partial document is fine.** A section left out is untouched, and so is every row you do not
   name; of an existing row's optional fields, only the ones you state are compared. A row's
   required fields are required, because a row is its create body.
@@ -147,7 +148,7 @@ along by cascade.
   validates only around the touched steps; the whole-flow checks (a binding whose types do not
   match, among others) are not in it. After every apply, `GET /v1/flows/{id}/health` for each flow
   the document touched — `ok: true` can still leave one with errors. An error does not stop a run; the flow runs and gets it wrong.
-- **A step keeps its id across applies; a changed one moves its version.** Steps are matched by name: one the document leaves alone is not written, one it changes is updated in place with its `version` moved, a new name is created, and a name the `skills` map omits is deleted. Hold a step by id if you like — only a rename (a new name) gives it a new one. The step-result cache a live run reads first is keyed by the step's id and version, so an apply empties it for the steps it changed and no others.
+- **A step keeps its id across applies; a changed one moves its version.** Steps are matched by `id`, then by key: one the document leaves alone is not written, one it changes is updated in place with its `version` moved, a new key is created, and a key the `skills` map omits is deleted. Hold a step by id if you like — a rename that keeps the `id` under the new key keeps it too; only a new key stated without the `id` gives a new one. The step-result cache a live run reads first is keyed by the step's id and version, so an apply empties it for the steps it changed and no others.
 - **A document writes a `flow.invoke` step's `inputStreams` as stated.** A single step save derives them from the `kind: "slot"` input rows; in a document list them yourself (`patterns.md` §3). What else a step save works out, a document does too: each output row's `derivedShape` is filled from the flow it calls (never state it), and a flow's new signature is judged against the steps the document leaves, so retyping an input and replacing its reader is one apply. A step's `inputPaths` is the same positional list of path objects, `[{ "segments": [{ "kind": "first" }] }]`.
 - **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most
   2 MiB and 2 000 rows, refused with `413` past either.

@@ -22,17 +22,17 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kipory` | `1` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
+| `kipory` | `2` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
-| `schema` | `object` | no | Shared shapes, keyed by natural key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `records` | `object` | no | Record types, keyed by natural key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `relations` | `object` | no | Relation kinds, with their pairings, keyed by natural key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `facets` | `object` | no | Facets, with their terms, keyed by natural key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `schema` | `object` | no | Shared shapes, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `records` | `object` | no | Record types, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `relations` | `object` | no | Relation kinds, with their pairings, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `facets` | `object` | no | Facets, with their terms, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `events` | `object` | no | The event registry. |
 | `vectors` | `object` | no | Vector spaces. |
-| `flows` | `object` | no | Flows keyed by slug, each with its steps and tests, keyed by natural key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `flows` | `object` | no | Flows keyed by key, each with its steps and tests, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `surfaces` | `object` | no | Entry points. |
-| `evals` | `object` | no | Eval suites keyed by name, each with its cases, keyed by natural key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `evals` | `object` | no | Eval suites keyed by key, each with its cases, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 
 ### `GET /v1/project-document/schema`
 

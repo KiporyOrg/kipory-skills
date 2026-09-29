@@ -31,7 +31,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | Flow whose skills to list. |
+| `flowId` | `string` | yes | Id of the flow whose skills to list. |
 
 **Response `200`**
 
@@ -45,8 +45,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | Flow this skill will belong to. |
-| `name` | `string` | yes | Slug-case name, e.g. `summarize` or `common.summarize`. Lowercase letters, digits and hyphens; dots optionally group segments. |
+| `flowId` | `string` | yes | Id of the flow this skill will belong to. |
+| `key` | `string` | yes | The skill's key, e.g. `summarize` or `common.summarize`; dots optionally group segments. Lowercase words joined by dashes, optionally grouped with dots, like `extract.species`, up to 64 characters. |
 | `description` | `string \| null` | no | Free-text note about what this skill does. Not executed. |
 | `handlerKey` | `string` | yes | Which system handler runs this skill (see `GET /v1/handlers`). It determines what `handlerConfig` may contain. |
 | `handlerConfig` | `unknown` | no | Handler-specific settings, shaped by `handlerKey`. |
@@ -98,8 +98,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Skill id — the address for every skill verb. |
-| `flow` | `string` | yes | Flow this skill belongs to. |
-| `name` | `string` | yes | Dotted slug naming the skill, e.g. `common.summarize`. Other skills and the flow's wiring refer to it by this name. |
+| `flowId` | `string` | yes | Id of the flow this skill belongs to. |
+| `key` | `string` | yes | The skill's key, e.g. `common.summarize`. Other skills and the flow's wiring refer to it by this key. |
 | `description` | `string \| null` | yes | Free-text note about what this skill does. Not executed. |
 | `handlerKey` | `string` | yes | Which system handler runs this skill (see `GET /v1/handlers`). It determines what `handlerConfig` may contain. |
 | `handlerConfig` | `unknown` | no | Handler-specific settings. The accepted shape is defined by `handlerKey`. |
@@ -139,7 +139,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `capturedVersion` | `integer` | yes | The `version` you last read. Required — the write is refused if the skill has changed since, so an edit cannot silently overwrite one made in another tab. |
 | `overwriteConcurrentEdit` | `boolean` | no | Skip the optimistic-lock pre-check, and NOTHING ELSE. A stale `capturedVersion` is accepted rather than refused with a 409, so a concurrent edit is overwritten — that is the whole of what this does. It has no effect on validation: blocking errors are refused either way, warnings never blocked a save in the first place, and a `unique-collision` 409 will NOT clear (the index is still there). |
-| `name` | `string` | no | New slug-case name, dotted or not. |
+| `key` | `string` | no | The skill's new key, dotted or not; omit to keep it. Lowercase words joined by dashes, optionally grouped with dots, like `extract.species`, up to 64 characters. |
 | `description` | `string \| null` | no | Free-text note about what this skill does. |
 | `handlerKey` | `string` | no | Change which system handler runs this skill. |
 | `handlerConfig` | `unknown` | no | Handler-specific settings, shaped by `handlerKey`. |
@@ -189,7 +189,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `deletedSkillName` | `string` | yes | Name of the skill that was removed. |
+| `deletedSkillKey` | `string` | yes | Key of the skill that was removed. |
 
 ### `POST /v1/skills/{id}/duplicate`
 
@@ -213,7 +213,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | Flow every item in this batch belongs to. |
+| `flowId` | `string` | yes | Id of the flow every item in this batch belongs to. |
 | `creates` | `object[]` | no | Skills to add. |
 | `updates` | `object[]` | no | Skills to change. Each carries its own `capturedVersion`, so one stale item refuses the whole batch. |
 | `deletes` | `object[]` | no | Skills to remove. |
@@ -328,7 +328,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | Flow whose skills are being replaced. |
+| `flowId` | `string` | yes | Id of the flow whose skills are being replaced. |
 | `skills` | `object[]` | yes | The complete new set of skills for the flow. ⚠️ This REPLACES the graph — any existing skill not present here is removed. Send an edit as a batch instead if you only mean to change part of it. |
 
 **Response `200`**
@@ -355,7 +355,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `systemPrompt` | `string \| null` | no | The draft's system prompt. Counted toward the inputs only where the handler declares it reads one — a placeholder written there wires a slot exactly as one in the prompt does. |
 | `inputSchemas` | `unknown[]` | no | The draft's input `SchemaRef`s, positionally aligned with `inputStreams`. Needed only by a multimodal handler, where a wired FILE input is attached without any placeholder naming it: without these the derivation cannot recognise one and would answer a list the save does not pin. |
 | `outputSchema` | `unknown` | no | The `SchemaRef` the draft step DECLARES it writes. Optional, and omitting it costs exactly one check: without it the route cannot say whether the expression's result could ever satisfy the declaration, so it stays silent about that. Every other diagnostic is unaffected. Typed `unknown` for the reason every SchemaRef on this plane is — the shape is the type system's, and re-declaring it here would be a second copy to keep in step. |
-| `name` | `string` | no | What the step is called, used ONLY to word a run-settings finding — every one of them opens by naming the step. Nothing validates it. Omit it and the findings say `this step` instead. |
+| `key` | `string` | no | The step's key, used ONLY to word a run-settings finding — every one of them opens by naming the step. Nothing validates it. Omit it and the findings say `this step` instead. |
 | `run` | `object` | no | The draft's run settings — how long it may take, how many times it is tried and how long it waits between, how long a saved result stays reusable, and what a failure does. Omit it and no rule about them runs. ⚠️ THE RULES ARE ABOUT THE HANDLER: tries belong to a queued step, a time limit above the handler's own budget can never fire, and a reuse period needs something that saves a result. A diagnostic names the field it is about. |
 
 **Response `200`**

@@ -16,7 +16,7 @@ Run another flow, passing values in and taking results back.
 | --- | --- | --- | --- | --- |
 | `inputs` | any[] | no | `[]` | Which parent slots to pass into the sub-flow, and where each one lands. Only these cross the boundary. |
 | `outputs` | object[] | no | `[]` | Which sub-flow outputs to copy back, and into which parent slots. Leave it empty for side effects only. ⚠️ Each row also carries `derivedShape`, the sub-flow output's type. A step save fills it in; a project document does not, so state it there or the step is refused as stale. |
-| `targetFlowId` | string | yes | — | The saved flow this step runs, never its own flow. A project document names it `target`, by slug. |
+| `targetFlowId` | string | yes | — | The saved flow this step runs, never its own flow. A project document names it `target`, by key. |
 
 ### `outputs` — each item
 

@@ -23,7 +23,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | Id of the flow whose test cases to list. |
+| `flowId` | `string` | yes | Id of the flow whose test cases to list. |
 
 **Response `200`**
 
@@ -37,8 +37,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | The flow this case belongs to. |
-| `name` | `string` | yes | A name for the case. |
+| `flowId` | `string` | yes | Id of the flow this case belongs to. |
+| `key` | `string` | yes | The case's key, which you choose — unique in its flow and what the project document names it by. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string` | yes | A display label for the case. |
 | `description` | `string \| null` | no | An optional note on what this case checks. |
 | `inputs` | `object` | no | The inputs to replay, keyed by input-slot name. Defaults to empty. |
 | `assertions` | `object[]` | yes | What must hold after the run. |
@@ -49,8 +50,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Test-case id — the address for read, patch, delete. |
-| `flow` | `string` | yes | The flow this case belongs to. |
-| `name` | `string` | yes | The case's name. |
+| `flowId` | `string` | yes | Id of the flow this case belongs to. |
+| `key` | `string` | yes | The case's key, which you choose — unique in its flow and what the project document names it by. |
+| `label` | `string` | yes | The case's display label. |
 | `description` | `string \| null` | yes | What this case is checking, or null. |
 | `inputs` | `object` | yes | The inputs replayed into the flow, keyed by input-slot name — the same payload a preview takes. |
 | `assertions` | `object[]` | yes | What must hold after the run. These constrain SHAPE and STRUCTURE, never generated wording — a flow ending in a model produces different words each run, so there is deliberately no content-equality check. |
@@ -74,8 +76,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Test-case id — the address for read, patch, delete. |
-| `flow` | `string` | yes | The flow this case belongs to. |
-| `name` | `string` | yes | The case's name. |
+| `flowId` | `string` | yes | Id of the flow this case belongs to. |
+| `key` | `string` | yes | The case's key, which you choose — unique in its flow and what the project document names it by. |
+| `label` | `string` | yes | The case's display label. |
 | `description` | `string \| null` | yes | What this case is checking, or null. |
 | `inputs` | `object` | yes | The inputs replayed into the flow, keyed by input-slot name — the same payload a preview takes. |
 | `assertions` | `object[]` | yes | What must hold after the run. These constrain SHAPE and STRUCTURE, never generated wording — a flow ending in a model produces different words each run, so there is deliberately no content-equality check. |
@@ -98,7 +101,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | no | Rename the case. Omit to leave it alone. |
+| `key` | `string` | no | The case's new key. Omit to leave it alone. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string` | no | New display label. Omit to leave it alone. |
 | `description` | `string \| null` | no | Change the note, or pass null to clear it. |
 | `inputs` | `object` | no | REPLACES the inputs wholesale rather than merging into them. |
 | `assertions` | `object[]` | no | REPLACES the assertion list wholesale. |
@@ -110,8 +114,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Test-case id — the address for read, patch, delete. |
-| `flow` | `string` | yes | The flow this case belongs to. |
-| `name` | `string` | yes | The case's name. |
+| `flowId` | `string` | yes | Id of the flow this case belongs to. |
+| `key` | `string` | yes | The case's key, which you choose — unique in its flow and what the project document names it by. |
+| `label` | `string` | yes | The case's display label. |
 | `description` | `string \| null` | yes | What this case is checking, or null. |
 | `inputs` | `object` | yes | The inputs replayed into the flow, keyed by input-slot name — the same payload a preview takes. |
 | `assertions` | `object[]` | yes | What must hold after the run. These constrain SHAPE and STRUCTURE, never generated wording — a flow ending in a model produces different words each run, so there is deliberately no content-equality check. |
@@ -157,7 +162,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flow` | `string` | yes | The flow that was tested. |
+| `flowId` | `string` | yes | Id of the flow that was tested. |
 | `results` | `object[]` | yes | One result per requested case. EVERY requested case appears, including ones the budget cut short — nothing is silently dropped. |
 | `passed` | `integer` | yes | How many cases passed. |
 | `failed` | `integer` | yes | How many ran and failed. |

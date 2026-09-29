@@ -30,7 +30,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose facets to list. Required. |
-| `facetKey` | `string` | no | Return only the facet with this exact key. |
+| `key` | `string` | no | Return only the facet with this exact key. |
 | `expand` | `string` | no | Optional expansions, comma-separated. One or more of: stats, samples, validator, readiness, wiring. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
@@ -47,8 +47,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the facet. |
-| `facetKey` | `string` | yes | Stable key for the facet, unique within the project. Permanent — it cannot be changed later. |
-| `label` | `string` | yes | Human-readable name. Editable later with PATCH; the rest of a facet's shape is fixed at creation. |
+| `key` | `string` | yes | The facet's key, unique within the project. Permanent — it cannot be changed later. camelCase letters and digits starting with a lowercase letter, like `personRole`, up to 64 characters. |
+| `label` | `string` | yes | Display text. Editable later with PATCH; the rest of a facet's shape is fixed at creation. |
 | `binding` | `"record"` | no | Defaults to `record` when omitted, and `record` is the only value. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | no | Key of a facet to nest this one under. Omit or pass null for a top-level facet. Permanent. |
@@ -74,8 +74,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the facet — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `facetKey` | `string` | yes | Stable key for the facet within its project, unique there. Set at creation and not editable. |
-| `label` | `string` | yes | Human-readable name. Editable — renaming touches nothing but this string, because `facetKey` is the identity. |
+| `key` | `string` | yes | The facet's key within its project, unique there. Set at creation and not editable. |
+| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
 | `binding` | `"record" \| "sub-entity"` | yes | What a term on this facet attaches to. `record` tags the whole record. `sub-entity` tagged something inside it and is RETRACTED — it cannot be created any more, because the subject half of the pairing was never stored; it appears here only so an existing facet can still be read. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | yes | Key of the facet this one nests under, or null when it stands alone. |
@@ -114,8 +114,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the facet — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `facetKey` | `string` | yes | Stable key for the facet within its project, unique there. Set at creation and not editable. |
-| `label` | `string` | yes | Human-readable name. Editable — renaming touches nothing but this string, because `facetKey` is the identity. |
+| `key` | `string` | yes | The facet's key within its project, unique there. Set at creation and not editable. |
+| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
 | `binding` | `"record" \| "sub-entity"` | yes | What a term on this facet attaches to. `record` tags the whole record. `sub-entity` tagged something inside it and is RETRACTED — it cannot be created any more, because the subject half of the pairing was never stored; it appears here only so an existing facet can still be read. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | yes | Key of the facet this one nests under, or null when it stands alone. |
@@ -146,7 +146,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `label` | `string` | no | Rename the facet. Display only — `facetKey` is the identity, so no term, link or stored resolution moves. Not nullable: a facet always has a name. |
+| `label` | `string` | no | New display text for the facet. Display only — `key` is the identity, so no term, link or stored resolution moves. Not nullable: a facet always has a label. |
 | `mint` | `"none" \| "active" \| "candidate"` | no | Change what a value this facet has never seen may become. |
 | `matching` | `"exact" \| "semantic"` | no | Change how this facet finds a term you already have. Switching to `semantic` needs a resolver flow bound. |
 | `proposal` | `object \| null` | no | Change how ingest may propose new terms. |
@@ -160,8 +160,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the facet — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `facetKey` | `string` | yes | Stable key for the facet within its project, unique there. Set at creation and not editable. |
-| `label` | `string` | yes | Human-readable name. Editable — renaming touches nothing but this string, because `facetKey` is the identity. |
+| `key` | `string` | yes | The facet's key within its project, unique there. Set at creation and not editable. |
+| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
 | `binding` | `"record" \| "sub-entity"` | yes | What a term on this facet attaches to. `record` tags the whole record. `sub-entity` tagged something inside it and is RETRACTED — it cannot be created any more, because the subject half of the pairing was never stored; it appears here only so an existing facet can still be read. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | yes | Key of the facet this one nests under, or null when it stands alone. |
@@ -202,7 +202,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `facetKey` | `string` | yes | The facet that was deleted. |
+| `key` | `string` | yes | Key of the facet that was deleted. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `unlinkedRecordTypes` | `integer` | yes | How many record types stopped surfacing it. |
 | `deletedTerms` | `integer` | yes | Terms removed outright. |
@@ -266,7 +266,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose terms to list. |
-| `facet` | `string` | no | Keep only terms belonging to this facet — one facet's vocabulary. Omit for every term in the project. |
+| `facetKey` | `string` | no | Key of a facet: keep only terms belonging to it — one facet's vocabulary. Omit for every term in the project. |
 | `expand` | `string` | no | Optional expansions, comma-separated. One or more of: usage, findings. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
@@ -283,8 +283,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the owning project. |
-| `facet` | `string` | yes | Key of an existing facet in this project. |
-| `slug` | `string` | yes | Kebab-case identity slug. Validated as-is and never slugified for you — send the exact slug you want, because it is immutable. |
+| `facetKey` | `string` | yes | Key of an existing facet in this project. |
+| `key` | `string` | yes | The term's key, validated as-is and never slugified for you — send the exact key you want, because it is immutable. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 128 characters. |
 | `label` | `string` | yes | Display label. |
 | `parentTermId` | `string \| null` | no | Parent term id. Required when the facet is hierarchical, and REFUSED for a flat one — sending a parent to a facet that takes none is a 422, not a value quietly dropped on the way to a 201. The bulk seed answers this the same way. |
 

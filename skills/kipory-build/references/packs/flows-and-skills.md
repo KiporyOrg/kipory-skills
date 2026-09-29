@@ -37,8 +37,10 @@ PATCH /v1/flows/{id}               bind output slots so the flow can actually pr
 POST /v1/flows/{id}/preview        run it against real inputs and read the transcript
 ```
 
-Flows are scoped by `project`; skills are scoped by their `flow`. Individual items are addressed
-by their own id.
+Flows are scoped by `project`; skills are scoped by their flow (`flowId`). Individual items are
+addressed by their own id. A flow's `key` is lower-case kebab and permanent — a key outside that
+form is refused, never lower-cased for you — and its display text is `label`, editable at any time.
+A skill's `key` is a step name (below) and renameable.
 
 ⚠️ **There is no activation step, and no flow lifecycle state.** A flow has no active/inactive flag,
 and nothing publishes one — a flow becomes reachable by being _bound_ to something (an endpoint, a
@@ -145,7 +147,7 @@ Two things to know before you reach for it:
 
 ### What the skill list already tells you about the order
 
-`GET /v1/skills?flow={id}` answers three questions about each skill that only make sense with the
+`GET /v1/skills?flowId={id}` answers three questions about each skill that only make sense with the
 rest of the flow in hand, so you never have to walk the graph yourself:
 
 | field       | what it says                                                                                                                                                                                                                                                                                                                            |
@@ -364,6 +366,10 @@ ride in the transcript. Checking only the status code will tell you a broken flo
 Use it to prove a binding: break the binding and preview reports `missingRequiredOutput`; bind it
 and `flowOutput` fills in.
 
+Preview proves one run. Which steps real runs have exercised since the flow last changed is
+`GET /v1/flows/{id}/coverage`; it names the record types the covered flows touch by key, under
+`recordTypeKeys`.
+
 ## When a write is refused with a 409
 
 Three different things return 409 from a skill write, and they call for OPPOSITE remedies. Read
@@ -373,7 +379,7 @@ Three different things return 409 from a skill write, and they call for OPPOSITE
 | --------------------------- | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
 | `stale-version`             | someone changed the step since you read it                    | re-read and retry, or resubmit with `overwriteConcurrentEdit`                            |
 | `concurrent-consumer-write` | a downstream step this edit re-typed was changed concurrently | re-read and retry                                                                        |
-| `unique-collision`          | the name or the output slot is already taken in this flow     | change the value `details.field` names — **`overwriteConcurrentEdit` will not clear it** |
+| `unique-collision`          | the key or the output slot is already taken in this flow      | change the value `details.field` names — **`overwriteConcurrentEdit` will not clear it** |
 
 ⛔ **`overwriteConcurrentEdit` skips the version pre-check and nothing else.** Forcing a `unique-collision` returns
 the same 409 forever, because the database index is still there. That is why the kind is on the
@@ -381,7 +387,7 @@ envelope rather than left to be inferred: the two lock conflicts and the collisi
 guessing between them by reading the message breaks the moment a step is legitimately named
 `modified`.
 
-On a `unique-collision` the envelope also carries `conflictingSkillId` / `conflictingSkillName` — who
+On a `unique-collision` the envelope also carries `conflictingSkillId` / `conflictingSkillKey` — who
 holds the value — and usually a `suggestion`, a free alternative this API's own write will accept. A
 `raced: true` means the value was free again by the time the server looked: another session changed
 the flow between your write and the explanation, so retry rather than renaming. `suggestion` is absent
@@ -459,7 +465,7 @@ step that sets none behaves as it always has.
   the flow itself, whose work may still finish) or `ignored` (control steps). Do not work out what an
   unset limit falls back to — it can be the step's task limit, the deployment's generation default
   or the handler's own wait, and which one depends on the handler. Read `effectiveTimeLimit` on
-  `GET /v1/skills?flow=` instead: the limit a run applies, the layer that decided it, and
+  `GET /v1/skills?flowId=` instead: the limit a run applies, the layer that decided it, and
   `whenUnset`, what clearing the step's own falls back to. Holding a flow's steps already — off
   the bootstrap, which carries every row — ask `GET /v1/flows/{id}?expand=timeLimits` for the
   same figure keyed by skill id, without the rows; it rides beside `expand=dependents` on one
@@ -690,10 +696,10 @@ answers **201**, so the status alone tells the two apart.
 
 ⚠️ **`validate-draft` is not this question.** It judges a configuration — what
 it reads, whether it parses — and says a clean answer does not mean the step
-will save. A name another step holds, an input count the handler refuses, an
+will save. A key another step holds, an input count the handler refuses, an
 empty prompt a prompt-driven handler needs: those are answered here, not there.
 
-⭐ **A taken name is a verdict on `name` (or `outputSlot`)**, carrying the free
+⭐ **A taken key is a verdict on `key` (or `outputSlot`)**, carrying the free
 value the create's 409 would have suggested — not a 409.
 
 ⚠️ **`taskKey` is optional on this body alone.** Omit it and the step starts on
@@ -885,7 +891,7 @@ comes back `no`, because the save checks the input's shape exactly as stored.
 For a step whose inputs are named in its configuration, ask what it may name instead:
 
 ```
-GET /v1/flows/{id}/scope?step={stepId}    every slot a saved step may read, typed
+GET /v1/flows/{id}/scope?stepId={stepId}    every slot a saved step may read, typed
 GET /v1/flows/{id}/scope                  the same, for a step you are about to add
 ```
 
@@ -913,8 +919,8 @@ any order (a prompt step's attached files aside). A difference is refused with
 - **Provider slots are roots like any other.** `entity.list` and `entity.read` default `userIdSlot`
   to `userInfo.userId`, so `userInfo` is an input even on a project-wide type; a prompt reading
   `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo`. Their shapes are the
-  platform's entries `UserInfo`, `ProjectInfo`, `RunInfo` and `RecordTypeInfo` — by name in a
-  document, by id on the row API (`GET /v1/schema-entries?project={nodeId}&name=UserInfo`), and
+  platform's entries `UserInfo`, `ProjectInfo`, `RunInfo` and `RecordTypeInfo` — by key in a
+  document, by id on the row API (`GET /v1/schema-entries?project={nodeId}&key=UserInfo`), and
   typed in `/scope` above.
 - **A run with no signed-in user has no `userInfo` at all** — a key's call, a schedule, a trigger.
   A step whose inputs are all provider slots still runs: a project-wide read ignores the missing
@@ -1047,7 +1053,7 @@ about one that was not saved. Narrow on `ok`, which only the verdict declares,
 or on `id`, which only the flow does. A create spends `201` on the resource and
 leaves `200` to the verdict alone.
 
-⚠️ **`ok: true` is a snapshot on a create.** The slug is unique per project — and
+⚠️ **`ok: true` is a snapshot on a create.** The key is unique per project — and
 separately per platform scope — as a database constraint the write learns about
 by attempting it. A collision found here is certain; its absence is not.
 
@@ -1077,9 +1083,9 @@ Three things worth knowing about that array:
 never built against. Treat an unrecognised code as a generic refusal and fall back to showing
 `message` — do not fail the response over it.
 
-- **A skill name must be slug-cased** — `analyze-text` is a complete name. A dot may group
-  segments (`custom.my-skill`), but grouping is yours to choose: nothing dispatches on the
-  segment before the dot, and no group has to exist before a name does. What is refused is
+- **A skill key must be a step name** — lower-case kebab, `analyze-text` is a complete key. A dot
+  may group segments (`custom.my-skill`), but grouping is yours to choose: nothing dispatches on
+  the segment before the dot, and no group has to exist before a key does. What is refused is
   anything outside the grammar: uppercase, underscores, spaces, a leading digit, an empty
   segment. Slots use a different, plainer identifier grammar.
 - **Declared input schemas must line up one-for-one with declared input streams**, and any paths
@@ -1127,7 +1133,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   delete throws from. Offer Delete where it is null; do not decide from `total`.
 - **A skill cannot be deleted while another skill in its flow reads a slot it writes** — as an
   input or in its condition — a 409 `SKILL_HAS_DEPENDENTS` naming the slot and the readers. Every
-  entry of `GET /v1/skills?flow=`, and every skill on the bootstrap, carries that refusal as
+  entry of `GET /v1/skills?flowId=`, and every skill on the bootstrap, carries that refusal as
   `deleteRefusal` (or null), from the function the delete throws from.
 - **A flow whose project is off the design surface is a 404**, indistinguishable from one that
   never existed.

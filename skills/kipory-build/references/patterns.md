@@ -53,7 +53,7 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
 
 ## 3. Sub-flow
 
-**Shape:** `flow.invoke` with `targetFlowId` (in a document: `target`, the flow's slug, or `system:<slug>`), an ordered `inputs[]` and an `outputs[]`.
+**Shape:** `flow.invoke` with `targetFlowId` (in a document: `target`, the flow's key, or `system:<key>`), an ordered `inputs[]` and an `outputs[]`.
 
 - Each input row is `{ kind: "slot", parentSlot, subFlowSlot, path? }` — a parent slot piped in, projected before it crosses — or `{ kind: "literal", subFlowSlot, value }`. **Only mapped slots cross the boundary.**
 - `parentSlot` is parent scope and follows a slot rename; `subFlowSlot` is the sub-flow's and never does.
@@ -151,7 +151,7 @@ In a document:
 
 ```json
 {
-  "kipory": 1,
+  "kipory": 2,
   "schema": {
     "Note": {
       "definition": {
@@ -166,7 +166,7 @@ In a document:
   },
   "flows": {
     "summarise-note": {
-      "name": "Summarise note",
+      "label": "Summarise note",
       "inputTypeNames": [{ "slot": "body", "typeName": "string" }],
       "outputTypeNames": [
         { "slot": "summary", "typeName": "string", "required": true }
@@ -257,7 +257,7 @@ What a flow endpoint can answer besides its bound output — and nothing else re
 - **Filtering on one element of a list field** (`?tag=design` over a record's `tags`). A `filter` use is refused on a list (`USES_ILLEGAL_FOR_SHAPE` "… is a list. A filterable field holds one value per record."), and `fieldFilterSlots` reads a list in the _slot_ as "any of these values" against a one-value field, not "the record's list holds this". `dataContainsPath` + `dataContainsSlot` matches only an **object** element (`{ "source": "<id>" }` in a list of objects); a string in the slot is ignored and the page comes back unfiltered. Three ways that work:
   - **Post-filter one page.** `entity.list` (up to 100 rows, newest first) → `value.transform` `$filter(page.records, function($r){ tag in $r.tags })`. Simple and exact, but it sees one page only, so it suits a list that fits in one.
   - **Project the value into fields.** For a small closed vocabulary, store one boolean field per value (`isDesign`, `isTech`) with a `filter` use. Map every one in `fieldFilterSlots` (`{ "isDesign": "filters.isDesign", … }`) and set only the asked one in the transform, `{"isDesign": tag = "design" ? true, "isTech": tag = "tech" ? true}` — an absent field drops its filter, as above.
-  - **File the values as facet terms** (`kipory-model`). `entity.list`'s `facetFilter` takes fixed `{ facet, slug }` pairs in config, not a slot, so a parameter needs one list step per term behind a `flow.dispatch`; the records API's `term=facet:slug` is the operator's side of the same filter.
+  - **File the values as facet terms** (`kipory-model`). `entity.list`'s `facetFilter` takes fixed `{ facet, slug }` pairs in config, not a slot, so a parameter needs one list step per term behind a `flow.dispatch`; the records API's `term=facet:key` is the operator's side of the same filter.
 - **Natural-key collisions fail the whole run.** A flow's `entity.create` on a project-wide type is keyed by its content, so writing identical data again converges on the same record. Writing _different_ data under a `key` field another record already holds is a `409 RECORD_NATURAL_KEY_TAKEN` naming the refused write's `seq`, the step that staged it and the record type (never the key's value), and the run is all-or-nothing: no other row it wrote is kept. There is no upsert handler. For an importer: look the key up first (`entity.list` filtered on it), then split with `value.transform` into an existing id — `entity.update` with `recordIdSlot` — or new data — `entity.create` — each guarded with `slotPresent`.
 
 ## Utilities you will reach for

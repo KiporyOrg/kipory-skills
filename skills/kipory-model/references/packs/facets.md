@@ -65,8 +65,8 @@ vocabulary and then found it would not recognise an obvious synonym.
 
 `GET /v1/facets/resolvers?project=<nodeId>` lists every flow this project may bind as a facet's
 resolver — **your own flows and the platform's, in one call** — filtered to those whose typed
-signature actually matches the resolver contract. Each row carries the flow's id and its display
-name, the slug it lives at, its scope (`PROJECT` or `SYSTEM`), its `paramsSchema`, its
+signature actually matches the resolver contract. Each row carries the flow's id, its display
+`label`, its `key`, its scope (`PROJECT` or `SYSTEM`), its `paramsSchema`, its
 `paramsDefaults`, `platformDefault` and `paramsKind`.
 
 ⭐ **The filter is the point.** A flow whose signature cannot serve is not offered, so a binding you
@@ -165,7 +165,7 @@ if you meant to keep yours. `version` is required on every facet patch.
 This is the part that is most often got wrong.
 
 **`facet.resolve` writes nothing.** It computes resolutions and emits them. Under `semantic`
-matching it tries the same exact slug lookup FIRST and dispatches only what did not match to the
+matching it tries the same exact key lookup FIRST and dispatches only what did not match to the
 resolver flow — so a value that slugs to an existing term never reaches the resolver at all, and
 cost estimates counting "every value" are too high. Under `exact` it matches directly and stops.
 Then `mint` decides what may happen to a value the search did not find — ⚠️ on the `semantic` arm
@@ -202,7 +202,7 @@ saving first.
 `mint: none` **OR** `matching: exact`, whichever the other setting says: either one means no new
 term can be produced, so an empty vocabulary can never produce anything at all. An exact lookup
 finds no row, a semantic search runs over an empty collection, and the facet is dropped from the
-LLM's proposal schema entirely because there are no slugs to build its enum from. Saving warns.
+LLM's proposal schema entirely because there are no term keys to build its enum from. Saving warns.
 ⚠️ Note the `exact` + `active` case in particular: it looks configured to grow and cannot.
 
 That last one is worth separating from its neighbour. A `semantic` facet with no resolver bound is
@@ -231,7 +231,8 @@ editor you are standing in.
   flow that uses it.
 - **Reserved keys are refused** with `FACET_KEY_INVALID` — the identity, content and metadata
   names the record shape already owns, along with `facets`, `terms`, `recordType` and the
-  timestamps. Keys must be camelCase.
+  timestamps. A facet's `key` is a **field key** — camelCase, starting lower-case — because it
+  becomes a JSON property a model reads; it is permanent.
 - **Do not give a facet the key of a field of a type that surfaces it**, or a key every record
   row already carries — its status, files and cost among them. A record read carries each facet as a
   top-level key, so facet `cuisine` beside a submitted `cuisine` would answer every row with the
@@ -257,7 +258,8 @@ editor you are standing in.
   create, which returned 201 while the term landed at the top level. If you sent a parent, you
   meant something by it.
 - **An unknown key inside `proposal` is refused.** The bag is closed: guidance prose, a list of
-  worked examples, and a flag permitting an empty answer — the exact shape the live schema
+  worked examples (each a term `key` and its `label`; the key must be one a term could hold —
+  lowercase segments joined by `-`, at most 128 characters — or the write is a 422), and a flag permitting an empty answer — the exact shape the live schema
   declares, and nothing beside it. It used to accept any object, so a misspelled key persisted,
   returned 201, and left the facet behaving as though the setting had never been made. A typo is
   the only failure this field has, so it is now a 422 at the moment you write it. Reads are
@@ -303,7 +305,7 @@ happened. A preview run does not count — only values that actually landed.
 ## Who feeds this facet?
 
 Ask the facets read with `expand=wiring` and each facet lists the flow nodes that put values into
-it: the flow and node, and how — `extracted` (a `text.generate` step lists it in `facetFields`),
+it: the flow (`flowId`, `flowKey`, `flowLabel`) and node (`skillId`, `skillKey`), and how — `extracted` (a `text.generate` step lists it in `facetFields`),
 `proposed` (a `facet.resolve` step lists it with no slot feeding it, so its own model call proposes
 values) or `fed` (a `facet.resolve` step reads candidates from a slot, with no model call). It is
 the same scan the platform's own wiring view reads, so a node whose configuration does not parse
@@ -319,18 +321,18 @@ the facet from that row until the node is re-derived from its type.
 `facet.resolve` step can pick a facet up from a slot it discovers at run time without naming it
 anywhere. Empty means no node's configuration names this facet.
 
-## Seeding a vocabulary — let the platform coin the slug
+## Seeding a vocabulary — let the platform coin the key
 
-`POST /v1/facets/{id}/terms` takes rows of `{ slug, label }`, and **`slug` is
+`POST /v1/facets/{id}/terms` takes rows of `{ key, label }`, and **`key` is
 optional**. Omit it and the platform derives one from the label.
 
-⛔⛔ **Coining it yourself is how a vocabulary stops matching.** A term's slug is
+⛔⛔ **Coining it yourself is how a vocabulary stops matching.** A term's key is
 what record ingest matches on, and a client deriving its own has to reproduce
 the platform's normalization exactly — including that an accented letter
 decomposes before it is filtered. When the two disagreed, `Crème brûlée` was
 seeded under one spelling and looked up under another: the records never
 resolved, and a create-new resolution minted a **second term for the same
-concept**. Pass a slug only when the identity matters more than the match.
+concept**. Pass a key only when the identity matters more than the match.
 
 ### Asking first — `validateOnly`
 
@@ -345,8 +347,8 @@ write:
   "diagnostics": [],
   "derived": {
     "terms": [
-      { "slug": "creme-brulee", "label": "Crème brûlée", "outcome": "created" },
-      { "slug": "water-damage", "label": "Water Damage", "outcome": "existed" }
+      { "key": "creme-brulee", "label": "Crème brûlée", "outcome": "created" },
+      { "key": "water-damage", "label": "Water Damage", "outcome": "existed" }
     ]
   }
 }
@@ -422,7 +424,7 @@ default for that parameter shape is a platform fact. `null` means the facet
 would be born unbound, which for `semantic` matching is why `readiness` reads
 `blocked`.
 
-⛔ **A key already taken rides the 200 as a finding on `facetKey`**, where the
+⛔ **A key already taken rides the 200 as a finding on `key`**, where the
 real create answers `409`. Both are the platform having read your draft; only
 one of them is a status a form can render under an input.
 
@@ -458,8 +460,8 @@ different claims, and only one of them is true.
   with `expand=findings` answers `findings`, most severe kind first: `dangling-alias` (a merged
   term whose canonical is gone), `orphan-parent` (a `parentId` naming a term the project does not
   hold), `unattached` (a parentless term on a facet that nests) and `duplicate` (canonical terms of
-  one facet and one parent whose labels make the same slug — one finding per colliding group). ⛔
-  The checks always run over the WHOLE project; `facet` narrows only which findings come back. ⚠️
+  one facet and one parent whose labels make the same key — one finding per colliding group). ⛔
+  The checks always run over the WHOLE project; `facetKey` narrows only which findings come back. ⚠️
   Absent means you did not ask, and an empty list means the check ran and found nothing. Every
   kind is certain — there is no fuzzy near-duplicate pass, because the remedy is a merge and a
   merge has no undo.

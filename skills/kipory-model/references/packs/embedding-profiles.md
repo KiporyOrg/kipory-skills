@@ -79,7 +79,8 @@ now. Update the copies you hold, or the next PATCH to one of them is refused as 
 
 Reading a profile — one, or the project's list with the default first — gives you the derived
 geometry and how many record types use it. Ask for the collections expansion to see the physical
-collections your declarations actually imply.
+collections your declarations actually imply — each names the record types landing in it by key,
+under `recordTypeKeys`.
 
 Updating a profile in place covers its label, whether it is the default, and `defaultChunking`.
 Everything that defines the vector space — the model, the slots — moves through a version instead.
@@ -97,11 +98,11 @@ recorded distance is refused rather than stored half-usable.
 
 Because the two halves cost completely different things, and collapsing them would hide that.
 
-- **Minting is free and inert.** It creates the next version of the same name, taking the current
+- **Minting is free and inert.** It creates the next version of the same key, taking the current
   version's values for anything you do not override. No declaration points at it, so no collection
   is provisioned and nothing is reindexed. It is refused if nothing about the vector space would
   actually change.
-- **Activating is the expensive half.** It repoints every searchable declaration on that name onto
+- **Activating is the expensive half.** It repoints every searchable declaration on that key onto
   the version, moves the default, and enqueues the reindex. The new collections start **empty**, so
   searches return less while it drains. ⚠️ It also **rewrites the stored collection name inside your
   saved vector steps** and reports which ones in `repointedSteps` — a step left behind would keep
@@ -142,13 +143,13 @@ version mint (`POST /v1/embedding-profiles/{id}/versions`) each take **`validate
 body. It runs the same decisions the write runs, writes nothing, and answers **200** with the
 verdict every design dry run answers. Each finding carries the body `field` it is about where there
 is one — an overlap the chunker could not advance past is reported on `defaultChunking.overlap` —
-and the rule's own code (`EMBEDDING_PROFILE_NAME_INVALID`, `EMBEDDING_PROFILE_CHUNKING_INVALID`, …),
+and the rule's own code (`EMBEDDING_PROFILE_KEY_INVALID`, `EMBEDDING_PROFILE_CHUNKING_INVALID`, …),
 the same token the save's refusal names.
 
 - **The PATCH dry run plans every inheriting record type**, exactly as the save does. A default
   that one of them cannot take comes back as a finding naming the type, before anything commits.
-- **A taken name is a finding on `name`, not a 409.** Its absence is a snapshot, not a reservation:
-  a create that lands in between still takes the name, and the save then answers 409 itself.
+- **A taken key is a finding on `key`, not a 409.** Its absence is a snapshot, not a reservation:
+  a create that lands in between still takes the key, and the save then answers 409 itself.
 - ⚠️ **An invalid draft is not a failed request.** A 4xx still means the platform could not look at
   the draft — a profile id that addresses nothing, or a role it will not serve.
 - ⛔ **Gate on `severity`, never on `code`.** An unrecognised code is a generic finding of its stated
@@ -156,15 +157,16 @@ the same token the save's refusal names.
 
 ## What will bite you
 
-- **Version numbers are never reused.** They are allocated above every version the name has ever
+- **Version numbers are never reused.** They are allocated above every version the key has ever
   had, including ones whose profile row is gone but whose collections were provisioned. A reused
   number would resolve to a physical collection that already holds points at a geometry nothing
   re-checked.
 - **The active version is derived, not stored.** It is whichever version the declarations point
-  at — not the newest, and not the one marked default. A name whose record types are all
+  at — not the newest, and not the one marked default. A key whose record types are all
   non-searchable has _no_ active version, which is honest: nothing is serving.
-- **The name is immutable and appears in the physical collection name.** Renames go through the
-  label instead. Renaming the name itself would rename every collection derived from it.
+- **The key is immutable and appears in the physical collection name** — which is why it is
+  lower-case kebab. Renames go through the label instead. Renaming the key itself would rename
+  every collection derived from it.
 - **The slot set belongs to the profile, not to the record types using it.** Adding a slot forces
   a reindex across the group either way; putting it here makes that cost an explicit version bump
   rather than a side effect of adding one record type.

@@ -31,8 +31,9 @@ GET  /v1/flow-checkpoints/{id}/restore-preview    see what a restore would chang
 POST /v1/flow-checkpoints/{id}/restore            roll back (no body)
 ```
 
-Capture takes the flow, a name, and an optional description. Listing is scoped by `flow`; an
-individual checkpoint is addressed by its own id.
+Capture takes the flow (`flowId`), a name, and an optional description. Listing is scoped by
+`?flowId=`; an individual checkpoint is addressed by its own id, and every checkpoint names the flow
+it was taken from as `flowId`. A restore warning or refusal names the step by `skillKey`.
 
 **Reads never return the payload.** List and metadata give you counts, whether it was automatic,
 who made it and when — but not the snapshot itself. If you want to know what a restore would do,
@@ -53,7 +54,7 @@ nothing that names the person.
 cannot parse (422). It returns the current skills, the snapshot's skills, and a `warnings` list naming
 references that no longer resolve — a model that is gone, a handler no longer registered, an invoke
 target that has since been deleted, or a pinned model its step can no longer use (`model-unsuited`).
-Pair the two skill lists by `name`, never by position: they are ordered separately and need not be the
+Pair the two skill lists by `key`, never by position: they are ordered separately and need not be the
 same length.
 
 It also answers what the skill lists cannot. `signatureChanges` says whether a restore would rewrite the
@@ -69,7 +70,7 @@ deadline (`timeoutMs`) and its run settings — `tries`, `tryDelayMs`, `onFailur
 taken before the format recorded them does not carry them, and restoring one resets those steps: no
 per-step deadline, the handler's own tries and reuse period, and a failure that fails the run. The
 preview tells the two apart: a `currentSkills` entry always carries the live values, and on the
-`payloadSkills` entry with the same `name` an ABSENT key means "this record does not say", which for a
+`payloadSkills` entry with the same `key` an ABSENT field means "this record does not say", which for a
 restore is the same as "it will be reset". Read the pair before restoring an older checkpoint of a flow
 whose steps were tuned by hand.
 
@@ -99,14 +100,14 @@ name, rather than trusting the automatic one to still be there.
 - **A restore rewrites; it does not merge.** Anything added to the flow after the snapshot is
   gone. That is the point, but it means a checkpoint taken before a long session throws away the
   good changes along with the bad.
-- **A restore matches steps by name.** A step the flow still holds is rewritten in place and keeps
+- **A restore matches steps by key.** A step the flow still holds is rewritten in place and keeps
   its id; if the restore changes it, its `version` moves FORWARD (never back to the captured
   number), so a `capturedVersion` you held is stale: re-read the flow's steps after a restore. A step deleted since comes back with a NEW
   id, and one added since is deleted. History keyed by step id —
   `GET /v1/projects/{nodeId}/ai-calls?skillId=`, the `bySkill` rows of
   `GET /v1/runs/{runId}/spend`, a trace's `skillId` — splits only for a step that came back with a
-  new id; key your own history by step name and it never splits. A project-document apply matches
-  steps the same way.
+  new id; key your own history by step key and it never splits. A project-document apply matches
+  steps the same way — and by `id` first, where the document states one.
 - **Restore and the atomic skill-replace share the same path**, so a restore accepts entries a
   single skill create would have rejected — it validates the resulting graph rather than the
   incoming format.

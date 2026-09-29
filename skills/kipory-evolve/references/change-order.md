@@ -91,7 +91,7 @@ output's empty value (`{"id": ""}`) — a required output nothing produces is fi
 after the run's writes have already committed. Health names it; the status code does not. Renaming a FLOW's own output slot is a
 signature change: `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until the PATCH carries
 `adoptSnapshots: true`, and then every client of the endpoint sees the new key. That PATCH needs
-BOTH `inputTypeNames` and `outputTypeNames`; one alone is a `422`. A record type's name and fields are not renamed this way: once it has records, both
+BOTH `inputTypeNames` and `outputTypeNames`; one alone is a `422`. A record type's key and fields are not renamed this way: once it has records, both
 are refused.
 
 ## Reading a refusal

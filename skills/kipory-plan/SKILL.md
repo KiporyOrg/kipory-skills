@@ -23,7 +23,7 @@ license: MIT
 6. **Emit the build sheet, then stop.**
 7. **When it is accepted, write the document** — `GET /v1/project-document/example` shows one
    whole, `GET /v1/project-document/schema` is its format, and `references/packs/project-document.md`
-   (served by `kipory-build`) is the judgment: names not ids, a partial document leaves the rest
+   (served by `kipory-build`) is the judgment: keys not ids, a partial document leaves the rest
    untouched, absence never deletes. **Plan it, show the plan, and stop again.** A plan writes
    nothing, so it is as cheap to reject as the sheet was.
 8. **Apply it** — `POST /v1/projects/{nodeId}/document` with the `version` the export or the

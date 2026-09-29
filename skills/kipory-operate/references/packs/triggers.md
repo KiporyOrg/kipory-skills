@@ -57,12 +57,13 @@ GET  /v1/triggers/{id}/sample            the newest event it would accept — fe
 POST /v1/triggers/{id}/replay            run one decision again, as a new attempt
 POST /v1/triggers/{id}/disable           stop it
 POST /v1/triggers/{id}/enable            start it, from now
-GET  /v1/project-events?project=…        the log itself, newest first
+GET  /v1/project-events?project=…        the log itself, newest first (narrow with categoryKey[, eventKey])
 ```
 
 Scoped by `project`. Create takes a **key** (the same charset and immutability as a schedule's or
-an endpoint's — see schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)), the `category` and `event`, an
-optional `filter`, the flow, and the inputs keyed by input slot; optionally a display `name` and an
+an endpoint's — see schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)), the `categoryKey` and `eventKey`
+of the event type it listens to, an optional `filter`, the flow (`flowId`), and the inputs keyed by
+input slot; optionally a display `label` and an
 `overlapPolicy` of `skip` or `allow` — ⚠️ omitting the policy means the source provider's
 `overlapDefault` for a trigger on a source (capability pack `sources` — `GET /v1/capability-packs/sources`) (`allow` for Telegram), and `skip` for a
 trigger on your own events.
@@ -80,7 +81,7 @@ without a source listens to every event of its type, whoever wrote it — which 
 your own flows' events is.
 
 **Watching a channel the project does not watch yet** is one write, not two: send `newSource` —
-`provider`, `config`, and optionally `key` and `name`, the body a source create takes — instead of
+`provider`, `config`, and optionally `key` and `label`, the body a source create takes — instead of
 `sourceId`. The source and the trigger are created in one transaction, so a trigger the platform
 refuses (a blank input, a filter, a taken key) leaves no source behind, and a `validateOnly: true`
 create judges both halves — the source exactly as `POST /v1/sources` would, then the trigger against
