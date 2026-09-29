@@ -182,12 +182,12 @@ Others do not refuse. They cascade, and the response tells you what else moved:
   rewrites every sibling step that reads the old name, in the same transaction; without it the
   readers are left dangling. The flow's `outputBinding` is NOT rewritten and `rename-preview` does
   not list it: the save lands with `OUTPUT_BINDING_DANGLING_SLOT` (a warning under `validateOnly`,
-  an error in the write's `outstandingIssues`). The endpoint in front does **not** reliably fail: a
-  required output left unproduced is filled with its type's empty value, so the caller gets
-  `200 {"id": ""}` — and the run's writes still commit. Check health, never the status code. On a
+  an error in the write's `outstandingIssues`). The endpoint in front then refuses every call:
+  a required output left unproduced answers `422 FLOW_OUTPUT_MISSING`, and the run's writes are
+  discarded. Health names the dangling binding before any call does. On a
   live endpoint, do the rename as **one document apply** that carries both the step's new
   `outputSlot` and the flow's re-pointed `outputBinding`: one transaction, no window where the
-  endpoint answers empty. Row by row it is two writes — the confirmed skill PATCH, then
+  endpoint is refused. Row by row it is two writes — the confirmed skill PATCH, then
   `PATCH /v1/flows/{id}` with the new `fromSlot` — then health. A record type is different: once
   it has records, a rename is refused outright.
 

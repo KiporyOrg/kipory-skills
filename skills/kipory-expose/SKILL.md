@@ -11,7 +11,7 @@ A **dynamic endpoint** is a `/v1/…` route you author for your product, served 
 ## Before the first call
 
 - Fetch `references/packs/api-endpoints-anatomy.md`: the request lifecycle end to end, the contract and action model, the error table. Most failures here are indistinguishable by status code alone.
-- Bind the flow's output first (`kipory-build`). An unbound required output either 502s or returns 200 with an empty value on a live call, and only preview names the slot.
+- Bind the flow's output first (`kipory-build`). An unbound required output is refused `422 FLOW_OUTPUT_MISSING` on every live call and writes nothing; preview names the slot first.
 - Check the path is free: `GET /v1/coded-routes` (with your key — anonymous is a 401) lists every path the platform itself occupies on every host. A coded route always wins, and its **first path word is reserved whole**: an endpoint under a word any row starts with — `/v1/docs/add`, `/v1/records/mine` — is refused at the save as `ENDPOINT_PATH_RESERVED_WORD`, naming the word and its group — enabled or not, because the host sends a request by its first word to that group. Start your paths with a word no row uses.
 
 ## The sequence
@@ -69,7 +69,7 @@ The endpoint read returns `invokeUrl`, the project-host URL with its `{param}` p
 | File                                        | What it answers                                                                                                 |
 | ------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
 | `references/consumer.md`                    | the runtime plane from the caller's side: credentials, sync/async/stream, the error table, headers, rate limits |
-| `references/packs/api-endpoints-anatomy.md` | the judgment: lifecycle, contract and action, snapshots, coalescing                                             |
+| `references/packs/api-endpoints-anatomy.md` | the judgment: lifecycle, contract and action, snapshots, refusals                                               |
 | `references/api/api-endpoints.md`           | every field of the create, patch and read                                                                       |
 | `references/api/route-enablement.md`        | the group toggle and the coded-route manifest                                                                   |
 | `references/api/end-users.md`               | auth config, profile schema, the users roster, members' standing and credits                                    |

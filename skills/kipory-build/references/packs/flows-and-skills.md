@@ -69,13 +69,10 @@ Runtime is stricter than authoring. So:
   at all, so there is nothing to read there. Ask `GET /v1/flows/{id}/health` for the whole-flow
   verdict.
 - The clearest case is `OUTPUT_SLOT_UNBOUND` — a declared output slot with nothing bound to it. It
-  is a _warning_, so the flow saves cleanly — and then ⛔ **the run usually SUCCEEDS with a lie in
-  it.** At invoke time a required unbound slot is filled with its type's empty value (list → `[]`,
-  record or builtin object → `{}`, optional → `null`, string → `""`, number → `0`, boolean →
-  `false`), so the caller gets a well-formed empty answer and no error at all. Only a slot typed as
-  a union, a record reference, a file, or a library/operator object type has no safe empty value and
-  fails with `INVOKE_REQUIRED_OUTPUT_MISSING`. Preview is the surface that still tells the truth: it
-  does not fill anything in.
+  is a _warning_, so the flow saves cleanly — and then ⛔ **every run of it is refused.** A
+  required output no step produced answers `422 FLOW_OUTPUT_MISSING`, whatever its type, and the
+  run's writes are discarded. Nothing is filled in. Preview names the slot in
+  `missingRequiredOutput` before a live call does.
 - `INPUT_STREAM_DANGLING_SLOT` is the one to expect while authoring incrementally, and the one that
   bites hardest if you ignore it. A step reads a slot nothing supplies — no skill writes it, and it
   is not a declared flow input or a provider slot. Wiring a consumer before its producer exists is
@@ -340,7 +337,7 @@ Preview always resolves _somebody_ — you, by default. A **schedule resolves no
 engine then omits `userInfo` entirely rather than handing down an empty one. An absent input makes
 the pipeline **skip** the skill that reads it, and the skip cascades: the terminal step never
 writes the slot your output binding names, and the run fails with
-`INVOKE_REQUIRED_OUTPUT_MISSING` — while preview, with a principal, sails through.
+`FLOW_OUTPUT_MISSING` — while preview, with a principal, sails through.
 
 **A skill whose only input is `userInfo` therefore runs under a request and is skipped under a
 schedule.** Give it a second input the trigger always supplies, and preview a scheduled flow the
@@ -352,10 +349,11 @@ way it will really run:
 
 `principal` defaults to `"operator"`, which is the request-shaped run. Billing names you either way.
 
-The response is built for diagnosis: `flowOutput` (the declared projection, with no coalescing),
-`missingRequiredOutput` (the slot a live call would have had to invent — non-null means the flow is
-not really producing it, though whether a live call FAILS depends on the slot's type, since invoke
-fills in every type that has a safe empty value), a per-skill `transcript` with
+The response is built for diagnosis: `flowOutput` (the declared projection, nothing filled in),
+`missingRequiredOutput` (non-null means a live call would be refused `FLOW_OUTPUT_MISSING` and
+write nothing, so the preview discards its writes too, even with `apply`, and adds a run-level
+`__runner__` error with phase `output-missing`), a per-skill
+`transcript` with
 outcome, timing and error, plus errors, warnings, branches and token and latency totals.
 
 **Read the status code carefully, because a failing flow is still a 200.** Request-shaped faults

@@ -2,7 +2,7 @@
 
 <!-- field-ok: pageText — one project's slot name in this worked example, not a platform field -->
 
-The complaint: an endpoint that summarises a saved link started returning an empty summary yesterday. Nothing was deployed. This walks the reads in the order that finds the cause fastest. Names below — `link`, `pageText`, `summary`, `summarise` — are one project's, not the platform's.
+The complaint: an endpoint that summarises a saved link started answering `422 FLOW_OUTPUT_MISSING` (`details.missing: ["summary"]`) yesterday. Nothing was deployed. This walks the reads in the order that finds the cause fastest. Names below — `link`, `pageText`, `summary`, `summarise` — are one project's, not the platform's.
 
 ## 1. Find the run
 
@@ -12,7 +12,7 @@ The caller has the response's `x-request-id` header. That is the run id.
 GET /v1/runs/{runId}
 ```
 
-`run.lifecycle` is `unknown` — ordinary for a synchronous endpoint call, which leaves no invocation row to say how it ended; it means "no outcome recorded", not "still running" and not "finished". The step log answers instead: `closing.kind` says it finished, `stepsStarted` is 3 against `declaredSteps` 3. So the flow ran to completion and produced the empty value on purpose, as far as the engine is concerned.
+`run.lifecycle` is `unknown` — ordinary for a synchronous endpoint call, which leaves no invocation row to say how it ended; it means "no outcome recorded", not "still running" and not "finished". The step log answers instead: `closing.kind` says it finished, with `verdict: failed` and `missingOutputs: ["summary"]`, and `stepsStarted` is 3 against `declaredSteps` 3. So no step failed: the run reached its end without producing a required output, and the platform refused it.
 
 ## 2. Read the step log — it is complete
 
@@ -29,7 +29,7 @@ step_applied   write        …
 run_finished
 ```
 
-The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `data` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, and the flow's required `summary` output was filled with the type's empty value on the way out — which is why the caller saw `""` and a 200 rather than a 502. Had the step failed, `step_failed` would name the step and carry its `phase` and a `message` cut to 500 characters; longer text (up to 2,000 characters) is in the trace's `stepOutputs[].error` and, for a model step, the model-call ledger.
+The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `data` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, so the flow's required `summary` output was never produced. That is why the caller got `422 FLOW_OUTPUT_MISSING` and the run's writes were discarded. Nothing is filled in with an empty value. Had the step failed, `step_failed` would name the step and carry its `phase` and a `message` cut to 500 characters; longer text (up to 2,000 characters) is in the trace's `stepOutputs[].error` and, for a model step, the model-call ledger.
 
 ## 3. Read the trace for the values
 
@@ -49,7 +49,7 @@ GET /v1/flows/{id}/traces?source=production&limit=20
 
 In this run's trace:
 
-- `output.summary` is `""` — consistent with the step log.
+- `output` has no `summary` — consistent with the step log.
 - `slotOutputs.pageText` is present and **empty** — the real "ran and emitted nothing" signal. The scrape step applied and emitted an empty page.
 - `slotOutputs.summary` is absent — the step declared the slot and never wrote it, because it was skipped.
 
@@ -65,6 +65,6 @@ The fix is a handler config change — `excludeTags` on the scrape step — not 
 
 ## What this walk did not need
 
-- **Guessing from the HTTP status.** A 200 with an empty body and a 502 are the same class of failure — an unproduced required output — differing only in whether the slot's type has a safe empty value.
-- **The change set.** `GET /v1/runs/{runId}/change-set` would have shown one record write with an empty summary. Useful when the question is "what did it write", not "why".
+- **Guessing from the HTTP status.** `FLOW_OUTPUT_MISSING` says which output is missing, not why; the step log and the trace say why.
+- **The change set.** `GET /v1/runs/{runId}/change-set` would have shown the record write, `discarded`: a refused run writes nothing. Useful when the question is "what would it have written", not "why".
 - **Re-running the flow.** A preview would have cost money and, without `apply: false`, written the record again.

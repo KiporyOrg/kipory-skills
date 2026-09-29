@@ -88,9 +88,9 @@ GET   /v1/flows/{id}/health       whether the flow is still whole
 
 Without `confirmedOutputSlotRenames` the rename lands and every reader is left on a slot that no
 longer exists. With it, sibling steps follow — but the flow's `outputBinding` does not, and the
-preview does not list it: skip the third call and the endpoint in front answers `200` with the
-output's empty value (`{"id": ""}`) — a required output nothing produces is filled, not refused —
-after the run's writes have already committed. Health names it; the status code does not. Renaming a FLOW's own output slot is a
+preview does not list it: skip the third call and the endpoint in front answers
+`422 FLOW_OUTPUT_MISSING` (`details.missing: ["id"]`) and writes nothing — a required output
+nothing produces is refused, never filled. Health names the dangling binding before a call does. Renaming a FLOW's own output slot is a
 signature change: `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until the PATCH carries
 `adoptSnapshots: true`, and then every client of the endpoint sees the new key. That PATCH needs
 BOTH `inputTypeNames` and `outputTypeNames`; one alone is a `422`. A record type's key and fields are not renamed this way: once it has records, both

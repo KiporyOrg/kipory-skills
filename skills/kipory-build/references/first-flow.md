@@ -105,7 +105,7 @@ POST /v1/skills
 
 ## 3. Bind the output
 
-Without this the flow returns nothing: a live call 502s or answers an empty value.
+Without this the flow returns nothing: every live call is refused `422 FLOW_OUTPUT_MISSING` and writes nothing.
 
 ```
 PATCH /v1/flows/{id}
@@ -184,7 +184,7 @@ POST /v1/flows/{id}/preview
 
 - `input.kind: "slots"` supplies values keyed by the flow's input slot names; an unknown key or a missing required slot is refused before the run. The other arm, `kind: "record"` with `recordId`, seeds from a stored record of a type this flow processes.
 - `apply` defaults to `true`. This flow writes nothing, so `false` changes nothing here — send it anyway; it is the habit that saves you on a flow that does write.
-- `flowOutput` is the declared outputs exactly as the run produced them, with nothing filled in. `missingRequiredOutput` non-null means the flow never produced that slot; a live call then either 502s or answers 200 with the type's empty value (`""`, `0`, `false`, `[]`, `{}`), so treat it as broken either way. Read `errors` first: a step that failed — a model provider out of quota, a refused config — leaves the output unfed just as a missing binding does, and `errors[].message` says which. Only when `errors` is empty is step 3 the cause.
+- `flowOutput` is the declared outputs exactly as the run produced them, with nothing filled in. `missingRequiredOutput` non-null means the flow never produced that slot; a live call is then refused `422 FLOW_OUTPUT_MISSING` and writes nothing, and this preview discarded its writes too, reporting it as an `errors` entry with `skillId: "__runner__"` and `phase: "output-missing"`. That entry is the refusal, not its cause. Read the other `errors` first: a step that failed — a model provider out of quota, a refused config — leaves the output unfed just as a missing binding does, and `errors[].message` says which. Only when that entry is the only one is step 3 the cause.
 - **A provider out of quota** reads `… provider account exhausted (quota/billing)` in `errors[].message`. It is the provider's account, not your flow: bind the task to a model from another creator and preview again — `GET /v1/ai-models?type=chat` for one — every row listed is served (a disabled model is absent, not flagged); take one whose `status` is `active` rather than `deprecated`, whose `modelId` prefix (the creator) differs, and whose `offers[].provider` is not the exhausted account — then `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` with `{task}` = `summarization` (ADMIN, on the project node). `GET /v1/projects/{projectId}/task-models` then shows `source: node` for that task. `kipory-build`'s SKILL.md says why this beats pinning `modelId`, and what the routing policy's `failover` does and does not do.
 - The preview's own response is its whole record. `previewSessionId` reads the change set (`GET /v1/runs/{runId}/change-set`) and nothing else: an inline preview writes no step log and no trace.
 

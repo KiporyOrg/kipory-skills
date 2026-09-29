@@ -4,7 +4,7 @@ One closed set of six kinds, shared verbatim by flow test cases and eval cases. 
 
 | `kind`                       | Fields                                      | Passes when                                                                                                                                                    |
 | ---------------------------- | ------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `no-missing-required-output` | —                                           | every output slot the flow declares required was produced. The highest-value check: its failure means a live invocation would fail or return an empty value    |
+| `no-missing-required-output` | —                                           | every output slot the flow declares required was produced. The highest-value check: its failure means a live invocation would be refused `FLOW_OUTPUT_MISSING` |
 | `output-present`             | `slot`                                      | the named output slot was produced with a non-empty value                                                                                                      |
 | `output-matches-schema`      | `slot`, `entryId?`                          | the slot's value conforms to the slot's declared type — or, with `entryId`, to that schema entry instead                                                       |
 | `skill-outcome`              | `skillKey`, `outcome`                       | the named step ended as `applied`, `skipped`, `no-op` or `failed` — whichever you assert                                                                       |

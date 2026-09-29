@@ -275,8 +275,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowOutput` | `object` | yes | The flow's declared output slots, exactly as the run produced them. A slot the run did not produce stays absent rather than being filled in — a live invocation fills a missing required slot of a text, number, true/false, list or object type with its empty value, and fails for any other type. |
-| `missingRequiredOutput` | `string \| null` | yes | First required output slot the run failed to produce, or null. Non-null means the flow is broken: a live invocation either fails or answers that slot's empty value. |
+| `flowOutput` | `object` | yes | The flow's declared output slots, exactly as the run produced them. A slot the run did not produce stays absent; nothing is filled in, here or live. |
+| `missingRequiredOutput` | `string \| null` | yes | First required output slot the run failed to produce, or null. Non-null means a live invocation of this run would be refused (422 `FLOW_OUTPUT_MISSING`) and write nothing — so this preview discarded its writes too, even with `apply`. |
 | `transcript` | `object[]` | yes | What each skill did, in execution order. |
 | `errors` | `object[]` | yes | Failures, one entry per skill and branch that errored. |
 | `warnings` | `unknown[]` | yes | Non-fatal problems the engine noticed. The run still completed. |

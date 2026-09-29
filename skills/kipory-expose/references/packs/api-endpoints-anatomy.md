@@ -227,10 +227,13 @@ limit against it rather than against a default you remember.
 so an unexpected `?foo=bar` is a 422 rather than being ignored. Callers who add a tracking
 parameter break.
 
-⚠️ **A 502 for a missing output does not name the slot** on the synchronous path — deliberately,
-so a caller cannot map your flow's internals. The asynchronous path records
-`INVOKE_REQUIRED_OUTPUT_MISSING` against the invocation. Either way, the fix is upstream: the
-flow's output binding, or whatever stopped the step that feeds it from running at all.
+⚠️ **A run that produced no value for a required output is refused, and writes nothing.** No
+step failed, but the answer is missing, so the synchronous call answers `422 FLOW_OUTPUT_MISSING`
+with a `missing` list in `details` naming the output slots (the endpoint's own response fields, never a step).
+A stream ends with an `error` frame of that code, and an async invocation, schedule or trigger
+ends `FAILED` with it. The decision is taken before the run's writes apply, so nothing it staged
+lands. Either way, the fix is upstream: the flow's output binding, or whatever stopped the step
+that feeds it from running at all.
 
 ⛔ **The error names the LAST link, and the break is often at the first.** A common cause is not the
 binding but a skill upstream that was SKIPPED, because the pipeline reads an absent
@@ -241,13 +244,12 @@ yourself resolves you, skips nothing, and reports the flow healthy. Preview a sc
 `"principal": "noEndUser"` or you are testing a different run. See the preview section of
 flows-and-skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`).
 
-**The coalescing rule is worth knowing before you debug an empty response.** A _clean_ run that
-leaves a required slot empty gets the type's empty value — an empty list, empty object, empty
-string, zero, false — rather than a fault, because a zero-hit search is an empty result, not an
-error. The four types with no safe empty value stay a genuine fault: a union, a record reference, a
-file, and a reference to a library or operator object type. (The coalesced set includes
-`optional → null`, which is easy to miss.) **Preview does not coalesce**,
-which is exactly how you see the gap that production would paper over.
+**Nothing is filled in.** A required output a clean run never produced is not replaced by
+`""`, `[]`, `0` or `{}`: the call is refused, whatever the slot's type. A value the flow DID
+produce is an answer, even an empty one: `""`, `[]`, `0`, `false` and `null` go back as they are.
+So a flow whose honest answer can be "nothing" must produce that value: a zero-hit search whose
+count step is skipped on an empty list needs a step that emits `0`. Otherwise declare the output
+optional. Preview names the gap in `missingRequiredOutput`.
 
 ## A row that no longer parses, and how the list reports it
 
@@ -378,9 +380,8 @@ tomorrow arrives with a code your build has never heard of and a severity it has
 ## Checklist for an endpoint that actually works
 
 1. The bound flow exists **and its output binding projects the declared slots.** ⚠️ An unbound
-   required slot does not reliably 502 — for any type with a safe empty value it is filled in and
-   the call returns 200 with `[]`, `{}`, `""`, `0` or `null`, which is the quieter and worse
-   failure. Preview is where you see it: preview does not fill anything in.
+   required slot makes every call answer `422 FLOW_OUTPUT_MISSING` and write nothing. Preview
+   names it in `missingRequiredOutput` before any call does.
 2. The path starts with `/v1/`, has no adjacent parameters, and collides with no coded route or
    sibling.
 3. Every field the flow needs is a declared parameter or body field, bound in the inputs, and
