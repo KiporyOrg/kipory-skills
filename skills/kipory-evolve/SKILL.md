@@ -39,24 +39,25 @@ reach for when the change touches more than a handful of rows.
 
 ## Rehearse first
 
-| Route                                             | Answers                                                                                                                                               |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /v1/bootstrap?project={nodeId}`              | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                    |
-| `GET /v1/projects/{nodeId}/deletion-preview`      | what deleting the whole project would take with it                                                                                                    |
-| `DELETE /v1/facets/{id}` + `validateOnly`         | whether a facet delete would be allowed, and what it reaches                                                                                          |
-| `DELETE /v1/record-types/{id}` + `validateOnly`   | whether a record-type delete would be allowed — the verdict only; a document plan lists what it would cascade into                                    |
-| `DELETE /v1/relation-kinds/{id}` + `validateOnly` | the edges the delete would take, as `edges-deleted` under `consequences`                                                                              |
-| `GET /v1/flows/{id}?expand=dependents`            | everything that blocks a flow delete, with `deleteRefusal` — `DELETE /v1/flows/{id}` itself has NO rehearsal flag (below)                             |
-| `GET /v1/record-types/{id}/contract-preview`      | the field vocabulary under a **proposed** shape entry (`dataEntryId`) and/or flow binding (`flowId`, or `none`)                                       |
-| `POST /v1/record-types/{id}/contract-preview`     | the same under a **drafted** `definition` of the shape the type points at — EDITOR                                                                    |
-| `PATCH /v1/schema-entries/{id}` + `validateOnly`  | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                         |
-| `PATCH /v1/record-types/{id}` + `validateOnly`    | what a `uses`, binding or key change derives to — declarations, reindex, restamp                                                                      |
-| `GET /v1/skills/rename-preview`                   | every step whose wiring a slot rename would rewrite                                                                                                   |
-| `POST /v1/skills/validate-draft`                  | whether an unsaved step is valid — it executes nothing                                                                                                |
-| `GET /v1/flows/{id}/health`                       | whether the flow is whole after the edit                                                                                                              |
-| `GET /v1/flow-checkpoints/{id}/restore-preview`   | what restoring would change back                                                                                                                      |
-| `GET /v1/eval-suites/{id}/readiness`              | whether the suite can still judge the thing you changed                                                                                               |
-| `POST /v1/projects/{nodeId}/document/plan`        | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing |
+| Route                                             | Answers                                                                                                                                                           |
+| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/bootstrap?project={nodeId}`              | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                                |
+| `GET /v1/projects/{nodeId}/connections`           | what starts each element, what it writes, reads, tags, calls and announces, and what points at it — computed from the configuration, so current after every write |
+| `GET /v1/projects/{nodeId}/deletion-preview`      | what deleting the whole project would take with it                                                                                                                |
+| `DELETE /v1/facets/{id}` + `validateOnly`         | whether a facet delete would be allowed, and what it reaches                                                                                                      |
+| `DELETE /v1/record-types/{id}` + `validateOnly`   | whether a record-type delete would be allowed — the verdict only; a document plan lists what it would cascade into                                                |
+| `DELETE /v1/relation-kinds/{id}` + `validateOnly` | the edges the delete would take, as `edges-deleted` under `consequences`                                                                                          |
+| `GET /v1/flows/{id}?expand=dependents`            | everything that blocks a flow delete, with `deleteRefusal` — `DELETE /v1/flows/{id}` itself has NO rehearsal flag (below)                                         |
+| `GET /v1/record-types/{id}/contract-preview`      | the field vocabulary under a **proposed** shape entry (`dataEntryId`) and/or flow binding (`flowId`, or `none`)                                                   |
+| `POST /v1/record-types/{id}/contract-preview`     | the same under a **drafted** `definition` of the shape the type points at — EDITOR                                                                                |
+| `PATCH /v1/schema-entries/{id}` + `validateOnly`  | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                     |
+| `PATCH /v1/record-types/{id}` + `validateOnly`    | what a `uses`, binding or key change derives to — declarations, reindex, restamp                                                                                  |
+| `GET /v1/skills/rename-preview`                   | every step whose wiring a slot rename would rewrite                                                                                                               |
+| `POST /v1/skills/validate-draft`                  | whether an unsaved step is valid — it executes nothing                                                                                                            |
+| `GET /v1/flows/{id}/health`                       | whether the flow is whole after the edit                                                                                                                          |
+| `GET /v1/flow-checkpoints/{id}/restore-preview`   | what restoring would change back                                                                                                                                  |
+| `GET /v1/eval-suites/{id}/readiness`              | whether the suite can still judge the thing you changed                                                                                                           |
+| `POST /v1/projects/{nodeId}/document/plan`        | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing             |
 
 ⚠️ **`POST /v1/flows/{id}/preview` is not one of these.** It runs the flow for real and **applies
 its writes** unless you pass `apply: false`, it bills the payer, and it needs ADMIN. It is a test

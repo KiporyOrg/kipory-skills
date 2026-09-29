@@ -15,6 +15,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `PATCH` | [`/v1/projects/{nodeId}`](#patch-v1-projects-nodeid) |  |
 | `DELETE` | [`/v1/projects/{nodeId}`](#delete-v1-projects-nodeid) |  |
 | `PUT` | [`/v1/projects/{nodeId}/address`](#put-v1-projects-nodeid-address) |  |
+| `GET` | [`/v1/projects/{nodeId}/connections`](#get-v1-projects-nodeid-connections) |  |
 | `GET` | [`/v1/projects/{nodeId}/deletion-preview`](#get-v1-projects-nodeid-deletion-preview) |  |
 | `GET` | [`/v1/projects/{nodeId}/history`](#get-v1-projects-nodeid-history) |  |
 | `GET` | [`/v1/projects/{nodeId}/history/{structureVersion}`](#get-v1-projects-nodeid-history-structureversion) |  |
@@ -148,6 +149,25 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `subdomain` | `string` | yes | The project's address after the call, normalized — trimmed and lower-cased, so it may differ from what was sent. |
 | `previousSubdomain` | `string \| null` | yes | The address this call freed, or null when nothing moved because you sent the address the project already had. A freed address is reserved against reuse by any OTHER project for a few minutes, and keeps resolving here for at most that long while routing caches expire — so the cutover is quick but not instantaneous everywhere. |
+
+### `GET /v1/projects/{nodeId}/connections`
+
+Every element of the project — flows, steps, record types, endpoints, schedules, triggers, facets, event types — with every relation between two of them (what starts what, which records a step reads or writes, what it tags and announces) and every model, outside service and mail call a step makes, computed from the configuration when read. Revalidate with `If-None-Match`: an unchanged project answers 304. For the configuration itself, read `GET /v1/projects/{nodeId}/document` instead.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | Node id of the project. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `string` | yes | The structure version the connections were computed at. |
+| `elements` | `object[]` | yes | Every element of the project, plus each platform flow a relation reaches. |
+| `relations` | `object[]` | yes | Every relation between two elements. |
+| `calls` | `object[]` | yes | Every model, outside service and mail call a step makes. A flow calls what its steps call. |
 
 ### `GET /v1/projects/{nodeId}/deletion-preview`
 
