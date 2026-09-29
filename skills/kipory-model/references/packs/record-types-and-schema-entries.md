@@ -687,7 +687,7 @@ and `limit` caps what is returned of it.
 
 **Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
 hop through `peer`. A query language — the grammar is this JSON, in a step's config or a request
-body. A cached answer — every query reads the stores as they are now. The operator app draws an `entity.query` step's clauses as a read-only tree and says so on the step page; a step's clauses are written through the design API (`POST /v1/skills`, `PATCH /v1/skills/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
+body. A cached answer — every query reads the stores as they are now. The operator app draws an `entity.query` step's clauses as a read-only tree and says so on the step page; a step's clauses are written through the design API (`POST /v1/steps`, `PATCH /v1/steps/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
 
 ## What the platform refuses
 

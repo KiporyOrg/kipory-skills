@@ -90,15 +90,15 @@ $trim($replace($replace($replace(raw, /<(script|style)[\s\S]*?<\/(script|style)>
 
 **No vendor at all** — no Firecrawl key, or its credit spent: drop `scrape` and read `url.fetch` →
 `strip` as the body, and take the title from `url.metadata` on the same `url` (its `title`, from
-the page's `<title>` or `og:title`; also `onFailure: CONTINUE`). A page that builds its text in the
+the page's `<title>` or `og:title`; also `onFailure: continue`). A page that builds its text in the
 browser comes back nearly empty this way; `$assert` on the length (`kipory-build`'s
-`patterns.md` §8) turns that into a clear refusal. ⚠️ **Set `"onFailure": "CONTINUE"` on the `fetch` step.** The two sources fail differently:
+`patterns.md` §8) turns that into a clear refusal. ⚠️ **Set `"onFailure": "continue"` on the `fetch` step.** The two sources fail differently:
 `url.scrape` turns a vendor refusal into a warning and an empty page, but `url.fetch` fails the
 step on a 4xx page, on an address that does not resolve and on a refused one — and one failed
 step fails the whole run, even when the scrape beside it worked: a sync endpoint answers `502`
 (`details.phase: "handler-error"`), or `400` "blocked network request" for a lookup failure or a
 private address. Only a 5xx from the site comes back as an empty value with a `FETCH_FAILED`
-warning. With `CONTINUE` a failed fetch is a warning, its readers skip, and `body` takes the scrape.
+warning. With `continue` a failed fetch is a warning, its readers skip, and `body` takes the scrape.
 Then guard **every step that reads `body` beside another slot** — `condition: { "op":
 "slotPresent", "slot": "body" }` — model steps included, not only writes. A step runs while any
 one input is present: a key-point `text.generate` that also reads `url` (to cite it) runs on the

@@ -14,7 +14,7 @@ Everything except the last call goes to the **api host** (the base URL you were 
 | Step | Call                                       | Host    | Role                                           |
 | ---- | ------------------------------------------ | ------- | ---------------------------------------------- |
 | 1    | `POST /v1/flows`                           | api     | EDITOR                                         |
-| 2    | `POST /v1/skills`                          | api     | EDITOR                                         |
+| 2    | `POST /v1/steps`                           | api     | EDITOR                                         |
 | 3    | `PATCH /v1/flows/{id}`                     | api     | EDITOR                                         |
 | 4    | `GET /v1/flows/{id}/health`                | api     | VIEWER                                         |
 | 5    | `POST /v1/flows/{id}/preview`              | api     | **ADMIN** — it runs the model and bills        |
@@ -74,7 +74,7 @@ POST /v1/flows
 A step's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "entryId": "<id>" }`, where the id is the built-in `string` entry's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/schema-entries?project={nodeId}&key=string` answers the same id as `entries[0].id`. It is per project; do not reuse one from another project's export by hand.
 
 ```
-POST /v1/skills
+POST /v1/steps
 ```
 
 ```json
@@ -94,12 +94,12 @@ POST /v1/skills
 
 `201 { skill, outstandingIssues }`. `outstandingIssues` carries one warning here, and it is expected: `OUTPUT_SLOT_UNBOUND` — the flow promises `summary` and no step's output is bound to it yet. Step 3 clears it.
 
-- `inputStreams` names the slots this step reads — here the flow's own input slot. `inputSchemas` is positional and **must be the same length**; a mismatch is refused before anything else is checked.
+- `inputStreams` names the slots this step reads — here the flow's own input slot. `inputSchemas` is optional: left out, each input is typed from what feeds it (here the flow's `text` slot). Sent, it is positional and must be the same length; a mismatch is refused before anything else is checked. For a prompt step you may leave `inputStreams` out too — the save reads `{{text}}` from the prompt.
 - `promptTemplate` fills `{{text}}` from the slot of that name.
 - `outputSchema` set to the built-in `string` makes `text.generate` return plain text. Any other shape switches it to structured output parsed into that shape. `text.generate` derives no output shape of its own, so state it.
 - `handlerConfig` for `text.generate` is optional throughout (`temperature`, `reasoningEffort`, `modelSlot`, …); `{}` takes the defaults. See `handlers/text.generate.md`.
 - `taskKey` decides the model: this step runs on whatever model the project binds to `summarization` (`GET /v1/projects/{projectId}/task-models`, which takes the project id). It is one of `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`; omitted, a single create starts the step on `extraction`. Do not set `modelId` unless you mean to pin this one step.
-- `promptTemplate` is a string on every step. A step whose handler sends no prompt — `value.transform`, `entity.create`, `url.fetch` — sends `""`, never `null`.
+- A step whose handler sends no prompt — `value.transform`, `entity.create`, `url.fetch` — leaves `promptTemplate` out; it is stored as `""`.
 - `key` is the step's name: lower-case kebab, dots allowed. `outputSlot` is a slot name — no hyphens, no underscores.
 - Add `"validateOnly": true` to ask for the verdict first; it runs every rule the write runs and writes nothing.
 
@@ -296,7 +296,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 }
 ```
 
-A document step is the whole-graph step row, so it states more than a single create does: `description`, `handlerConfig`, `condition`, `outputSchema` and `enabled` are all **required** here (`null` where there is nothing), `promptTemplate` is required as a string (`""` for a handler that sends no prompt — `null` is refused), and `taskKey` has no default, even on a step that makes no model call. The flow's `skills` map is stated whole — a step you leave out of it is removed.
+A document step is the whole-graph step row, so it states more than a single create does: `description`, `handlerConfig`, `condition`, `outputSchema` and `enabled` are all **required** here (`null` where there is nothing). The rest is filled as on a single create: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a handler that names its inputs, `promptTemplate` and `taskKey` left out keep a held step's values (a new step starts on `""` and `extraction`), and `outputSlot` needed only by a handler that writes a result. The flow's `skills` map is stated whole — a step you leave out of it is removed.
 
 **Plan it.** The body is the document itself, not an envelope. It writes nothing.
 

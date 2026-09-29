@@ -32,7 +32,7 @@ is also what restoring a checkpoint does).
 
 ```
 POST /v1/flows                     create the flow with its signature
-POST /v1/skills                    add nodes — or /v1/skills/batch, or /v1/skills/replace
+POST /v1/steps                    add nodes — or /v1/steps/batch, or a project document
 PATCH /v1/flows/{id}               bind output slots so the flow can actually produce output
 POST /v1/flows/{id}/preview        run it against real inputs and read the transcript
 ```
@@ -144,7 +144,7 @@ Two things to know before you reach for it:
 
 ### What the skill list already tells you about the order
 
-`GET /v1/skills?flowId={id}` answers three questions about each skill that only make sense with the
+`GET /v1/steps?flowId={id}` answers three questions about each skill that only make sense with the
 rest of the flow in hand, so you never have to walk the graph yourself:
 
 | field       | what it says                                                                                                                                                                                                                                                                                                                            |
@@ -394,62 +394,38 @@ the flow between your write and the explanation, so retry rather than renaming. 
 when the handler derives its output slot from its config, because the slot field is not the editable
 one there.
 
-## Copying a flow — export, then replace
+## Copying a flow — through the project document
 
 ```
-GET   /v1/flows/{id}/export        the graph, in portable form
-POST  /v1/skills/replace           the steps, into the target flow
-PATCH /v1/flows/{id}               the output binding, and the signature by TYPE NAME
+GET   /v1/projects/{id}/document          the source project's configuration, flows included
+POST  /v1/projects/{id}/document/plan     what applying it to the target would do
+POST  /v1/projects/{id}/document          apply it to the target
 ```
 
-There is **no import endpoint, and none is missing**: the `skills` array the export returns IS what
-`/v1/skills/replace` accepts. Copying a flow is those calls, not a format conversion.
+A flow is copied the way any configuration is: read the source project's document, keep the flow
+(and whatever it names that the target lacks), and apply that to the target. Everything inside a
+document is addressed by **key** — a step by its key, a type by `{ "kind": "ref", "ref": "<name>" }`
+— so nothing in it is a source-project id, and the steps, the signature and the output binding travel
+together. See `capability-packs/project-document.md`.
 
-⚠️ **Three calls, not two.** `replace` writes STEPS. The export's `flow` block carries the declared
-input/output slots and the output binding because a graph cannot be reconstructed without them — send
-only the steps and you get a flow that computes correctly and returns nothing, which is the
-`OUTPUT_SLOT_UNBOUND` trap in a new costume.
+`GET /v1/flows/{id}/export` is a read: one flow's graph in portable form, with the persisted slot
+shape (`inputSlots: [{ slot, type: { kind: "ref", entryId } }]`) whose `entryId` is a SOURCE-project
+registry id. There is no route that writes it back — the step-set replace was retired (feature 343)
+because the document already does it, keyed, planned and versioned.
 
-⛔ **The `flow` block is not itself a PATCH body, and this page used to imply it was.**
-`outputBinding` transfers verbatim. The two slot lists do NOT: the export emits the persisted shape
-(`inputSlots: [{ slot, type: { kind: "ref", entryId } }]`) while `PATCH /v1/flows/{id}` takes
-`inputTypeNames` / `outputTypeNames` as `{ slot, typeName, isList, required }` — a different field
-name and a different shape, and the body is strict, so sending the export's form is refused on an
-unknown key. `entryId` is a SOURCE-project registry id and means nothing in the target. Read the type
-NAMES for those entry ids from the source project (`GET /v1/schema-entries`) and send those.
+⚠️ **A type the target lacks is seeded if it is a library type; an operator-defined one is not.**
+That is the target project's own configuration, so the plan names it and the apply refuses rather
+than binding a reference to nothing. State the type in the same document to copy it too.
 
-⚠️ **Type references are rebound to the target project on the way in**, matched by
-`(provenance, name)`. A library type the target lacks is seeded. An operator-defined type it lacks
-cannot be — that is the target project's own configuration — so the reference stays unmatched and the
-replace refuses with `SCHEMA_REF_DANGLING`, rolling the whole thing back. Loud, not silently
-mis-bound, which is what makes cross-project copying safe to offer.
-
-⚠️ **An unrecognised `modelId` is refused at the write.** A graph exported from a deployment with a
+⚠️ **An unrecognised `modelId` is refused at the write.** A graph copied from a deployment with a
 model the target does not have fails there rather than silently falling back.
 
-⚠️ **`timeoutMs` travels with the step through THIS export, and did not always.** A step's per-call
-deadline is a persisted, operator-set column, and the replace entry had no field for it — so a copied
-flow landed with every deadline reset to the per-task default, silently, with nothing in the payload
-to notice was missing. `GET /v1/flows/{id}/export` carries it now, and `POST /v1/skills/replace`
-persists it; a payload that omits it still parses and means "no per-step deadline", which is what an
-older stored export honestly says.
-
-⚠️ **Checkpoints and run flow-snapshots carry it too — but only the ones captured since.** Both are
-serialized by the checkpoint entry shape, which records `timeoutMs` now. An older checkpoint or
-snapshot lacks the key, and there an absent `timeoutMs` means "this record does not say", NOT "the
-run had no deadline". Do not read an older snapshot as evidence about a deadline, and expect restoring
-an older checkpoint to clear one. The restore preview shows the pair so the loss is visible before
-you commit to it; see `capability-packs/flow-checkpoints.md`.
-
-The four run settings — `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes` — travel the
-same way `timeoutMs` does: the export carries them, `replace` persists them, and the checkpoint
-format records them for anything captured since — so their absence on an older snapshot or checkpoint
-means "not recorded".
-
-⚠️ **There is no `schemaVersion` on the export, deliberately.** The format is the replace entry
-shape, whose evolution is already governed; a version integer beside it would be a second, weaker
-mechanism for the same thing — and the weaker one is the one nobody bumps. A stored export re-imported
-later is validated by `replace` on the way in, so a shape that moved fails naming the field.
+⚠️ **The run settings travel with the step** — `timeoutMs`, `tries`, `tryDelayMs`, `onFailure` and
+`reuseResultsForMinutes`, in the document and in the export alike. Checkpoints and run
+flow-snapshots record them only for anything captured since each was added, so there an absent value
+means "this record does not say", NOT "the run had none". Do not read an older snapshot as evidence
+about a deadline, and expect restoring an older checkpoint to clear one. The restore preview shows the
+pair so the loss is visible before you commit to it; see `capability-packs/flow-checkpoints.md`.
 
 ## How a step runs — on/off, time limit, tries, failure, reuse
 
@@ -465,7 +441,7 @@ step that sets none behaves as it always has.
   the flow itself, whose work may still finish) or `ignored` (control steps). Do not work out what an
   unset limit falls back to — it can be the step's task limit, the deployment's generation default
   or the handler's own wait, and which one depends on the handler. Read `effectiveTimeLimit` on
-  `GET /v1/skills?flowId=` instead: the limit a run applies, the layer that decided it, and
+  `GET /v1/steps?flowId=` instead: the limit a run applies, the layer that decided it, and
   `whenUnset`, what clearing the step's own falls back to. Holding a flow's steps already — off
   the bootstrap, which carries every row — ask `GET /v1/flows/{id}?expand=timeLimits` for the
   same figure keyed by skill id, without the rows; it rides beside `expand=dependents` on one
@@ -479,8 +455,8 @@ step that sets none behaves as it always has.
   fix is tried again — never a missing API key, a blocked web address, bad input or a used-up quota.
   ⚠️ Each try is charged when the step sets its own tries; the handler's built-in tries are billed
   once. If the same fetch is already running for another step, that run's settings apply.
-- **`onFailure`** — `FAIL_RUN` (the default): the run fails and keeps nothing it wrote, while steps
-  that do not depend on this one still run. `CONTINUE`: the run carries on without this step's
+- **`onFailure`** — `fail-run` (the default): the run fails and keeps nothing it wrote, while steps
+  that do not depend on this one still run. `continue`: the run carries on without this step's
   output and reports the failure as a warning. Refused on a control step, on a step that may write
   or reach a sub-flow, and on a step that feeds a required flow output.
 - **`reuseResultsForMinutes`** — how long a result the step saved stays reusable: null is the
@@ -498,20 +474,24 @@ inside a JSONata expression, so writing the expression IS writing the step's inp
 is nothing to pick from a list.
 
 ```
-POST /v1/skills/validate-draft    what is wrong with this config, and what does it read
+POST  /v1/steps        { …, "validateOnly": true }   a step you are adding
+PATCH /v1/steps/{id}   { …, "validateOnly": true }   a step you are changing
 ```
 
-Send `flowId`, `handlerKey` and the draft's `handlerConfig`. Nothing is persisted and nothing is
-executed. You get back `diagnostics` and `derivedInputStreams`.
+Both dry runs answer `derived.draft`: what the platform makes of the step's CONFIGURATION — its
+`diagnostics`, the `derivedInputStreams` it names and the `derivedInputSchemas` it would type them
+as. Nothing is persisted and nothing is executed. On the PATCH it describes the stored step with your
+patch applied, so send only what changes. (It had a route of its own, `validate-draft`, until feature
+343 folded it into the writes — one route, one set of rules.)
 
-⚠️ **If the step already has wiring, send `inputStreams`, `inputPaths` and `inputProjectionNames`
-too.** They are positionally aligned, exactly as on the skill row. The save resolves a projection
+⚠️ **If the draft changes the wiring, send `inputStreams`, `inputPaths` and `inputProjectionNames`
+together.** They are positionally aligned, exactly as on the skill row. The save resolves a projection
 alias back to the stream it came from before pinning the input list, and it needs those columns to
 do it — without them a step whose config reads `userInfo__userId` gets back that alias where the
 save would pin `userInfo`. Omitting them is correct and free for a step you are creating.
 
 `derivedInputStreams` is the slot list this configuration NAMES, sorted — the **same list the save
-pins onto the step**, because the route runs the platform's own derivation rather than a second one.
+pins onto the step**, because the dry run runs the platform's own derivation rather than a second one.
 Send `order.total + shipping` and it answers `["order", "shipping"]`.
 
 ⭐ **A prompt-shaped step names its inputs in its placeholders, so send the template too.** For a
@@ -522,10 +502,10 @@ reads while it is being typed rather than only after it is saved. A placeholder 
 system prompt wires a slot exactly as one in the prompt does, but only where the handler declares it
 reads a system prompt at all — `text.generate` does, `text.interpolate` does not.
 
-⛔ **Send `inputSchemas` with it, or a wired FILE is dropped from the answer.** A multimodal handler
-attaches a file input that no placeholder mentions, and the save counts that slot; without the refs
-this route cannot recognise one and answers a list without it. Saving that list would unwire the
-file. This route takes no step id — the step may not exist yet — so it cannot look the shapes up.
+⛔ **On the create, send `inputSchemas` with a wired FILE, or it is dropped from the answer.** A
+multimodal handler attaches a file input that no placeholder mentions, and the save counts that slot;
+without the refs the derivation cannot recognise one and answers a list without it. The PATCH reads
+the stored shapes when you send none.
 
 `derivedInputSchemas` sits beside it, one entry per slot, and is the shape the save types a wire on
 that slot from — the step that writes it, else the flow input, else the platform's own type. When
@@ -533,51 +513,38 @@ the derived list differs from the step's wiring, send it as `inputSchemas` for e
 not already hold a stored shape for. An entry is `null` when nothing declares that slot's shape:
 there is no neutral shape to send, so do not save that list until the slot is typed.
 
-⭐⭐ **Send `run` and it answers the save's own rules about how the step runs.** The five that
-exist are in the section above: tries on a step that runs in the flow rather than on a queue, a
+⭐⭐ **Send the run settings and it answers the save's own rules about how the step runs.** The five
+that exist are in the section above: tries on a step that runs in the flow rather than on a queue, a
 wait beside `tries: 1`, a time limit a control step never reads, a time limit above the handler's
 own `run.budgetMs`, and a reuse period on a step that saves nothing. Each comes back as a `RUN_*`
 code with the field it is about, so a form marks the box rather than showing a sentence.
 
 ```json
-{ "run": { "timeoutMs": 6000, "tries": 1, "tryDelayMs": 5000 } }
+{ "timeoutMs": 6000, "tries": 1, "tryDelayMs": 5000, "validateOnly": true }
 ```
 
-⚠️ **Omitting `run` runs no rule about it**, and a `null` inside it is a real value: absent means
-the draft does not set that field, `null` means it was cleared, and neither is a violation.
+⚠️ **A run setting you do not send is judged as it is stored** on the PATCH, and not at all on the
+create, and a `null` is a real value: it means the setting was cleared, which is never a violation.
 
-⛔⛔ **The four numbers carry the SAVE's own bounds here** — `timeoutMs` 1–120000, `tries` 1–5,
-`tryDelayMs` 0–60000, `reuseResultsForMinutes` 0–86400 — because a dry run that accepts a number the
-save refuses is the one thing this route exists to prevent. They were bare integers until 2026-09-20,
-so `tries: 99` came back as a clean verdict and `PATCH /v1/skills/{id}` then refused the identical
-body at its own schema. A value outside a bound is a **400 against the body**, not a `RUN_*` finding:
-the bound is the shape of the field, and the five `RUN_*` rules are about a well-formed number being
-wrong for THIS handler.
+⚠️ **A value outside a field's bounds is a 422 against the body**, not a `RUN_*` finding — the
+dry run parses the write's own body, so it cannot accept a number the save refuses. The bound is the
+shape of the field; the five `RUN_*` rules are about a well-formed number being wrong for THIS
+handler.
 
-⭐ **Send `name` beside it.** Every run-settings sentence opens by naming the step — that is the
-save's own wording, reused rather than restated — so a draft the route cannot name is described as
-`"this step"`. Nothing validates the name; it only changes the words.
+⭐ **A finding in `derived.draft` names the setting under `run`**, e.g. `fields: ["run.tryDelayMs"]`.
+The verdict's own `diagnostics` carry the save's findings on the body's field names, and they include
+the one rule `derived.draft` cannot ask: an `onFailure: continue` on a step writing a slot the flow
+must RETURN is a fact about the flow's declaration, and `derived.draft` judges the configuration
+alone.
 
-⚠️ **`run.onFailure` takes the same two values the step row does** (`FAIL_RUN`, `CONTINUE`) and
-nothing else. It was a free-form string for one revision, which meant `"continue"` was accepted,
-matched no rule, and came back clean from a draft the save refuses.
-
-⭐ **A finding names the box under `run`**, e.g. `fields: ["run.tryDelayMs"]` — the body nests the
-settings, so the bare column name would address a field this request does not carry.
-
-⛔ **One of the five cannot be asked here.** An `onFailure: CONTINUE` on a step writing a slot the
-flow must RETURN is a fact about the flow's declaration, not about this draft, and this route is
-deliberately graph-free. The save runs it, and `PATCH /v1/skills/{id}` with `validateOnly: true`
-walks the graph if you want it first.
-
-⭐ **Send `outputSchema` too and the route will also tell you when the result cannot fit it.**
+⭐ **Send `outputSchema` too and `derived.draft` will also tell you when the result cannot fit it.**
 Optional, and the only thing omitting it costs is that one check — every other diagnostic is
 unaffected. Pass the `SchemaRef` the DRAFT declares, not the one on the saved row: an editor that
 lets somebody re-point a step at a different type must ask about the type they just chose.
 
 What comes back is a WARNING, `JSONATA_OUTPUT_SHAPE_MISMATCH`, and it is deliberately partial.
-JSONata is dynamically typed, so nothing can decide most expressions without running them — and this
-route runs nothing. It speaks only where the SOURCE settles the question: a literal object, array or
+JSONata is dynamically typed, so nothing can decide most expressions without running them — and a
+dry run runs nothing. It speaks only where the SOURCE settles the question: a literal object, array or
 scalar at the top level (or at the end of a `( … ; … )` block) whose kind, or whose complete set of
 literal keys, no value of the declared type could have. `$map(…)`, a path, a function call and a
 conditional all answer with silence.
@@ -589,15 +556,15 @@ without certainty — which is why it warns rather than blocks, and why you shou
 it.
 
 ⚠️ **One computed key silences the key check.** `{ ($prefix & "id"): … }` is legal, and its key is
-not knowable without evaluating — so the route can still tell you the result is an object, and
+not knowable without evaluating — so the check can still tell you the result is an object, and
 cannot tell you which keys it will have. A declared LIST is not checked at all: JSONata's sequence
 semantics make a singleton and a one-element array hard to tell apart, and a guess there would be a
 warning on correct work.
 
-⛔ **An empty `diagnostics` list means the configuration is well-formed. It does NOT mean the step
-will save.** Dangling slots, cycles and output collisions are questions about the GRAPH, and this
-route never looks at one. `GET /v1/flows/{id}/health` owns those, and a client that presents a clean
-draft check as "ready to save" will be wrong for every one of them.
+⛔ **An empty `derived.draft.diagnostics` list means the configuration is well-formed. It does NOT
+mean the step will save.** Dangling slots, cycles and output collisions are questions about the
+GRAPH, and `derived.draft` never looks at one. The verdict beside it does — its `ok` and
+`diagnostics` are the save's whole rule set — and `GET /v1/flows/{id}/health` owns the flow's.
 
 ⛔ **A diagnostic names `fields`, a LIST, and its length is the thing to branch on.** One entry is
 the ordinary case and that field owns the message: draw it under that control. **Several means the
@@ -621,7 +588,7 @@ failed, so any list would have been read off a configuration that does not parse
 means the config or the template was read and names no slots.
 
 ⛔ **So `derivedFrom: "handler-config"` is not a promise that the list is there.** Check `diagnostics`
-first, or check the list for null — the half-typed expression this route exists to answer for is
+first, or check the list for null — the half-typed expression this check exists to answer for is
 exactly the case that returns both.
 
 ⛔ **`derivedFrom` is not the field that decides whether to show an input picker.** That is
@@ -646,7 +613,7 @@ so an editor can underline the offending character rather than pointing at the f
 
 ## Asking a step's settings first — `validateOnly` on the patch
 
-`PATCH /v1/skills/{id}` takes **`validateOnly: true`**. It runs every rule the
+`PATCH /v1/steps/{id}` takes **`validateOnly: true`**. It runs every rule the
 save runs — the normalization, the consumer re-typing cascade, the slot-rename
 plan and the whole flow-graph gate — writes nothing, and answers 200 with a
 verdict.
@@ -674,11 +641,15 @@ form marks the box rather than showing a sentence.
 ⚠️ **That count is a snapshot** — a sibling edited between this answer and the
 save moves it.
 
+⭐ **A patch that changes `outputSlot` also answers `derived.rename`** — whether
+the new name is legal and free, and which steps and sites read the old one —
+before you decide to confirm the rename. See "Renaming a slot" below.
+
 ⚠️ **Warnings ride `diagnostics` and leave `ok` true.** A save returns the same
 set beside the saved row precisely because they block nothing. Gate on
 `severity`, never on the list being empty.
 
-⛔ **A stale `capturedVersion` still answers 409, not a verdict.** The draft
+⛔ **A stale `version` still answers 409, not a verdict.** The draft
 would be judged against a row that has moved, so every finding below it would
 describe a state you cannot see. Re-read, then ask again.
 
@@ -688,16 +659,17 @@ the verdict declares.
 
 ## Asking before you add a step — `validateOnly` on the create
 
-`POST /v1/skills` takes **`validateOnly: true`** as well. It runs every rule
+`POST /v1/steps` takes **`validateOnly: true`** as well. It runs every rule
 the create runs — the normalization, the flow-graph gate, whether the name or
 the output slot is already held in the flow, whether a pinned model is in the
 catalog — writes nothing, and answers **200** with a verdict. The create itself
 answers **201**, so the status alone tells the two apart.
 
-⚠️ **`validate-draft` is not this question.** It judges a configuration — what
-it reads, whether it parses — and says a clean answer does not mean the step
-will save. A key another step holds, an input count the handler refuses, an
-empty prompt a prompt-driven handler needs: those are answered here, not there.
+⚠️ **`derived.draft` beside the verdict is a narrower question.** It judges the
+configuration — what it reads, whether it parses — and a clean one does not mean
+the step will save. A key another step holds, an input count the handler
+refuses, an empty prompt a prompt-driven handler needs: those are the verdict's
+`ok` and `diagnostics`, not `derived.draft`'s.
 
 ⭐ **A taken key is a verdict on `key` (or `outputSlot`)**, carrying the free
 value the create's 409 would have suggested — not a 409.
@@ -710,12 +682,12 @@ limit when the step sets no `timeoutMs`.
 
 ### Seeing what a prompt becomes — and what it costs to ask
 
-`validate-draft` answers what a configuration READS. A prompt-shaped step has a second question
+`derived.draft` answers what a configuration READS. A prompt-shaped step has a second question
 that nothing above answers: with the slots filled in, what text does the model actually receive?
 
 ```
-POST /v1/skills/preview           ask the model, and bill for it
-POST /v1/skills/interpolate       render the prompt, and stop
+POST /v1/steps/preview           ask the model, and bill for it
+POST /v1/steps/interpolate       render the prompt, and stop
 ```
 
 Both take `flowId` — the authorization anchor — plus `handlerKey`, `promptTemplate`, your
@@ -724,12 +696,12 @@ Both take `flowId` — the authorization anchor — plus `handlerKey`, `promptTe
 written and no slot is touched.
 
 ⚠️ **`/preview` makes one real model call on `text.generate` and bills the project.** It is the
-only `/v1/skills` route that spends money, and it is floored at ADMIN for that reason. Every other
+only `/v1/steps` route that spends money, and it is floored at ADMIN for that reason. Every other
 step type returns its interpolated text without calling anything, because what those handlers DO
 depends on slot I/O the caller has not supplied.
 
 ⭐ **`/interpolate` cannot bill, and is floored at EDITOR** — the bar for SAVING the step it stands
-in for, which is the same floor `validate-draft` carries. It calls no model, resolves no project
+in for. It calls no model, resolves no project
 and names no payer. Its reply is the interpolated prompt and the elapsed time; there is no
 `response` and there are no token counts, because there is no call to report.
 
@@ -742,7 +714,7 @@ and names no payer. Its reply is the interpolated prompt and the elapsed time; t
 the request BODY, and a floor that does that cannot be graded by the gate whose whole job is to
 prove that a spending route sits at ADMIN. A route either spends or it does not, and now each one
 says which in its own name. **If you were sending `interpolateOnly`, send the request to
-`/v1/skills/interpolate` instead; the field is gone.**
+`/v1/steps/interpolate` instead; the field is gone.**
 
 ⛔ **Both still take `handlerKey`, and you should not lie about it.** That field decides TWO things,
 not one: whether a model is called AND whether `{{#slot}}` sections ITERATE. Before the free render
@@ -753,7 +725,7 @@ alone, so the text is what the model would have received.
 
 ⭐ **A platform flow's step can use `/interpolate` and cannot use `/preview` without a project.**
 A platform flow belongs to no project, so there is nobody to bill and no binding to resolve;
-`/preview` therefore requires `projectId` there and refuses without it, while `/interpolate` asks
+`/preview` therefore requires `project` (the project's node id) there and refuses without it, while `/interpolate` asks
 neither question.
 
 ⚠️ **A template fault is a 422, not a 500.** `PREVIEW_TEMPLATE_ERROR` carries the interpolation
@@ -773,7 +745,7 @@ A single id on its own is refused: the shape is always a list, even for one file
 
 ⚠️ **Which project that is follows the flow, except on a platform flow.** A project flow's step
 resolves its attachments against that flow's project. A platform flow has none, so it resolves
-against the `projectId` you name — the same one it bills and picks a model from.
+against the `project` you name — the same one it bills and picks a model from.
 
 ⚠️ **The order you send them in is the order the model sees, both ways.** A JSON object's key
 order is preserved and each slot's list is taken as written, so the file parts follow the prompt in
@@ -799,7 +771,7 @@ the project's type registry, and what a path into a value yields is a projection
 registry.
 
 ```
-GET /v1/skills/input-options    every slot this step could read, each checked
+GET /v1/steps/input-options    every slot this step could read, each checked
 ```
 
 Send `flowId` and `handlerKey`, and `stepId` when the step is saved. Omit `stepId` for a step you
@@ -906,12 +878,13 @@ outputs stay listed — naming one closes a cycle, which the create reports as a
 ### When the step's settings or prompt name its inputs
 
 For a `config` or `prompt` picker the inputs are not chosen here: they are whatever the settings or
-the prompt name, and `inputStreams` must list **exactly** those root slots — no more, no fewer, in
-any order (a prompt step's attached files aside). A difference is refused with
-`FREE_FORM_INPUT_STREAMS_MISMATCH`, whose message names the missing and the extra, and
-`inputSchemas` follows position for position. A single create may add a missing provider root to
-`inputStreams` for you and then refuse an `inputSchemas` of the wrong length
-(`INPUT_SCHEMAS_LENGTH_MISMATCH`), so state both lists yourself.
+the prompt name. Leave `inputStreams` out (or send `[]`) and every step write — single, batch,
+document — stores exactly those root slots, each typed from what feeds it; a PATCH that changes the
+settings or prompt without `inputStreams` re-derives them. A list you send must name exactly those
+roots — no more, no fewer, in any order (a prompt step's attached files aside) — or it is refused
+with `FREE_FORM_INPUT_STREAMS_MISMATCH`, whose message names the missing and the extra.
+`inputSchemas` is optional on every write: an input you give no type is typed from what feeds it,
+and a type you give is kept for that input wherever the platform places it.
 
 <!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
@@ -939,7 +912,7 @@ any order (a prompt step's attached files aside). A difference is refused with
 ## Which condition operator fits which value
 
 ```
-GET /v1/skills/condition-operators    per operator: fits / inert / mismatch, whole slot and field
+GET /v1/steps/condition-operators    per operator: fits / inert / mismatch, whole slot and field
 ```
 
 A condition leaf reads one value. For each operator the table gives a verdict on text, a number,
@@ -966,25 +939,22 @@ inside its `handlerConfig`. Renaming one therefore has a blast radius, and nothi
 for you.
 
 ```
-GET   /v1/skills/rename-preview    what it would touch
-PATCH /v1/skills/{id}              commit, with `confirmedOutputSlotRenames`
+PATCH /v1/steps/{id}   { "version": …, "outputSlot": "<new>", "validateOnly": true }   what it would touch
+PATCH /v1/steps/{id}   { …, "confirmedOutputSlotRenames": [ … ] }                      commit it
 ```
 
-The preview takes `flowId`, `oldSlotName`, `newSlotName` and an optional
-`excludeSkillId` as query parameters — pass the step doing the renaming as
-`excludeSkillId`, or it collides with its own output.
-
-The preview reports `skillsAffected`, `sitesAffected`, and a per-step `reports` array naming every
+The dry run answers `derived.rename` whenever the patch changes `outputSlot` from one non-empty name
+to another. (It had a route of its own, `rename-preview`, until feature 343 folded it into the
+PATCH.) It reports `skillsAffected`, `sitesAffected`, and a per-step `reports` array naming every
 site. It uses the **same scanner** the write's rewrite plan uses, so a site it names is a site the
 rewrite touches.
 
 ⛔ **An illegal rename comes back as a 200 with `refusals`, not an error.** You asked what would
 happen; "it would be refused, because another step already writes that name" is the answer. Read
-`legal`. There are **five** refusals: the new name colliding with another step's output; either
-name being a flow input, provider or engine slot; the new name breaking the persisted slot grammar;
-and **no step in the flow producing the old name at all**. ⚠️ The grammar one catches people,
-because the two are not the same regex: the query string admits `_`, the persisted column does not,
-so `summary_v2` passes the preview's parameter check and is refused by the write.
+`legal`. The refusals are the new name colliding with another step's output, either name being a
+flow input, provider or engine slot, and **no step in the flow producing the old name at all**. A
+name outside the slot grammar never gets that far: the body refuses it with a 422 naming
+`outputSlot`, as the save would.
 
 ⚠️ **`reports` is filled in even when the rename is refused** — what the OLD name is wired to stays
 useful when the NEW name is unavailable. Rendering it only on `legal: true` throws away the half you
@@ -1085,7 +1055,7 @@ Three things worth knowing about that array:
 - **`details` is where the actionable part lives.** `VECTOR_SEARCH_FILTER_SLOT_UNDECLARED` does
   not merely say a slot is undeclared — it carries the full set of roots the flow _does_ offer,
   so you can correct the config in one step instead of guessing.
-- **`skillId` says which row a refusal is about**, and on a batch or replace write the blocking
+- **`skillId` says which row a refusal is about**, and on a batch write or a document apply the blocking
   diagnostics can belong to several different skills. Do not assume a refusal is about the one
   you think you were editing.
 
@@ -1098,16 +1068,17 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   the segment before the dot, and no group has to exist before a key does. What is refused is
   anything outside the grammar: uppercase, underscores, spaces, a leading digit, an empty
   segment. Slots use a different, plainer identifier grammar.
-- **Declared input schemas must line up one-for-one with declared input streams**, and any paths
-  or projection names alongside them too. This is refused before any database work happens.
-- **`FREE_FORM_INPUT_STREAMS_MISMATCH`** — your declared input streams must exactly equal the set
+- **Declared input schemas, when you send them, must line up one-for-one with the input streams
+  you send beside them**, and any paths or projection names alongside them too. This is refused
+  before any database work happens. Leave them out and the platform types the inputs.
+- **`FREE_FORM_INPUT_STREAMS_MISMATCH`** — input streams you declare must exactly equal the set
   of slots the handler's free-form config actually references, whether through dotted paths,
   expressions, or template placeholders. The refusal names the streams you are missing, so this
   is a loop worth leaning on rather than avoiding. ⛔ **A prompt edit is a wiring edit.** The set
   is what the template names PLUS every file-shaped wire the step attaches plus any slot named by
-  a non-prompt config field the handler declares (`text.generate`'s `modelSlot` is one), so
-  sending `promptTemplate` alone — or `handlerConfig` alone — is refused whenever the set moved.
-  Ask `POST /v1/skills/validate-draft` for the list and send it with the text.
+  a non-prompt config field the handler declares (`text.generate`'s `modelSlot` is one). A PATCH
+  sending `promptTemplate` alone — or `handlerConfig` alone — re-derives the set for you (keeping
+  the step's wired files); a PATCH that also sends `inputStreams` is judged on the list it sends.
 - **`CONFIG_SLOT_PATH_CROSSES_LIST`** — a config slot path takes a bare FIELD step off a LIST,
   which reads nothing: a list has no fields, so the value resolves to `undefined` on every run and
   the step behaves as though nothing were wired. `hits.chunks.text` is refused where
@@ -1124,7 +1095,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   holds wherever a condition is stored, under that write's own code: a trigger's `filter` is a
   422 `VALIDATION_FAILED` on `filter`, and a loop-end's `until` is `INVALID_HANDLER_CONFIG` at
   `until`. A condition already stored deeper still runs, and flow health does not report it —
-  only a write is refused. ⚠️ **A write that judges the whole flow meets it too:** a replace, a
+  only a write is refused. ⚠️ **A write that judges the whole flow meets it too:** a
   checkpoint restore and a project-document apply that changes the flow validate every step, so
   a step stored that deep must be flattened before any of them lands.
 - **Editing a skill requires the version you last read.** A stale one is refused unless you
@@ -1143,7 +1114,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   delete throws from. Offer Delete where it is null; do not decide from `total`.
 - **A skill cannot be deleted while another skill in its flow reads a slot it writes** — as an
   input or in its condition — a 409 `SKILL_HAS_DEPENDENTS` naming the slot and the readers. Every
-  entry of `GET /v1/skills?flowId=`, and every skill on the bootstrap, carries that refusal as
+  entry of `GET /v1/steps?flowId=`, and every skill on the bootstrap, carries that refusal as
   `deleteRefusal` (or null), from the function the delete throws from.
 - **A flow whose project is off the design surface is a 404**, indistinguishable from one that
   never existed.

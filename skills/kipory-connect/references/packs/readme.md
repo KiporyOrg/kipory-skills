@@ -57,7 +57,7 @@ quietly working around it.
 | Understand how a request to a project's own host is served, end to end  | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)           |
 | Expose a flow over HTTP — sync, async or streaming                      | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)           |
 | Mint a token that can call a project's API                              | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)           |
-| Build or edit a flow; add, replace or reorder skills                    | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                               |
+| Build or edit a flow; add, change or reorder skills                     | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                               |
 | Make a flow actually return its declared output                         | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                               |
 | Run a flow against real inputs — and the flag that stops it writing     | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                               |
 | Define a reusable data shape                                            | Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) |

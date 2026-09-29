@@ -102,19 +102,19 @@ name, rather than trusting the automatic one to still be there.
   good changes along with the bad.
 - **A restore matches steps by key.** A step the flow still holds is rewritten in place and keeps
   its id; if the restore changes it, its `version` moves FORWARD (never back to the captured
-  number), so a `capturedVersion` you held is stale: re-read the flow's steps after a restore. A step deleted since comes back with a NEW
+  number), so a `version` you held is stale: re-read the flow's steps after a restore. A step deleted since comes back with a NEW
   id, and one added since is deleted. History keyed by step id —
   `GET /v1/projects/{nodeId}/ai-calls?skillId=`, the `bySkill` rows of
   `GET /v1/runs/{runId}/spend`, a trace's `skillId` — splits only for a step that came back with a
   new id; key your own history by step key and it never splits. A project-document apply matches
   steps the same way — and by `id` first, where the document states one.
-- **Restore and the atomic skill-replace share the same path**, so a restore accepts entries a
-  single skill create would have rejected — it validates the resulting graph rather than the
-  incoming format.
+- **Restore and a project-document apply share the same step-set path**, so a restore accepts
+  entries a single skill create would have rejected — it validates the resulting graph rather than
+  the incoming format.
 - **A flow whose project is off the design surface is a 404**, and so are its checkpoints.
 
 ## Related
 
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — what is being snapshotted, and the atomic replace that
-  restore uses.
+- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — what is being snapshotted.
+- Project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the other write that sets a flow's steps as a whole.
 - Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`) — how to find out you needed the rollback.

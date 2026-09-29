@@ -2,7 +2,7 @@
 
 Kipory reuses several ordinary words with a specific meaning, and a few of them mean the opposite of what a reader expects. When this file and a longer document disagree, the API's own field names win.
 
-**Agent skill vs. skill.** These files are _agent skills_ — instructions for a coding agent. In the API, a **skill** is one step of a flow: a row bound to a handler key with its config, the slots it reads and the slot it writes (`/v1/skills`). Nothing in the API knows about agent skills.
+**Agent skill vs. skill.** These files are _agent skills_ — instructions for a coding agent. In the API, a **skill** is one step of a flow: a row bound to a handler key with its config, the slots it reads and the slot it writes (`/v1/steps`). Nothing in the API knows about agent skills.
 
 **Handler vs. skill.** A **handler** is platform code from a registry of about seventy entries (`GET /v1/handlers`): `url.scrape`, `text.generate`, `entity.create`. A **skill** is your configured _use_ of one inside a flow. Handlers have a catalog; skills have a flow.
 
@@ -30,7 +30,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Plane.** The design plane is where you author (api host). The dynamic, or project, plane is where your product's users are served (project host). The credit balance is a project-plane read.
 
-**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of four unrelated read-only calls: `contract-preview` and `write-preview` on a record type, `restore-preview` on a checkpoint, `deletion-preview` on a project or member, `rename-preview` on a skill slot, and `POST /v1/skills/preview` — one model call against a prompt template, not a flow run.
+**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of four unrelated read-only calls: `contract-preview` and `write-preview` on a record type, `restore-preview` on a checkpoint, `deletion-preview` on a project or member, and `POST /v1/steps/preview` — one model call against a prompt template, not a flow run.
 
 **Checkpoint vs. snapshot.** A **checkpoint** is a named, manual or automatic copy of a flow's skills, signature and binding that you can restore. A **flow snapshot** is the frozen graph a particular run executed, readable per run, never restorable.
 

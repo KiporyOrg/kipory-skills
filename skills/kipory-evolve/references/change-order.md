@@ -80,8 +80,8 @@ the step's new `outputSlot` and the flow's re-pointed `outputBinding` — one tr
 endpoint never answers from a dangling binding. Row by row it is:
 
 ```
-GET   /v1/skills/rename-preview   every step whose wiring would be rewritten
-PATCH /v1/skills/{id}             the new outputSlot + confirmedOutputSlotRenames — one transaction
+PATCH /v1/steps/{id}             the new outputSlot + validateOnly — derived.rename names every step it would rewrite
+PATCH /v1/steps/{id}             the new outputSlot + confirmedOutputSlotRenames — one transaction
 PATCH /v1/flows/{id}              { outputBinding } — re-point every output bound to the old slot name
 GET   /v1/flows/{id}/health       whether the flow is still whole
 ```

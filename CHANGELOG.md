@@ -2,6 +2,28 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260929.180224 — 2026-09-29
+
+Synced from the Kipory monorepo at `94b7e08c7`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/skills.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/glossary.md`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+
 ## 1.20260929.173731 — 2026-09-29
 
 Synced from the Kipory monorepo at `d7f0f43a7`.

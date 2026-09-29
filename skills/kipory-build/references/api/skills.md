@@ -10,22 +10,21 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Method | Path | Notes |
 | --- | --- | --- |
-| `GET` | [`/v1/skills`](#get-v1-skills) |  |
-| `POST` | [`/v1/skills`](#post-v1-skills) |  |
-| `GET` | [`/v1/skills/{id}`](#get-v1-skills-id) |  |
-| `PATCH` | [`/v1/skills/{id}`](#patch-v1-skills-id) |  |
-| `DELETE` | [`/v1/skills/{id}`](#delete-v1-skills-id) |  |
-| `POST` | [`/v1/skills/{id}/duplicate`](#post-v1-skills-id-duplicate) |  |
-| `POST` | [`/v1/skills/batch`](#post-v1-skills-batch) |  |
-| `GET` | [`/v1/skills/condition-operators`](#get-v1-skills-condition-operators) |  |
-| `GET` | [`/v1/skills/input-options`](#get-v1-skills-input-options) |  |
-| `POST` | [`/v1/skills/interpolate`](#post-v1-skills-interpolate) |  |
-| `POST` | [`/v1/skills/preview`](#post-v1-skills-preview) |  |
-| `GET` | [`/v1/skills/rename-preview`](#get-v1-skills-rename-preview) |  |
-| `POST` | [`/v1/skills/replace`](#post-v1-skills-replace) |  |
-| `POST` | [`/v1/skills/validate-draft`](#post-v1-skills-validate-draft) |  |
+| `GET` | [`/v1/steps`](#get-v1-steps) |  |
+| `POST` | [`/v1/steps`](#post-v1-steps) |  |
+| `GET` | [`/v1/steps/{id}`](#get-v1-steps-id) |  |
+| `PATCH` | [`/v1/steps/{id}`](#patch-v1-steps-id) |  |
+| `DELETE` | [`/v1/steps/{id}`](#delete-v1-steps-id) |  |
+| `POST` | [`/v1/steps/{id}/duplicate`](#post-v1-steps-id-duplicate) |  |
+| `POST` | [`/v1/steps/batch`](#post-v1-steps-batch) |  |
+| `GET` | [`/v1/steps/condition-operators`](#get-v1-steps-condition-operators) |  |
+| `GET` | [`/v1/steps/input-options`](#get-v1-steps-input-options) |  |
+| `POST` | [`/v1/steps/interpolate`](#post-v1-steps-interpolate) |  |
+| `POST` | [`/v1/steps/preview`](#post-v1-steps-preview) |  |
 
-### `GET /v1/skills`
+### `GET /v1/steps`
+
+The steps of one flow (`?flowId=`), each with what the graph adds to the row: the slots it produces, its time limit, whether a delete would be refused. One step: `GET /v1/steps/{id}`. A whole project's configuration, every flow's steps included: `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -39,7 +38,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `skills` | `object[]` | yes | Skills in the flow, enabled or not. |
 
-### `POST /v1/skills`
+### `POST /v1/steps`
+
+Create one step in a flow. Leave out what the platform works out: the inputs a handler names in its settings or prompt, each input's type (from what feeds it), and fields the handler does not read — `promptTemplate`, `taskKey`, and `outputSlot` for a handler that writes no named result. With `validateOnly: true` it answers the save's verdict and what the configuration names (`derived.draft`), writing nothing. Several steps at once: `POST /v1/steps/batch`. A whole project in one planned call: `POST /v1/projects/{nodeId}/document`.
 
 **Request body**
 
@@ -51,13 +52,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `handlerKey` | `string` | yes | Which system handler runs this skill (see `GET /v1/handlers`). It determines what `handlerConfig` may contain. |
 | `handlerConfig` | `unknown` | no | Handler-specific settings, shaped by `handlerKey`. |
 | `condition` | `unknown` | no | Guard evaluated before the skill runs. Unsatisfied means skipped, not failed. |
-| `inputStreams` | `string[]` | yes | Output slots of earlier skills that feed this one, in order. This is the reference list `inputSchemas`, `inputPaths` and `inputProjectionNames` align to — all of them must be the same length as this, or the write is refused. |
-| `outputSlot` | `string` | yes | Slot this skill writes its result to. |
-| `promptTemplate` | `string` | yes | Prompt body for model-backed handlers, with inputs interpolated. |
+| `inputStreams` | `string[]` | no | Slots this step reads — earlier steps' outputs, flow inputs, or the platform's own slots — in order. `inputSchemas`, `inputPaths` and `inputProjectionNames` align to it. Omit it (or send `[]`) for a handler whose inputs are named in its config or prompt (`value.transform`, `text.generate`, `entity.list`, …): the platform fills the list it reads. A list you send is checked, not replaced. |
+| `outputSlot` | `string` | no | Slot this step writes its result to. Required by a handler that writes a result; omit it for one that writes none or derives it from its config (`event.emit`, `vector.upsert`, `flow.merge`, `flow.invoke`, `flow.loop-end`, `flow.dispatch`). |
+| `promptTemplate` | `string \| null` | no | Prompt body, with inputs interpolated. Only a handler that reads a prompt (`text.generate`, `text.interpolate`) needs it; omit it (or send null) for every other handler. |
 | `systemPrompt` | `string \| null` | no | System-role instruction sent alongside `promptTemplate`. |
-| `taskKey` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak"` | no | Task this skill bills and resolves its model under. One of the writable pipeline tasks. Omit it and the skill starts on `extraction` — change it with a PATCH. It decides the model only for a handler whose model follows its task, but every step still bills under it, and a handler whose catalog entry says `run.timeLimitFromTask` takes this task's time limit when the step sets no `timeoutMs`. |
+| `taskKey` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak"` | no | Task this step bills and resolves its model under. One of the writable pipeline tasks. Omit it and the step starts on `extraction` — change it with a PATCH. It decides the model only for a handler whose model follows its task, but every step still bills under it, and a handler whose catalog entry says `run.timeLimitFromTask` takes this task's time limit when the step sets no `timeoutMs`. |
 | `outputSchema` | `object` | no | Schema the skill's output must conform to. Omit or send null for no constraint. |
-| `inputSchemas` | `object[]` | yes | Expected shape of each input, POSITIONALLY ALIGNED with `inputStreams` and required to be the same length. |
+| `inputSchemas` | `object[]` | no | The type of each input, POSITIONALLY ALIGNED with the `inputStreams` you send. Omit it (or send `[]`) and the platform types each input from what feeds it — the earlier step's output, the flow input, the platform slot — through its path. Send it only to state a type on purpose; a stated type is kept and checked. A non-empty list must be the same length as `inputStreams`. |
 | `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
 | `inputProjectionNames` | `string \| null[] \| null` | no | Names each input is exposed under inside the prompt, POSITIONALLY ALIGNED with `inputStreams`. Null at a position uses the source slot's own name. |
 | `enabled` | `boolean` | no | Whether the skill executes. Defaults to enabled. |
@@ -65,7 +66,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `timeoutMs` | `integer \| null` | no | Per-skill time limit in milliseconds, up to 120000. |
 | `tries` | `integer \| null` | no | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
 | `tryDelayMs` | `integer \| null` | no | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
-| `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | no | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. Defaults to `FAIL_RUN`. |
+| `onFailure` | `"fail-run" \| "continue"` | no | What this step's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `continue` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. Defaults to `fail-run`. |
 | `reuseResultsForMinutes` | `integer \| null` | no | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate-draft`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
@@ -76,6 +77,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the create WOULD have computed. |
 
 **Response `201`**
 
@@ -85,7 +87,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
 | `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
 
-### `GET /v1/skills/{id}`
+### `GET /v1/steps/{id}`
+
+One step by id. Every step of its flow, with the graph's facts about each: `GET /v1/steps?flowId=`.
 
 **Path parameters**
 
@@ -118,14 +122,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `modelId` | `string \| null` | yes | Model this skill is pinned to, or null to use the one its `taskKey` resolves to. |
 | `tries` | `integer \| null` | yes | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
 | `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
-| `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | yes | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
+| `onFailure` | `"fail-run" \| "continue"` | yes | What this step's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `continue` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
 | `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
 | `timeoutMs` | `integer \| null` | yes | Per-skill time limit in milliseconds, or null for none of its own. What it bounds depends on the handler: each AI call for an AI generation step; the wait on the queued job for a fetch or file step, covering every try; and how long the run waits for a step that runs in the flow itself, whose work may still finish. Control steps ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
-### `PATCH /v1/skills/{id}`
+### `PATCH /v1/steps/{id}`
+
+Change one step; `version` is the one you last read, and a moved row answers 409. Omit `inputStreams` when you change a handler's settings or prompt and the inputs it names are derived again. With `validateOnly: true` it answers the save's verdict, what the patched configuration names (`derived.draft`) and — when `outputSlot` changes — which steps read the old slot (`derived.rename`), writing nothing; confirm the rename with `confirmedOutputSlotRenames`. Several steps at once: `POST /v1/steps/batch`.
 
 **Path parameters**
 
@@ -137,20 +143,20 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `capturedVersion` | `integer` | yes | The `version` you last read. Required — the write is refused if the skill has changed since, so an edit cannot silently overwrite one made in another tab. |
-| `overwriteConcurrentEdit` | `boolean` | no | Skip the optimistic-lock pre-check, and NOTHING ELSE. A stale `capturedVersion` is accepted rather than refused with a 409, so a concurrent edit is overwritten — that is the whole of what this does. It has no effect on validation: blocking errors are refused either way, warnings never blocked a save in the first place, and a `unique-collision` 409 will NOT clear (the index is still there). |
+| `version` | `integer` | yes | The `version` you last read. Required — the write is refused if the skill has changed since, so an edit cannot silently overwrite one made in another tab. |
+| `overwriteConcurrentEdit` | `boolean` | no | Skip the optimistic-lock pre-check, and NOTHING ELSE. A stale `version` is accepted rather than refused with a 409, so a concurrent edit is overwritten — that is the whole of what this does. It has no effect on validation: blocking errors are refused either way, warnings never blocked a save in the first place, and a `unique-collision` 409 will NOT clear (the index is still there). |
 | `key` | `string` | no | The skill's new key, dotted or not; omit to keep it. Lowercase words joined by dashes, optionally grouped with dots, like `extract.species`, up to 64 characters. |
 | `description` | `string \| null` | no | Free-text note about what this skill does. |
 | `handlerKey` | `string` | no | Change which system handler runs this skill. |
 | `handlerConfig` | `unknown` | no | Handler-specific settings, shaped by `handlerKey`. |
 | `condition` | `unknown` | no | Guard evaluated before the skill runs. |
-| `inputStreams` | `string[]` | no | Replacement input list. If you send this together with `inputSchemas`, the two must be the same length. |
+| `inputStreams` | `string[]` | no | Replacement input list. An input that stays keeps its type and a new one is typed from what feeds it, unless you send `inputSchemas` beside it (one type per input). Omit it when you change a step whose settings or prompt name its inputs: they are derived again. |
 | `outputSlot` | `string` | no | New output slot. Renaming one is what `renames` cascades to referencing siblings. |
 | `promptTemplate` | `string` | no | New prompt body. |
 | `systemPrompt` | `string \| null` | no | New system-role instruction. |
 | `taskKey` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak"` | no | Change the task this skill bills and resolves its model under. |
 | `outputSchema` | `object` | no | Schema the skill's output must conform to. |
-| `inputSchemas` | `object[]` | no | Expected shape of each input, aligned with `inputStreams` and the same length as it. |
+| `inputSchemas` | `object[]` | no | The type of each input, aligned with the `inputStreams` you send (or the step's inputs, when you send none). Omit it (or send `[]`) and each input keeps its type, a new one typed from what feeds it. A non-empty list must be one type per input. |
 | `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
 | `inputProjectionNames` | `string \| null[] \| null` | no | Names each input is exposed under inside the prompt, POSITIONALLY ALIGNED with `inputStreams`. Null at a position uses the source slot's own name. |
 | `enabled` | `boolean` | no | Whether the skill executes. |
@@ -158,10 +164,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `timeoutMs` | `integer \| null` | no | Per-skill time limit in milliseconds, up to 120000. |
 | `tries` | `integer \| null` | no | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
 | `tryDelayMs` | `integer \| null` | no | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
-| `onFailure` | `"FAIL_RUN" \| "CONTINUE"` | no | What this step's failure does to the run. `FAIL_RUN` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `CONTINUE` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
+| `onFailure` | `"fail-run" \| "continue"` | no | What this step's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `continue` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
 | `reuseResultsForMinutes` | `integer \| null` | no | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
 | `confirmedOutputSlotRenames` | `object[]` | no | Confirm output-slot renames and cascade them. Every sibling skill referencing an old name is rewritten to the new one in the same transaction. A skill may rename several slots at once, so this is a list. Omit it and a rename leaves referencing siblings pointing at a slot that no longer exists. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `capturedVersion` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate-draft`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate-draft`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -173,15 +179,23 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the write WOULD have computed. Present only when the body confirmed an output-slot rename — there is nothing else a skill patch derives that the caller does not already hold. |
+| `derived` | `object` | no | What the write WOULD have computed. |
 
-### `DELETE /v1/skills/{id}`
+### `DELETE /v1/steps/{id}`
+
+Delete one step. Refused (409) while another step reads a slot it writes — the list publishes that refusal per step as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. Several at once: the `deletes` of `POST /v1/steps/batch`.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The step's id, as returned when it was created or listed. Steps are addressed globally, not under their flow. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/deletion-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -190,8 +204,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `deletedSkillKey` | `string` | yes | Key of the skill that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
-### `POST /v1/skills/{id}/duplicate`
+### `POST /v1/steps/{id}/duplicate`
+
+Copy a step into its own flow, under a key and an output slot nothing else in the flow uses. To copy a step into another flow, create it there with `POST /v1/steps`.
 
 **Path parameters**
 
@@ -207,7 +226,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
 | `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
 
-### `POST /v1/skills/batch`
+### `POST /v1/steps/batch`
+
+Create, change and delete several steps of ONE flow in one transaction, validated as the graph they leave; a blocking error rolls all of it back. A step's input types may come from another step of the same body. One step: `POST /v1/steps` or `PATCH /v1/steps/{id}`. Several flows, or other kinds of configuration with them: the project document (`POST /v1/projects/{nodeId}/document`).
 
 **Request body**
 
@@ -215,7 +236,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `flowId` | `string` | yes | Id of the flow every item in this batch belongs to. |
 | `creates` | `object[]` | no | Skills to add. |
-| `updates` | `object[]` | no | Skills to change. Each carries its own `capturedVersion`, so one stale item refuses the whole batch. |
+| `updates` | `object[]` | no | Steps to change. Each carries its own `version`, so one stale item refuses the whole batch. |
 | `deletes` | `object[]` | no | Skills to remove. |
 
 **Response `200`**
@@ -227,7 +248,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deletedIds` | `string[]` | yes | Ids of the skills removed. |
 | `outstandingIssues` | `object[]` | yes | Warnings about the resulting graph. The batch applied — anything blocking would have rolled the whole transaction back instead. |
 
-### `GET /v1/skills/condition-operators`
+### `GET /v1/steps/condition-operators`
+
+Which condition operator can test which kind of value — the table a step's `condition` is checked against at save and evaluated by at run time. The same for every caller of a deployment.
 
 **Response `200`**
 
@@ -235,7 +258,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `operators` | `object[]` | yes | Every condition leaf operator this deployment evaluates. |
 
-### `GET /v1/skills/input-options`
+### `GET /v1/steps/input-options`
+
+Every slot a step could read in a flow, each checked against what its handler takes, with the type and path a save would store for it. Works before the step is saved. The step's whole scope, every slot typed: `GET /v1/flows/{id}/scope`.
 
 **Query**
 
@@ -256,7 +281,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `stepScopedTo` | `object \| null` | yes | The fan-out or loop the step runs inside, as it is saved. Null when it runs outside both, or is not saved yet. |
 | `candidates` | `object[]` | yes | Every slot the step could read: earlier steps' outputs, then the flow's inputs, then the platform's. |
 
-### `POST /v1/skills/interpolate`
+### `POST /v1/steps/interpolate`
+
+Render one step's prompt against slot values you type, with no model call — free, at EDITOR. The same render calling the model: `POST /v1/steps/preview`.
 
 **Request body**
 
@@ -275,14 +302,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `interpolatedPrompt` | `string` | yes | The prompt after interpolation — exactly what the model would receive. |
 | `latencyMs` | `number` | yes | How long the render took, in milliseconds. |
 
-### `POST /v1/skills/preview`
+### `POST /v1/steps/preview`
+
+Run ONE step's prompt against slot values you type — for `text.generate` it calls the model, which is billed (ADMIN). The free render with no model call: `POST /v1/steps/interpolate`. A whole flow against real inputs: `POST /v1/flows/{id}/preview`.
 
 **Request body**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `flowId` | `string` | yes | The flow this step is being authored into. It decides who may run the preview, which project's models are available, and who is billed for it. |
-| `projectId` | `string` | no | The project a step of a platform flow previews as — required there, since a platform flow belongs to no project, and the platform pays for the call. Refused for a step of a project's own flow. Requires EDITOR on it. |
+| `project` | `string` | no | The node id of the project a step of a platform flow previews as — required there, since a platform flow belongs to no project, and the platform pays for the call. Refused for a step of a project's own flow. Requires EDITOR on it. |
 | `handlerKey` | `string` | yes | Which step type to simulate. ⚠️ It decides whether a MODEL IS ACTUALLY CALLED — `text.generate` calls one and bills for it, while the others just interpolate. It also decides whether `{{#slot}}` sections iterate, so a mismatch here renders arrays differently than the real run will. |
 | `taskKey` | `string` | no | Which task preset supplies the model, when one is called. Omit it and the preview uses `extraction` — the task a step created without one starts on. |
 | `promptTemplate` | `string` | yes | The prompt to interpolate. |
@@ -300,69 +329,3 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `tokensIn` | `number \| null` | yes | Tokens sent. NULL MEANS NO MODEL WAS CALLED, which is a different thing from a call that used zero. |
 | `tokensOut` | `number \| null` | yes | Tokens returned. Null when no model was called. |
 | `latencyMs` | `number` | yes | How long the preview took, in milliseconds. |
-
-### `GET /v1/skills/rename-preview`
-
-**Query**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `flowId` | `string` | yes | The flow the slot lives in. Flow-addressed rather than step-addressed because the step doing the renaming may not be saved yet. |
-| `oldSlotName` | `string` | yes | The slot name as it stands. |
-| `newSlotName` | `string` | yes | What you propose to call it. |
-| `excludeSkillId` | `string` | no | The step doing the renaming. Its own output is not counted as a collision — omit it and a step renaming its own slot collides with itself. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `legal` | `boolean` | yes | Whether the write would accept this rename. Equivalent to `refusals` being empty; carried as its own field so a caller need not treat an empty array as a verdict. |
-| `refusals` | `object[]` | yes | Every reason the rename would be refused. Empty means the write would accept it. |
-| `skillsAffected` | `integer` | yes | How many steps reference the old slot. ⚠️ NOT necessarily the `rewrite.rewrittenCount` the write reports back: that figure also counts steps whose declared input types the write re-derived, which is a separate cascade this read does not model. This number is the steps whose slot NAMES would be rewritten, and the write uses the same scan to find them. |
-| `sitesAffected` | `integer` | yes | How many individual references across those steps — a step naming the slot in two places counts twice. |
-| `reports` | `object[]` | yes | Per step, every place the old slot is named. Steps with no reference are omitted, so an empty array means nothing reads it. |
-
-### `POST /v1/skills/replace`
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `flowId` | `string` | yes | Id of the flow whose skills are being replaced. |
-| `skills` | `object[]` | yes | The complete new set of skills for the flow. ⚠️ This REPLACES the graph — any existing skill not present here is removed. Send an edit as a batch instead if you only mean to change part of it. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `skills` | `object[]` | yes | The flow's skills after the replace. |
-| `replacedCount` | `integer` | yes | How many existing skills the replace removed. |
-| `outstandingIssues` | `object[]` | yes | Warnings about the new graph. Blocking problems refuse instead. |
-
-### `POST /v1/skills/validate-draft`
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `flowId` | `string` | yes | The flow this step is being authored into. The authorization anchor, and the reason no step id is needed — the step may not exist yet. |
-| `handlerKey` | `string` | yes | Which handler the draft has selected. An unrecognised key is a 422, not an empty result: a client asking about a handler this deployment does not have is a client working from a stale catalog. |
-| `handlerConfig` | `unknown` | no | The draft's handler configuration, exactly as the editor holds it — raw, not schema-parsed. Slot-bearing fields are operator-typed strings, so the raw and parsed forms name the same slots. OMITTING it is legal and means the same as `{}`: the draft is validated as an unconfigured step, so a handler that requires configuration answers with INVALID_HANDLER_CONFIG rather than refusing the request. |
-| `inputStreams` | `string[]` | no | The draft's currently wired input slots, IN ROW ORDER — the list the two fields below are positionally aligned with. Send it whenever the step has wiring; absent is treated as none wired. |
-| `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
-| `inputProjectionNames` | `string \| null[] \| null` | no | Names each input is exposed under inside the prompt, POSITIONALLY ALIGNED with `inputStreams`. Null at a position uses the source slot's own name. |
-| `promptTemplate` | `string` | no | The draft's prompt template. Only read for a handler whose inputs are named by its template; ignored otherwise. Absent means the empty template, which names no slots. |
-| `systemPrompt` | `string \| null` | no | The draft's system prompt. Counted toward the inputs only where the handler declares it reads one — a placeholder written there wires a slot exactly as one in the prompt does. |
-| `inputSchemas` | `unknown[]` | no | The draft's input `SchemaRef`s, positionally aligned with `inputStreams`. Needed only by a multimodal handler, where a wired FILE input is attached without any placeholder naming it: without these the derivation cannot recognise one and would answer a list the save does not pin. |
-| `outputSchema` | `unknown` | no | The `SchemaRef` the draft step DECLARES it writes. Optional, and omitting it costs exactly one check: without it the route cannot say whether the expression's result could ever satisfy the declaration, so it stays silent about that. Every other diagnostic is unaffected. Typed `unknown` for the reason every SchemaRef on this plane is — the shape is the type system's, and re-declaring it here would be a second copy to keep in step. |
-| `key` | `string` | no | The step's key, used ONLY to word a run-settings finding — every one of them opens by naming the step. Nothing validates it. Omit it and the findings say `this step` instead. |
-| `run` | `object` | no | The draft's run settings — how long it may take, how many times it is tried and how long it waits between, how long a saved result stays reusable, and what a failure does. Omit it and no rule about them runs. ⚠️ THE RULES ARE ABOUT THE HANDLER: tries belong to a queued step, a time limit above the handler's own budget can never fire, and a reuse period needs something that saves a result. A diagnostic names the field it is about. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `diagnostics` | `object[]` | yes | Everything wrong with this draft's configuration. An EMPTY LIST means the configuration is well-formed — it does NOT mean the step will save, because graph-level rules (dangling slots, cycles) are not asked here. See `GET /v1/flows/{id}/health` for those. |
-| `derivedInputStreams` | `string[] \| null` | yes | The input slots this configuration NAMES, sorted — the same list the save pins onto the step, PROVIDED you sent the wiring columns below for a step that has them. NULL IS NOT AN EMPTY LIST, and it has TWO causes, told apart by `derivedFrom` plus `diagnostics`: the inputs come from the step row, so there is nothing to derive (`row`); or a config-derived list could not be read because the config did not parse or a check failed (`handler-config` WITH an ERROR in `diagnostics`). An empty ARRAY means the source was read and names no slots. ⚠️ `template` USED TO BE A THIRD CAUSE AND IS NOT ANY MORE: a prompt-template handler now answers a real list, including the FILE inputs a multimodal handler attaches without a `{{slot}}` naming them. A template list is NOT nulled by a broken `handlerConfig`, because the names come from the prompt and the save reads them the same way. |
-| `derivedFrom` | `"row" \| "handler-config" \| "template"` | yes | How to READ `derivedInputStreams` above — nothing more. `handler-config` means this route CAN derive from the config; the list is then the authoritative set that config names — but it is still null when `diagnostics` carries an ERROR, because a config that did not parse names nothing knowable. ⛔ SO `handler-config` IS NOT A NON-NULL GUARANTEE: check `diagnostics` first, or check the list for null. `template` IS one: the names come off the prompt, so it answers a list whatever the config says. `row` always means null — the step row is where those inputs are wired. ⚠️ THIS IS NOT THE FIELD THAT DECIDES WHETHER TO SHOW AN INPUT PICKER. That is `editor.inputStreams` on the handler catalog, and the two answer DIFFERENT questions: this one reports which source this route could derive from (a handler's `freeFormInput` bag), that one reports whether the step row is where the operator wires inputs. They disagree for 7 of 70 handlers — `flow.merge` and `flow.invoke` hide the picker while deriving nothing here; `entity.count` shows it while naming slots in config. Branch the UI on the catalog field. |
-| `derivedInputSchemas` | `object[] \| null` | yes | One entry per slot in `derivedInputStreams`, same position: the shape the save types a wire on that slot from — the step that writes it (its per-slot output shape where it declares one), else the flow input it is declared as, else the platform's own type for a slot the platform supplies on every run. Send it as the step's `inputSchemas` for any position you do not already hold a stored shape for. An ENTRY is null when nothing declares that slot's shape — no step writes it with a shape that reads, and the flow does not declare it — and there is no neutral shape to send in its place. The whole field is null exactly when `derivedInputStreams` is. |

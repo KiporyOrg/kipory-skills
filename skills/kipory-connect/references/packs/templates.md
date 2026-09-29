@@ -34,7 +34,10 @@ answers YAML. The document is in the current format, `kipory: 2`, and reads exac
 project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) pack describes — elements by `key` and `label`, a
 relation kind's pairings by `fromRecordTypeKey`/`toRecordTypeKey`, a `skill-outcome` assertion
 by `skillKey`, a facet's worked examples by term `key` and `label` — a template whose example
-key is not a valid term key (lowercase segments joined by `-`) is refused like any document.
+key is not a valid term key (lowercase segments joined by `-`) is refused like any document, and
+whose steps may leave out what a document step may (their derived inputs and input types, an
+unread prompt, task or output slot) and spell a step's `onFailure` as a document does
+(`fail-run` or `continue`).
 
 ## Create a project from one
 

@@ -262,9 +262,13 @@ without its `id` gets a new one. What a single step save works out, the apply wo
 `flow.invoke` output row's `derivedShape` is typed from the flow it calls (never state it — and a
 document that rewrites a sub-flow's steps re-types every step calling it, restated or not), and a
 flow whose signature changes is judged against the steps the document LEAVES, so retyping an input
-and replacing the step that read it is one apply. One thing it does not: a `flow.invoke` step's
-`inputStreams` are written as stated, where a single save derives them from its `kind: "slot"`
-input rows.
+and replacing the step that read it is one apply. A step leaves out what a single create lets it
+leave out: `inputStreams` for a handler that names its inputs in its settings, prompt or
+`flow.invoke` input rows (derived, as the save derives them), `inputSchemas` (each input typed from
+what feeds it, a step of the same document included, and typed again when what feeds it changes),
+`promptTemplate` and `taskKey`, and `outputSlot` on a handler that writes no named result. Left out
+of a step the flow already holds, `promptTemplate`, `taskKey` and `outputSlot` keep their values; a
+new step starts on `""`, `extraction` and no slot. A list the step does state is written as stated.
 
 In the project's history an apply is ONE entry, titled as a document apply with the three counts
 its plan reported — not forty entries, and not "40 changes across six kinds".
@@ -292,6 +296,11 @@ the `id` the export's inline shape carries — keep it — never by key: an inli
 `id` whose key an existing entry holds is refused `SCHEMA_KEY_DUPLICATE`, as it always was. It is
 taken back only while nothing else holds it: stated under `schema` in the same document, or the
 shape of another record type, it stays shared, and the inline shape is refused the same way.
+
+⚠️ **A step's `onFailure` is `fail-run` or `continue`, lower-case.** An export taken before
+2026-09-29 spells it `FAIL_RUN` / `CONTINUE`, and applying it as it is refuses that field on the
+step's own path: change the two values before you apply it. Checkpoints and run snapshots the
+platform holds were rewritten in place and need nothing.
 
 ## Make a project equal a document
 

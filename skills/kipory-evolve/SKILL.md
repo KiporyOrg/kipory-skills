@@ -29,7 +29,7 @@ reach for when the change touches more than a handful of rows.
   it holds.
 - **Concurrency control is per-resource, and you have to know which kind you are facing.** Record
   types, facets and their neighbours require the `version` you last read on a patch and refuse a
-  stale one. A step in a flow is optimistic-locked on its own `capturedVersion` and answers **409**
+  stale one. A step in a flow is optimistic-locked the same way and answers **409**
   with one of three kinds — `stale-version`, `concurrent-consumer-write` or `unique-collision`. The
   first two are re-read-and-retry, or resubmit with `overwriteConcurrentEdit`, which skips the
   pre-check **and nothing else**: it never clears a `unique-collision`, and it never relaxes
@@ -52,8 +52,8 @@ reach for when the change touches more than a handful of rows.
 | `POST /v1/record-types/{id}/contract-preview`     | the same under a **drafted** `definition` of the shape the type points at — EDITOR                                                                                |
 | `PATCH /v1/schema-entries/{id}` + `validateOnly`  | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                     |
 | `PATCH /v1/record-types/{id}` + `validateOnly`    | what a `uses`, binding or key change derives to — declarations, reindex, restamp                                                                                  |
-| `GET /v1/skills/rename-preview`                   | every step whose wiring a slot rename would rewrite                                                                                                               |
-| `POST /v1/skills/validate-draft`                  | whether an unsaved step is valid — it executes nothing                                                                                                            |
+| `PATCH /v1/steps/{id}` + `validateOnly`           | a slot rename's `derived.rename` — every step whose wiring it would rewrite — and the patched config's `derived.draft`                                            |
+| `POST /v1/steps` + `validateOnly`                 | whether an unsaved step is valid — it executes nothing                                                                                                            |
 | `GET /v1/flows/{id}/health`                       | whether the flow is whole after the edit                                                                                                                          |
 | `GET /v1/flow-checkpoints/{id}/restore-preview`   | what restoring would change back                                                                                                                                  |
 | `GET /v1/eval-suites/{id}/readiness`              | whether the suite can still judge the thing you changed                                                                                                           |
@@ -179,9 +179,9 @@ Others do not refuse. They cascade, and the response tells you what else moved:
   (may redo nothing, or rewrite payloads only) versus `reembed`.
 - **Saving the facet list queues a rewrite of every existing record of the type.**
 - **A slot rename cascades only when you confirm it — and never into the flow's outputs.**
-  `PATCH /v1/skills/{id}` with `confirmedOutputSlotRenames: [{ flowId, oldSlotName, newSlotName }]`
+  `PATCH /v1/steps/{id}` with `confirmedOutputSlotRenames: [{ flowId, oldSlotName, newSlotName }]`
   rewrites every sibling step that reads the old name, in the same transaction; without it the
-  readers are left dangling. The flow's `outputBinding` is NOT rewritten and `rename-preview` does
+  readers are left dangling. The flow's `outputBinding` is NOT rewritten and `derived.rename` does
   not list it: the save lands with `OUTPUT_BINDING_DANGLING_SLOT` (a warning under `validateOnly`,
   an error in the write's `outstandingIssues`). The endpoint in front then refuses every call:
   a required output left unproduced answers `422 FLOW_OUTPUT_MISSING`, and the run's writes are
