@@ -20,7 +20,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/nodes/{nodeId}/task-models`](#get-v1-nodes-nodeid-task-models) |  |
 | `PUT` | [`/v1/nodes/{nodeId}/task-models/{task}`](#put-v1-nodes-nodeid-task-models-task) |  |
 | `DELETE` | [`/v1/nodes/{nodeId}/task-models/{task}`](#delete-v1-nodes-nodeid-task-models-task) |  |
-| `GET` | [`/v1/projects/{projectId}/task-models`](#get-v1-projects-projectid-task-models) |  |
 
 ### `GET /v1/ai-models`
 
@@ -38,12 +37,20 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/handlers`
 
+Every system handler this deployment runs — what each reads, emits and accepts as config — with a `version` hash to cache on. Pass `?project=` to have each handler's declared types resolved against that project's type registry (VIEWER on the project), which is what a step editor needs when picking a handler; without it the catalog is the same for every caller. One handler with its worked example is `GET /v1/handlers/{key}`.
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | no | Resolve each handler's declared types against this project's type registry — its id, as `POST /v1/projects` answered it. Omit for the deployment's catalog alone. Requires VIEWER on the project. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `version` | `string` | yes | Content hash of the catalog — a stable cache key. Two deployments serving the same handlers hash identically, and any change (a new handler, a config field, a copy edit) changes it. |
-| `handlers` | `object[]` | yes | Every system handler this deployment registers, sorted by key. |
+| `handlers` | `object[]` | yes | Every system handler this deployment registers, sorted by key. With `?project=`, each also carries `inputContract`, `variadicInputContract`, `staticOutputSchema`, `contractUnresolved`, `configDefaults`, `configDefaultsValid` and `freeFormInput`, resolved against that project's types; without it those are absent. |
 | `groups` | `object[]` | yes | Every picker group, IN DISPLAY ORDER, with the one sentence that says what it is for. Order is meaningful: it runs roughly from what a flow produces toward what it is plumbed with. |
 
 ### `GET /v1/handlers/{key}`
@@ -90,11 +97,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/nodes/{nodeId}/model-prices`
 
+What each model in the catalog costs at this node — the price a call made here is charged. The models themselves, with no price, are `GET /v1/ai-models`; which model each task runs on here is `GET /v1/nodes/{nodeId}/task-models`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode to price the catalog for. Prices come from the platform's price rules, which are platform-wide today; the node is the address so a tenant's own price needs no route change. ⚠️ A node id, not a project id. |
+| `nodeId` | `string` | yes | The OrgNode to price the catalog for. Prices come from the platform's price rules, which are platform-wide today; the node is the address so a tenant's own price needs no route change. A project's id is its node id. |
 
 **Response `200`**
 
@@ -168,11 +177,13 @@ Clear this node's own routing policy for one model, answering `{id: <modelId>, d
 
 ### `GET /v1/nodes/{nodeId}/task-models`
 
+Which model each AI task kind resolves to at this node, and which layer decided — this node, an ancestor, or the platform. At a project's node this is what the project's steps get when they pin no model; at the root node it is the platform's defaults. To bind a task here, `PUT /v1/nodes/{nodeId}/task-models/{task}`; to stop binding it, `DELETE` the same path. The model catalog itself is `GET /v1/ai-models`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode whose bindings to read. ⚠️ A node id, not a project id — `Project.id` and `Project.orgNodeId` are different values on the same project. |
+| `nodeId` | `string` | yes | The OrgNode whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
 
 **Response `200`**
 
@@ -187,11 +198,13 @@ Clear this node's own routing policy for one model, answering `{id: <modelId>, d
 
 ### `PUT /v1/nodes/{nodeId}/task-models/{task}`
 
+Bind a task kind to a model at this node; every project beneath it follows unless something nearer binds the task. Answers the node's bindings after the write. To stop binding it here, `DELETE /v1/nodes/{nodeId}/task-models/{task}`; a single step can still pin its own `modelId`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode whose bindings to read. ⚠️ A node id, not a project id — `Project.id` and `Project.orgNodeId` are different values on the same project. |
+| `nodeId` | `string` | yes | The OrgNode whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
 | `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding"` | yes | The pipeline task kind this binding is for. |
 
 **Request body**
@@ -214,36 +227,19 @@ Clear this node's own routing policy for one model, answering `{id: <modelId>, d
 
 ### `DELETE /v1/nodes/{nodeId}/task-models/{task}`
 
+Stop binding a task at this node. The task then falls to the nearest binding above it — an organization's, or the platform's — and the answer says which, in `bindings`. To bind it instead, `PUT /v1/nodes/{nodeId}/task-models/{task}`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode whose bindings to read. ⚠️ A node id, not a project id — `Project.id` and `Project.orgNodeId` are different values on the same project. |
+| `nodeId` | `string` | yes | The OrgNode whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
 | `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding"` | yes | The pipeline task kind this binding is for. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The node these bindings were resolved at. |
-| `nodeName` | `string` | yes | That node's display name. |
-| `nodeKind` | `string` | yes | That node's kind, UPPERCASE — `SYSTEM` \| `ORGANIZATION` \| `PROJECT`, the Prisma enum verbatim. ⚠️ NOT the lowercase `orgNodeKind` vocabulary the bootstrap and `/v1/nodes` surfaces send; the two spell the same three values differently, so a comparison written against the wrong one is always false and every row silently reads as unbound. ⚠️ And `isSystemRoot` is the field that answers “is this the platform layer”, not this one — see there. |
-| `isSystemRoot` | `boolean` | yes | Whether this node is the tree's root — the PLATFORM layer, whose bindings every project inherits unless something nearer overrides them. ⭐ It is stated rather than derived because a client cannot compute it: the root is the node with no parent, and `parentId` is not on this response. Deriving it from `nodeKind` or from a `decidedAt.depth` is the mistake this field exists to prevent. |
-| `tasks` | `object[]` | yes | Every task kind in the taxonomy, in declaration order — including the ones this node has not bound, which carry what they inherit. |
-| `generationTimeLimitMs` | `integer` | yes | What an AI generation call stops at when neither its step nor its task sets a limit. The DEPLOYMENT's, at every node — it does not inherit down the tree and this node cannot change it. |
-
-### `GET /v1/projects/{projectId}/task-models`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `projectId` | `string` | yes | The project whose task bindings to resolve. Not the `nodeId`, which is a different value on the same project. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `projectId` | `string` | yes | The project these bindings were resolved for. |
-| `tasks` | `object[]` | yes | Every task kind in the taxonomy, in declaration order. A task with no binding anywhere still appears, carrying its `code-default`. |
-| `generationTimeLimitMs` | `integer` | yes | What an AI generation call stops at when neither its step nor its task sets a limit. |
+| `id` | `string` | yes | The task whose binding at this node was cleared — a binding is keyed by its task under the node. |
+| `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
+| `bindings` | `object` | yes | The node's bindings after the clear — what `GET /v1/nodes/{nodeId}/task-models` now answers, including what the cleared task falls to. |

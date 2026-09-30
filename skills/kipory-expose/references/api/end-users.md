@@ -18,8 +18,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `PUT` | [`/v1/projects/{nodeId}/auth-config`](#put-v1-projects-nodeid-auth-config) |  |
 | `GET` | [`/v1/projects/{nodeId}/members`](#get-v1-projects-nodeid-members) |  |
 | `POST` | [`/v1/projects/{nodeId}/members/{userId}/credits`](#post-v1-projects-nodeid-members-userid-credits) |  |
-| `GET` | [`/v1/projects/{nodeId}/members/{userId}/deletion-preview`](#get-v1-projects-nodeid-members-userid-deletion-preview) |  |
-| `GET` | [`/v1/projects/{nodeId}/members/{userId}/deletion-preview/external`](#get-v1-projects-nodeid-members-userid-deletion-preview-external) |  |
 | `GET` | [`/v1/projects/{nodeId}/profile-schema`](#get-v1-projects-nodeid-profile-schema) |  |
 | `PUT` | [`/v1/projects/{nodeId}/profile-schema`](#put-v1-projects-nodeid-profile-schema) |  |
 | `DELETE` | [`/v1/projects/{nodeId}/profile-schema`](#delete-v1-projects-nodeid-profile-schema) |  |
@@ -30,11 +28,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/projects/{nodeId}/app-domain`
 
+The project's claim to its own app domain, and whether its DNS proof has been seen — or none. To claim one, `PUT` this path; to check the TXT record, `POST …/app-domain/verify`; to give it up, `DELETE`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Response `200`**
 
@@ -45,11 +45,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PUT /v1/projects/{nodeId}/app-domain`
 
+Claim a host outside the base domain as the project's app domain, or replace the claim. Answers the TXT record to publish; the claim counts once `POST /v1/projects/{nodeId}/app-domain/verify` has seen it.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Request body**
 
@@ -66,26 +68,31 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/projects/{nodeId}/app-domain`
 
+Release the project's claim to its own app domain. Answers what went away and the claim as it stands now (none). To claim a domain, `PUT /v1/projects/{nodeId}/app-domain`; to prove it by DNS, `POST …/app-domain/verify`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `claim` | `object \| null` | yes | This project's claim, or null when it has claimed no domain. |
-| `baseDomain` | `string \| null` | yes | The platform's base domain in this environment. A host under it needs no claim, because the session cookie already reaches it. Null where there is none (local development), and then every host is reachable. |
+| `id` | `string` | yes | The project whose app-domain claim was released (its id). |
+| `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
+| `appDomain` | `object` | yes | The project's app-domain claim after the release — what `GET …/app-domain` now answers. |
 
 ### `POST /v1/projects/{nodeId}/app-domain/verify`
+
+Look for the claimed app domain's TXT record now and mark the claim verified when it is there. Answers the claim as it stands. Claim with `PUT /v1/projects/{nodeId}/app-domain` first.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Response `200`**
 
@@ -96,11 +103,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/projects/{nodeId}/auth-config`
 
+How the project's end users sign in: which providers are on, the redirect allowlist, and per provider whether a credential resolves and what a sign-in does right now. No secret is returned. Change it with `PUT` on this path; store a provider credential with the secrets routes.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project and is what the `{projectId}` routes take. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Response `200`**
 
@@ -113,11 +122,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PUT /v1/projects/{nodeId}/auth-config`
 
+Replace the project's end-user auth configuration; `null` clears it to the platform's default. Answers what `GET` on this path answers. Provider credentials are secrets, stored with the secrets routes, not here.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project and is what the `{projectId}` routes take. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Request body**
 
@@ -141,11 +152,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/projects/{nodeId}/members`
 
+One page of the people who use the project — its end users — with their standing, spend and what they hold. The organization's operators are `GET /v1/nodes/{nodeId}/members`, a different population.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Query**
 
@@ -175,6 +188,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/projects/{nodeId}/members/{userId}/credits`
 
+Grant a member credits in their own wallet, with a reason for the ledger. Idempotent on `idempotencyKey`. To cap what one member may spend instead, set `perUserSpendCapCredits` on `PATCH /v1/projects/{nodeId}/settings`; each member's spend against it is on `GET …/members`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -196,48 +211,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `balanceCredits` | `integer` | yes | The member's wallet balance after the grant. |
 
-### `GET /v1/projects/{nodeId}/members/{userId}/deletion-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id. |
-| `userId` | `string` | yes | The member's user id. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `email` | `string` | yes | The address the operator must type back to confirm. Compared trimmed and case-insensitively — they are proving intent, not transcription. |
-| `records` | `integer` | yes | Records this member owns in this project. |
-| `profile` | `integer` | yes | Profiles this member holds (0 or 1). |
-| `retainedNote` | `string` | yes | What SURVIVES the deletion, in words. Sent by the platform rather than composed by each client, so every surface makes the same promise. |
-| `seatsElsewhere` | `integer` | yes | Seats this person holds OUTSIDE this project, on any node of the platform. Above 0 the deletion is refused with a 409: deleting an account ends it everywhere, and a project administrator has authority over this project only. A count, not names — the other places may belong to other tenants. |
-
-### `GET /v1/projects/{nodeId}/members/{userId}/deletion-preview/external`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id. |
-| `userId` | `string` | yes | The member's user id. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `files` | `integer` | yes | Files this member uploaded, counted by listing object storage. |
-| `vectorPoints` | `integer` | yes | Vector points derived from their content, counted per collection the project declares. |
-
 ### `GET /v1/projects/{nodeId}/profile-schema`
 
+The type that shapes the project's end-user profiles, or none. Connect one with `PUT` on this path, create one from the starter with `POST …/profile-schema/starter`, disconnect with `DELETE`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project and is what the `{projectId}` routes take. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Response `200`**
 
@@ -252,11 +234,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PUT /v1/projects/{nodeId}/profile-schema`
 
+Connect a schema entry as the project's end-user profile type, or re-point to another (refused once profiles exist). To create a new type from the platform's starter shape instead, `POST /v1/projects/{nodeId}/profile-schema/starter`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project and is what the `{projectId}` routes take. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Request body**
 
@@ -277,30 +261,31 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/projects/{nodeId}/profile-schema`
 
+Disconnect the project's end-user profile type — the type itself is kept, and new end users stop getting a seeded profile. Answers what went away and the profile schema as it stands now. To re-point it instead, `PUT /v1/projects/{nodeId}/profile-schema`; to start from the platform's suggestion, `POST …/profile-schema/starter`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project and is what the `{projectId}` routes take. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `schemaEntryId` | `string \| null` | yes | Schema entry the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryKey` | `string \| null` | yes | Key of the connected schema entry; null when unconnected. |
-| `version` | `integer \| null` | yes | The connected entry's version, for optimistic locking when editing it on the schema-entries resource. Null when unconnected. |
-| `definition` | `unknown` | no | The connected entry's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
-| `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected entry's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
-| `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different entry is refused with 409, because stored profiles were seeded from the current one. |
+| `id` | `string` | yes | The project whose profile type was disconnected (its id). |
+| `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
+| `profileSchema` | `object` | yes | The project's profile schema after the disconnect — what `GET …/profile-schema` now answers. |
 
 ### `POST /v1/projects/{nodeId}/profile-schema/starter`
+
+Create a new profile type from the platform's starter shape under the name you give, and connect it. To connect a type you already have, `PUT /v1/projects/{nodeId}/profile-schema`.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's NODE id — its address in the org tree. Not the `projectId`, which is a different value on the same project and is what the `{projectId}` routes take. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Request body**
 

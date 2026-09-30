@@ -169,9 +169,9 @@ above is for. Read the diagnostic for "is this wired", `canFire` for "can this e
 `GET /v1/handlers` is the deployment's catalog — every handler, identical for every caller, and the
 one to confirm a key against. Its `io` pair — reads and emits — are project-blind TOKENS (`string`, `T[]`, `nothing`).
 
-`GET /v1/projects/{projectId}/handlers` is the same catalog with each handler's declared types
-resolved against **your project's** type registry. Reach for it when you are picking a handler for a
-step rather than reading about one:
+`GET /v1/handlers?project=<project id>` is the same catalog with each handler's declared types
+resolved against **your project's** type registry — the same route, with these fields added. Reach
+for it when you are picking a handler for a step rather than reading about one:
 
 | field                   | what it tells you                                                                                                                                                               |
 | ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -190,8 +190,6 @@ silently stops filtering at the moment the check broke.
 ⚠️ **`version` is the DEPLOYMENT catalog's hash and does not move when your registry does.** Editing
 a schema entry changes the resolved types underneath an unchanged `version`, so it is not a
 sufficient cache key for this read.
-
-⚠️ It takes the project's **own id**, not its node id.
 
 ## Output binding — what makes a flow produce anything
 
@@ -1137,9 +1135,10 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   around yours. Pin deliberately, for a skill that genuinely needs a particular model, not as a
   field you felt obliged to fill in. An unrecognised model is refused at the write either way.
 
-  **`GET /v1/projects/{projectId}/task-models` is how you see the binding you would be stepping
-  around.** It reports, per task kind, the model that resolves for this project and — the field
-  worth reading — `source`: which layer decided.
+  **`GET /v1/nodes/{nodeId}/task-models`, at the project's id, is how you see the binding you
+  would be stepping around.** It reports, per task kind, the model that resolves for this project
+  and — the field worth reading — `source`: which layer decided. `boundHere` says whether the
+  project itself chose it or inherits it.
 
   | `source`       | what it means                                                                                                                                   |
   | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -1189,8 +1188,8 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 
   ⚠️ **Ask the model that will RESOLVE, not the one the skill names.** A skill with no `modelId`
   follows its task binding, so the capability that matters belongs to whatever
-  `GET /v1/projects/{projectId}/task-models` reports for its task kind — and it changes under the
-  skill when the operator rebinds.
+  `GET /v1/nodes/{nodeId}/task-models` reports at the project for its task kind — and it changes
+  under the skill when the operator rebinds.
 
 ## Related
 

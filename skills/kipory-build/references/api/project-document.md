@@ -45,6 +45,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/projects/{nodeId}/document`
 
+The project's whole configuration as one document addressed by key — flows with their steps, record types, facets, endpoints, schedules, triggers, evals. Edit it and send it back through `POST …/document/plan` (what would change) and `POST …/document` (apply). To read or change one row, its own route is simpler (`GET /v1/flows/{id}`, `GET /v1/steps?flowId=`, …); this is for the whole project at once — a copy, a diff, a template. The same configuration by id, with a live stream, is `GET /v1/bootstrap?project=`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -65,6 +67,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `document` | `object` | yes | A project's whole configuration as one name-addressed document. Every section is optional; an absent section is untouched on apply. |
 
 ### `POST /v1/projects/{nodeId}/document`
+
+Apply a project document: every row it names is created, changed or removed through that row's own write, in one planned change. Ask `POST …/document/plan` first; read the result back with `GET …/document`. For one row, call its own write instead (`PATCH /v1/flows/{id}`, `POST /v1/steps`, …, each with `validateOnly` for a dry run); pick this when several rows change together, as one history action.
 
 **Path parameters**
 
@@ -95,6 +99,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `document` | `object` | yes | The project as it now stands, with every id filled in. |
 
 ### `POST /v1/projects/{nodeId}/document/plan`
+
+What applying this document would change, row by row, and whether the result would be healthy — nothing is written. Apply it with `POST /v1/projects/{nodeId}/document`. To change one row, its own write is simpler (`PATCH /v1/flows/{id}`, `POST /v1/steps`, …), and each takes `validateOnly` for the same kind of dry run on that one row; pick this when several rows must change together and be judged as one.
 
 **Path parameters**
 

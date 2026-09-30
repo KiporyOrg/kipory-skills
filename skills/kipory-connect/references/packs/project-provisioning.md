@@ -9,7 +9,7 @@
 ## What it is
 
 Turn zero. Every other pack begins one step after a project exists; this one is about bringing it
-into being, and about the single addressing fact that trips up almost every first session.
+into being.
 
 **`POST /v1/projects` is not a design-plane resource.** It is a coded system route, which is why
 it looks unlike every other resource here: there is no `project` scope parameter, because this is
@@ -18,42 +18,35 @@ the call that brings the scope into existence.
 ## When you need it
 
 At step 1 of the planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`), and nowhere else. If the project
-already exists, all you need from this pack is the node id — see below — and you can move on.
+already exists, all you need is its id — the `id` its create answered, which is also the node an
+API key granted at the project was minted for — and you can move on.
 
 ## The sequence
 
 ```
-POST /v1/projects                     { name, slug, parentNodeId? } → 201 { id, slug, name }
-GET  /v1/projects/by-project-id/{id}  resolve the OrgNode id — the one the design API wants
+POST /v1/projects   { name, slug, parentNodeId? } → 201 { id, slug, name }
 ```
 
-Alongside: read, update and delete a project by its node id, and preview a deletion before
-committing to it.
+Alongside: read, update and retire a project by that `id` — and ask what a retire would destroy
+before committing to it (`DELETE /v1/projects/{nodeId}?validateOnly=true`).
 
-## The one thing to get right: the id you get back is not the id you need
+## One id, everywhere
 
-The design plane is **node-speaking**. Every design resource scopes by the project's **`OrgNode`
-id** — as the `project` field on a create, as `?project=` on a list.
-
-**The create response returns the project id, which is not that.** Using it is the single most
-likely first mistake after provisioning, and it does not fail in an obvious way: it fails as
-though the project does not exist.
-
-So the first call after creating a project is `GET /v1/projects/by-project-id/{projectId}`, which
-hands back the node id. That route exists for exactly this moment — it is the one read that can be
-authorised for a caller who does not know the node yet, because it floors on the project instead.
+A project has **one id on the wire**: the `id` the create answers. It is the project's node in the
+ownership tree, and every route takes it — as `{nodeId}` in a `/v1/projects/…` path, as `?project=`
+on a list, as `project` in a create body. There is no second id to resolve.
 
 <!-- key-unreachable-ok: GET /v1/projects — named here ONLY to warn it is refused, never prescribed -->
+<!-- key-unreachable-ok: GET /v1/me/projects — named ONLY as a signed-in person's read, never prescribed to a key -->
 
-⚠️ **Do not reach for the project list to resolve it.** `GET /v1/projects` enumerates every project
+⚠️ **Do not reach for the project list to find an id.** `GET /v1/projects` enumerates every project
 on the installation, so it is floored at platform staff and refuses an API key categorically —
-whatever node that key is granted at. It is not a stricter version of the same read; it is a
-different read, and it is not yours.
+whatever node that key is granted at. A key already holds its project's id: the node it was granted
+at. A signed-in person's own projects, with their ids, are `GET /v1/me/projects` — a per-person
+read no key can call.
 
-A project with no node at all is not a state that occurs: the link column is NOT NULL, so a project
-is born attached to one. An id the design plane cannot resolve — a typo, or a project your grant
-does not reach — answers **403**, deliberately the same as an insufficient role, so the surface is
-never an existence oracle.
+An id the design plane cannot resolve — a typo, or a project your grant does not reach — answers
+**403**, deliberately the same as an insufficient role, so the surface is never an existence oracle.
 
 ## What one call actually does
 
@@ -111,9 +104,9 @@ is `null` when no numbered alternative in range is free, when the name contains 
 own brand names (no numbered form of it is allowed), or when the candidate is too malformed to
 derive one from.
 
-Omit `projectId` when you are creating. Pass it when you are renaming an existing project, which
-also makes the project's own current address come back available — you may always keep the name you
-already have.
+Omit `project` when you are creating. Pass it (the project's id) when you are renaming an existing
+project, which also makes the project's own current address come back available — you may always
+keep the name you already have.
 
 **The slug is the project's public address**, since it is also the initial subdomain. That makes
 it worth one deliberate question during planning rather than a generated default. Renaming later
@@ -171,12 +164,14 @@ correct request at the wrong moment.
 
 ## What will bite you
 
-- **The 201 hands you the wrong id for your next call.** Worth stating twice.
-- **`GET /v1/projects` is not the way to fix that.** It is platform-staff-only and refuses every
-  API key. Resolve through `GET /v1/projects/by-project-id/{projectId}` instead.
+- **`GET /v1/projects` is not how you find your projects.** It is platform-staff-only and refuses
+  every API key. Keep the create's `id`; a key's project is the node it was granted at.
 - **Flow-provider seeding is best-effort**, so a 201 does not prove it ran.
-- **Deletion is not the inverse of creation.** Deleting runs an ordered teardown with real
-  consequences. Use the deletion preview first — it exists so that the blast radius is something
+- **Deletion is not the inverse of creation.** `DELETE /v1/projects/{nodeId}` retires the project
+  and a daily sweep destroys it after `purgeAfter`, unless it is restored first. Ask with
+  `?validateOnly=true` before — the same route, writing nothing, answering what a purge would
+  destroy, the grace period a retire would start, and (for a project already retired) the
+  `purgeAfter` deadline a second retire keeps rather than resets — so the blast radius is something
   you read before rather than discover after.
 
 ## Related

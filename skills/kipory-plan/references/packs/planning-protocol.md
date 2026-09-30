@@ -86,8 +86,9 @@ catch your mistake.
 
 ### 1 — Project
 
-Does the project exist? If not, that is turn zero. If it does, resolve and record its **`OrgNode`
-id**: the design plane addresses projects by node, and the project id is not what it wants.
+Does the project exist? If not, that is turn zero. If it does, record its **id** — the `id` the
+create answered; for an API key granted at the project, the node it was granted at. Every route
+takes that one id.
 
 → Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)
 

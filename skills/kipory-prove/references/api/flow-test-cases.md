@@ -156,7 +156,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `testCaseIds` | `string[]` | no | Which cases to run, up to 100. NAMING IDS RUNS THEM EVEN IF THEY ARE DISABLED. Omit to run every enabled case on the flow. |
 | `includeDisabled` | `boolean` | no | Include disabled cases in an unnamed run. Ignored when you name ids — those run regardless. |
-| `projectId` | `string` | no | Run every case against this project's config, records and facets instead of the flow's own. Requires EDITOR on it. Required for a platform flow, which belongs to no project; the platform pays for its cases. |
+| `project` | `string` | no | Run every case against this project's config, records and facets (its id, as `POST /v1/projects` answered it) instead of the flow's own. Requires EDITOR on it. Required for a platform flow, which belongs to no project; the platform pays for its cases. |
 
 **Response `200`**
 

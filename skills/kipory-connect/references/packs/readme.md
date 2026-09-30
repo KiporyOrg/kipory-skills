@@ -91,8 +91,8 @@ quietly working around it.
 - **Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)** — the negative space. Verified backwards, so a lifted limit forces a
   rewrite instead of quietly becoming a lie.
 - **Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)** — turn zero: creating a project, what the one
-  call actually does (and what it does not seed), and why the design plane wants a node id rather
-  than a project id.
+  call actually does (and what it does not seed), and that the `id` it answers is the project's one
+  id everywhere.
 - **Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)** — read early. The full request
   lifecycle, and the resource that defines it.
 - **Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)** — the main build target. Output binding, preview (which

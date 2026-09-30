@@ -10,7 +10,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Slot.** A named value in a run. A skill reads its `inputStreams` (slot names) and writes its `outputSlot`. Slot names are letters and digits only, starting with a letter — no underscores.
 
-**Project vs. node.** A **project** is your product's container. It has a project id (`proj_…`) and lives at a **node** (a bare cuid such as `cmukzzjhc0001hlq36d38bun1`; ids are opaque, so never tell them apart by prefix) in the ownership tree under an **organisation** node. The design API scopes by node id; two sub-resources and the bridge route scope by project id. `GET /v1/projects/by-project-id/{projectId}` converts one to the other.
+**Project vs. node.** A **project** is your product's container. It lives at a **node** in the ownership tree under an **organisation** node, and the node's id is the project's id — the one `POST /v1/projects` answers and every route takes (a bare cuid such as `cmukzzjhc0001hlq36d38bun1`; ids are opaque, so never tell them apart by prefix).
 
 **Grant.** What an API key carries: one node and one role. Reach is descent from that node. A key never has a user, so it never has a `me`.
 
@@ -30,7 +30,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Plane.** The design plane is where you author (api host). The dynamic, or project, plane is where your product's users are served (project host). The credit balance is a project-plane read.
 
-**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of four unrelated read-only calls: `contract-preview` and `write-preview` on a record type, `restore-preview` on a checkpoint, `deletion-preview` on a project or member, and `POST /v1/steps/preview` — one model call against a prompt template, not a flow run.
+**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of four unrelated read-only calls: `contract-preview` and `write-preview` on a record type, `restore-preview` on a checkpoint, and `POST /v1/steps/preview` — one model call against a prompt template, not a flow run.
 
 **Checkpoint vs. snapshot.** A **checkpoint** is a named, manual or automatic copy of a flow's skills, signature and binding that you can restore. A **flow snapshot** is the frozen graph a particular run executed, readable per run, never restorable.
 

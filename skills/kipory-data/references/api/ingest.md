@@ -15,11 +15,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/projects/{nodeId}/ingest/cache/bust`
 
+Throw away the project's cached fetches, for one handler or all, so the next run fetches again — against a vendor budget, which is why this is ADMIN. See what the cache holds with `GET /v1/projects/{nodeId}/ingest/summary`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Request body**
 
@@ -35,11 +37,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/projects/{nodeId}/ingest/summary`
 
+What the project fetched from outside over a window (`24h`, `7d`, `30d`): per ingest handler its invocations, cache hits and fetches, shared quota pools, and recent failures. Per-handler calls and successes over the last day are this at `window=24h`. To throw a cached fetch away, `POST …/ingest/cache/bust`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id — the same id `GET /v1/bootstrap` takes, not `projectId`, which is a different value on the same project. |
+| `nodeId` | `string` | yes | The project's id — its node in the org tree, as `POST /v1/projects` answered it. |
 
 **Query**
 

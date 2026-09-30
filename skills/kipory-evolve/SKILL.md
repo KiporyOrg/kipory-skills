@@ -43,7 +43,7 @@ reach for when the change touches more than a handful of rows.
 | ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `GET /v1/bootstrap?project={nodeId}`              | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                                |
 | `GET /v1/projects/{nodeId}/connections`           | what starts each element, what it writes, reads, tags, calls and announces, and what points at it — computed from the configuration, so current after every write |
-| `GET /v1/projects/{nodeId}/deletion-preview`      | what deleting the whole project would take with it                                                                                                                |
+| `DELETE /v1/projects/{nodeId}` + `validateOnly`   | what retiring the whole project would take with it                                                                                                                |
 | `DELETE /v1/facets/{id}` + `validateOnly`         | whether a facet delete would be allowed, and what it reaches                                                                                                      |
 | `DELETE /v1/record-types/{id}` + `validateOnly`   | whether a record-type delete would be allowed — the verdict only; a document plan lists what it would cascade into                                                |
 | `DELETE /v1/relation-kinds/{id}` + `validateOnly` | the edges the delete would take, as `edges-deleted` under `consequences`                                                                                          |
@@ -271,8 +271,8 @@ at all:
   failure is correct. Re-baseline them on purpose (`kipory-prove`) rather than deleting the ones
   that went red — a suite deleted because it was inconvenient is the one that would have caught the
   next change.
-- **Deleting a project is previewable and then final.** Read `deletion-preview` first; there is no
-  checkpoint for it.
+- **Deleting a project is rehearsable and then final.** Ask `DELETE /v1/projects/{nodeId}?validateOnly=true`
+  first; a retire can be restored until `purgeAfter`, but there is no checkpoint for it.
 
 ## References
 

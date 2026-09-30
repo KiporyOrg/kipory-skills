@@ -71,8 +71,8 @@ secret does not. It attaches to any node and resolves up the ancestor chain, so 
 **organisation-level default with a per-project override** is the intended arrangement rather than
 an edge case — which is exactly why the field is named for the node.
 
-If you only have a project id, get its node id first; that is turn zero for this surface as much
-as for the design plane.
+A project's id is its node id — the `id` its create answered — so for a project-level secret,
+`node` is simply the project's id.
 
 ## What resolution actually does
 

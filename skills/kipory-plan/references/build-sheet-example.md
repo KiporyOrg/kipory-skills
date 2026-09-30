@@ -6,7 +6,7 @@ The idea, as the human put it: _"A link library. I paste a URL, it saves the pag
 
 ## The walk, step by step
 
-**1 — Project.** Exists. Node id resolved through `GET /v1/projects/by-project-id/{projectId}` and recorded.
+**1 — Project.** Exists. Its id (the `id` the create answered) recorded.
 
 **2 — Records.** One thing exists: a saved link. Its shape is a URL, the page text once fetched, a summary, a title. It is searchable by meaning, so it needs an embedding profile to name. Owner scope: the project's shared pool — the human said "my links" but is the only user and will call it with a key; a per-user type would refuse every write from a flow a key runs.
 

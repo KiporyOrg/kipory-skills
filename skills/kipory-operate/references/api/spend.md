@@ -35,7 +35,7 @@ Your own standing: the balance of the wallet that pays for you, and your per-use
 | `status` | `"active" \| "over_soft_cap" \| "suspended"` | yes | Whether this wallet may still pay for work. `active` is fine; `over_soft_cap` means the balance has passed the agreed floor and requests are being refused with 402; `suspended` means the account is stopped for a reason other than balance. |
 | `perUserSpendCap` | `integer \| null` | yes | The ceiling on what YOU personally may spend, or null when the project sets none. ⚠️ NOT a second balance: it limits your share of the wallet above, and both gates must pass independently. |
 | `perUserSpendConsumed` | `integer` | yes | What you have spent against that ceiling in the current window. Always present, and 0 rather than absent for a first-time caller — so 'no cap' is never confused with 'no data'. |
-| `perUserSpendCapPeriod` | `"LIFETIME" \| "DAY" \| "WEEK" \| "MONTH"` | yes | The window `perUserSpendConsumed` covers. Without it that figure is ambiguous where it matters most: '8 of 10' is a wall about to be hit if the window is LIFETIME, and an ordinary month if it is monthly. |
+| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window `perUserSpendConsumed` covers. Without it that figure is ambiguous where it matters most: '8 of 10' is a wall about to be hit if the window is LIFETIME, and an ordinary month if it is monthly. |
 | `perUserSpendWindowStart` | `string \| null` | yes | The instant the consumed figure was actually summed from, or null for a lifetime window. Read it rather than recomputing it from the period — recomputing is how a client shows a window the server did not enforce. |
 
 ### `GET /v1/organizations/{nodeId}/ledger`

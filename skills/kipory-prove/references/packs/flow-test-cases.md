@@ -40,9 +40,9 @@ address key, unique within the flow and renameable — and a display `label`. Ru
 ids and a flag for including disabled ones. ⚠️ **Naming ids runs exactly those, enabled or not** —
 the disabled flag is ignored the moment you name any, so it only governs an unnamed run.
 
-A run also takes an optional `projectId`. Every case then resolves its config, records and facets
-against that project instead of the flow's own, which needs EDITOR there — and the spend follows it:
-that project's payer is billed.
+A run also takes an optional `project` — the project's node id, as `POST /v1/projects` answers it.
+Every case then resolves its config, records and facets against that project instead of the flow's
+own, which needs EDITOR there — and the spend follows it: that project's payer is billed.
 
 The assertion vocabulary is shared with the evals surface, which evaluates the same assertions —
 so an assertion you learn here transfers there unchanged.

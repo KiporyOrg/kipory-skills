@@ -46,14 +46,15 @@ cap is `null` — so "no cap configured" is never confused with "no data".
 
 ## The window is given to you, not derived
 
-`perUserSpendConsumed` covers `perUserSpendCapPeriod`, and `perUserSpendWindowStart` is the
-inclusive lower bound the figure was **actually summed from**.
+`perUserSpendConsumed` covers `perUserSpendCapPeriod` — `lifetime`, `day`, `week` or `month`,
+lowercase like every value on the wire — and `perUserSpendWindowStart` is the inclusive lower bound
+the figure was **actually summed from**.
 
 Do not recompute that boundary from the period. It is reported rather than derived so the number a
 customer reads and the number the gate enforces can never describe different windows, and
 recomputing is exactly how a client ends up showing a window the server did not use.
 
-`perUserSpendWindowStart` is `null` exactly when the period is lifetime, so the pair is never
+`perUserSpendWindowStart` is `null` exactly when the period is `lifetime`, so the pair is never
 self-contradictory. The distinction carries the meaning: "8 of 10 used" is an ordinary month, or a
 wall about to be hit, and only the window says which.
 

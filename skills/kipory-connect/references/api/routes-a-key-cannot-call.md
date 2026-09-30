@@ -127,7 +127,6 @@ These serve the people who run the installation — every tenant at once — and
 - `GET /v1/system-flows/handlers`
 - `GET /v1/system-flows/jobs`
 - `GET /v1/system-flows/schema-entries`
-- `GET /v1/system-flows/task-models`
 - `GET /v1/system-flows/{…}/used-by`
 - `GET /v1/vendors`
 - `GET /v1/vendors/{…}`

@@ -12,15 +12,15 @@ Kipory is a platform for building a product's backend — its processes, its dat
 
 Three things, and **all three come from the human**:
 
-| You need                         | Why you cannot derive it                                                                     |
-| -------------------------------- | -------------------------------------------------------------------------------------------- |
-| The **base URL** of the api host | Kipory is deployed per installation. There is no canonical host.                             |
-| An **API key**                   | Only a signed-in person can mint one — a key cannot mint a key.                              |
-| The **project's node id**        | The design plane addresses a project by its node id, and a key is told nothing at mint time. |
+| You need                         | Why you cannot derive it                                                           |
+| -------------------------------- | ---------------------------------------------------------------------------------- |
+| The **base URL** of the api host | Kipory is deployed per installation. There is no canonical host.                   |
+| An **API key**                   | Only a signed-in person can mint one — a key cannot mint a key.                    |
+| The **project's id**             | Every route addresses a project by its id, and a key is told nothing at mint time. |
 
-⚠️ **Two ids, and they are different values for the same project.** The _project id_ is what the create call returns; the _node id_ is what almost every design route scopes by. `GET /v1/projects/by-project-id/{projectId}` is the bridge. A few sub-resources want the project id instead, and their paths say so: `/v1/projects/{projectId}/handlers`, `…/handler-activity`, `…/task-models`, `…/descriptions` and `…/describer`.
+A project has **one id**: the `id` its create call returns, which is its node in the ownership tree. Every route takes it — `{nodeId}` in a `/v1/projects/…` path, `?project=` on a list, `project` in a create body.
 
-**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (VIEWER unless they pick one; anything that previews or runs a flow needs ADMIN) and an expiry. The plaintext is shown once. Ask them for the node id at the same time.
+**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (VIEWER unless they pick one; anything that previews or runs a flow needs ADMIN) and an expiry. The plaintext is shown once. Ask them for the project's id at the same time.
 
 > Never ask the human to paste the key into a file you will write, a commit, or a log line. Read it from the environment.
 
@@ -56,8 +56,7 @@ The bootstrap read returns nine sections — project, schema, relations, events,
 **If you must create the project** you need OWNER at the parent organisation node:
 
 ```
-POST /v1/projects  { name, slug, parentNodeId }       → 201 { id, slug, name }
-GET  /v1/projects/by-project-id/{projectId}           → { nodeId, … }
+POST /v1/projects  { name, slug, parentNodeId }       → 201 { id, slug, name }   — `id` is the project's id everywhere
 ```
 
 The create also takes a `template` slug (`GET /v1/templates` lists them) or a whole `document`
@@ -70,11 +69,11 @@ transaction — a refused one leaves no project behind.
 
 ## Reading a refusal
 
-| Code  | Means                                                                                             | Do                                                                                     |
-| ----- | ------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
-| `401` | The credential is missing, malformed, revoked or expired                                          | Re-check the header, then ask the human for a live key                                 |
-| `403` | The credential is fine; the grant does not authorise this                                         | Check role, then reach — in that order                                                 |
-| `404` | On the api host: the node resolved and hosts no project, or the route is served on the other host | You are holding the organisation node or the project id — or you are on the wrong host |
+| Code  | Means                                                                                             | Do                                                                  |
+| ----- | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------- |
+| `401` | The credential is missing, malformed, revoked or expired                                          | Re-check the header, then ask the human for a live key              |
+| `403` | The credential is fine; the grant does not authorise this                                         | Check role, then reach — in that order                              |
+| `404` | On the api host: the node resolved and hosts no project, or the route is served on the other host | You are holding an organisation's id — or you are on the wrong host |
 
 A `403` is deliberately not an existence oracle: an unresolvable node, a project never created and an insufficient role all refuse identically. A key holds **one node and one role**. Reach is plain descent — a grant at an organisation reaches every project beneath it; a grant at one project reaches that project only. The role is uniform over the whole reach and cumulative: read → VIEWER, design mutation → EDITOR, destructive, structural or spending → ADMIN; creating a project needs OWNER at the parent. **A key is minted at VIEWER unless a role was asked for**, so if every write refuses while reads succeed, suspect the role first. Anything that runs a flow — preview, tests, eval runs, vector search — is ADMIN, because it spends.
 
@@ -86,7 +85,7 @@ A `403` is deliberately not an existence oracle: an unresolvable node, a project
 The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The ones you will meet:
 
 - **A key cannot mint a key.** Key management accepts a signed-in session only. The human mints it, on the api host, and tells you the node, the role and the expiry.
-- **A key is never platform staff.** `GET /v1/projects` — every project on the installation — answers 403 to every customer key. Resolve your node with `by-project-id`.
+- **A key is never platform staff.** `GET /v1/projects` — every project on the installation — answers 403 to every customer key. Keep the id the create answered, or ask the human for it.
 - **A key has no `me`.** Every `/v1/me*` route and the spend ledger `GET /v1/credits/events` answer 401 from inside the handler. Reading a node's members, or the node itself through `/v1/nodes`, is a human's surface too; the bootstrap's `tenancy` section is yours.
 - **A key cannot act as an end user.** A flow that writes person-owned records, or an events subscription scoped to a user or a record, refuses a key with 403; a key's runs are project-owned.
 
