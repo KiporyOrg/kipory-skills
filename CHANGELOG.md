@@ -2,6 +2,13 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260930.93652 — 2026-09-30
+
+Synced from the Kipory monorepo at `4e3a3049c`.
+
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20260930.91802 — 2026-09-30
 
 Synced from the Kipory monorepo at `145d57ae2`.
