@@ -29,7 +29,7 @@ nothing.
 
 ```
 POST /v1/schedules                    bind flow + inputs + cron + timezone
-GET  /v1/schedules/{id}/runs?limit=N  what actually fired, and what happened
+GET  /v1/schedules/{id}/runs?limit=N  what actually fired, and what happened (cursor-paged)
 PATCH /v1/schedules/{id}            { enabled: false, version } stops it; { enabled: true, version }
                                       starts it, recomputing the next run from now
 ```
@@ -182,7 +182,7 @@ run's invocation. Reach for them in this order:
 - **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary skill failure
   it is the fixed string _"The flow failed to run."_ on every run, because the raw error can carry
   provider bodies and prompt fragments and is deliberately not put there. The step's own words, cut
-  to 500 characters, are on its `step_failed` row in `GET /v1/runs/{runId}/steps`. Three other shapes exist:
+  to 500 characters, are on its `step-failed` row in `GET /v1/runs/{runId}/steps`. Three other shapes exist:
   a validation failure surfaces the operator-authored message verbatim, a missing record says so,
   and a flow that produced none of its declared output reports that instead.
 
@@ -205,19 +205,19 @@ success rate or a day strip built from it agrees with the "Last run" column. ⚠
 whose invocation is not linked (yet, or any more) reads `running`; classifying the raw invocation
 yourself tends to call that row a failure.
 
-### The window says whether it is the whole history
+### The cursor says whether you hold the whole history
 
-`limit` is a **ceiling, not a page** — there is no cursor here and no way to ask for what fell
-outside it. So the response carries `truncated` beside `runs`: true when older occurrences exist
-beyond the window you asked for.
+The runs read is **cursor-paged**, newest first: it answers `{ runs, paging: null, nextCursor,
+prevCursor }`. Pass `after=<nextCursor>` for older occurrences (`before=<prevCursor>` for newer) and
+keep going until `nextCursor` is `null`.
 
-⛔ **Read the flag; do not infer it from how many rows came back.** A window that came back full is not
-evidence of anything — a schedule holding exactly `limit` occurrences and no more fills it, and a
-client comparing the count against its own `limit` then warns about older runs that do not exist.
-That inference is the reason this field is here. When `truncated` is true, every figure you compute
-from the returned rows — a success rate, a median duration, a spend total — is over the WINDOW rather than over
-the schedule, and saying so is the difference between a recent rate and an all-time one.
-(`limit` defaults to 50 and caps at 200, so the default window is narrower than most people assume.)
+⛔ **Read the cursor; do not infer it from how many rows came back.** A page that came back full is
+not evidence of anything — a schedule holding exactly `limit` occurrences and no more fills it, and
+a client comparing the count against its own `limit` then warns about older runs that do not exist.
+While `nextCursor` is set, every figure you compute from the rows you hold — a success rate, a
+median duration, a spend total — is over those rows rather than over the schedule, and saying so is
+the difference between a recent rate and an all-time one. (`limit` defaults to 50 and caps at 200,
+so one page is narrower than most people assume.)
 
 ⛔ **And a spend total in particular: `creditCost` is `null` when no cost was recorded, which is not
 a zero.** Summing nulls as zeroes reports a schedule that has been running expensively as one that
@@ -225,8 +225,8 @@ cost nothing. Count the nulls and say how many, or leave the total out.
 
 ⚠️ **Run history is kept for 30 days.** A once-a-minute schedule writes about 1,440 rows a day, so
 history is deliberately bounded — do not build anything that treats it as a permanent record. A
-window can therefore be complete (`truncated: false`) and still be missing everything older than the
-retention edge; the flag answers for the window, not for time.
+walk can therefore end (`nextCursor: null`) and still be missing everything older than the
+retention edge; the cursor answers for what is kept, not for time.
 
 **Exhausting the bounds disables the schedule** — crossing the end date or spending the maximum
 sets it disabled with no next run, by itself: its `version` does not move, so a `version` you held

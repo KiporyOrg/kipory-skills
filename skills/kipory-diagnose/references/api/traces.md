@@ -38,6 +38,8 @@ The records this flow ran on lately, named, newest first — what a preview's re
 
 ### `GET /v1/flows/{id}/traces`
 
+A flow's traces — the VALUES half of its runs: inputs, outputs and per-step outputs, sampled in production and kept 7 days — newest first, walked on `after`/`before`; filter by `source` and `recordId`. Each carries the `runId` of its run. Every run, with no values, is `GET /v1/runs?project=`; one run's trace by run id is `GET /v1/runs/{runId}/trace`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -48,7 +50,9 @@ The records this flow ran on lately, named, newest first — what a preview's re
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `limit` | `integer` | no | How many traces to return, newest first, up to 100. |
+| `limit` | `integer` | no | Rows per page, newest first, up to 100. Walk older pages with `after`. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 | `source` | `"production" \| "eval" \| "manual"` | no | Narrow to one origin. `production` is usually what a diagnosis wants — the other two are runs someone provoked on purpose. |
 | `recordId` | `string` | no | Narrow to runs that processed one particular record. |
 
@@ -56,11 +60,15 @@ The records this flow ran on lately, named, newest first — what a preview's re
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `truncated` | `boolean` | yes | True when older traces exist beyond this window. A window that came back FULL is not evidence of anything, so this is stated rather than left to be counted. ⛔ Independent of `sampling`, which answers a different absence: how many runs wrote a trace at all. |
-| `traces` | `object[]` | yes | The flow's recent runs, newest first, WITHOUT their payloads — read one trace to get those. ⚠️ An absent run is not evidence it did not happen: traces expire, and writing them is sampled. |
+| `traces` | `object[]` | yes | The flow's runs, newest first by `createdAt`, then id, WITHOUT their payloads — read one trace to get those. ⚠️ An absent run is not evidence it did not happen: traces expire, and writing them is sampled. |
 | `sampling` | `object` | yes | How much of this project's traffic is traced at all. ⚠️ WITHOUT THIS THE LIST IS UNINTERPRETABLE — 'three traces' means one thing at a rate of 1 and something very different at 0.05. Null means the deployment default is in force, which is NOT zero. |
+| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, and no `page` jump is offered — walk with `after` / `before`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
 ### `GET /v1/flows/{id}/traces/{traceId}`
+
+One trace of this flow in full, with its `runId`. The same trace by its run is `GET /v1/runs/{runId}/trace`; the run's execution record (steps, no values) is `GET /v1/runs/{runId}/steps`.
 
 **Path parameters**
 
@@ -79,6 +87,7 @@ The records this flow ran on lately, named, newest first — what a preview's re
 | `tag` | `string \| null` | yes | A label attached to the run, or null. |
 | `flowId` | `string \| null` | yes | The flow that ran. |
 | `recordId` | `string \| null` | yes | The record being processed, when `subject` is `record`. Null otherwise. |
+| `runId` | `string \| null` | yes | The run that wrote this trace — its steps, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |
 | `inputs` | `unknown` | no | What the run received. |
 | `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
 | `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |

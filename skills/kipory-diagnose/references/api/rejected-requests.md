@@ -14,6 +14,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/rejected-requests`
 
+Every request the project's own endpoints turned away with a 4xx, newest first, walked on `after`/`before` — code, message, the reason's first issues and which kind of credential came with it; filter by `class` and `endpointKey`. Kept 30 days. A refused request starts no run, so it is in neither `GET /v1/runs` nor `GET /v1/ai-calls`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -21,12 +23,16 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the project whose rejected requests to read. Required. |
 | `class` | `"auth" \| "validation" \| "not-found" \| "limit" \| "other"` | no | Only one family of refusal: `auth` (401, 403), `validation` (400, 413, 415, 422), `not-found` (404, 405), `limit` (402, 429), or `other` (every other 4xx). |
 | `endpointKey` | `string` | no | Only requests that matched this configured endpoint, by key. A refusal answered before any endpoint matched (a bad credential, a path nothing serves) has no endpoint and never matches. |
-| `limit` | `integer` | no | How many of the most recent rejected requests to return, newest first. Defaults to 50. A cap, not a page — the log keeps a row for `retentionDays` days. |
+| `limit` | `integer` | no | Rows per page, newest first. Defaults to 50, up to 200. Follow `nextCursor` as `after` for older rows; the log keeps a row for `retentionDays` days. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `requests` | `object[]` | yes | Newest first. |
-| `truncated` | `boolean` | yes | True when more rejected requests exist within retention than the limit. |
-| `retentionDays` | `integer` | yes | How many days a rejected request is kept. An older one has been removed and is not returned, whatever `limit` asks for. |
+| `requests` | `object[]` | yes | Newest first by `occurredAt`, then id. |
+| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+| `retentionDays` | `integer` | yes | How many days a rejected request is kept. An older one has been removed and is not returned, however far you walk. |

@@ -234,6 +234,8 @@ Delete one schedule and its run history; it stops firing at once. Nothing refuse
 
 ### `GET /v1/schedules/{id}/runs`
 
+One schedule's occurrences, newest first, walked on `after`/`before` — fired, skipped or blocked, and for a fired one its invocation's status, timing, failure and cost. The run it started is `GET /v1/runs/{runId}` via `invocation`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -244,11 +246,15 @@ Delete one schedule and its run history; it stops firing at once. Nothing refuse
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `limit` | `integer` | no | How many recent occurrences to return, newest first. Up to 200. |
+| `limit` | `integer` | no | Rows per page, newest first. Defaults to 50, up to 200. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `runs` | `object[]` | yes | Recent occurrences, newest first. |
-| `truncated` | `boolean` | yes | True when older occurrences exist beyond this window. STATED rather than left to be inferred: a window that came back FULL is not evidence of anything, and there is no cursor here to ask for the rest — `limit` is a ceiling, not a page. |
+| `runs` | `object[]` | yes | Occurrences, newest first by `createdAt`, then id. |
+| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |

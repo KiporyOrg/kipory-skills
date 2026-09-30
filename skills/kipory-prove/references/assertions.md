@@ -35,7 +35,7 @@ There is no content-equality kind. Assertions constrain **shape and structure**;
 
 A test run returns, per case: `outcome` (`passed`, `failed`, `invalid`, `not-run`), the list of assertions each with `passed`, `message` and `actual`, the `missingRequiredOutput` the preview engine saw, and the step transcript. `invalid` is the case whose stored inputs no longer fit the flow's declared slots — the flow's signature moved under a test that was written for the old one, which is a regression to read, not a fixture to repair silently.
 
-An eval run scores each case through the suite's scorer flows and the case's own assertions; an assertion contributes a score with `source: ASSERTION`, a scorer flow one with `source: SCORER_FLOW`. The run's `delta` against the previous settled run says which cases were comparable and which metrics moved.
+An eval run scores each case through the suite's scorer flows and the case's own assertions; an assertion contributes a score with `source: assertion`, a scorer flow one with `source: scorer-flow`. The run's `delta` against the previous settled run says which cases were comparable and which metrics moved.
 
 ## Choosing
 

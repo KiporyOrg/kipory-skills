@@ -22,12 +22,12 @@ GET    /v1/schedules?project={nodeId}&expand=lastRun,drift,flowLabel
 PATCH  /v1/schedules/{id}                   { version, … } — inputs REPLACE; key is immutable and not a body field
 PATCH  /v1/schedules/{id}                   { version, enabled } — switch it off, or on (recomputes the next run from now)
 DELETE /v1/schedules/{id}[?validateOnly=true]
-GET    /v1/schedules/{id}/runs?limit=50     the occurrences, what each did, and the run id it produced
+GET    /v1/schedules/{id}/runs?limit=50     the occurrences, what each did, and the run id it produced (cursor-paged)
 ```
 
 Inputs are keyed by input slot; `overlapPolicy` is `skip` or `allow`. A write checks that every input slot has a key, none is blank, and each value is of its slot's type (`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`), in `validateOnly` too. A document plan, or the flow or schema-entry PATCH with `validateOnly` (`leavesBehind`), names the schedules and triggers a narrowing change would leave unable to fire; the PATCH itself still saves. Spending `maxRuns` (or passing `endsAt`) disables the schedule by itself without moving its `version`; a disabled schedule shows `nextRunAt: null`. The next-run time you are handed is computed by the same code the tick uses, so it is a claim you can hold the platform to. Switching `enabled` on recomputes from now — refused (422) when the bounds are spent — so a schedule disabled across its window does not fire a backlog. On a retired project a PATCH of `{enabled: false, version}` alone is still accepted.
 
-Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked` — its `invocation` with `id`, `status` and a `failure` naming the step and phase that broke, and `creditCost` where null is not zero. **The invocation's `id` is the run id**: take it to `GET /v1/runs/{runId}/steps` for the ordered, never-sampled step log (`kipory-diagnose`).
+Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked` — its `invocation` with `id`, `status` (`pending`, `processing`, `ready`, `failed`, `deleting`) and a `failure` naming the step and phase that broke, and `creditCost` where null is not zero. **The invocation's `id` is the run id**: take it to `GET /v1/runs/{runId}/steps` for the ordered, never-sampled step log (`kipory-diagnose`).
 
 ## Triggers
 
@@ -37,10 +37,10 @@ GET  /v1/triggers?project={nodeId}&expand=lastRun,drift,flowLabel
 PATCH /v1/triggers/{id}                    { version, … } — inputs REPLACE; key is immutable and not a body field
 PATCH /v1/triggers/{id}                    { version, enabled } — switch it off, or on (reacts from now; nothing is caught up)
 DELETE /v1/triggers/{id}[?validateOnly=true]
-GET  /v1/triggers/{id}/runs?limit=50       every decision — fired, filtered, skipped, blocked — with its reason and run id
+GET  /v1/triggers/{id}/runs?limit=50       every decision — fired, filtered, skipped, blocked — with its reason and run id (cursor-paged)
 POST /v1/triggers/{id}/replay              { eventId } — re-run one decision as a new attempt
 GET  /v1/triggers/{id}/sample              the newest logged event the trigger would accept, shaped as the `event` slot
-GET  /v1/project-events?project={nodeId}   the durable event log itself, newest first, 30 days
+GET  /v1/project-events?project={nodeId}   the durable event log itself, newest first, 30 days, cursor-paged; &sourceId= for one source's rows
 ```
 
 A trigger fires a flow every time a matching event is **recorded** in the project's event log. Only a **durable**, non-`run`-scoped event type is logged, and a trigger listens only to an **active** type, so the write refuses a selector on a draft, retired, run-scoped or non-durable type and names the thing to change. The flow receives the envelope in a reserved `event` slot and `{ triggerId, key, triggerRunId, replay }` in a reserved `trigger` slot — neither belongs in `inputs`; everything else the flow declares does. Declare both slots with the builtin `object` type and read the payload as `event.data.<field>`. A `filter` is a step condition over two slots, `event` (the envelope) and `data` (its payload); an event it rejects is recorded as `filtered`, never dropped.
@@ -74,7 +74,7 @@ Reach for this instead of editing a flow whenever the thing being changed is a t
 ```
 GET /v1/runs/{runId}/spend                        every charge one run made, by step, model calls included — api host
 GET /v1/projects/{nodeId}/usage?window=7d          credits and events over a window, by kind and step
-GET /v1/projects/{nodeId}/ai-calls                the model-call ledger, filterable; /rollup by hour or day; /{callId}?payload=prompt for one
+GET /v1/ai-calls?project={nodeId}                 every model call, filterable; /v1/ai-calls/rollup?project= by hour or day; /v1/ai-calls/{id}?payload=prompt for one
 GET /v1/organizations/{nodeId}/quota              the organisation's resource ceilings and what is used
 GET /v1/credits/balance                            the wallet — on the PROJECT's host only
 ```
@@ -87,17 +87,17 @@ duration includes its wait in the ingest worker's queue, so a busy worker raises
 model's cost. Predict a range, and reconcile against `GET /v1/runs/{runId}/spend` rather than a
 fixed number.
 
-A machine caller has no ledger of its own: `GET /v1/credits/events` scopes to a person and answers 401 to a key from inside the handler. Account for key-driven spend per run, or per project through `usage`.
+A machine caller has no statement of its own: `GET /v1/credits/events` scopes to a person and answers 401 to a key from inside the handler. Account for key-driven spend per run, or per project through `usage`.
 
 Every amount is **credits, and one credit is one micro-USD** — `x-credits-charged: 5139` is about half a US cent. The reads count different things, so they disagree by design; pick the one that answers your question:
 
-| Question                                      | Read                                                                                                                                                                                                                                                                                                                                                       |
-| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| what one product call cost                    | its `x-credits-charged` response header — end-user (request) charges only, model calls included; a design-plane call's own work is not in it                                                                                                                                                                                                               |
-| what one scheduled occurrence cost            | `creditCost` on `GET /v1/schedules/{id}/runs` — every charge the occurrence made, model calls included                                                                                                                                                                                                                                                     |
-| which step of a run spent                     | `GET /v1/runs/{runId}/spend` — every charge one run made, broken down by step: design-time and zero-credit platform rows included, and a model call made on the ingest worker (`text.generate` and the other ingest-phase steps) carries the run like any other                                                                                            |
-| what the model calls were, and what each cost | `GET /v1/projects/{nodeId}/ai-calls` and its `/rollup` — the ledger's DEFAULT view hides design-time origins (previews, tests, evals): read `excludedOrigins`, or send `origins=all`. Eval-run model calls are logged `origin: test`, the same as flow test runs, so the ledger cannot split the two — an eval run's own `credits` is the per-suite number |
-| what the project spent over a window          | `GET /v1/projects/{nodeId}/usage` — every charging actor (end users, design time, held data), so it is the largest number and includes previews, test and eval runs                                                                                                                                                                                        |
+| Question                                      | Read                                                                                                                                                                                                                                                                                                                                                                               |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| what one product call cost                    | its `x-credits-charged` response header — end-user (request) charges only, model calls included; a design-plane call's own work is not in it                                                                                                                                                                                                                                       |
+| what one scheduled occurrence cost            | `creditCost` on `GET /v1/schedules/{id}/runs` — every charge the occurrence made, model calls included                                                                                                                                                                                                                                                                             |
+| which step of a run spent                     | `GET /v1/runs/{runId}/spend` — every charge one run made, broken down by step: design-time and zero-credit platform rows included, and a model call made on the ingest worker (`text.generate` and the other ingest-phase steps) carries the run like any other                                                                                                                    |
+| what the model calls were, and what each cost | `GET /v1/ai-calls?project={nodeId}` and `GET /v1/ai-calls/rollup?project={nodeId}` — the list's DEFAULT view hides design-time origins (previews, tests, evals): read `excludedOrigins`, or send `origins=all`. Eval-run model calls are logged `origin: test`, the same as flow test runs, so the list cannot split the two — an eval run's own `credits` is the per-suite number |
+| what the project spent over a window          | `GET /v1/projects/{nodeId}/usage` — every charging actor (end users, design time, held data), so it is the largest number and includes previews, test and eval runs                                                                                                                                                                                                                |
 
 ## What will bite you
 
@@ -106,29 +106,29 @@ Every amount is **credits, and one credit is one micro-USD** — `x-credits-char
 - **Both ceilings live on project settings and are ADMIN**: `PATCH /v1/projects/{nodeId}/settings` with `perUserSpendCapCredits` or `designSpendCapCredits`, where `null` means no ceiling and `0` means block everything — opposites, and a falsy check turns one into the other. That PATCH has no `version` lock.
 - **A run from before 2026-09-28 reads short on `/spend`.** Charges made on a worker — model calls, paid fetches — carried no run until then, so an older run shows only its in-process fees. Its occurrence's `creditCost` is complete; use that for older runs.
 - **A schedule's `key` never changes** and is not on the patch body — sending it is a 422. Rename through `label`; a blank string is a 422, `null` clears.
-- **`runs` is a cap, not a page.** `limit` goes to 200, there is no cursor, and `truncated` is the only word you get about what was cut.
+- **`runs` is one page, newest first.** `limit` goes to 200; walk older occurrences or decisions with `after=<nextCursor>` until `nextCursor` is `null`. A full page says nothing about whether more exist — only the cursor does.
 - **Choose `overlapPolicy` deliberately.** `allow` on a flow slower than its interval runs copies of itself concurrently. On a trigger, omitting it means `skip` for your own events — and `skip` records the second of two events that arrive together as `skipped`, running nothing for it. Use `allow` for a trigger whose every event must be acted on (a notification, a per-record write); keep `skip` for a flow that re-syncs state, where one run covers them all.
 - **A trigger never catches up.** Enabling one, or creating one, reacts to events recorded from then on; earlier events are in `GET /v1/project-events` and only a decision the trigger already took can be replayed. There is no backfill, on purpose.
-- **A trigger's `skip` overlap looks at its 20 most recent fires, not only the last.** Any of their runs still `PENDING` or `PROCESSING` — or a fire under five minutes old whose run is not linked yet — holds the next event back as `skipped`. A run stuck in `PROCESSING` skips every later event of that type until it terminates (skipped events are not fires, so it never ages out of those 20); the ledger shows the rows. `allow` on a flow that emits its own trigger type runs until the platform's chain-depth cap blocks it, and the ledger says `blocked` with why.
+- **A trigger's `skip` overlap looks at its 20 most recent fires, not only the last.** Any of their runs still `pending` or `processing` — or a fire under five minutes old whose run is not linked yet — holds the next event back as `skipped`. A run stuck in `processing` skips every later event of that type until it terminates (skipped events are not fires, so it never ages out of those 20); the decision log shows the rows. `allow` on a flow that emits its own trigger type runs until the platform's chain-depth cap blocks it, and the decision log says `blocked` with why.
 - **A trigger's filter reads a payload field as `{ "op": "slotEquals", "slot": "data", "path": "source", "value": "telegram" }`.** `path` walks: `author.profile.id` descends into objects (a key that itself contains a dot still matches, longest key first) and `items[0].kind` reads a list item, as in a step condition. A path that reads nothing reads as absent — `slotEquals` on it is false, with no error — so a misspelled path records every event as `filtered`.
 - **Event types are scoped by their category's row id, not by the project** — the one addressing surprise in this resource, and it fails looking like a missing project. Fetch categories first.
 - **Seeded categories and types cannot be deleted (409) but can be patched.** A platform-installed event's label, scope and payload binding are all changeable, and nothing stops you.
 - **A type's `status` does not gate emitting.** A retired type still fires; removing the emit step is the way to stop it. An event type carries two version numbers: `payloadVersion` for its shape and `version` for the lock.
 - **Config `version` is required when the namespace exists and ignored on create.** A stale one is a 409; re-read and reconcile. An override replaces the whole top-level field, never merges into it.
-- **`usage` defaults to seven days and excludes system charges**, which are zero by construction. `ai-calls` has no `total` and no page jump; walk its cursors.
+- **`usage` defaults to seven days and excludes system charges**, which are zero by construction. `window=custom` takes `from` and `to` as RFC 3339 instants, `to` exclusive: seven days is `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z`. Charge breakdowns name their kind in lowercase kebab (`llm-call`, `handler-run`, …). The AI-call list has no `total` and no page jump; walk its cursors.
 - **Test and eval runs start no trigger of their own — a processing handoff still does.** An `event.emit` during `POST /v1/flows/{id}/test` or an eval run is checked and dropped: it is never recorded in `GET /v1/project-events` and starts nothing. But an `entity.enqueue-process` step hands the record to its processing flow, which runs live once the case applies, and that flow's events publish and start every matching trigger like any live run's (`kipory-prove`).
 - **Prices are not here.** What things cost is a platform-operator surface a key cannot read. What you spent is this one.
 
 ## References
 
-| File                                                                                           | What it answers                                                                             |
-| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `references/packs/schedules.md`                                                                | time-triggered runs and their history                                                       |
-| `references/packs/triggers.md`                                                                 | event-triggered runs, the log they read, and the ledger of every decision                   |
-| `references/packs/events.md`                                                                   | the registry, emitting, the difference between a run signal and a bus signal                |
-| `references/packs/project-config.md`                                                           | tunables typed by a bound shape                                                             |
-| `references/packs/credits.md`                                                                  | the balance, the ledger, and the second gate a client that renders only `status` never sees |
-| `references/api/schedules.md` · `triggers.md` · `events.md` · `project-config.md` · `spend.md` | every route's fields                                                                        |
+| File                                                                                           | What it answers                                                                              |
+| ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------- |
+| `references/packs/schedules.md`                                                                | time-triggered runs and their history                                                        |
+| `references/packs/triggers.md`                                                                 | event-triggered runs, the log they read, and the record of every decision                    |
+| `references/packs/events.md`                                                                   | the registry, emitting, the difference between a run signal and a bus signal                 |
+| `references/packs/project-config.md`                                                           | tunables typed by a bound shape                                                              |
+| `references/packs/credits.md`                                                                  | the balance, the charges, and the second gate a client that renders only `status` never sees |
+| `references/api/schedules.md` · `triggers.md` · `events.md` · `project-config.md` · `spend.md` | every route's fields                                                                         |
 
 ## Then
 

@@ -8,7 +8,7 @@
 ## What it is
 
 The two reads that answer "what am I spending, and am I about to be cut off": a balance and a
-ledger. One credit is one micro-USD, and every amount on this surface is an integer count of them.
+statement of charges. One credit is one micro-USD, and every amount on this surface is an integer count of them.
 
 This is the whole of the billing surface a customer can read. The platform's price list is not part
 of it — pricing is a global catalog with one active row for the entire installation, so it is an
@@ -69,10 +69,10 @@ elsewhere and a `200` here is the expected pairing, not a contradiction.
 
 <!-- key-unreachable-ok: GET /v1/credits/events — this pack documents WHY a key is refused there and routes machine callers elsewhere; it is never prescribed to a key holder -->
 
-## Whose ledger you get
+## Whose charges you get
 
-The events read is **your own** consumption, not the tenant's. The ledger scopes to a _user_, so
-where there is no acting user there is no ledger to return and the route answers `401` rather than
+The events read is **your own** consumption, not the tenant's. The statement scopes to a _user_, so
+where there is no acting user there is no statement to return and the route answers `401` rather than
 an empty page.
 
 ⛔ **That is not an edge case — it is what an API key always gets.** A key has no person behind it,
@@ -88,9 +88,10 @@ by paging this one. It answers a question about one caller, however broad that c
 Events carry the charge you incurred and never the platform's own vendor cost: you see what you
 were charged, not what it cost us to serve you.
 
-Filtering is by event type, request id, and a time range.
+Filtering is by event type (a lowercase kebab word — `llm-call`, `embedding`, `handler-run`, …),
+request id, and a time range: `from` is an inclusive instant, `to` an exclusive one.
 
-## The ledger walks in both directions and refuses to number itself
+## The statement walks in both directions and refuses to number itself
 
 Paging is keyset, through opaque cursors you echo back rather than construct. The response hands
 back `nextCursor` and `prevCursor`; pass one back as `after` to go older or `before` to go newer.
@@ -102,7 +103,7 @@ paging client silently loop.
 
 ⚠️ **`paging` is always `null` on this route, and there is no `?page=`.** Every other list on the
 platform reports where the page sits — `{size, index, count, total}` — and this one declines,
-because counting your pages means a `COUNT` over your entire ledger. It is the highest-volume table
+because counting your pages means a `COUNT` over every charge you have incurred. It is the highest-volume table
 we keep, one row per billable operation, append-only, and unbounded per caller; `from`/`to` are
 optional, so the ordinary request has no time bound to shrink it. Read `null` as **"walk this one by
 cursor"**, never as "not measured yet". A page jump goes with it: jumping has to clamp to the last
@@ -120,12 +121,12 @@ however privileged the human behind it is.
 
 Two bearer shapes qualify, and they do **not** reach the same amount of this surface:
 
-| Holding                 | `GET /v1/credits/balance`                                         | `GET /v1/credits/events`   |
-| ----------------------- | ----------------------------------------------------------------- | -------------------------- |
-| A project **API key**   | 200 — wallet fields real; ceiling fields `null`, no person to cap | ⛔ `401`, always           |
-| An end-user **session** | 200 — wallet and that person's ceiling both real                  | 200 — that person's ledger |
+| Holding                 | `GET /v1/credits/balance`                                         | `GET /v1/credits/events`    |
+| ----------------------- | ----------------------------------------------------------------- | --------------------------- |
+| A project **API key**   | 200 — wallet fields real; ceiling fields `null`, no person to cap | ⛔ `401`, always            |
+| An end-user **session** | 200 — wallet and that person's ceiling both real                  | 200 — that person's charges |
 
-So "what did this project spend" is not a question the ledger answers for a machine caller. Be
+So "what did this project spend" is not a question the statement answers for a machine caller. Be
 deliberate about which credential the question is being asked with.
 
 ## The calls
@@ -133,7 +134,7 @@ deliberate about which credential the question is being asked with.
 | To                                                  | Call                                                   |
 | --------------------------------------------------- | ------------------------------------------------------ |
 | See the wallet, the ceiling and the window          | `GET /v1/credits/balance`                              |
-| Page one person's charge ledger (session bearers)   | `GET /v1/credits/events`                               |
+| Page one person's charges (session bearers)         | `GET /v1/credits/events`                               |
 | Attribute a machine-driven charge to what caused it | `GET /v1/runs/{runId}/spend`                           |
 | Total one schedule occurrence's billed charges      | the occurrence's `creditCost` on the schedule's `runs` |
 
@@ -152,7 +153,7 @@ never depended on the run and is complete.
   The key is fine; the route needs a person.
 - **Recomputing the window** from the period instead of reading the boundary that was returned.
 - **Reading `perUserSpendCap` with a falsy check**, which erases a zero ceiling into "unlimited".
-- **Expecting the tenant's ledger.** This is one caller's own; breadth of grant does not widen it.
+- **Expecting the tenant's charges.** This is one caller's own; breadth of grant does not widen it.
 - **Looking for prices here.** What things cost is an operator surface; what you spent is this one.
 
 ## Related

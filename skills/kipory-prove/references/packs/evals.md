@@ -89,7 +89,7 @@ it never actually had.
 
 ⭐ **Every suite read says whether a run is in flight — `runInFlight`.** It is `true` exactly when
 `POST /v1/eval-suites/{id}/run` would answer 409, and that includes a run that is queued and not yet
-picked up. ⛔ Do not read it off `lastRun.status === "RUNNING"`: the run row is written only when
+picked up. ⛔ Do not read it off `lastRun.status === "running"`: the run row is written only when
 the worker starts, so for the whole wait the newest run is still the previous, settled one — and a
 Run control drawn from it is offered exactly when it is refused. It is also `true` while a run row
 still holds the suite's lock after its worker died — the platform honours that lock for twelve
@@ -115,16 +115,16 @@ written by the worker when the run STARTS. Read the suite's runs back — `GET
 /v1/eval-suites/{id}/runs` — and the newest one is yours. A row that has not appeared yet means the
 worker has not picked the job up; it does not mean the run failed.
 
-A run's `status` is `RUNNING` until it settles, then `SUCCESS`, `PARTIAL` (some cases errored, the
-rest were scored), `ERROR` (it could not start, or nothing completed) or `NOT_MEASURED` (everything
-ran, and coverage says the numbers are not evidence). Poll until it is not `RUNNING`.
+A run's `status` is `running` until it settles, then `success`, `partial` (some cases errored, the
+rest were scored), `error` (it could not start, or nothing completed) or `not-measured` (everything
+ran, and coverage says the numbers are not evidence). Poll until it is not `running`.
 
 ⚠️ **A suite also runs itself.** `runOnConfigChange` defaults to **true**: a sweep about every ten
 minutes queues a paid run when either (1) the subject flow's configuration differs from the one the
 suite's last run measured, once the flow has sat unedited for ten minutes — an enabled suite that
-has never run counts as differing — and the run says `triggeredBy: CONFIG_CHANGE`; or (2) the
+has never run counts as differing — and the run says `triggeredBy: config-change`; or (2) the
 platform has been redeployed since that run, even with your flow untouched and with no wait, and
-the run says `triggeredBy: CODE_CHANGE`. Turn it off on a suite with paid scorers you mean to run
+the run says `triggeredBy: code-change`. Turn it off on a suite with paid scorers you mean to run
 by hand.
 
 ⚠️ **Everything that can be refused up front IS refused up front**, while your call is still open: a
@@ -155,7 +155,7 @@ will and will not have measured when it finishes. Gate on `severity`, never on `
 
 | code                              | what it means                                                    | the run still happens |
 | --------------------------------- | ---------------------------------------------------------------- | --------------------- |
-| `EVAL_RUN_NO_CASES`               | the selection grades nothing, so the run lands `ERROR`           | yes                   |
+| `EVAL_RUN_NO_CASES`               | the selection grades nothing, so the run lands `error`           | yes                   |
 | `EVAL_RUN_SCORER_UNRESOLVABLE`    | a named scorer flow is gone; its cases come back ungraded        | yes                   |
 | `EVAL_SUITE_DISABLED`             | the sweep skips this suite; only a run asked for by hand happens | yes                   |
 | `EVAL_REGRESSION_EVENT_UNDEFINED` | a detected regression is recorded and emitted to nobody          | yes                   |
@@ -163,20 +163,20 @@ will and will not have measured when it finishes. Gate on `severity`, never on `
 ⚠️ **The same four findings ride the 202.** A caller who queued a run without asking first gets
 them on `diagnostics` of the accept body, so this is not advice you can only have by asking for it.
 
-⚠️ **A queued run is attributed to you.** `triggeredBy` is `MANUAL` and the run is owned by the
+⚠️ **A queued run is attributed to you.** `triggeredBy` is `manual` and the run is owned by the
 caller — the same row a sweep would have written, with a different provenance.
 
 ### A run says what asked for it
 
-Every run carries `triggeredBy`: `CONFIG_CHANGE` (the sweep saw the flow under test move),
-`CODE_CHANGE` (the flow was untouched and the platform under it moved), or `MANUAL` (someone
+Every run carries `triggeredBy`: `config-change` (the sweep saw the flow under test move),
+`code-change` (the flow was untouched and the platform under it moved), or `manual` (someone
 pressed Run).
 
 ⭐ **The first two are kept apart because they point at different culprits.** When a regression
 turns up, "the flow was edited" and "nobody touched the flow" are the two answers worth telling
 apart, and they lead to different people looking at different things.
 
-⛔ **`null` means the trigger was NOT RECORDED — it does not mean `MANUAL`.** Runs from before this
+⛔ **`null` means the trigger was NOT RECORDED — it does not mean `manual`.** Runs from before this
 was kept carry `null`. Reading absence as a hand-started run would invent a person for every
 historical sweep fire, which is precisely the distinction the field exists to draw.
 
@@ -198,7 +198,7 @@ itself. "We did not look" and "we looked and it was fine" are different findings
 
 ⚠️ **A suppressed delta answers `regressed: false`, not `null`.** When the delta is withheld because
 the configuration or the cases moved, no metric is compared, so the verdict is `false` — unless the
-suite stopped measuring altogether (`SUCCESS` or `PARTIAL` → `ERROR` or `NOT_MEASURED`), which is
+suite stopped measuring altogether (`success` or `partial` → `error` or `not-measured`), which is
 judged across any delta. Read `delta.suppressedReason` before you read `false` as "compared and
 fine".
 
@@ -243,7 +243,7 @@ emitted `record`, `user` or `project` event is checked and then dropped: it is n
 published, so no trigger starts. Records and terms are not isolated, and neither is a processing
 handoff: an `entity.enqueue-process` step runs the record's processing flow live once the case
 applies, and that flow's events publish and its mail is sent. An eval run's model calls are
-`origin: test` in the ledger, the same as a flow test run's; the run's own `credits` is the
+`origin: test` in the AI-call list, the same as a flow test run's; the run's own `credits` is the
 per-suite figure. Re-running a suite over a mutating flow is not a safe idempotent act:
 measure a flow that does not write, or accept that each run changes the baseline.
 
@@ -274,7 +274,7 @@ produce. So the failure lands after every subject call has already billed. Re-ch
 bindings yourself whenever you edit the subject's output slots.
 
 Every score carries a `source` saying what produced it, and the set is closed at three:
-`SCORER_FLOW` (a grading flow), `ASSERTION` (a deterministic check), and `SYSTEM` (the platform's
+`scorer-flow` (a grading flow), `assertion` (a deterministic check), and `system` (the platform's
 own reading of latency, tokens or cost — a measurement with no judgement in it). Branch on it
 when you aggregate: folding a stopwatch reading in with a model's opinion averages two things
 that are not the same kind of number.
@@ -294,7 +294,7 @@ produced verdicts and no number — a suite working as authored), or `nothing-me
 either kind — a coverage failure to look into). It is `null` whenever there is a line to draw.
 The three reasons are a field of the trend response, not a named schema of their own: read them off
 `emptyReason`, which is unchanged.
-⚠️ Do not infer it from `status`: a categorical suite with one `PARTIAL` run is still categorical.
+⚠️ Do not infer it from `status`: a categorical suite with one `partial` run is still categorical.
 
 ⚠️ **Two more sources were published here until 2026-08-19 and never existed** — one naming a
 human reviewer, one naming end-user feedback. Both were declared alongside the others in
@@ -307,7 +307,7 @@ human-annotation or end-user-feedback path today; when one ships it brings its o
 One failure mode costs more than every other in this pack put together, and it is decided by
 configuration alone: **a suite with no `runAsUserId` runs as a sentinel, which owns no records.**
 If the flow under test reads a record type whose rows belong to individual users, every case
-searches an empty corpus — and the run reports SUCCESS with a column of real zeroes. Nothing
+searches an empty corpus — and the run reports `success` with a column of real zeroes. Nothing
 downstream can tell that from a flow that genuinely retrieves nothing.
 
 The suite carries half the answer. This read carries the other half: it walks the subject flow's
@@ -374,15 +374,19 @@ Two differences from the per-suite read, both deliberate:
   would make "this suite has no settled run" and "this suite was not in the response" the same
   shape, and nothing in the payload would let you tell which you were looking at.
 
-### Both cross-run reads are WINDOWS, and each says so
+### The runs list pages; the trends are windows
 
-`limit` on the runs list and on both trends is a **ceiling, not a page** — there is no cursor and no
-way to ask for what fell outside it. So both responses carry `truncated`: true when older runs
-exist beyond what you are holding.
+`GET /v1/eval-suites/{id}/runs` is **cursor-paged**, newest first: it answers `{ runs, paging: null,
+nextCursor, prevCursor }`. Pass `after=<nextCursor>` for older runs and keep going until
+`nextCursor` is `null` — that is the only signal that you hold the suite's whole history.
 
-⛔ **Read the flag; do not compare the count against your own `limit`.** A window that came back
-full is not evidence of anything — a suite with exactly that many runs fills it too, and a client
-that infers from the count then warns about history that does not exist.
+`limit` on both trends is a **ceiling, not a page** — there is no cursor and no way to ask for what
+fell outside it. So both trend responses carry `truncated`: true when older runs exist beyond what
+you are holding.
+
+⛔ **Read the cursor or the flag; do not compare the count against your own `limit`.** A page or
+window that came back full is not evidence of anything — a suite with exactly that many runs fills
+it too, and a client that infers from the count then warns about history that does not exist.
 
 ⭐ **On the trend it is what tells a short series from a new suite.** The leftmost point says _"no
 earlier run to compare against"_ either way; only `truncated` distinguishes "this suite has run

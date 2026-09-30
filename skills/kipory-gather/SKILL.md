@@ -121,7 +121,7 @@ network request.", not as a network error.
   record with the summary missing. Read `warnings` on the preview, use the fallback above, and put
   `slotPresent` conditions on writes. A refused scrape is **not charged** — the handler bills only a
   page it got. A preview's `ingestSpend` totals are what the preview was actually charged for vendor
-  fetches so far, read from your credit ledger; `calls[]` counts every call, cache hits and refusals
+  fetches so far, read from your charges; `calls[]` counts every call, cache hits and refusals
   included, so a refused call shows there at no cost. A call that timed out waiting keeps running
   and can be charged after the preview returns, so its cost may be missing from that preview's
   totals. A fetch on your own vendor key is never charged, and a platform-paid preview reports $0.

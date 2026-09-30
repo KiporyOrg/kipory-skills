@@ -44,6 +44,8 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 
 ### `GET /v1/runs`
 
+One project's runs, in the order they started, walked on `after`/`before`; filter by `flowKey` and a `window`. Every run, with no values: what started it, how it closed, its verdict. One run is `GET /v1/runs/{runId}`; its steps `…/steps`; the values that flowed (sampled, 7 days) `…/trace`; what it wrote `…/change-set`; what it cost `…/spend`. A flow's sampled traces are `GET /v1/flows/{id}/traces`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -73,6 +75,8 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 
 ### `GET /v1/runs/{runId}`
 
+Which run this is — the flow it ran, how it was triggered, how it closed, and its retry attempts. Each sibling answers one aspect: `…/steps` (what executed, no values), `…/trace` (the values, when sampled), `…/change-set` (what it wrote), `…/flow-snapshots` (the flow as it ran), `…/spend` (what it cost). 404 for an id you cannot see.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -87,6 +91,8 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | `attempts` | `integer` | yes | How many times this run was attempted — a COUNT, never an attempt NUMBER. ⛔ A retried run writes one opening frame PER ATTEMPT, so the listing draws it as several rows and every one of them addresses THIS route. Publishing one attempt's number would contradict whichever row the caller clicked; `run.attempt` is the earliest frame's and is 1 on every retried run, which is why it cannot answer this on its own. |
 
 ### `GET /v1/runs/{runId}/change-set`
+
+What a run CHANGED — every write it staged and how each resolved (applied, rejected, discarded, captured), never the values written. A step that wrote nothing is invisible here; read `GET /v1/runs/{runId}/steps` for it.
 
 **Path parameters**
 
@@ -107,6 +113,8 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 
 ### `GET /v1/runs/{runId}/flow-snapshots`
 
+What the flows a run executed LOOKED LIKE when it ran them — each step's handler, configuration and prompt, by content digest — even after the flow was edited. The current flow is `GET /v1/flows/{id}`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -123,6 +131,8 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 
 ### `POST /v1/runs/{runId}/retries`
 
+Run an endpoint invocation again, as a NEW run with the same endpoint and inputs, owned by the caller; answers 202 with the new `runId`. ADMIN. 409 for a run that is not an endpoint invocation (re-process a record instead) or one still going.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -136,6 +146,8 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 | `runId` | `string` | yes | The NEW run's id — an invocation id, so `GET /v1/runs/{runId}` and its siblings answer for it once its opening frame is written. |
 
 ### `GET /v1/runs/{runId}/steps`
+
+A run's execution record — one row per run and step event (`run-started`, `step-applied`, `step-failed`…), in order, walked on `after`/`before` or `page`, with no slot values. Follow it live with `GET /v1/runs/{runId}/steps/stream`; the values that flowed are `GET /v1/runs/{runId}/trace`.
 
 **Path parameters**
 
@@ -164,7 +176,7 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 
 ### `GET /v1/runs/{runId}/steps/stream`
 
-Server-Sent Events. Emits `steps` with whatever the caller missed (empty when it is already current, which is also how it learns the run exists), then `steps` again as rows are appended, then `close` with a reason. `close { terminal }` means the run finished or was aborted. Resume with `?after=<the last frame's through>`.
+Server-Sent Events. Emits `steps` with whatever the caller missed (empty when it is already current, which is also how it learns the run exists), then `steps` again as rows are appended, then `close` with a reason. `close { terminal }` means the run finished or was aborted. Resume with `?after=<the last frame's through>`. The same rows, paged, are `GET /v1/runs/{runId}/steps`; step kinds are kebab-case (`step-failed`).
 
 **Streams.** The success response is `text/event-stream`, not JSON. Event names: `steps`, `close`, `done`.
 
@@ -193,6 +205,8 @@ Server-Sent Events. Emits `steps` with whatever the caller missed (empty when it
 
 ### `GET /v1/runs/{runId}/trace`
 
+The VALUES half of one run — flow inputs and output, slot outputs and each step's output or error — when the run wrote a trace: production runs are sampled and traces expire (default 7 days), so 404 is an ordinary answer. The execution record every run has is `GET /v1/runs/{runId}/steps`; a flow's traces are `GET /v1/flows/{id}/traces`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -209,6 +223,7 @@ Server-Sent Events. Emits `steps` with whatever the caller missed (empty when it
 | `tag` | `string \| null` | yes | A label attached to the run, or null. |
 | `flowId` | `string \| null` | yes | The flow that ran. |
 | `recordId` | `string \| null` | yes | The record being processed, when `subject` is `record`. Null otherwise. |
+| `runId` | `string \| null` | yes | The run that wrote this trace — its steps, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |
 | `inputs` | `unknown` | no | What the run received. |
 | `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
 | `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |

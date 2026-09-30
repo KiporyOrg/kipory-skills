@@ -127,7 +127,7 @@ label, rather than trusting the automatic one to still be there.
   number), so a `version` you held is stale: re-read the flow's steps after a restore. The flow's
   own `version` moves too — a restore rewrites the flow's signature and binding. A step deleted since comes back with a NEW
   id, and one added since is deleted. History keyed by step id —
-  `GET /v1/projects/{nodeId}/ai-calls?skillId=`, the `bySkill` rows of
+  `GET /v1/ai-calls?project={nodeId}&skillId=`, the `bySkill` rows of
   `GET /v1/runs/{runId}/spend`, a trace's `skillId` — splits only for a step that came back with a
   new id; key your own history by step key and it never splits. A project-document apply matches
   steps the same way — and by `id` first, where the document states one.

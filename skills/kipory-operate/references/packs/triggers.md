@@ -53,10 +53,12 @@ has already decided can be replayed, but a trigger never sees an event it was no
 POST /v1/event-types                     make (or check) the type durable, not run-scoped
 POST /v1/triggers                        bind selector + filter + flow + inputs
 GET  /v1/triggers/{id}/runs?limit=N      every decision, newest first, with the run it started
+                                         (cursor-paged: pass after=<nextCursor> until it is null)
 GET  /v1/triggers/{id}/sample            the newest event it would accept — feed it to a preview
 POST /v1/triggers/{id}/replay            run one decision again, as a new attempt
 PATCH /v1/triggers/{id}                  { enabled: false, version } stops it; { enabled: true, version } starts it, from now
-GET  /v1/project-events?project=…        the log itself, newest first (narrow with categoryKey[, eventKey])
+GET  /v1/project-events?project=…        the log itself, newest first, cursor-paged (narrow with
+                                         categoryKey[, eventKey], or sourceId for one source's rows)
 ```
 
 Scoped by `project`. Create takes a **key** (the same charset and immutability as a schedule's or
@@ -159,7 +161,7 @@ re-judge it, so the rest of the trigger can still be edited.
   `filter`.
 - **`sourceId` and `newSource` together** — a trigger listens to one source.
 - **Every PATCH — switching `enabled` included — requires the version you last read.**
-- **A replay of an event this trigger never decided** is a 422. The ledger row is what you are
+- **A replay of an event this trigger never decided** is a 422. The decision row is what you are
   re-running; there is no backfill through the back door. A replay is also refused while the
   trigger is **disabled** (disable means stop, and a replay is a fire), when the event no longer
   matches the trigger's **current selector**, and when that selector no longer resolves to an
@@ -195,13 +197,13 @@ query is refused.
 
 ## What the platform guarantees
 
-- **Exactly one decision per event per trigger.** The ledger row is inserted before the fire, under
+- **Exactly one decision per event per trigger.** The decision row is inserted before the fire, under
   a unique key on the trigger, the event and the attempt number, so a redelivered dispatch cannot
   fire twice.
 - **Nothing is lost between the emit and the run.** The row is written before the bus publish; the
   dispatch job retries three times with backoff, and if it is lost or exhausted a per-minute sweep
   re-enqueues every event still undispatched. An event is stamped dispatched only once every
-  matching trigger has its ledger row — a trigger that could not be decided keeps the event
+  matching trigger has its decision row — a trigger that could not be decided keeps the event
   undispatched for the next pass rather than losing it.
 - **One trigger's refusal does not touch another's.** Fan-out is per trigger, each decided and
   fired independently; a payer refusal on the project blocks them all with the reason on each row.
@@ -213,7 +215,7 @@ query is refused.
   and the trigger's `lastError` says the same. Replay it by hand when the cause is gone.
 - **`skip` judges "still running" generously.** A fire whose invocation link is not yet written —
   the window between the claim and the accept — counts as in flight for five minutes, and any
-  recent fire still `PENDING` or `PROCESSING` holds the next event back, not only the newest.
+  recent fire still `pending` or `processing` holds the next event back, not only the newest.
 - ⚠️ **So `skip` drops the second of a burst.** Two events recorded 60 ms apart — two tickets
   arriving together, or one run that emits twice — fire the first and record the second as
   `skipped` ("previous run still in flight"); nothing runs for it unless you replay it. `skip` is
@@ -232,8 +234,9 @@ not fire, and — for a fire — the invocation with its live `status` and, on a
 
 The log itself, `GET /v1/project-events`, is where you find an `eventId` to replay. Its `source`
 column says who wrote the row: `run` for a flow's own emission, or the provider for a source's —
-`telegram` today, the other three once they have writers. `schedule` is reserved for the emit
-action on the roadmap and has no writer yet. Both tables are kept for **30 days**.
+`telegram` today, the other three once they have writers; `sourceId=` narrows it to one source.
+`schedule` is reserved for the emit action on the roadmap and has no writer yet. Both tables are
+kept for **30 days**, and both are cursor-paged: walk `after=<nextCursor>` until it is `null`.
 
 ## Testing a flow against a real event
 

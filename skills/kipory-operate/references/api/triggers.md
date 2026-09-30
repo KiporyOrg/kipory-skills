@@ -22,6 +22,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/project-events`
 
+The project's durable event log — every recorded emission a trigger can react to or replay — newest first by when it was recorded, walked on `after`/`before`; filter by `categoryKey` (+ `eventKey`) or by `sourceId` for one source's deliveries. Kept 30 days. What a trigger did with each event is `GET /v1/triggers/{id}/runs`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -29,14 +31,19 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `project` | `string` | yes | Node id of the project whose event log to read. Required. |
 | `categoryKey` | `string` | no | Key of an event category: only events of it. |
 | `eventKey` | `string` | no | Key of an event type: only this event within the category. Needs `categoryKey` too. |
-| `limit` | `integer` | no | How many of the most recent events to return, newest first. Defaults to 50. A cap, not a page — the log is reaped after 30 days. |
+| `sourceId` | `string` | no | Id of the trigger provider (source) whose deliveries to list: only events it wrote. A source this project does not hold matches nothing. |
+| `limit` | `integer` | no | Rows per page, newest first. Defaults to 50, up to 200. The log is reaped after 30 days. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `events` | `object[]` | yes | Newest first. |
-| `truncated` | `boolean` | yes | True when more events exist within retention than the limit. |
+| `events` | `object[]` | yes | Events, newest first by `recordedAt`, then id. |
+| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
 ### `GET /v1/triggers`
 
@@ -260,6 +267,8 @@ Re-run this trigger's decision about one event it already decided (`eventId`, fr
 
 ### `GET /v1/triggers/{id}/runs`
 
+One trigger's decisions, newest first, walked on `after`/`before` — fired, skipped, blocked or filtered, per event, with the invocation a fire started. The events themselves are `GET /v1/project-events`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -270,14 +279,18 @@ Re-run this trigger's decision about one event it already decided (`eventId`, fr
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `limit` | `integer` | no | How many of the most recent decisions to return, newest first. Defaults to 50. A cap, not a page — there is no cursor. |
+| `limit` | `integer` | no | Rows per page, newest first. Defaults to 50, up to 200. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `runs` | `object[]` | yes | Newest first. |
-| `truncated` | `boolean` | yes | True when more decisions exist than the limit returned. Raise the limit to see further back. |
+| `runs` | `object[]` | yes | Decisions, newest first by `createdAt`, then id. |
+| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
 ### `GET /v1/triggers/{id}/sample`
 

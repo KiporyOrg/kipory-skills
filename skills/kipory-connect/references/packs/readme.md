@@ -124,7 +124,7 @@ quietly working around it.
   readable by flows.
 - **Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)** — the one place a project's vector space is
   defined.
-- **Credits and spend (capability pack `credits` — `GET /v1/capability-packs/credits`)** — the balance and the ledger, and the second gate a client
+- **Credits and spend (capability pack `credits` — `GET /v1/capability-packs/credits`)** — the balance and the statement of charges, and the second gate a client
   that renders only `status` never sees.
 - **Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)** — the node-scoped credential vault. Which tier's key pays the vendor,
   why disabling a secret defers upward instead of switching it off, and why nothing reads a value

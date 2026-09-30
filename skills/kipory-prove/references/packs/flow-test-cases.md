@@ -145,7 +145,7 @@ somebody goes looking for it.
   recorded or published and no trigger starts. Mail is refused. One thing is not withheld: an
   `entity.enqueue-process` step hands the record to its processing flow, which runs live once the
   case applies — its events publish and its mail is sent. Model calls a test run makes are `origin:
-test` in the ledger.
+test` in the AI-call list.
 - **Cases are scoped to the flow, not pinned to a checkpoint.** Deliberately: a test pinned to a
   snapshot would validate a frozen copy rather than the flow anyone can currently break.
 - **Case names are unique per flow** — a clash is refused rather than silently overwriting.

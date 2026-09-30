@@ -12,7 +12,7 @@ The caller has the response's `x-request-id` header. That is the run id.
 GET /v1/runs/{runId}
 ```
 
-`run.lifecycle` is `unknown` — ordinary for a synchronous endpoint call, which leaves no invocation row to say how it ended; it means "no outcome recorded", not "still running" and not "finished". The step log answers instead: `closing.kind` says it finished, with `verdict: failed` and `missingOutputs: ["summary"]`, and `stepsStarted` is 3 against `declaredSteps` 3. So no step failed: the run reached its end without producing a required output, and the platform refused it.
+`run.lifecycle` is `unknown` — ordinary for a synchronous endpoint call, which leaves no invocation row to say how it ended; it means "no outcome recorded", not "still running" and not "finished". The step log answers instead: `closing.kind` is `run-finished`, with `verdict: failed` and `missingOutputs: ["summary"]`, and `stepsStarted` is 3 against `declaredSteps` 3. So no step failed: the run reached its end without producing a required output, and the platform refused it.
 
 ## 2. Read the step log — it is complete
 
@@ -21,15 +21,15 @@ GET /v1/runs/{runId}/steps
 ```
 
 ```
-step_started   scrape       …
-step_applied   scrape       durationMs 1840
-step_started   summarise    …
-step_skipped   summarise    (no data)
-step_applied   write        …
-run_finished
+step-started   scrape       …
+step-applied   scrape       durationMs 1840
+step-started   summarise    …
+step-skipped   summarise    (no data)
+step-applied   write        …
+run-finished
 ```
 
-The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `data` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, so the flow's required `summary` output was never produced. That is why the caller got `422 FLOW_OUTPUT_MISSING` and the run's writes were discarded. Nothing is filled in with an empty value. Had the step failed, `step_failed` would name the step and carry its `phase` and a `message` cut to 500 characters; longer text (up to 2,000 characters) is in the trace's `stepOutputs[].error` and, for a model step, the model-call ledger.
+The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `data` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, so the flow's required `summary` output was never produced. That is why the caller got `422 FLOW_OUTPUT_MISSING` and the run's writes were discarded. Nothing is filled in with an empty value. Had the step failed, `step-failed` would name the step and carry its `phase` and a `message` cut to 500 characters; longer text (up to 2,000 characters) is in the trace's `stepOutputs[].error` and, for a model step, its row in `GET /v1/ai-calls?project={nodeId}`.
 
 ## 3. Read the trace for the values
 
@@ -45,7 +45,7 @@ A 404 here is ordinary: the run was not sampled, or its trace expired. Before re
 GET /v1/flows/{id}/traces?source=production&limit=20
 ```
 
-`sampling.request` of `0.2` means one run in five leaves a trace, so "only four traces for twenty runs" is expected. The listing carries no values — no `inputs`, `output` or `slotOutputs` — so it cannot tell you which trace is the complaint's; choose by time, `recordId` or duration, and open one with `GET /v1/flows/{id}/traces/{traceId}` to see its values.
+`sampling.request` of `0.2` means one run in five leaves a trace, so "only four traces for twenty runs" is expected. The listing is cursor-paged (older traces behind `after=<nextCursor>`) and carries no values — no `inputs`, `output` or `slotOutputs` — but every row names its `runId`, so the complaint's trace is the one whose `runId` is the run you already hold; otherwise choose by time, `recordId` or duration, and open one with `GET /v1/flows/{id}/traces/{traceId}` to see its values.
 
 In this run's trace:
 

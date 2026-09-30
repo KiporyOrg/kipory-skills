@@ -2,7 +2,7 @@
 
 # Sources
 
-What writes events into a project's log — a watched Telegram channel today, a webhook, a Postgres table and an Apify actor next. A source never runs a flow; a trigger pointing at it does. Health, the listening count and the source's own events are read here.
+What writes events into a project's log — a watched Telegram channel today, a webhook, a Postgres table and an Apify actor next. A source never runs a flow; a trigger pointing at it does. Health and the listening count are read here; the events a source delivered are `GET /v1/project-events?sourceId=`.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -15,7 +15,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/sources/{id}`](#get-v1-sources-id) |  |
 | `PATCH` | [`/v1/sources/{id}`](#patch-v1-sources-id) |  |
 | `DELETE` | [`/v1/sources/{id}`](#delete-v1-sources-id) |  |
-| `GET` | [`/v1/sources/{id}/events`](#get-v1-sources-id-events) |  |
 | `GET` | [`/v1/sources/providers`](#get-v1-sources-providers) |  |
 
 ### `GET /v1/sources`
@@ -82,7 +81,7 @@ Create a source: something that writes events a trigger can listen to, of one pr
 
 ### `GET /v1/sources/{id}`
 
-Read one source, with its health, listening count and `deleteRefusal`. The events it wrote: `GET /v1/sources/{id}/events`. Every source at once: `GET /v1/sources?project=`.
+Read one source, with its health, listening count and `deleteRefusal`. The events it wrote: `GET /v1/project-events?project=<nodeId>&sourceId=<id>`. Every source at once: `GET /v1/sources?project=`.
 
 **Path parameters**
 
@@ -179,27 +178,6 @@ Delete one source. Refused (409 `SOURCE_HAS_LISTENERS`) while a trigger listens 
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-
-### `GET /v1/sources/{id}/events`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The source's id, as returned when it was created or listed. |
-
-**Query**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `limit` | `integer` | no | How many of the newest events to return. Default 50, cap 200. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `events` | `object[]` | yes | Newest first. |
-| `truncated` | `boolean` | yes | True when more events exist within retention than the limit. |
 
 ### `GET /v1/sources/providers`
 

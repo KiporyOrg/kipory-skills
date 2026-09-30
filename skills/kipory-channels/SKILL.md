@@ -37,7 +37,7 @@ GET    /v1/sources/{id}
 PATCH  /v1/sources/{id}           { version, label?, config? }  — config REPLACES wholesale; the provider cannot change
 PATCH  /v1/sources/{id}          { version, enabled } — switch it off or on
 DELETE /v1/sources/{id}           409 SOURCE_HAS_LISTENERS while a trigger listens — the read's deleteRefusal says so first; ?validateOnly=true asks without deleting
-GET    /v1/sources/{id}/events    the newest events this source wrote
+GET    /v1/project-events?project={nodeId}&sourceId={id}   the events this source wrote, newest first, cursor-paged
 ```
 
 The first Telegram source in a project seeds a `telegram` event category and its `message` type into the project's registry. Then bind a flow with a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`, the flow and its inputs (`kipory-operate` has the rest). Each message is one `telegram/message` event in the project's log, and the trigger runs the flow with the envelope in the reserved `event` slot: the text, channel and message id under `event.data`, the attachments' file ids under `event.data.fileIds`.
@@ -58,7 +58,7 @@ A channel the project does not watch yet is one write, not two: `POST /v1/trigge
 - **A blocked payer still gets the event.** The event is written with `mediaSkipped`
   <!-- field-ok: mediaSkipped — a key the Telegram ingress writes INTO the event payload, not a
        field on any request or response body; it says why the media copy was withheld -->
-  set and no files; the trigger's ledger records `blocked` with the reason. Enable the payer and replay from the ledger.
+  set and no files; the trigger's decision log records `blocked` with the reason. Enable the payer and replay that decision.
 - **`version` is required on every source write** — every patch, switching `enabled` included. A stale one is a 409; re-read and retry. A provider's own report (member counts, health) never bumps it. An address has no version and no lock.
 - **`createdByUserId` is always null for a key**, and it is provenance only — the flow never runs as that person.
 - **Disabling a source stops future events.** It removes nothing already recorded, and enabling it later does not catch up.

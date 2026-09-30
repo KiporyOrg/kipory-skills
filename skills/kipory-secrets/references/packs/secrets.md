@@ -33,9 +33,9 @@ already paid for. On the third you are spending the platform's key at the platfo
 ⚠️ **This removes the vendor pass-through, not the whole cost of the run.** The flat per-run
 compute fee is charged either way — one charge per handler invocation, metered in whole seconds of
 its runtime, so bringing your own key changes who the vendor invoices and does not make the run
-free. Do not try to confirm the saving by reading a ledger: the suppression is a silent absence,
+free. Do not try to confirm the saving by reading your charges: the suppression is a silent absence,
 deliberately not a zero-priced line, so it is invisible in a spend breakdown either way — and
-`GET /v1/credits/events` answers `401` to an API key, which has no user to scope a ledger to.
+`GET /v1/credits/events` answers `401` to an API key, which has no user to scope a statement to.
 
 So adding your own key is a billing decision as much as an isolation one, and it is the single
 most common reason to touch this surface at all.

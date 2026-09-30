@@ -24,8 +24,8 @@ common case.
 **You pick a model. You never pick a dimension count, and you never pick a distance metric.**
 The `modelId` is an embedding model's id from `GET /v1/ai-models?type=embedding`. Listed is not
 the same as working: a provider whose account is out of quota refuses every embed. Before you
-choose, read `GET /v1/projects/{nodeId}/ai-calls?origins=all&outcome=error` for recent
-rows whose `errorCode` is `error:quota_exhausted`, by provider, and prefer a model on a provider
+choose, read `GET /v1/ai-calls?project={nodeId}&origins=all&outcome=error` for recent
+rows whose `errorCode` is `quota-exhausted`, by provider, and prefer a model on a provider
 with none.
 
 That inversion is the whole design. The metric is a property of the model it was trained for, and
@@ -59,9 +59,9 @@ accepted, and moves record search, never terms.
 
 ⚠️ **An indexing failure does not surface on the profile, the type or the record.** When the
 profile's model refuses (quota, outage), records stay `indexState: "never"` and the type's
-`?expand=vectorProgress` keeps a non-zero `remaining`. The cause is only in the model-call ledger:
-`GET /v1/projects/{nodeId}/ai-calls?origins=projection&outcome=error` lists each failed embed with
-its `errorCode` (`error:quota_exhausted`, …), and `GET /v1/projects/{nodeId}/ai-calls/{callId}`
+`?expand=vectorProgress` keeps a non-zero `remaining`. The cause is only in the AI-call list:
+`GET /v1/ai-calls?project={nodeId}&origins=projection&outcome=error` lists each failed embed with
+its `errorCode` (`quota-exhausted`, …), and `GET /v1/ai-calls/{id}`
 gives that call's `errorMessage`. A failed embed is retried three times within about fifteen seconds, then only by the daily re-index sweep (08:00 UTC). Moving to a
 working model is a new generation plus activate.
 

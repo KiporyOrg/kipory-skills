@@ -192,6 +192,8 @@ Delete an eval case. The runs that measured it keep its results, and its scores 
 
 ### `GET /v1/eval-runs/{id}`
 
+One eval run in full — its status, trigger, provenance, per-case results with every score, and the run's aggregates. A suite's runs are `GET /v1/eval-suites/{id}/runs`; one case's trace is `GET /v1/eval-runs/{id}/traces/{traceId}`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -208,6 +210,8 @@ Delete an eval case. The runs that measured it keep its results, and its scores 
 | `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when there is no previous run. |
 
 ### `GET /v1/eval-runs/{id}/traces/{traceId}`
+
+The trace of one case in an eval run, with its `runId`. The run's per-case scores are `GET /v1/eval-runs/{id}`.
 
 **Path parameters**
 
@@ -226,6 +230,7 @@ Delete an eval case. The runs that measured it keep its results, and its scores 
 | `tag` | `string \| null` | yes | A label attached to the run, or null. |
 | `flowId` | `string \| null` | yes | The flow that ran. |
 | `recordId` | `string \| null` | yes | The record being processed, when `subject` is `record`. Null otherwise. |
+| `runId` | `string \| null` | yes | The run that wrote this trace — its steps, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |
 | `inputs` | `unknown` | no | What the run received. |
 | `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
 | `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |
@@ -301,7 +306,7 @@ Create an eval suite: a flow under test (`flowId`), the scorer flows that grade 
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
-| `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says SUCCESS. |
+| `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
 | `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
 | `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
@@ -342,7 +347,7 @@ Read one eval suite: its configuration, the `version` its PATCH takes, its newes
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
-| `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says SUCCESS. |
+| `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
 | `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
 | `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
@@ -406,7 +411,7 @@ Change an eval suite's configuration — its flow, scorers, `coverageMode`, repe
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
-| `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says SUCCESS. |
+| `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
 | `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
 | `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
@@ -507,6 +512,8 @@ Start a run of an eval suite: every enabled case (or `caseKeys`) through the sui
 
 ### `GET /v1/eval-suites/{id}/runs`
 
+One eval suite's runs, newest first, walked on `after`/`before` — status, what triggered each, counts and regression verdict. One run in full, with its per-case scores and aggregates, is `GET /v1/eval-runs/{id}`; the chart-sized window of recent measurements is `GET /v1/eval-suites/{id}/trend`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -517,18 +524,22 @@ Start a run of an eval suite: every enabled case (or `caseKeys`) through the sui
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `limit` | `integer` | no | How many runs to return, newest first. 1 to 100. |
+| `limit` | `integer` | no | Rows per page, newest first. 1 to 100. Walk older pages with `after`. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `runs` | `object[]` | yes | Runs, newest first. |
-| `truncated` | `boolean` | yes | True when older runs exist beyond this window. STATED rather than left to be inferred: a window that came back FULL is not evidence of anything, and `limit` is a CEILING with no cursor behind it — there is no way to ask for what was cut. |
+| `runs` | `object[]` | yes | Runs, newest first by `createdAt`, then id. |
+| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, and no `page` jump is offered — walk with `after` / `before`. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
 ### `GET /v1/eval-suites/{id}/trend`
 
-One suite's scores over its recent runs (default 20 points), each point saying whether it is comparable with its neighbours. The runs themselves, with their status and cost: `GET /v1/eval-suites/{id}/runs`; one run's case results: `GET /v1/eval-runs/{id}`; every suite's series at once: `GET /v1/eval-suites/trend?project=`.
+One suite's scores over its recent runs, oldest first, each point saying whether it is comparable with its neighbours — a BOUNDED window of at most `limit` points (default 20, at most 100) and `truncated` when older ones exist. A chart, not a log: it takes no cursor. The runs themselves, with their status and cost, walked on `after`: `GET /v1/eval-suites/{id}/runs`; one run's case results: `GET /v1/eval-runs/{id}`; every suite's series at once: `GET /v1/eval-suites/trend?project=`.
 
 **Path parameters**
 
@@ -553,7 +564,7 @@ One suite's scores over its recent runs (default 20 points), each point saying w
 
 ### `GET /v1/eval-suites/trend`
 
-Every suite's recent scores in one answer, for a project overview (`?project=<nodeId>`, default 8 points per suite). One suite's longer series: `GET /v1/eval-suites/{id}/trend`; one suite's runs themselves, newest first: `GET /v1/eval-suites/{id}/runs`.
+Every suite's recent scores in one answer, for a project overview (`?project=<nodeId>`), oldest first — a BOUNDED window: at most `limit` points per suite (default 8, at most 20), with `truncated` per suite when older runs exist. It is a chart, not a log, so it takes no cursor. One suite's longer series: `GET /v1/eval-suites/{id}/trend`; one suite's runs themselves, newest first and walked on `after`: `GET /v1/eval-suites/{id}/runs`.
 
 **Query**
 

@@ -24,7 +24,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Relation kind vs. pairing vs. edge.** A **relation kind** is the vocabulary entry for a typed link between records; a **pairing** is one (typeA, typeB) pair the kind admits; an **edge** is an actual link between two records. Edges are read one hop at a time.
 
-**Event.** In the design API, an **event type** is a declared, emittable signal in a **category**, with a scope of `run`, `record`, `user` or `project`. It is unrelated to the spend ledger's "credit events", to the run step log's events, and to server-sent events on a stream.
+**Event.** In the design API, an **event type** is a declared, emittable signal in a **category**, with a scope of `run`, `record`, `user` or `project`. It is unrelated to the charges statement's "credit events", to the run step log's events, and to server-sent events on a stream.
 
 **Dynamic endpoint vs. coded route.** A **coded route** is a `/v1/...` path the platform itself serves (`GET /v1/coded-routes`, with a key, lists them). A **dynamic endpoint** is one you author for your product, served on the project's host and backed by a flow. A coded route always wins a path collision, and its first path word is reserved whole: an endpoint under it is served only as far as that route group is (`kipory-expose`).
 

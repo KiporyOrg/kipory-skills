@@ -6,7 +6,7 @@ A key is a machine principal: it carries a grant (one node, one role) and no per
 
 ## Routes that need a signed-in person
 
-The spend ledger belongs to a signed-in person. Read a run's cost at `GET /v1/runs/{runId}/spend` and a project's at `GET /v1/projects/{nodeId}/usage`.
+Your own charges belong to a signed-in person. Read a run's cost at `GET /v1/runs/{runId}/spend` and a project's at `GET /v1/projects/{nodeId}/usage`.
 
 - `GET /v1/credits/events`
 

@@ -11,7 +11,7 @@ A source is a thing that writes events into your project's event log from outsid
 flows: a Telegram channel the platform watches today; a webhook URL, a Postgres table and an Apify
 actor next. It is the other half of a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`). The source writes `telegram/message`
 rows as they happen; a trigger pointing at that source runs a flow for each one, with the same
-ledger, the same overlap policy and the same replay every trigger has. **A source never names a
+decision log, the same overlap policy and the same replay every trigger has. **A source never names a
 flow.** "One message, three flows" is one source, one event and three triggers — which is what it
 always was underneath.
 
@@ -40,7 +40,7 @@ POST   /v1/sources                                           { project, provider
 GET    /v1/sources/{id}
 PATCH  /v1/sources/{id}                                       { version, label?, config?, enabled? }  — config REPLACES wholesale
 DELETE /v1/sources/{id}[?validateOnly=true]                   409 SOURCE_HAS_LISTENERS while a trigger listens
-GET    /v1/sources/{id}/events?limit=50                       the newest events this source wrote
+GET    /v1/project-events?project={nodeId}&sourceId={id}      the events this source wrote, newest first, cursor-paged
 ```
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
@@ -143,7 +143,7 @@ save"; anything else is exactly what lands.
   written with `mediaSkipped`
   <!-- field-ok: mediaSkipped — a key the Telegram ingress writes INTO the event payload, not a
        field on any request or response body; it says why the media copy was withheld -->
-  set and no file copies; the trigger's ledger records `blocked` with
+  set and no file copies; the trigger's decision log records `blocked` with
   the reason. Nothing is silently dropped.
 - **Health is stated in words**, merged in a fixed order: the provider's own failure or block
   first, then what the platform knows (for Telegram, whether a watcher shard currently owns the

@@ -205,7 +205,7 @@ Delete a flow and every step in it (`deletedSkillCount` says how many); its chec
 
 ### `GET /v1/flows/{id}/coverage`
 
-Which steps in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the traces production already writes, no test needed. It measures execution, not correctness: whether each step's output is right is what `POST /v1/flows/{id}/test` (the flow's pass/fail test cases) and an eval suite (`POST /v1/eval-suites/{id}/run`) judge. Is the graph itself sound: `GET /v1/flows/{id}/health`.
+Which steps in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the traces production already writes, no test needed. An aggregate over a SAMPLE of at most `attemptLimit` recent attempts (default 500), with `truncated` when more exist: a report, not a log, so it takes no cursor, and a larger `attemptLimit` widens the sample. It measures execution, not correctness: whether each step's output is right is what `POST /v1/flows/{id}/test` (the flow's pass/fail test cases) and an eval suite (`POST /v1/eval-suites/{id}/run`) judge. The attempts' traces: `GET /v1/flows/{id}/traces`; is the graph itself sound: `GET /v1/flows/{id}/health`.
 
 **Path parameters**
 
