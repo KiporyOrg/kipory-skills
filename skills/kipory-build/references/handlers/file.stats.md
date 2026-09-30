@@ -4,7 +4,7 @@
 
 Read a file's size, fingerprint, and last change date.
 
-- **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `FileStats`
 - **Reads:** One file, of any kind. The bytes are read to hash them, so a large file costs time even though nothing is stored. _(shape hint: `file`)_

@@ -4,7 +4,7 @@
 
 Turn a map point into a place: city, region, and country.
 
-- **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `Location` → `Place`
 - **Reads:** One `Location` — a latitude and a longitude, and nothing else. Coordinates it cannot use come back empty without a call. _(shape hint: `object`)_

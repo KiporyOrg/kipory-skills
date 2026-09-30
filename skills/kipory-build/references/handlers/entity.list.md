@@ -4,7 +4,7 @@
 
 List a user's records, newest first, one page at a time.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id + cursor` → `RecordPage`
 - **Reads:** The user id, from the slot `userIdSlot` names. To read past the first page, wire the previous page's cursor into `cursorSlot`. Everything else is settings on the step. _(shape hint: `user id + cursor`)_

@@ -4,7 +4,7 @@
 
 Count a user's records by term, as a list or a browsable tree.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TaxonomyAggregate`
 - **Reads:** The user id, from the slot `userIdSlot` names. Every count is scoped to that user. Everything else is settings on the step. _(shape hint: `string`)_

@@ -4,7 +4,7 @@
 
 Pull the text and document details out of a PDF.
 
-- **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `PdfDocument`
 - **Reads:** One PDF file. A non-PDF mime fails rather than being guessed at — route them elsewhere upstream. _(shape hint: `file`)_

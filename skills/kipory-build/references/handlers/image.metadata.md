@@ -4,7 +4,7 @@
 
 Read an image's size and the camera details stored in it.
 
-- **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `FileMetadata`
 - **Reads:** One image file. The type is not checked — anything that is not a readable image comes back with only its `byteSize`. _(shape hint: `file`)_

@@ -20,7 +20,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/secrets`
 
-The credentials a node stores itself (`?node=`) — metadata only, never a value. Requires **VIEWER**. Whether one actually resolves there, including an ancestor's, is `GET /v1/secrets/resolution?node=`; the types you can store are `GET /v1/secrets/catalog`; which keys the installation looks up and who brought their own is `GET /v1/secrets/coverage` (staff).
+The credentials a node stores itself (`?node=`) — metadata only, never a value. Requires **VIEWER**. Whether one actually resolves there, including an ancestor's, is `GET /v1/secrets/resolution?node=`; the types you can store are `GET /v1/secrets/catalog`.
 
 **Query**
 

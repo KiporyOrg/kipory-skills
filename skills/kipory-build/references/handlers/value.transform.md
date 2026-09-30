@@ -4,7 +4,7 @@
 
 Reshape or combine values with a short expression.
 
-- **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
 - **Reads:** Every slot the expression names, and the step's inputs must list exactly those. A name inside a projection counts too, so reach into items through `$map` and a variable. _(shape hint: `any+`)_

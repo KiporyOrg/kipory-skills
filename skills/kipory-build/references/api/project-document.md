@@ -18,6 +18,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/project-document/example`
 
+One complete project document, valid against `GET /v1/project-document/schema`, to learn the format from. It belongs to no project.
+A project's own document is `GET /v1/projects/{nodeId}/document`; plan a changed one with `POST /v1/projects/{nodeId}/document/plan` and apply it with `POST /v1/projects/{nodeId}/document`. Documents a new project can start from are `GET /v1/templates/{slug}`.
+Public: no credential needed.
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
@@ -35,6 +39,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `evals` | `object` | no | Eval suites keyed by key, each with its cases, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 
 ### `GET /v1/project-document/schema`
+
+The JSON Schema of the project document format — one project's whole configuration addressed by key — with a `version` hash that moves whenever the format does. This describes the format, not any project's content.
+One complete document to learn from is `GET /v1/project-document/example`. A project's own document is `GET /v1/projects/{nodeId}/document`; plan a changed one with `POST /v1/projects/{nodeId}/document/plan` and apply it with `POST /v1/projects/{nodeId}/document`.
+Public: no credential needed.
 
 **Response `200`**
 

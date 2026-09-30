@@ -4,7 +4,7 @@
 
 Turn text into numbers that capture its keywords, for keyword search.
 
-- **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SparseVector`
 - **Reads:** One string — usually the same text you embed densely, or any text whose exact words matter. Empty or missing returns an empty vector without doing any work. _(shape hint: `string`)_

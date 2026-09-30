@@ -4,7 +4,7 @@
 
 Remove a link this flow made earlier.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string, string` → `RelationRetraction`
 - **Reads:** Two slots: the record the link runs FROM, then the one it runs TO. The same pair the assert node was given, in the same order. _(shape hint: `string, string`)_

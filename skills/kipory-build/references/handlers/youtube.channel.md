@@ -4,7 +4,7 @@
 
 Look up a YouTube channel's details and numbers.
 
-- **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeChannel`
 - **Reads:** One string naming a channel — a full URL, a handle, or a raw channel id. All three normalise to the same cache entry. _(shape hint: `string`)_

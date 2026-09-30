@@ -4,7 +4,7 @@
 
 Link one record to another.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string, string` → `RelationAssertion`
 - **Reads:** Two slots: the record the link runs FROM, then the one it runs TO. They are read by position, so order decides which way a directed link points. _(shape hint: `string, string`)_

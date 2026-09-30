@@ -4,7 +4,7 @@
 
 Read the QR codes in an image and return what they say.
 
-- **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string[]`
 - **Reads:** One image — JPEG, PNG, WebP, HEIC, TIFF and the rest. Something that is not an image comes back empty rather than failing the step. _(shape hint: `file`)_

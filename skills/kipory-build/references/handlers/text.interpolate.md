@@ -4,7 +4,7 @@
 
 Fill a text template with values from earlier steps.
 
-- **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `string`
 - **Reads:** Any slots you wire in — text verbatim, a list joined with commas, an object's fields via `{{slot.field}}`. A slot nothing has written yet fills in as empty. _(shape hint: `any+`)_

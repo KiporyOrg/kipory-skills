@@ -4,7 +4,7 @@
 
 Look up a YouTube video's details, numbers, and thumbnail.
 
-- **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeVideo`
 - **Reads:** One string naming a video — a full URL in any of its forms, or a bare video id. Anything unrecognisable is dropped without a call. _(shape hint: `string`)_

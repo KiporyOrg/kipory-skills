@@ -4,7 +4,7 @@
 
 Turn text into numbers that capture its meaning, for search by meaning.
 
-- **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Vector`
 - **Reads:** One string. Empty or missing returns an empty vector without calling the model; anything that is not a string is a shape error. _(shape hint: `string`)_

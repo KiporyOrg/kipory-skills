@@ -4,7 +4,7 @@
 
 Decide whether a proposed term matches one you have, is new, or needs review.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `candidates + thresholds + proposal` → `GateDecision`
 - **Reads:** Reads the candidate hits, the facet's high/low thresholds, and the proposed slug/label/parent for the create-new case. _(shape hint: `candidates + thresholds + proposal`)_

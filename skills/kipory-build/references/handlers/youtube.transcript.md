@@ -4,7 +4,7 @@
 
 Get the words spoken in a YouTube video.
 
-- **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Reads:** One bare video id. A full URL is refused — parse it with `youtube.video` first. Anything else is dropped without a call. _(shape hint: `string`)_

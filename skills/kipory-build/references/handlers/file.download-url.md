@@ -4,7 +4,7 @@
 
 Make a link anyone can use to download a file.
 
-- **Group:** Files · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** files · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
 - **Reads:** One file. Any kind — nothing is opened, inspected or transformed; only a link to it is signed. _(shape hint: `file`)_

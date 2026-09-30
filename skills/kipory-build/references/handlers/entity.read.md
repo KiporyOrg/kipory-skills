@@ -4,7 +4,7 @@
 
 Read records so later steps can use their text, files, and details.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `RecordRead[]`
 - **Reads:** A list of ids from the slot `idsSlot` names — plain ids or a vector search's candidates. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_

@@ -4,7 +4,7 @@
 
 Send one email to one person.
 
-- **Group:** Outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own message, so a new run of the same input sends it again.
 - **I/O:** `recipient, subject, body` → `boolean`
 - **Reads:** The recipient, the subject and the body, each from the slot its setting names. The address it comes from is a setting, not a slot. _(shape hint: `recipient, subject, body`)_

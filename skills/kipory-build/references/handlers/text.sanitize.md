@@ -4,7 +4,7 @@
 
 Make retrieved text safe to put into an AI prompt.
 
-- **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
 - **Reads:** The slot holding the items, each an object with an id field and a text field. Optionally a slot holding the nonce; without one it makes its own. _(shape hint: `any+`)_

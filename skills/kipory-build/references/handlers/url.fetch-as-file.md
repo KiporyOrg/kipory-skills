@@ -4,7 +4,7 @@
 
 Download a web address and save it as a file.
 
-- **Group:** Sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `string` → `file`
 - **Reads:** One URL — the thing to download. Anything that is not `http` or `https`, or that resolves to a private address, is refused. _(shape hint: `string`)_

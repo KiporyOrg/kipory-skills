@@ -4,7 +4,7 @@
 
 Read the posts from an X post, profile, or search link.
 
-- **Group:** Sources · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `ScrapedPage`
 - **Reads:** One X URL — a single post, a profile, or a search. Results are cached for a day by default. _(shape hint: `string`)_

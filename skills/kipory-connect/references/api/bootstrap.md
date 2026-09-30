@@ -15,6 +15,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/bootstrap`
 
+A project's whole configuration addressed by id — flows, steps, record types, endpoints, schedules, triggers and the rest — plus the caller's slice of the tenancy tree, as one snapshot. Each section carries the structure version it last changed at; narrow the answer with `sections`, or with `since` to get only what changed after a version you hold. A full answer carries an ETag, and `If-None-Match` returns 304 while it still holds.
+To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/document` instead: the same configuration addressed by key, in the format that `POST /v1/projects/{nodeId}/document/plan` and `POST /v1/projects/{nodeId}/document` take. To hear when this snapshot changes, hold `GET /v1/bootstrap/stream` open. For one row, its own read is simpler (`GET /v1/flows/{id}`, …).
+**VIEWER** on the project.
+
 **Query**
 
 | Field | Type | Required | Meaning |

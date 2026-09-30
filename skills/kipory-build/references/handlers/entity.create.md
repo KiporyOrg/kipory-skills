@@ -4,7 +4,7 @@
 
 Create a new record of the type you choose.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`
 - **Reads:** The new record's fields, from the slot `dataSlot` names, and optionally a list of uploaded file ids to attach in the same write. _(shape hint: `submission object`)_

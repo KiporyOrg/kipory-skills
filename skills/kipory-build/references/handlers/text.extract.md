@@ -4,7 +4,7 @@
 
 Pull every piece of text that matches a pattern.
 
-- **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string+` → `string[]`
 - **Reads:** Reads any number of `string` slots — every configured stream is concatenated and scanned by the configured regex. _(shape hint: `string+`)_

@@ -4,7 +4,7 @@
 
 Read an audio file's length, format, and tags.
 
-- **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `AudioMetadata`
 - **Reads:** One audio file. A non-audio mime fails rather than being guessed at. _(shape hint: `file`)_

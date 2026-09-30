@@ -4,7 +4,7 @@
 
 Split long text into smaller overlapping pieces.
 
-- **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string[]`
 - **Reads:** One long string — usually a page or a document body. Empty or non-text input emits nothing without running the chunker. _(shape hint: `string`)_

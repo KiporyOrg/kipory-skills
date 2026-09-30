@@ -4,7 +4,7 @@
 
 Run another flow, passing values in and taking results back.
 
-- **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `slot map` → `nothing`
 - **Reads:** Reads the parent slots its `inputs` rows name. A step save fills `inputStreams` from them; a project document lists the same names itself. _(shape hint: `slot map`)_

@@ -4,7 +4,7 @@
 
 Take the first value that is filled in, from a list you rank.
 
-- **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `nothing`
 - **Reads:** Reads any number of root slots — useful for mixed display fallbacks such as URL string first, FileRef second. The step's inputs must list each root `inputs` names. _(shape hint: `any+`)_

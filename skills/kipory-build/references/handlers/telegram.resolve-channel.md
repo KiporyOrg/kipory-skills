@@ -4,7 +4,7 @@
 
 Look up a public Telegram channel: its name, members, description, and picture.
 
-- **Group:** Sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelResolution`
 - **Reads:** One handle — `@name`, `name`, or a `t.me` link. An invite link is not a handle and cannot be resolved. _(shape hint: `string`)_

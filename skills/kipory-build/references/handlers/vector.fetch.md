@@ -4,7 +4,7 @@
 
 Read the stored meaning numbers for an item.
 
-- **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Record<string, number[]>`
 - **Reads:** One input slot, read via `freeFormInput` from the `pointIdSlot` config path: the point id to retrieve. _(shape hint: `string`)_

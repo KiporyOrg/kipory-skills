@@ -355,7 +355,7 @@ Bring a retired project back before its `purgeAfter`: its node, keys, schedules 
 
 ### `GET /v1/projects/{nodeId}/settings`
 
-The project's spend ceilings, the warning threshold, the describer switch, and what design-time work has cost in the current window. Change them with `PATCH` on this path. The trace sampling rates are staff-only, at `…/trace-settings`.
+The project's spend ceilings, the warning threshold, the describer switch, and what design-time work has cost in the current window. Change them with `PATCH` on this path.
 
 **Path parameters**
 

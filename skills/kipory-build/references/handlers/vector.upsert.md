@@ -4,7 +4,7 @@
 
 Store an item's search data so it can be found by meaning or keywords.
 
-- **Group:** Search · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** search · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `nothing`
 - **Reads:** The slots named in this step's config: one for the point id, one per named vector, and whichever hold the payload. An empty one leaves that vector unwritten. _(shape hint: `any+`)_

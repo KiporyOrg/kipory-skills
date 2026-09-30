@@ -4,7 +4,7 @@
 
 Answer typed questions about a value: yes/no, pick one, or score.
 
-- **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `nothing`
 - **Reads:** The value to judge — text, or a JSON object or list. Every question is answered against the same value.

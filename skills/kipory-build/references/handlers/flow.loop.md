@@ -4,7 +4,7 @@
 
 Start a loop that repeats the steps inside it.
 
-- **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `seed` → `string`
 - **Reads:** The slots that seed the first pass. The stop condition and the feedback wiring live on the paired closing step. _(shape hint: `seed`)_

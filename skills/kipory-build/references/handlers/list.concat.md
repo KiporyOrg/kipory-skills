@@ -4,7 +4,7 @@
 
 Join several values or lists into one list.
 
-- **Group:** Utility · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `list+` → `nothing`
 - **Reads:** Reads any number of root slots — useful for collecting parallel-source contributions (tag-source merges, classification-resolution collection) without requiring a fan-out/merge pair. _(shape hint: `list+`)_

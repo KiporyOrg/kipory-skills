@@ -4,7 +4,7 @@
 
 Send an existing record back through its processing flow.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each call pushes a new processing job, so a new run processes the record again whenever it is pending by then, as it is when the flow resets its status before this step.
 - **I/O:** `record id` → `boolean`
 - **Reads:** The record id, from the slot `recordIdSlot` names. Everything else is settings on the step. _(shape hint: `record id`)_

@@ -4,7 +4,7 @@
 
 Make the stable id a record's search data is stored under.
 
-- **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `string`
 - **Reads:** One slot holding a record id. A missing or empty id fails the step rather than inventing a point. _(shape hint: `any`)_

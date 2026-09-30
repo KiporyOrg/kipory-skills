@@ -4,7 +4,7 @@
 
 Save a value for later steps in this run, or add to one.
 
-- **Group:** Flow · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `string`
 - **Reads:** Reads one input value and accumulates it into the configured run-state cell. `set` overwrites, `add` sums, `append` builds a list, `union` builds a deduplicated set. _(shape hint: `any`)_

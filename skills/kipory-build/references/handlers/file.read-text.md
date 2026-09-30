@@ -4,7 +4,7 @@
 
 Read a text file and return what it says.
 
-- **Group:** Files · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
 - **Reads:** One text file. Anything binary fails rather than being decoded into nonsense. _(shape hint: `file`)_

@@ -39,7 +39,7 @@ PATCH /v1/triggers/{id}                    { version, enabled } — switch it of
 DELETE /v1/triggers/{id}[?validateOnly=true]
 GET  /v1/triggers/{id}/runs?limit=50       every decision — fired, filtered, skipped, blocked — with its reason and run id (cursor-paged)
 POST /v1/triggers/{id}/replay              { eventId } — re-run one decision as a new attempt
-GET  /v1/triggers/{id}/sample              the newest logged event the trigger would accept, shaped as the `event` slot
+GET  /v1/triggers/{id}/sample              the newest logged event the trigger would accept, in the log's shape (`project`, not `projectId`)
 GET  /v1/project-events?project={nodeId}   the durable event log itself, newest first, 30 days, cursor-paged; &sourceId= for one source's rows
 ```
 

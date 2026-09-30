@@ -30,7 +30,7 @@ A project's model calls over a window, newest first, walked on `after`/`before` 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `project` | `string` | yes | The project whose calls to read — its node id, the id `GET /v1/me/projects` lists. |
+| `project` | `string` | yes | The project whose calls to read — its node id: the id `GET /v1/me/projects` lists for a signed-in person, and `GET /v1/bootstrap?project={nodeId}&sections=tenancy` answers for an API key. |
 | `from` | `string` | no | Only calls at or after this instant. ⚠️ `to` IS OPTIONAL and defaults to the read's own clock — a caller that wants the call list and the rollup taken over the SAME window must send it, or each read picks its own upper bound and the band can disagree with the table under it by a round trip. |
 | `to` | `string` | no | Only calls STRICTLY BEFORE this instant. |
 | `origins` | `string` | no | Comma-separated `AiCall.origin` values to INCLUDE, e.g. `session,projection`. Use `unset` to name the rows whose origin is null — the largest bucket in production, and unnameable otherwise — or `all` on its own to turn the filter off entirely. Omit the parameter entirely to get the default view, which hides what a human did while building (see `excludedOrigins` on the response for exactly what was applied). |
@@ -119,7 +119,7 @@ The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `project` | `string` | yes | The project whose calls to read — its node id, the id `GET /v1/me/projects` lists. |
+| `project` | `string` | yes | The project whose calls to read — its node id: the id `GET /v1/me/projects` lists for a signed-in person, and `GET /v1/bootstrap?project={nodeId}&sections=tenancy` answers for an API key. |
 | `from` | `string` | no | Only calls at or after this instant. ⚠️ `to` IS OPTIONAL and defaults to the read's own clock — a caller that wants the call list and the rollup taken over the SAME window must send it, or each read picks its own upper bound and the band can disagree with the table under it by a round trip. |
 | `to` | `string` | no | Only calls STRICTLY BEFORE this instant. |
 | `origins` | `string` | no | Comma-separated `AiCall.origin` values to INCLUDE, e.g. `session,projection`. Use `unset` to name the rows whose origin is null — the largest bucket in production, and unnameable otherwise — or `all` on its own to turn the filter off entirely. Omit the parameter entirely to get the default view, which hides what a human did while building (see `excludedOrigins` on the response for exactly what was applied). |

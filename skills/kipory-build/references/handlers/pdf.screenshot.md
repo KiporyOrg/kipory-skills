@@ -4,7 +4,7 @@
 
 Save one page of a PDF as an image.
 
-- **Group:** Files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `file` → `file`
 - **Reads:** One PDF file. Anything else fails, so route non-PDFs elsewhere upstream. _(shape hint: `file`)_

@@ -4,7 +4,7 @@
 
 Gather the results of parallel branches into one list.
 
-- **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]+` → `T[]`
 - **Reads:** The per-branch slots you list. The kind they carry — text, files, objects, numbers or booleans — chooses the reducer, not the strategy. _(shape hint: `any+`)_

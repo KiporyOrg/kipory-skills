@@ -284,6 +284,8 @@ Mint the next generation of this profile's key — a new, INERT row with a new m
 
 ### `GET /v1/vector-collections`
 
+The vector collections of the project named by `?project=`, each derived from an embedding profile. One collection with its identity is `GET /v1/vector-collections/{name}`; collections are not created here but by the embedding profiles at `/v1/embedding-profiles`. Requires **VIEWER**.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -298,6 +300,8 @@ Mint the next generation of this profile's key — a new, INERT row with a new m
 | `reachable` | `boolean` | yes | Whether the vector store answered the ENUMERATION. False means the SET is unknown, not empty; reading an empty list as “this project has no collections” is how an outage becomes a wrong answer. It says nothing about any one collection — read that row's `storeState`. |
 
 ### `GET /v1/vector-collections/{name}`
+
+One collection of the project named by `?project=`, by the `name` a listing returns (not its `collectionName`): its vector fields, point count and the embedding profile it derives from. Its stored points are `GET /v1/vector-collections/{name}/points`. Requires **VIEWER**.
 
 **Path parameters**
 
@@ -328,6 +332,8 @@ Mint the next generation of this profile's key — a new, INERT row with a new m
 
 ### `GET /v1/vector-collections/{name}/points`
 
+Page through the points stored in one collection, optionally narrowed by `filter`, a JSON array of `{key, value}` clauses. Free: it reads what is stored. To rank points against query text, `POST /v1/vector-collections/{name}/search`. Requires **VIEWER**.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -354,6 +360,8 @@ Mint the next generation of this profile's key — a new, INERT row with a new m
 | `total` | `integer \| null` | yes | How many points this walk will visit in all, under the same filter — an exact count off the payload index. Null when the store did not answer it, which is NOT zero: a range drawn over a failed count would report an empty collection. |
 
 ### `POST /v1/vector-collections/{name}/search`
+
+Rank one collection's points against `query` text. It writes nothing but embeds the query with a billable provider call charged to the project. To read stored points without spending, `GET /v1/vector-collections/{name}/points`. Requires **ADMIN**.
 
 **Path parameters**
 

@@ -4,7 +4,7 @@
 
 Change an existing record's data.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + data/derived patches` → `boolean`
 - **Reads:** The record id, from the slot `recordIdSlot` names, plus whichever patch slots you wire: the new data, the new derived output, and file ids to attach. _(shape hint: `record slot + data/derived patches`)_

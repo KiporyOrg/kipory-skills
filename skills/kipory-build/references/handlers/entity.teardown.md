@@ -4,7 +4,7 @@
 
 Clear a record's generated files and terms so it can be processed again.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `slot map` → `object`
 - **Reads:** The record id, from the slot `recordIdSlot` names. The owner comes from the run, so a record owned by anyone else matches nothing. _(shape hint: `slot map`)_

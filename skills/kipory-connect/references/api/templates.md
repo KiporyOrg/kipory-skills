@@ -15,6 +15,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/templates`
 
+Every project template this build ships: each one's `slug`, name, description, what it `requires` that it cannot carry (secrets to store), and which one is the `starter`, with a `version` hash to cache on.
+Read the document a template applies with `GET /v1/templates/{slug}`. To create a project from one, pass its slug as `template` on `POST /v1/projects` (or `POST /v1/me/projects` for a first project).
+Public: no credential needed.
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
@@ -23,6 +27,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `templates` | `object[]` | yes | The templates, ordered by slug. |
 
 ### `GET /v1/templates/{slug}`
+
+One project template, with the project `document` it applies — exactly what a project created from it will hold. An unknown slug is a 404 that names the slugs this build ships.
+Create a project from it by passing the slug as `template` on `POST /v1/projects` (or `POST /v1/me/projects`). To add it to a project that already exists, plan its `document` with `POST /v1/projects/{nodeId}/document/plan`. Every template, without documents, is `GET /v1/templates`.
+Public: no credential needed.
 
 **Path parameters**
 

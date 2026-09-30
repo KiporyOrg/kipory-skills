@@ -4,7 +4,7 @@
 
 Pick the right terms for a record in each facet you choose.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record context` → `TermResolution[]`
 - **Reads:** Reads the record context object it proposes facet values from (the configured facet keys drive which facets are resolved). _(shape hint: `record context`)_

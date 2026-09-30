@@ -4,7 +4,7 @@
 
 End a loop: stop when the condition holds, or go round again.
 
-- **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `body outputs` → `nothing`
 - **Reads:** The slots the stop condition looks at, and the ones fed back as the next pass's carry. _(shape hint: `body outputs`)_

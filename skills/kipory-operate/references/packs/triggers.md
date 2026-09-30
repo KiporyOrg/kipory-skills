@@ -237,10 +237,15 @@ column says who wrote the row: `run` for a flow's own emission, or the provider 
 `telegram` today, the other three once they have writers; `sourceId=` narrows it to one source.
 `schedule` is reserved for the emit action on the roadmap and has no writer yet. Both tables are
 kept for **30 days**, and both are cursor-paged: walk `after=<nextCursor>` until it is `null`.
+Each logged `event` names its project `project`, the node id every `?project=` takes; the flow's
+`event` slot carries the same envelope with the project's row id in `projectId` instead.
 
 ## Testing a flow against a real event
 
 `GET /v1/triggers/{id}/sample` returns the newest logged event the trigger's selector and filter
-would accept, shaped exactly as the `event` slot receives it — or `null`, said plainly, when none
-of the newest 500 events of the type qualifies. Hand it to `POST /v1/flows/{id}/preview` as the
-`event` input, with a hand-written `trigger` object, and the preview runs the flow as a fire would.
+would accept, in the log's shape — or `null`, said plainly, when none of the newest 500 events of
+the type qualifies. Hand it to `POST /v1/flows/{id}/preview` as the `event` input, with a
+hand-written `trigger` object. The log's shape names the project by its node id: `project` where a
+fire's `event` slot carries the row id in `projectId`, and the node id in `source` and in a
+project-scoped `subject`. A flow that reads any of those sees a different value in the preview than
+on a fire.

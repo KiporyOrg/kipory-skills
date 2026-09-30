@@ -4,7 +4,7 @@
 
 Tell which language a text is written in.
 
-- **Group:** Text · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Reads:** One string — a title, a body, a message. Links, handles and digits are stripped first: they are Latin whatever the language around them. _(shape hint: `string`)_

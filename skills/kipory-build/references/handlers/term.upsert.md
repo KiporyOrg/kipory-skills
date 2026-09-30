@@ -4,7 +4,7 @@
 
 Save resolved terms and link them to their records.
 
-- **Group:** Entities · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** entities · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `1` → `nothing`
 - **Reads:** One slot, named by `resolutionsSlot`, holding the resolved terms to save — usually what `facet.resolve` emitted. An empty one saves nothing and succeeds. _(shape hint: `1`)_

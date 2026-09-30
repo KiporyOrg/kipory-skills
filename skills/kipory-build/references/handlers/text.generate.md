@@ -4,7 +4,7 @@
 
 Send your prompt to an AI model and return its answer.
 
-- **Group:** AI · **Phase:** `ingest` · **Effect class:** `read`
+- **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `nothing`
 - **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_

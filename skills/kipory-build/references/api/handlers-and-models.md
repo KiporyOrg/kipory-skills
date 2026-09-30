@@ -23,6 +23,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/ai-models`
 
+The AI models this deployment supports and what each can do, optionally narrowed by `type`; the ids are the ones a skill or embedding profile accepts. Which provider account a model's calls go to at a node is `GET /v1/nodes/{nodeId}/routing`; which model a task uses there is `GET /v1/nodes/{nodeId}/task-models`. Any signed-in caller.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -55,6 +57,10 @@ Every system handler this deployment runs — what each reads, emits and accepts
 
 ### `GET /v1/handlers/{key}`
 
+One system handler's catalog entry — what it reads, emits and accepts as config, its `group` (lowercase, such as `ai` or `text`) — plus a worked example. An unknown key is a 404.
+The whole catalog, without examples, is `GET /v1/handlers`; pass `?project=` there to resolve types against one project.
+Any authenticated caller; the answer is the same for everyone.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -69,7 +75,7 @@ Every system handler this deployment runs — what each reads, emits and accepts
 | `title` | `string` | yes | Its display name. |
 | `description` | `string` | yes | What it does. |
 | `icon` | `string` | yes | A name for the glyph that stands for this handler, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
-| `group` | `"AI" \| "Text" \| "Sources" \| "Files" \| "Search" \| "Entities" \| "Outbound" \| "Flow" \| "Utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
+| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "entities" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this handler executes. It constrains where a step using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What a step editor must ask the operator for this handler: which work surface to show, whether a prompt and a model are required, and where this handler's inputs and output slot come from. Always fully populated — a handler that declares nothing is served the platform defaults, so a client never applies a default of its own. |

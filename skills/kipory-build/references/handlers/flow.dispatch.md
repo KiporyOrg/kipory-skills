@@ -4,7 +4,7 @@
 
 Send a value down the first branch whose rule it matches.
 
-- **Group:** Flow · **Phase:** `control` · **Effect class:** `read`
+- **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string | file | object` → `string`
 - **Reads:** One slot. What gets matched is decided by `matchOn`; the match is the routing decision, not the payload. _(shape hint: `string | file | object`)_

@@ -4,7 +4,7 @@
 
 Send an event, with its data, to anything listening.
 
-- **Group:** Flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Every emission gets a new event id, so a new run publishes the event again and starts every trigger listening for it again.
 - **I/O:** `event payload` → `nothing`
 - **Reads:** Reads the configured payload slot; its value becomes the event payload (validated against the event type's payload schema). _(shape hint: `event payload`)_

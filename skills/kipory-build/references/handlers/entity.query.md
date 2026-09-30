@@ -4,7 +4,7 @@
 
 Find records by their fields, terms, links, or meaning, all in one question.
 
-- **Group:** Entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `cursor + user slots` → `RecordQueryPage`
 - **Reads:** Optionally a prior answer's cursor from the slot `cursorSlot` names, and on a user-owned type the user id from `userIdSlot`; the question itself is config. _(shape hint: `cursor + user slots`)_

@@ -4,7 +4,7 @@
 
 Find the stored items closest in meaning to a query.
 
-- **Group:** Search · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `TermHit[]`
 - **Reads:** One slot holding the query: a vector from `text.embed` or `text.embed-sparse`, the text to search for, or the id of a record to find neighbours of. _(shape hint: `any+`)_

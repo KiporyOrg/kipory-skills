@@ -4,7 +4,7 @@
 
 Recall a value saved earlier in this run.
 
-- **Group:** Flow · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `none` → `string`
 - **Reads:** No slots. It returns whatever the named cell holds, or empty if nothing has written it. _(shape hint: `none`)_
