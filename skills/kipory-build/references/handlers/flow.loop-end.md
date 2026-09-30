@@ -157,7 +157,7 @@ End a loop: stop when the condition holds, or go round again.
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `op` | `not` | yes | — |  |
-| `inner` | union | yes | — |  |
+| `inner` | object | yes | — |  |
 
 **`op: and`**
 

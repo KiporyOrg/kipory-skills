@@ -2,6 +2,17 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260930.175357 — 2026-09-30
+
+Synced from the Kipory monorepo at `d7550506d`.
+
+- changed: `skills/kipory-build/references/handlers/flow.loop-end.md`
+- changed: `skills/kipory-connect/references/api/bootstrap.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+
 ## 1.20260930.172619 — 2026-09-30
 
 Synced from the Kipory monorepo at `f07c6d533`.

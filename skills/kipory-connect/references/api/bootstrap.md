@@ -20,7 +20,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to snapshot. Required. |
-| `sections` | `unknown \| string` | no | Comma-separated section names to return; omit for all nine. A name that is not a section is refused with 422 rather than dropped — a typo would otherwise look like a section that never changes. |
+| `sections` | `string` | no | Comma-separated section names to return; omit for all nine. A name that is not a section is refused with 422 rather than dropped — a typo would otherwise look like a section that never changes. |
 | `since` | `string` | no | Return only the sections that changed after this version — pass back the `structureVersion` you already hold. A value equal to the current one returns no section content and is not an error. A value ABOVE it returns everything, because that means the version moved backwards (a restore or rollback) and answering `nothing changed` would leave you stale forever. Digits only; anything else is a 422. |
 
 **Response `200`**

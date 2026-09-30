@@ -116,8 +116,6 @@ These serve the people who run the installation — every tenant at once — and
 - `GET /v1/platform-docs`
 - `GET /v1/platform-docs/js/scalar.js`
 - `GET /v1/platform-docs/openapi.json`
-- `GET /v1/platform-docs/scalar/openapi.json`
-- `GET /v1/platform-docs/scalar/openapi.yaml`
 - `GET /v1/pricing/coverage`
 - `GET /v1/pricing/effective`
 - `GET /v1/pricing/rules`

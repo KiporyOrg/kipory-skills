@@ -895,9 +895,7 @@ The verdict is the save's own, and when the patch moves the shape or the flow it
       "fields": [
         /* … the proposed vocabulary, the shape `expand=contract` returns … */
       ],
-      "definition": {
-        /* the data shape's schema, as proposed */
-      },
+      "definition": {/* the data shape's schema, as proposed */},
       "outputDefinition": null, // the bound flow's output schema, or null when unbound
     },
     /* … and the save's own staleVersion, writes, resolved and effects */
