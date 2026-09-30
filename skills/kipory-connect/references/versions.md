@@ -6,6 +6,6 @@ Every page under `references/api/`, `references/handlers/` and `references/packs
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `b9516952d52d` | `version` on `GET /v1/capability-packs` |
-| handlers | `d8d44038c8a28a35f61a41897a9fb34a65259f3dd180e65894e7e9a9e4f06af8` | `version` on `GET /v1/handlers` |
-| api | `1ac6e8208a72` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| packs | `dcc85f7f7467` | `version` on `GET /v1/capability-packs` |
+| handlers | `0d88c1e0ef2c48164c94676b6c2fe81a8efc5843d2bc30cd18da7ffe8a1756c9` | `version` on `GET /v1/handlers` |
+| api | `96b7aa2365aa` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |

@@ -40,7 +40,7 @@ DELETE /v1/sources/{id}           409 SOURCE_HAS_LISTENERS while a trigger liste
 GET    /v1/project-events?project={nodeId}&sourceId={id}   the events this source wrote, newest first, cursor-paged
 ```
 
-The first Telegram source in a project seeds a `telegram` event category and its `message` type into the project's registry. Then bind a flow with a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`, the flow and its inputs (`kipory-operate` has the rest). Each message is one `telegram/message` event in the project's log, and the trigger runs the flow with the envelope in the reserved `event` slot: the text, channel and message id under `event.data`, the attachments' file ids under `event.data.fileIds`.
+The first Telegram source in a project seeds its `message` event type, in the `telegram` namespace, into the project's registry — a namespace only the source writes. Then bind a flow with a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`, the flow and its inputs (`kipory-operate` has the rest). Each message is one `telegram/message` event in the project's log, and the trigger runs the flow with the envelope in the reserved `event` slot: the text, channel and message id under `event.data`, the attachments' file ids under `event.data.fileIds`.
 
 A channel the project does not watch yet is one write, not two: `POST /v1/triggers` with `newSource` (the body a source create takes — `provider`, `config`, optionally `key` and `label`) in place of `sourceId` creates the source and the trigger in one transaction, so a trigger the platform refuses leaves no source behind. Sending both is a 422.
 

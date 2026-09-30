@@ -54,7 +54,7 @@ first character a letter or a digit
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
-event categories and types, relation kinds and embedding profiles), a facet's is camelCase, a record
+event types and their namespaces, relation kinds and embedding profiles), a facet's is camelCase, a record
 type's is a type name and a skill's a dotted kebab step name. Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is

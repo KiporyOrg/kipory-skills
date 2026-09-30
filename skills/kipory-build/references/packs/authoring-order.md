@@ -31,31 +31,31 @@ Two more facts shape the order and are easy to miss:
 
 ## To create X you need Y first
 
-| To create…                        | You need first…                                                                    | Because                                                                                  |
-| --------------------------------- | ---------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| a record type                     | its shape: a schema entry (`POST /v1/schema-entries`)                              | the create takes `dataEntryId`; a shape cannot be declared inline on the row API         |
-| a record type with `uses.facets`  | every facet it names (`POST /v1/facets`)                                           | refused with `USES_FACET_UNKNOWN`                                                        |
-| a record type with a `link` use   | the relation kind it names — see the cycle below                                   | refused with `USES_RELATION_UNKNOWN`                                                     |
-| a record type bound to a flow     | the flow (`POST /v1/flows`)                                                        | the binding carries `flowId`                                                             |
-| a relation kind                   | every record type its `pairings` name (`POST /v1/record-types`)                    | the pairings are seeded in the create's transaction; a type they name must exist         |
-| a relation kind with `properties` | the schema entry for edge properties                                               | the create takes `propertiesEntryId`; refused with `SCHEMA_ENTRY_NOT_FOUND`              |
-| a relation-kind pairing           | the kind and both record types                                                     | `kindKey`, `fromRecordTypeKey` and `toRecordTypeKey` name all three                      |
-| a child facet                     | its parent facet                                                                   | the create takes `parentFacetKey`                                                        |
-| a facet with a resolver           | the resolving flow                                                                 | the create takes `resolverFlowId`                                                        |
-| a facet's terms                   | the facet, and a parent term before its children                                   | `POST /v1/facets/{id}/terms` seeds a tree top-down                                       |
-| an event type                     | its category (`POST /v1/event-categories`) and, if typed, its payload schema entry | the create takes `categoryId` and `payloadEntryId`                                       |
-| a skill (step)                    | its flow                                                                           | the create takes `flowId`; every step belongs to one flow                                |
-| a consumer step                   | the producer step whose output it reads                                            | a step names its inputs by the producer's output slot; author producers before consumers |
-| a `flow.invoke` step              | the flow it invokes — see the cycle below                                          | the step's config carries `targetFlowId`                                                 |
-| a step with a schema reference    | the schema entry it references                                                     | a schema reference inside a step names an entry by id                                    |
-| an endpoint                       | the flow its action runs (`POST /v1/flows`)                                        | the action names the flow by id                                                          |
-| a trigger                         | its flow, its source (`POST /v1/sources`) when it has one, and its event type      | the create takes `flowId` and `sourceId`; the event is `categoryKey` + `eventKey`        |
-| a schedule                        | its flow                                                                           | the create takes `flowId`                                                                |
-| a source                          | nothing of yours                                                                   | a source seeds its own event vocabulary; a trigger on it comes after                     |
-| an eval suite                     | its subject flow and every scorer flow                                             | the create takes `flowId` and `scorerFlowIds`                                            |
-| an eval case                      | its suite (`POST /v1/eval-suites`)                                                 | the create takes `suiteId`                                                               |
-| a config namespace with a shape   | the schema entry that types it                                                     | the create takes `schemaEntryId`                                                         |
-| an embedding profile              | nothing of yours                                                                   | a record type's search use names the profile afterwards                                  |
+| To create…                        | You need first…                                                                   | Because                                                                                  |
+| --------------------------------- | --------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| a record type                     | its shape: a schema entry (`POST /v1/schema-entries`)                             | the create takes `dataEntryId`; a shape cannot be declared inline on the row API         |
+| a record type with `uses.facets`  | every facet it names (`POST /v1/facets`)                                          | refused with `USES_FACET_UNKNOWN`                                                        |
+| a record type with a `link` use   | the relation kind it names — see the cycle below                                  | refused with `USES_RELATION_UNKNOWN`                                                     |
+| a record type bound to a flow     | the flow (`POST /v1/flows`)                                                       | the binding carries `flowId`                                                             |
+| a relation kind                   | every record type its `pairings` name (`POST /v1/record-types`)                   | the pairings are seeded in the create's transaction; a type they name must exist         |
+| a relation kind with `properties` | the schema entry for edge properties                                              | the create takes `propertiesEntryId`; refused with `SCHEMA_ENTRY_NOT_FOUND`              |
+| a relation-kind pairing           | the kind and both record types                                                    | `kindKey`, `fromRecordTypeKey` and `toRecordTypeKey` name all three                      |
+| a child facet                     | its parent facet                                                                  | the create takes `parentFacetKey`                                                        |
+| a facet with a resolver           | the resolving flow                                                                | the create takes `resolverFlowId`                                                        |
+| a facet's terms                   | the facet, and a parent term before its children                                  | `POST /v1/facets/{id}/terms` seeds a tree top-down                                       |
+| an event type                     | its payload schema entry, if typed — its namespace is a key it carries, not a row | the create takes `categoryKey` and `payloadEntryId`                                      |
+| a skill (step)                    | its flow                                                                          | the create takes `flowId`; every step belongs to one flow                                |
+| a consumer step                   | the producer step whose output it reads                                           | a step names its inputs by the producer's output slot; author producers before consumers |
+| a `flow.invoke` step              | the flow it invokes — see the cycle below                                         | the step's config carries `targetFlowId`                                                 |
+| a step with a schema reference    | the schema entry it references                                                    | a schema reference inside a step names an entry by id                                    |
+| an endpoint                       | the flow its action runs (`POST /v1/flows`)                                       | the action names the flow by id                                                          |
+| a trigger                         | its flow, its source (`POST /v1/sources`) when it has one, and its event type     | the create takes `flowId` and `sourceId`; the event is `categoryKey` + `eventKey`        |
+| a schedule                        | its flow                                                                          | the create takes `flowId`                                                                |
+| a source                          | nothing of yours                                                                  | a source seeds its own event vocabulary; a trigger on it comes after                     |
+| an eval suite                     | its subject flow and every scorer flow                                            | the create takes `flowId` and `scorerFlowIds`                                            |
+| an eval case                      | its suite (`POST /v1/eval-suites`)                                                | the create takes `suiteId`                                                               |
+| a config namespace with a shape   | the schema entry that types it                                                    | the create takes `schemaEntryId`                                                         |
+| an embedding profile              | nothing of yours                                                                  | a record type's search use names the profile afterwards                                  |
 
 ## The two cycles
 

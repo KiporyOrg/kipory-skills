@@ -57,8 +57,11 @@ suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`
 ## Three reference forms
 
 Every element is addressed by its `key` — the one the platform already enforces as unique within
-a project, and the key each section's map is keyed by. An event type is `<category>/<key>`, a
-source `<provider>/<key>`. A row's display text, where it has one, is `label`. A few references
+a project, and the key each section's map is keyed by. An event type is `<categoryKey>/<key>` —
+the prefix is its namespace, and nothing has to exist before it — a source `<provider>/<key>`. A
+type in a source provider's namespace (`telegram/…`) is written by that provider's source: a plan
+reports it as `derived` and never writes or prunes it, so an export from a project with a source
+applies cleanly to one without, whose own source then seeds it. A row's display text, where it has one, is `label`. A few references
 are ids on the row API and keys in the document — flows, shapes, sources, and a search profile:
 
 | The row API spells        | The document spells   | Meaning                                                         |
@@ -184,7 +187,7 @@ row. Fix that row and plan again — the skipped rows were never judged, so they
 findings of their own.
 
 A removal can take along rows you never named: deleting a record type takes the relation kinds
-that pair it, deleting an event category takes its types. That is the row's own delete working as
+that pair it, deleting a facet takes its terms. That is the row's own delete working as
 designed, and the plan says so rather than leaving it to be discovered — each such row is in
 `changes` as a `delete` with `because: "cascade"`, is counted under `delete` in `counts`, and carries a
 `warning`, `DOCUMENT_DELETE_CASCADED`, on its own path. Read a plan's `delete` list before
@@ -313,9 +316,9 @@ platform holds were rewritten in place and need nothing.
 Absence never deletes, so applying another project's export to this one adds and updates what it
 names and leaves every other row standing. To make the project EQUAL the document, state
 `prune: true` on every map of rows: the four top-level maps (`schema`, `records`, `relations`,
-`facets`), the two under `events` (categories and types), the one under `vectors` (profiles), the
+`facets`), the one under `events` (types), the one under `vectors` (profiles), the
 `flows` map, the four under `surfaces` (endpoints, sources, triggers, schedules) and `evals` —
-thirteen in all, including the maps the document does not carry, since an absent section then
+twelve in all, including the maps the document does not carry, since an absent section then
 means "none of these". Plan it first: the plan lists every delete, and an apply that removes
 anything needs ADMIN.
 

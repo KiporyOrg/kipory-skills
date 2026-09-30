@@ -12,8 +12,8 @@ The rules below hold across the whole design API. Each resource's own page under
 ## Ids
 
 - A project has **one id**: the `id` its create returns — its node in the ownership tree, a bare cuid such as `cmukzzjhc0001hlq36d38bun1`. Treat every id as opaque: never check a prefix (only a few platform nodes carry a readable id such as `orgnode_kipory`). Every route takes it: `?project=` on a list, `project` in a body, `{nodeId}` in a `/v1/projects/…` path; `node` where any node — organization or project — is accepted.
-- A resource with a parent design object scopes by **that**: skills by `?flowId=`, checkpoints by `?flowId=`, test cases by `?flowId=`, event types by `?categoryId=` (the category's row id, not its key), eval cases and runs by `?suiteId=`; a list filter that holds a key says so (`?facetKey=` on terms, `?recordTypeKey=` on relation-kind pairings, `?categoryKey=`/`?eventKey=` on the project event log).
-- Every project element has a **`key`** — its identifier within the project (or its parent), unique and yours to choose — and, where it has display text, a **`label`**. A field that names another element says what it holds by its suffix: `<kind>Id` holds the row id (`flowId`, `categoryId`, `suiteId`), `<kind>Key` holds the key (`facetKey`, `categoryKey`, `eventKey`, `profileKey`). Keys of schema entries, record types, skills, flow test cases, eval suites and eval cases can be renamed; every other key is permanent.
+- A resource with a parent design object scopes by **that**: skills by `?flowId=`, checkpoints by `?flowId=`, test cases by `?flowId=`, eval cases and runs by `?suiteId=`; a list filter that holds a key says so (`?facetKey=` on terms, `?recordTypeKey=` on relation-kind pairings, `?categoryKey=`/`?eventKey=` on the project event log).
+- Every project element has a **`key`** — its identifier within the project (or its parent), unique and yours to choose — and, where it has display text, a **`label`**. A field that names another element says what it holds by its suffix: `<kind>Id` holds the row id (`flowId`, `suiteId`), `<kind>Key` holds the key (`facetKey`, `categoryKey`, `eventKey`, `profileKey`). Keys of schema entries, record types, skills, flow test cases, eval suites and eval cases can be renamed; every other key is permanent.
 - Item routes address a row by its **id**, which is a cuid — never by its key. A relation kind's traversal (`/v1/records/{id}/relations/{kind}`) is the exception: `{kind}` is the kind's key.
 - A key is a **machine principal**: one node, one role, no user. It never has a `me`.
 
@@ -34,7 +34,7 @@ Read → `VIEWER`. Design mutation → `EDITOR`. Destructive, structural or **sp
 ## Optimistic locking
 
 - A PATCH carries the `version` you last read; a stale one is a **409** naming the captured and current versions. Re-read and reconcile; never blind-retry.
-- `version` is **required** on every PATCH of a design row — steps, api-endpoints, facets, terms, relation kinds, embedding profiles, schedules, triggers and sources (their `enabled` switch included), event categories and types, schema entries, record types, project config (when the namespace exists), flow test cases, eval suites and cases — and on a state-changing POST: a term's merge and an embedding profile's activate.
+- `version` is **required** on every PATCH of a design row — steps, api-endpoints, facets, terms, relation kinds, embedding profiles, schedules, triggers and sources (their `enabled` switch included), event types, schema entries, record types, project config (when the namespace exists), flow test cases, eval suites and cases — and on a state-changing POST: a term's merge and an embedding profile's activate.
 - One resource publishes a `version` that is **not** a lock: a record's `version` is owned by a database trigger and there is no record PATCH. An embedding profile's `version` IS a lock; its geometry number is the separate `generation`.
 - Resources with **no lock at all**: the flow PATCH, project settings, auth config, managed email addresses, route enablement, nodes. Last writer wins.
 - Every write body is **strict**: an unknown key, including `version` where none is accepted, is a 422.
@@ -98,4 +98,4 @@ Facets and relation kinds report readiness under `expand=readiness`, from a four
 
 ## Seeded rows
 
-Anything the platform installed — event categories and types with `origin: seed`, provider schema entries — refuses a delete with 409 and generally accepts a patch. Seeded is not read-only.
+Anything the platform installed — event types with `origin: seed`, provider schema entries — refuses a delete with 409 and generally accepts a patch. Seeded is not read-only.

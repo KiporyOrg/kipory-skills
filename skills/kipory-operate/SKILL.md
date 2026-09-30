@@ -11,7 +11,7 @@ Five capabilities that only matter once something works, and one fact most peopl
 ## Before the first call
 
 - Fetch the pack for the capability you touch: `references/packs/schedules.md`, `triggers.md`, `events.md`, `project-config.md`, `credits.md`.
-- `GET /v1/bootstrap?project={nodeId}&sections=surfaces,events,project` returns every schedule, every trigger, every event category and type, the route enablement and the config namespaces in one call.
+- `GET /v1/bootstrap?project={nodeId}&sections=surfaces,events,project` returns every schedule, every trigger, every event type (each with its namespace), the route enablement and the config namespaces in one call.
 - Writes here are EDITOR; deletes, and the project settings that hold the spend ceiling, are ADMIN.
 
 ## Schedules
@@ -48,12 +48,13 @@ A trigger fires a flow every time a matching event is **recorded** in the projec
 ## Events
 
 ```
-POST /v1/event-categories        { project, key, label, durableDefault? }
-POST /v1/event-types             { categoryId, key, label, defaultScope, payloadEntryId?, durable? }   ← scoped by the CATEGORY's row id
-GET  /v1/event-types?categoryId={categoryId}
+POST /v1/event-types             { project, categoryKey, key, label, defaultScope, payloadEntryId?, durable? }
+GET  /v1/event-types?project={nodeId}[&categoryKey=]
 ```
 
-Every category and type write — `POST`, `PATCH { version, … }`, `DELETE` — takes `validateOnly` (in the body; `?validateOnly=true` on a DELETE) and answers a 200 verdict instead of writing: a taken key, a seeded row's delete and the scope/payload rules come back as findings.
+`categoryKey` is the event's namespace — the first half of its `categoryKey/key` address. There is nothing to create first: a new one opens the namespace. A reserved platform name is a 422; a source provider's namespace (`telegram`) is a 409 — its source writes those types. `durable` omitted is `false`.
+
+Every type write — `POST`, `PATCH { version, … }`, `DELETE` — takes `validateOnly` (in the body; `?validateOnly=true` on a DELETE) and answers a 200 verdict instead of writing: a taken key, a refused namespace, a seeded row's delete and the scope/payload rules come back as findings.
 
 A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload shape is optional; omit it and the event is a marker. When you give one, `payloadEntryId` must be a schema entry of this project — a builtin such as the `string` entry a flow's slot hands back is refused as unknown; wrap a scalar in an object shape. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`, whose `changed` frames name only which domain moved — never an event, id or payload — so it is a cue to re-read, not a feed; another flow reacts through a trigger, which needs the type to be `durable`.
 
@@ -111,8 +112,7 @@ Every amount is **credits, and one credit is one micro-USD** — `x-credits-char
 - **A trigger never catches up.** Enabling one, or creating one, reacts to events recorded from then on; earlier events are in `GET /v1/project-events` and only a decision the trigger already took can be replayed. There is no backfill, on purpose.
 - **A trigger's `skip` overlap looks at its 20 most recent fires, not only the last.** Any of their runs still `pending` or `processing` — or a fire under five minutes old whose run is not linked yet — holds the next event back as `skipped`. A run stuck in `processing` skips every later event of that type until it terminates (skipped events are not fires, so it never ages out of those 20); the decision log shows the rows. `allow` on a flow that emits its own trigger type runs until the platform's chain-depth cap blocks it, and the decision log says `blocked` with why.
 - **A trigger's filter reads a payload field as `{ "op": "slotEquals", "slot": "data", "path": "source", "value": "telegram" }`.** `path` walks: `author.profile.id` descends into objects (a key that itself contains a dot still matches, longest key first) and `items[0].kind` reads a list item, as in a step condition. A path that reads nothing reads as absent — `slotEquals` on it is false, with no error — so a misspelled path records every event as `filtered`.
-- **Event types are scoped by their category's row id, not by the project** — the one addressing surprise in this resource, and it fails looking like a missing project. Fetch categories first.
-- **Seeded categories and types cannot be deleted (409) but can be patched.** A platform-installed event's label, scope and payload binding are all changeable, and nothing stops you.
+- **Seeded event types cannot be deleted (409) but can be patched.** A platform-installed event's label, scope and payload binding are all changeable, and nothing stops you.
 - **A type's `status` does not gate emitting.** A retired type still fires; removing the emit step is the way to stop it. An event type carries two version numbers: `payloadVersion` for its shape and `version` for the lock.
 - **Config `version` is required when the namespace exists and ignored on create.** A stale one is a 409; re-read and reconcile. An override replaces the whole top-level field, never merges into it.
 - **`usage` defaults to seven days and excludes system charges**, which are zero by construction. `window=custom` takes `from` and `to` as RFC 3339 instants, `to` exclusive: seven days is `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z`. Charge breakdowns name their kind in lowercase kebab (`llm-call`, `handler-run`, …). The AI-call list has no `total` and no page jump; walk its cursors.

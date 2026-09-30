@@ -135,7 +135,7 @@ quietly working around it.
 - **Address by node, or by the parent that owns you.** Most resources create and list by the
   project's **`OrgNode` id**, and individual items are addressed by their own id — but a resource
   with a parent design object scopes by THAT instead: skills by their flow, checkpoints by their
-  flow, event types by their category. Check the resource's own pack rather than assuming the node.
+  flow. Check the resource's own pack rather than assuming the node.
 - **Two planes, two audiences.** The design plane is where a project is _authored_. The dynamic
   plane is where a project's own users are _served_. Do not reach for one from inside the other.
 - **Optimistic locking.** A PATCH carries the `version` you last read, and a stale one is refused

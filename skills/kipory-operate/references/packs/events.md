@@ -9,11 +9,11 @@
 
 A per-project registry of signals a flow can raise, so other parts of the system can react.
 
-Two resources, in a fixed relationship:
-
-- An **event category** groups events and carries routing defaults, keyed by a category key.
-- An **event type** is one specific event, keyed within its category, with a default scope, an
-  optional payload shape, and a lifecycle status.
+One resource: the **event type** — one specific event, addressed `categoryKey/key`. The
+`categoryKey` is the **namespace** it lives in: the first half of its address, the channel segment
+it is published on, and the group it is shown under. A namespace is not a row you create — it
+exists while one event type carries it. Each type has a default scope, an optional payload shape,
+whether it is kept in the event log (`durable`), and a lifecycle status.
 
 A flow raises one with an `event.emit` node. Consumers either watch the run's live stream or
 subscribe on the bus, depending on scope.
@@ -50,24 +50,21 @@ other flows must react to is useless on a connection that already closed.
 ## The sequence
 
 ```
-POST /v1/event-categories   create the grouping
-POST /v1/event-types        create the event inside it (scoped by CATEGORY id, not project)
+POST /v1/event-types        create the event, in its namespace — nothing to create first
   … then add an event.emit node to a flow …
 ```
 
-Categories are scoped by `project`. **Event types are scoped by their category's id, not by the
-project directly** — the one addressing surprise in this resource.
-
-A category takes a `key` and a `label`. A type takes `categoryId` (its category's row id), its own
-`key`, a `label`, a default
-scope of `run`, `record`, `user` or `project`, and optionally a payload shape — omit it and the
-event is a payload-less marker. Both keys are lower-case kebab (`order-placed`), because each
-becomes a segment of the event's `category/event` address on the bus; both are permanent. List a
-category's types with `GET /v1/event-types?categoryId=<id>`.
+A type takes `project`, its namespace `categoryKey`, its own `key`, a `label`, a default scope of
+`run`, `record`, `user` or `project`, optionally a payload shape — omit it and the event is a
+payload-less marker — and `durable` (omit it for `false`: published live and not kept). Both keys
+are lower-case kebab (`order-placed`), because each becomes a segment of the event's
+`category/event` address on the bus; both are permanent. A `categoryKey` no type uses yet simply
+opens that namespace. List a project's types with `GET /v1/event-types?project=<nodeId>`, one
+namespace's with `&categoryKey=`.
 
 ## Raising one from a flow
 
-The `event.emit` node names the category and the event, both static registry keys, plus optionally
+The `event.emit` node names the namespace (`category`) and the event, both static registry keys, plus optionally
 the one slot whose value becomes the payload.
 
 Four things to get right:
@@ -98,38 +95,42 @@ the user you mean as data.
 
 ## What the platform refuses
 
-- **Reserved category keys**, as a security fence: the fence covers every channel prefix the
+- **Reserved namespaces**, as a security fence: the fence covers every channel prefix the
   platform builds by hand — around ten of them, spanning sessions and revocation, projects and
-  records, bootstrap, activity and the run-step stream. Do not work from a list; the refusal names
+  records, bootstrap, activity and the run-step stream. Do not work from a list; the 422 names
   the key it rejected. This is what stops an authored key forging a control-plane channel.
-- **Keys must be kebab-case**, for both categories and events.
-- **Identity is immutable.** A category's key, and a type's category and event key, cannot be
-  changed after creation — they _are_ the identity. Only the attributes around them can move.
-- **Seeded categories and types cannot be deleted.** Deleting a category cascades to its event
-  types and tells you how many went.
-- **The version on update is REQUIRED**, on categories and on types alike. It used to be
-  optional, and omitting it meant last-writer-wins: two people editing one category through the
-  same screen both read "saved" and one of the edits was gone.
+- **A source provider's namespace is its source's alone.** `telegram` (and each provider's own
+  namespace) is where that provider's source (capability pack `sources` — `GET /v1/capability-packs/sources`) writes its events; an event type you
+  create there is refused with **409**. Add the source and it creates its types itself.
+- **Keys must be kebab-case**, for both the namespace and the event.
+- **Identity is immutable.** A type's namespace and key cannot be changed after creation — they
+  _are_ the identity. Only the attributes around them can move.
+- **Seeded types cannot be deleted.**
+- **A run-scoped type cannot be durable** — a run event rides the run's own stream and is never
+  logged; `durable: true` on one is a 422.
+- **The version on update is REQUIRED.** It used to be optional, and omitting it meant
+  last-writer-wins: two people editing one type through the same screen both read "saved" and one
+  of the edits was gone.
   <br>⚠️ **"Required" applies where the write ACCEPTS one.** Request bodies are closed, so a
   `version` sent to a write that takes none is a **422**, not a courtesy — an unknown key is
   refused rather than dropped. Read the body's own fields, not the row's.
-- ⭐ **Every write answers a dry run.** `POST` and `PATCH` of a category or a type take
-  `validateOnly: true`, and their `DELETE` takes `?validateOnly=true`: each runs the write's own
-  rules, writes nothing, and answers **200** with a verdict `{ok, diagnostics, complete}` — a taken
-  or reserved key, a durable run-scoped type, a payload shape the project does not hold, a seeded
-  row's delete each come back as a finding. It cannot see a stale `version` (the write's lock), and
-  a category delete's `deletedCounts` comes only with the real delete.
+- ⭐ **Every write answers a dry run.** `POST` and `PATCH` of a type take `validateOnly: true`, and
+  its `DELETE` takes `?validateOnly=true`: each runs the write's own rules, writes nothing, and
+  answers **200** with a verdict `{ok, diagnostics, complete}` — a taken key, a reserved or
+  provider-owned namespace, a durable run-scoped type, a payload shape the project does not hold,
+  a seeded row's delete each come back as a finding. It cannot see a stale `version` (the write's
+  lock).
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
 facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 ## What will bite you
 
-- ⛔ **Bus delivery is AT-LEAST-ONCE through a durable outbox, so make every consumer idempotent.**
-  A bus-scoped emit is staged with the run's other effects and published after the run commits; an
-  unacknowledged row is redelivered by a periodic sweep, and a duplicate is the **designed** outcome
-  rather than a fault — exactly-once across two systems with no shared transaction does not exist.
-  A consumer that is not idempotent will double-count.
+- ⛔ **A durable event is delivered AT LEAST ONCE, so make every trigger's flow idempotent.** A
+  durable emission is written to the project's event log before it is published, and a
+  trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) runs from that log; a lost dispatch is re-enqueued by a periodic sweep, so a
+  duplicate is the **designed** outcome rather than a fault. The bus itself is at-most-once to
+  whoever is connected: a streaming subscriber that was not listening misses the event.
 - ⚠️ **A bus event from a run that FAILS is never published at all.** Because the emit is
   transactional, the change set is discarded on failure and the event goes with it. So a bus event
   is not a progress signal for a run in flight: only `scope: "run"` is live during execution. The
@@ -145,8 +146,6 @@ facet's (which also carries `confirm` and `assignedTerms`); anything else in the
   different shape _and_ when someone edits that shape in place — which bumps every type bound to
   it. It is not the optimistic-lock version, and it counts per event type, so two types sharing a
   shape can sit at different versions.
-- **Events are scoped by category id, not project id.** Listing types "for a project" is not a
-  call you can make directly; you list categories, then types per category.
 - ⚠️ **A type's lifecycle status does not gate emitting.** A `retired` type emits exactly like an
   active one — the status is management metadata, read by the operator surface and dropped before
   the emit path sees it. Retiring a type is how you say "stop authoring against this"; it is not

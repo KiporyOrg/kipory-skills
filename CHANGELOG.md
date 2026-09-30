@@ -2,6 +2,28 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20260930.132329 — 2026-09-30
+
+Synced from the Kipory monorepo at `43eb70c41`.
+
+- changed: `skills/kipory-build/references/packs/authoring-order.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/api/bootstrap.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/events.md`
+- changed: `skills/kipory-operate/references/packs/events.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+
 ## 1.20260930.101802 — 2026-09-30
 
 Synced from the Kipory monorepo at `819aec9fa`.

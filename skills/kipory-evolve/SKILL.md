@@ -77,7 +77,7 @@ row-by-row change would meet, in one read, and three things a row write never te
   deletes every stored edge of that kind, and the plan counts them as `edges-deleted` on the
   kind's path — save them first (`GET /v1/relations?project=<node>&link=<kind>`) if they matter.
 - **Cascades before the fact.** A removal that takes other rows along — the relation kinds that
-  pair a deleted record type, the types of a deleted event category — is in `changes` as a
+  pair a deleted record type, the terms of a deleted facet — is in `changes` as a
   `delete` with `because: "cascade"` and a `DOCUMENT_DELETE_CASCADED` warning. Read the plan's
   delete list before applying; it is the true list, not only yours.
 - **Nothing partial.** A refused apply answers `422` with the plan and has written nothing — not
@@ -166,7 +166,7 @@ Some destructive changes are refused outright:
   source and target under different parents.
 - **A facet delete needs `confirm=true`**, and `assignedTerms=delete|archive` once any of its
   terms is assigned; without them it is a 409. Ask it with `validateOnly=true` first.
-- **Built-in event categories and types cannot be deleted.**
+- **Built-in event types cannot be deleted**, and a document never writes one: a type in a source provider's namespace (`telegram/…`) plans as `derived`.
 - **A relation kind cannot be left with no pairings**, so the last one cannot be deleted.
 
 Others do not refuse. They cascade, and the response tells you what else moved:

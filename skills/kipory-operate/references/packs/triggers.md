@@ -8,7 +8,7 @@
 ## What it is
 
 The event-driven sibling of a schedule (capability pack `schedules` — `GET /v1/capability-packs/schedules`). A trigger binds one flow, a fixed set of
-inputs and a **selector** — an event category and event from the project's own
+inputs and a **selector** — an event's namespace (`categoryKey`) and key from the project's own
 registry (capability pack `events` — `GET /v1/capability-packs/events`) — and runs the flow every time a matching event is **recorded**: with the
 event's envelope in a reserved input slot named `event`, and a little delivery context in a second
 reserved slot named `trigger`. An optional **filter**, the same condition grammar a flow step uses,
@@ -21,7 +21,7 @@ skipped, blocked — is written down in its runs, and any decision can be replay
 ## What "recorded" means, and why it is the word that matters
 
 An event reaches a trigger only if it was written to the project's **event log**, and that happens
-only for a **durable** event type: one whose `durable` flag (or its category's `durableDefault`) is
+only for a **durable** event type: one whose `durable` flag is
 true, and whose scope is `record`, `user` or `project`. A `run`-scoped event rides the live stream
 of the run that raised it and is never logged, so nothing can trigger on it. An ephemeral type is
 published to whoever is streaming at that instant and forgotten.

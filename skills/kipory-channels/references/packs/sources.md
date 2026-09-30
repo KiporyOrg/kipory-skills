@@ -18,11 +18,12 @@ always was underneath.
 Every source has a **provider** (`telegram`, `webhook`, `postgres`, `apify`) and a **config** in
 that provider's own shape, validated by that provider's schema at every write. The first source of
 a provider in a project seeds the provider's event vocabulary into the project's
-registry (capability pack `events` — `GET /v1/capability-packs/events`): a `telegram` category, durable by default and project-scoped, and its
-`message` type. Those rows are permanent once seeded: the delete refuses them outright, whatever
+registry (capability pack `events` — `GET /v1/capability-packs/events`): its `message` type in the `telegram` namespace, durable and
+project-scoped. The namespace is the source's alone — an event type you create there is a 409.
+Those rows are permanent once seeded: the delete refuses them outright, whatever
 else is true — deleting every source of that provider does not release them, and neither does
-never having created one. A category of your own already holding the key is a 409 rather than
-adopted.
+never having created one. A type of your own already holding one of the provider's keys (one
+written before the namespace was fenced) is a 409 rather than adopted.
 
 ## When you need it — and when you don't
 
@@ -106,7 +107,7 @@ An edited message is a second event with a different id; a deleted one a third.
   triggers first, on purpose. Every source on the read carries `deleteRefusal` — that refusal in
   the delete's own words, or null — from the function the delete throws from, so offer Delete
   where it is null rather than deciding from `listening` yourself.
-- A category or type of your own already holding the provider's key (409 at the first create).
+- A type of your own already holding one of the provider's keys (409 at the first create).
 
 ### Ask before you write: `validateOnly`
 
