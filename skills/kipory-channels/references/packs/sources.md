@@ -77,6 +77,11 @@ so a create or a patch that would produce one is refused rather than reconciled.
 The envelope in the reserved `event` slot. Its payload sits under the envelope's `data` field, and
 for a Telegram message that payload carries:
 
+<!-- field-ok: editDate — a field of the connector's event payload (the watcher writes it; no request carries it) -->
+<!-- field-ok: forwardedFrom — a field of the connector's event payload (the watcher writes it; no request carries it) -->
+<!-- field-ok: updateType — a field of the connector's event payload (the watcher writes it; no request carries it) -->
+<!-- field-ok: deletedUpstream — a field of the connector's event payload (the watcher writes it; no request carries it) -->
+
 - `channel` — the handle or id the source watches.
 - `messageId` — the message's own id in that channel.
 - `date`, and `editDate` when the message has been edited.
