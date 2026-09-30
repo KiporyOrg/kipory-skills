@@ -142,7 +142,8 @@ quietly working around it.
   with a 409. It is REQUIRED wherever a resource's PATCH body accepts one — an omitted lock is not a
   lighter check, it is no check. ⚠️ Two caveats the flat rule hides: a resource that publishes a
   `version` on the read does not necessarily accept one on the write (sending it there is a 422,
-  because bodies are closed), and the flow PATCH carries no version field at all. On a refusal,
+  because bodies are closed), and a write to one row can move ANOTHER row's `version` — its answer
+  names each such row, with the version it holds now, in `touched`. On a refusal,
   re-read and reconcile — or, where a resource offers an explicit force, use that deliberately
   rather than blind-retrying.
 - **A 2xx is not a promise it will run correctly.** Saves return success even when wiring is still

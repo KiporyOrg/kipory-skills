@@ -16,8 +16,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/triggers/{id}`](#get-v1-triggers-id) |  |
 | `PATCH` | [`/v1/triggers/{id}`](#patch-v1-triggers-id) |  |
 | `DELETE` | [`/v1/triggers/{id}`](#delete-v1-triggers-id) |  |
-| `POST` | [`/v1/triggers/{id}/disable`](#post-v1-triggers-id-disable) |  |
-| `POST` | [`/v1/triggers/{id}/enable`](#post-v1-triggers-id-enable) |  |
 | `POST` | [`/v1/triggers/{id}/replay`](#post-v1-triggers-id-replay) |  |
 | `GET` | [`/v1/triggers/{id}/runs`](#get-v1-triggers-id-runs) |  |
 | `GET` | [`/v1/triggers/{id}/sample`](#get-v1-triggers-id-sample) |  |
@@ -42,6 +40,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/triggers`
 
+List one project's triggers (`?project=<nodeId>`), each with the `version` its PATCH takes. `expand=lastRun` adds how the newest event went, `expand=drift` the flow inputs no longer supplied, `expand=flowLabel` the bound flow's name. The same rows, as authored, ride `GET /v1/bootstrap` and the `surfaces.triggers` section of `GET /v1/projects/{nodeId}/document`; the last fire and last error are only here.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -56,6 +56,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `triggers` | `object[]` | yes | The project's triggers, unpaginated. |
 
 ### `POST /v1/triggers`
+
+Create a trigger: a flow run on every recorded event of one type (`categoryKey`/`eventKey`) that its `filter` accepts — from a source (`sourceId`, or `newSource` to create one in the same write) or from the project's own flows. It is created switched on. With `validateOnly: true` it answers whether the create would be refused, writing nothing. The events a project has recorded: `GET /v1/project-events?project=`. Several triggers at once: the `surfaces.triggers` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -97,12 +99,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
 | `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an event is recorded while this trigger's previous run is still in flight: `skip` records the event as skipped, `allow` fires regardless. |
-| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Change it through the enable and disable endpoints rather than a patch. A trigger enabled later does not catch up on earlier events — replay one by hand. |
+| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Switch it with `PATCH /v1/triggers/{id}` `{enabled, version}`. A trigger switched on later does not catch up on events recorded while it was off, and `POST /v1/triggers/{id}/replay` cannot recover them either — it re-runs only an event this trigger already decided. |
 | `createdByUserId` | `string \| null` | yes | Who set the trigger up. History only — a trigger is owned by its project and fires as its project, so nothing at fire time reads this. Null for a trigger created by a token, or once that account is gone. |
 | `lastFiredAt` | `string \| null` | yes | When it last started a run, or null if it never has. |
 | `lastError` | `string \| null` | yes | The most recent fire-time refusal, in plain words, or null once a later fire succeeded. The trigger carries its failure; the flow never does. |
 | `lastErrorAt` | `string \| null` | yes | When `lastError` was recorded, or null. |
-| `version` | `integer` | yes | Increments on every write. Send it back on a patch, enable or disable to be refused with 409 if someone changed the trigger in the meantime. |
+| `version` | `integer` | yes | Increments on every write. Send it back on a patch — switching `enabled` included — to be refused with 409 if someone changed the trigger in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
@@ -110,6 +112,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `lastRunStatus` | `"running" \| "succeeded" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 
 ### `GET /v1/triggers/{id}`
+
+Read one trigger. `expand` takes the list's keys (`lastRun`, `drift`, `flowLabel`). Its decisions, event by event: `GET /v1/triggers/{id}/runs`. Every trigger at once: `GET /v1/triggers?project=`.
 
 **Path parameters**
 
@@ -138,12 +142,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
 | `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an event is recorded while this trigger's previous run is still in flight: `skip` records the event as skipped, `allow` fires regardless. |
-| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Change it through the enable and disable endpoints rather than a patch. A trigger enabled later does not catch up on earlier events — replay one by hand. |
+| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Switch it with `PATCH /v1/triggers/{id}` `{enabled, version}`. A trigger switched on later does not catch up on events recorded while it was off, and `POST /v1/triggers/{id}/replay` cannot recover them either — it re-runs only an event this trigger already decided. |
 | `createdByUserId` | `string \| null` | yes | Who set the trigger up. History only — a trigger is owned by its project and fires as its project, so nothing at fire time reads this. Null for a trigger created by a token, or once that account is gone. |
 | `lastFiredAt` | `string \| null` | yes | When it last started a run, or null if it never has. |
 | `lastError` | `string \| null` | yes | The most recent fire-time refusal, in plain words, or null once a later fire succeeded. The trigger carries its failure; the flow never does. |
 | `lastErrorAt` | `string \| null` | yes | When `lastError` was recorded, or null. |
-| `version` | `integer` | yes | Increments on every write. Send it back on a patch, enable or disable to be refused with 409 if someone changed the trigger in the meantime. |
+| `version` | `integer` | yes | Increments on every write. Send it back on a patch — switching `enabled` included — to be refused with 409 if someone changed the trigger in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
@@ -151,6 +155,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `lastRunStatus` | `"running" \| "succeeded" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 
 ### `PATCH /v1/triggers/{id}`
+
+Change a trigger — the event it listens to, its filter, flow and inputs, name, overlap policy — or switch it on or off with `enabled`. Switching on re-checks the event type and is refused (422) when it was retired or made ephemeral; a trigger switched on does not catch up on events recorded while it was off, and those cannot be replayed either (`POST /v1/triggers/{id}/replay` re-runs only an event this trigger already decided). Its source is permanent. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. On a retired project only `{enabled: false, version}` is accepted. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -169,6 +175,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | no | Bind a different flow. Omit to leave it alone. |
 | `inputs` | `object` | no | Replace the fixed inputs entirely — this is not a merge. Omit to leave them alone. |
 | `overlapPolicy` | `"skip" \| "allow"` | no | New overlap policy. Omit to leave it alone. |
+| `enabled` | `boolean` | no | Switch the trigger on or off. Omit to leave it alone. Switching on re-checks the event it listens to and is refused with 422 when that type has been retired or made ephemeral since — a trigger that could never fire is not switched on. Switching off asks nothing. A trigger switched on does not catch up on events recorded while it was off. On a retired project, a patch whose only change is `enabled: false` is still accepted; every other patch is refused with 409. |
 | `version` | `integer` | yes | The `version` you last read. Required here — a trigger patch is refused with 409 rather than silently overwriting a concurrent edit. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored trigger and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
@@ -187,12 +194,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | The flow this trigger runs. |
 | `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
 | `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an event is recorded while this trigger's previous run is still in flight: `skip` records the event as skipped, `allow` fires regardless. |
-| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Change it through the enable and disable endpoints rather than a patch. A trigger enabled later does not catch up on earlier events — replay one by hand. |
+| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Switch it with `PATCH /v1/triggers/{id}` `{enabled, version}`. A trigger switched on later does not catch up on events recorded while it was off, and `POST /v1/triggers/{id}/replay` cannot recover them either — it re-runs only an event this trigger already decided. |
 | `createdByUserId` | `string \| null` | yes | Who set the trigger up. History only — a trigger is owned by its project and fires as its project, so nothing at fire time reads this. Null for a trigger created by a token, or once that account is gone. |
 | `lastFiredAt` | `string \| null` | yes | When it last started a run, or null if it never has. |
 | `lastError` | `string \| null` | yes | The most recent fire-time refusal, in plain words, or null once a later fire succeeded. The trigger carries its failure; the flow never does. |
 | `lastErrorAt` | `string \| null` | yes | When `lastError` was recorded, or null. |
-| `version` | `integer` | yes | Increments on every write. Send it back on a patch, enable or disable to be refused with 409 if someone changed the trigger in the meantime. |
+| `version` | `integer` | yes | Increments on every write. Send it back on a patch — switching `enabled` included — to be refused with 409 if someone changed the trigger in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
@@ -204,11 +211,19 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/triggers/{id}`
 
+Delete one trigger and its decision history; it stops reacting at once. Nothing refuses it. With `?validateOnly=true` it answers the verdict, writing nothing. To stop it but keep it: `PATCH /v1/triggers/{id}` with `enabled: false`. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The trigger's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -216,90 +231,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-
-### `POST /v1/triggers/{id}/disable`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The trigger's id, as returned when it was created or listed. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `version` | `integer` | yes | The `version` you last read. Required — enabling or disabling is refused with 409 rather than overwriting a concurrent change. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
-| `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
-| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
-| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
-| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
-| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
-| `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
-| `flowId` | `string` | yes | The flow this trigger runs. |
-| `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
-| `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an event is recorded while this trigger's previous run is still in flight: `skip` records the event as skipped, `allow` fires regardless. |
-| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Change it through the enable and disable endpoints rather than a patch. A trigger enabled later does not catch up on earlier events — replay one by hand. |
-| `createdByUserId` | `string \| null` | yes | Who set the trigger up. History only — a trigger is owned by its project and fires as its project, so nothing at fire time reads this. Null for a trigger created by a token, or once that account is gone. |
-| `lastFiredAt` | `string \| null` | yes | When it last started a run, or null if it never has. |
-| `lastError` | `string \| null` | yes | The most recent fire-time refusal, in plain words, or null once a later fire succeeded. The trigger carries its failure; the flow never does. |
-| `lastErrorAt` | `string \| null` | yes | When `lastError` was recorded, or null. |
-| `version` | `integer` | yes | Increments on every write. Send it back on a patch, enable or disable to be refused with 409 if someone changed the trigger in the meantime. |
-| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
-| `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"running" \| "succeeded" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
-
-### `POST /v1/triggers/{id}/enable`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The trigger's id, as returned when it was created or listed. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `version` | `integer` | yes | The `version` you last read. Required — enabling or disabling is refused with 409 rather than overwriting a concurrent change. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
-| `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
-| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
-| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
-| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
-| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
-| `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
-| `flowId` | `string` | yes | The flow this trigger runs. |
-| `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
-| `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an event is recorded while this trigger's previous run is still in flight: `skip` records the event as skipped, `allow` fires regardless. |
-| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Change it through the enable and disable endpoints rather than a patch. A trigger enabled later does not catch up on earlier events — replay one by hand. |
-| `createdByUserId` | `string \| null` | yes | Who set the trigger up. History only — a trigger is owned by its project and fires as its project, so nothing at fire time reads this. Null for a trigger created by a token, or once that account is gone. |
-| `lastFiredAt` | `string \| null` | yes | When it last started a run, or null if it never has. |
-| `lastError` | `string \| null` | yes | The most recent fire-time refusal, in plain words, or null once a later fire succeeded. The trigger carries its failure; the flow never does. |
-| `lastErrorAt` | `string \| null` | yes | When `lastError` was recorded, or null. |
-| `version` | `integer` | yes | Increments on every write. Send it back on a patch, enable or disable to be refused with 409 if someone changed the trigger in the meantime. |
-| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
-| `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"running" \| "succeeded" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `POST /v1/triggers/{id}/replay`
+
+Re-run this trigger's decision about one event it already decided (`eventId`, from `GET /v1/triggers/{id}/runs`) as a new attempt — filter, overlap and admission judged as on a live fire; the original decision is kept. Answers 202 once queued. Refused (422) for an event the trigger never decided, a trigger switched off, or a selector that no longer resolves: replay is no backfill. A new event runs it by itself; to try the flow without firing anything, feed `GET /v1/triggers/{id}/sample` to `POST /v1/flows/{id}/preview`.
 
 **Path parameters**
 
@@ -342,6 +280,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `truncated` | `boolean` | yes | True when more decisions exist than the limit returned. Raise the limit to see further back. |
 
 ### `GET /v1/triggers/{id}/sample`
+
+The newest recorded event this trigger's selector and filter would accept, shaped exactly as the flow's `event` slot receives it — the input to hand `POST /v1/flows/{id}/preview` to try the flow without firing. Null when none is among the newest events of the type scanned. Nothing runs. To re-run a real decision instead: `POST /v1/triggers/{id}/replay`.
 
 **Path parameters**
 

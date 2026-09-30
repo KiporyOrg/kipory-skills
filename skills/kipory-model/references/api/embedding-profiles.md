@@ -16,13 +16,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `PATCH` | [`/v1/embedding-profiles/{id}`](#patch-v1-embedding-profiles-id) |  |
 | `DELETE` | [`/v1/embedding-profiles/{id}`](#delete-v1-embedding-profiles-id) |  |
 | `POST` | [`/v1/embedding-profiles/{id}/activate`](#post-v1-embedding-profiles-id-activate) |  |
-| `POST` | [`/v1/embedding-profiles/{id}/versions`](#post-v1-embedding-profiles-id-versions) |  |
+| `POST` | [`/v1/embedding-profiles/{id}/generations`](#post-v1-embedding-profiles-id-generations) |  |
 | `GET` | [`/v1/vector-collections`](#get-v1-vector-collections) |  |
 | `GET` | [`/v1/vector-collections/{name}`](#get-v1-vector-collections-name) |  |
 | `GET` | [`/v1/vector-collections/{name}/points`](#get-v1-vector-collections-name-points) |  |
 | `POST` | [`/v1/vector-collections/{name}/search`](#post-v1-vector-collections-name-search) |  |
 
 ### `GET /v1/embedding-profiles`
+
+List a project's embedding profiles — every generation of every key, superseded ones included — each with whether you may delete it now (`canDelete`) and, when you may not, why (`deleteRefusal`). For the whole project's configuration in one read, `GET /v1/bootstrap` (its `vectors` section) or `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -35,9 +37,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `profiles` | `object[]` | yes | Every profile version in the project, including superseded ones — a key can have several versions and only one is active. |
+| `profiles` | `object[]` | yes | Every profile generation in the project, including superseded ones — a key can have several generations and only one is active. |
 
 ### `POST /v1/embedding-profiles`
+
+Declare a vector space: a new profile key at generation 1, its geometry derived from the embedding model. With `validateOnly: true` it answers whether the create would be taken, writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (the `vectors.profiles` section; `/document/plan` to preview).
 
 **Request body**
 
@@ -65,12 +69,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of this profile version. |
+| `id` | `string` | yes | Unique id of this profile generation. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `key` | `string` | yes | The profile's key, shared by every generation of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
 | `label` | `string \| null` | yes | Display text, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
-| `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
+| `generation` | `integer` | yes | Which generation of this profile key this is — the `v{n}` in its collection names. Each generation owns its own collections, so several can exist at once and only one is active. Minted by `POST /v1/embedding-profiles/{id}/generations`; never a lock. |
+| `version` | `integer` | yes | Increments on every write to this row. Send it back on `PATCH /v1/embedding-profiles/{id}` and `POST /v1/embedding-profiles/{id}/activate`; either is refused with 409 `VERSION_CONFLICT` if someone else changed the profile since you read it. Not the geometry — that is `generation`. |
+| `modelId` | `string` | yes | Id of the embedding model this generation uses. It determines the geometry, so changing it requires a new generation. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
@@ -83,8 +88,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 ### `GET /v1/embedding-profiles/{id}`
+
+Read one embedding profile generation: its model, slots, derived geometry, default chunking, `generation` and `version` lock; `expand=collections` adds the collections its record types imply. Every profile at once: `GET /v1/embedding-profiles?project=`.
 
 **Path parameters**
 
@@ -102,12 +110,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of this profile version. |
+| `id` | `string` | yes | Unique id of this profile generation. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `key` | `string` | yes | The profile's key, shared by every generation of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
 | `label` | `string \| null` | yes | Display text, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
-| `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
+| `generation` | `integer` | yes | Which generation of this profile key this is — the `v{n}` in its collection names. Each generation owns its own collections, so several can exist at once and only one is active. Minted by `POST /v1/embedding-profiles/{id}/generations`; never a lock. |
+| `version` | `integer` | yes | Increments on every write to this row. Send it back on `PATCH /v1/embedding-profiles/{id}` and `POST /v1/embedding-profiles/{id}/activate`; either is refused with 409 `VERSION_CONFLICT` if someone else changed the profile since you read it. Not the geometry — that is `generation`. |
+| `modelId` | `string` | yes | Id of the embedding model this generation uses. It determines the geometry, so changing it requires a new generation. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
@@ -123,6 +132,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PATCH /v1/embedding-profiles/{id}`
 
+Change a profile's label, whether it is the project default, or the chunking its record types inherit — never its geometry, which needs a new generation (`POST /v1/embedding-profiles/{id}/generations`). Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be taken — every inheriting record type planned against a changed default — writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -134,20 +145,22 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `label` | `string \| null` | no | New display text, or null to clear it. |
-| `isDefault` | `boolean` | no | Make this the project's default profile. Anything that changes the vector space — the model, the slots — is refused here and needs a version bump instead. |
-| `defaultChunking` | `object` | no | Change the chunking every non-overriding type on this profile inherits. Re-derives and re-indexes each of them; not a geometry change, so no version bump. |
+| `isDefault` | `boolean` | no | Make this the project's default profile. Anything that changes the vector space — the model, the slots — is refused here and needs a new generation instead (`POST /v1/embedding-profiles/{id}/generations`). |
+| `defaultChunking` | `object` | no | Change the chunking every non-overriding type on this profile inherits. Re-derives and re-indexes each of them; not a geometry change, so no new generation. |
+| `version` | `integer` | yes | The profile's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the profile changed since, so a concurrent edit is never silently overwritten. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of this profile version. |
+| `id` | `string` | yes | Unique id of this profile generation. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `key` | `string` | yes | The profile's key, shared by every generation of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
 | `label` | `string \| null` | yes | Display text, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
-| `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
+| `generation` | `integer` | yes | Which generation of this profile key this is — the `v{n}` in its collection names. Each generation owns its own collections, so several can exist at once and only one is active. Minted by `POST /v1/embedding-profiles/{id}/generations`; never a lock. |
+| `version` | `integer` | yes | Increments on every write to this row. Send it back on `PATCH /v1/embedding-profiles/{id}` and `POST /v1/embedding-profiles/{id}/activate`; either is refused with 409 `VERSION_CONFLICT` if someone else changed the profile since you read it. Not the geometry — that is `generation`. |
+| `modelId` | `string` | yes | Id of the embedding model this generation uses. It determines the geometry, so changing it requires a new generation. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
@@ -160,6 +173,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `rederive` | `object` | no | Present when `defaultChunking` changed: which inheriting record types followed. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
@@ -167,11 +181,19 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/embedding-profiles/{id}`
 
+Delete one profile generation. Refused (409) while a searchable record type uses it, or while it still owns provisioned collections (the rollback path of the generation that superseded it) — the list publishes that refusal per profile as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. A whole key, every generation: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The embedding profile's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -179,25 +201,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `POST /v1/embedding-profiles/{id}/activate`
 
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The embedding profile's id, as returned when it was created or listed. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `profile` | `object` | yes | The profile version that is now active. |
-| `movedRecordTypes` | `string[]` | yes | Record types moved onto this version by this call. Empty when it was already the active one — activation is safe to repeat. |
-| `repointedSteps` | `string[]` | yes | Names of saved search steps whose stored collection name was rewritten onto the new version. A step stores that name as a literal and the version is part of it, so a step left behind keeps querying the superseded collection — which still exists, so it returns stale results rather than an error. |
-| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
-
-### `POST /v1/embedding-profiles/{id}/versions`
+Make this generation the live one for its key: every searchable record type on the key moves onto it, saved search steps are repointed at its collections, and the project reindexes. Activating a superseded generation is the rollback. Requires the addressed profile's `version` (409 `VERSION_CONFLICT` when stale); each moved record type's own lock is checked too. Safe to repeat: an already-live generation moves nothing and is answered 200 whatever `version` the retry carries. 409 too when the project default moved while the activation ran. To mint the generation first: `POST /v1/embedding-profiles/{id}/generations`.
 
 **Path parameters**
 
@@ -209,11 +219,36 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `modelId` | `string` | no | Embedding model for the new version. Omit to keep the current one. |
-| `denseSlots` | `string[]` | no | Dense slot names for the new version. Omit to keep the current ones. |
-| `sparseSlot` | `string \| null` | no | Sparse slot name for the new version; null removes it. Omit to keep the current one. |
-| `label` | `string \| null` | no | Display text for the new version. Omit to keep the current one. |
-| `validateOnly` | `boolean` | no | Check this bump against the version it starts from and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `version` | `integer` | yes | The addressed profile's `version` as you last read it. REQUIRED: an activation that moves anything is refused with 409 `VERSION_CONFLICT` if the profile changed since. Each record type it moves keeps its own lock, checked as it moves. An already-active generation moves nothing and is not judged against it, so an identical retry answers the same 200. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `profile` | `object` | yes | The profile generation that is now active. |
+| `movedRecordTypes` | `string[]` | yes | Record types moved onto this generation by this call. Empty when it was already the active one — activation is safe to repeat. |
+| `repointedSteps` | `string[]` | yes | Names of saved search steps whose stored collection name was rewritten onto the new generation. A step stores that name as a literal and the generation is part of it, so a step left behind keeps querying the superseded collection — which still exists, so it returns stale results rather than an error. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+
+### `POST /v1/embedding-profiles/{id}/generations`
+
+Mint the next generation of this profile's key — a new, INERT row with a new model or slot set; nothing is provisioned or reindexed until `POST /v1/embedding-profiles/{id}/activate` on it. The generation number is allocated for you and takes no lock. With `validateOnly: true` it answers whether the mint would be taken, writing nothing.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The embedding profile's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `modelId` | `string` | no | Embedding model for the new generation. Omit to keep the current one. |
+| `denseSlots` | `string[]` | no | Dense slot names for the new generation. Omit to keep the current ones. |
+| `sparseSlot` | `string \| null` | no | Sparse slot name for the new generation; null removes it. Omit to keep the current one. |
+| `label` | `string \| null` | no | Display text for the new generation. Omit to keep the current one. |
+| `validateOnly` | `boolean` | no | Check this new generation against the one it starts from and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -227,12 +262,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | Unique id of this profile version. |
+| `id` | `string` | yes | Unique id of this profile generation. |
 | `project` | `string` | yes | Id of the project node that owns this profile. |
-| `key` | `string` | yes | The profile's key, shared by every version of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `key` | `string` | yes | The profile's key, shared by every generation of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
 | `label` | `string \| null` | yes | Display text, or null if none was set. |
-| `version` | `integer` | yes | Which version of this profile key this is. Each version owns its own collections, so several can exist at once and only one is active. |
-| `modelId` | `string` | yes | Id of the embedding model this version uses. It determines the geometry, so changing it requires a new version. |
+| `generation` | `integer` | yes | Which generation of this profile key this is — the `v{n}` in its collection names. Each generation owns its own collections, so several can exist at once and only one is active. Minted by `POST /v1/embedding-profiles/{id}/generations`; never a lock. |
+| `version` | `integer` | yes | Increments on every write to this row. Send it back on `PATCH /v1/embedding-profiles/{id}` and `POST /v1/embedding-profiles/{id}/activate`; either is refused with 409 `VERSION_CONFLICT` if someone else changed the profile since you read it. Not the geometry — that is `generation`. |
+| `modelId` | `string` | yes | Id of the embedding model this generation uses. It determines the geometry, so changing it requires a new generation. |
 | `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |

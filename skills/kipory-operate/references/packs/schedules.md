@@ -30,8 +30,8 @@ nothing.
 ```
 POST /v1/schedules                    bind flow + inputs + cron + timezone
 GET  /v1/schedules/{id}/runs?limit=N  what actually fired, and what happened
-POST /v1/schedules/{id}/disable       stop it
-POST /v1/schedules/{id}/enable        start it, recomputing the next run from now
+PATCH /v1/schedules/{id}            { enabled: false, version } stops it; { enabled: true, version }
+                                      starts it, recomputing the next run from now
 ```
 
 Scoped by `project`. Create takes a **key**, the flow, the inputs keyed by input slot, the cron
@@ -233,11 +233,13 @@ sets it disabled with no next run, by itself: its `version` does not move, so a 
 from before still matches, and nothing tells you it happened except `enabled: false` on the next
 read.
 
-`POST /v1/schedules/{id}/disable` sets `enabled: false`, clears `nextRunAt` to null and moves the
-version. ⭐ **Re-enabling an exhausted schedule is REFUSED with a
-`422` naming the spent bound**, rather than quietly granting it a new lease. Raise `maxRuns` or move
-`endsAt` in a PATCH first, then enable. (Enable does recompute the next run forward from now, so a
-schedule disabled across a window still fires no backlog — that is a different thing.)
+A PATCH of `{enabled: false}` clears `nextRunAt` to null and moves the version. ⭐ **Switching an
+exhausted schedule back on is REFUSED with a `422` naming the spent bound**, rather than quietly
+granting it a new lease. Raise `maxRuns` or move `endsAt` — in the same PATCH as `enabled: true`, or
+before it. (Switching on does recompute the next run forward from now, so a schedule disabled across
+a window still fires no backlog — that is a different thing.) On a retired project, a PATCH whose
+only change is `enabled: false` is still accepted, so a closed project's schedules can be stopped;
+every other write waits for a restore.
 
 ## Asking when it would fire — `validateOnly`
 
@@ -297,6 +299,12 @@ schedule does.
 
 It is a flag on the real route rather than a sibling `/preview`, deliberately. One route is one set
 of rules, so a check that passes and a save that refuses cannot come apart.
+
+A delete asks the same way: `DELETE /v1/schedules/{id}?validateOnly=true` answers whether it would
+go through, writing nothing. Nothing refuses a schedule's delete, so the verdict is `ok` for any
+schedule the id addresses. The flag is the delete's only query parameter, the same one every design
+delete takes except a facet's (which also carries `confirm` and `assignedTerms`); anything else in
+the query is refused.
 
 ## What will bite you
 

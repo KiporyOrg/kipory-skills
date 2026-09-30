@@ -19,6 +19,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/flow-test-cases`
 
+List one flow's test cases (`?flowId=`) — each an input bag and the assertions that must hold after the run, pass or fail. Run them with `POST /v1/flows/{id}/test`. Test cases check that a flow does what it must; eval cases (`/v1/eval-cases`) are scored against expectations by scorer flows in an asynchronous suite run. A flow's cases also ride its section of `GET /v1/projects/{nodeId}/document` as `tests`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -33,6 +35,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/flow-test-cases`
 
+Add a test case to a flow: the inputs to run it with and the assertions that must hold afterwards (a jsonata assertion is checked at save, so one the runner would refuse never saves). Its key is yours to choose, unique in the flow. With `validateOnly: true` it answers whether the create would be refused (a taken key, an unsafe assertion), writing nothing. Run the cases with `POST /v1/flows/{id}/test`. A scored case with expectations and labels is an eval case (`POST /v1/eval-cases`). Several at once: a flow's `tests` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Request body**
 
 | Field | Type | Required | Meaning |
@@ -44,6 +48,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `inputs` | `object` | no | The inputs to replay, keyed by input-slot name. Defaults to empty. |
 | `assertions` | `object[]` | yes | What must hold after the run. |
 | `enabled` | `boolean` | no | Whether plain suite runs include it. Defaults to enabled. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 **Response `201`**
 
@@ -64,6 +77,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `GET /v1/flow-test-cases/{id}`
+
+Read one flow test case — its inputs, assertions, whether plain suite runs include it, and its `version` (the lock its PATCH requires). Every case of a flow: `GET /v1/flow-test-cases?flowId=`. Run them: `POST /v1/flows/{id}/test`.
 
 **Path parameters**
 
@@ -91,6 +106,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PATCH /v1/flow-test-cases/{id}`
 
+Change a test case's key, label, note, inputs or assertions (inputs and assertions are replaced whole), or park it with `enabled: false`. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. Several at once: a flow's `tests` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -108,6 +125,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `assertions` | `object[]` | no | REPLACES the assertion list wholesale. |
 | `enabled` | `boolean` | no | Park the case, or bring it back into plain suite runs. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored test case and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -126,8 +144,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/flow-test-cases/{id}`
+
+Delete one test case. Nothing refers to a case, so nothing refuses it; its flow's delete takes every case with it. With `?validateOnly=true` it answers whether the delete would go through, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
 
 **Path parameters**
 
@@ -135,14 +158,25 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The test case's id, as returned when it was created or listed. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `POST /v1/flows/{id}/test`
+
+Run the flow's stored test cases (`/v1/flow-test-cases`) through the preview engine and answer each case's pass or fail, with the assertion that failed. Deterministic assertions, answered in the response, spending what the previews spend. Test cases check a flow does what it must; an eval suite (`/v1/eval-suites`, cases at `/v1/eval-cases`) SCORES outputs against expectations with scorer flows, runs asynchronously (`POST /v1/eval-suites/{id}/run`) and keeps the scores. One ad-hoc run: `POST /v1/flows/{id}/preview`.
 
 **Path parameters**
 

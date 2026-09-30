@@ -40,6 +40,14 @@ address key, unique within the flow and renameable — and a display `label`. Ru
 ids and a flag for including disabled ones. ⚠️ **Naming ids runs exactly those, enabled or not** —
 the disabled flag is ignored the moment you name any, so it only governs an unnamed run.
 
+Creating, changing and deleting a case each take **`validateOnly`** — in the body on `POST` and
+`PATCH`, as `?validateOnly=true` on `DELETE` — which runs the write's own checks (a blank label, an
+unsafe `jsonata` assertion, a key the flow already uses) and answers the verdict
+`{ ok, diagnostics, complete }` with 200, writing nothing.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+
 A run also takes an optional `project` — the project's node id, as `POST /v1/projects` answers it.
 Every case then resolves its config, records and facets against that project instead of the flow's
 own, which needs EDITOR there — and the spend follows it: that project's payer is billed.
@@ -149,7 +157,8 @@ test` in the ledger.
   test runs, so a suite is auditable and billable even though its verdicts are not kept. A stored
   history of the verdicts would
   only be interpretable if each result could be attributed to a specific flow revision, and a
-  flow has no revision to attribute it to. If you need the history, keep it yourself.
+  flow has none to attribute it to — its `version` moves with the flow row (label, signature,
+  binding), not with an edit of its steps. If you need the history, keep it yourself.
 
 ## Related
 

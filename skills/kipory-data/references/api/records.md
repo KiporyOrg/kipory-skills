@@ -256,7 +256,7 @@ One record's edges of one relation kind, one hop: which way each points, who pro
 
 ### `POST /v1/records/{id}/relations/{kind}`
 
-State a curated edge of this relation kind from this record to `targetRecordId`, with the kind's declared properties. EDITOR on BOTH records, and a far end the caller cannot read is refused exactly like one that does not exist. Only a `curated` kind accepts a hand-stated edge — `field` and `joinRecord` kinds are produced from record data. To read one record's edges, `GET` on this path; for every edge of the project, `GET /v1/relations?project=`.
+State a curated edge of this relation kind from this record to `targetRecordId`, with the kind's declared properties. EDITOR on BOTH records, and a far end the caller cannot read is refused exactly like one that does not exist. Only a `curated` kind accepts a hand-stated edge — `field` and `join-record` kinds are produced from record data. To read one record's edges, `GET` on this path; for every edge of the project, `GET /v1/relations?project=`.
 
 **Path parameters**
 

@@ -131,7 +131,7 @@ One step by id. Every step of its flow, with the graph's facts about each: `GET 
 
 ### `PATCH /v1/steps/{id}`
 
-Change one step; `version` is the one you last read, and a moved row answers 409. Omit `inputStreams` when you change a handler's settings or prompt and the inputs it names are derived again. With `validateOnly: true` it answers the save's verdict, what the patched configuration names (`derived.draft`) and — when `outputSlot` changes — which steps read the old slot (`derived.rename`), writing nothing; confirm the rename with `confirmedOutputSlotRenames`. Several steps at once: `POST /v1/steps/batch`.
+Change one step; `version` is the one you last read, and a moved row answers 409. Omit `inputStreams` when you change a handler's settings or prompt and the inputs it names are derived again. With `validateOnly: true` it answers the save's verdict, what the patched configuration names (`derived.draft`) and — when `outputSlot` changes — which steps read the old slot (`derived.rename`), and — with `enabled: false` — which other steps would stop running with it (`derived.switchOff`), writing nothing; confirm the rename with `confirmedOutputSlotRenames`. Several steps at once: `POST /v1/steps/batch`.
 
 **Path parameters**
 

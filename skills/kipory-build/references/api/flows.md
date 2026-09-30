@@ -16,15 +16,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `PATCH` | [`/v1/flows/{id}`](#patch-v1-flows-id) |  |
 | `DELETE` | [`/v1/flows/{id}`](#delete-v1-flows-id) |  |
 | `GET` | [`/v1/flows/{id}/coverage`](#get-v1-flows-id-coverage) |  |
-| `GET` | [`/v1/flows/{id}/export`](#get-v1-flows-id-export) |  |
 | `GET` | [`/v1/flows/{id}/health`](#get-v1-flows-id-health) |  |
 | `POST` | [`/v1/flows/{id}/preview`](#post-v1-flows-id-preview) |  |
 | `POST` | [`/v1/flows/{id}/preview-runs`](#post-v1-flows-id-preview-runs) |  |
 | `POST` | [`/v1/flows/{id}/preview/stream`](#post-v1-flows-id-preview-stream) |  |
 | `GET` | [`/v1/flows/{id}/scope`](#get-v1-flows-id-scope) |  |
-| `GET` | [`/v1/flows/{id}/steps/{stepId}/switch-off-preview`](#get-v1-flows-id-steps-stepid-switch-off-preview) |  |
 
 ### `GET /v1/flows`
+
+List one project's flows (`?project=<nodeId>`), or the platform's own with `?scope=system` (staff only). Each row carries its `version`, the lock `PATCH /v1/flows/{id}` requires. `expand=health` folds each flow's validity into the row — the full report is `GET /v1/flows/{id}/health`. The same rows, with every other design section, come in one read from `GET /v1/bootstrap`; the project's whole configuration, steps included, is `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -41,6 +41,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flows` | `object[]` | yes | The flows in scope, unpaginated. |
 
 ### `POST /v1/flows`
+
+Create a flow — its key, label and typed signature (`inputTypeNames`, `outputTypeNames`); its steps are added after, with `POST /v1/steps`. `scope: "system"` creates a platform flow (staff only) instead of one in `project`. With `validateOnly: true` it answers whether the create would be refused and the slot names the signature would be stored with, writing nothing. Several flows at once, with their steps and test cases: the `flows` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -72,7 +74,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the flow — what `{id}` routes address. |
-| `scope` | `"PROJECT" \| "SYSTEM"` | yes | `PROJECT` for a flow a project owns, `SYSTEM` for a platform-owned one. A `SYSTEM` flow has no owning project, so exactly one of these two facts is always set. |
+| `scope` | `"project" \| "system"` | yes | `project` for a flow a project owns, `system` for a platform-owned one. A `system` flow has no owning project, so exactly one of these two facts is always set. |
 | `project` | `string \| null` | yes | Node id of the owning project, or null for a platform-owned flow. |
 | `label` | `string` | yes | Display text, editable at any time. |
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
@@ -81,13 +83,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
 | `outputBinding` | `unknown` | no | Which skill output feeds each output slot, as resolved, or null when no binding was ever authored (null is UNDECLARED, `{}` is authored-empty). Read-only here; author it through `outputBinding` on create or patch. |
 | `skillCount` | `integer` | yes | How many skills the flow currently contains. |
+| `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
 | `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/steps?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 
 ### `GET /v1/flows/{id}`
+
+Read one flow — its signature, binding, step count and `version` (the lock `PATCH /v1/flows/{id}` requires). Its steps are `GET /v1/steps?flowId=`; `expand=timeLimits` adds each step's effective time limit. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true` (`derived.dependents`). For a project's flow, every flow at once is `GET /v1/bootstrap`, and the flow as configuration you can restate, with its steps and test cases, is `GET /v1/projects/{nodeId}/document`. A platform flow (`scope: "system"`) belongs to no project and is in neither: its steps are `GET /v1/steps?flowId=`.
 
 **Path parameters**
 
@@ -99,14 +103,14 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: dependents, timeLimits. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: timeLimits. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the flow — what `{id}` routes address. |
-| `scope` | `"PROJECT" \| "SYSTEM"` | yes | `PROJECT` for a flow a project owns, `SYSTEM` for a platform-owned one. A `SYSTEM` flow has no owning project, so exactly one of these two facts is always set. |
+| `scope` | `"project" \| "system"` | yes | `project` for a flow a project owns, `system` for a platform-owned one. A `system` flow has no owning project, so exactly one of these two facts is always set. |
 | `project` | `string \| null` | yes | Node id of the owning project, or null for a platform-owned flow. |
 | `label` | `string` | yes | Display text, editable at any time. |
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
@@ -115,13 +119,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
 | `outputBinding` | `unknown` | no | Which skill output feeds each output slot, as resolved, or null when no binding was ever authored (null is UNDECLARED, `{}` is authored-empty). Read-only here; author it through `outputBinding` on create or patch. |
 | `skillCount` | `integer` | yes | How many skills the flow currently contains. |
+| `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
 | `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/steps?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 
 ### `PATCH /v1/flows/{id}`
+
+Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNames`, either side alone) or output binding; its key is permanent. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. A signature change another row froze a copy of is refused unless `adoptSnapshots: true`. With `validateOnly: true` it answers whether the patch would be refused and rehearses it — what it would leave behind in this flow and the flows that call it — writing nothing; that is a dry run of a WRITE, where `POST /v1/flows/{id}/preview` RUNS the flow. Several flows at once, with their steps: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -139,14 +145,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outputTypeNames` | `object[]` | no | Replacement output signature. Omit to leave it alone — it may be sent without `inputTypeNames`, and the inputs then stay as stored. Changing it re-validates the whole flow. |
 | `outputBinding` | `object` | no | Rewire which step output feeds each flow output. Can be sent on its own once the steps exist, or together with `outputTypeNames` (and `inputTypeNames`, if they change too) to rewrite the signature at once. Without it, a signature change carries the stored binding, pruned to the outputs that remain. Either way the graph is re-validated in full before anything is saved. |
 | `adoptSnapshots` | `boolean` | no | Opt in to re-publishing the request and response contract of any live endpoint this flow serves. Off by default, because that changes what a running route promises its callers — an explicit decision, not a side effect of editing a flow. |
-| `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `version` | `integer` | yes | The flow's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the flow changed since — another patch, a checkpoint restore, or a project document apply — so a concurrent edit is never silently overwritten. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the flow — what `{id}` routes address. |
-| `scope` | `"PROJECT" \| "SYSTEM"` | yes | `PROJECT` for a flow a project owns, `SYSTEM` for a platform-owned one. A `SYSTEM` flow has no owning project, so exactly one of these two facts is always set. |
+| `scope` | `"project" \| "system"` | yes | `project` for a flow a project owns, `system` for a platform-owned one. A `system` flow has no owning project, so exactly one of these two facts is always set. |
 | `project` | `string \| null` | yes | Node id of the owning project, or null for a platform-owned flow. |
 | `label` | `string` | yes | Display text, editable at any time. |
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
@@ -155,10 +162,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
 | `outputBinding` | `unknown` | no | Which skill output feeds each output slot, as resolved, or null when no binding was ever authored (null is UNDECLARED, `{}` is authored-empty). Read-only here; author it through `outputBinding` on create or patch. |
 | `skillCount` | `integer` | yes | How many skills the flow currently contains. |
+| `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `dependents` | `object` | no | What still holds this flow and would refuse its deletion, present only when you pass `expand=dependents` to `GET /v1/flows/{id}`. Computed by the same checks `DELETE /v1/flows/{id}` runs, so a non-zero `total` means the delete will be refused. |
 | `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/steps?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
@@ -170,11 +177,19 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/flows/{id}`
 
+Delete a flow and every step in it (`deletedSkillCount` says how many); its checkpoints and test cases go with it. Refused (409 `FLOW_HAS_DEPENDENTS`) while anything holds it — an endpoint, schedule, trigger, record type, facet resolver, platform job, or another flow that calls it. With `?validateOnly=true` it answers whether the delete would be refused, and `derived.dependents` counts what holds the flow, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -183,8 +198,14 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `deletedSkillCount` | `integer` | yes | How many skills went with the flow. Deleting a flow deletes everything inside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the delete would find, from the reads it decides on. Nothing here has happened. |
 
 ### `GET /v1/flows/{id}/coverage`
+
+Which steps in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the traces production already writes, no test needed. It measures execution, not correctness: whether each step's output is right is what `POST /v1/flows/{id}/test` (the flow's pass/fail test cases) and an eval suite (`POST /v1/eval-suites/{id}/run`) judge. Is the graph itself sound: `GET /v1/flows/{id}/health`.
 
 **Path parameters**
 
@@ -220,23 +241,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `truncated` | `boolean` | yes | True when the read hit `attemptLimit` and covers only the most recent attempts. A truncated report is a sample, so read its counts as such. |
 | `attemptLimit` | `integer` | yes | The cap that was applied, echoed back. |
 
-### `GET /v1/flows/{id}/export`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `exportedAt` | `string` | yes | When this export was taken, ISO-8601. Provenance only. |
-| `flow` | `object` | yes | The flow itself. Carried because the steps alone do not describe it, and restored by a different call than the steps are. |
-| `skills` | `object[]` | yes | Every step, in declaration order, so two exports of an unchanged flow are byte-identical apart from `exportedAt`. To restore them, state them under the flow in a project document. |
-
 ### `GET /v1/flows/{id}/health`
+
+The full validation report for the flow as saved: every diagnostic, what it is about (step, edge or flow) and whose it is. A report, not a gate — a flow with errors still runs, and gets them wrong. The one-line summary rides each row of `GET /v1/flows?expand=health`. What a change WOULD leave behind is the change's own dry run (`validateOnly: true` on `PATCH /v1/flows/{id}` or a step write), which rehearses it and reports the findings it introduces; what actually ran is `GET /v1/flows/{id}/coverage`.
 
 **Path parameters**
 
@@ -254,6 +261,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `danglingReads` | `object[]` | yes | Every input a skill reads that nothing in the flow supplies — one entry per skill and slot, the same findings `diagnostics` reports as `INPUT_STREAM_DANGLING_SLOT`. Such a skill never runs, and neither does anything after it. Empty when every read is supplied. |
 
 ### `POST /v1/flows/{id}/preview`
+
+Run the flow now, in a sandbox, and answer what happened: every step's transcript, its failures, and the declared outputs. Seed it from `input` slot values or an existing record; run the saved steps or a draft `graph` you send. It bills the project for its model calls and applies the writes its steps make unless you pass `apply: false` (then the change set is recorded and discarded) — a preview EXECUTES the flow, where `validateOnly: true` on a write judges the write without running anything. The same run reported as it happens: `POST /v1/flows/{id}/preview/stream`; queued, with a run log: `POST /v1/flows/{id}/preview-runs`. Stored pass/fail cases: `POST /v1/flows/{id}/test`.
 
 **Path parameters**
 
@@ -295,6 +304,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/flows/{id}/preview-runs`
 
+Queue the same sandboxed run as `POST /v1/flows/{id}/preview` and answer 202 with its run id; the worker runs the SAVED steps (a draft `graph` is refused) and writes a step log, read like any run at `GET /v1/runs/{runId}` and its `/steps`. The id is 404 there until the worker starts. A preview EXECUTES the flow; to judge a write without running anything, send it with `validateOnly: true`. The answer in the response instead: `POST /v1/flows/{id}/preview`, or as it happens: `/preview/stream`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -318,6 +329,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `runId` | `string` | yes | The queued run's id. It appears at GET /v1/runs/{runId} — and on /steps, /steps/stream, /spend, /change-set, /flow-snapshots and /trace — once the worker writes its opening frame; until then those routes answer 404. Poll the run, then follow its step stream. |
 
 ### `POST /v1/flows/{id}/preview/stream`
+
+The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same authorization, same spend — reported as server-sent events while it happens: each step as it starts and ends, then the outcome. A preview EXECUTES the flow; to judge a write without running anything, send it with `validateOnly: true`. Queued instead, with a run log you can read later: `POST /v1/flows/{id}/preview-runs`.
 
 **Streams.** The success response is `text/event-stream`, not JSON. Event names: `preview-started`, `skill-started`, `skill-ended`, `skill-not-reached`, `preview-complete`, `preview-error`, `error`, `done`.
 
@@ -374,6 +387,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/flows/{id}/scope`
 
+Every slot a step of this flow may read, typed: for a saved step with `?stepId=` (what it can wait on without closing a cycle), for a step being added without. What an editor's input picker offers. A draft step's own inputs and their types come from its write's dry run (`validateOnly: true` on `POST /v1/steps` or `PATCH /v1/steps/{id}`, `derived.draft`); the candidates for one input with their verdicts are `GET /v1/steps/input-options`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -393,20 +408,3 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | The flow asked about. |
 | `stepId` | `string \| null` | yes | The saved step whose scope this is, or null for a step being added — one nothing can wait on yet, so every slot the flow's steps write is in its scope. |
 | `slots` | `object[]` | yes | Every slot the step may read: the flow's inputs, the platform's own slots, and every slot written by a step that does not wait on this one — directly or through others, by an input or by a condition. A saved step's own outputs are never listed. Sorted by name. |
-
-### `GET /v1/flows/{id}/steps/{stepId}/switch-off-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
-| `stepId` | `string` | yes | Unique id of a step (skill) in that flow — the one imagined switched off. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `flowId` | `string` | yes | The flow asked about. |
-| `stepId` | `string` | yes | The step imagined switched off. |
-| `stops` | `object[] \| null` | yes | The steps that would stop running because this one is switched off — those whose condition, inputs or enclosing fan-out depend on what it writes — in the flow's order. A step already stopped by another switched-off step is not listed, and neither is one that only sometimes stops. Empty when nothing else stops. Null when it cannot be worked out: a step's configuration does not parse, so what that step writes is unknown, or the flow's declared inputs cannot be read. |

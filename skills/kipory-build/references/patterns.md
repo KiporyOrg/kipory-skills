@@ -192,7 +192,7 @@ In a document:
   "records": {
     "note": {
       "shape": "Note",
-      "ownerScope": "PROJECT",
+      "ownerScope": "project",
       "flow": "summarise-note"
     }
   }

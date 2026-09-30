@@ -110,12 +110,18 @@ the user you mean as data.
 - **The version on update is REQUIRED**, on categories and on types alike. It used to be
   optional, and omitting it meant last-writer-wins: two people editing one category through the
   same screen both read "saved" and one of the edits was gone.
-  <br>⚠️ **"Required" applies where the PATCH ACCEPTS one, which is not everywhere a read shows
-  one.** An embedding profile publishes a geometry `version` on the read and takes no lock on the
-  write. A term is the sharper case: it has **no `version` anywhere**, on the read or the write, so
-  there is nothing to echo back in the first place. Sending one to either is a **422**, not a
-  courtesy: request bodies are closed, so an unknown key is refused rather than dropped. Read the
-  PATCH body's own fields, not the row's.
+  <br>⚠️ **"Required" applies where the write ACCEPTS one.** Request bodies are closed, so a
+  `version` sent to a write that takes none is a **422**, not a courtesy — an unknown key is
+  refused rather than dropped. Read the body's own fields, not the row's.
+- ⭐ **Every write answers a dry run.** `POST` and `PATCH` of a category or a type take
+  `validateOnly: true`, and their `DELETE` takes `?validateOnly=true`: each runs the write's own
+  rules, writes nothing, and answers **200** with a verdict `{ok, diagnostics, complete}` — a taken
+  or reserved key, a durable run-scoped type, a payload shape the project does not hold, a seeded
+  row's delete each come back as a finding. It cannot see a stale `version` (the write's lock), and
+  a category delete's `deletedCounts` comes only with the real delete.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 ## What will bite you
 

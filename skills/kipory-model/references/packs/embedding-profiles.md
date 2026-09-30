@@ -3,7 +3,7 @@
 # Capability pack — Embedding profiles
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`;
-> a version's derived geometry → the profile read itself. This pack carries judgment.
+> a generation's derived geometry → the profile read itself. This pack carries judgment.
 
 ## What it is
 
@@ -50,7 +50,7 @@ the next call.
 ⚠️ **A project has a SECOND vector space, and no profile defines it.** Facet-term vectors live in a
 single system-wide space with one shared model, deliberately, so that terms stay comparable across
 every project — a per-project model there would write incomparable vectors. It has its own
-collection, no profile names it, and **activating a profile version does not reindex it**. So the
+collection, no profile names it, and **activating a profile generation does not reindex it**. So the
 whole of facets (capability pack `facets` — `GET /v1/capability-packs/facets`) — semantic resolution, seeded vocabularies, term matching — operates
 outside everything on this page. Its model is the platform's `substrate-embedding` task, read at
 the platform root: a project cannot move it. Binding that task anywhere below the root is refused
@@ -63,16 +63,23 @@ profile's model refuses (quota, outage), records stay `indexState: "never"` and 
 `GET /v1/projects/{nodeId}/ai-calls?origins=projection&outcome=error` lists each failed embed with
 its `errorCode` (`error:quota_exhausted`, …), and `GET /v1/projects/{nodeId}/ai-calls/{callId}`
 gives that call's `errorMessage`. A failed embed is retried three times within about fifteen seconds, then only by the daily re-index sweep (08:00 UTC). Moving to a
-working model is a new version plus activate.
+working model is a new generation plus activate.
 
 ## The sequence
 
 ```
 POST  /v1/embedding-profiles               create — model + slots + defaultChunking; geometry is derived
-PATCH /v1/embedding-profiles/{id}          label, isDefault, defaultChunking
-POST  /v1/embedding-profiles/{id}/versions mint the next version (free, inert)
-POST  /v1/embedding-profiles/{id}/activate repoint declarations and reindex (expensive)
+PATCH  /v1/embedding-profiles/{id}             label, isDefault, defaultChunking — with `version`
+POST   /v1/embedding-profiles/{id}/generations mint the next generation (free, inert)
+POST   /v1/embedding-profiles/{id}/activate    repoint declarations and reindex (expensive) — `{ version }`
+DELETE /v1/embedding-profiles/{id}             one generation; `?validateOnly=true` asks first
 ```
+
+**Two numbers, and they are not the same thing.** `generation` is the geometry's number — the
+`v{n}` in every collection name, allocated by the mint, never sent back. `version` is the row's
+optimistic lock: send the value you read on the PATCH and on activate, and either is refused with
+409 `VERSION_CONFLICT` if someone changed the profile since. A missing `version` is a 422, never a
+last-writer-wins save.
 
 An activation answers `touched`: every record type it re-pointed, each with the version it holds
 now. Update the copies you hold, or the next PATCH to one of them is refused as stale.
@@ -83,27 +90,28 @@ collections your declarations actually imply — each names the record types lan
 under `recordTypeKeys`.
 
 Updating a profile in place covers its label, whether it is the default, and `defaultChunking`.
-Everything that defines the vector space — the model, the slots — moves through a version instead.
+Everything that defines the vector space — the model, the slots — moves through a new generation instead.
 
-⚠️ **Changing `defaultChunking` is not a geometry change, and it is not free either.** No version
+⚠️ **Changing `defaultChunking` is not a geometry change, and it is not free either.** No generation
 is minted; instead every record type on the profile that does NOT override the default is
 re-derived on the spot, and each one whose derived declaration moved is re-embedded in
 the background — with the credits that costs. A type that sets its own `uses.search.chunking` is
-untouched. A version bump copies the default onto the new version.
+untouched. A new generation copies the default onto itself.
 
 **Geometry is resolved before the row is written**, so a model with no recorded dimensions or no
 recorded distance is refused rather than stored half-usable.
 
-## Why the version bump is two calls
+## Why a new generation is two calls
 
 Because the two halves cost completely different things, and collapsing them would hide that.
 
-- **Minting is free and inert.** It creates the next version of the same key, taking the current
-  version's values for anything you do not override. No declaration points at it, so no collection
+- **Minting is free and inert.** It creates the next generation of the same key, taking the current
+  generation's values for anything you do not override. It takes no lock: it writes a new row and
+  leaves the one it starts from untouched. No declaration points at it, so no collection
   is provisioned and nothing is reindexed. It is refused if nothing about the vector space would
   actually change.
 - **Activating is the expensive half.** It repoints every searchable declaration on that key onto
-  the version, moves the default, and enqueues the reindex. The new collections start **empty**, so
+  the generation, moves the default, and enqueues the reindex. The new collections start **empty**, so
   searches return less while it drains. ⚠️ It also **rewrites the stored collection name inside your
   saved vector steps** and reports which ones in `repointedSteps` — a step left behind would keep
   querying the superseded collection and return stale results rather than an error, so this is a
@@ -115,36 +123,41 @@ act.
 Activation is idempotent — activating what everything already points at is a no-op, not a
 conflict. It is refused when a declaration would be invalid under the target, most often because
 the target dropped a slot that a declaration fills. ⚠️ And it takes an optimistic lock over **every**
-record-type descriptor it moves, all-or-nothing: a concurrent record-type edit anywhere in the set
-fails the whole activation with a version conflict. Re-read and retry rather than assuming a partial
+record-type descriptor it moves, all-or-nothing, beside the profile's own `version` you send: a
+concurrent edit to the profile or to any record type in the set fails the whole activation with a
+version conflict. Re-read and retry rather than assuming a partial
 move landed.
 
 **Activation is also the rollback.** It is direction-agnostic and never drops the collections it
-moves away from, so activating the superseded version restores the previous state instantly and
+moves away from, so activating the superseded generation restores the previous state instantly and
 losslessly. That is what makes the reindex window acceptable: it is recoverable, even though it is
 not invisible.
 
 ## What the platform refuses
 
-- **Deleting a profile still named by a searchable record type**, and again while the version
+- **Deleting a profile still named by a searchable record type**, and again while the generation
   still owns provisioned collections. You do not have to discover either by trying: every profile
   carries `deleteRefusal` — the delete's own code and sentence, or null — and the listing adds
   `canDelete`, which also folds in the ADMIN role the delete needs and whether the project is
-  retired. A superseded version nothing declares against is the case that catches people: its
+  retired. A superseded generation nothing declares against is the case that catches people: its
   usage count is zero and it is still refused.
 - **A model with no recorded distance metric.** Defaulting to a common one is tempting and wrong,
   for the reason at the top of this pack.
-- **A version bump that changes nothing** about the vector space.
+- **A new generation that changes nothing** about the vector space.
 
 ## Asking before you write — `validateOnly`
 
 The create (`POST /v1/embedding-profiles`), the PATCH (`PATCH /v1/embedding-profiles/{id}`) and the
-version mint (`POST /v1/embedding-profiles/{id}/versions`) each take **`validateOnly: true`** in the
-body. It runs the same decisions the write runs, writes nothing, and answers **200** with the
+generation mint (`POST /v1/embedding-profiles/{id}/generations`) each take **`validateOnly: true`** in
+the body, and the delete takes **`?validateOnly=true`** — its verdict is the delete's own refusal,
+the one the listing publishes as `deleteRefusal`. It runs the same decisions the write runs, writes nothing, and answers **200** with the
 verdict every design dry run answers. Each finding carries the body `field` it is about where there
 is one — an overlap the chunker could not advance past is reported on `defaultChunking.overlap` —
 and the rule's own code (`EMBEDDING_PROFILE_KEY_INVALID`, `EMBEDDING_PROFILE_CHUNKING_INVALID`, …),
 the same token the save's refusal names.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 - **The PATCH dry run plans every inheriting record type**, exactly as the save does. A default
   that one of them cannot take comes back as a finding naming the type, before anything commits.
@@ -157,18 +170,20 @@ the same token the save's refusal names.
 
 ## What will bite you
 
-- **Version numbers are never reused.** They are allocated above every version the key has ever
-  had, including ones whose profile row is gone but whose collections were provisioned. A reused
+- ⚠️ **The PATCH dry run does not check your `version`.** The lock is checked by the save alone, so
+  a verdict of `ok: true` can still meet a 409 when someone saved in between.
+- **Generation numbers are never reused.** They are allocated above every generation the key has
+  ever had, including ones whose profile row is gone but whose collections were provisioned. A reused
   number would resolve to a physical collection that already holds points at a geometry nothing
   re-checked.
-- **The active version is derived, not stored.** It is whichever version the declarations point
-  at — not the newest, and not the one marked default. A key whose record types are all
-  non-searchable has _no_ active version, which is honest: nothing is serving.
+- **The active generation is derived, not stored.** It is whichever generation the declarations
+  point at — not the newest, and not the one marked default. A key whose record types are all
+  non-searchable has _no_ active generation, which is honest: nothing is serving.
 - **The key is immutable and appears in the physical collection name** — which is why it is
   lower-case kebab. Renames go through the label instead. Renaming the key itself would rename
   every collection derived from it.
 - **The slot set belongs to the profile, not to the record types using it.** Adding a slot forces
-  a reindex across the group either way; putting it here makes that cost an explicit version bump
+  a reindex across the group either way; putting it here makes that cost an explicit new generation
   rather than a side effect of adding one record type.
 - **A null geometry is a real state, not an error.** It means the profile's model no longer
   resolves, or resolves without the facts geometry needs. The read reports it rather than failing,

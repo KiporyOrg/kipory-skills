@@ -130,6 +130,14 @@ Three kinds:
   frames and then its `result`, with no deltas at all.
 - **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
 
+A stream may also **retry on its own output** (`retry`): after each attempt the flow's terminal
+output is checked, and when the named output slot (at an optional `path`) equals `retryWhen.value`
+the attempt is discarded and the flow runs again, up to `maxAttempts`. That equality is the only
+comparison — there is no operator to choose, and a `retryWhen` carrying an `op` is refused (422) —
+so make the retry-worthy case a slot your flow sets to a known value. `feedback` wires the last
+attempt's output into the next attempt's inputs; `onExhausted` names the error a caller gets when
+the last attempt still asks for a retry. Every slot it names must be in the snapshot below.
+
 **Input mapping** binds each flow input slot to a request location: the body, a path parameter or
 a query parameter. At save time the grammar is enforced — every binding must reference a declared
 input slot, a path binding needs that path parameter declared and required, and every required
@@ -243,7 +251,7 @@ input as "nothing to do here" and the skip cascades to the terminal step. Previe
 steps ran — **but only under the same principal.** A flow triggered by a **schedule** resolves no
 end user, so `userInfo` is absent and any skill reading only it is skipped; preview run as
 yourself resolves you, skips nothing, and reports the flow healthy. Preview a scheduled flow with
-`"principal": "noEndUser"` or you are testing a different run. See the preview section of
+`"principal": "no-end-user"` or you are testing a different run. See the preview section of
 flows-and-skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`).
 
 **Nothing is filled in.** A required output a clean run never produced is not replaced by
@@ -375,6 +383,14 @@ id that does not exist answers **404**, not a verdict.
 ⚠️ **`ok: true` is a snapshot, not a promise.** On a create, the endpoint key's uniqueness is a
 database constraint the write learns about by attempting it — a collision found here is certain, its
 absence is not.
+
+⭐ **A delete has the same dry run.** `DELETE /v1/api-endpoints/{id}?validateOnly=true` answers the
+verdict and removes nothing. Nothing refuses an endpoint delete — an endpoint is a leaf, and the
+flow it binds stays — so it answers `ok: true` for any endpoint you can address; the flag exists so
+every write asks the same way.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 ⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added
 tomorrow arrives with a code your build has never heard of and a severity it has. A severity is one of three: `error` (the body will not save as it stands), `warning` (advisory, blocks nothing) and `info` (a note about something the platform left alone — a whole-project plan reports the ids it ignored this way; a row-level verdict rarely carries one).

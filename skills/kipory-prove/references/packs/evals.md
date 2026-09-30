@@ -50,7 +50,12 @@ GET  /v1/eval-suites/trend      across runs AND suites — every series in one a
 
 Suites are scoped by `project`; cases are scoped by their suite. Both keys are address keys and
 both are renameable; a suite's display text is `label`. Individual traces are readable per run for
-drill-down.
+drill-down. Several suites with their cases at once: the `evals` section of the
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`), each suite's `cases` nested under it.
+
+A suite's `coverageMode` is `strict` (a coverage shortfall fails the run — the default) or
+`report-only` (the shortfall is recorded and the run succeeds); the stored `STRICT` / `REPORT_ONLY`
+is refused, on the row as in a document.
 
 ### The suite list carries each suite's standing
 
@@ -309,13 +314,13 @@ The suite carries half the answer. This read carries the other half: it walks th
 transitive `flow.invoke` closure and reports every record type the enabled skills name, together
 with its `ownerScope`.
 
-- `ownerScope: "USER"` — rows belong to one end user. Paired with a suite that names no user,
+- `ownerScope: "user"` — rows belong to one end user. Paired with a suite that names no user,
   this is the failure above, and you can fix it before spending anything.
-- `ownerScope: "PROJECT"` — a shared pool every user of the project reads. A sentinel run reads
+- `ownerScope: "project"` — a shared pool every user of the project reads. A sentinel run reads
   it normally.
 - `ownerScope: null` — **this project declares no type by that name.** The skill names something
   that does not exist, which fails the run rather than emptying it. It is deliberately not folded
-  into the `PROJECT` arm: that is the safe-looking one, and this is not a safe state.
+  into the `project` arm: that is the safe-looking one, and this is not a safe state.
 
 ⛔ **An empty `recordTypeReads` is NOT an all-clear, and the response says so out loud.** The walk
 reads each handler's own declaration of which configuration field names a record type. That
@@ -390,6 +395,17 @@ Both PATCHes REQUIRE the `version` you last read, and a stale one is a 409. That
 than on most design resources: a suite is the thing two people tune at once, and an edit that
 silently overwrites a scorer binding rebaselines every score measured after it — a change that
 looks like a result rather than an edit. Re-read and reconcile on a refusal.
+
+Every suite and case write takes `validateOnly` — in the body on `POST` and `PATCH`, as
+`?validateOnly=true` on `DELETE` — and then writes nothing and answers `200` with the verdict the
+write would reach: a subject or scorer flow the project does not hold, a case with no inputs, a key
+already taken, each as a finding. It is the write's own check, so it never says `ok: true` where
+the write refuses — except for a stale `version`, which only the write sees. It is not the run's
+dry run: `POST /v1/eval-suites/{id}/run` with `validateOnly: true` answers what a run would
+measure, and the design writes answer whether a row would be saved.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 ## Authoring order
 

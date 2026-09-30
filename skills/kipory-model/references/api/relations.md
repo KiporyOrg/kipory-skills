@@ -22,6 +22,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/relation-kind-pairings`
 
+List a project's pairings — which record-type pairs each relation kind connects — optionally only those with `recordTypeKey` at either end. The same rows ride `GET /v1/bootstrap`; one kind's pairs, each with the verdict its delete would reach, ride `GET /v1/relation-kinds/{id}?expand=pairings`; the authored form is each kind's `pairings` in the `relations` section of `GET /v1/projects/{nodeId}/document`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -37,6 +39,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/relation-kind-pairings`
 
+Add one record-type pair to an existing relation kind. The kind and both record types must exist (else 422); a pair already standing is 409 `CONFLICT`; a `join-record` kind takes exactly one pair (409 `RELATION_JOIN_PAIRING_AMBIGUOUS`). With `validateOnly: true` it answers whether the pair would be added, writing nothing (200; an added pair is 201). A kind's first pairs are seeded by `POST /v1/relation-kinds` itself; there is no PATCH — re-target by deleting and adding. A kind's whole pair list at once: its `pairings` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Request body**
 
 | Field | Type | Required | Meaning |
@@ -45,6 +49,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `kindKey` | `string` | yes | Key of an existing relation kind in this project. |
 | `fromRecordTypeKey` | `string` | yes | Key of an existing record type — the source end. |
 | `toRecordTypeKey` | `string` | yes | Key of an existing record type — the target end. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 **Response `201`**
 
@@ -59,6 +72,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `GET /v1/relation-kind-pairings/{id}`
+
+Read one pairing by id. Every pairing of a project: `GET /v1/relation-kind-pairings?project=`; one kind's, with each pair's delete verdict: `GET /v1/relation-kinds/{id}?expand=pairings`.
 
 **Path parameters**
 
@@ -80,11 +95,19 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/relation-kind-pairings/{id}`
 
+Remove one pair from its relation kind; nothing cascades. Refused (409) while live links stand on the pair or it is the kind's last — delete the kind itself with `DELETE /v1/relation-kinds/{id}` — and (422 `RELATION_KIND_INVALID`) when a record type's declaration of the kind could not stand without it. A read of the kind publishes that verdict per pair as `deleteRefusal` (`GET /v1/relation-kinds/{id}?expand=pairings`); with `?validateOnly=true` this answers it now, writing nothing. A kind's whole pair list at once: its `pairings` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The pairing's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `GET /v1/relation-kinds/{id}?expand=pairings`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -92,8 +115,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `GET /v1/relation-kinds`
+
+List a project's relation kinds — the named links its records can carry between record types — each with the `version` its PATCH takes. `expand` adds `relationCount`, `liveRelationCount`, `pairings` (without per-pair delete verdicts) and `readiness`. The same rows ride `GET /v1/bootstrap` (by id, live); the authored form, pairings included, is the `relations` section of `GET /v1/projects/{nodeId}/document` (by key). The edges themselves: `GET /v1/records/{id}/relations/{kind}` and `GET /v1/projects/{nodeId}/relations`.
 
 **Query**
 
@@ -110,6 +138,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/relation-kinds`
 
+Create one relation kind together with its first record-type `pairings` and, optionally, the producing `declaration` (or a generated field), in one transaction. With `validateOnly: true` it answers whether the kind would be created and the `readiness` it would be born in, writing nothing (200; a created kind is 201). More pairs later: `POST /v1/relation-kind-pairings`. Several kinds at once: the `relations` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Request body**
 
 | Field | Type | Required | Meaning |
@@ -120,8 +150,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `description` | `string` | yes | What this relationship means. Required. |
 | `minConfidence` | `number \| null` | no | Reserved; has no effect today. |
 | `direction` | `"directed" \| "symmetric"` | no | Whether the two ends mean different things. Choose deliberately — it decides whether `(fromRecordTypeKey, toRecordTypeKey)` order is meaningful. |
-| `producer` | `"field" \| "joinRecord" \| "curated"` | no | How edges of this kind come into existence. |
-| `cardinality` | `"manyToOne" \| "manyToMany"` | no | How many edges of this kind one record may have. Leave unset for a curated kind, where it does not apply. |
+| `producer` | `"field" \| "join-record" \| "curated"` | no | How edges of this kind come into existence: `field`, `join-record` or `curated`. Required: there is no default, because each producer validates the rest of the kind differently — a create without one is refused 422 (`RELATION_PRODUCER_REQUIRED`). It cannot change once the kind exists. |
+| `cardinality` | `"many-to-one" \| "many-to-many"` | no | How many edges of this kind one record may have: `many-to-one` or `many-to-many`. Leave unset for a curated kind, where it does not apply. |
 | `propertiesEntryId` | `string \| null` | no | Schema entry describing properties edges may carry. Omit for edges with none. |
 | `sortOrder` | `integer` | no | Position among the project's relation kinds. |
 | `pairings` | `object[]` | yes | Record-type pairs to apply the kind to, created in the same transaction, each `{ fromRecordTypeKey, toRecordTypeKey }` naming record types by key — e.g. `[{ "fromRecordTypeKey": "recipe", "toRecordTypeKey": "ingredient" }]`. At least one is required — a kind that applies to no pair can connect nothing. Every type named must already exist. |
@@ -148,9 +178,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
 | `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(fromRecordTypeKey, toRecordTypeKey)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
-| `producer` | `"field" \| "joinRecord" \| "curated"` | yes | How edges of this kind come into existence — derived automatically, or curated by hand. |
-| `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
-| `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
+| `producer` | `"field" \| "join-record" \| "curated"` | yes | How edges of this kind come into existence — derived from a field (`field`), carried by a join record (`join-record`), or stated by hand (`curated`). |
+| `cardinality` | `"many-to-one" \| "many-to-many"` | yes | How many edges of this kind one record may have — `many-to-one` or `many-to-many`. Null when it was never declared, and always null for a curated kind. |
+| `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `join-record` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
 | `sortOrder` | `integer` | yes | Position among the project's relation kinds, ascending. |
 | `edgeFilters` | `object \| null` | yes | Which element properties edges of this kind can be filtered on, and the edge column each is stamped into — derived from the declaring record types' link uses (`element.filters`), read-only here. Null when no type declares a filter on this kind. |
 | `edgeRestampPending` | `boolean` | yes | True while live edges are being restamped after `edgeFilters` changed. Reads resolve `where`/`count` clauses against `stampedEdgeFilters` until it clears. |
@@ -165,6 +195,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 ### `GET /v1/relation-kinds/{id}`
+
+Read one relation kind by id, with the `version` its PATCH takes. `expand=pairings` here carries each pair's `deleteRefusal` — the answer `DELETE /v1/relation-kind-pairings/{id}` would give; `expand` also adds `relationCount`, `liveRelationCount` and the full `readiness`. Every kind of a project: `GET /v1/relation-kinds?project=` or `GET /v1/bootstrap`.
 
 **Path parameters**
 
@@ -189,9 +221,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
 | `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(fromRecordTypeKey, toRecordTypeKey)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
-| `producer` | `"field" \| "joinRecord" \| "curated"` | yes | How edges of this kind come into existence — derived automatically, or curated by hand. |
-| `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
-| `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
+| `producer` | `"field" \| "join-record" \| "curated"` | yes | How edges of this kind come into existence — derived from a field (`field`), carried by a join record (`join-record`), or stated by hand (`curated`). |
+| `cardinality` | `"many-to-one" \| "many-to-many"` | yes | How many edges of this kind one record may have — `many-to-one` or `many-to-many`. Null when it was never declared, and always null for a curated kind. |
+| `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `join-record` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
 | `sortOrder` | `integer` | yes | Position among the project's relation kinds, ascending. |
 | `edgeFilters` | `object \| null` | yes | Which element properties edges of this kind can be filtered on, and the edge column each is stamped into — derived from the declaring record types' link uses (`element.filters`), read-only here. Null when no type declares a filter on this kind. |
 | `edgeRestampPending` | `boolean` | yes | True while live edges are being restamped after `edgeFilters` changed. Reads resolve `where`/`count` clauses against `stampedEdgeFilters` until it clears. |
@@ -205,6 +237,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `readiness` | `object` | no | Whether this kind is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce an edge; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying edges. NOT derivable from the counts — an unpaired kind and a kind declared a minute ago both report zero. |
 
 ### `PATCH /v1/relation-kinds/{id}`
+
+Change one relation kind's own attributes — label, description, direction, cardinality, properties entry, sort order; `key` and `producer` are permanent. Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted — the link rules over every declaration of the kind included — writing nothing. The kind's pairs are added and removed through `/v1/relation-kind-pairings`, its producing declaration through the record type. Several kinds at once, pairings included: the `relations` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -226,11 +260,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `description` | `string` | no | New description. Omit to leave it alone. |
 | `minConfidence` | `number \| null` | no | Reserved; has no effect today. |
 | `direction` | `"directed" \| "symmetric"` | no | Change whether the two ends mean different things. Existing edges are not rewritten, so switching this re-interprets data that is already stored. |
-| `producer` | `"field" \| "joinRecord" \| "curated"` | no | Change how edges of this kind come into existence. |
-| `cardinality` | `"manyToOne" \| "manyToMany"` | no | Change how many edges one record may have. Existing edges that now exceed it are not removed. |
+| `producer` | `"field" \| "join-record" \| "curated"` | no | How edges of this kind come into existence. Permanent: sending a different one is refused (409 `RELATION_PRODUCER_IMMUTABLE`). |
+| `cardinality` | `"many-to-one" \| "many-to-many"` | no | Change how many edges one record may have. Existing edges that now exceed it are not removed. |
 | `propertiesEntryId` | `string \| null` | no | Point at a different schema entry for edge properties, or null for none. |
 | `sortOrder` | `integer` | no | Change the position. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -243,9 +278,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
 | `direction` | `"directed" \| "symmetric"` | yes | Whether an edge's two ends mean different things. `directed` keeps `(fromRecordTypeKey, toRecordTypeKey)` as an ordered pair; `symmetric` treats them as interchangeable — store a pairing in whichever order you like and reads accept either, and edges of the kind are stored in one canonical order so a pair is never recorded twice. |
-| `producer` | `"field" \| "joinRecord" \| "curated"` | yes | How edges of this kind come into existence — derived automatically, or curated by hand. |
-| `cardinality` | `"manyToOne" \| "manyToMany"` | yes | How many edges of this kind one record may have. Null when it was never declared, and always null for a curated kind. |
-| `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `joinRecord` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
+| `producer` | `"field" \| "join-record" \| "curated"` | yes | How edges of this kind come into existence — derived from a field (`field`), carried by a join record (`join-record`), or stated by hand (`curated`). |
+| `cardinality` | `"many-to-one" \| "many-to-many"` | yes | How many edges of this kind one record may have — `many-to-one` or `many-to-many`. Null when it was never declared, and always null for a curated kind. |
+| `propertiesEntryId` | `string \| null` | yes | Schema entry describing the properties an edge of this kind may carry, or null when edges carry none. On a `join-record` kind it validates nothing — a join edge carries the join record's own data whatever this says — and only permits ordering a traversal by a property. |
 | `sortOrder` | `integer` | yes | Position among the project's relation kinds, ascending. |
 | `edgeFilters` | `object \| null` | yes | Which element properties edges of this kind can be filtered on, and the edge column each is stamped into — derived from the declaring record types' link uses (`element.filters`), read-only here. Null when no type declares a filter on this kind. |
 | `edgeRestampPending` | `boolean` | yes | True while live edges are being restamped after `edgeFilters` changed. Reads resolve `where`/`count` clauses against `stampedEdgeFilters` until it clears. |
@@ -257,8 +292,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `liveRelationCount` | `integer` | no | How many edges of this kind are currently valid, present only when you pass `expand=liveRelationCount`. NOT `relationCount`, which also counts retracted edges — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its edges. This is the number that matches what a read of the edges returns. |
 | `pairings` | `object[]` | no | Which record-type pairs this kind connects, present when you pass `expand=pairings` — and always on the create's echo. Never empty — a kind must apply to at least one pair, and the last one cannot be removed. Each pair carries its id, and — on a read of one kind — `deleteRefusal`. |
 | `readiness` | `object` | no | Whether this kind is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce an edge; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying edges. NOT derivable from the counts — an unpaired kind and a kind declared a minute ago both report zero. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/relation-kinds/{id}`
+
+Delete one relation kind, and with it every edge of the kind — curated ones included — and all its pairings; declarations naming it are cleared from the record types. It is never refused, so read what it takes first: with `?validateOnly=true` it rehearses the delete and answers the verdict with `consequences` (the edges it would take), writing nothing. To stop one pair instead: `DELETE /v1/relation-kind-pairings/{id}`. Several kinds at once: the `relations` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 

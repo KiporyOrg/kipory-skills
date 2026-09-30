@@ -47,7 +47,12 @@ public: documentation, byte-identical for every caller.
 The schema is COMPOSED from the design surfaces' own create bodies, never restated: each row is
 the surface's create body minus the addressing the document supplies by position (`project` and
 the element's `key`), the request-only `validateOnly` flag, and every field that holds an id of another
-row. So a field a surface grows appears in the document the same day, spelled the same way.
+row. So a field a surface grows appears in the document the same day, spelled the same way — a
+record type's `ownerScope` is `user` or `project` here as on `POST /v1/record-types` and on a
+record (the stored `USER` / `PROJECT` is refused, in a document as on the row), and a relation
+kind's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
+`POST /v1/relation-kinds` (the camelCase `joinRecord` / `manyToOne` is refused), and an eval
+suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`.
 
 ## Three reference forms
 
@@ -56,20 +61,20 @@ a project, and the key each section's map is keyed by. An event type is `<catego
 source `<provider>/<key>`. A row's display text, where it has one, is `label`. A few references
 are ids on the row API and keys in the document — flows, shapes, sources, and a search profile:
 
-| The row API spells        | The document spells   | Meaning                                                      |
-| ------------------------- | --------------------- | ------------------------------------------------------------ |
-| `dataEntryId`             | `shape`               | a record type's shape, by entry key                          |
-| `payloadEntryId`          | `payload`             | an event type's payload, by entry key                        |
-| `propertiesEntryId`       | `properties`          | a relation kind's edge properties, by entry key              |
-| `schemaEntryId`           | `shape`               | a config namespace's shape, by entry key                     |
-| `flowId`                  | `flow`                | a record type's, trigger's, schedule's or eval suite's flow  |
-| `sourceId`                | `source`              | a trigger's source, as `<provider>/<key>`                    |
-| `actionConfig.flow.id`    | `actionConfig.flow`   | an endpoint action's flow, by key                            |
-| `resolverFlowId`          | `resolver`            | a facet's resolving flow, by key                             |
-| `scorerFlowIds`           | `scorers`             | an eval suite's scorer flows, by key                         |
-| `uses.search.profileId`   | `uses.search.profile` | a record type's embedding profile, by key — its live version |
-| `targetFlowId`            | `target`              | a `flow.invoke` step's target, by key                        |
-| `entryId` in a schema ref | `ref`                 | a step's schema reference, by entry key                      |
+| The row API spells        | The document spells   | Meaning                                                         |
+| ------------------------- | --------------------- | --------------------------------------------------------------- |
+| `dataEntryId`             | `shape`               | a record type's shape, by entry key                             |
+| `payloadEntryId`          | `payload`             | an event type's payload, by entry key                           |
+| `propertiesEntryId`       | `properties`          | a relation kind's edge properties, by entry key                 |
+| `schemaEntryId`           | `shape`               | a config namespace's shape, by entry key                        |
+| `flowId`                  | `flow`                | a record type's, trigger's, schedule's or eval suite's flow     |
+| `sourceId`                | `source`              | a trigger's source, as `<provider>/<key>`                       |
+| `actionConfig.flow.id`    | `actionConfig.flow`   | an endpoint action's flow, by key                               |
+| `resolverFlowId`          | `resolver`            | a facet's resolving flow, by key                                |
+| `scorerFlowIds`           | `scorers`             | an eval suite's scorer flows, by key                            |
+| `uses.search.profileId`   | `uses.search.profile` | a record type's embedding profile, by key — its live generation |
+| `targetFlowId`            | `target`              | a `flow.invoke` step's target, by key                           |
+| `entryId` in a schema ref | `ref`                 | a step's schema reference, by entry key                         |
 
 Not every nested reference is re-spelled: a record type's `uses.join` names its relation kind as
 `kindKey`, exactly as the record-type API does, because the document passes that object to the same
@@ -134,10 +139,11 @@ naming what it would leave behind, unless you grant this. A document does not ge
 adopting re-publishes an endpoint's request and response contract to whoever already calls that
 route. It is a statement about this apply, like `delete` — never part of the row, never exported.
 
-A schedule and a trigger carry `enabled`, which their create and PATCH bodies do not: the row API
-moves it through the enable and disable verbs, and the document writes it through the same verbs
-after the row. Export always states it. Omitted, a new row is created enabled and an existing one
-keeps its state — so a disabled schedule re-created from its export comes back disabled.
+A schedule, a trigger and a source carry `enabled`, which their create bodies do not: the row API
+switches it with a `PATCH` (`{enabled, version}`), and the document writes it through that same
+patch after the row. Export always states it. Omitted, a new row is created enabled and an existing
+one keeps its state — so a disabled schedule, trigger or source re-created from its export comes
+back disabled.
 
 Removal is always explicit — `delete: true` on a row, or `prune: true` on a map to remove every
 row of that map you did not name. Absence alone never deletes. A `delete: true` row states nothing

@@ -20,7 +20,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Owner scope.** Whether a record type's records belong to one end user each (per-user) or to the project's shared pool. A key's runs are project-owned and cannot write per-user records.
 
-**Facet vs. term.** A **facet** is a classification kind — a vocabulary namespace. A **term** is one value in it. Terms are written through the facet (`POST /v1/facets/{id}/terms`) or directly (`/v1/terms`).
+**Facet vs. term.** A **facet** is a classification kind — a vocabulary namespace. A **term** is one value in it. Terms are created through the facet (`POST /v1/facets/{id}/terms`, one or many) and renamed, archived, merged or deleted at `/v1/terms/{id}`.
 
 **Relation kind vs. pairing vs. edge.** A **relation kind** is the vocabulary entry for a typed link between records; a **pairing** is one (typeA, typeB) pair the kind admits; an **edge** is an actual link between two records. Edges are read one hop at a time.
 
@@ -30,7 +30,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Plane.** The design plane is where you author (api host). The dynamic, or project, plane is where your product's users are served (project host). The credit balance is a project-plane read.
 
-**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of four unrelated read-only calls: `contract-preview` and `write-preview` on a record type, `restore-preview` on a checkpoint, and `POST /v1/steps/preview` — one model call against a prompt template, not a flow run.
+**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of one unrelated read-only call: `POST /v1/steps/preview` — one model call against a prompt template, not a flow run.
 
 **Checkpoint vs. snapshot.** A **checkpoint** is a named, manual or automatic copy of a flow's skills, signature and binding that you can restore. A **flow snapshot** is the frozen graph a particular run executed, readable per run, never restorable.
 
@@ -42,4 +42,4 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Managed email address.** A sending identity attached to a node that the outbound mail step sends _as_. Not a mailbox the platform creates.
 
-**Version.** Usually the optimistic-lock counter a PATCH must echo. On an embedding profile it is the geometry generation. On a record it is a database-owned counter with no PATCH. On the bootstrap it is a decimal string to compare as a big integer. On the handler catalog and the capability packs it is a content hash.
+**Version.** Usually the optimistic-lock counter a PATCH must echo. On an embedding profile it is the lock too — the geometry number is `generation`. On a record it is a database-owned counter with no PATCH. On the bootstrap it is a decimal string to compare as a big integer. On the handler catalog and the capability packs it is a content hash.

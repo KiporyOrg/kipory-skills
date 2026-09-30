@@ -20,12 +20,12 @@ Five capabilities that only matter once something works, and one fact most peopl
 POST   /v1/schedules                       { project, key, flowId, inputs, cronPattern, tz, startsAt?, endsAt?, maxRuns?, overlapPolicy? }
 GET    /v1/schedules?project={nodeId}&expand=lastRun,drift,flowLabel
 PATCH  /v1/schedules/{id}                   { version, … } — inputs REPLACE; key is immutable and not a body field
-POST   /v1/schedules/{id}/disable           { version }
-POST   /v1/schedules/{id}/enable            { version } — recomputes the next run from now
+PATCH  /v1/schedules/{id}                   { version, enabled } — switch it off, or on (recomputes the next run from now)
+DELETE /v1/schedules/{id}[?validateOnly=true]
 GET    /v1/schedules/{id}/runs?limit=50     the occurrences, what each did, and the run id it produced
 ```
 
-Inputs are keyed by input slot; `overlapPolicy` is `skip` or `allow`. A write checks that every input slot has a key, none is blank, and each value is of its slot's type (`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`), in `validateOnly` too. A document plan, or the flow or schema-entry PATCH with `validateOnly` (`leavesBehind`), names the schedules and triggers a narrowing change would leave unable to fire; the PATCH itself still saves. Spending `maxRuns` (or passing `endsAt`) disables the schedule by itself without moving its `version`; a disabled schedule shows `nextRunAt: null`. The next-run time you are handed is computed by the same code the tick uses, so it is a claim you can hold the platform to. Enable recomputes from now: a schedule disabled across its window does not fire a backlog.
+Inputs are keyed by input slot; `overlapPolicy` is `skip` or `allow`. A write checks that every input slot has a key, none is blank, and each value is of its slot's type (`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`), in `validateOnly` too. A document plan, or the flow or schema-entry PATCH with `validateOnly` (`leavesBehind`), names the schedules and triggers a narrowing change would leave unable to fire; the PATCH itself still saves. Spending `maxRuns` (or passing `endsAt`) disables the schedule by itself without moving its `version`; a disabled schedule shows `nextRunAt: null`. The next-run time you are handed is computed by the same code the tick uses, so it is a claim you can hold the platform to. Switching `enabled` on recomputes from now — refused (422) when the bounds are spent — so a schedule disabled across its window does not fire a backlog. On a retired project a PATCH of `{enabled: false, version}` alone is still accepted.
 
 Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked` — its `invocation` with `id`, `status` and a `failure` naming the step and phase that broke, and `creditCost` where null is not zero. **The invocation's `id` is the run id**: take it to `GET /v1/runs/{runId}/steps` for the ordered, never-sampled step log (`kipory-diagnose`).
 
@@ -35,8 +35,8 @@ Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked
 POST /v1/triggers                          { project, key, categoryKey, eventKey, flowId, inputs, filter?, overlapPolicy?, label? }
 GET  /v1/triggers?project={nodeId}&expand=lastRun,drift,flowLabel
 PATCH /v1/triggers/{id}                    { version, … } — inputs REPLACE; key is immutable and not a body field
-POST /v1/triggers/{id}/disable             { version }
-POST /v1/triggers/{id}/enable              { version } — reacts from now; nothing is caught up
+PATCH /v1/triggers/{id}                    { version, enabled } — switch it off, or on (reacts from now; nothing is caught up)
+DELETE /v1/triggers/{id}[?validateOnly=true]
 GET  /v1/triggers/{id}/runs?limit=50       every decision — fired, filtered, skipped, blocked — with its reason and run id
 POST /v1/triggers/{id}/replay              { eventId } — re-run one decision as a new attempt
 GET  /v1/triggers/{id}/sample              the newest logged event the trigger would accept, shaped as the `event` slot
@@ -53,14 +53,16 @@ POST /v1/event-types             { categoryId, key, label, defaultScope, payload
 GET  /v1/event-types?categoryId={categoryId}
 ```
 
+Every category and type write — `POST`, `PATCH { version, … }`, `DELETE` — takes `validateOnly` (in the body; `?validateOnly=true` on a DELETE) and answers a 200 verdict instead of writing: a taken key, a seeded row's delete and the scope/payload rules come back as findings.
+
 A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload shape is optional; omit it and the event is a marker. When you give one, `payloadEntryId` must be a schema entry of this project — a builtin such as the `string` entry a flow's slot hands back is refused as unknown; wrap a scalar in an object shape. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`, whose `changed` frames name only which domain moved — never an event, id or payload — so it is a cue to re-read, not a feed; another flow reacts through a trigger, which needs the type to be `durable`.
 
 ## Project config
 
 ```
 GET    /v1/project-config?project={nodeId}       every row carries the overrides AND the effective values
-POST   /v1/project-config                        upsert on (project, namespace): schemaEntryId on create, version when it exists
-DELETE /v1/project-config/{id}
+POST   /v1/project-config                        upsert on (project, namespace): schemaEntryId on create, version when it exists; validateOnly: true checks it
+DELETE /v1/project-config/{id}[?validateOnly=true]
 ```
 
 Reach for this instead of editing a flow whenever the thing being changed is a threshold, a cadence or a weight. The `namespace` binds a schema entry whose field defaults are overlaid, per top-level field, with your `data` (at most 32 KiB); `effective` is computed on every read, never stored, so editing a default in the entry takes effect at once. The entry reference is soft: deleting it leaves reads working and refuses the next write.

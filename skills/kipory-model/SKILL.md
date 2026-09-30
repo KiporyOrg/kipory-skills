@@ -6,41 +6,42 @@ license: MIT
 
 # Model a project's data
 
-Five resources, five packs, and an order the packs do not state because each answers for one capability. Two facts most people get wrong: **a record type has ONE storage declaration, `uses`** — per field, what it is for (`filter`, `search`, `link`, `key`, `stream`), plus the type-level `search` settings, `join` and `facets`; `searchable`, `queryable`, `relations`, the natural key and the facet links are derived from it and read-only, and it is sent whole. And **an embedding profile is live the moment a record type names one of its versions in `uses.search.profileId`** — creating it changes nothing until then, and activation is for later: it repoints every declaration on the profile's name onto another version and reindexes, the one expensive move here.
+Five resources, five packs, and an order the packs do not state because each answers for one capability. Two facts most people get wrong: **a record type has ONE storage declaration, `uses`** — per field, what it is for (`filter`, `search`, `link`, `key`, `stream`), plus the type-level `search` settings, `join` and `facets`; `searchable`, `queryable`, `relations`, the natural key and the facet links are derived from it and read-only, and it is sent whole. And **an embedding profile is live the moment a record type names one of its generations in `uses.search.profileId`** — creating it changes nothing until then, and activation is for later: it repoints every declaration on the profile's name onto another generation and reindexes, the one expensive move here.
 
 ## Before the first call
 
 - Fetch the judgment for the resource you are about to touch: `references/packs/record-types-and-schema-entries.md`, `facets.md`, `relations.md`, `embedding-profiles.md` (served live under `GET /v1/capability-packs/{id}`).
 - Read `GET /v1/bootstrap?project={nodeId}&sections=schema,relations,vectors` first: everything modelled so far, in one call. Do not author what already exists.
-- Every write here is EDITOR, except embedding-profile activation, minting a version, vector search and every delete, which are ADMIN.
+- Every write here is EDITOR, except embedding-profile activation, minting a generation, vector search and every delete, which are ADMIN.
 
 ## The order, and why it is not arbitrary
 
-**1. Embedding profile first, if anything will be searchable.** A record type names a profile version in `uses.search.profileId`, so the profile has to exist to be named — and it carries the `defaultChunking` (required) every type on it inherits unless the type overrides it. Naming it is what makes it serve; the active version is derived from the declarations, so a fresh profile needs no activate.
+**1. Embedding profile first, if anything will be searchable.** A record type names a profile generation in `uses.search.profileId`, so the profile has to exist to be named — and it carries the `defaultChunking` (required) every type on it inherits unless the type overrides it. Naming it is what makes it serve; the active generation is derived from the declarations, so a fresh profile needs no activate.
 
 ```
 POST /v1/embedding-profiles                    { project, key, modelId, denseSlots, defaultChunking, … }   → inert until a type names it
-PATCH /v1/embedding-profiles/{id}              label, isDefault, defaultChunking — a chunking change re-derives and re-embeds every inheriting type
-POST /v1/embedding-profiles/{id}/versions      mint the next geometry — changes nothing until activated
-POST /v1/embedding-profiles/{id}/activate      repoint every declaration on the key onto this version and reindex
+PATCH /v1/embedding-profiles/{id}              { version, label?, isDefault?, defaultChunking? } — a chunking change re-derives and re-embeds every inheriting type
+POST /v1/embedding-profiles/{id}/generations   mint the next geometry generation — changes nothing until activated
+POST /v1/embedding-profiles/{id}/activate      { version } — repoint every declaration on the key onto this generation and reindex
 ```
 
 - **`modelId`** is an embedding model's id from `GET /v1/ai-models?type=embedding` — nothing else lists them. A listed model is not a working one: before you choose, read `GET /v1/projects/{nodeId}/ai-calls?origins=all&outcome=error` for recent rows with `errorCode: "error:quota_exhausted"` by provider and pick another provider's model if its account is out. On a project with no history the first failed embed is the probe — see the indexing failure below.
 - **`defaultChunking`** is exactly one of two shapes: `{ "kind": "whole" }` (one point per record) or `{ "kind": "chunks", "tokens": 400, "overlap": 50 }` (token-sized pieces, `overlap` strictly below `tokens`). Any other `kind` — `tokens`, `fixed` — is a 422 `Expected 'whole' | 'chunks'`. A type's `uses.search.chunking` takes the same two shapes.
 
-Activation is direction-agnostic — pointing at a superseded version is the rollback, and it is lossless because the collections it moves off are never dropped. Its response names `movedRecordTypes` and `repointedSteps`: saved search steps whose literal collection name was rewritten. An empty `movedRecordTypes` means it was already active; repeating is safe.
+Activation is direction-agnostic — pointing at a superseded generation is the rollback, and it is lossless because the collections it moves off are never dropped. Its response names `movedRecordTypes` and `repointedSteps`: saved search steps whose literal collection name was rewritten. An empty `movedRecordTypes` means it was already active; repeating is safe.
 
 **2. Shapes, then record types.** A type references its shape, so the shape is authored first.
 
 ```
 POST /v1/schema-entries                        a reusable typed shape
 POST /v1/schema-entries/seed                   { project } — materialise the flow-provider entries, idempotent
-POST /v1/record-types                          key, shape, owner scope, processing flow, `uses`
+POST /v1/record-types                          key, shape, owner scope (`user` | `project`), processing flow, `uses`
 PATCH /v1/record-types/{id}                    replace `uses` whole; `searchable`/`queryable`/`relations` in a body are a 422
 GET  /v1/record-types/{id}?expand=uses         where each use landed, and which use kinds this deployment supports
-GET  /v1/record-types/{id}/contract-preview    the field vocabulary a proposed shape or flow would give the type
-PATCH /v1/record-types/{id} validateOnly:true  what your PATCH body would do — derived declarations, reindex, restamp — writing nothing
-POST /v1/record-types/{id}/natural-key-preview the verdict a `key` use would get, per candidate field, before you send it
+PATCH /v1/record-types/{id} validateOnly:true  what your PATCH body would do — derived declarations, reindex, restamp, the contract a
+                                               shape or flow move leaves (`derived.contract`), the verdict a `key` use gets
+                                               (`derived.naturalKey`) — writing nothing
+PATCH /v1/record-types/{id} definition         rewrite the shape the type OWNS (its inline `shape`); a shared one is edited on its entry
 ```
 
 A field reference inside `uses` (a `search` field's `source`, a template) names a `family` and a `field`. The families are `submission` (the record's submitted data), `processed` (an output of the flow bound to the type — how a searchable `body` extracted from a file is named) and `system` (platform fields such as the id and creation time).
@@ -61,7 +62,7 @@ GET  /v1/relation-kinds/{id}?expand=readiness,liveRelationCount  blocked · iner
 
 A pairing names record types by **key**, not id: `"pairings": [{ "fromRecordTypeKey": "recipe", "toRecordTypeKey": "ingredient" }]`. The same `{ fromRecordTypeKey, toRecordTypeKey }` goes to `POST /v1/relation-kind-pairings` with the kind's `kindKey`. A `validateOnly` create forecasts readiness without counting edges, so a draft can read `ready` there. The saved kind reads `unproven` until it carries its first edge — but only on a read that also asks `expand=liveRelationCount`; without it an edgeless field or curated kind reads `ready`.
 
-Omit `declaration` and the kind is legal but produces nothing; readiness reports it `inert`. The field that feeds a kind is otherwise a `link` use on the record type — `{ "kind": "link", "relation": "<key>" }` in its `uses`, `element.ref` for a list of objects — and the type's `relations` is derived from it. A pairing has no update — delete and recreate. The kind's key is immutable.
+Omit `declaration` and the kind is legal but produces nothing; readiness reports it `inert`. The field that feeds a kind is otherwise a `link` use on the record type — `{ "kind": "link", "relation": "<key>" }` in its `uses`, `element.ref` for a list of objects — and the type's `relations` is derived from it. A pairing has no update — delete and recreate. The kind's key is immutable. `producer` is `field`, `join-record` or `curated` and `cardinality` `many-to-one` or `many-to-many` — kebab, as every enum value on the wire. Every write here takes `validateOnly` (a pairing's DELETE as `?validateOnly=true`) and answers the save's own verdict, writing nothing.
 
 **5. Facets, and most of the time they need no flow at all.**
 
@@ -76,9 +77,9 @@ GET  /v1/facets/{id}?expand=readiness
 
 A facet is not a field: its values are resolved by the processing flow into the term store, so the type-to-facet link is a list on the type (`uses.facets`), not a use of a field. A key that is not a facet of the project is `USES_FACET_UNKNOWN`; one that is also a field name of the type is `USES_FACET_SHADOWS_FIELD`.
 
-**Every term write embeds before it saves, whatever the facet's `matching`.** `POST /v1/facets/{id}/terms`, `POST /v1/terms` and a relabelling `PATCH /v1/terms/{id}` embed the term's text synchronously on the platform's shared term model (the `substrate-embedding` task). That model is platform-wide, not per project: binding `substrate-embedding` on your project node is a 422 (`details.reason: "TASK_READ_AT_ROOT_ONLY"`), and binding `embedding` there moves record search, not terms. When its provider refuses (quota, outage), the write fails — typically a 429 or 422 — and **nothing is saved**, even on an `exact` facet. A `validateOnly` seed does not embed, so it can answer `ok` for a seed the real call refuses. There is no project-side escape; retry later. `qdrantUpsertFailures` and `reembedWarning` are a different, later failure: the term row saved but its vector store write did not.
+**Every term write embeds before it saves, whatever the facet's `matching`.** `POST /v1/facets/{id}/terms` and a relabelling `PATCH /v1/terms/{id}` embed the term's text synchronously on the platform's shared term model (the `substrate-embedding` task). That model is platform-wide, not per project: binding `substrate-embedding` on your project node is a 422 (`details.reason: "TASK_READ_AT_ROOT_ONLY"`), and binding `embedding` there moves record search, not terms. When its provider refuses (quota, outage), the write fails — typically a 429 or 422 — and **nothing is saved**, even on an `exact` facet. A `validateOnly` seed does not embed, so it can answer `ok` for a seed the real call refuses. There is no project-side escape; retry later. `qdrantUpsertFailures` and `reembedWarning` are a different, later failure: the term row saved but its vector store write did not.
 
-A facet whose `matching` is `exact` needs no resolver. A `semantic` one created _without_ naming a `resolverFlowId` is bound to a platform default at creation and works as authored; pass an explicit `null` only to opt out and bring your own resolver later (`kipory-build`, then patch it on). Single terms: `POST /v1/terms`, `PATCH /v1/terms/{id}`, `POST /v1/terms/{id}/merge`, `DELETE /v1/terms/{id}`.
+A facet whose `matching` is `exact` needs no resolver. A `semantic` one created _without_ naming a `resolverFlowId` is bound to a platform default at creation and works as authored; pass an explicit `null` only to opt out and bring your own resolver later (`kipory-build`, then patch it on). A term is created under its facet — `POST /v1/facets/{id}/terms` takes one row as readily as many, and a key the facet already holds answers `existed` rather than a conflict. After that: `PATCH /v1/terms/{id}` and `POST /v1/terms/{id}/merge` (both require the term's `version` from `GET /v1/terms`; a stale one is 409 `VERSION_CONFLICT`), `DELETE /v1/terms/{id}`.
 
 ## What will bite you
 
@@ -89,12 +90,12 @@ A facet whose `matching` is `exact` needs no resolver. A `semantic` one created 
 - **On a facet patch, `version` is required**, an omitted field preserves, and an explicit null clears only some fields: the proposal, the resolver binding and its params. On `matching` and the mint policy a null is a **no-op**, because those columns are never empty.
 - **A schema edit cascades.** Read the record-types pack on what an entry change reaches before editing one that types already reference.
 - **`expand=embedding` and `expand=vectorProgress` are refused on the record-types list.** They are per-row scans; ask them on `GET /v1/record-types/{id}`. On record types, `expand` is **comma-separated** (`?expand=embedding,vectorProgress`); repeating the parameter is a 422 `Expected string, received array`.
-- **An indexing failure is silent on the record and the type.** Records stay `indexState: "never"` and `vectorProgress.remaining` stops falling; neither says why. The cause is in the model-call ledger: `GET /v1/projects/{nodeId}/ai-calls?origins=projection` — each failed embed is a row with `errorCode` (`error:quota_exhausted`, …); read one by id (`/ai-calls/{callId}`) for the provider's `errorMessage`. A failed embed is retried three times within about fifteen seconds, then only by the daily re-index sweep (08:00 UTC). The usual remedy is a new profile version on another embedding model, then activate it.
+- **An indexing failure is silent on the record and the type.** Records stay `indexState: "never"` and `vectorProgress.remaining` stops falling; neither says why. The cause is in the model-call ledger: `GET /v1/projects/{nodeId}/ai-calls?origins=projection` — each failed embed is a row with `errorCode` (`error:quota_exhausted`, …); read one by id (`/ai-calls/{callId}`) for the provider's `errorMessage`. A failed embed is retried three times within about fifteen seconds, then only by the daily re-index sweep (08:00 UTC). The usual remedy is a new profile generation on another embedding model, then activate it.
 - **Readiness is the diagnostic here, not `outstandingIssues`.** That array belongs to skill writes; none of the saves in this skill carry it. Re-read the facet or kind with `expand=readiness` (a kind also with `liveRelationCount`, or `unproven` never shows): `blocked` cannot work (`RESOLVER_UNBOUND` on an unbound semantic facet), `inert` is wired to nothing, `unproven` has never resolved — expected an hour after authoring, a question a year later.
-- **An embedding profile's `version` is not a lock.** Its PATCH accepts `label`, `isDefault` and `defaultChunking`, and sending `version` is a 422. Changing the model or the slots goes through a version and re-embeds everything; changing `defaultChunking` re-derives and re-embeds every type that inherits it, without a version.
+- **An embedding profile carries two numbers.** `generation` is its geometry — the `v{n}` in its collection names, minted by `POST …/generations`, never sent back. `version` is its lock, like every other row's: required on the PATCH and on `POST …/activate`, and a stale one is 409 `VERSION_CONFLICT`. Changing the model or the slots goes through a new generation and re-embeds everything; changing `defaultChunking` re-derives and re-embeds every type that inherits it, without a new generation.
 - **`uses` is sent whole.** A PATCH carrying it replaces the statement; reordering two `filter` fields moves their storage slots and re-stamps every record of the type. Read it, change it, send it back with the `version` you read — and ask the same PATCH with `validateOnly: true` first if you are not sure what it derives to.
 - **A search step left behind after activation keeps querying the superseded collection** — stale results, not an error. Read `repointedSteps`.
-- **A collection has two names, and each surface takes a different one.** `GET /v1/vector-collections?project={nodeId}` returns both: `name` (without the project prefix, e.g. `handbook-v2-project`) and `collectionName` (the physical `{slug}.{name}`, e.g. `my-project.handbook-v2-project`). The `/v1/vector-collections/{name}` routes take `name`; a `vector.search` step's `collection` takes the full **`collectionName`**. A step naming the short name is refused at save with `VECTOR_SEARCH_COLLECTION_UNKNOWN`, and the remedy names the full name it matches. The name carries the profile version, so activating a new version changes it (activation repoints saved steps for you).
+- **A collection has two names, and each surface takes a different one.** `GET /v1/vector-collections?project={nodeId}` returns both: `name` (without the project prefix, e.g. `handbook-v2-project`) and `collectionName` (the physical `{slug}.{name}`, e.g. `my-project.handbook-v2-project`). The `/v1/vector-collections/{name}` routes take `name`; a `vector.search` step's `collection` takes the full **`collectionName`**. A step naming the short name is refused at save with `VECTOR_SEARCH_COLLECTION_UNKNOWN`, and the remedy names the full name it matches. The name carries the profile `generation`, so activating a new generation changes it (activation repoints saved steps for you).
 - **Vector search is ADMIN and bills.** `POST /v1/vector-collections/{name}/search` embeds the query text on every call. The collections surface is otherwise read-only, and `storeState: absent` is a divergence to act on while `unreachable` is an outage — never fold them.
 - **A 2xx is not a promise it will run** — see `kipory-connect`'s conventions. Runtime is stricter than authoring.
 

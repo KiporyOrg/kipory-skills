@@ -38,12 +38,13 @@ GET    /v1/sources/providers                                 the provider regist
 GET    /v1/sources?project={nodeId}[&provider=telegram]      every source, newest first, with health, the listening count and deleteRefusal
 POST   /v1/sources                                           { project, provider, config, key?, label? } → 201
 GET    /v1/sources/{id}
-PATCH  /v1/sources/{id}                                       { version, label?, config? }  — config REPLACES wholesale
-POST   /v1/sources/{id}/enable                                { version }
-POST   /v1/sources/{id}/disable                               { version }
-DELETE /v1/sources/{id}                                       409 SOURCE_HAS_LISTENERS while a trigger listens
+PATCH  /v1/sources/{id}                                       { version, label?, config?, enabled? }  — config REPLACES wholesale
+DELETE /v1/sources/{id}[?validateOnly=true]                   409 SOURCE_HAS_LISTENERS while a trigger listens
 GET    /v1/sources/{id}/events?limit=50                       the newest events this source wrote
 ```
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 Then a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`,
 the flow and its inputs. The trigger hears that source's events and no other's — the match is
@@ -154,8 +155,8 @@ save"; anything else is exactly what lands.
   message. The list shows `listening: 0`; the app shows "nothing listens".
 - **`enabled: true` with health `unknown` means no watcher shard owns the channel.** The platform's
   own Telegram accounts are what read channels; nothing on your row provisions them.
-- **A disabled source writes nothing, and enabling it later does not catch up.** The events that
+- **A disabled source writes nothing, and switching it back on later does not catch up.** The events that
   arrived in between were never recorded; there is nothing to replay.
-- **`version` is required on every write** — patch, enable and disable. A stale one is a 409;
+- **`version` is required on every write** — every patch, switching `enabled` included. A stale one is a 409;
   re-read and retry. A provider's own report (participants, health) never bumps it.
 - **The provider cannot change.** A different provider is a new source.

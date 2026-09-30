@@ -15,6 +15,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/route-enablement`
 
+Which of the platform's code-backed route groups (sign-in, account, usage and billing, files, API docs) this project serves (`?project=<nodeId>`), resolved to the list that is on. These are the platform's own routes under the project's host; the routes you author are endpoints (`/v1/api-endpoints`). The same list rides `GET /v1/bootstrap` (`routeEnablement`) and the `project.routes` section of `GET /v1/projects/{nodeId}/document`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -29,6 +31,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `enabled` | `string[]` | yes | The toggleable route groups currently ON for this project, resolved. Always-on infrastructure groups are not listed here and cannot be turned off. |
 
 ### `POST /v1/route-enablement`
+
+Switch one code-backed route group on or off for a project (`{project, group, enabled}`) and answer the resolved list. Idempotent; it is a project setting, not a row, so it takes no `version`. Refused (422) for an always-on or unknown group and for turning the last group off. The whole list at once: the `project.routes` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 

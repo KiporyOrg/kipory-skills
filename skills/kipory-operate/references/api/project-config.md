@@ -16,6 +16,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/project-config`
 
+List one project's config namespaces (`?project=<nodeId>`) — runtime tunables a flow reads as `projectInfo.config.<namespace>` — each with its stored overrides (`data`), its type's `defaults`, the `effective` values a run sees, and the `version` a later write takes. Not for secrets: those live in the vault (`/v1/secrets`), whose values never travel. A namespace's shape is a schema entry (`GET /v1/schema-entries?project=`). The same namespaces ride `GET /v1/bootstrap` and the `project.config` section of `GET /v1/projects/{nodeId}/document`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -30,6 +32,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/project-config`
 
+Set one config namespace — an upsert by `(project, namespace)`. Creating it takes `schemaEntryId`, the schema entry that types it (`/v1/schema-entries`); updating it takes the `version` you read (a stale one is 409 `VERSION_CONFLICT`) and may re-bind the type. `data` holds overrides only and replaces what was stored; the effective object (the type's defaults under the overrides) must satisfy the type. Not for secrets: store those in the vault (`/v1/secrets`). With `validateOnly: true` it answers whether the write would be refused, writing nothing. Several namespaces at once: the `project.config` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Request body**
 
 | Field | Type | Required | Meaning |
@@ -39,6 +43,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `data` | `object` | yes | Explicit overrides, replacing whatever was stored. Serialized size is capped at 32768 bytes: this map is seeded into every flow run, so anything larger is content and belongs in a record. |
 | `schemaEntryId` | `string` | no | Schema entry to type this namespace by. Required when creating the namespace; on update, omit to keep the current binding or pass a different id to re-bind. |
 | `version` | `integer` | no | The version you last read. Required when the namespace already exists — a stale value is refused with 409. Ignored on create. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this upsert against the namespace as stored and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -54,8 +59,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/project-config/{id}`
+
+Delete one config namespace; flows stop seeing it under `projectInfo.config` on their next run. The schema entry that typed it stays. Nothing refuses it. With `?validateOnly=true` it answers the verdict, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
 
 **Path parameters**
 
@@ -63,9 +73,18 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The config namespace's id, as returned when it was created or listed. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

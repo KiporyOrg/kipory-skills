@@ -35,9 +35,9 @@ Do **not** use it for:
 ## The sequence
 
 ```
-GET    /v1/project-config?project=…   list — every row carries overrides, defaults and effective values
-POST   /v1/project-config             upsert by (project, namespace)
-DELETE /v1/project-config/{id}        remove the row
+GET    /v1/project-config?project=…                  list — every row carries overrides, defaults and effective values
+POST   /v1/project-config                            upsert by (project, namespace); `validateOnly: true` checks it
+DELETE /v1/project-config/{id}[?validateOnly=true]   remove the row
 ```
 
 The write is an **upsert on the natural key**, which makes it one idempotent "set the ranking
@@ -49,6 +49,16 @@ meant to change silently deletes every other override in that namespace, and the
 exactly like a success because it is one. **Read the row first, merge locally, send the complete
 map.** The serialized map is capped at 32 KB, because it is seeded into every flow run: anything
 larger is content and belongs in a record.
+
+⭐ **Ask before you write.** `POST /v1/project-config` with `validateOnly: true` runs every rule the
+upsert runs — the cap, the shape a new namespace needs, the version an existing one needs, the
+effective object against its type — writes nothing, and answers **200** with a verdict
+`{ok, diagnostics, complete}`; a refusal the write would answer as a 422 comes back as a finding.
+It cannot see a stale `version`: that is the write's own lock. `DELETE …?validateOnly=true` does
+the same for a removal, which nothing refuses.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 ## How a flow reads it
 

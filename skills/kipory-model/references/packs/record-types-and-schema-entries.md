@@ -143,25 +143,29 @@ are the definition's structure carry no row — `type` and `$ref`, the object's
 keywords are that entry's own rows. Absent means not asked; an API older than the
 `keywords` expand refuses the whole read with a 422.
 
-### Ask about a definition you have not saved: `POST /v1/schema-entries/{id}/keywords-preview`
+### Ask about a definition you have not saved: the write's `validateOnly`
 
 The read judges the document as stored. To know what an EDIT would do before you
-save it, send the whole draft definition — exactly as the PATCH would carry it —
-to `POST /v1/schema-entries/{id}/keywords-preview` (`{ "definition": { ... } }`).
-The answer is `keywordVerdicts` in the read's shape, computed by the same function
-with the same bindings: whether a `default` is read depends on what binds the type
-now (a config namespace, the end-user profile), and those come from the stored
-type the path names, never from the body. Send the stored document and you get
-exactly the read's rows. Nothing is written and nothing is validated — a draft the
-save would refuse still gets an answer, which is how you see the unread keyword
-the save would refuse before you send it. It needs EDITOR on the type, like the
-PATCH, and a retired project refuses it like any other write.
+save it, send the PATCH itself with `validateOnly: true` —
+`PATCH /v1/schema-entries/{id}` with the whole draft `definition` and `version`.
+Its verdict carries **`derived.keywordVerdicts`** in the read's shape, computed by
+the same function with the same bindings: whether a `default` is read depends on
+what binds the type now (a config namespace, the end-user profile), and those
+come from the stored type the path names, never from the body. Send the stored
+document and you get exactly the read's rows. Nothing is written — the edit is
+rehearsed and rolled back — and the verdicts ride a refused draft too, which is
+how you see the unread keyword the save would refuse before you send it. It needs
+EDITOR on the type, like the PATCH, and a retired project refuses it like any
+other write.
 
-For a type you have **not created yet**, ask `POST /v1/schema-entries/keywords-preview`
-with `{ "project": "<node id>", "definition": { ... } }` — the same answer for a
-type nothing binds, which is what a new type is until something does. It needs
-EDITOR on the project node. To check the create itself, send the create body to
-`POST /v1/schema-entries` with `validateOnly: true`.
+For a type you have **not created yet**, send the create body to
+`POST /v1/schema-entries` with `validateOnly: true`: the same
+`derived.keywordVerdicts`, for a type nothing binds — which is what a new type is
+until something does — beside the create's own verdict. It needs EDITOR on the
+project node. A record type's OWN shape is asked through its type:
+`PATCH /v1/record-types/{id}` with `definition` and `validateOnly: true` answers
+the same `derived.keywordVerdicts`. (The two `keywords-preview` routes that asked
+this beside the writes are gone.)
 
 ## Writing records from outside a flow
 
@@ -187,7 +191,9 @@ record), then make it required. An import is one bulk of creates with `onKeyTake
 
 ## Owner scope — whose records are these?
 
-Declared on the type, and every generic reader, writer and processor branches on it.
+Declared on the type as `ownerScope` — `user` or `project`, spelled as a record's own
+`ownerScope` — and every generic reader, writer and processor branches on it. The stored
+spelling (`USER`, `PROJECT`) is refused on the wire.
 
 - **User-scoped**: records belong to one end user. Creation requires the run's
   authenticated user, and reads are pinned to them.
@@ -200,7 +206,7 @@ Declared on the type, and every generic reader, writer and processor branches on
 write anything, because unwinding it means deleting the data.
 
 ⛔ **`ownerScope` is therefore REQUIRED on `POST /v1/record-types`.** It used to be optional and
-default to `USER`, which meant a create that never mentioned it made this permanent decision on
+default to `user`, which meant a create that never mentioned it made this permanent decision on
 your behalf — and you could not undo it after the first write. A body without it is now refused.
 
 ⚠️ **`PATCH` keeps it optional, and that is not an inconsistency.** There, omitting a key means
@@ -316,7 +322,7 @@ slot), how they are chunked (the profile's `defaultChunking`, unless `uses.searc
 overrides it), and which fields travel with each point (every `filter` field, and only those).
 
 Nothing physical happens when you save. The collection is **derived** from the project, the
-profile and its version, the owner scope and the isolation group, then provisioned in the
+profile and its generation, the owner scope and the isolation group, then provisioned in the
 background. Nobody names a collection.
 
 Three consequences that catch people out, and only two of them fail _silently_:
@@ -778,21 +784,20 @@ body. A cached answer — every query reads the stores as they are now. The oper
   `invalidatedJoins`, beside it, reports the OTHER record types whose `joins` declaration this
   delete voided. Both exist because you asked to remove one thing and something else changed.
 
-  **Ask before you delete: `GET /v1/record-types/{id}?expand=dependents` carries
-  `deleteRefusal`** — the refusal the delete would answer right now, from the function the delete
-  throws from, or null when nothing stands in the way. It covers all three refusals above. Its
-  `code` is the envelope's (`CONFLICT`, `RECORD_TYPE_SEEDED_READONLY` or `VALIDATION_FAILED`), and
-  its `message` is the delete's sentence with the rule's name taken off the front. Gate a button
-  on it. The same read counts, through the delete's own reads, the records that refuse it
-  (`refuses: true`) and the paired relation kinds and other types' `joins` it would change
-  (`refuses: false`). ⛔ `total` sums only the refusing counts, so a seeded or reserved type reads
-  `total: 0` and is refused anyway — never gate on `total`.
+  **Ask before you delete: `DELETE /v1/record-types/{id}?validateOnly=true`** answers the
+  delete's own verdict, writing nothing — the refusal the delete would answer right now, from the
+  function it throws from, in the same code and words; `ok: true` when nothing stands in the way.
+  It covers all three refusals above. Gate a button on `ok`. Beside it, **`derived.dependents`**
+  counts, through the delete's own reads and before the refusal is asked, the records that refuse
+  it (`kind: "records"`, `refuses: true`) and the paired relation kinds and other types' `joins`
+  it would change (`relation-kinds`, `joins`, `refuses: false`) — present on a refused verdict
+  too, so a refused dry run names the count that refused it. ⛔ `total` sums only the refusing
+  counts, so a seeded or reserved type reads `total: 0` and is refused anyway — never gate on
+  `total`. It needs ADMIN on the type, the delete's own floor. (`?expand=dependents` on the item
+  read, which published this census with a `deleteRefusal` copy of the verdict, is gone.)
 
-  **`validateOnly=true` on the DELETE asks the same function** and answers a 200 verdict in the
-  same code and words — the way to ask when you are about to delete and hold no read. ⛔ It
-  carries no `derived`, deliberately: the count that refuses a pinned type rides the refusal's own
-  sentence, and a structured member beside it would have read zero on every refusal — the planner
-  throws before any verdict could carry a count.
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 - **A declaration the contract has moved out from under.** Each declaration is validated when it is
   saved; editing the shape or re-capturing the flow afterwards can leave one naming a field the
@@ -867,90 +872,77 @@ word rather than folding one into the other — a reader deciding what satisfies
 distinction, and the compiler's `integer` arm accepts what its `number` arm does plus a whole-number
 check. Fold them in your own reader, not in what you read.
 
-`GET /v1/record-types/{id}/contract-preview` answers for a **proposed** descriptor instead:
+To ask what a **proposed** shape or flow would make of the contract, send the PATCH that
+proposes it with `validateOnly: true`:
 
 ```
-GET /v1/record-types/{id}/contract-preview?dataEntryId=<entry>&flowId=<flowId>|none
+PATCH /v1/record-types/{id}
+{ "dataEntryId": "<entry>", "version": 7, "validateOnly": true }   // another shape
+{ "definition": { /* the type's own shape, drafted */ }, "version": 7, "validateOnly": true }
+{ "flowId": "<flowId>" | null, "version": 7, "validateOnly": true }
 ```
 
-Both parameters are optional. Omit one to keep what is stored; `flowId=none` proposes unbinding.
-`none` is safe as a sentinel because flow ids are cuids.
-
-To ask the same question about a **draft of the type's own shape** — fields added or changed but
-not saved — send the drafted document instead:
-
-```
-POST /v1/record-types/{id}/contract-preview
-{ "definition": { /* the drafted JSON Schema */ }, "flowId": "<flowId>" | "none" }
-```
-
-`flowId` is optional, as above; `dataEntryId` is refused (a draft of this shape and a move to another
-are two different saves). The drafted document replaces the stored one and nothing is re-pointed,
-so the preview judges against the binding as stored. It is a POST because a document does not fit a
-query string, and it is floored at EDITOR: only an editor has a draft to ask about. The answer has
-the same shape as the GET's.
-
-The draft is gated first by the rules a save of it meets: field names (letter-led, no reserved
-name), an object schema, and — with `flow` left out on a bound type — the stored flow's binding
-against the draft. Any of those is a `422`. What it does NOT answer is the save's own business: a
-removal with stored records, and an edit that re-shapes a signature an endpoint or this type froze
-(`SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, which a re-send with `adoptSnapshots` re-captures — this
-type's included). Plan the document for those. The `declarations` verdicts are the STORED
-declarations under the draft: a save that restates `uses` is judged by the uses it states instead.
-
-⚠️ **They are not independent, and the shape one is the reason.** Re-pointing the shape re-binds the
-flow against it, so a `dataEntryId`-only proposal is resolved against the flow's **live** signature
-too — its `processed` fields and its declaration verdicts can both move, and it can be refused for a
-flow reason on a request that never mentioned a flow. That is the save's behaviour, faithfully: a
-shape change is what strands a declaration naming a flow slot.
-
-It returns the contract the proposal would have — the same shape `expand=contract` returns — plus
-the two schema documents behind it, and a **verdict per declaration**:
+The verdict is the save's own, and when the patch moves the shape or the flow it carries
+**`derived.contract`** — computed from the save's plan, not by a second read:
 
 ```jsonc
 {
-  "contract": [
-    /* … the proposed vocabulary … */
-  ],
-  "definition": {
-    /* the data shape's schema, as proposed */
-  },
-  "outputDefinition": null, // the bound flow's output schema, or null when unbound
-  "declarations": {
-    "searchable": null, // this type declares none
-    "queryable": {
-      "ok": false,
-      "code": "RECORD_TYPE_QUERYABLE_INVALID",
-      "message": "…",
+  "ok": true,
+  "diagnostics": [],
+  "complete": true,
+  "derived": {
+    "contract": {
+      "fields": [
+        /* … the proposed vocabulary, the shape `expand=contract` returns … */
+      ],
+      "definition": {
+        /* the data shape's schema, as proposed */
+      },
+      "outputDefinition": null, // the bound flow's output schema, or null when unbound
     },
-    "relations": { "ok": true, "code": null, "message": null },
+    /* … and the save's own staleVersion, writes, resolved and effects */
   },
 }
 ```
 
-Three things to hold about it:
+Send the `uses` the save would send too: the plan re-derives every projection from the statement
+against the proposed contract, so a declaration the move strands is **refused** — the verdict's
+diagnostic, in the save's code (`RECORD_TYPE_SEARCHABLE_INVALID`, `RECORD_TYPE_QUERYABLE_INVALID`,
+`RECORD_TYPE_RELATIONS_INVALID`, `USES_FIELD_UNKNOWN`, …) — and the refused verdict still carries
+`derived.contract` once the shape and the flow resolved, so an editor can draw the proposed fields
+beside the refusal. A refusal raised before that (an ineligible entry, a flow in another project)
+carries none. (`GET` and `POST …/contract-preview`, which answered this beside the PATCH with a
+verdict per stored declaration, are gone.)
+
+`definition` is a real write, not only a question: **`PATCH /v1/record-types/{id}` with
+`definition` replaces the type's OWN shape** — the entry it owns, its inline `shape` in a project
+document — with the rules a document's inline shape meets, in one transaction with the type; the
+entry comes back in `touched`. It is refused 422 for a type whose shape is a shared entry
+(`RECORD_TYPE_SHAPE_SHARED` — edit that entry with `PATCH /v1/schema-entries/{id}`) and together
+with `dataEntryId` (`RECORD_TYPE_DEFINITION_WITH_DATA_ENTRY`). An edit that re-shapes a signature
+an endpoint or this type froze is refused 409 `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`; re-send it
+through a project document with `adoptSnapshots` on the shape. Its dry run also answers
+`derived.keywordVerdicts` for the drafted document — on a refused draft too, but not on the two
+refusals above, where the draft is not the type's own shape to judge. Send `flowId` beside
+`definition` to re-bind in the same save: the new flow is judged against the new shape, and the
+flow being replaced no longer is.
+
+Things to hold about it:
 
 - **A proposed flow is resolved against its LIVE signature**, which is what a re-bind actually
   captures — not against the snapshot the descriptor already stores. Ask before you bind and the
   answer is the one the save will use.
-- **`null` on a declaration means the type declares nothing there**, which is not the same as
-  surviving. Do not render it as approval.
-- **A `422` is a refusal of the CANDIDATE itself** — an entry that is not eligible, a flow in
-  another project, a flow producing no outputs — and is a different answer from a 200 whose
-  declarations refuse. The first says your proposal is not a descriptor; the second says it is,
-  and tells you what adopting it costs.
-- **A `409` means the type already holds records** and the shape you proposed is not the one they
-  were written against. Re-pointing is refused for the life of those records, so this is a fact
-  about the type rather than about your proposal — asking again with a different entry will not
-  help.
-- **`code` names which declaration refused** — `RECORD_TYPE_SEARCHABLE_INVALID`,
-  `RECORD_TYPE_QUERYABLE_INVALID` or `RECORD_TYPE_RELATIONS_INVALID`. Branch on it, never on the
-  message text. (The first two carried `VALIDATION_FAILED` until 2026-08-25, with the token only in
-  the message; the message still opens with the same token, and the code is now the thing to read.)
-- ⚠️ **A `seed`-origin type answers 200 and still cannot be saved.** Every write on one is refused
-  with `RECORD_TYPE_SEEDED_READONLY`; the preview deliberately does not repeat that check, because a
-  type you cannot edit is still one worth understanding. Check `origin` before offering the answer
-  as something to act on.
+- ⚠️ **They are not independent, and the shape one is the reason.** Re-pointing the shape re-binds
+  the flow against it, so a `dataEntryId`-only proposal is resolved against the flow's **live**
+  signature too — its `processed` fields can move, and it can be refused for a flow reason on a
+  request that never mentioned a flow. That is the save's behaviour, faithfully: a shape change is
+  what strands a declaration naming a flow slot.
+- **A `409` from `RECORD_TYPE_PINNED_BY_RECORDS` means the type already holds records** and the
+  shape you proposed is not the one they were written against. Re-pointing is refused for the life
+  of those records — a fact about the type rather than about your proposal.
+- **A `seed`-origin type is refused** (`RECORD_TYPE_SEEDED_READONLY`) by the dry run as by the save.
+- A stale `version` is reported as `derived.staleVersion: true` beside an `ok` verdict, never as a
+  finding: the lock is about when the write lands, not whether the draft is coherent.
 
 ⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the key,
 the data shape and the owner scope; the binding can change at any point in a type's life. But a
@@ -1030,15 +1022,14 @@ second is refused rather than converged: converging would discard the incoming p
 would discard the stored one. An edit to an existing record goes through `entity.update`.
 
 ```
-PATCH /v1/record-types/{id}                        `uses` with `"key"` on the field   declare
-PATCH /v1/record-types/{id}                        `uses` without it                  retract
-POST  /v1/record-types/{id}/natural-key-preview    { "fields": [...] }                ask first
+PATCH /v1/record-types/{id}    `uses` with `"key"` on the field                  declare
+PATCH /v1/record-types/{id}    `uses` without it                                 retract
+PATCH /v1/record-types/{id}    `uses` with `"key"`, `"validateOnly": true`       ask first
 ```
 
 The key is the `key` use on a field in `uses` — the same statement as every other purpose a field
-has — and the read reports it as `naturalKey`. There is no separate verb any more; the one thing the
-old verb had that a statement does not, asking for the verdict before committing to it, is the
-preview route below.
+has — and the read reports it as `naturalKey`. There is no separate verb, and no separate question:
+asking for the verdict before committing to it is the PATCH's own dry run, below.
 
 ### Declaring is a promise about the data you already have
 
@@ -1055,35 +1046,38 @@ pre-existing duplicate would sit permanently under a key claiming uniqueness.
 ⚠️ **Retracting CLEARS the stamps.** Leaving them would keep constraining a type whose configuration
 no longer declares a key — a later create failing against a rule nobody can see.
 
-### Ask before you declare: `POST /v1/record-types/{id}/natural-key-preview`
+### Ask before you declare: the PATCH with `validateOnly: true`
 
-Send the fields you are considering and get back, for each one, the verdict the declaration would
-reach — measured against every record the type has, writing nothing.
+Send the `uses` that declares (or moves) the key, with `version` and `validateOnly: true`. The dry
+run runs the save's own verification — the same read of every record, the same check — writing
+nothing, and answers **`derived.naturalKey`** beside the verdict. When the save would refuse, the
+verdict says so in the save's words: `ok: false` with the 409's code,
+`RECORD_TYPE_NATURAL_KEY_UNSATISFIED`, on `uses`.
 
-```json
+```jsonc
 {
-  "declared": null,
-  "examined": 1240,
-  "candidates": [
+  "ok": false,
+  "diagnostics": [
     {
-      "field": "externalId",
-      "ok": true,
-      "distinct": 1240,
-      "duplicates": 0,
-      "unusable": 0,
-      "conflicts": [],
-      "unusableSample": []
+      "code": "RECORD_TYPE_NATURAL_KEY_UNSATISFIED",
+      "severity": "error",
+      "field": "uses",
+      "message": "Cannot declare \"title\" as the natural key. 1 value(s) are held by more than one record: …",
     },
-    {
+  ],
+  "complete": false,
+  "derived": {
+    "naturalKey": {
       "field": "title",
-      "ok": false,
-      "distinct": 1238,
-      "duplicates": 2,
+      "examined": 1240,
+      "distinct": 1239,
+      "duplicates": 1,
       "unusable": 0,
       "conflicts": [{ "value": "Untitled", "recordIds": ["rec_1", "rec_2"] }],
-      "unusableSample": []
-    }
-  ]
+      "unusableSample": [],
+    },
+    /* … the save's own staleVersion, writes, resolved and effects */
+  },
 }
 ```
 
@@ -1093,11 +1087,13 @@ reach — measured against every record the type has, writing nothing.
   over the stamp's length. `unusableSample` carries the reason per record.
 - **`conflicts` and `unusableSample` are SAMPLES, capped at five each way** — five values, five
   records per value. The counts beside them are exact.
-- **A candidate that would be refused is part of a 200.** `ok: false` is the answer; the point of
-  asking is to find out.
-- The whole field list is measured against ONE read of the records, so ask about all of them at once
-  rather than one per keystroke. **EDITOR**, and a POST: the question is what YOUR declaration would
-  do, and a caller who cannot declare has none to ask about.
+- **A key the save would refuse is still a 200.** `ok: false` is the answer; the point of asking is
+  to find out.
+- It answers the ONE key the statement declares; ask about another field by sending the statement
+  with the key moved there. `derived.naturalKey` is absent when the key does not move — a declared
+  key is already stamped, and the save does not verify it again. **EDITOR**, the PATCH's own floor.
+  (`POST …/natural-key-preview`, which measured several candidates in one call, is gone — and the
+  dry run used to answer `ok: true` for a key the save then refused.)
 
 ### The rules a key must satisfy
 
@@ -1116,8 +1112,8 @@ reach — measured against every record the type has, writing nothing.
   the shape only — a `processed` field with a null `identityRefusal` is still refused as above.
 - **A record that cannot supply it is REFUSED, never written unconstrained** — the silent exemption
   is the gap the key exists to close.
-- **Uniqueness is per project and per type**, and on a `USER`-scoped type also **per user**: two
-  people may legitimately hold the same key. A `USER`-scoped record with no user cannot be covered
+- **Uniqueness is per project and per type**, and on a `user`-scoped type also **per user**: two
+  people may legitimately hold the same key. A `user`-scoped record with no user cannot be covered
   and is refused at declaration time.
 - **The key becomes the record's label** wherever the platform names a row — in the records list, in
   the files ledger, and as the one field a free-text record search can always look in. A type with

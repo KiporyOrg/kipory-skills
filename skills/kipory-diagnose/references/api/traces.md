@@ -16,6 +16,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/flows/{id}/recent-records`
 
+The records this flow ran on lately, named, newest first — what a preview's record picker offers before anything is typed. A capped sample, not a page. Run the flow on one with `POST /v1/flows/{id}/preview` (`input: {kind: "record", recordId}`); search every record of the project with `POST /v1/projects/{nodeId}/records/query`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |

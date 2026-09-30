@@ -61,12 +61,11 @@ filtered to the rows still to change) → `flow.fan-out` over the records' ids (
 projection plucking `id` from `records`; `maxItems` defaults to 20, at most 100) → `entity.update`.
 Past 100, run it again and the filter picks up the rest (`kipory-data`).
 
-**Subtractive.** Reverse dependency order, inside-out. ⛔ `DELETE /v1/flows/{id}` has no rehearsal
-flag — do not send it a `validateOnly`, in the query or in a body. The current platform refuses
-both forms with a `422` on every delete whose reference does not list the flag, but an older
-deployment ignored a body flag and **deleted** (`200 {"deleted": true}`) — so never send
-`validateOnly` to a delete whose route reference does not name it. Rehearse a flow delete with
-`GET /v1/flows/{id}?expand=dependents` (its `deleteRefusal`) or a document plan:
+**Subtractive.** Reverse dependency order, inside-out. Rehearse a flow delete with
+`DELETE /v1/flows/{id}?validateOnly=true` — it deletes nothing and answers the delete's own verdict
+and `derived.dependents`, everything that holds the flow — or with a document plan. ⛔ Never send
+`validateOnly` in a JSON body to a delete, and never to a delete whose route reference does not
+list it: an older deployment ignored a body flag and **deleted** (`200 {"deleted": true}`).
 
 ```
 delete the endpoint → delete the schedules and triggers → unbind the type (flowId: null) or delete it → delete the flow
@@ -84,7 +83,7 @@ endpoint never answers from a dangling binding. Row by row it is:
 ```
 PATCH /v1/steps/{id}             the new outputSlot + validateOnly — derived.rename names every step it would rewrite
 PATCH /v1/steps/{id}             the new outputSlot + confirmedOutputSlotRenames — one transaction
-PATCH /v1/flows/{id}              { outputBinding } — re-point every output bound to the old slot name
+PATCH /v1/flows/{id}              { outputBinding, version } — re-point every output bound to the old slot name
 GET   /v1/flows/{id}/health       whether the flow is still whole
 ```
 
@@ -103,14 +102,14 @@ are refused.
 A refusal names what blocked it. That name is the next thing to deal with, and it is usually not the
 thing you were trying to change.
 
-| The refusal says                         | Deal with                                                                                                                |
-| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| the type has N existing records          | the records, in `kipory-data` — or leave the type alone. The rule is `RECORD_TYPE_PINNED_BY_RECORDS` (`details.reason`)  |
-| the type is reserved or seeded           | nothing; it is not yours to delete                                                                                       |
-| a related row still references this flow | whatever references it — an endpoint, a schedule (even disabled), a trigger, a record type, a resolver, an invoking flow |
-| N dependents read these slots            | re-wire those steps first, then delete                                                                                   |
-| assignments still exist on this term     | archive it (`PATCH /v1/terms/{id}`, `status: archived`) — a merge moves no assignment and does not make it deletable     |
-| this is the last pairing                 | a relation kind cannot have none; delete the kind instead                                                                |
+| The refusal says                         | Deal with                                                                                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| the type has N existing records          | the records, in `kipory-data` — or leave the type alone. The rule is `RECORD_TYPE_PINNED_BY_RECORDS` (`details.reason`)             |
+| the type is reserved or seeded           | nothing; it is not yours to delete                                                                                                  |
+| a related row still references this flow | whatever references it — an endpoint, a schedule (even disabled), a trigger, a record type, a resolver, an invoking flow            |
+| N dependents read these slots            | re-wire those steps first, then delete                                                                                              |
+| assignments still exist on this term     | archive it (`PATCH /v1/terms/{id}`, `status: archived`, its `version`) — a merge moves no assignment and does not make it deletable |
+| this is the last pairing                 | a relation kind cannot have none; delete the kind instead                                                                           |
 
 ## Reading a cascade
 

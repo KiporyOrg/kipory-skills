@@ -33,11 +33,13 @@ hidden part, and no parameters: a template is applied as written. `Accept: appli
 answers YAML. The document is in the current format, `kipory: 2`, and reads exactly as the
 project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) pack describes — elements by `key` and `label`, a
 relation kind's pairings by `fromRecordTypeKey`/`toRecordTypeKey`, a `skill-outcome` assertion
-by `skillKey`, a facet's worked examples by term `key` and `label` — a template whose example
-key is not a valid term key (lowercase segments joined by `-`) is refused like any document, and
-whose steps may leave out what a document step may (their derived inputs and input types, an
-unread prompt, task or output slot) and spell a step's `onFailure` as a document does
-(`fail-run` or `continue`).
+by `skillKey`, a facet's worked examples by term `key` and `label`, a record type's
+`ownerScope` as `user` or `project`, a relation kind's `producer` and `cardinality` in kebab
+(`join-record`, `many-to-one`), an eval suite's `coverageMode` as `strict` or `report-only` — a
+template whose example key is not a valid term key (lowercase segments joined by `-`) is refused
+like any document, and whose steps may leave out what a document step may (their derived inputs
+and input types, an unread prompt, task or output slot) and spell a step's `onFailure` as a
+document does (`fail-run` or `continue`).
 
 ## Create a project from one
 
@@ -59,8 +61,8 @@ Three things to know about the result:
 
 - The create call's `name` wins. The `name` and `description` in a template's own `project`
   section are ignored; the rest of its `project` section (config namespaces, enabled routes) applies.
-- A schedule or trigger lands enabled unless the template states `enabled: false` on it — the
-  same field the document carries, so an exported project's paused rows stay paused.
+- A schedule, trigger or source lands enabled unless the template states `enabled: false` on it —
+  the same field the document carries, so an exported project's paused rows stay paused.
 - The answer carries `requires` — the secrets the project will not work without. A template never
   holds a secret value, so storing those is your next call.
 - In the project's history the whole template is ONE entry, a document apply, at the project's

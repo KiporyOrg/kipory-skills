@@ -39,25 +39,25 @@ reach for when the change touches more than a handful of rows.
 
 ## Rehearse first
 
-| Route                                             | Answers                                                                                                                                                           |
-| ------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /v1/bootstrap?project={nodeId}`              | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                                |
-| `GET /v1/projects/{nodeId}/connections`           | what starts each element, what it writes, reads, tags, calls and announces, and what points at it — computed from the configuration, so current after every write |
-| `DELETE /v1/projects/{nodeId}` + `validateOnly`   | what retiring the whole project would take with it                                                                                                                |
-| `DELETE /v1/facets/{id}` + `validateOnly`         | whether a facet delete would be allowed, and what it reaches                                                                                                      |
-| `DELETE /v1/record-types/{id}` + `validateOnly`   | whether a record-type delete would be allowed — the verdict only; a document plan lists what it would cascade into                                                |
-| `DELETE /v1/relation-kinds/{id}` + `validateOnly` | the edges the delete would take, as `edges-deleted` under `consequences`                                                                                          |
-| `GET /v1/flows/{id}?expand=dependents`            | everything that blocks a flow delete, with `deleteRefusal` — `DELETE /v1/flows/{id}` itself has NO rehearsal flag (below)                                         |
-| `GET /v1/record-types/{id}/contract-preview`      | the field vocabulary under a **proposed** shape entry (`dataEntryId`) and/or flow binding (`flowId`, or `none`)                                                   |
-| `POST /v1/record-types/{id}/contract-preview`     | the same under a **drafted** `definition` of the shape the type points at — EDITOR                                                                                |
-| `PATCH /v1/schema-entries/{id}` + `validateOnly`  | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                     |
-| `PATCH /v1/record-types/{id}` + `validateOnly`    | what a `uses`, binding or key change derives to — declarations, reindex, restamp                                                                                  |
-| `PATCH /v1/steps/{id}` + `validateOnly`           | a slot rename's `derived.rename` — every step whose wiring it would rewrite — and the patched config's `derived.draft`                                            |
-| `POST /v1/steps` + `validateOnly`                 | whether an unsaved step is valid — it executes nothing                                                                                                            |
-| `GET /v1/flows/{id}/health`                       | whether the flow is whole after the edit                                                                                                                          |
-| `GET /v1/flow-checkpoints/{id}/restore-preview`   | what restoring would change back                                                                                                                                  |
-| `GET /v1/eval-suites/{id}/readiness`              | whether the suite can still judge the thing you changed                                                                                                           |
-| `POST /v1/projects/{nodeId}/document/plan`        | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing             |
+| Route                                                     | Answers                                                                                                                                                             |
+| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/bootstrap?project={nodeId}`                      | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                                  |
+| `GET /v1/projects/{nodeId}/connections`                   | what starts each element, what it writes, reads, tags, calls and announces, and what points at it — computed from the configuration, so current after every write   |
+| `DELETE /v1/projects/{nodeId}` + `validateOnly`           | what retiring the whole project would take with it                                                                                                                  |
+| `DELETE /v1/facets/{id}` + `validateOnly`                 | whether a facet delete would be allowed, and what it reaches                                                                                                        |
+| `DELETE /v1/record-types/{id}` + `validateOnly`           | whether a record-type delete would be allowed, and `derived.dependents`: the records that refuse it, the relation kinds and joins it would change                   |
+| `DELETE /v1/relation-kinds/{id}` + `validateOnly`         | the edges the delete would take, as `edges-deleted` under `consequences`                                                                                            |
+| `PATCH /v1/relation-kinds/{id}` + `validateOnly`          | whether a link edit would stand — the link rules over every declaration of the kind                                                                                 |
+| `DELETE /v1/relation-kind-pairings/{id}` + `validateOnly` | whether removing one pair would be refused — live links on it, the kind's last pair, a declaration it would break                                                   |
+| `DELETE /v1/flows/{id}` + `validateOnly`                  | whether a flow delete would be refused, and `derived.dependents`: everything that holds the flow — endpoints, schedules, triggers, record types, resolvers, callers |
+| `PATCH /v1/schema-entries/{id}` + `validateOnly`          | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                       |
+| `PATCH /v1/record-types/{id}` + `validateOnly`            | what a `uses`, shape (`dataEntryId`, own `definition`), binding or key change derives to — `derived.contract`, `derived.naturalKey`, reindex, restamp               |
+| `PATCH /v1/steps/{id}` + `validateOnly`                   | a slot rename's `derived.rename`, the patched config's `derived.draft`, and — with `enabled: false` — `derived.switchOff`: the steps that would stop with it        |
+| `POST /v1/steps` + `validateOnly`                         | whether an unsaved step is valid — it executes nothing                                                                                                              |
+| `GET /v1/flows/{id}/health`                               | whether the flow is whole after the edit                                                                                                                            |
+| `POST /v1/flow-checkpoints/{id}/restore` + `validateOnly` | what restoring would change back — the restore rehearsed: its own refusals, and `derived.restore` with both step lists and the signature changes                    |
+| `GET /v1/eval-suites/{id}/readiness`                      | whether the suite can still judge the thing you changed                                                                                                             |
+| `POST /v1/projects/{nodeId}/document/plan`                | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing               |
 
 ⚠️ **`POST /v1/flows/{id}/preview` is not one of these.** It runs the flow for real and **applies
 its writes** unless you pass `apply: false`, it bills the payer, and it needs ADMIN. It is a test
@@ -129,8 +129,9 @@ value its slot's type now refuses is `SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_
 such a value is refused with the same code. Removing a field is refused once
 the type has records. It is three steps, in this order:
 
-1. **Rehearse.** `POST /v1/record-types/{id}/contract-preview` with the drafted `definition` for
-   the vocabulary it would give the type; the schema-entry PATCH with `validateOnly: true` (and
+1. **Rehearse.** The record-type PATCH with `validateOnly: true` and the drafted `definition` (a
+   shape the type owns) or the proposed `dataEntryId` answers `derived.contract`, the vocabulary it
+   would give the type; the schema-entry PATCH with `validateOnly: true` (and
    `adoptSnapshots: true`) for whether the edit is allowed and what it does to stored data — it
    rehearses the edit and answers `records-invalid` under `consequences`, and the flows, schedules
    and triggers it would break under `leavesBehind`, as a document plan does.
@@ -157,7 +158,7 @@ Some destructive changes are refused outright:
 - **A step whose output later steps read cannot be deleted** — the refusal counts the dependents and
   names the slots they read.
 - **A term assigned to records cannot be deleted** (`TERM_DELETE_HAS_ASSIGNMENTS`) — archive it
-  instead (`PATCH /v1/terms/{id}` with `status: archived`). Nor can a term that is the parent of
+  instead (`PATCH /v1/terms/{id}` with `status: archived` and the term's `version`). Nor can a term that is the parent of
   others or the canonical of aliases. `POST /v1/terms/{id}/merge` is not a way round it: it only
   sets the source's `aliasOfId` to the target, moves no assignment, and leaves the source as
   undeletable as it was. It refuses a merge into the term itself, a target in another facet, an
@@ -198,8 +199,8 @@ one is the one that costs money while you are not looking.
 ## Rolling back
 
 **Flows have checkpoints; nothing else does.** Take one before a risky edit — `POST /v1/flow-checkpoints`
-with the flow and a name — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
-reading `GET /v1/flow-checkpoints/{id}/restore-preview`. A restore keeps each step's id by key (a
+with the flow and a `label` — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
+asking it the same with `validateOnly: true` (both take the flow's `version`). A restore keeps each step's id by key (a
 step deleted since comes back with a new one) and moves a changed step's version forward, so re-read the steps
 before your next step edit. `kipory-build` owns the detail.
 
@@ -233,10 +234,11 @@ at all:
 
 ## What will bite you
 
-- **Ask `contract-preview` about the edit, not the stored type.** The plain GET answers for what
-  is stored; an agent holding an edited-but-unsaved shape must send it — the drafted `definition`
-  on the POST, or the proposed `dataEntryId`/`flowId` on the GET — or it derives declarations
-  against a vocabulary it is about to replace.
+- **Ask the PATCH's dry run about the edit, not the stored type.** `expand=contract` answers for
+  what is stored; an agent holding an edited-but-unsaved shape must send it — the drafted
+  `definition`, or the proposed `dataEntryId`/`flowId`, with `validateOnly: true` — or it derives
+  declarations against a vocabulary it is about to replace. Send the `uses` the save would send
+  too: the dry run re-derives them against the proposed contract.
 - **A refused delete is the good outcome.** The dangerous ones are the changes that succeed and
   quietly invalidate something — a join declaration, a cached digest, an endpoint whose flow no
   longer returns the shape it promised.
@@ -256,9 +258,9 @@ at all:
 - **Never send `validateOnly` to a delete whose route reference does not list it.** The current
   platform refuses the flag on such a delete — query or body — with a `422`; an older deployment
   ignored a body flag and deleted. A delete route either names its rehearsal or has none.
-- **A flow signature PATCH carries both arrays.** `PATCH /v1/flows/{id}` with only
-  `outputTypeNames` (or only `inputTypeNames`) is a `422` — send `inputTypeNames` and
-  `outputTypeNames` together, the unchanged one as it stands.
+- **A flow PATCH carries the flow's `version`.** `PATCH /v1/flows/{id}` without it is a `422`, and
+  a stale one a `409 VERSION_CONFLICT` — a checkpoint restore and a document apply move it too (a
+  restore names the flow's new `version` in its `touched`), so re-read the flow after either. A signature PATCH may state one side alone; the other is kept.
 - **A `502` from a sync endpoint does not mean nothing was written.** Its flow ran; an
   `entity.create` before the failure may have committed its record (and a 200 carrying an empty
   output is the same story, see the slot rename above). A client that retries on a 5xx

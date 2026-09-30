@@ -18,12 +18,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `POST` | [`/v1/facets/{id}/terms`](#post-v1-facets-id-terms) |  |
 | `GET` | [`/v1/facets/resolvers`](#get-v1-facets-resolvers) |  |
 | `GET` | [`/v1/terms`](#get-v1-terms) |  |
-| `POST` | [`/v1/terms`](#post-v1-terms) |  |
 | `PATCH` | [`/v1/terms/{id}`](#patch-v1-terms-id) |  |
 | `DELETE` | [`/v1/terms/{id}`](#delete-v1-terms-id) |  |
 | `POST` | [`/v1/terms/{id}/merge`](#post-v1-terms-id-merge) |  |
 
 ### `GET /v1/facets`
+
+List a project's facets — the classification dimensions its records carry — optionally one by `key`, each with the `version` its PATCH takes. `expand` adds per-facet `stats`, `samples`, `readiness` and `wiring`, or the whole substrate's `validator` verdict. The same rows ride `GET /v1/bootstrap`; the authored configuration, terms included, is the facets section of `GET /v1/projects/{nodeId}/document`. A facet's terms: `GET /v1/terms?facetKey=`.
 
 **Query**
 
@@ -41,6 +42,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `validator` | `object \| null` | no | A consistency check across the whole vocabulary, present only when you pass `expand=validator`. **Null means the check could not run — that is `unknown`, not `healthy`.** |
 
 ### `POST /v1/facets`
+
+Create one facet. With `validateOnly: true` it answers whether the facet would be created and the readiness it would be born in, writing nothing. Add its vocabulary with `POST /v1/facets/{id}/terms`. Several facets at once, with their terms: the facets section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -96,6 +99,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/facets/{id}`
 
+Read one facet by id, with the `version` its PATCH takes; `expand` adds its `stats`, `samples`, `readiness` and `wiring`. Every facet of a project: `GET /v1/facets?project=` or `GET /v1/bootstrap`. Its terms: `GET /v1/terms?facetKey=`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -136,6 +141,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PATCH /v1/facets/{id}`
 
+Rename a facet or change how it admits values (`mint`, `matching`, `proposal`, the resolver binding). Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted, writing nothing. Its terms are written through `POST /v1/facets/{id}/terms` and `/v1/terms/{id}`; several facets at once, through the facets section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -153,6 +160,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `resolverFlowId` | `string \| null` | no | Bind a different resolver flow, or pass null to unbind. This is what `matching: semantic` dispatches to, and unbinding a semantic facet leaves it unable to resolve at all. It does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `object \| null` | no | Change the parameters passed to that resolver flow. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -179,8 +187,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the facet is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per facet. |
 | `wiring` | `object[]` | no | Every flow node in this project that feeds the facet, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this facet — which is weaker than "nothing fills it": a `facet.resolve` step can still pick the facet up from a slot it discovers at run time, and that path names no facet to scan for. A node whose configuration does not parse contributes nothing. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/facets/{id}`
+
+Delete one facet and its vocabulary. Refused (409) while another facet nests under it, until `confirm=true` when anything would be destroyed, and until `assignedTerms` says what happens to terms records carry. With `?validateOnly=true` it answers whether it would be, and how far it reaches, writing nothing. Several facets at once: the facets section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -216,6 +229,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/facets/{id}/terms`
 
+Create terms under this facet — one or up to 500 — operator-authored and embedded for search, under one `parentTermId` when the facet nests under another. A `key` you send is honoured; omitted, it is derived from the label. A key the facet already holds is reused and reported `existed` with the label and status it carries (a seed never relabels or revives it), so re-sending a grown list is safe. With `validateOnly: true` it answers each row's key and outcome, writing and embedding nothing. To rename, archive, merge or delete one term: `/v1/terms/{id}`. To state the facet's WHOLE vocabulary, removals included: its `terms` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -247,6 +262,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/facets/resolvers`
 
+List the resolver flows a facet in this project may bind — the project's own and the platform's — with the parameter shape each takes. Bind one with `resolverFlowId` on `POST /v1/facets` or `PATCH /v1/facets/{id}`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -260,6 +277,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `resolvers` | `object[]` | yes | Every flow this project may bind as a facet resolver, platform offerings first, then your own by name. |
 
 ### `GET /v1/terms`
+
+List a project's terms — every facet's, or one facet's with `facetKey` — archived ones and merge aliases included, each with the `version` its PATCH and merge take. `expand=usage` adds how much points at each term and `deleteRefusal`, why `DELETE /v1/terms/{id}` would refuse it; `expand=findings` adds what is wrong with the vocabulary. Terms are not in `GET /v1/bootstrap`: a vocabulary grows with ingest, so it is read here, on demand. A facet's authored vocabulary as configuration: its `terms` in `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -276,26 +295,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `terms` | `object[]` | yes | The project's terms, including archived ones and merge aliases — filter on `status` and `aliasOfId` if you want only live canonical terms. |
 | `findings` | `object[]` | no | `expand=findings` — what is wrong with the vocabulary, most severe kind first. Computed over EVERY term of the project, whatever `facet` narrows `terms` to — a parent or canonical term in another facet is still held — and then narrowed to that facet. Absent unless asked for; an empty list means the check ran and found nothing. |
 
-### `POST /v1/terms`
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `project` | `string` | yes | Node id of the owning project. |
-| `facetKey` | `string` | yes | Key of an existing facet in this project. |
-| `key` | `string` | yes | The term's key, validated as-is and never slugified for you — send the exact key you want, because it is immutable. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 128 characters. |
-| `label` | `string` | yes | Display label. |
-| `parentTermId` | `string \| null` | no | Parent term id. Required when the facet is hierarchical, and REFUSED for a flat one — sending a parent to a facet that takes none is a 422, not a value quietly dropped on the way to a 201. The bulk seed answers this the same way. |
-
-**Response `201`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `term` | `object` | yes | The term that was created. |
-| `reembedWarning` | `string \| null` | yes | Non-null when the term was SAVED but its search vector could not be updated. The write succeeded — the row is authoritative — but search will find this term by its old wording until it is re-embedded. |
-
 ### `PATCH /v1/terms/{id}`
+
+Rename a term (`label`, which re-embeds it for search), archive it (`status: archived`), or restore or admit it (`status: active`) — both in one call is one write. Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. Restoring a merged alias is refused (409). With `validateOnly: true` it answers whether the patch would be accepted, writing and embedding nothing. To fold one term into another use `POST /v1/terms/{id}/merge`; to remove an unused one, `DELETE /v1/terms/{id}`; to state a facet's whole vocabulary, its `terms` in `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -309,6 +311,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `label` | `string` | no | Rename the term. A rename re-embeds it for search; a status change alone does not. |
 | `status` | `"active" \| "archived"` | no | Change the term's status. `active` both RESTORES an archived term and ADMITS a candidate one into the vocabulary; `archived` withdraws it. `candidate` is not settable — it is where minting puts a term, not a state you move one into. Does not touch the search vector. |
+| `version` | `integer` | yes | The term's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the term changed since, so a concurrent edit is never silently overwritten. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored term and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -316,14 +320,25 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `term` | `object` | yes | The term as it now stands. |
 | `reembedWarning` | `string \| null` | yes | Non-null when the term was SAVED but its search vector could not be updated. The write succeeded — the row is authoritative — but search will find this term by its old wording until it is re-embedded. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/terms/{id}`
+
+Delete one unused term. Refused (409) while records carry it, other terms nest under it, or merged aliases point at it — `GET /v1/terms?expand=usage` publishes that refusal per term as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. To withdraw a term records still carry, archive it with `PATCH /v1/terms/{id}`; to drop several from a facet, state its `terms` in `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The term's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -332,8 +347,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `qdrantWarning` | `string \| null` | yes | Non-null when the term was DELETED but its search vector was left behind. The deletion stands and the leftover is harmless — nothing assigns it, because assignment checks the database first — but nothing collects it either. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `POST /v1/terms/{id}/merge`
+
+Merge this term INTO `targetTermId`: it survives as an alias of the target, its text still resolving — to the target. The target must be an active, canonical term of the same facet and parent. Requires this term's `version` as you last read it; a stale one answers 409 `VERSION_CONFLICT`. There is no undo. To rename instead use `PATCH /v1/terms/{id}`; to remove an unused term, `DELETE /v1/terms/{id}`.
 
 **Path parameters**
 
@@ -346,6 +366,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `targetTermId` | `string` | yes | The term to merge INTO — the one that survives. It must be active, canonical, and in the same facet, parent and project. |
+| `version` | `integer` | yes | The MERGED (absorbed) term's `version` as you last read it. REQUIRED: the merge is refused with 409 `VERSION_CONFLICT` if that term changed since. The target's version is not checked and does not move. |
 
 **Response `200`**
 

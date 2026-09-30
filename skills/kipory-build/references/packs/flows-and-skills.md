@@ -33,13 +33,19 @@ is also what restoring a checkpoint does).
 ```
 POST /v1/flows                     create the flow with its signature
 POST /v1/steps                    add nodes — or /v1/steps/batch, or a project document
-PATCH /v1/flows/{id}               bind output slots so the flow can actually produce output
+PATCH /v1/flows/{id}               bind output slots so the flow can actually produce output (send its `version`)
 POST /v1/flows/{id}/preview        run it against real inputs and read the transcript
 ```
 
 Flows are scoped by `project`; skills are scoped by their flow (`flowId`). Individual items are
 addressed by their own id. A flow's `key` is lower-case kebab and permanent — a key outside that
 form is refused, never lower-cased for you — and its display text is `label`, editable at any time.
+A flow's `scope` reads `project` for one of yours and `system` for a platform flow.
+
+⛔ **A flow PATCH requires the flow's `version`** — the one on its row (`GET /v1/flows/{id}`, or the
+bootstrap's flows section). Every write that changes the flow's label, description, signature or
+binding bumps it — a PATCH, a checkpoint restore, a project document's apply — and a stale one
+answers 409 `VERSION_CONFLICT`. Re-read the flow and reapply your change; do not blind-retry.
 A skill's `key` is a step name (below) and renameable.
 
 ⚠️ **There is no activation step, and no flow lifecycle state.** A flow has no active/inactive flag,
@@ -315,12 +321,12 @@ back **empty** — not an error, just nothing. Every step downstream then behave
 were empty, and the flow looks broken when it is fine. Judge such a flow on the steps _above_ the
 search, or give the run a real end user to act as. Two settings do that:
 
-<!-- field-ok: recordOwner — a VALUE of the preview body's `principal` enum, not a field name -->
+<!-- field-ok: record-owner — a VALUE of the preview body's `principal` enum, not a field name -->
 
-`principal: "recordOwner"`
+`principal: "record-owner"`
 on the preview body itself, which runs as the record's own user and is how you preview a link flow
 the way it will really run, and an eval suite's `runAsUserId`, which names an arbitrary user.
-⚠️ `recordOwner` is an impersonation capability — it needs EDITOR on the record's project as well as
+⚠️ `record-owner` is an impersonation capability — it needs EDITOR on the record's project as well as
 on the flow, and refuses a record with no owner.
 
 ⚠️ **A record preview takes a record of a type BOUND to the flow — any such type, and only such.**
@@ -342,7 +348,7 @@ schedule.** Give it a second input the trigger always supplies, and preview a sc
 way it will really run:
 
 ```json
-{ "input": { "kind": "slots", "principal": "noEndUser", "inputs": {} } }
+{ "input": { "kind": "slots", "principal": "no-end-user", "inputs": {} } }
 ```
 
 `principal` defaults to `"operator"`, which is the request-shaped run. Billing names you either way.
@@ -406,10 +412,9 @@ document is addressed by **key** — a step by its key, a type by `{ "kind": "re
 — so nothing in it is a source-project id, and the steps, the signature and the output binding travel
 together. See `capability-packs/project-document.md`.
 
-`GET /v1/flows/{id}/export` is a read: one flow's graph in portable form, with the persisted slot
-shape (`inputSlots: [{ slot, type: { kind: "ref", entryId } }]`) whose `entryId` is a SOURCE-project
-registry id. There is no route that writes it back — the step-set replace was retired (feature 343)
-because the document already does it, keyed, planned and versioned.
+There is no per-flow export: the project document IS the portable form, and the one that writes
+back — keyed, planned and versioned. (The per-flow export route, which answered persisted slot
+shapes carrying SOURCE-project registry ids, is gone.)
 
 ⚠️ **A type the target lacks is seeded if it is a library type; an operator-defined one is not.**
 That is the target project's own configuration, so the plan names it and the apply refuses rather
@@ -419,7 +424,7 @@ than binding a reference to nothing. State the type in the same document to copy
 model the target does not have fails there rather than silently falling back.
 
 ⚠️ **The run settings travel with the step** — `timeoutMs`, `tries`, `tryDelayMs`, `onFailure` and
-`reuseResultsForMinutes`, in the document and in the export alike. Checkpoints and run
+`reuseResultsForMinutes`, in the document. Checkpoints and run
 flow-snapshots record them only for anything captured since each was added, so there an absent value
 means "this record does not say", NOT "the run had none". Do not read an older snapshot as evidence
 about a deadline, and expect restoring an older checkpoint to clear one. The restore preview shows the
@@ -432,7 +437,11 @@ step that sets none behaves as it always has.
 
 - **`enabled`** — a switched-off step stays in the flow and never runs. Any step whose every input
   traces back to it skips too, because a step runs while any one input is present. ⚠️ The save does
-  not check this: switching a producer off saves cleanly and its readers skip at run time.
+  not check this: switching a producer off saves cleanly and its readers skip at run time. Ask
+  first: `PATCH /v1/steps/{id}` with `{ "enabled": false, "version": …, "validateOnly": true }`
+  writes nothing and answers `derived.switchOff.stops` — the steps that would stop with it, worked
+  out through the run's own gates (condition, inputs, fan-out body), as `[{ id, key }]`, or `null`
+  when it cannot be worked out.
 - **`timeoutMs`** — what it bounds depends on the handler, and the handler catalog says which:
   `run.timeLimit` is `ai-call` (each AI call), `queue-wait` (the wait on the queued job, covering
   every try — the job may still finish), `in-flow` (how long the run waits for a step that runs in
@@ -442,8 +451,7 @@ step that sets none behaves as it always has.
   `GET /v1/steps?flowId=` instead: the limit a run applies, the layer that decided it, and
   `whenUnset`, what clearing the step's own falls back to. Holding a flow's steps already — off
   the bootstrap, which carries every row — ask `GET /v1/flows/{id}?expand=timeLimits` for the
-  same figure keyed by skill id, without the rows; it rides beside `expand=dependents` on one
-  read. Neither is on the bootstrap: the deployment's limits move it without a design write.
+  same figure keyed by skill id, without the rows. Neither is on the bootstrap: the deployment's limits move it without a design write.
   `run.budgetMs` is a limit the handler
   keeps whatever you set — 5 s for `value.transform` — so only a shorter limit changes anything
   there.
@@ -1024,7 +1032,8 @@ flow and on every flow invoking it, and on the schedules, triggers and endpoints
 that start them — each with `introduced` (`false` means it was already there).
 `consequences` says what the change does to stored data. Neither decides `ok`,
 which stays whether the PATCH itself would save; a create does not rehearse and
-carries neither.
+carries neither. A platform flow's PATCH is rehearsed too, with both empty:
+they judge one project's flows, and a platform flow belongs to none.
 
 ⛔ **A PATCH answers one status with two bodies**: the saved flow, or a verdict
 about one that was not saved. Narrow on `ok`, which only the verdict declares,
@@ -1107,15 +1116,21 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   id, or a job by the flow fitting it, and capture nothing, so they cannot go stale on a signature
   edit — but they very much break on a delete). Only a platform job's stored default is a
   database-level foreign key; every other holder is a loose id, so this check is the only thing
-  standing between the delete and a dangling reference. Ask before you press: `GET /v1/flows/{id}?expand=dependents` carries the
-  counts and `deleteRefusal` — that 409 in the delete's own words, or null — from the function the
-  delete throws from. Offer Delete where it is null; do not decide from `total`.
+  standing between the delete and a dangling reference. Ask before you press:
+  `DELETE /v1/flows/{id}?validateOnly=true` deletes nothing and answers the delete's own verdict —
+  `ok: false` with that 409 as its diagnostic, in the delete's words — and `derived.dependents`, the
+  counts it decided on (`kinds[{kind, count, label, refuses}]`, `total`; `kind` is kebab-case:
+  `api-endpoints`, `schedules`, `triggers`, `record-types`, `facet-resolvers`, `platform-jobs`,
+  `invoking-flows`). Offer Delete where `ok` is true; do not decide from `total`.
 - **A skill cannot be deleted while another skill in its flow reads a slot it writes** — as an
   input or in its condition — a 409 `SKILL_HAS_DEPENDENTS` naming the slot and the readers. Every
   entry of `GET /v1/steps?flowId=`, and every skill on the bootstrap, carries that refusal as
   `deleteRefusal` (or null), from the function the delete throws from.
 - **A flow whose project is off the design surface is a 404**, indistinguishable from one that
   never existed.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 ## What will bite you
 

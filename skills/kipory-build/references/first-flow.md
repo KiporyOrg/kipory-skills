@@ -115,9 +115,13 @@ PATCH /v1/flows/{id}
 {
   "outputBinding": {
     "summary": { "fromSlot": "summary" }
-  }
+  },
+  "version": 1
 }
 ```
+
+`version` is the flow's, as the create answered it: every flow PATCH requires it, and a stale one is
+`409 VERSION_CONFLICT` — re-read the flow and send the new one.
 
 The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlot` is a step's `outputSlot`, `path` (omitted or `null`) takes the whole value. To return one field of a step's output instead, `path` is an object of segments, never a string:
 
@@ -132,7 +136,7 @@ The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlo
 }
 ```
 
-The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`kipory-build`'s SKILL.md lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH takes no version; the whole graph is re-validated before it saves.
+The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`kipory-build`'s SKILL.md lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
 
 ## 4. Check the whole flow
 

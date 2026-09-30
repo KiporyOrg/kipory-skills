@@ -18,6 +18,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/api-endpoints`
 
+List one project's endpoints (`?project=<nodeId>`) — the routes your product serves, each binding a method and path to a flow (`flow.invoke`, `flow.stream`) or to an event subscription — each with the `version` its PATCH takes. A stored row that no longer parses is listed in `unreadable` rather than failing the read. `expand=drift` flags an endpoint whose bound flow's signature moved since it was saved, `expand=flowLabel` names the bound flow, `expand=shadowed` the platform route that has grown over its path. The same rows, as authored, ride `GET /v1/bootstrap` (`surfaces.apiEndpoints`) and the `surfaces.endpoints` section of `GET /v1/projects/{nodeId}/document`. The flows they bind: `GET /v1/flows?project=`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -33,6 +35,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `unreadable` | `object[]` | yes | Endpoints whose stored configuration no longer parses. Empty in the healthy case. They are listed rather than dropped so a broken row is visible and fixable instead of silently missing. |
 
 ### `POST /v1/api-endpoints`
+
+Create one endpoint: a method and path under the project's host, bound to a flow of this project (`flow.invoke`, or `flow.stream` for a live answer) or to an event subscription. The bound flow's signature is snapshotted, so a later change to the flow shows as drift on the endpoint rather than as a silent break; the flow itself is authored at `/v1/flows`. With `validateOnly: true` it answers whether the create would be refused, who could call the draft and where it would sit in the match order (`derived`), writing nothing. Several endpoints at once, beside the flows they bind: the `surfaces.endpoints` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -76,6 +80,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/api-endpoints/{id}`
 
+Read one endpoint. `expand` takes the list's keys (`drift`, `flowLabel`, `shadowed`). Every endpoint at once: `GET /v1/api-endpoints?project=`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -110,6 +116,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path, so your endpoint never receives that value. Empty when none does. Absent unless asked for. A path whose first segment is a parameter is the usual case: it saves, and platform routes under that parameter take their values first. |
 
 ### `PATCH /v1/api-endpoints/{id}`
+
+Change one endpoint: its contract (method, path, parameters) and its action, both replaced whole; the key is permanent. Saving re-snapshots the bound flow's signature, which is how drift is cleared. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused and what it would publish (`derived`), writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -153,11 +161,19 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `DELETE /v1/api-endpoints/{id}`
 
+Delete one endpoint; its path stops answering on the next request and its key is free at once. Nothing refuses it — an endpoint is a leaf, and the flow it binds stays. With `?validateOnly=true` it answers the verdict, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The endpoint's id, as returned by create or list. Not the `endpoint` key you chose — that names the endpoint, this addresses it. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -166,3 +182,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `key` | `string` | yes | The deleted endpoint's key, echoed so a log line names what went. The key is free again immediately — a new endpoint may reuse it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

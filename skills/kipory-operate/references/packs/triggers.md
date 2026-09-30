@@ -55,8 +55,7 @@ POST /v1/triggers                        bind selector + filter + flow + inputs
 GET  /v1/triggers/{id}/runs?limit=N      every decision, newest first, with the run it started
 GET  /v1/triggers/{id}/sample            the newest event it would accept — feed it to a preview
 POST /v1/triggers/{id}/replay            run one decision again, as a new attempt
-POST /v1/triggers/{id}/disable           stop it
-POST /v1/triggers/{id}/enable            start it, from now
+PATCH /v1/triggers/{id}                  { enabled: false, version } stops it; { enabled: true, version } starts it, from now
 GET  /v1/project-events?project=…        the log itself, newest first (narrow with categoryKey[, eventKey])
 ```
 
@@ -150,8 +149,8 @@ re-judge it, so the rest of the trigger can still be edited.
 
 - **A selector that could never fire** — an event type that does not exist in this project, is
   not `active`, is `run`-scoped, or is not durable — is refused at the write, naming the one thing
-  to change. Enabling re-asks the same question, so a trigger whose type was retired in the
-  meantime is refused rather than enabled and quietly ignored.
+  to change. Switching `enabled` on re-asks the same question, so a trigger whose type was retired
+  in the meantime is refused rather than enabled and quietly ignored.
 - **Every declared input slot the two reserved slots do not cover must have a value** — present,
   and not blank (`""`, `null` or `[]`; 422 `FLOW_INPUT_BLANK`, one issue per slot). A trigger stored
   with a blank before this rule still fires; the next write that sends its inputs (or moves its
@@ -159,12 +158,12 @@ re-judge it, so the rest of the trigger can still be edited.
 - **A filter nested deeper than 16 levels**, or one that is not a condition at all, is a 422 on
   `filter`.
 - **`sourceId` and `newSource` together** — a trigger listens to one source.
-- **Updating, enabling and disabling all require the version you last read.**
+- **Every PATCH — switching `enabled` included — requires the version you last read.**
 - **A replay of an event this trigger never decided** is a 422. The ledger row is what you are
   re-running; there is no backfill through the back door. A replay is also refused while the
   trigger is **disabled** (disable means stop, and a replay is a fire), when the event no longer
   matches the trigger's **current selector**, and when that selector no longer resolves to an
-  active, durable, non-run type — the same question enable asks.
+  active, durable, non-run type — the same question switching `enabled` on asks.
 - **Deleting a flow a trigger binds** is refused, counting the triggers it would strand, by the
   same guard that protects a flow a schedule binds.
 
@@ -187,6 +186,12 @@ because `ok` answers only the second question.
 ⚠️ **There is no `derived`.** A trigger's stored row is the body you sent — the platform resolves
 no slot, binds no stage and mints no key of its own — so there is nothing to report back that you
 did not already have.
+
+A delete asks the same way: `DELETE /v1/triggers/{id}?validateOnly=true` answers whether it would go
+through, writing nothing. Nothing refuses a trigger's delete, so the verdict is `ok` for any trigger
+the id addresses. The flag is the delete's only query parameter, the same one every design delete
+takes except a facet's (which also carries `confirm` and `assignedTerms`); anything else in the
+query is refused.
 
 ## What the platform guarantees
 

@@ -15,7 +15,7 @@ can raise. Design the read path around that before you author the vocabulary.
 Edges themselves arrive on more than one surface, and picking the wrong one is where the cost goes:
 
 - `GET /v1/records/{id}/relations/{kind}` — one record, **one kind** per call. The narrowest read,
-  and the only one that reaches a `joinRecord` kind.
+  and the only one that reaches a `join-record` kind.
 - **Inside a flow**, the entity read and list steps can carry a record's edges per row, grouped by
   kind and for every kind at once, and the list and count steps can keep only rows that carry a
   link. Both are step configuration, opt-in and off by default — check the handler catalog for the
@@ -45,7 +45,7 @@ Three things are authored and one is derived:
   `uses.join`) and is read-only. This is the part that actually makes edges.
 - **The edge itself** is derived for a `field` kind — you never write one directly. `field` is the
   only producer whose edges you never author: a `curated` edge is asserted directly, and a
-  `joinRecord` kind writes no edge at all, because the join records ARE the edges.
+  `join-record` kind writes no edge at all, because the join records ARE the edges.
 
 ⭐ **A kind plus a pairing produces nothing.** Until a record type declares a field feeding it, the
 kind is legal, listed, and doing nothing. That state is _reported_ rather than refused — the
@@ -95,7 +95,7 @@ is no window where the record is saved and its edges are not.
   keeps who asserted what, and when), nothing reconciles a curated kind, and cardinality is not
   enforced — assertions arrive one at a time from different people, so a limit could only ever be
   checked against whatever happened to have arrived.
-- **`joinRecord`** — the record type IS the edge. No `RecordRelation` row is ever written: a
+- **`join-record`** — the record type IS the edge. No `RecordRelation` row is ever written: a
   traversal resolves against the join type's records instead, and an edge's properties are that
   record's own fields. Cardinality is **not enforced here either**, and for a sharper reason — there
   is no edge write at all, so nothing on any path could count a degree. The platform refuses one
@@ -132,20 +132,26 @@ than from a flow.
 - **Directed or symmetric.** Directed makes a pairing's endpoints an ordered pair. Symmetric makes
   them unordered, and the write sorts them so one unordered edge has exactly one spelling.
 
-⛔ **A symmetric kind may not name a "one" side.** `manyToOne` is refused on one
-(`RELATION_CARDINALITY_UNORDERED`); `manyToMany` and no cardinality at all are both fine.
+⛔ **A symmetric kind may not name a "one" side.** `many-to-one` is refused on one
+(`RELATION_CARDINALITY_UNORDERED`); `many-to-many` and no cardinality at all are both fine.
 
-<!-- field-ok: manyToOne — a VALUE of the `cardinality` enum (`relationKindCardinalitySchema`), not a wire field -->
-<!-- field-ok: joinRecord — a VALUE of the `producer` enum (`relationKindProducerSchema`), not a wire field -->
+⚠️ **The values are kebab: `producer` is `field`, `join-record` or `curated`; `cardinality` is
+`many-to-one` or `many-to-many`** — on the kind's routes, in `GET /v1/bootstrap` and in the project
+document alike. The camelCase spellings a message may still quote (`joinRecord`, `manyToOne`) are
+refused on every write. `GET /v1/relations` spells each link's `producer` (`links[]`) the kind's
+way too. An edge's own `origin`, on the records routes and on each `/v1/relations` row, is a
+different field and keeps its own spelling.
+
+<!-- field-ok: joinRecord — the REFUSED old spelling of a `producer` value, named only to say it is refused -->
+<!-- field-ok: manyToOne — the REFUSED old spelling of a `cardinality` value, named only to say it is refused -->
 <!-- field-ok: traversalLimit — a RETIRED column, named only to say it is gone; no contract declares it and none should -->
 <!-- field-ok: oneToOne — a REMOVED enum value, named only to say it is gone -->
-<!-- field-ok: manyToMany — a VALUE of the `cardinality` enum, not a wire field -->
 
-⛔ **`oneToOne` was removed, and what it promised was never enforced.** It meant `manyToOne` PLUS
+⛔ **`oneToOne` was removed, and what it promised was never enforced.** It meant `many-to-one` PLUS
 "at most one edge into a target" — and nothing ever checked the second half: every write path plans
 one source's edges at a time, so the in-degree branch was unreachable, and the unique index its
 comment named does not exist (`(kindId, targetRecordId)` is a plain index). It behaved exactly like
-`manyToOne`. **A kind that carried it should be `manyToOne`** — that is what it actually delivered.
+`many-to-one`. **A kind that carried it should be `many-to-one`** — that is what it actually delivered.
 
 The pair-sorting a symmetric kind does is why: the degree count runs on the STORED `source`, which
 after the swap is whichever record id happens to sort lower — so the limit would fall on an arbitrary half of the
@@ -154,7 +160,7 @@ one end really is the "one".
 
 - **Which producer.** `field` means the edge is a projection of stored data — the field is the
   truth and the edge follows. `curated` means somebody asserted it and nothing derived may retract
-  it. `joinRecord` means a record type IS the edge, and no edge row is written at all. Choose
+  it. `join-record` means a record type IS the edge, and no edge row is written at all. Choose
   `field` whenever the relationship is already in the payload.
 
 ## The sequence
@@ -197,7 +203,7 @@ inside the kind's own transaction. **Three** arms, and which one is legal follow
 // producer: "field" — have the field WRITTEN for you, in the same transaction
 { "declaration": { "recordTypeKey": "post", "generate": { "field": "sources" } } }
 
-// producer: "joinRecord"
+// producer: "join-record"
 { "declaration": { "recordTypeKey": "subscription",
                    "joins": { "from": { "family": "submission", "field": "spaceId" },
                               "to":   { "family": "submission", "field": "sourceId" } } } }
@@ -289,7 +295,7 @@ replaced rather than doubled.
 another kind's edge is refused (`RECORD_TYPE_RELATIONS_INVALID`) rather than spliced over — there
 is no value that honours both, so it cannot degrade to a warning.
 
-⚠️ **Omitting it is legal, and for a `joinRecord` kind it is a trap.** A `field` kind with no
+⚠️ **Omitting it is legal, and for a `join-record` kind it is a trap.** A `field` kind with no
 declaration produces nothing and says so; you can add one later with
 `PATCH /v1/record-types/{id}` — a `link` use naming the kind on the field, or `join` on the type, in
 the type's `uses` (see the record types pack (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`)). A **join kind
@@ -389,7 +395,14 @@ responsible only for what it claims.
 ## Asking before you write — `validateOnly`
 
 `POST /v1/relation-kinds` takes **`validateOnly: true`** in the body. It runs every rule the real
-create runs, writes nothing, and answers **200** with a verdict either way:
+create runs, writes nothing, and answers **200** with a verdict either way (a created kind is the
+201). Every other write of this family takes the same flag and answers the same verdict:
+`PATCH /v1/relation-kinds/{id}` (the link rules over every declaration of the kind, and a changed
+`producer` as `RELATION_PRODUCER_IMMUTABLE`; the `version` lock is the write's, not the dry run's),
+`POST /v1/relation-kind-pairings` (a pair already standing, a dangling type, a second pair on a
+`join-record` kind), `DELETE /v1/relation-kind-pairings/{id}?validateOnly=true` (the pair's
+`deleteRefusal`, answered now), and `DELETE /v1/relation-kinds/{id}?validateOnly=true` (which adds
+`consequences`, below):
 
 ```json
 {
@@ -617,7 +630,7 @@ retracted edges too, so a kind whose every edge has expired would report as prod
 ⛔ **And which ROUTE you asked matters more than which expansion.** The LIST route can only ever
 emit `NO_PAIRING` and `NEVER_PRODUCED`; the five reasons that need a per-kind read — no producing
 field, no join type, and the three properties reasons — come only from the ITEM route. So one link
-can legitimately read `unproven` on a board and `blocked` on its own page. ⚠️ For a `joinRecord`
+can legitimately read `unproven` on a board and `blocked` on its own page. ⚠️ For a `join-record`
 kind, `NEVER_PRODUCED` is fed by the join type's record count, not by `liveRelationCount`, which is
 structurally zero there. What you must
 NOT read is a short reason list as a clean bill of health.

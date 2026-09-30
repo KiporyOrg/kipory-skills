@@ -2,7 +2,7 @@
 
 # Flow checkpoints
 
-A point-in-time snapshot of one flow's steps, by value, immutable. Reads carry metadata only; the restore preview is the only way to see what a rollback would change.
+A point-in-time snapshot of one flow's steps, by value, immutable. Reads carry metadata only; to see what a rollback would change, send the restore with `validateOnly: true` (ADMIN, like the restore) — it rehearses the restore and answers `derived.restore`.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -16,9 +16,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `PATCH` | [`/v1/flow-checkpoints/{id}`](#patch-v1-flow-checkpoints-id) |  |
 | `DELETE` | [`/v1/flow-checkpoints/{id}`](#delete-v1-flow-checkpoints-id) |  |
 | `POST` | [`/v1/flow-checkpoints/{id}/restore`](#post-v1-flow-checkpoints-id-restore) |  |
-| `GET` | [`/v1/flow-checkpoints/{id}/restore-preview`](#get-v1-flow-checkpoints-id-restore-preview) |  |
 
 ### `GET /v1/flow-checkpoints`
+
+List one flow's checkpoints (`?flowId=`), newest first, automatic ones included — metadata only, never the captured steps. A checkpoint is a saved version of ONE flow's steps and signature that you can restore (`POST /v1/flow-checkpoints/{id}/restore`). It is not the project's history: `GET /v1/projects/{nodeId}/history` is the audit of every design write, and the project document (`GET /v1/projects/{nodeId}/document`) is the whole project as authorable configuration.
 
 **Query**
 
@@ -34,13 +35,24 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/flow-checkpoints`
 
+Save a flow's steps and signature as they are now, under a label — a checkpoint you can restore later (`POST /v1/flow-checkpoints/{id}/restore`). Take one before a risky edit; a restore takes one of its own automatically first. With `validateOnly: true` it answers whether the save would be refused (a blank label), writing nothing. The audit of every design write is `GET /v1/projects/{nodeId}/history`; the whole project as authorable configuration is `GET /v1/projects/{nodeId}/document`.
+
 **Request body**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `flowId` | `string` | yes | Id of the flow to capture. |
-| `name` | `string` | yes | A name for the checkpoint. Trimmed; blank is refused. |
+| `label` | `string` | yes | Display text for the checkpoint. Trimmed; blank is refused. |
 | `description` | `string \| null` | no | An optional note on why you are taking it. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 **Response `201`**
 
@@ -48,8 +60,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Checkpoint id — the address for read, patch, delete, restore. |
 | `flowId` | `string` | yes | Id of the flow this checkpoint was taken from. |
-| `name` | `string` | yes | The checkpoint's name. |
+| `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
+| `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
 | `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
@@ -61,6 +74,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/flow-checkpoints/{id}`
 
+Read one checkpoint's metadata — its label, note, who took it, how many steps it captured, and its `version` (the lock its PATCH requires). What restoring it would change: `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`. A flow's checkpoints: `GET /v1/flow-checkpoints?flowId=`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -73,8 +88,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Checkpoint id — the address for read, patch, delete, restore. |
 | `flowId` | `string` | yes | Id of the flow this checkpoint was taken from. |
-| `name` | `string` | yes | The checkpoint's name. |
+| `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
+| `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
 | `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
@@ -86,6 +102,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PATCH /v1/flow-checkpoints/{id}`
 
+Rename a checkpoint or change its note; what it captured never changes — to capture the flow as it is now, take a new one with `POST /v1/flow-checkpoints`. Requires the checkpoint's `version`; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused (a blank label), writing nothing.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -96,8 +114,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | no | Rename the checkpoint. Its captured contents never change. |
+| `label` | `string` | no | New display text for the checkpoint. Its captured contents never change. |
 | `description` | `string \| null` | no | Change the note, or pass null to clear it. |
+| `version` | `integer` | yes | The checkpoint's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the checkpoint changed since, so a concurrent edit is never silently overwritten. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored checkpoint and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -105,8 +125,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Checkpoint id — the address for read, patch, delete, restore. |
 | `flowId` | `string` | yes | Id of the flow this checkpoint was taken from. |
-| `name` | `string` | yes | The checkpoint's name. |
+| `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
+| `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
 | `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
 | `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
@@ -115,14 +136,25 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdByName` | `string \| null` | yes | Their display name as the account holds it now. Null when they never set one (or only spaces), and wherever `createdByEmail` is null. |
 | `createdByImage` | `string \| null` | yes | Their avatar URL from the sign-in provider, or null when there is none, and wherever `createdByEmail` is null. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/flow-checkpoints/{id}`
+
+Delete one checkpoint, automatic or not. Nothing refers to a checkpoint, so nothing refuses it — and nothing brings it back. With `?validateOnly=true` it answers whether the delete would go through, writing nothing. The flow itself is untouched; deleting the flow (`DELETE /v1/flows/{id}`) removes all of its checkpoints with it.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The checkpoint's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -130,14 +162,26 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `POST /v1/flow-checkpoints/{id}/restore`
+
+Restore a checkpoint: replace its flow's steps and signature with the captured ones, in one transaction. Requires the FLOW's `version` (the checkpoint itself is unchanged); a flow edited since is 409 `VERSION_CONFLICT`. The restore first takes an automatic checkpoint of the flow as it was — `autoCheckpointId` in the reply; restore that to undo. Refused (409) when the captured signature would break what is bound to the flow, and (422) when the restored steps have a blocking error; either way nothing changes. With `validateOnly: true` it rehearses the restore and rolls it back, answering the restore's own verdict plus `derived.restore` — both step lists, references that no longer resolve, and the signature changes. A checkpoint covers ONE flow: what changed across the project is `GET /v1/projects/{nodeId}/history` (a read, it restores nothing), and the whole project is authored through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The checkpoint's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `integer` | yes | The FLOW's `version` as you last read it (the flow row, `GET /v1/flows/{id}`) — the flow a restore overwrites; the checkpoint itself is unchanged. REQUIRED: the lock guards the flow row, so a flow whose own row changed since (its label, description or signature — a patch, another restore, a document apply) is refused with 409 `VERSION_CONFLICT`. ⚠️ A step edit does not move the flow's `version` (`PATCH /v1/steps/{id}` moves the step's own), so step edits made since you read the flow are REPLACED by the checkpoint's steps — they are not lost: the restore first takes an automatic checkpoint of the flow as it stands (`autoCheckpointId` in the response), and restoring that one brings them back. |
+| `validateOnly` | `boolean` | no | Check this restore against the flow as it is now and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a flow `version` the flow has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `GET /v1/flow-checkpoints/{id}/restore-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -147,22 +191,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `restoredSkillCount` | `integer` | yes | How many steps the flow now has — the checkpoint's count. |
 | `autoCheckpointId` | `string` | yes | A checkpoint taken of the PREVIOUS state, automatically, just before this restore. Restore it to undo what you just did. |
 | `outstandingIssues` | `object[]` | yes | Problems found on re-validating the restored flow. These did NOT block the restore — the steps are back either way, and these are what to fix next. |
-
-### `GET /v1/flow-checkpoints/{id}/restore-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The checkpoint's id, as returned when it was created or listed. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `checkpoint` | `object` | yes | Which checkpoint this preview is of. |
-| `currentSkills` | `object[]` | yes | The flow's steps as they are NOW — the left side of the diff. |
-| `payloadSkills` | `object[]` | yes | The steps the checkpoint holds — what restoring would leave you with. A restore REPLACES the current steps with these; it does not merge. |
-| `warnings` | `object[]` | yes | References in the checkpoint that no longer resolve. These do not block a restore — you get the steps back and fix them afterwards — except `model-unsuited`, which the restore refuses and which is therefore also in `refusals`. Read `refusals` for what blocks. |
-| `refusals` | `object[]` | yes | Every captured step a restore would refuse that the preview can see: run settings held to today's handlers, and a pinned model its call cannot use. ANY entry here means the restore fails with a 422 and changes nothing; an empty list says only that neither blocks it. |
-| `signatureChanges` | `object` | yes | What a restore would change about the flow itself, beside its steps — the signature is put back exactly as captured, `null` (undeclared) included. |
+| `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports. ⚠️ THEY DO NOT DECIDE `ok`: `ok` is whether THIS ROW would save, and a row saves while what it leaves is broken (a step saves while its flow is half-wired). Absent when the dry run did not rehearse — a create, or a draft its planner refused. |
+| `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
+| `derived` | `object` | yes | What the restore WOULD do, answered whether or not it is refused — a refused restore still shows what it would have changed. |

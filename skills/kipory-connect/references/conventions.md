@@ -34,8 +34,8 @@ Read → `VIEWER`. Design mutation → `EDITOR`. Destructive, structural or **sp
 ## Optimistic locking
 
 - A PATCH carries the `version` you last read; a stale one is a **409** naming the captured and current versions. Re-read and reconcile; never blind-retry.
-- `version` is **required** wherever a PATCH body accepts it: steps, api-endpoints, facets, schedules (patch, enable, disable), event categories and types, schema entries, project config (when the namespace exists), flow test cases, eval suites and cases, triggers (patch, enable, disable) and sources (patch, enable, disable).
-- Two resources publish a `version` that is **not** a lock: an embedding profile's `version` is its geometry generation and its PATCH refuses one; a record's `version` is owned by a database trigger and there is no record PATCH.
+- `version` is **required** on every PATCH of a design row — steps, api-endpoints, facets, terms, relation kinds, embedding profiles, schedules, triggers and sources (their `enabled` switch included), event categories and types, schema entries, record types, project config (when the namespace exists), flow test cases, eval suites and cases — and on a state-changing POST: a term's merge and an embedding profile's activate.
+- One resource publishes a `version` that is **not** a lock: a record's `version` is owned by a database trigger and there is no record PATCH. An embedding profile's `version` IS a lock; its geometry number is the separate `generation`.
 - Resources with **no lock at all**: the flow PATCH, project settings, auth config, managed email addresses, route enablement, nodes. Last writer wins.
 - Every write body is **strict**: an unknown key, including `version` where none is accepted, is a 422.
 
@@ -62,7 +62,7 @@ A comma-separated list of computed fields a read will add. Each may cost extra q
 
 Everywhere else the comma form is the only one: `?expand=drift&expand=contract` is a 422 on the record-types read. A route that lists query parameters but no `expand` refuses one; a route that lists no query parameters at all ignores it.
 
-⛔ **A delete rehearses only where its reference lists `validateOnly`.** `DELETE /v1/facets/{id}` and `DELETE /v1/record-types/{id}` do; most deletes — `DELETE /v1/flows/{id}` among them — do not. A current deployment answers an unknown query key on any DELETE with a 422 and deletes nothing, and the same for a JSON body with any key (`{"validateOnly": true}` included) on a DELETE that declares no body — but an older one ignores either and **deletes**: never send `validateOnly`, in the query or the body, to a delete whose reference does not list it. Rehearse a flow delete with `GET /v1/flows/{id}?expand=dependents` (its `deleteRefusal`) or a document plan that states `delete: true`.
+⛔ **A delete rehearses only where its reference lists `validateOnly`.** `DELETE /v1/facets/{id}`, `DELETE /v1/record-types/{id}` and `DELETE /v1/flows/{id}` do; a delete whose reference does not list it does not. A current deployment answers an unknown query key on any DELETE with a 422 and deletes nothing, and the same for a JSON body with any key (`{"validateOnly": true}` included) on a DELETE that declares no body — but an older one ignores either and **deletes**: never send `validateOnly`, in the query or the body, to a delete whose reference does not list it. Where a delete has no rehearsal, a document plan that states `delete: true` is one.
 
 ## Readiness
 

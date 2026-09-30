@@ -15,11 +15,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/record-types/{id}`](#get-v1-record-types-id) |  |
 | `PATCH` | [`/v1/record-types/{id}`](#patch-v1-record-types-id) |  |
 | `DELETE` | [`/v1/record-types/{id}`](#delete-v1-record-types-id) |  |
-| `GET` | [`/v1/record-types/{id}/contract-preview`](#get-v1-record-types-id-contract-preview) |  |
-| `POST` | [`/v1/record-types/{id}/contract-preview`](#post-v1-record-types-id-contract-preview) |  |
-| `POST` | [`/v1/record-types/{id}/natural-key-preview`](#post-v1-record-types-id-natural-key-preview) |  |
 
 ### `GET /v1/record-types`
+
+List a project's record types, live and by id, with any `expand` sections that are cheap per row. The per-type scans (`embedding`, `vectorProgress`, `diagnostics`, `processingGaps`) are refused here — ask `GET /v1/record-types/{id}`. `GET /v1/bootstrap` carries every type in one snapshot with the rest of the project's configuration, and `GET /v1/projects/{nodeId}/document` carries them by key, in the form a document write takes back.
 
 **Query**
 
@@ -37,6 +36,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/record-types`
 
+Create a record type that takes its data shape from an existing schema entry. With `validateOnly: true` it answers whether the create would be refused, writing nothing. A type with a shape of its OWN, several types at once, or a type together with the flow that processes it is one call to `POST /v1/projects/{nodeId}/document` (check it first with its `/plan`).
+
 **Request body**
 
 | Field | Type | Required | Meaning |
@@ -46,7 +47,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `dataEntryId` | `string` | yes | Existing schema entry in the same project that defines the type's data shape. On this route a shape is always an entry that already exists. To declare a type together with a shape of its OWN, state it inline in a project document (`records.<name>.shape`); an entry another record type owns is refused here with SCHEMA_ENTRY_OWNED. |
 | `description` | `string \| null` | no | This type's own description, separate from the entry's. |
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
-| `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type: USER for one person's own records, PROJECT for the project's shared content pool. Required — it is immutable once the type has records, so there is no safe default. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this type: `user` for one person's own records, `project` for the project's shared content pool. Required — it is immutable once the type has records, so there is no safe default. |
 | `uses` | `object` | no | What each field is for. Omit for a type whose fields are stored with the record and read whole. Every projection — `searchable`, `queryable`, `relations`, the natural key, the facet links — is derived from this and cannot be sent directly. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/write-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
@@ -57,7 +58,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. |
+| `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. `staleVersion`, `writes`, `resolved` and `effects` are present whenever the patch got far enough to plan, and absent on a refusal its planner raised; the other members say when they appear. |
 
 **Response `201`**
 
@@ -68,11 +69,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The record type's key. |
-| `definition` | `unknown` | no | JSON Schema for a record's own submitted data. Read-only here — edit it on the schema entry this type references. |
+| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. A shape the type owns is edited with `definition` on `PATCH /v1/record-types/{id}`; a shared one on its schema entry. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
-| `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type. `USER` — each record belongs to one end user, who sees only their own. `PROJECT` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this type. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `stream` to the stream store; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
@@ -96,11 +97,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this type without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/record-types/{id}`; always empty for a type that binds no processing flow. |
-| `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 ### `GET /v1/record-types/{id}`
+
+Read one record type by id, with any `expand` sections — the derived contract, drift, embedding cost inputs, diagnostics and the rest. What a delete would refuse over is the DELETE's own dry run (`?validateOnly=true`). `GET /v1/bootstrap` carries every type in one snapshot; `GET /v1/projects/{nodeId}/document` carries them by key.
 
 **Path parameters**
 
@@ -112,7 +114,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, facets, uses, restamp, migration, embedding, vectorProgress, diagnostics, dependents, processingGaps. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, facets, uses, restamp, migration, embedding, vectorProgress, diagnostics, processingGaps. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -123,11 +125,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The record type's key. |
-| `definition` | `unknown` | no | JSON Schema for a record's own submitted data. Read-only here — edit it on the schema entry this type references. |
+| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. A shape the type owns is edited with `definition` on `PATCH /v1/record-types/{id}`; a shared one on its schema entry. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
-| `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type. `USER` — each record belongs to one end user, who sees only their own. `PROJECT` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this type. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `stream` to the stream store; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
@@ -151,10 +153,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this type without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/record-types/{id}`; always empty for a type that binds no processing flow. |
-| `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 ### `PATCH /v1/record-types/{id}`
+
+Update one record type: its key, description, shape (`dataEntryId` to point at another entry, or `definition` to rewrite the shape the type owns), flow, owner scope or `uses`. With `validateOnly: true` it writes nothing and answers the save's own verdict, plus what the save would compute: the columns and projections it writes, whether it reindexes, restamps or re-embeds, the contract a shape or flow move leaves (`derived.contract`), the verification of a natural key `uses` declares (`derived.naturalKey`), and what each keyword of a sent `definition` would do (`derived.keywordVerdicts`). A shared shape is edited with `PATCH /v1/schema-entries/{id}`; several rows at once go through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -168,9 +171,10 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `key` | `string` | no | The record type's new key. Refused once the type has records, or while a flow step names it. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
 | `dataEntryId` | `string` | no | Point the type at a different schema entry. Refused once the type has records. Omit to keep the current one. |
+| `definition` | `object` | no | Replace the type's OWN shape — the JSON Schema of the entry this type owns (its inline `shape` in a project document) — wholesale, with the rules a document's inline shape meets: field names, an object schema, keywords something reads, a removed field no stored record still holds, the bound flow's binding, and every captured signature it re-shapes (refused 409 `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`; restate the shape in a project document with `adoptSnapshots` for that). Saved with the type in one transaction, and the entry is named in `touched`. Refused 422 for a type whose shape is a shared entry (edit it with `PATCH /v1/schema-entries/{id}`), and together with `dataEntryId`. |
 | `description` | `string \| null` | no | This type's own description, separate from the entry's. |
 | `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
-| `ownerScope` | `"USER" \| "PROJECT"` | no | Change who owns records of this type. Refused once the type has records. Omit to keep. |
+| `ownerScope` | `"user" \| "project"` | no | Change who owns records of this type. Refused once the type has records. Omit to keep. |
 | `uses` | `object` | no | Replace the type's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order, and a merge cannot express a reorder. Every projection is re-derived from it in the same transaction. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored type and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/write-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
@@ -184,11 +188,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The record type's key. |
-| `definition` | `unknown` | no | JSON Schema for a record's own submitted data. Read-only here — edit it on the schema entry this type references. |
+| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. A shape the type owns is edited with `definition` on `PATCH /v1/record-types/{id}`; a shared one on its schema entry. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
-| `ownerScope` | `"USER" \| "PROJECT"` | yes | Who owns records of this type. `USER` — each record belongs to one end user, who sees only their own. `PROJECT` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this type. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this type carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the edge store, `key` to the natural-key index, `stream` to the stream store; the type-level `facets` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the facet links below are DERIVED from it and read-only. |
@@ -212,14 +216,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this type's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/record-types/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this type without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/record-types/{id}`; always empty for a type that binds no processing flow. |
-| `dependents` | `object` | no | What deleting this type is refused over, and what the delete removes with it. Present when `expand=dependents` was requested on `GET /v1/record-types/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. |
+| `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. `staleVersion`, `writes`, `resolved` and `effects` are present whenever the patch got far enough to plan, and absent on a refusal its planner raised; the other members say when they appear. |
 
 ### `DELETE /v1/record-types/{id}`
+
+Delete one record type. Refused (409) while records of it exist, and for a seeded or reserved type. Relation kinds paired only with it go with it, and other types' `joins` it voids are cleared — both reported. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with `derived.dependents`: the records that refuse it and the relation kinds and joins it would take along. The type's own shape outlives it as a shared schema entry. Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 
@@ -231,7 +236,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/delete-preflight`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -246,73 +251,4 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-
-### `GET /v1/record-types/{id}/contract-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The record type's id, as returned when it was created or listed. |
-
-**Query**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `dataEntryId` | `string` | no | Propose re-pointing the data shape at this operator entry. Omit to keep the stored one. Validated by the same resolver the PATCH uses, so an entry this refuses is one the save would refuse too. |
-| `flowId` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `contract` | `object[]` | yes | The field vocabulary the proposed descriptor would have — the same shape `expand=contract` returns for the stored one. |
-| `definition` | `unknown` | no | The PROPOSED shape's JSON Schema. ⚠️ Carried because a consumer that draws the contract needs each field's own declared type, which the contract section deliberately does not hold — it carries the derived INDEX type. Without it a preview would redraw the grid and lose a column the stored read can fill. |
-| `outputDefinition` | `unknown` | no | What the PROPOSED binding would produce, synthesized from the signature this preview resolved. Null when the proposal is flow-less — the same meaning `expand=outputDefinition` gives it. |
-| `declarations` | `object` | yes | One verdict per declaration this type actually holds; null where it declares nothing, which is a different answer from surviving. |
-
-### `POST /v1/record-types/{id}/contract-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The record type's id, as returned when it was created or listed. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `definition` | `object` | yes | The drafted JSON Schema of the shape this type already points at. Gated by the rules a save of it meets — field names, an object schema, and the stored flow's binding when `flowId` is omitted — each a 422. Judged against the binding as stored: a save that re-shapes a frozen signature is refused until re-sent with `adoptSnapshots`, and a removal with stored records is refused; the document plan answers both. The `declarations` verdicts are the STORED declarations under this draft — a save restating `uses` is judged by those instead. |
-| `flowId` | `string` | no | Propose a binding: a flow id to bind, the literal `none` to unbind, or omit to keep the stored binding. ⚠️ A proposed flow is resolved against its LIVE signature — which is what a re-bind captures — never against the snapshot this descriptor already stores. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `contract` | `object[]` | yes | The field vocabulary the proposed descriptor would have — the same shape `expand=contract` returns for the stored one. |
-| `definition` | `unknown` | no | The PROPOSED shape's JSON Schema. ⚠️ Carried because a consumer that draws the contract needs each field's own declared type, which the contract section deliberately does not hold — it carries the derived INDEX type. Without it a preview would redraw the grid and lose a column the stored read can fill. |
-| `outputDefinition` | `unknown` | no | What the PROPOSED binding would produce, synthesized from the signature this preview resolved. Null when the proposal is flow-less — the same meaning `expand=outputDefinition` gives it. |
-| `declarations` | `object` | yes | One verdict per declaration this type actually holds; null where it declares nothing, which is a different answer from surviving. |
-
-### `POST /v1/record-types/{id}/natural-key-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The record type's id, as returned when it was created or listed. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `fields` | `string[]` | yes | Fields to measure against the existing records. Repeats are answered once. Bounded because each one is verified over every record the type has. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `declared` | `string \| null` | yes | The field declared today, or null when the type declares none. |
-| `examined` | `integer` | yes | Records every candidate below was measured against. |
-| `candidates` | `object[]` | yes | One verdict per field asked about, in the order asked. |
+| `derived` | `object` | no | What the delete would find, from the reads it decides on. Nothing here has happened. |

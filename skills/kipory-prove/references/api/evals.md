@@ -30,6 +30,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/eval-cases`
 
+List one eval suite's cases (`?suiteId=`), enabled or not, each with the `version` its PATCH takes. An eval case is scored and runs asynchronously as part of its suite (`POST /v1/eval-suites/{id}/run`); a flow test case (`GET /v1/flow-test-cases?flowId=`) is pass/fail and runs synchronously and free (`POST /v1/flows/{id}/test`). The same cases, as authored, ride `GET /v1/bootstrap` and each suite's `cases` in the `evals` section of `GET /v1/projects/{nodeId}/document`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -44,6 +46,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/eval-cases`
 
+Add a case to an eval suite: the inputs its run hands the suite's flow, what a correct result looks like (`expected`) for scorers that compare, and free deterministic `assertions`. Scored, and run asynchronously with its suite by `POST /v1/eval-suites/{id}/run`. Refused (422) without inputs or with an unsafe assertion, and (409) when the key is used in the suite. With `validateOnly: true` it answers whether the create would be refused, writing nothing. For a pass/fail check run synchronously and free by `POST /v1/flows/{id}/test`, add a flow test case (`POST /v1/flow-test-cases`) instead. Several at once: a suite's `cases` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Request body**
 
 | Field | Type | Required | Meaning |
@@ -56,6 +60,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `assertions` | `object[]` | no | Deterministic checks over the output. May be empty — a case graded only by the suite's scorer flows is valid, and so is one graded only by assertions. |
 | `labels` | `string[]` | no | Tags for selecting a subset of cases. |
 | `enabled` | `boolean` | no | Whether this case runs. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 **Response `201`**
 
@@ -77,6 +90,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `GET /v1/eval-cases/{id}`
+
+Read one eval case. Every case of its suite: `GET /v1/eval-cases?suiteId=`; its results across runs: `GET /v1/eval-runs/{id}` of each run.
 
 **Path parameters**
 
@@ -105,6 +120,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PATCH /v1/eval-cases/{id}`
 
+Change an eval case — its inputs, expected result, assertions, labels, or whether it runs. Changing its `key` detaches it from its own history, since runs compare cases by key. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -123,6 +140,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `labels` | `string[]` | no | Tags. Replaces the existing list. |
 | `enabled` | `boolean` | no | Whether this case runs. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -142,8 +160,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdByEmail` | `string \| null` | yes | Email of the creator, when known. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/eval-cases/{id}`
+
+Delete an eval case. The runs that measured it keep its results, and its scores survive detached; its suite's next run measures one case fewer. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
 
 **Path parameters**
 
@@ -151,12 +174,21 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The eval suite's id, as returned when it was created or listed. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `GET /v1/eval-runs/{id}`
 
@@ -204,6 +236,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/eval-suites`
 
+List one project's eval suites (`?project=<nodeId>`), each with its configuration, the `version` its PATCH takes, its newest run (`lastRun`) and whether a run is in flight. An eval suite scores a flow over a set of eval cases, asynchronously and billed; the pass/fail, free check of one flow is its flow test cases (`GET /v1/flow-test-cases?flowId=`). The same suites, as authored, ride `GET /v1/bootstrap` (by id) and the `evals` section of `GET /v1/projects/{nodeId}/document` (by key). Every suite's recent scores at once: `GET /v1/eval-suites/trend?project=`.
+
 **Query**
 
 | Field | Type | Required | Meaning |
@@ -218,6 +252,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `POST /v1/eval-suites`
 
+Create an eval suite: a flow under test (`flowId`), the scorer flows that grade each case, and how a run treats a coverage shortfall (`coverageMode`). Its cases are added with `POST /v1/eval-cases`; it is run with `POST /v1/eval-suites/{id}/run`. Refused (422) when the flow or a scorer is not this project's (or the platform's), and (409) when the key is taken. With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several suites with their cases at once: the `evals` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`). For a free pass/fail check of one flow, use flow test cases (`POST /v1/flow-test-cases`) instead.
+
 **Request body**
 
 | Field | Type | Required | Meaning |
@@ -229,7 +265,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | Id of the flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. These are billed model calls; a case's own assertions are free. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
-| `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | no | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
+| `coverageMode` | `"strict" \| "report-only"` | no | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | no | Whether a configuration change triggers this suite. |
 | `repeats` | `integer` | no | How many times each case runs, 1 to 10. Every repeat is a real run that spends, which is why the ceiling is refused here rather than part-way through the run. |
 | `latencyIsolated` | `boolean` | no | Run cases one at a time, for latency measurement. |
@@ -239,6 +275,15 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `regressionCategoryKey` | `string \| null` | no | Key of the category of the event emitted when a run regresses. |
 | `regressionEventKey` | `string \| null` | no | Key of that event type. It must already exist. |
 | `enabled` | `boolean` | no | Whether the suite can run. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 **Response `201`**
 
@@ -252,7 +297,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
-| `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
+| `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
@@ -273,6 +318,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/eval-suites/{id}`
 
+Read one eval suite: its configuration, the `version` its PATCH takes, its newest run (`lastRun`) and whether a run is in flight. Its cases: `GET /v1/eval-cases?suiteId=`; its runs: `GET /v1/eval-suites/{id}/runs`; its scores over time: `GET /v1/eval-suites/{id}/trend`; what its configuration will measure before a run: `GET /v1/eval-suites/{id}/readiness`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -291,7 +338,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
-| `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
+| `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
@@ -312,6 +359,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `PATCH /v1/eval-suites/{id}`
 
+Change an eval suite's configuration — its flow, scorers, `coverageMode`, repeats, regression event, key or label. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. Refused (422) when the flow or a scorer is not this project's, and (409) when a new key is taken. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -328,7 +377,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | no | Id of the new flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. Replaces the existing list. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
-| `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | no | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
+| `coverageMode` | `"strict" \| "report-only"` | no | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | no | Whether a configuration change triggers this suite. |
 | `repeats` | `integer` | no | How many times each case runs, 1 to 10. |
 | `latencyIsolated` | `boolean` | no | Run cases one at a time, for latency measurement. |
@@ -339,6 +388,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `regressionEventKey` | `string \| null` | no | Key of that event type. |
 | `enabled` | `boolean` | no | Whether the suite can run. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -352,7 +402,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
-| `coverageMode` | `"STRICT" \| "REPORT_ONLY"` | yes | How a coverage shortfall is treated. `STRICT` fails the run. `REPORT_ONLY` records it and lets the run succeed. |
+| `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
@@ -370,8 +420,13 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdByEmail` | `string \| null` | yes | Email of the creator, when known. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `DELETE /v1/eval-suites/{id}`
+
+Delete an eval suite with its cases and runs. The scores its runs produced survive, detached from the suite. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing. One case alone: `DELETE /v1/eval-cases/{id}`. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
 
 **Path parameters**
 
@@ -379,14 +434,25 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The eval suite's id, as returned when it was created or listed. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 ### `GET /v1/eval-suites/{id}/readiness`
+
+What a suite's configuration says a run will reach, before a credit is spent: the record types its flow's graph names and who owns their rows (`ownerScope`), so a suite that would read an empty per-user corpus can be fixed first. Derived from configuration, never from a run. Whether a run would start, and its warnings: `POST /v1/eval-suites/{id}/run` with `validateOnly: true`.
 
 **Path parameters**
 
@@ -404,6 +470,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `unavailableReason` | `string \| null` | yes | Why there is no report, in a sentence for the operator: the suite names a flow the project's library does not hold. Null when `scope` is present. |
 
 ### `POST /v1/eval-suites/{id}/run`
+
+Start a run of an eval suite: every enabled case (or `caseKeys`) through the suite's flow, graded by its assertions and scorer flows. Asynchronous and billed — it answers 202 with the queued run; follow it at `GET /v1/eval-runs/{id}`, and list past runs with `GET /v1/eval-suites/{id}/runs`. One run per suite at a time (409). With `validateOnly: true` it answers, spending and queuing nothing, whether the run would start and what it would and would not measure (VIEWER may ask). For a synchronous, free pass/fail check of one flow, use `POST /v1/flows/{id}/test` with its flow test cases instead.
 
 **Path parameters**
 
@@ -460,6 +528,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/eval-suites/{id}/trend`
 
+One suite's scores over its recent runs (default 20 points), each point saying whether it is comparable with its neighbours. The runs themselves, with their status and cost: `GET /v1/eval-suites/{id}/runs`; one run's case results: `GET /v1/eval-runs/{id}`; every suite's series at once: `GET /v1/eval-suites/trend?project=`.
+
 **Path parameters**
 
 | Field | Type | Required | Meaning |
@@ -482,6 +552,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `truncated` | `boolean` | yes | True when runs exist OLDER than the first point here — the series is a window, not the suite's whole history. Distinguishes a genuinely new suite from one whose earlier runs fell outside `limit`. |
 
 ### `GET /v1/eval-suites/trend`
+
+Every suite's recent scores in one answer, for a project overview (`?project=<nodeId>`, default 8 points per suite). One suite's longer series: `GET /v1/eval-suites/{id}/trend`; one suite's runs themselves, newest first: `GET /v1/eval-suites/{id}/runs`.
 
 **Query**
 

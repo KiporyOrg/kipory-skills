@@ -26,7 +26,7 @@ A **dynamic endpoint** is a `/v1/…` route you author for your product, served 
 POST  /v1/api-endpoints   { project, key, contractConfig, actionConfig }        → 201
 GET   /v1/api-endpoints/{id}?expand=shadowed                                    shadowedBy is a verdict: null means nothing shadows you; partiallyShadowedBy lists coded literals under your parameters
 PATCH /v1/api-endpoints/{id}   { version, contractConfig, actionConfig }        replaces both configs; version required
-DELETE /v1/api-endpoints/{id}                                                    the only off switch — there is no disable
+DELETE /v1/api-endpoints/{id}[?validateOnly=true]                               the only off switch — there is no disable; nothing refuses it
 ```
 
 **`contractConfig`** — `method` (GET, POST, PATCH or DELETE; no PUT), `path` (starts `/v1/`, literal segments or one `{param}` per segment, no `_` first segment), `params` (each `in: path | query`, `type: string`, `required`), `successStatus` (default 200; **async needs 202**). There is no read-only flag — see below.

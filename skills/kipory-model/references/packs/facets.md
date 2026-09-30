@@ -66,7 +66,7 @@ vocabulary and then found it would not recognise an obvious synonym.
 `GET /v1/facets/resolvers?project=<nodeId>` lists every flow this project may bind as a facet's
 resolver — **your own flows and the platform's, in one call** — filtered to those whose typed
 signature actually matches the resolver contract. Each row carries the flow's id, its display
-`label`, its `key`, its scope (`PROJECT` or `SYSTEM`), its `paramsSchema`, its
+`label`, its `key`, its scope (`project` or `system`), its `paramsSchema`, its
 `paramsDefaults`, `platformDefault` and `paramsKind`.
 
 ⭐ **The filter is the point.** A flow whose signature cannot serve is not offered, so a binding you
@@ -90,7 +90,7 @@ sending that resolver's id together with these values produces the identical row
 derived from one predicate, so a client that prefills from here cannot show numbers the create path
 would have disagreed with.
 
-⚠️ **`scope: SYSTEM` means the platform owns it.** Bindable by you, editable by nobody outside the
+⚠️ **`scope: system` means the platform owns it.** Bindable by you, editable by nobody outside the
 platform. It reads at `VIEWER`, and it discloses a name and a parameter shape — never what a
 platform flow does inside.
 
@@ -158,7 +158,10 @@ a payload. ⚠️ An explicit null clears only `proposal`, `resolverFlowId` and 
 `mint` and `matching` a null is a **no-op, not a clear**, because neither column is ever empty. And
 ⛔ **an OMITTED `resolutionParams` does not survive a binding change** — repoint `resolverFlowId` at
 a different resolver and the params are replaced with that resolver's defaults. Send them explicitly
-if you meant to keep yours. `version` is required on every facet patch.
+if you meant to keep yours. `version` is required on every facet patch. A patch takes
+**`validateOnly: true`** too: it answers a 200 verdict (narrow on `ok`) saying whether the patch
+would be accepted, and writes nothing. The dry run does not judge the lock; the save answers a
+stale `version` with 409 `VERSION_CONFLICT`.
 
 ## How a value actually reaches a record
 
@@ -321,10 +324,23 @@ the facet from that row until the node is re-derived from its type.
 `facet.resolve` step can pick a facet up from a slot it discovers at run time without naming it
 anywhere. Empty means no node's configuration names this facet.
 
-## Seeding a vocabulary — let the platform coin the key
+## Adding terms — one or many, under the facet
 
-`POST /v1/facets/{id}/terms` takes rows of `{ key, label }`, and **`key` is
-optional**. Omit it and the platform derives one from the label.
+⭐ **A term is created on its facet, and only there.** `POST /v1/facets/{id}/terms` takes one row or
+up to 500, each `{ key, label }`, under one `parentTermId` when the facet nests under another: the
+terms are operator-authored, embedded for search, and bound by the parent rules — a nested facet
+requires an active, canonical parent term of its parent facet, and a top-level facet refuses a
+parent (`TERM_PARENT_UNEXPECTED`) rather than dropping it. A key the facet already holds under that
+parent is reused and reported `existed` with the held term's id — not a conflict — so re-sending a
+grown list is safe. This route is the only way to create a term — one row is a list of one.
+
+⚠️ **An `existed` row reports the term as it IS, not as you sent it.** Its `label` and `status` are
+the stored ones: a seed never relabels a term and never revives an archived one. A `label` that
+differs from yours, or `status: "archived"`, means nothing was created — `PATCH /v1/terms/{id}`
+renames or restores it. A seed whose embedding call answers no usable vector is 502
+`UPSTREAM_FAILED`, as a rename's is, and writes nothing.
+
+**`key` is optional**. Omit it and the platform derives one from the label.
 
 ⛔⛔ **Coining it yourself is how a vocabulary stops matching.** A term's key is
 what record ingest matches on, and a client deriving its own has to reproduce
@@ -364,7 +380,7 @@ idempotent.
 success code for a verdict: a `200` is either the seeded batch or a verdict
 about one that was not seeded. Narrow on `ok`, which only the verdict declares.
 
-⚠️ **`ok: true` does not embed.** The real seed — like `POST /v1/terms` and a relabelling
+⚠️ **`ok: true` does not embed.** The real seed — like a relabelling
 `PATCH /v1/terms/{id}` — embeds every term's text **before** it writes, on the platform's shared
 term model (the `substrate-embedding` task, read at the platform root; a project cannot rebind it, and
 binding it at a project node is refused with `TASK_READ_AT_ROOT_ONLY`). A provider refusal fails the whole write
@@ -449,13 +465,22 @@ different claims, and only one of them is true.
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.
 - **Terms are the vocabulary substrate; there is no separate taxonomy resource.** Facet
   statistics and samples are computed over terms.
+- **A term carries a `version`, and its writes are locked on it.** `GET /v1/terms` publishes it;
+  `PATCH /v1/terms/{id}` (rename, archive, restore or admit — both a label and a status in one call
+  is one write) and `POST /v1/terms/{id}/merge` (the absorbed term's) require it, and a stale one
+  answers 409 `VERSION_CONFLICT`. Every author write to a term's label, status, parent or alias
+  moves it — a facet delete archiving a term included — but ingest never does: a record matching a
+  term, or its vector being re-synced, leaves your `version` current. The PATCH takes
+  `validateOnly: true` and answers the save's refusals (an unchanged label, restoring a merged
+  alias) as a verdict, writing and embedding nothing.
 - **A term is deleted only when nothing points at it** — no record carries it, no term nests under
   it, no merged alias points at it; otherwise `DELETE /v1/terms/{id}` is a 409. ⭐ Read
   `GET /v1/terms?expand=usage` first: each term carries `deleteRefusal`, the delete's own check —
   `null` when the delete would be accepted, else the code and sentence it would refuse with. Offer
   the delete where it is `null` rather than re-comparing the three counts beside it. ⚠️ Absent means
   you did not ask for usage, which is not the same as deletable, and a reference that lands between
-  the read and the delete still refuses it (`TERM_DELETE_RACE`).
+  the read and the delete still refuses it (`TERM_DELETE_RACE`). `DELETE /v1/terms/{id}?validateOnly=true`
+  asks the delete itself, writing nothing.
 - **What is wrong with a vocabulary is a read, not something to recompute.** `GET /v1/terms`
   with `expand=findings` answers `findings`, most severe kind first: `dangling-alias` (a merged
   term whose canonical is gone), `orphan-parent` (a `parentId` naming a term the project does not
@@ -468,6 +493,9 @@ different claims, and only one of them is true.
 - **A facet that looks builtin is just a row.** Anything shipped as a default is an ordinary,
   editable facet — but its resolver wiring may never have been bound. Verify a facet's live
   binding before assuming it resolves anything.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
 
 ## Related
 

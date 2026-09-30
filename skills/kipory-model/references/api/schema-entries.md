@@ -15,12 +15,12 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/schema-entries/{id}`](#get-v1-schema-entries-id) |  |
 | `PATCH` | [`/v1/schema-entries/{id}`](#patch-v1-schema-entries-id) |  |
 | `DELETE` | [`/v1/schema-entries/{id}`](#delete-v1-schema-entries-id) |  |
-| `POST` | [`/v1/schema-entries/{id}/keywords-preview`](#post-v1-schema-entries-id-keywords-preview) |  |
 | `POST` | [`/v1/schema-entries/{id}/promote`](#post-v1-schema-entries-id-promote) |  |
-| `POST` | [`/v1/schema-entries/keywords-preview`](#post-v1-schema-entries-keywords-preview) |  |
 | `POST` | [`/v1/schema-entries/seed`](#post-v1-schema-entries-seed) |  |
 
 ### `GET /v1/schema-entries`
+
+Read a project's type registry: the platform's builtin and library types and the project's own entries, filtered by tier or key, with `expand=graph` for the type-relation graph and `expand=keywords` for what each keyword does. `GET /v1/bootstrap` carries the registry in one snapshot with the rest of the project; `GET /v1/projects/{nodeId}/document` carries the project's own entries by key (`schema`, and each record type's inline `shape`).
 
 **Query**
 
@@ -39,6 +39,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `graph` | `object` | no | The project's type-relation graph. Present only with `expand=graph`, because building it costs the whole graph. |
 
 ### `POST /v1/schema-entries`
+
+Create a shared type — a JSON Schema document other rows (record types, event types, config namespaces, relation kinds, flow slots) may reference. With `validateOnly: true` it answers whether the create would be refused, writing nothing, and what each keyword of the definition would do (`derived.keywordVerdicts`). A record type's OWN shape is created with it in a project document (`records.<name>.shape`, `POST /v1/projects/{nodeId}/document`), which also creates several types at once.
 
 **Request body**
 
@@ -59,6 +61,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports. ⚠️ THEY DO NOT DECIDE `ok`: `ok` is whether THIS ROW would save, and a row saves while what it leaves is broken (a step saves while its flow is half-wired). Absent when the dry run did not rehearse — a create, or a draft its planner refused. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
+| `derived` | `object` | no | What the write would compute. Present whenever the dry run could read the definition, refused or not. |
 
 **Response `201`**
 
@@ -75,6 +78,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `GET /v1/schema-entries/{id}`
+
+Read one of a project's own types by id. What references it, whether it can be a record type's shape or the end-user profile, and its keyword verdicts are on the registry read, `GET /v1/schema-entries`.
 
 **Path parameters**
 
@@ -97,6 +102,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
 ### `PATCH /v1/schema-entries/{id}`
+
+Update one shared type's key, description or definition. An edit that re-shapes a flow signature a row has captured is refused (409) unless `adoptSnapshots` is set. With `validateOnly: true` it rehearses the edit and answers the verdict, what it would leave broken and which stored records would stop fitting, and what each keyword of the definition would do (`derived.keywordVerdicts`), writing nothing. A record type's own shape is edited with `PATCH /v1/record-types/{id}` (`definition`); several rows at once go through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -134,8 +141,11 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports. ⚠️ THEY DO NOT DECIDE `ok`: `ok` is whether THIS ROW would save, and a row saves while what it leaves is broken (a step saves while its flow is half-wired). Absent when the dry run did not rehearse — a create, or a draft its planner refused. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
+| `derived` | `object` | no | What the write would compute. Present whenever the dry run could read the definition, refused or not. |
 
 ### `DELETE /v1/schema-entries/{id}`
+
+Delete one shared type. Refused (409) while anything references it — a record type's shape, an event type's payload, a config namespace, a relation kind, the end-user profile, or a flow, step or type in the project's type-relation graph. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with the count of each kind of reference (`derived`). Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 
@@ -147,7 +157,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/delete-preflight`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -161,27 +171,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | Everything that points at this entry, counted from the same read the refusal was decided from. Every one of these at zero (and `boundAsProfile` false) is exactly when the delete is allowed. |
 
-### `POST /v1/schema-entries/{id}/keywords-preview`
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The type's id, as returned when it was created or listed. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `definition` | `object` | yes | The type as you are editing it — the whole JSON Schema document, exactly as a PATCH would send it. Nothing is saved or checked against the registry; the answer only says what each keyword in it would do. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `keywordVerdicts` | `object[]` | yes | What each keyword in the definition you sent would do — the rows `GET /v1/schema-entries?expand=keywords` returns for this type once that definition is saved, judged against what binds the type now (its config namespaces and whether it is the project's end-user profile). The definition's structural keywords and its labels carry no row, as on the read. |
-
 ### `POST /v1/schema-entries/{id}/promote`
+
+Make a record type's own shape a shared type, so other rows may reference it and `PATCH /v1/schema-entries/{id}` may edit it. One way: nothing makes a shared type owned again. Its shape is unchanged; until promoted it is edited through its owner, `PATCH /v1/record-types/{id}` with `definition`.
 
 **Path parameters**
 
@@ -209,22 +201,9 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 
-### `POST /v1/schema-entries/keywords-preview`
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `project` | `string` | yes | Node id of the project the type is being created in. |
-| `definition` | `object` | yes | The type as you are drafting it — the whole JSON Schema document, exactly as the create would send it. Nothing is saved or checked against the registry; the answer only says what each keyword in it would do. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `keywordVerdicts` | `object[]` | yes | What each keyword in the definition you sent would do — the rows `GET /v1/schema-entries?expand=keywords` would return for a type with that definition that nothing binds yet (no config namespace, not the end-user profile). The definition's structural keywords and its labels carry no row, as on the read. |
-
 ### `POST /v1/schema-entries/seed`
+
+Store the platform-provided types a project's flows need (idempotent), then answer the registry read `GET /v1/schema-entries` would give. A repair for a project whose seeded types are missing or out of date; a project is seeded when it is created.
 
 **Request body**
 
