@@ -16,6 +16,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `PATCH` | [`/v1/eval-cases/{id}`](#patch-v1-eval-cases-id) |  |
 | `DELETE` | [`/v1/eval-cases/{id}`](#delete-v1-eval-cases-id) |  |
 | `GET` | [`/v1/eval-runs/{id}`](#get-v1-eval-runs-id) |  |
+| `GET` | [`/v1/eval-runs/{id}/spend`](#get-v1-eval-runs-id-spend) |  |
 | `GET` | [`/v1/eval-runs/{id}/traces/{traceId}`](#get-v1-eval-runs-id-traces-traceid) |  |
 | `GET` | [`/v1/eval-suites`](#get-v1-eval-suites) |  |
 | `POST` | [`/v1/eval-suites`](#post-v1-eval-suites) |  |
@@ -197,7 +198,7 @@ Delete an eval case. The runs that measured it keep its results, and its scores 
 
 ### `GET /v1/eval-runs/{id}`
 
-One eval run in full — its status, trigger, provenance, per-case results with every score, and the run's aggregates. A suite's runs are `GET /v1/eval-suites/{id}/runs`; one case's trace is `GET /v1/eval-runs/{id}/traces/{traceId}`.
+One eval run in full — its status, trigger, provenance, per-case results with every score, and the run's aggregates. A suite's runs are `GET /v1/eval-suites/{id}/runs`; one case's trace is `GET /v1/eval-runs/{id}/traces/{traceId}`; which step spent what is `GET /v1/eval-runs/{id}/spend`.
 
 **Path parameters**
 
@@ -213,6 +214,25 @@ One eval run in full — its status, trigger, provenance, per-case results with 
 | `results` | `object[]` | yes | What happened to each case. |
 | `aggregates` | `object` | yes | This run's own numbers, pooled and per label. Always present — unlike a delta, there is no second run to be incomparable with. |
 | `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when nothing was compared — the run's `regression.reason` says whether there was no previous run (`no-baseline`) or it could not be read (`baseline-unreadable`). |
+
+### `GET /v1/eval-runs/{id}/spend`
+
+What one eval run cost, and which step spent it: one entry per step of the subject flow and of each scorer flow, summed over every case and repeat. Empty for a run that spent nothing, and for one that ran before eval spend was attributed to its run. The run itself is `GET /v1/eval-runs/{id}`; a project's spend over a window is `GET /v1/projects/{nodeId}/usage`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The eval run's id, as returned when it was created or listed. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `runId` | `string` | yes | The eval run this spend belongs to (`GET /v1/eval-runs/{id}`). |
+| `credits` | `integer` | yes | What the run's case and scorer previews were charged, summed from the same rows as `bySkill`. ⚠️ The run's own `credits` is measured per case while it runs and may differ: a case cut by the run's budget is charged here and not scored there. |
+| `events` | `integer` | yes | Billable operations across the whole eval run. |
+| `bySkill` | `object[]` | yes | One entry per step, across every case and repeat, the subject flow's steps and the scorer flows' alike; descending by charge. ⚠️ EMPTY has more than one cause: the run spent nothing, or it ran before eval spend was attributed to its run (2026-10-02) and its charges cannot be found. |
 
 ### `GET /v1/eval-runs/{id}/traces/{traceId}`
 

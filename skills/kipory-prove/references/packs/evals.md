@@ -47,6 +47,7 @@ POST /v1/eval-suites/{id}/run   queue a run — 202 with its `runId`, the run ha
 GET  /v1/eval-suites/{id}/runs  the suite's runs, newest first (each run names its `suiteId`)
 GET  /v1/eval-suites?project=&flowId=   the suites whose subject is one flow
 GET  /v1/eval-runs/{id}         read one run back, WITH its delta against the previous
+GET  /v1/eval-runs/{id}/spend   what that run cost, by step — subject and scorer steps alike
 GET  /v1/eval-suites/{id}/trend across runs — one suite, its whole recent history
 GET  /v1/eval-suites/trend      across runs AND suites — every series in one answer
 ```
