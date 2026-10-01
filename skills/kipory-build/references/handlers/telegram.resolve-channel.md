@@ -46,7 +46,7 @@ Output:
   "participants": 743211,
   "title":        "Du rove",
   "about":        "Founder of Telegram",
-  "thumbnailUrl": "https://.../telegram-avatars/durov/avatar.jpg",
+  "thumbnailUrl": "https://api.example.com/v1/files/raw/eyJr…",
   "status":       "ready"
 }
 ```

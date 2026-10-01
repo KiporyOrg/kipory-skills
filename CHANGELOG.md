@@ -2,6 +2,13 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261001.1327 — 2026-10-01
+
+Synced from the Kipory monorepo at `7f52a1679`.
+
+- changed: `skills/kipory-build/references/handlers/telegram.resolve-channel.md`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20260930.201107 — 2026-09-30
 
 Synced from the Kipory monorepo at `d34f9b08b`.
