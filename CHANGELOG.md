@@ -2,6 +2,34 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261001.200211 — 2026-10-01
+
+Synced from the Kipory monorepo at `8a6f62ff7`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/skills.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- added: `skills/kipory-data/references/csv-import.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/facets-and-terms.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+
 ## 1.20261001.192141 — 2026-10-01
 
 Synced from the Kipory monorepo at `c1ede5778`.

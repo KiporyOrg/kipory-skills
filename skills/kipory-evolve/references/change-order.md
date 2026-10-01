@@ -6,7 +6,8 @@
 | ----------------------------------------------- | ----------- | ---------------------------------------------------------------------------- |
 | add a field, a type, a flow, an endpoint        | additive    | dependency order, nothing else                                               |
 | add a **required** field to a type with records | narrowing   | widen → backfill → narrow, three writes                                      |
-| rename a slot                                   | cascade     | rehearse, then one document carrying the step and the flow binding           |
+| rename a step's output slot                     | cascade     | rehearse, then one document carrying the step and the flow binding           |
+| rename a flow's own input or output slot        | contract    | a signature change — the last row of this table                              |
 | rename a field or a type                        | pinned      | refused once the type has records                                            |
 | change what is searchable                       | reindex     | rehearse; a `reembed` bills per record                                       |
 | remove anything                                 | subtractive | rehearse, expect a refusal naming dependents                                 |
@@ -35,10 +36,13 @@ order is a save refused for naming something absent.
 4  make it required                     → now nothing is invalidated
 ```
 
-The shape is edited on `PATCH /v1/schema-entries/{id}`, with `adoptSnapshots: true` while an
-endpoint, or a record type through its processing flow, holds a snapshot of a flow that reads it
-(without it: `409`, naming them). Check step 4 with the schema-entry PATCH and `validateOnly:
-true`, or a document plan: both rehearse the edit and answer the same `records-invalid` count under
+A shared schema entry is edited on `PATCH /v1/schema-entries/{id}`, with `adoptSnapshots: true`
+while an endpoint, or a record type through its processing flow, holds a snapshot of a flow that
+reads it (without it: `409`, naming them in its message). A shape the record type owns — an inline
+`shape` — is edited on `PATCH /v1/record-types/{id}` with `definition` instead; that PATCH does not
+take `adoptSnapshots`, so behind such a snapshot an owned shape is edited through a document, with
+`adoptSnapshots: true` inside the inline `shape`. Check step 4 with the schema-entry PATCH and
+`validateOnly: true` (a shared entry), or a document plan (either kind): both rehearse the edit and answer the same `records-invalid` count under
 `consequences`, and the flows, schedules and triggers it would break (the PATCH lists them under
 `leavesBehind`, the plan among its findings, each with `introduced`). Step 3 is the fix for what
 they name: a schedule's or trigger's stored `inputs` that would no longer fit is

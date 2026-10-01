@@ -92,7 +92,8 @@ A cascade is reported whether or not your document names the row: delete a recor
 full export that still states the relation kind pairing it, and that kind is in `changes` on its
 own path as a `delete` with `because: "cascade"`, not as `unchanged`. A delete row holds `delete`
 and optionally `id`, nothing else — turning an exported row into a delete by adding `delete: true`
-is refused `Unrecognized key(s)`, so replace the whole row. A plan's `changes` are not the apply's
+is refused `DOCUMENT_DELETE_WITH_FIELDS` on that row, and the plan stops at that finding with
+nothing else judged, so replace the whole row. A plan's `changes` are not the apply's
 write order, and the ids a plan shows for creates are from its rolled-back attempt; the apply mints
 its own. A flow row whose only change is its `outputBinding` has been reported `unchanged` beside an
 `update` on its step row, while the apply did change the binding — read the apply's returned
@@ -121,12 +122,26 @@ delete the endpoints and triggers, delete or re-point the schedules, re-point re
 invoking flows, then delete the flow.
 Delete the leaf, then what it hung from.
 
-**Changing a shape under live records** is neither. The shape is its schema entry, edited on
-`PATCH /v1/schema-entries/{id}` — `PATCH /v1/record-types/{id}` carries no definition. While a flow
-that reads the shape is frozen into a published contract — an endpoint in front of it, or a record
-type whose processing flow (`flowId`) it is — that PATCH answers `409
-SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, naming those holders, unless it carries `adoptSnapshots:
-true`. Schedules and triggers freeze nothing, so the 409 neither names nor waits for them. The
+**Changing a shape under live records** is neither. Where the shape is edited depends on who owns
+it:
+
+- **A shape the type owns** — stated inline when the type was made, as a document's
+  `records.<key>.shape` does — is edited on the type: `PATCH /v1/record-types/{id}` with
+  `definition`, or the same inline `shape` in a document. `PATCH /v1/schema-entries/{id}` refuses it
+  `SCHEMA_ENTRY_OWNED`.
+- **A shared schema entry** — one the type points at with `dataEntryId` — is edited on
+  `PATCH /v1/schema-entries/{id}`, or under `schema` in a document. The record-type PATCH refuses a
+  `definition` for it `RECORD_TYPE_SHAPE_SHARED`.
+
+While a flow that reads the shape is frozen into a published contract — an endpoint in front of it,
+or a record type whose processing flow (`flowId`) it is — the edit answers `409
+SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, its message naming those holders (`details` only counts
+them by kind), unless it carries `adoptSnapshots: true`. The schema-entry PATCH and a document take
+that flag; **the record-type PATCH does not** — it is an unrecognised key there, whatever the 409's
+message says. So an owned shape behind an endpoint or a processing flow is edited, and rehearsed,
+through a document, with the flag inside the inline shape:
+`"records": { "contact": { "shape": { "definition": { … }, "adoptSnapshots": true } } }`.
+Schedules and triggers freeze nothing, so the 409 neither names nor waits for them. The
 edit's `validateOnly` rehearsal judges their stored `inputs` against the new shape (see step 3): a
 value its slot's type now refuses is `SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED` in
 `leavesBehind`. The PATCH itself does not refuse on them; a schedule or trigger write that sends
@@ -135,10 +150,11 @@ the type has records. It is three steps, in this order:
 
 1. **Rehearse.** The record-type PATCH with `validateOnly: true` and the drafted `definition` (a
    shape the type owns) or the proposed `dataEntryId` answers `derived.contract`, the vocabulary it
-   would give the type; the schema-entry PATCH with `validateOnly: true` (and
+   would give the type; for a shared entry, the schema-entry PATCH with `validateOnly: true` (and
    `adoptSnapshots: true`) for whether the edit is allowed and what it does to stored data — it
    rehearses the edit and answers `records-invalid` under `consequences`, and the flows, schedules
-   and triggers it would break under `leavesBehind`, as a document plan does.
+   and triggers it would break under `leavesBehind`, as a document plan does. For an owned shape
+   behind a published contract the document plan is that rehearsal.
 2. **Widen, never narrow, in the first write.** Add the new field as optional. Existing records stay
    valid, and nothing has to be backfilled before the change lands.
 3. **Backfill, patch the fixed inputs, then narrow.** Populate the field on existing records
@@ -188,8 +204,11 @@ Others do not refuse. They cascade, and the response tells you what else moved:
   `PATCH /v1/steps/{id}` with `confirmedOutputSlotRenames: [{ flowId, oldSlotName, newSlotName }]`
   rewrites every sibling step that reads the old name, in the same transaction; without it the
   readers are left dangling. The flow's `outputBinding` is NOT rewritten and `derived.rename` does
-  not list it: the save lands with `OUTPUT_BINDING_DANGLING_SLOT` (a warning under `validateOnly`,
-  an error in the write's `outstandingIssues`). The endpoint in front then refuses every call:
+  not list it: the save lands with `OUTPUT_BINDING_DANGLING_SLOT` as an error in its
+  `outstandingIssues`. The `validateOnly` rehearsal says so beforehand by answering `ok: false`: an
+  error the edit introduces — this one, or `INPUT_STREAM_DANGLING_SLOT` for a reader left on the old
+  name — is in `diagnostics` and in `leavesBehind` with `introduced: true`. That verdict is the
+  expected one when the binding is re-pointed in a following write. The endpoint in front then refuses every call:
   a required output left unproduced answers `422 FLOW_OUTPUT_MISSING`, and the run's writes are
   discarded. Health names the dangling binding before any call does. On a
   live endpoint, do the rename as **one document apply** that carries the step's new
@@ -209,7 +228,9 @@ one is the one that costs money while you are not looking.
 with the flow and a `label` — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
 asking it the same with `validateOnly: true` (both take the flow's `version`). A restore keeps each step's id by key (a
 step deleted since comes back with a new one) and moves a changed step's version forward, so re-read the steps
-before your next step edit. `kipory-build` owns the detail. A flow's checkpoints are deleted with
+before your next step edit. A capture or a restore also makes each eval suite's next run on that flow
+incomparable with the one before (`delta.suppressedReason`): run the suite once after the capture,
+before the edit, so the edit has a baseline (`kipory-prove`). `kipory-build` owns the detail. A flow's checkpoints are deleted with
 the flow, so a deleted flow comes back only from an export.
 
 **An export is the nearest thing to a checkpoint of the whole configuration.** Keep the document
@@ -274,10 +295,17 @@ at all:
   again). A `200` applied its writes even when its output came back empty (see the slot rename
   above), and a client that retries it writes twice unless the write is idempotent — send an
   `Idempotency-Key`, or give the type a natural key.
-- **An `entity.create` pointed at the wrong type is caught twice.** Switching its `recordType` to
-  a type whose shape the incoming slot does not fit saves, but health and a document plan warn
-  `ENTITY_CREATE_DATA_MISMATCH`, and the run fails the step, naming each field that does not fit —
-  the check `POST /v1/records` makes. Preview it with `apply: false` after such an edit.
+- **An `entity.create` pointed at the wrong type is caught only when a declared field misfits.**
+  Switching its `recordType` saves. Health and a document plan warn `ENTITY_CREATE_DATA_MISMATCH`,
+  and the run fails the step naming each field — the check `POST /v1/records` makes — when the
+  incoming slot lacks a field the type requires or carries one under a different type. Fields the
+  type's shape does not declare are not a misfit unless the shape sets
+  `"additionalProperties": false`: the warning stays silent, the step does not fail, and the run
+  writes a record of the wrong type. Close the shape if that matters, and preview with `apply: false` after
+  such an edit, reading the `recordType` it reports.
+- **A schedule PATCH's dry run does not check `version`.** `validateOnly: true` answers `ok: true`
+  on a stale one, and the same body sent for real answers `409 VERSION_CONFLICT`. Re-read the
+  schedule's `version` after a document apply or any other write that touched it.
 - **Eval suites pin the old behaviour.** After a deliberate change their contracts will break, and
   that failure is correct. Re-baseline them on purpose (`kipory-prove`) rather than deleting the ones
   that went red — a suite deleted because it was inconvenient is the one that would have caught the

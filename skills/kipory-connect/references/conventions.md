@@ -5,9 +5,9 @@ The rules below hold across the whole design API. Each resource's own page under
 ## Two hosts, two planes
 
 - **The api host** serves the design API: everything under `/v1/` that authors or reads a project's configuration and runs. It answers to your key. Coded route groups `management` and `keys` live only here.
-- **The project's host** — `https://<subdomain>.<deployment-host>` — serves the product: the dynamic endpoints you authored, the end-user session routes, and the credit balance. Dynamic endpoints exist only there; calling one on the api host is a 404 that reads `Not found.`
-- A route served on the wrong host is a plain 404, before authentication. It is indistinguishable from a typo.
-- The `invokeUrl` an endpoint read returns is the project-host URL, with its `{param}` placeholders kept. It is `null` on a deployment with no derivable public host.
+- **The project's host** — `https://<subdomain>.<deployment-host>` — serves the product: the dynamic endpoints you authored, the end-user session routes, and the credit balance. Dynamic endpoints exist only there; calling one on the api host is a 404 `No project matched this request's host`.
+- A route served on the wrong host is a 404, before authentication. The api host gives the same `No project matched this request's host` answer to a mistyped design route, so a 404 with that message on a design call means the path is wrong, not the host.
+- The `invokeUrl` an endpoint read returns is the project-host URL, with its `{param}` placeholders kept. It is `null` on a deployment with no derivable public host; it follows the deployment's configured address, not the base URL you call, so read it and never infer it.
 
 ## Ids
 

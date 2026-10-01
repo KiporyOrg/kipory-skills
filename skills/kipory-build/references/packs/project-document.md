@@ -127,7 +127,8 @@ document at a time.
 
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
-required here too — but of its optional fields only the ones you state are compared and written;
+required here too (one row asks for more than its create: an `evals` suite must state `scorers`,
+`[]` for a contract suite) — but of its optional fields only the ones you state are compared and written;
 one you omit keeps its value. The simplest edit is the exported row with one field changed. A
 field the row's own PATCH does not take — a facet's `cardinality`, a profile's `modelId`, a
 trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged

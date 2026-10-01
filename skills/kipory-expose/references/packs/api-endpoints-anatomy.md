@@ -35,7 +35,8 @@ flow, and confusing them produces a 404 that looks like the endpoint was never m
 ⭐ **Never reconstruct the call URL by hand.** Every endpoint read carries a computed, read-only
 `invokeUrl` — the absolute dynamic-plane URL. Use it. ⚠️ It is `null` on a deployment with no
 derivable public host (an api on a bare `localhost`; a local api at `api.<name>.localhost` has
-one), so handle that arm rather than sending the literal: there,
+one — the rule follows the deployment's configured address, not the base URL a caller was
+handed, so read the field and never infer it), so handle that arm rather than sending the literal: there,
 call the api's own base URL with the endpoint's path and the header `x-kipory-project-slug: <slug>`.
 
 Every read also carries a computed, read-only `access`: whether a VIEWER-level caller may make the
@@ -226,7 +227,7 @@ drifted before the guards, but it is no longer the only way to find out — the 
 | **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated |
 | **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                    |
 | **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**                                                                                    |
-| **502** | Skill failure; a **declared-required output the run did not produce**; response fails validation                                                                              |
+| **502** | Skill failure; response fails validation (a required output the run did not produce is the 422 below)                                                                         |
 | **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                        |
 
 ⭐ **How long a synchronous invoke waits is on the endpoint you read**: `syncWaitMs` is the wait the

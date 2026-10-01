@@ -201,7 +201,8 @@ picked the job up; it does not mean the run failed.
 
 ⭐ **A suite with no scorer flows, `repeats: 1` and `bracketed: false` can run inside the request.**
 `wait: true` answers `200` with the settled run — the same body `GET /v1/eval-runs/{runId}`
-answers, its `contract` included — so checking a flow's contract is one call. Any other suite
+answers: `{ run, results, aggregates, delta }`, the `contract` sitting on `run` beside the run's
+own status and credits — so checking a flow's contract is one call. Any other suite
 answers 422 naming what disqualifies it, and `validateOnly: true` with `wait: true` says the same as
 a verdict. The run has **180 seconds**: a case the deadline cuts, running or not yet started, is
 `not-run` with the reason, never errored. Each running case holds one of the project's preview
@@ -594,7 +595,7 @@ facet's (which also carries `confirm` and `assignedTerms`); anything else in the
 2. Create the suite and bind the subject — no scorer flows yet, so it is a contract suite.
 3. Add cases — inputs, an expected value where there is ground truth, labels for per-label
    breakdowns, and assertions for everything checkable for free.
-4. Run it with `wait: true` and read `contract`; that run is the baseline.
+4. Run it with `wait: true` and read the `contract` on its `run`; that run is the baseline.
 5. Add scorer flows only for what assertions genuinely cannot express.
 
 An expected value is optional throughout. Reference-free scorers — a faithfulness judge, a

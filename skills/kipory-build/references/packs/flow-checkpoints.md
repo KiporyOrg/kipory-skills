@@ -140,4 +140,7 @@ label, rather than trusting the automatic one to still be there.
 
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — what is being snapshotted.
 - Project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the other write that sets a flow's steps as a whole.
-- Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — how to find out you needed the rollback.
+- Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — how to find out you needed the rollback. A capture, and the capture a
+  restore takes first, makes each suite's next run on the flow incomparable with the one before
+  (`delta.suppressedReason`), even when the content is identical: run the suite once after a
+  capture, before the edit, so the edit has a baseline.
