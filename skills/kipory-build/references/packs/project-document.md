@@ -289,9 +289,14 @@ and replacing the step that read it is one apply. A step leaves out what a singl
 leave out: `inputStreams` for a handler that names its inputs in its settings, prompt or
 `flow.invoke` input rows (derived, as the save derives them), `inputSchemas` (each input typed from
 what feeds it, a step of the same document included, and typed again when what feeds it changes),
-`promptTemplate` and `taskKey`, and `outputSlot` on a handler that writes no named result. Left out
-of a step the flow already holds, `promptTemplate`, `taskKey` and `outputSlot` keep their values; a
-new step starts on `""`, `extraction` and no slot. A list the step does state is written as stated.
+`promptTemplate` and `taskKey`, `outputSlot` on a handler that writes no named result,
+`description`, `condition`, `enabled` and `outputSchema`. Left out of a step the flow already holds,
+each keeps its value; a new step starts on `""`, `extraction`, no slot, no description, no
+condition, enabled, and the type its handler emits (`entity.create` → `RecordCreate`,
+`value.transform` → `object`), worked out once what feeds it is typed. An `outputSchema` of `null`
+is stated: no constraint. A list the step does state is written as stated. A step field the write
+refuses is named on the step's own path (`flows.<flow>.skills.<step>.outputSchema`), never the
+flow's.
 
 In the project's history an apply is ONE entry, titled as a document apply with the three counts
 its plan reported — not forty entries, and not "40 changes across six kinds".

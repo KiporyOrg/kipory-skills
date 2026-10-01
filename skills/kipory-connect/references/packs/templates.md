@@ -43,7 +43,8 @@ with `DOCUMENT_FLOW_TESTS_MOVED` — an event type keyed
 categories map — an event's namespace is its key prefix) — a
 template whose example key is not a valid term key (lowercase segments joined by `-`) is refused
 like any document, and whose steps may leave out what a document step may (their derived inputs
-and input types, an unread prompt, task or output slot) and spell a step's `onFailure` as a
+and input types, an unread prompt, task or output slot, a description, condition, `enabled`, and
+an `outputSchema` its handler emits) and spell a step's `onFailure` as a
 document does (`fail-run` or `continue`).
 
 ## Create a project from one

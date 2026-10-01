@@ -410,7 +410,9 @@ A flow is copied the way any configuration is: read the source project's documen
 (and whatever it names that the target lacks), and apply that to the target. Everything inside a
 document is addressed by **key** — a step by its key, a type by `{ "kind": "ref", "ref": "<name>" }`
 — so nothing in it is a source-project id, and the steps, the signature and the output binding travel
-together. See `capability-packs/project-document.md`.
+together. A document step may leave out what `POST /v1/steps` lets it — `description`,
+`condition`, `enabled` and `outputSchema` among them, a new step taking the create's defaults and
+its handler's own output type, a held one keeping its own. See `capability-packs/project-document.md`.
 
 There is no per-flow export: the project document IS the portable form, and the one that writes
 back — keyed, planned and versioned. (The per-flow export route, which answered persisted slot
