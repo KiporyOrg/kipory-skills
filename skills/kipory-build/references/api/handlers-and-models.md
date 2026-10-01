@@ -151,7 +151,7 @@ Set this node's routing policy for one model — the provider order and failover
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `providerOrder` | `string[]` | yes | The provider accounts to use for this model, first choice first. Each must offer the model and have that offer switched on. An offer not listed still serves when none listed is on. |
+| `providerOrder` | `string[]` | yes | The provider accounts to use for this model, first choice first. Each must offer the model and have that offer switched on. Only the accounts listed serve the model: with `failover` `none` the first one alone, and a call fails when it is switched off. |
 | `failover` | `"none" \| "on-exhaustion"` | yes | `none` — a call uses the first enabled offer and fails if that account cannot serve it. `on-exhaustion` — when the account is out of quota or credit, the call is retried once through each next offer in order; each attempt is its own AI call, billed at the offer that served it. |
 
 **Response `200`**

@@ -17,7 +17,6 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/projects/{nodeId}/auth-config`](#get-v1-projects-nodeid-auth-config) |  |
 | `PUT` | [`/v1/projects/{nodeId}/auth-config`](#put-v1-projects-nodeid-auth-config) |  |
 | `GET` | [`/v1/projects/{nodeId}/members`](#get-v1-projects-nodeid-members) |  |
-| `POST` | [`/v1/projects/{nodeId}/members/{userId}/credits`](#post-v1-projects-nodeid-members-userid-credits) |  |
 | `GET` | [`/v1/projects/{nodeId}/profile-schema`](#get-v1-projects-nodeid-profile-schema) |  |
 | `PUT` | [`/v1/projects/{nodeId}/profile-schema`](#put-v1-projects-nodeid-profile-schema) |  |
 | `DELETE` | [`/v1/projects/{nodeId}/profile-schema`](#delete-v1-projects-nodeid-profile-schema) |  |
@@ -185,31 +184,6 @@ One page of the people who use the project — its end users — with their stan
 | `order` | `"asc" \| "desc"` | yes | Which way it ran — the `order` sent, or `desc`. |
 | `atCeiling` | `integer \| null` | yes | Seats across the WHOLE roster, every standing, whose spend in the current window has reached the project's per-person ceiling — the members the spend gate is refusing now. Null when the project sets no ceiling, which is not the same as nobody at it. |
 | `standingCounts` | `object` | yes | How many seats each standing holds, across the WHOLE roster rather than this page — the filter chips' counts. They sum to the unfiltered total; a chip whose count came from the filtered page would report the narrowing it is offering to apply. |
-
-### `POST /v1/projects/{nodeId}/members/{userId}/credits`
-
-Grant a member credits in their own wallet, with a reason for the ledger. Idempotent on `idempotencyKey`. To cap what one member may spend instead, set `perUserSpendCapCredits` on `PATCH /v1/projects/{nodeId}/settings`; each member's spend against it is on `GET …/members`.
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id. |
-| `userId` | `string` | yes | The member's user id. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `amountCredits` | `integer` | yes | How many credits to add to this member's own wallet. |
-| `reason` | `string` | yes | Why. REQUIRED by the writer beneath, and written into the ledger entry — it is the only record of why the balance moved. |
-| `idempotencyKey` | `string` | no | Makes a double-submit resolve to the existing grant instead of a second one. Omitted, every call is a fresh grant. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `balanceCredits` | `integer` | yes | The member's wallet balance after the grant. |
 
 ### `GET /v1/projects/{nodeId}/profile-schema`
 
