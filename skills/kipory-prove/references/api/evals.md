@@ -274,12 +274,12 @@ Create an eval suite: a flow under test (`flowId`), the scorer flows that grade 
 | `key` | `string` | yes | The suite's key, which you choose — unique in the project and what a link to the suite and the project document name it by. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `label` | `string` | yes | Display label for the suite. |
 | `description` | `string \| null` | no | Free-text note about what this suite measures. |
-| `flowId` | `string` | yes | Id of the flow under test. It must exist in this project or be a platform flow. |
+| `flowId` | `string` | yes | Id of the flow under test. It must exist in this project or be a platform flow. A platform flow runs as this project, which pays for its cases as for its own flows. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. These are billed model calls; a case's own assertions are free. |
 | `scoreRules` | `object[]` | no | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
 | `coverageMode` | `"strict" \| "report-only"` | no | How a coverage shortfall is treated. `strict` fails the run; `report-only` records it and lets the run succeed. Omitted, it is `report-only` when the suite has no scorer flows (a contract suite, judged by its assertions) and `strict` otherwise. |
-| `runOnConfigChange` | `boolean` | no | Whether a configuration change triggers this suite. Defaults to `false`: the suite runs only when asked. |
+| `runOnConfigChange` | `boolean` | no | Whether a configuration change triggers this suite. Defaults to `false`: the suite runs only when asked. When true, each automatic run is billed to this project, including one a platform flow's edit or a new platform release set off. |
 | `repeats` | `integer` | no | How many times each case runs, 1 to 10. Every repeat is a real run that spends, which is why the ceiling is refused here rather than part-way through the run. |
 | `latencyIsolated` | `boolean` | no | Run cases one at a time, for latency measurement. |
 | `subjectUncached` | `boolean` | no | Run the flow with the ingest cache out of the path. |
@@ -312,7 +312,7 @@ Create an eval suite: a flow under test (`flowId`), the scorer flows that grade 
 | `scoreRules` | `object[]` | yes | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
-| `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
+| `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. An automatic run is billed to this project like any other, including when the change was the platform's: an edit to a platform flow the suite runs, or a new platform release. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
@@ -354,7 +354,7 @@ Read one eval suite: its configuration, the `version` its PATCH takes, its newes
 | `scoreRules` | `object[]` | yes | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
-| `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
+| `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. An automatic run is billed to this project like any other, including when the change was the platform's: an edit to a platform flow the suite runs, or a new platform release. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
@@ -389,7 +389,7 @@ Change an eval suite's configuration — its flow, scorers, `scoreRules` (replac
 | `key` | `string` | no | The suite's new key. A link or document naming the old key stops resolving. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 | `label` | `string` | no | New display label. |
 | `description` | `string \| null` | no | New free-text note. |
-| `flowId` | `string` | no | Id of the new flow under test. It must exist in this project or be a platform flow. |
+| `flowId` | `string` | no | Id of the new flow under test. It must exist in this project or be a platform flow. A platform flow runs as this project, which pays for its cases as for its own flows. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. Replaces the existing list. |
 | `scoreRules` | `object[]` | no | Declarations about the suite's scorer scores. Replaces the existing list wholesale. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
@@ -420,7 +420,7 @@ Change an eval suite's configuration — its flow, scorers, `scoreRules` (replac
 | `scoreRules` | `object[]` | yes | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
-| `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
+| `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. An automatic run is billed to this project like any other, including when the change was the platform's: an edit to a platform flow the suite runs, or a new platform release. |
 | `repeats` | `integer` | yes | How many times each case runs. Repeats sample the flow only — grading still happens once, so scorer spend does not multiply. A single sample is not a latency measurement. |
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |

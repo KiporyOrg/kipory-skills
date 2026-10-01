@@ -177,7 +177,7 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 
 ### `DELETE /v1/flows/{id}`
 
-Delete a flow and every step in it (`deletedSkillCount` says how many); its checkpoints go with it; eval suites over it stay, and their runs fail until they name another flow. Refused (409 `FLOW_HAS_DEPENDENTS`) while anything holds it — an endpoint, schedule, trigger, record type, facet resolver, platform job, or another flow that calls it. With `?validateOnly=true` it answers whether the delete would be refused, and `derived.dependents` counts what holds the flow, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
+Delete a flow and every step in it (`deletedSkillCount` says how many); its checkpoints go with it, and so does its `<flowKey>-contract` eval suite with that suite's cases and runs (`deletedContractSuiteCount`; for a platform flow, every project's). Other eval suites over it stay, and their runs fail until they name another flow. Refused (409 `FLOW_HAS_DEPENDENTS`) while anything holds it — an endpoint, schedule, trigger, record type, facet resolver, platform job, or another flow that calls it. With `?validateOnly=true` it answers whether the delete would be refused, and `derived.dependents` counts what holds the flow and the contract suites that would go with it (`refuses: false`), writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
 
 **Path parameters**
 
@@ -198,6 +198,7 @@ Delete a flow and every step in it (`deletedSkillCount` says how many); its chec
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `deletedSkillCount` | `integer` | yes | How many skills went with the flow. Deleting a flow deletes everything inside it. |
+| `deletedContractSuiteCount` | `integer` | yes | How many `<flowKey>-contract` eval suites went with the flow, with their cases and runs. For a platform flow, this counts the contract suites over it in every project. Other eval suites over the flow are kept; their runs fail until they name another flow. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

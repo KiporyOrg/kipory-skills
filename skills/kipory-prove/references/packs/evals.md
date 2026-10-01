@@ -402,8 +402,9 @@ regression announces is one your own project already defines.
 
 Each case carries an input bag, and the suite binds the flow every case runs through.
 
-A suite's subject may be a **platform flow**. Each case then runs as the suite's project, the
-platform pays as it does for a platform flow's preview, and the case's trace is filed under the
+A suite's subject, or a scorer, may be a **platform flow**. Each case then runs as the suite's
+project, and **the suite's project pays** for it exactly as for its own flows: the same credits,
+design-time ceiling and `402` when the project is over its cap. The case's trace is filed under the
 suite's project marked `platformFlowRun: true`, so a reader can tell it from the project's own
 flows. The run read carries the same mark on each case result, `results[].platformFlowRun`.
 

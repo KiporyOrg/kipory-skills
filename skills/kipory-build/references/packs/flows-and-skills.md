@@ -1126,6 +1126,13 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   counts it decided on (`kinds[{kind, count, label, refuses}]`, `total`; `kind` is kebab-case:
   `api-endpoints`, `schedules`, `triggers`, `record-types`, `facet-resolvers`, `platform-jobs`,
   `invoking-flows`). Offer Delete where `ok` is true; do not decide from `total`.
+- **A flow's contract suite goes with it.** The delete also deletes the eval suite keyed
+  `<flowKey>-contract` over that flow, with its cases and runs, and answers
+  `deletedContractSuiteCount`. For a platform flow, this includes the contract suites over it in
+  every project. The dry run lists them as `contract-suites` with `refuses: false`, outside
+  `total`. Other suites over the flow stay, and their runs fail until they name another flow.
+  Re-point a suite whose cases you want to keep before deleting the flow. A document that deletes
+  the flow reports the suite as `DOCUMENT_DELETE_CASCADED`.
 - **A skill cannot be deleted while another skill in its flow reads a slot it writes** — as an
   input or in its condition — a 409 `SKILL_HAS_DEPENDENTS` naming the slot and the readers. Every
   entry of `GET /v1/steps?flowId=`, and every skill on the bootstrap, carries that refusal as

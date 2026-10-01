@@ -75,8 +75,9 @@ delete the endpoint → delete the schedules and triggers → unbind the type (f
 A disabled schedule still blocks the flow delete: delete it or re-point it
 (`PATCH /v1/schedules/{id} { flowId, version }`). So do a type bound to the flow, a facet resolver and
 another flow's `flow.invoke` — the refusal (`409 FLOW_HAS_DEPENDENTS`) counts each kind, and `GET /v1/projects/{nodeId}/connections` names the rows. Rehearse each one that has a rehearsal. A delete that
-is refused has told you the order was wrong. A flow delete takes its checkpoints and test cases with
-it: export the project first if you may want the flow back.
+is refused has told you the order was wrong. A flow delete takes its checkpoints and its `<flowKey>-contract`
+eval suite (cases and runs) with it: export the project first if you may want the flow back. Other
+suites over the flow stay and fail until you re-point them.
 
 **A rename.** Rehearse, then commit. On a live endpoint prefer ONE document apply that states the
 step's new `outputSlot`, every reader rewritten to the new name, and the flow's re-pointed
