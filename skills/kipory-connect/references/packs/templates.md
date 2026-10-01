@@ -35,7 +35,10 @@ project document (capability pack `project-document` — `GET /v1/capability-pac
 relation kind's pairings by `fromRecordTypeKey`/`toRecordTypeKey`, a `skill-outcome` assertion
 by `skillKey`, a facet's worked examples by term `key` and `label`, a record type's
 `ownerScope` as `user` or `project`, a relation kind's `producer` and `cardinality` in kebab
-(`join-record`, `many-to-one`), an eval suite's `coverageMode` as `strict` or `report-only`, an event type keyed
+(`join-record`, `many-to-one`), an eval suite's `coverageMode` as `strict` or `report-only`, its
+`scoreRules` directions in kebab (bounded as on the suite write) and its cases (each with an optional `label`) under
+`evals.<suite>.cases` — a flow carries no `tests` of its own, and a template that does is refused
+with `DOCUMENT_FLOW_TESTS_MOVED` — an event type keyed
 `<categoryKey>/<key>` in the document's `events` section with a boolean `durable` (it has no
 categories map — an event's namespace is its key prefix) — a
 template whose example key is not a valid term key (lowercase segments joined by `-`) is refused

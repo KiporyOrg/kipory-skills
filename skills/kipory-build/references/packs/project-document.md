@@ -52,7 +52,8 @@ record type's `ownerScope` is `user` or `project` here as on `POST /v1/record-ty
 record (the stored `USER` / `PROJECT` is refused, in a document as on the row), and a relation
 kind's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
 `POST /v1/relation-kinds` (the camelCase `joinRecord` / `manyToOne` is refused), and an eval
-suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`.
+suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`, its `scoreRules`
+the same list under the same bounds, with `direction` in kebab (`higher-is-better`).
 
 ## Three reference forms
 
@@ -131,7 +132,7 @@ field the row's own PATCH does not take — a facet's `cardinality`, a profile's
 trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
 it is fine (an export states everything), stated CHANGED it is refused on its own path, never
 dropped. To change one, state the row under a new key without the `id` and remove the old one.
-The exception is the owned collections (a flow's `skills` and `tests`, a suite's `cases`, a kind's `pairings`
+The exception is the owned collections (a flow's `skills`, a suite's `cases`, a kind's `pairings`
 — each `{ fromRecordTypeKey, toRecordTypeKey }`, as the kind's create takes them — a
 facet's `terms`): each is stated whole, so when present it replaces the owner's collection — and a
 member the project holds that the collection no longer names is REMOVED, which makes that
@@ -197,8 +198,8 @@ pairing it has that kind's change on `relations.<kind>` as the cascade, not as `
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a shape, a
-record type (while it holds no records and no step's config names it), a skill, a flow test case,
-an eval suite and an eval case, keeping the `id` under a new key is a RENAME — one update of the
+record type (while it holds no records and no step's config names it), a skill, an eval suite and
+an eval case, keeping the `id` under a new key is a RENAME — one update of the
 same row, and everything that named it follows; the row API renames exactly the same kinds. Every
 other key is permanent (a facet, a flow, an endpoint: other rows or stored data are linked to it
 by key), so the same move is refused on the row;

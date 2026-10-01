@@ -85,6 +85,7 @@ One trace of this flow in full, with its `runId`. The same trace by its run is `
 | `subject` | `string` | yes | What kind of thing the flow was invoked for: `request` when it ran with an input bag (an endpoint or a search), `record` when it ran to process one record. Those are the only two values. |
 | `source` | `string` | yes | Where the run came from: `production` is real traffic, while `eval` and `manual` are runs someone deliberately provoked. |
 | `tag` | `string \| null` | yes | A label attached to the run, or null. |
+| `platformFlowRun` | `boolean` | yes | True when the flow that ran is a platform flow, run by one of this project's eval suites: the trace is filed under this project, which ran it, but the flow is not one of the project's own. |
 | `flowId` | `string \| null` | yes | The flow that ran. |
 | `recordId` | `string \| null` | yes | The record being processed, when `subject` is `record`. Null otherwise. |
 | `runId` | `string \| null` | yes | The run that wrote this trace — its steps, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |

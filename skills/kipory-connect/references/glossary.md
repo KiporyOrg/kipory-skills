@@ -36,7 +36,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Run vs. trace vs. step log.** A **run** is one execution, with one id whatever started it — an endpoint invocation, a record-processing attempt, a bare request. Its **step log** is never sampled. Its **trace** holds what each output slot held, is sampled per project, and expires.
 
-**Test case vs. eval.** A **flow test case** asks "does this still work" — stored inputs and pass/fail assertions. An **eval suite** asks "is this any good" — cases scored by scorer flows, which are billed model calls. The assertion vocabulary is shared.
+**Contract suite vs. scorer.** A flow's stored checks are **eval suites**. A suite with no scorer flows is a **contract suite** and asks "does this still work" — stored inputs and pass/fail assertions, and every run says whether its `contract` held. **Scorer flows** on a suite ask "is this any good" — each case scored by a flow, a billed model call. There is no separate test-case resource.
 
 **Secret.** A vendor credential in the node-scoped vault, resolved nearest-wins up the ancestor chain, never read back. Model calls do not use it.
 

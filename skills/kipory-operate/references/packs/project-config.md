@@ -107,7 +107,7 @@ Three corners worth holding:
   deliberately, because a merge makes "remove this nested key" impossible to express. Override a
   nested object and you are responsible for all of its contents.
 - **Pin config-sensitive behaviour with a stored test.** If a flow's correctness depends on a
-  threshold, a config edit that breaks it should fail a replayed test case rather than being
+  threshold, a config edit that breaks it should fail a contract suite's case rather than being
   discovered in production behaviour. Config is the easiest thing in a project to change and the
   hardest to notice having changed.
 
@@ -116,4 +116,4 @@ Three corners worth holding:
 - Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — authoring the shape a
   namespace binds.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — where the wiring that reads config lives.
-- Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`) — pinning behaviour that a tunable can move.
+- Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — pinning behaviour that a tunable can move.

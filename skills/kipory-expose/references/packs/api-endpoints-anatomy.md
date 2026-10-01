@@ -57,8 +57,8 @@ why.
 ## The key you author
 
 Every project element is addressed by its `key`, a string **you** choose rather than the row id.
-Endpoints, schedules and schema entries — with triggers, sources, eval suites, eval cases and flow
-test cases — share one format, the **address key**, and it is checked on write:
+Endpoints, schedules and schema entries — with triggers, sources, eval suites and eval cases —
+share one format, the **address key**, and it is checked on write:
 
 ```
 letters, digits, dots, dashes, underscores

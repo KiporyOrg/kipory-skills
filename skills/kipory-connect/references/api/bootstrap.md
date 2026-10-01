@@ -39,7 +39,7 @@ To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/docu
 | `schema` | `object` | no | Record types, schema entries and facet definitions. Absent when unchanged or not requested. |
 | `relations` | `object` | no | Relation kinds and the record-type pairs each may connect. Absent when unchanged or not requested. |
 | `events` | `object` | no | Event types, each carrying its namespace (`categoryKey`). Absent when unchanged or not requested. |
-| `flows` | `object` | no | Flows, their skills and their test cases — the highest-churn section, which is why it stands alone. Absent when unchanged or not requested. |
+| `flows` | `object` | no | Flows and their skills — the highest-churn section, which is why it stands alone. Absent when unchanged or not requested. |
 | `surfaces` | `object` | no | Dynamic API endpoints and schedules — the things that expose or drive the project. Absent when unchanged or not requested. |
 | `vectors` | `object` | no | Embedding profiles and the collections they minted. Absent when unchanged or not requested. |
 | `evals` | `object` | no | Eval suites and cases. Absent when unchanged or not requested. |

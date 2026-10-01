@@ -42,7 +42,7 @@ List one project's flows (`?project=<nodeId>`), or the platform's own with `?sco
 
 ### `POST /v1/flows`
 
-Create a flow — its key, label and typed signature (`inputTypeNames`, `outputTypeNames`); its steps are added after, with `POST /v1/steps`. `scope: "system"` creates a platform flow (staff only) instead of one in `project`. With `validateOnly: true` it answers whether the create would be refused and the slot names the signature would be stored with, writing nothing. Several flows at once, with their steps and test cases: the `flows` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create a flow — its key, label and typed signature (`inputTypeNames`, `outputTypeNames`); its steps are added after, with `POST /v1/steps`. `scope: "system"` creates a platform flow (staff only) instead of one in `project`. With `validateOnly: true` it answers whether the create would be refused and the slot names the signature would be stored with, writing nothing. Several flows at once, with their steps: the `flows` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`). Stored checks on a flow are eval cases, in the `evals` section of the same document.
 
 **Request body**
 
@@ -91,7 +91,7 @@ Create a flow — its key, label and typed signature (`inputTypeNames`, `outputT
 
 ### `GET /v1/flows/{id}`
 
-Read one flow — its signature, binding, step count and `version` (the lock `PATCH /v1/flows/{id}` requires). Its steps are `GET /v1/steps?flowId=`; `expand=timeLimits` adds each step's effective time limit. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true` (`derived.dependents`). For a project's flow, every flow at once is `GET /v1/bootstrap`, and the flow as configuration you can restate, with its steps and test cases, is `GET /v1/projects/{nodeId}/document`. A platform flow (`scope: "system"`) belongs to no project and is in neither: its steps are `GET /v1/steps?flowId=`.
+Read one flow — its signature, binding, step count and `version` (the lock `PATCH /v1/flows/{id}` requires). Its steps are `GET /v1/steps?flowId=`; `expand=timeLimits` adds each step's effective time limit. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true` (`derived.dependents`). For a project's flow, every flow at once is `GET /v1/bootstrap`, and the flow as configuration you can restate, with its steps, is `GET /v1/projects/{nodeId}/document`, whose `evals` section holds its eval cases. A platform flow (`scope: "system"`) belongs to no project and is in neither: its steps are `GET /v1/steps?flowId=`.
 
 **Path parameters**
 
@@ -177,7 +177,7 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 
 ### `DELETE /v1/flows/{id}`
 
-Delete a flow and every step in it (`deletedSkillCount` says how many); its checkpoints and test cases go with it. Refused (409 `FLOW_HAS_DEPENDENTS`) while anything holds it — an endpoint, schedule, trigger, record type, facet resolver, platform job, or another flow that calls it. With `?validateOnly=true` it answers whether the delete would be refused, and `derived.dependents` counts what holds the flow, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
+Delete a flow and every step in it (`deletedSkillCount` says how many); its checkpoints go with it; eval suites over it stay, and their runs fail until they name another flow. Refused (409 `FLOW_HAS_DEPENDENTS`) while anything holds it — an endpoint, schedule, trigger, record type, facet resolver, platform job, or another flow that calls it. With `?validateOnly=true` it answers whether the delete would be refused, and `derived.dependents` counts what holds the flow, writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
 
 **Path parameters**
 
@@ -205,7 +205,7 @@ Delete a flow and every step in it (`deletedSkillCount` says how many); its chec
 
 ### `GET /v1/flows/{id}/coverage`
 
-Which steps in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the traces production already writes, no test needed. An aggregate over a SAMPLE of at most `attemptLimit` recent attempts (default 500), with `truncated` when more exist: a report, not a log, so it takes no cursor, and a larger `attemptLimit` widens the sample. It measures execution, not correctness: whether each step's output is right is what `POST /v1/flows/{id}/test` (the flow's pass/fail test cases) and an eval suite (`POST /v1/eval-suites/{id}/run`) judge. The attempts' traces: `GET /v1/flows/{id}/traces`; is the graph itself sound: `GET /v1/flows/{id}/health`.
+Which steps in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the traces production already writes, no test needed. An aggregate over a SAMPLE of at most `attemptLimit` recent attempts (default 500), with `truncated` when more exist: a report, not a log, so it takes no cursor, and a larger `attemptLimit` widens the sample. It measures execution, not correctness: whether each step's output is right is what an eval suite over the flow judges (`POST /v1/eval-suites/{id}/run`; `wait: true` answers in the same call). The attempts' traces: `GET /v1/flows/{id}/traces`; is the graph itself sound: `GET /v1/flows/{id}/health`.
 
 **Path parameters**
 
@@ -262,7 +262,7 @@ The full validation report for the flow as saved: every diagnostic, what it is a
 
 ### `POST /v1/flows/{id}/preview`
 
-Run the flow now, in a sandbox, and answer what happened: every step's transcript, its failures, and the declared outputs. Seed it from `input` slot values or an existing record; run the saved steps or a draft `graph` you send. It bills the project for its model calls and applies the writes its steps make unless you pass `apply: false` (then the change set is recorded and discarded) — a preview EXECUTES the flow, where `validateOnly: true` on a write judges the write without running anything. The same run reported as it happens: `POST /v1/flows/{id}/preview/stream`; queued, with a run log: `POST /v1/flows/{id}/preview-runs`. Stored pass/fail cases: `POST /v1/flows/{id}/test`.
+Run the flow now, in a sandbox, and answer what happened: every step's transcript, its failures, and the declared outputs. Seed it from `input` slot values or an existing record; run the saved steps or a draft `graph` you send. It bills the project for its model calls and applies the writes its steps make unless you pass `apply: false` (then the change set is recorded and discarded) — a preview EXECUTES the flow, where `validateOnly: true` on a write judges the write without running anything. The same run reported as it happens: `POST /v1/flows/{id}/preview/stream`; queued, with a run log: `POST /v1/flows/{id}/preview-runs`. Stored cases with assertions: an eval suite over the flow (`GET /v1/eval-suites?project=<nodeId>&flowId=`), run with `POST /v1/eval-suites/{id}/run`.
 
 **Path parameters**
 

@@ -269,8 +269,8 @@ at all:
 - **Health does not check what a write step writes against the type it names.** Switching an
   `entity.create` step's `recordType` to a type whose shape the incoming slot does not match saves
   and reads healthy; it fails when it runs. Preview it with `apply: false` after such an edit.
-- **Evals and test cases pin the old behaviour.** After a deliberate change they will fail, and that
-  failure is correct. Re-baseline them on purpose (`kipory-prove`) rather than deleting the ones
+- **Eval suites pin the old behaviour.** After a deliberate change their contracts will break, and
+  that failure is correct. Re-baseline them on purpose (`kipory-prove`) rather than deleting the ones
   that went red — a suite deleted because it was inconvenient is the one that would have caught the
   next change.
 - **Deleting a project is rehearsable and then final.** Ask `DELETE /v1/projects/{nodeId}?validateOnly=true`

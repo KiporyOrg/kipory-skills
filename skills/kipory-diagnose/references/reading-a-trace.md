@@ -61,7 +61,7 @@ Open a trace from two days ago for the same site. `slotOutputs.pageText` is 4,00
 
 ## 5. Decide, then go back to build
 
-The fix is a handler config change — `excludeTags` on the scrape step — not a flow rewrite (`kipory-build`, `references/handlers/url.scrape.md`). Before changing it: checkpoint the flow, and store a test case whose assertion is `output-present` on `summary` for a known-good link (`kipory-prove`), so the next silent change surfaces as a failed test rather than a complaint.
+The fix is a handler config change — `excludeTags` on the scrape step — not a flow rewrite (`kipory-build`, `references/handlers/url.scrape.md`). Before changing it: checkpoint the flow, and store an eval case whose assertion is `output-present` on `summary` for a known-good link in the flow's contract suite (`kipory-prove`), so the next silent change surfaces as a broken contract rather than a complaint.
 
 ## What this walk did not need
 

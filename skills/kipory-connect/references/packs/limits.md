@@ -76,7 +76,7 @@ a different answer for identical input. (`$eval` is blocked too, as a sandbox es
 wiring concerns. They have to enter a flow as a step's output or as a flow input, where they are
 visible values rather than hidden ones.
 
-**This is usually the feature, not the obstacle.** It is exactly what makes a stored test case
+**This is usually the feature, not the obstacle.** It is exactly what makes a stored eval case
 meaningful: run the same input twice and the wiring contributes the same answer both times, so any
 difference you see came from the part you were actually testing.
 

@@ -70,8 +70,8 @@ quietly working around it.
 | Start a flow from something outside it — a channel, a webhook, a table  | Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)                                               |
 | Emit progress or fan-out signals from a flow, or subscribe to them      | Events (capability pack `events` — `GET /v1/capability-packs/events`)                                                 |
 | Snapshot a flow before a risky change, and roll back                    | Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`)                             |
-| Store what "working" means and re-check it after every edit             | Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`)                               |
-| Judge whether a change made a flow **better**, not just still passing   | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)                                             |
+| Store what "working" means and re-check it after every edit             | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — a contract suite                          |
+| Judge whether a change made a flow **better**, not just still passing   | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — scorer flows                              |
 | Give a project tunable runtime settings — thresholds, cadences, weights | Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)                                 |
 | Make a record type searchable                                           | Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)                         |
 | See what you have spent, or why a call was refused with `402`           | Credits and spend (capability pack `credits` — `GET /v1/capability-packs/credits`)                                     |
@@ -116,10 +116,9 @@ quietly working around it.
   scoped to one run and one on the bus.
 - **Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`)** — atomic snapshot and restore; the safety net to take
   before a risky edit.
-- **Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`)** — stored inputs and assertions replayed through the
-  preview engine. Asks "does this still work?"
-- **Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)** — cases, a subject and scorers, graded and kept so runs compare. Asks
-  "is this any good?" Reach for it when the answer is a matter of degree.
+- **Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)** — the one place a flow's stored checks live: cases with assertions, a
+  subject, and optional scorers, kept so runs compare. A suite with no scorers is a contract suite
+  and asks "does this still work?"; scorer flows ask "is this any good?"
 - **Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)** — namespaced runtime tunables typed by a bound shape,
   readable by flows.
 - **Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)** — the one place a project's vector space is

@@ -2,7 +2,7 @@
 
 # Eval suites, cases and runs
 
-Cases × a subject × scorers, graded and kept so runs compare. The run call is ADMIN, answers 202 with no run id, and is refused with 409 while one is in flight.
+Cases × a subject × scorers, graded and kept so runs compare. The run call is ADMIN and answers 202 with the `runId`, or 200 with the finished run when `wait: true` (a scorer-less suite, one repeat, unbracketed, within 180 s); it is refused with 409 while a run is in flight.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -30,7 +30,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/eval-cases`
 
-List one eval suite's cases (`?suiteId=`), enabled or not, each with the `version` its PATCH takes. An eval case is scored and runs asynchronously as part of its suite (`POST /v1/eval-suites/{id}/run`); a flow test case (`GET /v1/flow-test-cases?flowId=`) is pass/fail and runs synchronously and free (`POST /v1/flows/{id}/test`). The same cases, as authored, ride `GET /v1/bootstrap` and each suite's `cases` in the `evals` section of `GET /v1/projects/{nodeId}/document`.
+List one eval suite's cases (`?suiteId=`), enabled or not, each with the `version` its PATCH takes. An eval case runs as part of its suite (`POST /v1/eval-suites/{id}/run`), and its assertions decide whether the run's contract held. The same cases, as authored, ride `GET /v1/bootstrap` and each suite's `cases` in the `evals` section of `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -46,7 +46,7 @@ List one eval suite's cases (`?suiteId=`), enabled or not, each with the `versio
 
 ### `POST /v1/eval-cases`
 
-Add a case to an eval suite: the inputs its run hands the suite's flow, what a correct result looks like (`expected`) for scorers that compare, and free deterministic `assertions`. Scored, and run asynchronously with its suite by `POST /v1/eval-suites/{id}/run`. Refused (422) without inputs or with an unsafe assertion, and (409) when the key is used in the suite. With `validateOnly: true` it answers whether the create would be refused, writing nothing. For a pass/fail check run synchronously and free by `POST /v1/flows/{id}/test`, add a flow test case (`POST /v1/flow-test-cases`) instead. Several at once: a suite's `cases` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Add a case to an eval suite: the inputs its run hands the suite's flow, what a correct result looks like (`expected`) for scorers that compare, and free deterministic `assertions`. It runs with its suite (`POST /v1/eval-suites/{id}/run`; `wait: true` answers a small scorer-less suite in the same call). Refused (422) without inputs or with an unsafe assertion, and (409) when the key is used in the suite. With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several at once: a suite's `cases` in `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -54,6 +54,7 @@ Add a case to an eval suite: the inputs its run hands the suite's flow, what a c
 | --- | --- | --- | --- |
 | `suiteId` | `string` | yes | Id of the suite to add this case to. |
 | `key` | `string` | yes | The case's key, which you choose. Run-to-run comparison matches on it, so keeping it stable preserves the case's history. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string \| null` | no | Display text for the case, up to 200 characters. Nothing resolves a case by it. Optional. |
 | `description` | `string \| null` | no | Why this case exists. Never read by a scorer. |
 | `inputs` | `object \| null` | no | Input values for the suite's flow, keyed by slot name. Required: a case without inputs is refused. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -77,6 +78,7 @@ Add a case to an eval suite: the inputs its run hands the suite's flow, what a c
 | `id` | `string` | yes | Case id — the address for every case verb. |
 | `suiteId` | `string` | yes | Id of the suite this case belongs to. |
 | `key` | `string` | yes | The case's key, which you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
+| `label` | `string \| null` | yes | The case's display text. Nothing resolves a case by it; null when the case was written without one. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
 | `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -106,6 +108,7 @@ Read one eval case. Every case of its suite: `GET /v1/eval-cases?suiteId=`; its 
 | `id` | `string` | yes | Case id — the address for every case verb. |
 | `suiteId` | `string` | yes | Id of the suite this case belongs to. |
 | `key` | `string` | yes | The case's key, which you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
+| `label` | `string \| null` | yes | The case's display text. Nothing resolves a case by it; null when the case was written without one. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
 | `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -133,6 +136,7 @@ Change an eval case — its inputs, expected result, assertions, labels, or whet
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key` | `string` | no | The case's new key. Changing it detaches the case from its own history, since comparison matches on this value. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `label` | `string \| null` | no | New display text, or null to clear it. Omit to leave it alone. |
 | `description` | `string \| null` | no | Why this case exists. Never read by a scorer. |
 | `inputs` | `object \| null` | no | Input values for the suite's flow, keyed by slot name. Cannot be cleared: a case without inputs is refused. |
 | `expected` | `unknown` | no | What a correct result looks like. |
@@ -149,6 +153,7 @@ Change an eval case — its inputs, expected result, assertions, labels, or whet
 | `id` | `string` | yes | Case id — the address for every case verb. |
 | `suiteId` | `string` | yes | Id of the suite this case belongs to. |
 | `key` | `string` | yes | The case's key, which you choose. This is what a run-to-run comparison matches on, so keeping it stable is what preserves a case's history across edits and recreation. |
+| `label` | `string \| null` | yes | The case's display text. Nothing resolves a case by it; null when the case was written without one. |
 | `description` | `string \| null` | yes | Why this case exists, in your words. Never read by a scorer — it is provenance, not part of what is graded. |
 | `inputs` | `object \| null` | yes | Input values for the suite's flow, keyed by slot name — what this case runs the flow with. |
 | `expected` | `unknown` | no | What a correct result looks like, for scorers that compare. |
@@ -228,6 +233,7 @@ The trace of one case in an eval run, with its `runId`. The run's per-case score
 | `subject` | `string` | yes | What kind of thing the flow was invoked for: `request` when it ran with an input bag (an endpoint or a search), `record` when it ran to process one record. Those are the only two values. |
 | `source` | `string` | yes | Where the run came from: `production` is real traffic, while `eval` and `manual` are runs someone deliberately provoked. |
 | `tag` | `string \| null` | yes | A label attached to the run, or null. |
+| `platformFlowRun` | `boolean` | yes | True when the flow that ran is a platform flow, run by one of this project's eval suites: the trace is filed under this project, which ran it, but the flow is not one of the project's own. |
 | `flowId` | `string \| null` | yes | The flow that ran. |
 | `recordId` | `string \| null` | yes | The record being processed, when `subject` is `record`. Null otherwise. |
 | `runId` | `string \| null` | yes | The run that wrote this trace — its steps, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |
@@ -241,13 +247,14 @@ The trace of one case in an eval run, with its `runId`. The run's per-case score
 
 ### `GET /v1/eval-suites`
 
-List one project's eval suites (`?project=<nodeId>`), each with its configuration, the `version` its PATCH takes, its newest run (`lastRun`) and whether a run is in flight. An eval suite scores a flow over a set of eval cases, asynchronously and billed; the pass/fail, free check of one flow is its flow test cases (`GET /v1/flow-test-cases?flowId=`). The same suites, as authored, ride `GET /v1/bootstrap` (by id) and the `evals` section of `GET /v1/projects/{nodeId}/document` (by key). Every suite's recent scores at once: `GET /v1/eval-suites/trend?project=`.
+List one project's eval suites (`?project=<nodeId>`; add `&flowId=` for the suites of one flow), each with its configuration, the `version` its PATCH takes, its newest run (`lastRun`) and whether a run is in flight. An eval suite runs a flow over a set of eval cases: their assertions decide whether its contract holds, and its scorer flows score the outputs. The same suites, as authored, ride `GET /v1/bootstrap` (by id) and the `evals` section of `GET /v1/projects/{nodeId}/document` (by key). Every suite's recent scores at once: `GET /v1/eval-suites/trend?project=`.
 
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose suites to list. |
+| `flowId` | `string` | no | Only the suites whose subject is this flow (its id). Omit to list every suite in the project. |
 
 **Response `200`**
 
@@ -257,7 +264,7 @@ List one project's eval suites (`?project=<nodeId>`), each with its configuratio
 
 ### `POST /v1/eval-suites`
 
-Create an eval suite: a flow under test (`flowId`), the scorer flows that grade each case, and how a run treats a coverage shortfall (`coverageMode`). Its cases are added with `POST /v1/eval-cases`; it is run with `POST /v1/eval-suites/{id}/run`. Refused (422) when the flow or a scorer is not this project's (or the platform's), and (409) when the key is taken. With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several suites with their cases at once: the `evals` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`). For a free pass/fail check of one flow, use flow test cases (`POST /v1/flow-test-cases`) instead.
+Create an eval suite: a flow under test (`flowId`), the scorer flows that grade each case, and how a run treats a coverage shortfall (`coverageMode`). Its cases are added with `POST /v1/eval-cases`; it is run with `POST /v1/eval-suites/{id}/run`. Refused (422) when the flow or a scorer is not this project's (or the platform's), and (409) when the key is taken. With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several suites with their cases at once: the `evals` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -269,9 +276,10 @@ Create an eval suite: a flow under test (`flowId`), the scorer flows that grade 
 | `description` | `string \| null` | no | Free-text note about what this suite measures. |
 | `flowId` | `string` | yes | Id of the flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. These are billed model calls; a case's own assertions are free. |
+| `scoreRules` | `object[]` | no | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
-| `coverageMode` | `"strict" \| "report-only"` | no | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
-| `runOnConfigChange` | `boolean` | no | Whether a configuration change triggers this suite. |
+| `coverageMode` | `"strict" \| "report-only"` | no | How a coverage shortfall is treated. `strict` fails the run; `report-only` records it and lets the run succeed. Omitted, it is `report-only` when the suite has no scorer flows (a contract suite, judged by its assertions) and `strict` otherwise. |
+| `runOnConfigChange` | `boolean` | no | Whether a configuration change triggers this suite. Defaults to `false`: the suite runs only when asked. |
 | `repeats` | `integer` | no | How many times each case runs, 1 to 10. Every repeat is a real run that spends, which is why the ceiling is refused here rather than part-way through the run. |
 | `latencyIsolated` | `boolean` | no | Run cases one at a time, for latency measurement. |
 | `subjectUncached` | `boolean` | no | Run the flow with the ingest cache out of the path. |
@@ -301,6 +309,7 @@ Create an eval suite: a flow under test (`flowId`), the scorer flows that grade 
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
 | `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
+| `scoreRules` | `object[]` | yes | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
@@ -342,6 +351,7 @@ Read one eval suite: its configuration, the `version` its PATCH takes, its newes
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
 | `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
+| `scoreRules` | `object[]` | yes | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
@@ -364,7 +374,7 @@ Read one eval suite: its configuration, the `version` its PATCH takes, its newes
 
 ### `PATCH /v1/eval-suites/{id}`
 
-Change an eval suite's configuration — its flow, scorers, `coverageMode`, repeats, regression event, key or label. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. Refused (422) when the flow or a scorer is not this project's, and (409) when a new key is taken. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change an eval suite's configuration — its flow, scorers, `scoreRules` (replaced wholesale), `coverageMode`, `runOnConfigChange`, repeats, regression event, key or label. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. Refused (422) when the flow or a scorer is not this project's, and (409) when a new key is taken. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -381,6 +391,7 @@ Change an eval suite's configuration — its flow, scorers, `coverageMode`, repe
 | `description` | `string \| null` | no | New free-text note. |
 | `flowId` | `string` | no | Id of the new flow under test. It must exist in this project or be a platform flow. |
 | `scorerFlowIds` | `string[]` | no | Flows that grade each case. Replaces the existing list. |
+| `scoreRules` | `object[]` | no | Declarations about the suite's scorer scores. Replaces the existing list wholesale. |
 | `runAsUserId` | `string \| null` | no | End user whose data the flow sees while running. |
 | `coverageMode` | `"strict" \| "report-only"` | no | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | no | Whether a configuration change triggers this suite. |
@@ -406,6 +417,7 @@ Change an eval suite's configuration — its flow, scorers, `coverageMode`, repe
 | `description` | `string \| null` | yes | Free-text note about what this suite measures. |
 | `flowId` | `string` | yes | Id of the flow under test; every case runs it with its own inputs. If it names a flow that no longer exists, a run refuses rather than measuring nothing and reporting success. |
 | `scorerFlowIds` | `string[]` | yes | Flows that grade each case's output. These are billed model calls, unlike a case's own assertions, which are free and deterministic. |
+| `scoreRules` | `object[]` | yes | Declarations about the suite's scorer scores, one per score name: which way is better, which categorical values fail, and the smallest movement that counts. At most 50 rules. |
 | `runAsUserId` | `string \| null` | yes | End user whose data the flow sees while running. Null runs as a sentinel that owns no records. |
 | `coverageMode` | `"strict" \| "report-only"` | yes | How a coverage shortfall is treated. `strict` fails the run. `report-only` records it and lets the run succeed. |
 | `runOnConfigChange` | `boolean` | yes | Whether a configuration change triggers this suite automatically. Separate from `enabled`: a suite with paid scorers can stay runnable while firing only by hand. |
@@ -476,7 +488,7 @@ What a suite's configuration says a run will reach, before a credit is spent: th
 
 ### `POST /v1/eval-suites/{id}/run`
 
-Start a run of an eval suite: every enabled case (or `caseKeys`) through the suite's flow, graded by its assertions and scorer flows. Asynchronous and billed — it answers 202 with the queued run; follow it at `GET /v1/eval-runs/{id}`, and list past runs with `GET /v1/eval-suites/{id}/runs`. One run per suite at a time (409). With `validateOnly: true` it answers, spending and queuing nothing, whether the run would start and what it would and would not measure (VIEWER may ask). For a synchronous, free pass/fail check of one flow, use `POST /v1/flows/{id}/test` with its flow test cases instead.
+Run an eval suite: every enabled case (or `caseKeys`) through the suite's flow, graded by its assertions and scorer flows, and billed. By default the run is queued: it answers 202 with the `runId` to read at `GET /v1/eval-runs/{id}` once the worker starts it; list past runs with `GET /v1/eval-suites/{id}/runs`. With `wait: true` a suite with no scorer flows, `repeats: 1` and `bracketed: false` runs inside the request and answers 200 with the settled run — its `contract` says whether every case's assertions held; any other suite answers 422, a project at its preview ceiling 429, and a `wait` run whose subject outlasts the request's time limit 504. A `wait` answer carries no warnings, so dry-run first (`validateOnly: true`) to see findings such as `EVAL_CASE_CANNOT_FAIL`. One run per suite at a time (409). With `validateOnly: true` it answers, spending and queuing nothing, whether the run would start and what it would and would not measure (VIEWER may ask).
 
 **Path parameters**
 
@@ -488,15 +500,20 @@ Start a run of an eval suite: every enabled case (or `caseKeys`) through the sui
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `caseKeys` | `string[]` | no | Run exactly these cases, by their `key`. Omit to run every enabled case in the suite. |
+| `caseKeys` | `string[]` | no | Run exactly these cases, by their `key`, each named once. Omit to run every enabled case in the suite. |
 | `includeDisabled` | `boolean` | no | Also run cases marked disabled. |
 | `note` | `string` | no | Free-text note recorded on the run, for saying what you were testing. |
+| `wait` | `boolean` | no | Run the suite inside this request and answer 200 with the settled run — the same body `GET /v1/eval-runs/{id}` answers — instead of queuing it (202). Only for a suite with no scorer flows, `repeats: 1` and `bracketed: false`; any other suite answers 422 naming the condition. The run has 180 seconds: a case the deadline cuts is `not-run` with the reason. Each running case takes one of the project's preview slots, so a project at its ceiling answers 429. The run is stored and fingerprinted like any other, and it settles even if you disconnect. |
 | `validateOnly` | `boolean` | no | Check this run request and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/run/dry-run`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `run` | `object` | yes | The run's own record. |
+| `results` | `object[]` | yes | What happened to each case. |
+| `aggregates` | `object` | yes | This run's own numbers, pooled and per label. Always present — unlike a delta, there is no second run to be incomparable with. |
+| `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when there is no previous run. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -507,7 +524,8 @@ Start a run of an eval suite: every enabled case (or `caseKeys`) through the sui
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `suiteId` | `string` | yes | The suite whose run was accepted. |
-| `queued` | `true` | yes | Always true. The run is on the queue and has not started; re-read the suite's runs to see it once the worker picks it up. |
+| `runId` | `string` | yes | The id the queued run will be stored under. `GET /v1/eval-runs/{runId}` answers 404 until the worker starts the run, and for good if the job dies before it does; the suite's `runInFlight` says whether it is still coming. |
+| `queued` | `true` | yes | Always true. The run is on the queue and has not started; read it at `GET /v1/eval-runs/{runId}` once the worker picks it up. |
 | `diagnostics` | `object[]` | yes | What this run will and will not have measured — the same findings `validateOnly: true` answers with, on the request that actually queued it. ⛔ EVERY ONE IS A WARNING BY CONSTRUCTION: anything that stops a run is a 422 and you are not reading this. Carried here so a caller who did not ask first is told anyway, which is what stops these from being rules only the dry run runs. |
 
 ### `GET /v1/eval-suites/{id}/runs`

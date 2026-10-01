@@ -34,7 +34,7 @@ Public: no credential needed.
 | `facets` | `object` | no | Facets, with their terms, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `events` | `object` | no | The event registry. |
 | `vectors` | `object` | no | Vector spaces. |
-| `flows` | `object` | no | Flows keyed by key, each with its steps and tests, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `flows` | `object` | no | Flows keyed by key, each with its steps, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `surfaces` | `object` | no | Entry points. |
 | `evals` | `object` | no | Eval suites keyed by key, each with its cases, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 

@@ -1210,7 +1210,7 @@ facet's (which also carries `confirm` and `assignedTerms`); anything else in the
 
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — exposing a flow over HTTP.
 - Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`) — snapshot before a risky edit.
-- Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`) — make "it works" a stored, replayable claim.
+- Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — make "it works" a stored, replayable claim with a contract suite.
 - Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — read before assuming a step exists.
 - Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — producers before consumers, and how two flows that
   invoke each other are created.

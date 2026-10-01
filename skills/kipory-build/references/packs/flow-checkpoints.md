@@ -140,4 +140,4 @@ label, rather than trusting the automatic one to still be there.
 
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — what is being snapshotted.
 - Project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the other write that sets a flow's steps as a whole.
-- Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`) — how to find out you needed the rollback.
+- Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — how to find out you needed the rollback.

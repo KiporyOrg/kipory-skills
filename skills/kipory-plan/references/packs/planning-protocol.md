@@ -143,14 +143,15 @@ becomes a registered **event**.
 
 ### 8 — Correctness
 
-What does "working" mean for each flow? Each answer becomes a **flow test case** — a stored input
-plus assertions, replayed after every edit. Where the answer is a matter of degree rather than
-pass/fail, it becomes an **eval suite** instead.
+What does "working" mean for each flow? Each answer becomes a case in the flow's **contract
+suite** — an eval suite with no scorer flows: a stored input plus assertions, re-run after every
+edit. Where the answer is a matter of degree rather than pass/fail, the suite gains a **scorer
+flow** instead.
 
 Do not skip this because the project is small. It is what makes the plan checkable rather than
 merely written, and the assertions are the only part that survives a later rewrite.
 
-→ Flow test cases (capability pack `flow-test-cases` — `GET /v1/capability-packs/flow-test-cases`) · Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)
+→ Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)
 
 ---
 
@@ -163,7 +164,7 @@ One row per object to be built:
 
 - **Step** — which of the eight produced it.
 - **Primitive** — record type, schema entry, embedding profile, flow, skill, endpoint, schedule,
-  facet, relation kind, event, project-config namespace, secret, test case, eval suite.
+  facet, relation kind, event, project-config namespace, secret, eval suite, eval case.
   ⚠️ The last four of those are easy to leave out of a sheet and expensive to discover later: a
   record type declared searchable needs an **embedding profile** to name, a flow calling a paid
   web vendor may need a **secret**, and a threshold you will want to tune belongs in a

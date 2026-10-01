@@ -140,7 +140,7 @@ changes are migrations — and note the `structureVersion` you are starting from
 /v1/projects/{nodeId}/usage` is spend, not inventory.)
 
 **After.** Re-read `GET /v1/bootstrap` and confirm the digest moved. Run the flow's health check.
-Re-run the test cases and eval suites (`kipory-prove`) and treat new failures as a question, not a
+Re-run the eval suites (`kipory-prove`) and treat new failures as a question, not a
 verdict: some are the change working as intended and need re-baselining, some are the change
 breaking something you did not mean to touch. Deciding which is the whole job, and nothing can
 decide it for you.

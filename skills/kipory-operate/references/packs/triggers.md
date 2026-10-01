@@ -117,7 +117,7 @@ per event and never judged.
 
 Shaping belongs in the flow. There is no template language on the trigger; the first step of the
 bound flow is where the payload under the `event` slot becomes whatever the rest of the flow wants,
-which keeps that shaping previewable and testable with the flow's own test cases.
+which keeps that shaping previewable and testable with the flow's own eval suite.
 
 ## The filter
 
