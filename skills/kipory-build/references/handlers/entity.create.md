@@ -7,7 +7,7 @@ Create a new record of the type you choose.
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`
-- **Reads:** The new record's fields, from the slot `dataSlot` names, and optionally a list of uploaded file ids to attach in the same write. _(shape hint: `submission object`)_
+- **Reads:** The new record's fields, from the slot `dataSlot` names, and optional uploaded file ids to attach. Fields off the type's shape fail the step, each named, as through the API. _(shape hint: `submission object`)_
 - **Emits:** A `RecordCreate` — the new record's id and what it was created as. A retry under the same key reuses that id rather than minting another.
 
 ## Config
@@ -29,6 +29,15 @@ Reads: the new record's fields. Emits: RecordCreate.
 The record is created and its id comes back. A type with no processing flow is ready at once.
 
 Reads `object` → emits `RecordCreate` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "item",
+  "dataSlot": "submission"
+}
+```
 
 Input:
 
@@ -53,6 +62,15 @@ Output:
 A retry under the same key reuses the id already minted, so nothing is duplicated.
 
 Reads `object` → emits `RecordCreate` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "item",
+  "dataSlot": "submission"
+}
+```
 
 Input:
 

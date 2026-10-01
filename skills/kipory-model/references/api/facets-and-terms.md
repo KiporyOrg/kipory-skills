@@ -353,7 +353,7 @@ Delete one unused term. Refused (409) while records carry it, other terms nest u
 
 ### `POST /v1/terms/{id}/merge`
 
-Merge this term INTO `targetTermId`: it survives as an alias of the target, its text still resolving — to the target. The target must be an active, canonical term of the same facet and parent. Requires this term's `version` as you last read it; a stale one answers 409 `VERSION_CONFLICT`. There is no undo. To rename instead use `PATCH /v1/terms/{id}`; to remove an unused term, `DELETE /v1/terms/{id}`.
+Merge this term INTO `targetTermId`: it survives as an alias of the target, its text still resolving — to the target. Every record that carries this term carries the target instead, moved in the same write, so the alias is left with no assignments and can be deleted. The target must be an active, canonical term of the same facet and parent. Requires this term's `version` as you last read it; a stale one answers 409 `VERSION_CONFLICT`. There is no undo. To rename instead use `PATCH /v1/terms/{id}`; to remove an unused term, `DELETE /v1/terms/{id}`.
 
 **Path parameters**
 

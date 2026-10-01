@@ -30,6 +30,15 @@ The link stands under this node's label — written now, revived, or already the
 
 Reads `mixed` → emits `RelationAssertion` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "kind": "cites",
+  "actor": "citation-linker"
+}
+```
+
 Input:
 
 ```
@@ -50,6 +59,15 @@ Output:
 One end names no record this run may read. `UNRESOLVABLE` covers every such cause as ONE answer.
 
 Reads `mixed` → emits `RelationAssertion` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "kind": "cites",
+  "actor": "citation-linker"
+}
+```
 
 Input:
 

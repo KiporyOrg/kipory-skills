@@ -33,6 +33,20 @@ One value matched a term that already exists; the other is new and carries what 
 
 Reads `object` → emits `TermResolution[]` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "facetKeys": [
+    "category",
+    "type"
+  ],
+  "contextSlots": [
+    "context"
+  ]
+}
+```
+
 Input:
 
 ```
@@ -56,6 +70,20 @@ Output:
 The model proposed no value for any configured facet, so an empty list comes back.
 
 Reads `object` → emits `TermResolution[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "facetKeys": [
+    "category",
+    "type"
+  ],
+  "contextSlots": [
+    "context"
+  ]
+}
+```
 
 Input:
 

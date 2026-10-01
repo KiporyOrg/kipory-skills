@@ -38,6 +38,6 @@ The brand red is #FF0033, with accents #00ccaa and #ffaa00 — and yes, #FF0033 
 
 Output:
 
-- {"index":0,"value":"#FF0033"}
-- {"index":1,"value":"#00ccaa"}
-- {"index":2,"value":"#ffaa00"}
+- `#FF0033`
+- `#00ccaa`
+- `#ffaa00`

@@ -50,6 +50,8 @@ reach for when the change touches more than a handful of rows.
 | `PATCH /v1/relation-kinds/{id}` + `validateOnly`          | whether a link edit would stand — the link rules over every declaration of the kind                                                                                 |
 | `DELETE /v1/relation-kind-pairings/{id}` + `validateOnly` | whether removing one pair would be refused — live links on it, the kind's last pair, a declaration it would break                                                   |
 | `DELETE /v1/flows/{id}` + `validateOnly`                  | whether a flow delete would be refused, and `derived.dependents`: everything that holds the flow — endpoints, schedules, triggers, record types, resolvers, callers |
+| `DELETE /v1/api-endpoints/{id}` + `validateOnly`          | the verdict on removing an endpoint — nothing refuses it, and its path stops answering at once                                                                      |
+| `DELETE /v1/schedules/{id}` + `validateOnly`              | the verdict on removing a schedule and its run history — to stop it but keep it, disable it                                                                         |
 | `PATCH /v1/schema-entries/{id}` + `validateOnly`          | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                       |
 | `PATCH /v1/record-types/{id}` + `validateOnly`            | what a `uses`, shape (`dataEntryId`, own `definition`), binding or key change derives to — `derived.contract`, `derived.naturalKey`, reindex, restamp               |
 | `PATCH /v1/steps/{id}` + `validateOnly`                   | a slot rename's `derived.rename`, the patched config's `derived.draft`, and — with `enabled: false` — `derived.switchOff`: the steps that would stop with it        |
@@ -79,7 +81,9 @@ row-by-row change would meet, in one read, and three things a row write never te
 - **Cascades before the fact.** A removal that takes other rows along — the relation kinds that
   pair a deleted record type, the terms of a deleted facet — is in `changes` as a
   `delete` with `because: "cascade"` and a `DOCUMENT_DELETE_CASCADED` warning. Read the plan's
-  delete list before applying; it is the true list, not only yours.
+  delete list before applying; it is the true list, not only yours. A record-type delete also names
+  its reach on its own path — the relation kinds and joins it would take — even when the plan
+  refuses the delete.
 - **Nothing partial.** A refused apply answers `422` with the plan and has written nothing — not
   the rows before the refused one either. A document that changes nothing answers `applied: true`
   and moves no version.
@@ -137,10 +141,11 @@ the type has records. It is three steps, in this order:
    and triggers it would break under `leavesBehind`, as a document plan does.
 2. **Widen, never narrow, in the first write.** Add the new field as optional. Existing records stay
    valid, and nothing has to be backfilled before the change lands.
-3. **Backfill, then narrow.** Populate the field on existing records (`references/change-order.md`
-   has the loop), and only then make it required. The narrowing write's rehearsal (or plan) names
-   every schedule and trigger whose fixed `inputs` it would leave unable to fire
-   (`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`); add the field to their `inputs`.
+3. **Backfill, patch the fixed inputs, then narrow.** Populate the field on existing records
+   (`references/change-order.md` has the loop), add it to the `inputs` of every schedule and
+   trigger that feeds the shape, and only then make it required. The narrowing write's rehearsal
+   (or plan) names each one still left unable to fire (`SCHEDULE_INPUT_MISTYPED` /
+   `TRIGGER_INPUT_MISTYPED`) and answers `ok: false` while any remains.
 
 Narrowing first is what turns a change into an outage: every record that lacks the field becomes
 invalid at once, and there is no partial state to recover from.
@@ -154,14 +159,14 @@ Some destructive changes are refused outright:
   finding's `code` on the `validateOnly` verdict and in a plan, and `details.reason` on the real
   409 (whose `code` stays `CONFLICT`). Any refusal that names a rule does the same.
 - **Reserved and seeded record types cannot be deleted**, whatever they hold.
-- **A flow something still references cannot be deleted** — the refusal names what references it.
+- **A flow something still references cannot be deleted** — the refusal counts what references it, by kind (`details` on the 409, `derived.dependents.kinds` on the dry run), without naming the rows; `GET /v1/projects/{nodeId}/connections` names them.
 - **A step whose output later steps read cannot be deleted** — the refusal counts the dependents and
   names the slots they read.
 - **A term assigned to records cannot be deleted** (`TERM_DELETE_HAS_ASSIGNMENTS`) — archive it
   instead (`PATCH /v1/terms/{id}` with `status: archived` and the term's `version`). Nor can a term that is the parent of
-  others or the canonical of aliases. `POST /v1/terms/{id}/merge` is not a way round it: it only
-  sets the source's `aliasOfId` to the target, moves no assignment, and leaves the source as
-  undeletable as it was. It refuses a merge into the term itself, a target in another facet, an
+  others or the canonical of aliases. `POST /v1/terms/{id}/merge` is the way to retire a term
+  records carry: it moves every assignment onto the target in the same write and leaves the source
+  an alias (`aliasOfId`) carrying none, which a delete then accepts. It refuses a merge into the term itself, a target in another facet, an
   archived target, a target that is already an alias, a source that other terms alias, and a
   source and target under different parents.
 - **A facet delete needs `confirm=true`**, and `assignedTerms=delete|archive` once any of its
@@ -187,9 +192,11 @@ Others do not refuse. They cascade, and the response tells you what else moved:
   an error in the write's `outstandingIssues`). The endpoint in front then refuses every call:
   a required output left unproduced answers `422 FLOW_OUTPUT_MISSING`, and the run's writes are
   discarded. Health names the dangling binding before any call does. On a
-  live endpoint, do the rename as **one document apply** that carries both the step's new
-  `outputSlot` and the flow's re-pointed `outputBinding`: one transaction, no window where the
-  endpoint is refused. Row by row it is two writes — the confirmed skill PATCH, then
+  live endpoint, do the rename as **one document apply** that carries the step's new
+  `outputSlot`, every reader rewritten to the new name and the flow's re-pointed `outputBinding`:
+  one transaction, no window where the endpoint is refused. A document does not cascade a rename —
+  it writes each step as stated — so take the readers from the step PATCH's `validateOnly`
+  `derived.rename` and restate each one (its prompt, config or `inputStreams`). Row by row it is two writes — the confirmed skill PATCH, then
   `PATCH /v1/flows/{id}` with the new `fromSlot` — then health. A record type is different: once
   it has records, a rename is refused outright.
 
@@ -202,7 +209,8 @@ one is the one that costs money while you are not looking.
 with the flow and a `label` — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
 asking it the same with `validateOnly: true` (both take the flow's `version`). A restore keeps each step's id by key (a
 step deleted since comes back with a new one) and moves a changed step's version forward, so re-read the steps
-before your next step edit. `kipory-build` owns the detail.
+before your next step edit. `kipory-build` owns the detail. A flow's checkpoints are deleted with
+the flow, so a deleted flow comes back only from an export.
 
 **An export is the nearest thing to a checkpoint of the whole configuration.** Keep the document
 you exported before a change. Planning it and applying it — with the project's CURRENT `version`
@@ -261,14 +269,15 @@ at all:
 - **A flow PATCH carries the flow's `version`.** `PATCH /v1/flows/{id}` without it is a `422`, and
   a stale one a `409 VERSION_CONFLICT` — a checkpoint restore and a document apply move it too (a
   restore names the flow's new `version` in its `touched`), so re-read the flow after either. A signature PATCH may state one side alone; the other is kept.
-- **A `502` from a sync endpoint does not mean nothing was written.** Its flow ran; an
-  `entity.create` before the failure may have committed its record (and a 200 carrying an empty
-  output is the same story, see the slot rename above). A client that retries on a 5xx
-  writes twice unless the write is idempotent — send an `Idempotency-Key`, or give the type a
-  natural key.
-- **Health does not check what a write step writes against the type it names.** Switching an
-  `entity.create` step's `recordType` to a type whose shape the incoming slot does not match saves
-  and reads healthy; it fails when it runs. Preview it with `apply: false` after such an edit.
+- **A `502` from a sync endpoint wrote nothing; a `200` with an empty output did.** A failed step
+  discards every write the run staged, so a retry on a 5xx does not write twice (it is charged
+  again). A `200` applied its writes even when its output came back empty (see the slot rename
+  above), and a client that retries it writes twice unless the write is idempotent — send an
+  `Idempotency-Key`, or give the type a natural key.
+- **An `entity.create` pointed at the wrong type is caught twice.** Switching its `recordType` to
+  a type whose shape the incoming slot does not fit saves, but health and a document plan warn
+  `ENTITY_CREATE_DATA_MISMATCH`, and the run fails the step, naming each field that does not fit —
+  the check `POST /v1/records` makes. Preview it with `apply: false` after such an edit.
 - **Eval suites pin the old behaviour.** After a deliberate change their contracts will break, and
   that failure is correct. Re-baseline them on purpose (`kipory-prove`) rather than deleting the ones
   that went red — a suite deleted because it was inconvenient is the one that would have caught the

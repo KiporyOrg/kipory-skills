@@ -7,8 +7,8 @@ Send one email to one person.
 - **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own message, so a new run of the same input sends it again.
 - **I/O:** `recipient, subject, body` → `boolean`
-- **Reads:** The recipient, the subject and the body, each from the slot its setting names. The address it comes from is a setting, not a slot. _(shape hint: `recipient, subject, body`)_
-- **Emits:** `true`, once the message is queued to go. It is not a receipt — the message leaves only if the rest of the run finishes and saves.
+- **Reads:** The recipient — any address, project member or not — plus subject and body, each from the slot its setting names. The sending address is a setting, not a slot. _(shape hint: `recipient, subject, body`)_
+- **Emits:** `true` once the message is queued — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the step fails (`project-mail-cap-reached`).
 
 ## Config
 
@@ -33,6 +33,17 @@ Reads: read message. Emits: queued.
 
 Reads `{ to, subject, body }` → emits `boolean` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "address": "digest@example.com",
+  "toSlot": "draft.to",
+  "subjectSlot": "draft.subject",
+  "textSlot": "draft.body"
+}
+```
+
 Input:
 
 ```
@@ -51,6 +62,17 @@ The step succeeded and nothing is sent. A failed run discards what it staged, an
 
 Reads `{ to, subject, body }` → emits `boolean` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "address": "digest@example.com",
+  "toSlot": "draft.to",
+  "subjectSlot": "draft.subject",
+  "textSlot": "draft.body"
+}
+```
+
 Input:
 
 ```
@@ -68,6 +90,17 @@ true
 The step fails, on purpose. A preview shows what a flow would do; sending would make showing and doing one.
 
 Reads `{ to, subject, body }` → emits `boolean` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "address": "digest@example.com",
+  "toSlot": "draft.to",
+  "subjectSlot": "draft.subject",
+  "textSlot": "draft.body"
+}
+```
 
 Input:
 

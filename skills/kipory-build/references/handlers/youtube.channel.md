@@ -92,6 +92,14 @@ A second call fills `uploads[]` with the channel's most recent videos.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "listUploads": true
+}
+```
+
 Input:
 
 ```

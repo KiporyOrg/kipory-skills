@@ -8,7 +8,7 @@ Pull the text and document details out of a PDF.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `PdfDocument`
 - **Reads:** One PDF file. A non-PDF mime fails rather than being guessed at — route them elsewhere upstream. _(shape hint: `file`)_
-- **Emits:** A `PdfDocument` — the embedded text and whatever the file's own metadata carried. Empty text means nothing was extractable; the locked flag says which.
+- **Emits:** A `PdfDocument`. Empty text: with `pageCount`, a scan; with `isEncrypted`, locked; with neither, unreadable or missing — warns `PDF_PARSE_FAILED`, uncached. No file named: empty, no warning.
 - **Suggested input streams:** `currentFile`
 - **Queue:** 1 attempt, no backoff; waits up to 180000ms; cache no expiry (custom-derive-source)
 

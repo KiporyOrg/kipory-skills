@@ -35,6 +35,16 @@ The top candidate is reused as a match on the `type` facet — no LLM call.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "facet": "type",
+  "candidatesSlot": "candidates.candidates",
+  "thresholdsSlot": "candidates.thresholds"
+}
+```
+
 Input:
 
 ```
@@ -55,6 +65,16 @@ Output:
 Neither reuse nor coin is safe, so the LLM tiebreak decides.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "facet": "type",
+  "candidatesSlot": "candidates.candidates",
+  "thresholdsSlot": "candidates.thresholds"
+}
+```
 
 Input:
 

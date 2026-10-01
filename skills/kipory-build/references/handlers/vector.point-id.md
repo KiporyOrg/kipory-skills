@@ -28,6 +28,14 @@ The id is a function of the value, so re-running writes over the same point inst
 
 Reads `string` → emits `string` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordIdSlot": "recordId"
+}
+```
+
 Input:
 
 ```

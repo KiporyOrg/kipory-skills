@@ -15,7 +15,7 @@ Run another flow, passing values in and taking results back.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `inputs` | any[] | no | `[]` | Which parent slots to pass into the sub-flow, and where each one lands. Only these cross the boundary. |
-| `outputs` | object[] | no | `[]` | Which sub-flow outputs to copy back, and into which parent slots. Leave it empty for side effects only. ⚠️ Each row also carries `derivedShape`, the sub-flow output's type. A step save fills it in; a project document does not, so state it there or the step is refused as stale. |
+| `outputs` | object[] | no | `[]` | Which sub-flow outputs to copy back, and into which parent slots. Leave it empty for side effects only. ⚠️ Each row also carries `derivedShape`, the sub-flow output's type. The platform derives it on every save — a single step save and a project document alike — so never state it. |
 | `targetFlowId` | string | yes | — | The saved flow this step runs, never its own flow. A project document names it `target`, by key. |
 
 ### `outputs` — each item
@@ -38,13 +38,13 @@ Reads `Article scrape & summarize` → emits `mapped slots` · 2→2 slots mappe
 
 Input:
 
-- {"index":0,"value":"currentUrl → entryUrl","detail":"into the sub-flow"}
-- {"index":1,"value":"dateRange → window","detail":"into the sub-flow"}
+- `currentUrl → entryUrl` — into the sub-flow
+- `dateRange → window` — into the sub-flow
 
 Back to the parent:
 
-- {"index":0,"value":"summary → articleSummary"}
-- {"index":1,"value":"qualityScore → articleScore"}
+- `summary → articleSummary`
+- `qualityScore → articleScore`
 
 #### Pass in only
 
@@ -52,12 +52,12 @@ Reads `Embed & store in vector DB` → emits `nothing` · 2→0 slots mapped
 
 Input:
 
-- {"index":0,"value":"currentChunk → text","detail":"into the sub-flow"}
-- {"index":1,"value":"collectionId → namespace","detail":"into the sub-flow"}
+- `currentChunk → text` — into the sub-flow
+- `collectionId → namespace` — into the sub-flow
 
 Back to the parent:
 
-- {"index":0,"value":"nothing comes back — side effects only"}
+- nothing comes back — side effects only
 
 #### Get back only
 
@@ -65,9 +65,9 @@ Reads `List active users this week` → emits `mapped slots` · 0→2 slots mapp
 
 Input:
 
-- {"index":0,"value":"nothing goes in — the sub-flow starts from its own state"}
+- nothing goes in — the sub-flow starts from its own state
 
 Back to the parent:
 
-- {"index":0,"value":"users → activeUsers"}
-- {"index":1,"value":"count → activeUserCount"}
+- `users → activeUsers`
+- `count → activeUserCount`

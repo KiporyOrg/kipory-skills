@@ -286,15 +286,28 @@ metrics moved the wrong way, and whether an event was **built and handed to** th
 ⛔ `announced: true` is not delivery — the publish is fire-and-forget so a run is never lost to a
 notification, and a bus that rejects the envelope after the handover is logged, not recorded here.
 
-There are three ways to regress and they fail differently. A metric moved the wrong way _in its own
-direction_ and past the noise floor — `latency.subject` rising is worse, not better. The suite
-**stopped producing measurable results at all**: that is not a low score, it is a suite that has
-stopped answering, and it is the state a real flow sat in unnoticed for two days. Or a case that held
-broke its contract (the run's `flipped` cases, below). A run whose deadline cut every case, with nothing
-errored, is `error`: it regresses only when its baseline ran under the same budget
-(`measurementConditions.budgetMs`: 180 s for a `wait` run, 600 s for a queued one) and finished
-every case (a flow that starts hanging). A baseline the deadline cut even once, or one that ran
-under the longer budget, raises no regression.
+There are three ways to regress and they fail differently. A quality or timing metric moved the
+wrong way _in its own direction_ and past the noise floor — `latency.subject` rising is worse, not
+better. The suite **stopped producing measurable results at all**: that is not a low score, it is a
+suite that has stopped answering, and it is the state a real flow sat in unnoticed for two days. Or
+a case that held broke its contract (the run's `flipped` cases, below). A run whose deadline cut
+every case, with nothing errored, is `error`: it regresses only when its baseline ran under the same
+budget (`measurementConditions.budgetMs`: 180 s for a `wait` run, 600 s for a queued one) and
+finished every case (a flow that starts hanging). A baseline the deadline cut even once, or one that
+ran under the longer budget, raises no regression.
+
+⭐ **Cost never regresses a run.** `cost.credits`, `tokens.in` and `tokens.out` are
+reported in `regression.costChanges` — `{name, previous, current, direction}` for each one that
+moved past its noise floor, `up` or `down` — and never in `worsenedMetrics`. A run whose scores held
+and whose credits rose answers `regressed: false` with the rise beside it. Decide for yourself
+whether the cost is acceptable; the verdict is about quality.
+
+⚠️ **A run compared against nothing says why.** A suite's first run answers with
+`reason: "no-baseline"`; a run whose previous run exists but could not be loaded answers
+`reason: "baseline-unreadable"`. Both have `delta: null` and `costChanges: []`, and neither
+regresses unless a case flipped — a contract flip's reason then takes the place of theirs. Only a
+`false` beside a null `reason` and no `delta.suppressedReason` means "compared, and nothing got
+worse".
 
 ⛔ **`regression` is `null` when no verdict was computed, which is not `regressed: false`.** Runs
 predate the field, and so does every run ever started by hand before detection moved into the run
@@ -505,10 +518,13 @@ while measuring nothing:
   _errored_. Neither is a low score, and averaging them as zeros would manufacture a decline.
 - **A scorer that emitted nothing records no score**, rather than a zero.
 - **A run with no cases is an error**, never a green pass over nothing.
-- **A delta is suppressed when the configuration moved.** If the subject flow or any scorer
-  changed between two runs, the numeric deltas are withheld and the reason is named. An edited
-  judge silently rebaselines every prior score, and a delta measured across that edit looks
-  exactly like evidence.
+- **A delta is suppressed when a checkpoint moved.** If the subject flow's newest checkpoint, or
+  any scorer's, differs between two runs — one was captured or restored in between — the numeric
+  deltas are withheld and the reason is named. An edited judge silently rebaselines every prior
+  score, and a delta measured across that edit looks exactly like evidence. A step edit takes no
+  checkpoint on a project flow, so a delta across an edit alone IS reported: that is the read for
+  "did this edit break it". Capture a checkpoint after editing a scorer so its old scores are not
+  compared with its new ones.
 - **Adding cases does not suppress the delta** over the cases that did not change — but every
   metric reports its sample size alongside. A gain over 4 of 50 cases is not the claim a gain over
   49 is, and the number that tells you which is right there.

@@ -96,8 +96,10 @@ A project's id is its node id — the `id` its create answered — so for a proj
 credential the platform looks up — each vendor key a handler resolves and each sign-in credential
 — which record a call there would use. Each key reports a `state` (`present`, `disabled`,
 `not-found`, `branch-inactive`), the node holding the record that state is about, `ownStatus` for
-the row stored on the node itself, and, for a vendor key, `billedBy` — `vendor-to-holder` when the
-vendor invoices the holder, `kipory` when the call runs on the platform's key at the platform's price. It is the same walk
+the row stored on the node itself (`null` when the node stores none), and, for a vendor key,
+`billedBy` — `vendor-to-holder` when the vendor invoices the holder, `kipory` when the call runs on
+the platform's key at the platform's price, `null` on a key that is never billed (any `fallback`
+but `platform-key`). It is the same walk
 resolution performs, effective-status gate included, and nothing in it is decrypted.
 
 Each key also says what happens when nothing of yours resolves, as `fallback`: `platform-key` — the

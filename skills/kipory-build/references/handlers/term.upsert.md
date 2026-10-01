@@ -8,7 +8,7 @@ Save resolved terms and link them to their records.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `1` → `nothing`
 - **Reads:** One slot, named by `resolutionsSlot`, holding the resolved terms to save — usually what `facet.resolve` emitted. An empty one saves nothing and succeeds. _(shape hint: `1`)_
-- **Emits:** Nothing. The step writes to the database and leaves no slot behind. Running it twice with the same input changes nothing the first run did not.
+- **Emits:** Nothing a later step reads: it saves, leaving an empty marker in its slot. It still needs an `outputSlot`: any unused slot. A repeat with the same input changes nothing.
 - **Queue:** 3 attempts, exponential from 2000ms; waits up to 30000ms; cache no expiry (custom-derive-source)
 
 ## Config
@@ -28,6 +28,14 @@ Reads: resolved terms. Emits: nothing.
 The matched term is reused and the new one is created and embedded. The step writes no slot.
 
 Reads `TermResolution[]` → emits `nothing` · 1 in → (empty)
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "resolutionsSlot": "termResolutions"
+}
+```
 
 Input:
 
@@ -50,6 +58,14 @@ Output:
 Nothing was resolved, so nothing is written and the step still succeeds.
 
 Reads `TermResolution[]` → emits `nothing` · 1 in → (empty)
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "resolutionsSlot": "termResolutions"
+}
+```
 
 Input:
 

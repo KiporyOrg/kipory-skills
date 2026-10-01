@@ -38,6 +38,6 @@ Programmers chunk text into overlapping pieces so that long inputs fit a model's
 
 Output:
 
-- {"index":0,"value":"Programmers chunk text into overlapping pieces so "}
-- {"index":1,"value":"pieces so that long inputs fit a model's context w"}
-- {"index":2,"value":" context window without losing continuity."}
+- Programmers chunk text into overlapping pieces so
+- pieces so that long inputs fit a model's context w
+- context window without losing continuity.

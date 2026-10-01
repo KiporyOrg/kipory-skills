@@ -28,6 +28,17 @@ Reads: walk values · in order. Emits: first populated.
 
 Reads `mixed` → emits `string` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "inputs": [
+    "pickedThumbnailUrl",
+    "pickedThumbnailFile"
+  ]
+}
+```
+
 Input:
 
 ```
@@ -46,6 +57,17 @@ https://cdn.example.com/cover.jpg
 #### File fallback
 
 Reads `mixed` → emits `file` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "inputs": [
+    "pickedThumbnailUrl",
+    "pickedThumbnailFile"
+  ]
+}
+```
 
 Input:
 

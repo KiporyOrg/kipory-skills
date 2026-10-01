@@ -26,6 +26,14 @@ Reads: read referenced slots. Emits: evaluate expression.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "expression": "$zip(ytHashtags, ytUrls).{\"tag\": $[0], \"url\": $[1]}"
+}
+```
+
 Input:
 
 ```
@@ -48,6 +56,14 @@ Output:
 #### Build an object
 
 Reads `mixed` → emits `object` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "expression": "{\"title\": ytTitle, \"host\": ytMetadata.host, \"tagCount\": $count(ytHashtags)}"
+}
+```
 
 Input:
 
@@ -72,6 +88,14 @@ Output:
 #### Add fields
 
 Reads `mixed` → emits `object` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "expression": "$merge([sourceMeta, {\"kind\": \"video\", \"ingested\": true}])"
+}
+```
 
 Input:
 

@@ -38,17 +38,17 @@ Reads `string[]` → emits `string[]` · 5 branches → 5 items
 
 Input:
 
-- {"index":0,"value":"https://kipory.dev/docs, https://kipory.dev/blog","detail":"branch 1"}
-- {"index":1,"value":"https://example.com/launch","detail":"branch 2"}
-- {"index":2,"value":"https://github.com/kipory/sdk, https://github.com/kipory/cli","detail":"branch 3"}
+- https://kipory.dev/docs, https://kipory.dev/blog — branch 1
+- `https://example.com/launch` — branch 2
+- https://github.com/kipory/sdk, https://github.com/kipory/cli — branch 3
 
 Merged:
 
-- {"index":0,"value":"https://kipory.dev/docs"}
-- {"index":1,"value":"https://kipory.dev/blog"}
-- {"index":2,"value":"https://example.com/launch"}
-- {"index":3,"value":"https://github.com/kipory/sdk"}
-- {"index":4,"value":"https://github.com/kipory/cli"}
+- `https://kipory.dev/docs`
+- `https://kipory.dev/blog`
+- `https://example.com/launch`
+- `https://github.com/kipory/sdk`
+- `https://github.com/kipory/cli`
 
 #### Drop repeats
 
@@ -56,16 +56,16 @@ Reads `string[]` → emits `string[]` · 6 branches → 4 items
 
 Input:
 
-- {"index":0,"value":"https://kipory.dev/docs, https://kipory.dev/blog","detail":"branch 1"}
-- {"index":1,"value":"https://example.com/launch, https://kipory.dev/docs","detail":"branch 2"}
-- {"index":2,"value":"https://kipory.dev/blog, https://github.com/kipory/sdk","detail":"branch 3"}
+- https://kipory.dev/docs, https://kipory.dev/blog — branch 1
+- https://example.com/launch, https://kipory.dev/docs — branch 2
+- https://kipory.dev/blog, https://github.com/kipory/sdk — branch 3
 
 Merged:
 
-- {"index":0,"value":"https://kipory.dev/docs"}
-- {"index":1,"value":"https://kipory.dev/blog"}
-- {"index":2,"value":"https://example.com/launch"}
-- {"index":3,"value":"https://github.com/kipory/sdk"}
+- `https://kipory.dev/docs`
+- `https://kipory.dev/blog`
+- `https://example.com/launch`
+- `https://github.com/kipory/sdk`
 
 #### Drop repeated files
 
@@ -73,16 +73,16 @@ Reads `file[]` → emits `file[]` · 6 branches → 4 items
 
 Input:
 
-- {"index":0,"value":"receipts/aug.pdf, receipts/sep.pdf","detail":"branch 1"}
-- {"index":1,"value":"receipts/sep.pdf, receipts/oct.pdf","detail":"branch 2"}
-- {"index":2,"value":"receipts/oct.pdf, receipts/nov.pdf","detail":"branch 3"}
+- receipts/aug.pdf, receipts/sep.pdf — branch 1
+- receipts/sep.pdf, receipts/oct.pdf — branch 2
+- receipts/oct.pdf, receipts/nov.pdf — branch 3
 
 Merged:
 
-- {"index":0,"value":"receipts/aug.pdf"}
-- {"index":1,"value":"receipts/sep.pdf"}
-- {"index":2,"value":"receipts/oct.pdf"}
-- {"index":3,"value":"receipts/nov.pdf"}
+- `receipts/aug.pdf`
+- `receipts/sep.pdf`
+- `receipts/oct.pdf`
+- `receipts/nov.pdf`
 
 #### Two sources
 
@@ -90,18 +90,18 @@ Reads `string[]` → emits `string[]` · 9 branches → 9 items
 
 Input:
 
-- {"index":0,"value":"https://kipory.dev/docs, https://kipory.dev/blog, https://kipory.dev/logo.png, https://kipory.dev/hero.webp","detail":"branch 1"}
-- {"index":1,"value":"https://example.com/launch, https://example.com/og-image.jpg","detail":"branch 2"}
-- {"index":2,"value":"https://github.com/kipory/sdk, https://github.com/kipory/cli, https://github.com/kipory/logo.svg","detail":"branch 3"}
+- https://kipory.dev/docs, https://kipory.dev/blog, https://kipory.dev/logo.png, https://kipory.dev/hero.webp — branch 1
+- https://example.com/launch, https://example.com/og-image.jpg — branch 2
+- https://github.com/kipory/sdk, https://github.com/kipory/cli, https://github.com/kipory/logo.svg — branch 3
 
 Merged:
 
-- {"index":0,"value":"https://kipory.dev/docs"}
-- {"index":1,"value":"https://kipory.dev/blog"}
-- {"index":2,"value":"https://kipory.dev/logo.png"}
-- {"index":3,"value":"https://kipory.dev/hero.webp"}
-- {"index":4,"value":"https://example.com/launch"}
-- {"index":5,"value":"https://example.com/og-image.jpg"}
-- {"index":6,"value":"https://github.com/kipory/sdk"}
-- {"index":7,"value":"https://github.com/kipory/cli"}
-- {"index":8,"value":"https://github.com/kipory/logo.svg"}
+- `https://kipory.dev/docs`
+- `https://kipory.dev/blog`
+- `https://kipory.dev/logo.png`
+- `https://kipory.dev/hero.webp`
+- `https://example.com/launch`
+- `https://example.com/og-image.jpg`
+- `https://github.com/kipory/sdk`
+- `https://github.com/kipory/cli`
+- `https://github.com/kipory/logo.svg`

@@ -28,6 +28,14 @@ The cell was written earlier in this run, so its current value comes back.
 
 Reads `none` → emits `string[]` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "key": "seenUrls"
+}
+```
+
 Input:
 
 ```
@@ -45,6 +53,14 @@ Output:
 No step has written this cell in this run, so the empty value comes back.
 
 Reads `none` → emits `string[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "key": "seenUrls"
+}
+```
 
 Input:
 

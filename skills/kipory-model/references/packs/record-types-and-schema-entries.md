@@ -167,6 +167,11 @@ project node. A record type's OWN shape is asked through its type:
 the same `derived.keywordVerdicts`. (The two `keywords-preview` routes that asked
 this beside the writes are gone.)
 
+⭐ **`ok` also answers what the write would leave broken.** The record-type PATCH's `validateOnly`
+rehearses the write and lists what it would leave behind in `leavesBehind`. `ok` is `false` when
+one of those findings is an error the write introduces, the same verdict a document plan of the
+change gives, so read `ok` and then `leavesBehind` before you send the write.
+
 ## Writing records from outside a flow
 
 Records are written by flows; an operator or an importer writes them over HTTP at one prefix,
@@ -753,6 +758,9 @@ body. A cached answer — every query reads the stores as they are now. The oper
   (embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)). ⚠️ Flat: it is judged on the `uses` the save
   would store, sent or not, so a type already carrying one takes no save — a description edit
   included — until the numbers are fixed.
+- **A record-type delete's `validateOnly=true`** rehearses the delete and rolls it back: `ok` is
+  false when it would leave an error it introduces in a flow, as a document plan of the same delete
+  answers, with the findings in `leavesBehind` and what it takes along in `consequences`.
 - **Deleting an entry** while it is a record type's data shape
   (`SCHEMA_ENTRY_REFERENCED_BY_RECORD_TYPE`) or referenced by the type-relation graph
   (`SCHEMA_REFERENCED_BY_GRAPH`). ⭐ Ask the delete with `validateOnly=true` in the query: it runs

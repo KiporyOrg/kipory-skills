@@ -30,6 +30,15 @@ The link was expired rather than deleted, so who stated it and when both survive
 
 Reads `mixed` → emits `RelationRetraction` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "kind": "cites",
+  "actor": "citation-linker"
+}
+```
+
 Input:
 
 ```
@@ -50,6 +59,15 @@ Output:
 Nothing stood under THIS label. Somebody else's assertion looks identical from here, and cannot be retracted.
 
 Reads `mixed` → emits `RelationRetraction` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "kind": "cites",
+  "actor": "citation-linker"
+}
+```
 
 Input:
 

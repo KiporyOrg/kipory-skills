@@ -6,7 +6,7 @@ Send your prompt to an AI model and return its answer.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `any+` → `nothing`
+- **I/O:** `any+` → `the step's outputSchema`
 - **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_
 - **Emits:** The model's answer — text, or a structured value when the step declares an output shape.
 - **External dependency:** a model provider — Whichever provider hosts the model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
@@ -50,6 +50,14 @@ No output shape declared, so the answer comes back as text. This is the usual ca
 
 Reads `object` → emits `string` · 1 in → 1 out
 
+Prompt template:
+
+```
+Summarize in three sentences:
+
+{{article}}
+```
+
 Input:
 
 ```
@@ -69,6 +77,26 @@ The ingestion pipeline was rewired this quarter onto a unified handler registry,
 The step declares an output shape, so the answer is parsed into it rather than returned as prose.
 
 Reads `object` → emits `string[]` · 1 in → 1 out
+
+Prompt template:
+
+```
+Extract the action items from:
+
+{{transcript}}
+```
+
+Output schema:
+
+```json
+{
+  "kind": "list",
+  "element": {
+    "kind": "ref",
+    "entryId": "string"
+  }
+}
+```
 
 Input:
 
@@ -93,6 +121,12 @@ Output:
 A file wired in is attached to the prompt without being named in it. The model has to read images.
 
 Reads `file` → emits `string` · 1 in → 1 out
+
+Prompt template:
+
+```
+Describe this UI mockup: its tabs, the active panel, and the status bar.
+```
 
 Input:
 

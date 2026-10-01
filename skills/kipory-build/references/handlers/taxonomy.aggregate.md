@@ -31,6 +31,15 @@ No facet filter, so every facet the user has surfaces, each with its count and t
 
 Reads `object` → emits `TaxonomyAggregate` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "shape": "aggregate",
+  "userIdSlot": "userInfo.userId"
+}
+```
+
 Input:
 
 ```
@@ -80,6 +89,15 @@ Output:
 The same counts, nested instead of flat. Empty branches are pruned unless they lead to a term that survives.
 
 Reads `object` → emits `TaxonomyTree` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "shape": "tree",
+  "userIdSlot": "userInfo.userId"
+}
+```
 
 Input:
 

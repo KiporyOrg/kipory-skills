@@ -24,12 +24,12 @@ GET /v1/runs/{runId}/steps
 step-started   scrape       …
 step-applied   scrape       durationMs 1840
 step-started   summarise    …
-step-skipped   summarise    (no data)
+step-skipped   summarise    (no detail)
 step-applied   write        …
 run-finished
 ```
 
-The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `data` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, so the flow's required `summary` output was never produced. That is why the caller got `422 FLOW_OUTPUT_MISSING` and the run's writes were discarded. Nothing is filled in with an empty value. Had the step failed, `step-failed` would name the step and carry its `phase` and a `message` cut to 500 characters; longer text (up to 2,000 characters) is in the trace's `stepOutputs[].error` and, for a model step, its row in `GET /v1/ai-calls?project={nodeId}`.
+The summarising step was **skipped**, not failed. The row does not say why: a skip by the step's condition and a skip for a missing required input both carry no data at all; only a projection miss carries `detail` (`missReason`, `slotKey`, `inputIndex`). The step's condition is here "run only when `pageText` is present", so the trace's values decide which it was. A skipped step writes nothing, so the flow's required `summary` output was never produced. That is why the caller got `422 FLOW_OUTPUT_MISSING` and the run's writes were discarded. Nothing is filled in with an empty value. Had the step failed, `step-failed` would name the step and carry `detail.phase` and a `detail.message` cut to 500 characters; longer text (up to 2,000 characters) is in the trace's `stepOutputs[].error` and, for a model step, its row in `GET /v1/ai-calls?project={nodeId}`.
 
 ## 3. Read the trace for the values
 

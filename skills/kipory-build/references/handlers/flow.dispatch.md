@@ -63,10 +63,10 @@ https://www.youtube.com/watch?v=dQw4w9WgXcQ
 
 Routes to:
 
-- {"index":0,"value":"youtubeUrl","detail":"(?:^\|\\.)(?:youtube\\.com\|youtu\\.be)$","chosen":true}
-- {"index":1,"value":"githubUrl","detail":"(?:^\|\\.)github\\.com$","chosen":false}
-- {"index":2,"value":"docUrl","detail":"(?:^\|\\.)docs\\.","chosen":false}
-- {"index":3,"value":"otherUrl","detail":"no rule matched","chosen":false}
+- `youtubeUrl` — `(?:^|\.)(?:youtube\.com|youtu\.be)$` **(taken)**
+- `githubUrl` — `(?:^|\.)github\.com$` (not taken)
+- `docUrl` — `(?:^|\.)docs\.` (not taken)
+- `otherUrl` — no rule matched (not taken)
 
 #### Code link
 
@@ -80,10 +80,10 @@ https://github.com/kipory/kipory
 
 Routes to:
 
-- {"index":0,"value":"youtubeUrl","detail":"(?:^\|\\.)(?:youtube\\.com\|youtu\\.be)$","chosen":false}
-- {"index":1,"value":"githubUrl","detail":"(?:^\|\\.)github\\.com$","chosen":true}
-- {"index":2,"value":"docUrl","detail":"(?:^\|\\.)docs\\.","chosen":false}
-- {"index":3,"value":"otherUrl","detail":"no rule matched","chosen":false}
+- `youtubeUrl` — `(?:^|\.)(?:youtube\.com|youtu\.be)$` (not taken)
+- `githubUrl` — `(?:^|\.)github\.com$` **(taken)**
+- `docUrl` — `(?:^|\.)docs\.` (not taken)
+- `otherUrl` — no rule matched (not taken)
 
 #### Docs link
 
@@ -97,10 +97,10 @@ https://docs.example.com/getting-started
 
 Routes to:
 
-- {"index":0,"value":"youtubeUrl","detail":"(?:^\|\\.)(?:youtube\\.com\|youtu\\.be)$","chosen":false}
-- {"index":1,"value":"githubUrl","detail":"(?:^\|\\.)github\\.com$","chosen":false}
-- {"index":2,"value":"docUrl","detail":"(?:^\|\\.)docs\\.","chosen":true}
-- {"index":3,"value":"otherUrl","detail":"no rule matched","chosen":false}
+- `youtubeUrl` — `(?:^|\.)(?:youtube\.com|youtu\.be)$` (not taken)
+- `githubUrl` — `(?:^|\.)github\.com$` (not taken)
+- `docUrl` — `(?:^|\.)docs\.` **(taken)**
+- `otherUrl` — no rule matched (not taken)
 
 #### Nothing matches
 
@@ -114,7 +114,7 @@ https://blog.example.org/2026/q2-update
 
 Routes to:
 
-- {"index":0,"value":"youtubeUrl","detail":"(?:^\|\\.)(?:youtube\\.com\|youtu\\.be)$","chosen":false}
-- {"index":1,"value":"githubUrl","detail":"(?:^\|\\.)github\\.com$","chosen":false}
-- {"index":2,"value":"docUrl","detail":"(?:^\|\\.)docs\\.","chosen":false}
-- {"index":3,"value":"otherUrl","detail":"no rule matched","chosen":true}
+- `youtubeUrl` — `(?:^|\.)(?:youtube\.com|youtu\.be)$` (not taken)
+- `githubUrl` — `(?:^|\.)github\.com$` (not taken)
+- `docUrl` — `(?:^|\.)docs\.` (not taken)
+- `otherUrl` — no rule matched **(taken)**

@@ -52,6 +52,14 @@ The same video, each segment prefixed with its start offset.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "includeTimestamps": true
+}
+```
+
 Input:
 
 ```

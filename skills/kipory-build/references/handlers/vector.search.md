@@ -36,7 +36,7 @@ Find the stored items closest in meaning to a query.
 | `queryVectorSlot` | string | no | — | The slot holding the query vector. Dense or sparse, and a dotted path reaches into an object slot. |
 | `scoreThreshold` | number | no | — | A lower bound on the score, applied by the store on every query. Leave it off for recall, set it for precision. ⚠️ The score is cosine similarity and is legitimately NEGATIVE for a poor match — it is not bounded to 0..1. With `hybrid` on it becomes a rank-derived number on a different scale entirely. |
 | `topK` | integer | no | `5` | Top-K candidates to return, descending by score. Default 5; hard cap at 200 to keep tiebreak prompts bounded. |
-| `vectorName` | string | no | — | Which named vector to search along. Unset searches the collection's default one. ⚠️ Required when the query is a sparse vector — the store routes sparse only through a named slot. A name the collection does not have fails at run time, not at save. |
+| `vectorName` | string | no | — | Which named vector (dense or sparse), of those the collection's embedding profile reserves, to search along. Outside `record` mode, unset searches the collection's default one. ⚠️ Required for a sparse-vector query, and in `record` mode for a text or vector query (by record, `vectorNames` instead). A name the collection lacks fails at run time, not save. |
 | `vectorNames` | string[] | no | — | Which named vectors to search. Candidate mode only — one search per name, merged by taking each point's best score. |
 
 ### `filter`
@@ -58,6 +58,21 @@ Reads: read query. Emits: top-K by similarity.
 Five hits by similarity. A high score means the same concept; a low one means the query is genuinely new.
 
 Reads `Vector` → emits `TermHit[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "collection": "$project.terms",
+  "queryVectorSlot": "vector",
+  "hitShape": "term",
+  "topK": 5,
+  "filter": {
+    "facet": "event",
+    "status": "active"
+  }
+}
+```
 
 Input:
 
@@ -85,6 +100,21 @@ An empty collection returns an empty list rather than erroring. A later step tre
 
 Reads `Vector` → emits `TermHit[]` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "collection": "$project.terms",
+  "queryVectorSlot": "vector",
+  "hitShape": "term",
+  "topK": 5,
+  "filter": {
+    "facet": "mood",
+    "status": "active"
+  }
+}
+```
+
 Input:
 
 ```
@@ -104,6 +134,22 @@ Output:
 The search is restricted to candidates under an already-resolved parent, so only the relevant subtree is offered.
 
 Reads `Vector` → emits `TermHit[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "collection": "$project.terms",
+  "queryVectorSlot": "vector",
+  "hitShape": "term",
+  "topK": 5,
+  "filter": {
+    "facet": "type",
+    "status": "active",
+    "parentTermId": "term_category_event"
+  }
+}
+```
 
 Input:
 
@@ -128,6 +174,18 @@ Output:
 In generic mode the stored payload passes through untouched, so a later step projects whatever fields it needs.
 
 Reads `Vector` → emits `GenericHit[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "collection": "notes",
+  "queryVectorSlot": "vector",
+  "hitShape": "generic",
+  "vectorName": "vec.content",
+  "topK": 2
+}
+```
 
 Input:
 
@@ -173,6 +231,18 @@ Output:
 A sparse query has to name the vector slot it searches. It mixes with dense search in a hybrid flow.
 
 Reads `SparseVector` → emits `GenericHit[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "collection": "notes",
+  "queryVectorSlot": "vector",
+  "hitShape": "generic",
+  "vectorName": "vec.bm25",
+  "topK": 2
+}
+```
 
 Input:
 

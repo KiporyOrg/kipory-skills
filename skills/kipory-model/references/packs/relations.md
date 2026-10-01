@@ -321,7 +321,9 @@ you — you get _the other end_, never a raw pair you have to work out which sid
 symmetric kind ignores it, its stored pair being canonical rather than meaningful — so walking from
 the target of a kind back to its sources is `?direction=incoming`. It also takes a
 limit, whether to include expired edges, and an ordering by one of the kind's declared edge
-properties.
+properties. Each edge names its peer by id — `peerRecordId`, beside its `direction` and `origin` —
+and carries none of the peer's fields: read the peers in one call with
+`GET /v1/records?project=<node>&id=<peerRecordId>&id=…` (up to 100 ids).
 
 Three behaviours worth knowing before you debug an empty answer:
 
@@ -446,8 +448,9 @@ of rules, so a check that passes and a save that refuses cannot come apart.
 
 ## What the platform refuses
 
-- **A producer is required and immutable** (`RELATION_PRODUCER_REQUIRED`,
-  `RELATION_PRODUCER_IMMUTABLE`). There is no default, and ⚠️ it can **never** change — not "once
+- **A producer is required and immutable.** The create body's schema requires it, so a create
+  without one is a 422 issue at `producer`, and a document's relation row needs one too. There is
+  no default, and ⚠️ it can **never** change (`RELATION_PRODUCER_IMMUTABLE`) — not "once
   edges exist": a kind created a second ago with no edges at all refuses just the same, because the
   value is denormalised onto every edge and the guard consults no count. A PATCH restating the
   current value is fine (the editor patches the whole object back); any other value is refused.

@@ -97,7 +97,7 @@ Apply a project document: every row it names is created, changed or removed thro
 | --- | --- | --- | --- |
 | `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
-| `changes` | `object[]` | yes | Every row the document states, in the order an apply writes them. Complete whether or not a refusal stopped the attempt early. |
+| `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
@@ -126,7 +126,7 @@ _No fields._
 | --- | --- | --- | --- |
 | `ok` | `boolean` | yes | True when `diagnostics` holds no `error` this document introduces — an error with `introduced: false` was already in the project, is reported, and does not gate. An apply of this document would commit exactly when this is true. |
 | `version` | `string` | yes | The project's structure version the plan was computed against. |
-| `changes` | `object[]` | yes | Every row the document states, in the order an apply writes them. Complete whether or not a refusal stopped the attempt early. |
+| `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |

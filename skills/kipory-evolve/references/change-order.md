@@ -26,23 +26,24 @@ schema entry → flow → record type → endpoint → schedule
 Each names one before it (a record type names its processing flow in `flowId`), so the reverse
 order is a save refused for naming something absent.
 
-**Narrowing under live records.** Three writes, never one:
+**Narrowing under live records.** Four writes, never one, in this order:
 
 ```
 1  add the field as optional            → existing records stay valid
 2  backfill it                          → the loop below
-3  make it required                     → now nothing is invalidated
-4  patch every schedule's and trigger's fixed inputs that feed the shape
+3  patch every schedule's and trigger's fixed inputs that feed the shape
+4  make it required                     → now nothing is invalidated
 ```
 
 The shape is edited on `PATCH /v1/schema-entries/{id}`, with `adoptSnapshots: true` while an
 endpoint, or a record type through its processing flow, holds a snapshot of a flow that reads it
-(without it: `409`, naming them). Check step 3 with the schema-entry PATCH and `validateOnly:
+(without it: `409`, naming them). Check step 4 with the schema-entry PATCH and `validateOnly:
 true`, or a document plan: both rehearse the edit and answer the same `records-invalid` count under
 `consequences`, and the flows, schedules and triggers it would break (the PATCH lists them under
-`leavesBehind`, the plan among its findings, each with `introduced`). Step 4 is the fix for what
-they name: a schedule's or trigger's stored `inputs` that no longer fit is
-`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`.
+`leavesBehind`, the plan among its findings, each with `introduced`). Step 3 is the fix for what
+they name: a schedule's or trigger's stored `inputs` that would no longer fit is
+`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`, an error the narrowing introduces, so the
+rehearsal answers `ok: false` until step 3 is done.
 
 **The backfill, in one change set** (up to 500 records a call):
 
@@ -73,12 +74,17 @@ delete the endpoint → delete the schedules and triggers → unbind the type (f
 
 A disabled schedule still blocks the flow delete: delete it or re-point it
 (`PATCH /v1/schedules/{id} { flowId, version }`). So do a type bound to the flow, a facet resolver and
-another flow's `flow.invoke` — the refusal (`409 FLOW_HAS_DEPENDENTS`) names each kind. Rehearse each one that has a rehearsal. A delete that
-is refused has told you the order was wrong.
+another flow's `flow.invoke` — the refusal (`409 FLOW_HAS_DEPENDENTS`) counts each kind, and `GET /v1/projects/{nodeId}/connections` names the rows. Rehearse each one that has a rehearsal. A delete that
+is refused has told you the order was wrong. A flow delete takes its checkpoints and test cases with
+it: export the project first if you may want the flow back.
 
-**A rename.** Rehearse, then commit. On a live endpoint prefer ONE document apply that states both
-the step's new `outputSlot` and the flow's re-pointed `outputBinding` — one transaction, and the
-endpoint never answers from a dangling binding. Row by row it is:
+**A rename.** Rehearse, then commit. On a live endpoint prefer ONE document apply that states the
+step's new `outputSlot`, every reader rewritten to the new name, and the flow's re-pointed
+`outputBinding` — one transaction, and the endpoint never answers from a dangling binding. A
+document writes each step as stated and cascades nothing, so the readers to restate are the ones
+the step PATCH's `validateOnly` lists in `derived.rename`. A step's output rename is not a FLOW
+output rename: the flow's own output slots are its signature (below), and renaming one needs
+`adoptSnapshots: true` while an endpoint holds it. Row by row it is:
 
 ```
 PATCH /v1/steps/{id}             the new outputSlot + validateOnly — derived.rename names every step it would rewrite
@@ -93,8 +99,8 @@ preview does not list it: skip the third call and the endpoint in front answers
 `422 FLOW_OUTPUT_MISSING` (`details.missing: ["id"]`) and writes nothing — a required output
 nothing produces is refused, never filled. Health names the dangling binding before a call does. Renaming a FLOW's own output slot is a
 signature change: `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until the PATCH carries
-`adoptSnapshots: true`, and then every client of the endpoint sees the new key. That PATCH needs
-BOTH `inputTypeNames` and `outputTypeNames`; one alone is a `422`. A record type's key and fields are not renamed this way: once it has records, both
+`adoptSnapshots: true`, and then every client of the endpoint sees the new key. That PATCH may
+send `outputTypeNames` alone; the inputs stay as stored (and the same the other way round). A record type's key and fields are not renamed this way: once it has records, both
 are refused.
 
 ## Reading a refusal

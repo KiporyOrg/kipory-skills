@@ -8,7 +8,7 @@ Run the next steps once for each item in a list.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]` → `T`
 - **Reads:** One list. Any kind of list — every branch carries whatever the elements are. _(shape hint: `list`)_
-- **Emits:** One downstream branch per list element — the handler itself produces no slot value.
+- **Emits:** One downstream branch per list element. In each branch the step's `outputSlot` holds that branch's element, which is what the steps below it read.
 - **Suggested input streams:** `extractedUrls`
 
 ## Config
@@ -32,12 +32,12 @@ Reads `string[]` → emits `string` · 1 list → 3 branches
 
 Input:
 
-- {"index":0,"value":"https://kipory.dev/docs"}
-- {"index":1,"value":"https://example.com/blog/launch"}
-- {"index":2,"value":"https://github.com/kipory/sdk"}
+- `https://kipory.dev/docs`
+- `https://example.com/blog/launch`
+- `https://github.com/kipory/sdk`
 
 Branches:
 
-- {"index":0,"value":"https://kipory.dev/docs"}
-- {"index":1,"value":"https://example.com/blog/launch"}
-- {"index":2,"value":"https://github.com/kipory/sdk"}
+- `https://kipory.dev/docs`
+- `https://example.com/blog/launch`
+- `https://github.com/kipory/sdk`

@@ -18,7 +18,7 @@ Download the text behind a web address.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxBytes` | integer | no | `5000000` | Reject responses larger than this before the slot cap applies. |
+| `maxBytes` | integer | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body under it can still exceed the slot cap (500 000 characters unless the deployment set another): its text is cut to fit, ends in `[TRUNCATED]`, and the run warns `slot-truncated`. |
 | `maxRedirects` | integer | no | `3` | Maximum HTTP redirect hops to follow. |
 | `timeoutMs` | integer | no | `15000` | Request timeout in milliseconds. |
 

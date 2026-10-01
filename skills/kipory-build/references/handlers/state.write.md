@@ -29,6 +29,15 @@ The value joins the cell without repeating what is already there, because the mo
 
 Reads `any` → emits `string` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "key": "seenUrls",
+  "op": "union"
+}
+```
+
 Input:
 
 ```
@@ -46,6 +55,15 @@ ok
 The mode is set, so the cell now holds this value alone and whatever was there is gone.
 
 Reads `any` → emits `string` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "key": "nextPage",
+  "op": "set"
+}
+```
 
 Input:
 

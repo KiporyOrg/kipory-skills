@@ -51,7 +51,8 @@ row. So a field a surface grows appears in the document the same day, spelled th
 record type's `ownerScope` is `user` or `project` here as on `POST /v1/record-types` and on a
 record (the stored `USER` / `PROJECT` is refused, in a document as on the row), and a relation
 kind's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
-`POST /v1/relation-kinds` (the camelCase `joinRecord` / `manyToOne` is refused), and an eval
+`POST /v1/relation-kinds` (the camelCase `joinRecord` / `manyToOne` is refused; `producer` is
+required on every relation row, as on the create), and an eval
 suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`, its `scoreRules`
 the same list under the same bounds, with `direction` in kebab (`higher-is-better`).
 
@@ -157,9 +158,12 @@ The answer holds the `version` the project was read at — the lock an apply pre
 `ignoredIds`, three lists, their `counts` and a verdict:
 
 - `changes` — every row you stated, as `create`, `update`, `delete`, `unchanged`, `derived` or
-  `skipped`, in the order an apply writes them. It is complete even when a refusal stopped the
-  attempt early, because it comes from comparing your document with the project, not from the
-  attempt.
+  `skipped`, in your document's order, followed by any row a delete takes along. That is not the
+  order an apply writes them: it writes creates and updates kind by kind (shapes first), then
+  deletes in reverse. It is complete even when a refusal stopped the attempt early, because it
+  comes from comparing your document with the project, not from the attempt. A create's `id` in a
+  plan comes from the attempt the plan rolls back, so it is not the id the apply will give the row:
+  take ids from the apply's `document`.
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
   (`records.member.shape`), never a path in some row's request body. Gate on `severity` and
   `introduced`: a finding about the state the document leaves carries `introduced` — `false` when
@@ -177,8 +181,9 @@ The answer holds the `version` the project was read at — the lock an apply pre
   which spends credits on embedding usage (billed by tokens, so it grows with the records and the
   text each holds), because what its search indexes moved. It is per type, a plan reports it (an
   apply's answer does not repeat it), and it is the one to ask a person about before applying.
-  `reindex` is not that: it says a reconcile is queued, which may find nothing to redo (a filter
-  change queues one and embeds nothing).
+  `reindex` is not that: it says a reconcile is queued, which may find nothing to redo. A `filter`
+  use added, removed or moved reports `restamp` — every record's filter columns are rewritten — and
+  on a searchable type it also queues a `reindex` that embeds nothing.
 - `ok` — true exactly when no `error` the document introduces remains; an error carrying
   `introduced: false` was already in the project and does not gate. An apply of the same document
   commits exactly when this is true.
@@ -192,7 +197,10 @@ that pair it, deleting a facet takes its terms. That is the row's own delete wor
 designed, and the plan says so rather than leaving it to be discovered — each such row is in
 `changes` as a `delete` with `because: "cascade"`, is counted under `delete` in `counts`, and carries a
 `warning`, `DOCUMENT_DELETE_CASCADED`, on its own path. Read a plan's `delete` list before
-applying it; it is the true list, not only yours. A row your document still STATES is reported
+applying it; it is the true list, not only yours. A record-type delete also carries its reach on
+its own path, whether or not the delete goes through: a `DOCUMENT_DELETE_CASCADED` warning names
+the relation kinds and the joins it would take along, so a delete the plan refuses (a type its
+records pin) still says what it would have removed. A row your document still STATES is reported
 the same way: an edited full export that deletes a record type and still names the relation kind
 pairing it has that kind's change on `relations.<kind>` as the cascade, not as `unchanged` — the
 document says keep it, the delete takes it anyway, and the warning says which won.
@@ -234,7 +242,12 @@ An apply is the plan, kept. It commits only when the plan holds no `error`, and 
 one transaction, one project version, one entry in the project's history, however many rows moved.
 A refused apply answers `422` with the PLAN as its body and has written nothing — not the rows
 before the refused one either. A document that changes nothing answers `applied: true` and leaves
-the version where it was, so re-applying what you exported is always safe.
+the version where it was, so re-applying what you exported is always safe. What the platform fills in
+on a write is not a change: a `flow.invoke` or `flow.merge` `derivedShape`, a `flow.dispatch`
+`outputSlot` of `""`, the carry slots a `flow.loop-end` adds to its `inputStreams`, `handlerConfig: {}`
+against a stored `null`, and the `x-record-ref` a `link` use stamps on a field. Planning the same
+document again, or its export, reports every row `unchanged`, and a step it leaves alone keeps its
+`version` and the results cached under it.
 
 The answer is the plan plus `applied`, `appliedVersion` — present that on your next apply if nothing else wrote since — and
 `document`, the project as it now stands with every id filled in. Any other write to the project —

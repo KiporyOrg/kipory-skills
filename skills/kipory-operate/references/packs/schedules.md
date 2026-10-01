@@ -102,8 +102,12 @@ tick on daylight-saving nights — `23 2 * * *` in `Europe/Berlin` fires ONCE on
 and once on the spring-forward night, where reading the local clock gives two and none — and cannot
 see `maxRuns` at all.
 
-⚠️ **None of the three reads `enabled`.** They are what the timing gives, which is also what enabling
-it now would give; a disabled schedule fires nothing whatever they say. And the walk assumes every
+⚠️ **A disabled schedule answers `nextRun.kind: "disabled"`, with no upcoming runs or firings.**
+A `validateOnly` PATCH that switches it off answers an empty `derived.upcoming` the same way.
+Enabling it computes the timing afresh, from then. Its `nextRun.stop` says whether that can work:
+null when it is merely paused; `exhausted` or `invalid`, with the stop in `reason`, when the
+scheduler switched it off itself (its last run fired, its end date passed) — enabling that one is
+refused with 422. On an enabled schedule the walk assumes every
 occurrence fires — a skipped or blocked one spends no run, so a schedule near its limit can fire
 later than `upcoming` ends. The walk is CPU on the platform, one cron search per occurrence, so ask
 for it where you draw it and size the window to what you draw.
@@ -177,8 +181,10 @@ read the one schedule you are about to show from it when the list left it `null`
 `GET /v1/schedules/{id}/runs` is the debugging surface, and there are **two** error fields on a
 run's invocation. Reach for them in this order:
 
-- **`failure`** — `{ skillName, phase }`. This is the one that tells you something: it **names the
-  step that failed** and the category of failure. Present only for a step-level failure.
+- **`failure`** — `{ skillName, phase, reason? }`. This is the one that tells you something: it
+  **names the step that failed** and the category of failure. Present only for a step-level failure.
+  `reason` is set only for a refusal a caller may read: a mail step's sender refusal, or
+  `project-mail-cap-reached` past the project's daily mail cap; `statusError` then names it too.
 - **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary skill failure
   it is the fixed string _"The flow failed to run."_ on every run, because the raw error can carry
   provider bodies and prompt fragments and is deliberately not put there. The step's own words, cut

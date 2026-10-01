@@ -43,7 +43,10 @@ that genuinely needed arbitrating.
 
 The thresholds come from the facet's own `resolutionParams`, fed to the gate through the resolver
 flow's `params` input rather than configured on the step. A facet with no explicit resolver is bound
-to a platform default at creation and already carries sensible ones.
+to a platform default at creation and carries `lowThreshold: 0.72`, `highThreshold: 0.92`: at or
+above the high one the match is reused, below the low one the value is new (`mint` decides what that
+means), between them the model decides. Short values score low against the terms they mean; the
+`facets` pack has the tuning.
 
 `parentTermIdSlot` carries the resolved parent for a hierarchical facet, so a term created in the
 create-new case lands in the right place in the tree rather than at the root.

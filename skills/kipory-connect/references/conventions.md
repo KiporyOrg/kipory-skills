@@ -34,9 +34,9 @@ Read → `VIEWER`. Design mutation → `EDITOR`. Destructive, structural or **sp
 ## Optimistic locking
 
 - A PATCH carries the `version` you last read; a stale one is a **409** naming the captured and current versions. Re-read and reconcile; never blind-retry.
-- `version` is **required** on every PATCH of a design row — steps, api-endpoints, facets, terms, relation kinds, embedding profiles, schedules, triggers and sources (their `enabled` switch included), event types, schema entries, record types, project config (when the namespace exists), eval suites and cases — and on a state-changing POST: a term's merge and an embedding profile's activate.
+- `version` is **required** on every PATCH of a design row — flows, steps, api-endpoints, facets, terms, relation kinds, embedding profiles, schedules, triggers and sources (their `enabled` switch included), event types, schema entries, record types, project config (when the namespace exists), eval suites and cases — and on a state-changing POST: a term's merge and an embedding profile's activate.
 - One resource publishes a `version` that is **not** a lock: a record's `version` is owned by a database trigger and there is no record PATCH. An embedding profile's `version` IS a lock; its geometry number is the separate `generation`.
-- Resources with **no lock at all**: the flow PATCH, project settings, auth config, managed email addresses, route enablement, nodes. Last writer wins.
+- Resources with **no lock at all**: project settings, auth config, managed email addresses, route enablement, nodes. Last writer wins.
 - Every write body is **strict**: an unknown key, including `version` where none is accepted, is a 422.
 
 ## `expand=`
@@ -62,7 +62,7 @@ A comma-separated list of computed fields a read will add. Each may cost extra q
 
 Everywhere else the comma form is the only one: `?expand=drift&expand=contract` is a 422 on the record-types read. A route that lists query parameters but no `expand` refuses one; a route that lists no query parameters at all ignores it.
 
-⛔ **A delete rehearses only where its reference lists `validateOnly`.** `DELETE /v1/facets/{id}`, `DELETE /v1/record-types/{id}` and `DELETE /v1/flows/{id}` do; a delete whose reference does not list it does not. A current deployment answers an unknown query key on any DELETE with a 422 and deletes nothing, and the same for a JSON body with any key (`{"validateOnly": true}` included) on a DELETE that declares no body — but an older one ignores either and **deletes**: never send `validateOnly`, in the query or the body, to a delete whose reference does not list it. Where a delete has no rehearsal, a document plan that states `delete: true` is one.
+⛔ **A delete rehearses only where its reference lists `validateOnly`.** Most design deletes do — `DELETE /v1/facets/{id}`, `DELETE /v1/record-types/{id}`, `DELETE /v1/flows/{id}`, `DELETE /v1/api-endpoints/{id}` and `DELETE /v1/schedules/{id}` among them; a delete whose reference does not list it does not. A current deployment answers an unknown query key on any DELETE with a 422 and deletes nothing, and the same for a JSON body with any key (`{"validateOnly": true}` included) on a DELETE that declares no body — but an older one ignores either and **deletes**: never send `validateOnly`, in the query or the body, to a delete whose reference does not list it. Where a delete has no rehearsal, a document plan that states `delete: true` is one.
 
 ## Readiness
 
@@ -91,7 +91,7 @@ Facets and relation kinds report readiness under `expand=readiness`, from a four
 ## Streams
 
 - Every server-sent-events response is `event: <name>` + `data: <JSON>`. An opening comment `:open` and a `:keep-alive` every 15 seconds are not events.
-- `error` and `close` are always followed by `done`. `error` is the **transport** failing; `close` is the source finishing for a reason it knows. The close vocabulary is `lifetime`, `transport-unavailable`, `revoked`, `terminal`, `too-slow`; treat an unrecognised reason as `lifetime` and reconnect with jitter.
+- Every stream's last frame is `done` (`data: {}`) — after a `flow.stream`'s `result`, and after `error` or `close` on any stream. `error` is the **transport** failing; `close` is the source finishing for a reason it knows. The close vocabulary is `lifetime`, `transport-unavailable`, `revoked`, `terminal`, `too-slow`; treat an unrecognised reason as `lifetime` and reconnect with jitter.
 - Every stream ends on its own after ten to twelve minutes with `close { lifetime }`, whatever the activity. A long-lived subscriber reconnects.
 - Once hijacked, the HTTP status is fixed at 200; a failure arrives as an `error` frame with a `code`. A client treating 200 as success misses every stream failure.
 - A stream refuses **before** hijacking — an ownership 404, a capacity 503 with `Retry-After`, a bus outage 503 — as an ordinary JSON envelope.

@@ -29,6 +29,18 @@ Both stores are cleared and each reports its own count. Files you submitted are 
 
 Reads `object` → emits `object` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordIdSlot": "record.recordId",
+  "targets": [
+    "files",
+    "terms"
+  ]
+}
+```
+
 Input:
 
 ```
@@ -49,6 +61,18 @@ Output:
 The record has no derived state yet. Counts come back zero rather than as an error.
 
 Reads `object` → emits `object` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordIdSlot": "record.recordId",
+  "targets": [
+    "files",
+    "terms"
+  ]
+}
+```
 
 Input:
 

@@ -31,6 +31,19 @@ The point carries both, so both come back keyed by name.
 
 Reads `string` → emits `Record<string, number[]>` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "collection": "notes",
+  "pointIdSlot": "pointId",
+  "vectorNames": [
+    "vec.content",
+    "vec.user-language"
+  ]
+}
+```
+
 Input:
 
 ```
@@ -51,6 +64,19 @@ Output:
 The point never carried that vector, so it is left out rather than returned empty.
 
 Reads `string` → emits `Record<string, number[]>` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "collection": "notes",
+  "pointIdSlot": "pointId",
+  "vectorNames": [
+    "vec.content",
+    "vec.user-language"
+  ]
+}
+```
 
 Input:
 

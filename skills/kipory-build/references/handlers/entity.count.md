@@ -17,7 +17,7 @@ Count the records that match, without reading them.
 | `createdAfter` | string | no | — | Count only rows created at or after this moment. A fixed date, written in ISO-8601. ⚠️ This bounds when the row was stored, not what your data means by a date. For that, put a range in `fieldFilters` on a declared timestamp. |
 | `createdBefore` | string | no | — | Optional inclusive upper bound on `createdAt` (ISO-8601). Same caveat as `createdAfter`: this is the row's insert time. |
 | `edgeFilters` | object[] | no | — | Count only rows that carry a link. Each entry names a link kind and, optionally, a slot naming the record on the other end. ⚠️ This is the only filter that reads the link graph rather than the row itself. An entry whose slot does not resolve is dropped whole, rather than widening to every link of that kind. |
-| `facetFilter` | object[] | no | — | Count only rows tagged with these terms. Each entry names a facet and a term; a row must match all of them. ⚠️ In a facet with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
+| `facetFilter` | object[] | no | — | Count only rows tagged with all of these facet–term pairs. The pairs are fixed in config, never read from a slot. ⚠️ In a facet with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
 | `fieldFilterSlots` | object | no | — | A map of queryable field to the slot carrying its value. One value matches exactly, a list matches any of them. ⚠️ A slot that does not resolve drops its filter rather than matching nothing. Ranges have no live form; put those in `fieldFilters`. |
 | `fieldFilters` | object[] | no | — | Filters on fields the record type declared queryable. These are what make a count cheap, and the only ones that support ranges. ⚠️ A field the record type never declared queryable is refused when the step runs. Counting over a declared one reads its index and never touches the record. |
 | `recordType` | string | yes | — | The record type to count. Required: a declared field belongs to one type, so a filter has nothing to resolve against without it. |
@@ -59,6 +59,15 @@ No filters beyond the type and the owner, so this is the user's total for that r
 
 Reads `{ userId }` → emits `number` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "userIdSlot": "userInfo.userId",
+  "recordType": "item"
+}
+```
+
 Input:
 
 ```
@@ -77,6 +86,22 @@ One declared field narrows the count. The value lives in that field's own column
 
 Reads `{ userId }` → emits `number` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "userIdSlot": "userInfo.userId",
+  "recordType": "item",
+  "fieldFilters": [
+    {
+      "field": "kind",
+      "op": "eq",
+      "value": "article"
+    }
+  ]
+}
+```
+
 Input:
 
 ```
@@ -94,6 +119,17 @@ Output:
 The filters exclude every row. `0` is a real answer, not an absence a later step must guard.
 
 Reads `string` → emits `number` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "item",
+  "fieldFilterSlots": {
+    "sourceId": "sourceId"
+  }
+}
+```
 
 Input:
 

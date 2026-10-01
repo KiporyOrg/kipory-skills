@@ -51,9 +51,10 @@ pdf.parse → text?  ── yes ──→ text.chunk → …            (a gener
                  └─ no  ──→ pdf.screenshot → text.generate with a vision model → …
 ```
 
-`pdf.parse` tells you which case you are in rather than erroring. Its output carries one flag,
-`isEncrypted`: `text` empty with `isEncrypted: true` is a locked file; `text` empty with no flag is
-a scan. Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
+`pdf.parse` tells you which case you are in rather than erroring. `text` empty with `pageCount`
+set is a scan; `text` empty with `isEncrypted: true` is a locked file; `text` empty with neither
+means the parser could not read the file — the step warns `PDF_PARSE_FAILED`, and the empty result
+is not cached, so a later run reads the file again. Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
 `pdf.screenshot` renders **one page**, and that page is the static config field `page` — no slot
 sets it, so fanning out over page numbers renders the same page in every branch. A multi-page scan
 needs one `pdf.screenshot` step per page you want, each a separate vision call with a separate bill.

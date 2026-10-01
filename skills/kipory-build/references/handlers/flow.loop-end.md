@@ -14,9 +14,9 @@ End a loop: stop when the condition holds, or go round again.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `carryMap` | object | no | `{}` | Which body output becomes which carry slot on the next pass. |
-| `escapeSlots` | object | no | `{}` | Which slots survive the loop, and under what name outside it. Everything else inside is discarded when the region closes. |
-| `outputSlot` | string | yes | — | The post-loop aggregate result slot in the parent scope. Mirrors Skill.outputSlot; the save action writes both. |
+| `carryMap` | object | no | `{}` | As `{ bodySlot: carrySlot }`: after each pass, the body slot's value becomes that carry slot (the one the opener seeds) for the next pass. ⚠️ Every key must be a slot a step inside the loop writes — any other key is refused (`LOOP_CARRY_REFERENCES_UNKNOWN_SLOT`). |
+| `escapeSlots` | object | no | `{}` | Which slots outlive the loop, as `{ innerSlot: outerSlot }`: each inner slot's last-pass value is published under the outer name. ⚠️ Everything else inside the loop is discarded when the region closes: a slot not listed here is gone for every later step. |
+| `outputSlot` | string | yes | — | The outside-the-loop slot receiving the last pass's value of the FIRST `carryMap` key. Mirrors the step's `outputSlot`; the save writes both. |
 | `until` | union | yes | — | When to stop. It is checked after each pass, against what that pass produced. |
 
 ### `until` — one of
@@ -185,8 +185,8 @@ Reads `carry` → emits `carry` · one pass
 
 Input:
 
-- {"index":0,"value":"body outputs","detail":"read at the top of every pass"}
+- body outputs — read at the top of every pass
 
 Each pass:
 
-- {"index":0,"value":"loop result"}
+- loop result

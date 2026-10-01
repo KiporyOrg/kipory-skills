@@ -59,6 +59,14 @@ Re-encoded as WebP: smaller bytes than the source PNG at equal visual quality.
 
 Reads `file` → emits `file` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "format": "webp"
+}
+```
+
 Input:
 
 ```

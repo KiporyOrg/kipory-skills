@@ -32,6 +32,17 @@ Each event becomes one row under the record, keyed by its time. The record itsel
 
 Reads `list` → emits `string` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "thread",
+  "field": "activity",
+  "recordIdSlot": "events.recordId",
+  "eventSlot": "events.events"
+}
+```
+
 Input:
 
 ```
@@ -55,6 +66,17 @@ appended
 A retry derives the same ids, so every row already exists and nothing is written twice.
 
 Reads `list` → emits `string` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "thread",
+  "field": "activity",
+  "recordIdSlot": "events.recordId",
+  "eventSlot": "events.events"
+}
+```
 
 Input:
 

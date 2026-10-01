@@ -27,6 +27,19 @@ Reads: read sibling slots. Emits: flatten + dedup.
 
 Reads `mixed` → emits `string[]` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "inputs": [
+    "tagsFromSourceMeta",
+    "tagsFromFileMeta",
+    "tagsFromLlm"
+  ],
+  "strategy": "concat"
+}
+```
+
 Input:
 
 ```
@@ -47,6 +60,19 @@ Output:
 
 Reads `mixed` → emits `string[]` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "inputs": [
+    "tagsFromSourceMeta",
+    "tagsFromFileMeta",
+    "tagsFromLlm"
+  ],
+  "strategy": "dedup-concat"
+}
+```
+
 Input:
 
 ```
@@ -66,6 +92,18 @@ Output:
 #### Single values
 
 Reads `mixed` → emits `object[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "inputs": [
+    "categoryResolution",
+    "typeResolution",
+    "tagResolutions"
+  ]
+}
+```
 
 Input:
 

@@ -212,7 +212,7 @@ One eval run in full — its status, trigger, provenance, per-case results with 
 | `run` | `object` | yes | The run's own record. |
 | `results` | `object[]` | yes | What happened to each case. |
 | `aggregates` | `object` | yes | This run's own numbers, pooled and per label. Always present — unlike a delta, there is no second run to be incomparable with. |
-| `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when there is no previous run. |
+| `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when nothing was compared — the run's `regression.reason` says whether there was no previous run (`no-baseline`) or it could not be read (`baseline-unreadable`). |
 
 ### `GET /v1/eval-runs/{id}/traces/{traceId}`
 
@@ -513,7 +513,7 @@ Run an eval suite: every enabled case (or `caseKeys`) through the suite's flow, 
 | `run` | `object` | yes | The run's own record. |
 | `results` | `object[]` | yes | What happened to each case. |
 | `aggregates` | `object` | yes | This run's own numbers, pooled and per label. Always present — unlike a delta, there is no second run to be incomparable with. |
-| `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when there is no previous run. |
+| `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when nothing was compared — the run's `regression.reason` says whether there was no previous run (`no-baseline`) or it could not be read (`baseline-unreadable`). |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

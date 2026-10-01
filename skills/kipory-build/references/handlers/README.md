@@ -2,7 +2,7 @@
 
 # Handler catalog
 
-71 system handlers, one page each. A step in a flow is one of these plus its config. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+71 customer handlers, one page each. A step in a flow is one of these plus its config. `GET /v1/handlers` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 ## Groups
 
@@ -33,9 +33,9 @@ _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO
 - [`telegram.resolve-channel`](telegram.resolve-channel.md) — Fetch a Telegram channel · sources · `string` → `TelegramChannelResolution`
 - [`telegram.search-channels`](telegram.search-channels.md) — Search Telegram channels · sources · `string` → `TelegramChannelSearchResults`
 - [`term.upsert`](term.upsert.md) — Save terms · entities · `1` → `nothing`
-- [`text.decide`](text.decide.md) — Answer typed questions · ai · `any` → `nothing`
+- [`text.decide`](text.decide.md) — Answer typed questions · ai · `any` → `the step's outputSchema`
 - [`text.embed`](text.embed.md) — Capture text meaning · ai · `string` → `Vector`
-- [`text.generate`](text.generate.md) — Generate text · ai · `any+` → `nothing`
+- [`text.generate`](text.generate.md) — Generate text · ai · `any+` → `the step's outputSchema`
 - [`text.rerank`](text.rerank.md) — Rank by relevance · ai · `slot map` → `RerankHit[]`
 - [`url.fetch`](url.fetch.md) — Fetch text from a web address · sources · `string` → `string`
 - [`url.fetch-as-file`](url.fetch-as-file.md) — Fetch a web address as a file · sources · `string` → `file`

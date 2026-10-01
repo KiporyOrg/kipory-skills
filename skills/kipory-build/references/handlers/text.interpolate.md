@@ -26,6 +26,12 @@ One slot, no surrounding prose. Use it to rename or repackage an upstream value.
 
 Reads `object` → emits `string` · 1 in → 1 out
 
+Prompt template:
+
+```
+{{title}}
+```
+
 Input:
 
 ```
@@ -45,6 +51,14 @@ Q2 retro
 Newlines in the template survive. The usual use is assembling one string out of several slots.
 
 Reads `object` → emits `string` · 1 in → 1 out
+
+Prompt template:
+
+```
+Article: {{title}}
+
+{{summary}}
+```
 
 Input:
 
@@ -69,6 +83,12 @@ A list referenced bare is joined with commas. Use it to flatten a list back into
 
 Reads `object` → emits `string` · 1 in → 1 out
 
+Prompt template:
+
+```
+Tags: {{tags}}
+```
+
 Input:
 
 ```
@@ -88,6 +108,12 @@ Tags: #engineering, #metrics, #q2
 `length`, `first` and `last` project on a list; `{{slot[N]}}` reaches any position.
 
 Reads `object` → emits `string` · 1 in → 1 out
+
+Prompt template:
+
+```
+Top tag: {{tags.first}} (out of {{tags.length}})
+```
 
 Input:
 

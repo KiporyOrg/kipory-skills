@@ -294,7 +294,7 @@ One trigger's decisions, newest first, walked on `after`/`before` — fired, ski
 
 ### `GET /v1/triggers/{id}/sample`
 
-The newest recorded event this trigger's selector and filter would accept — the input to hand `POST /v1/flows/{id}/preview` to try the flow without firing. It is the envelope a flow's `event` slot receives, except that it names the project by its node id — in `project`, `source` and a project-scoped `subject` — where a real run's slot carries the row id (in `projectId`, `source` and `subject`), so a flow reading those sees different values in the preview. Null when none is among the newest events of the type scanned. Nothing runs. To re-run a real decision instead: `POST /v1/triggers/{id}/replay`.
+The newest recorded event this trigger's selector and filter would accept — the input to hand `POST /v1/flows/{id}/preview` to try the flow without firing. It is the envelope a flow's `event` slot receives, except that the slot names the project's node id `projectId` where this names it `project`. Null when none is among the newest events of the type scanned. Nothing runs. To re-run a real decision instead: `POST /v1/triggers/{id}/replay`.
 
 **Path parameters**
 
@@ -306,4 +306,4 @@ The newest recorded event this trigger's selector and filter would accept — th
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `event` | `object \| null` | yes | The newest recorded event this trigger's selector and filter would accept — or null when no such event has been recorded yet. Hand it to `POST /v1/flows/{id}/preview` as the `event` input. On a real run the flow's `event` slot carries the same envelope with the project's row id in `projectId` instead of `project`, and in `source` and a project-scoped `subject`: a flow that reads any of them sees a different value in a preview fed this sample. |
+| `event` | `object \| null` | yes | The newest recorded event this trigger's selector and filter would accept — or null when no such event has been recorded yet. Hand it to `POST /v1/flows/{id}/preview` as the `event` input. On a real run the flow's `event` slot carries the same envelope with the same node id under the name `projectId` instead of `project`. |

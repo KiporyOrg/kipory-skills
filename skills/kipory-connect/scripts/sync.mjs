@@ -21,6 +21,7 @@
 // refused key, a timeout), or the bundled versions are missing; the lines say
 // which. It never writes anything.
 
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -62,10 +63,19 @@ const LAYERS = [
       "read GET /v1/capability-packs/{id} live instead of references/packs/",
   },
   {
+    // The live list also carries the platform-only handlers, which have no
+    // page; `documented` checks the customer key set the pages cover.
     label: "handlers",
     path: "/v1/handlers",
     withKey: true,
     pick: (json) => json?.version,
+    documented: (json) => {
+      if (!Array.isArray(json?.handlers)) return undefined;
+      const keys = json.handlers
+        .filter((h) => h?.run?.platformOnly !== true)
+        .map((h) => h.key);
+      return { count: keys.length, hash: keySetHash(keys) };
+    },
     advice:
       "read GET /v1/handlers/{key} live before authoring a step; treat references/handlers/ as a sketch",
   },
@@ -96,6 +106,19 @@ for (const line of versionsText.split("\n")) {
   const m = ROW.exec(line);
   if (m) bundled.set(m[1], m[2]);
 }
+// The customer handler key set the handler pages document, as the generator
+// wrote it: sorted keys, one per line, sha256, first 12 hex.
+const keySetHash = (keys) =>
+  createHash("sha256")
+    .update([...keys].sort().join("\n"))
+    .digest("hex")
+    .slice(0, 12);
+const DOCUMENTED =
+  /^Handler pages: (\d+) customer handlers, key set `([0-9a-f]+)`/m;
+const documentedMatch = DOCUMENTED.exec(versionsText);
+const bundledDocumented = documentedMatch
+  ? { count: Number(documentedMatch[1]), hash: documentedMatch[2] }
+  : undefined;
 
 // Every failure — DNS, TLS, a refused connection, an HTML page from a wrong
 // base URL — comes back as `{ error }`, never as a thrown rejection: exit 2 is
@@ -152,6 +175,14 @@ const differs = [];
 const uncompared = [];
 const report = ({ label }, result, local) => {
   const live = result.live;
+  /* ⛔ AN EQUAL CATALOG HASH IS "IDENTICAL" ONLY OVER THE SET THE PAGES
+   * DOCUMENT. When the bundle records which handlers it covers, the live
+   * customer set must match it too, or the line says so. */
+  const docs = result.documented;
+  const setDiffers =
+    bundledDocumented !== undefined &&
+    docs !== undefined &&
+    docs.hash !== bundledDocumented.hash;
   if (local === undefined || live === undefined) uncompared.push(label);
   if (local === undefined) {
     console.log(
@@ -167,13 +198,20 @@ const report = ({ label }, result, local) => {
     console.log(
       `  ${label.padEnd(9)} bundled: ${local}   live: (not readable — ${why})`,
     );
-  } else if (local === live) {
+  } else if (local === live && !setDiffers) {
+    const over =
+      docs !== undefined
+        ? ` (${docs.count} customer handlers documented; platform-only ones have no page)`
+        : "";
     console.log(
-      `  ${label.padEnd(9)} bundled: ${local}   live: ${live}   ✓ identical — the bundled copy is what the deployment serves`,
+      `  ${label.padEnd(9)} bundled: ${local}   live: ${live}   ✓ identical — the bundled copy is what the deployment serves${over}`,
     );
   } else {
+    const set = setDiffers
+      ? ` (documented ${bundledDocumented.count} customer handlers, live lists ${docs.count})`
+      : "";
     console.log(
-      `  ${label.padEnd(9)} bundled: ${local}   live: ${live}   ✗ DIFFERS — prefer the deployment: it moved, or these files predate it`,
+      `  ${label.padEnd(9)} bundled: ${local}   live: ${live}   ✗ DIFFERS — prefer the deployment: it moved, or these files predate it${set}`,
     );
     differs.push(label);
   }
@@ -184,7 +222,12 @@ const results = await Promise.all(
   LAYERS.map(async (layer) => {
     if (layer.withKey && !apiKey) return { error: "set KIPORY_API_KEY" };
     const res = await get(layer.path, layer.withKey);
-    return res.error ? { error: res.error } : { live: layer.pick(res.json) };
+    return res.error
+      ? { error: res.error }
+      : {
+          live: layer.pick(res.json),
+          documented: layer.documented?.(res.json),
+        };
   }),
 );
 LAYERS.forEach((layer, i) =>

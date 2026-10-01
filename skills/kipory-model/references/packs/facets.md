@@ -61,6 +61,14 @@ anything it cannot find is dropped rather than coined. This was inexpressible wh
 settings were one field, and it is usually what people wanted when they reached for a closed
 vocabulary and then found it would not recognise an obvious synonym.
 
+⚠️ **Where "closest" stops is two numbers.** The default resolver's `resolutionParams` are
+`lowThreshold: 0.72` and `highThreshold: 0.92`. A value whose best match scores at or above the
+high one reuses that term; one below the low one is NEW — coined, proposed or dropped as `mint`
+says; the band between goes to a model to settle. A short value — one or two words — embeds less
+distinctively than the term it means and often scores under 0.72, so under `none` it is dropped
+and under `active` it becomes a near-duplicate term. Tune it with `PATCH /v1/facets/{id}`
+`{ version, resolutionParams }`, or seed the short forms as terms of their own.
+
 ## Finding a resolver to bind
 
 `GET /v1/facets/resolvers?project=<nodeId>` lists every flow this project may bind as a facet's

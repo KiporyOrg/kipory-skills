@@ -58,6 +58,16 @@ The page answers `text/html`, which the step does not accept, so the download is
 
 Reads `string` → emits `file` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "allowedMimePatterns": [
+    "^image/"
+  ]
+}
+```
+
 Input:
 
 ```

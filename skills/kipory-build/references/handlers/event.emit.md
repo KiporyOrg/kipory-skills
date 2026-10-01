@@ -8,7 +8,7 @@ Send an event, with its data, to anything listening.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Every emission gets a new event id, so a new run publishes the event again and starts every trigger listening for it again.
 - **I/O:** `event payload` → `nothing`
 - **Reads:** Reads the configured payload slot; its value becomes the event payload (validated against the event type's payload schema). _(shape hint: `event payload`)_
-- **Emits:** Nothing — the event goes onto the live stream and the step's own slot holds an empty object. Name any unused slot as its output.
+- **Emits:** Nothing — the event goes onto the live stream. The step needs no `outputSlot`; leave it out.
 - **Suggested input streams:** `payload`
 
 ## Config
@@ -30,6 +30,16 @@ Reads: the payload. Emits: nothing.
 The payload is published under the configured event name. The step writes no slot.
 
 Reads `object` → emits `nothing` · 1 in → (empty)
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "category": "orders",
+  "event": "ready",
+  "payloadSlot": "payload"
+}
+```
 
 Input:
 

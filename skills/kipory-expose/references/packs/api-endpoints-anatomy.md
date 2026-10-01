@@ -34,7 +34,8 @@ flow, and confusing them produces a 404 that looks like the endpoint was never m
 
 ⭐ **Never reconstruct the call URL by hand.** Every endpoint read carries a computed, read-only
 `invokeUrl` — the absolute dynamic-plane URL. Use it. ⚠️ It is `null` on a deployment with no
-derivable public host (bare local dev), so handle that arm rather than sending the literal: there,
+derivable public host (an api on a bare `localhost`; a local api at `api.<name>.localhost` has
+one), so handle that arm rather than sending the literal: there,
 call the api's own base URL with the endpoint's path and the header `x-kipory-project-slug: <slug>`.
 
 Every read also carries a computed, read-only `access`: whether a VIEWER-level caller may make the
@@ -363,9 +364,10 @@ project's OTHER endpoints, so a sibling saved before yours moves it; `access` is
 bound flow inside the write's own transaction. That is what the `DERIVED_SNAPSHOT` warning is for —
 it is a warning, not an error, so `ok` stays true.
 
-⛔ **The findings name the field you sent.** A config rule reports `categoryKey` or `eventKeys[0]` because
-the action config is the document it reads — the verdict rewrites those to `actionConfig.categoryKey`,
-the path in your request body. The same is now true of a refused SAVE: a real POST that fails
+⛔ **The findings name the field you sent.** A config rule reports `source.categoryKey` or
+`source.eventKeys[0]` because the action config is the document it reads — the verdict rewrites
+those to `actionConfig.source.categoryKey`, the path in your request body; an unknown one is
+`SUBSCRIBE_EVENT_UNKNOWN`. The same is now true of a refused SAVE: a real POST that fails
 carries the same findings on `details.issues`, so a form does not need two readers.
 
 ⭐ **Both ways an address can be taken come back the same way.** A `CONFLICT` finding on `key`
@@ -373,8 +375,10 @@ means the key is already used; a `CONFLICT` finding on `contractConfig.path` mea
 already serves that method and path. Neither is an exception in the verdict — both are findings you
 can put under the input that caused them. A real save answers the same two as a `409 CONFLICT`
 with no `details`, told apart by the suffix of its message. And not every finding names a field:
-a binding rule may carry only `code` and `message`, while a body the request schema refuses before
-any rule runs answers issues of `{ message, keyword, instancePath, params }` instead.
+a binding rule may carry only `code` and `message`. A real save's 422 gives every issue the one
+shape every 422 uses, `{ instancePath, keyword, params, message, in }` — `in` saying whether the
+issue is in the `body`, the `query` or the `path` — and a rule's issue keeps the `code` it was refused
+with beside them, with its fix in `remedy` and the field in `field`; a body the request schema refuses before any rule runs has only the shape.
 
 ⚠️ **An invalid draft is not a failed request.** The dry run succeeded — it computed a verdict, and
 the verdict is "no". A 4xx means the _validate request itself_ could not be served: a `PATCH` to an

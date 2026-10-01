@@ -230,7 +230,8 @@ query is refused.
 `GET /v1/triggers/{id}/runs` is the debugging surface. Each row carries the `eventId`, the
 `attempt` (0 live, higher on replays), the `outcome`, a plain-words `reason` for anything that did
 not fire, and — for a fire — the invocation with its live `status` and, on a step failure, a
-`failure` naming the skill and phase. `replayOf` points a replayed row at the decision it re-ran.
+`failure` naming the skill and phase, and a `reason` when it is one a caller may read (a mail
+refusal, `project-mail-cap-reached`). `replayOf` points a replayed row at the decision it re-ran.
 
 The log itself, `GET /v1/project-events`, is where you find an `eventId` to replay. Its `source`
 column says who wrote the row: `run` for a flow's own emission, or the provider for a source's —
@@ -238,14 +239,14 @@ column says who wrote the row: `run` for a flow's own emission, or the provider 
 `schedule` is reserved for the emit action on the roadmap and has no writer yet. Both tables are
 kept for **30 days**, and both are cursor-paged: walk `after=<nextCursor>` until it is `null`.
 Each logged `event` names its project `project`, the node id every `?project=` takes; the flow's
-`event` slot carries the same envelope with the project's row id in `projectId` instead.
+`event` slot carries the same envelope with the same node id under the name `projectId`.
 
 ## Testing a flow against a real event
 
 `GET /v1/triggers/{id}/sample` returns the newest logged event the trigger's selector and filter
 would accept, in the log's shape — or `null`, said plainly, when none of the newest 500 events of
 the type qualifies. Hand it to `POST /v1/flows/{id}/preview` as the `event` input, with a
-hand-written `trigger` object. The log's shape names the project by its node id: `project` where a
-fire's `event` slot carries the row id in `projectId`, and the node id in `source` and in a
-project-scoped `subject`. A flow that reads any of those sees a different value in the preview than
-on a fire.
+hand-written `trigger` object. The log's shape names the project's node id `project`, where a
+fire's `event` slot names the same node id `projectId`; `source` and a project-scoped `subject`
+carry it in both. A flow that reads `event.projectId` finds it absent in a preview fed the sample,
+so give it the node id by hand if the flow reads it.

@@ -59,6 +59,15 @@ A JPEG instead of a PNG — smaller bytes for high-volume archival flows.
 
 Reads `string` → emits `file` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "format": "jpeg",
+  "jpegQuality": 70
+}
+```
+
 Input:
 
 ```

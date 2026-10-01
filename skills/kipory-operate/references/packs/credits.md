@@ -21,7 +21,10 @@ This is the mistake worth pre-empting, because a client that renders only the ob
 wrong precisely when a customer most needs it to be right.
 
 - **The wallet** — `creditsRemaining` against `softCapCredits`, summarised by `status`. This is how
-  far the payer may dip below zero before requests are refused.
+  far the payer may dip below zero before requests are refused: `softCapCredits` is headroom below
+  zero, so a NEGATIVE `creditsRemaining` beside `status: "active"` is ordinary — the payer is
+  spending the headroom. Requests are refused with `402 BALANCE_BELOW_SOFT_CAP` (`status` reads
+  `over-soft-cap`) only once the balance passes that floor.
 - **The per-user ceiling** — `perUserSpendCap` with `perUserSpendConsumed` against it. It is not a
   second balance; it caps how much of that wallet **one person** may consume.
 

@@ -14,7 +14,7 @@ Find records by their fields, terms, links, or meaning, all in one question.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clauses` | any[] | yes | — | Every returned record satisfies all of these: field, term, edge, stream, and at most one semantic clause. Up to 16. ⚠️ With a semantic clause the answer is a ranking of at most its topK records and carries no cursor; `bounded` on the output says so. Without one, the answer is complete and pages. |
+| `clauses` | any[] | yes | — | Returned records match all these clauses — field, term, edge, stream, at most one semantic. Up to 16, fixed in config; none reads a slot. ⚠️ With a semantic clause the answer is a ranking of at most its topK records and carries no cursor; `bounded` on the output says so. Without one, the answer is complete and pages. |
 | `cursorSlot` | string | no | — | The slot holding a prior answer's cursor. Absent, the first page. Only a query without a semantic clause pages. ⚠️ A cursor that has been edited or truncated fails the step; an absent one starts from the newest record. |
 | `limit` | integer | no | `50` | How many records come back at most: 1 to 100. A semantic clause's own topK is bounded separately. |
 | `recordType` | string | yes | — | The record type the question is asked of. |
@@ -31,6 +31,37 @@ Reads: the cursor and user slots. Emits: records + bounded + explanation.
 Term and edge legs ran first; their intersection was pushed into the index exactly, so `bounded` is false.
 
 Reads `{ userId }` → emits `RecordQueryPage` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "person",
+  "userIdSlot": "userInfo.userId",
+  "clauses": [
+    {
+      "kind": "term",
+      "facet": "language",
+      "slug": "hebrew"
+    },
+    {
+      "kind": "edge",
+      "relation": "friend-of",
+      "where": [
+        {
+          "property": "tag",
+          "op": "eq",
+          "value": "close"
+        }
+      ]
+    },
+    {
+      "kind": "semantic",
+      "text": "loves hiking"
+    }
+  ]
+}
+```
 
 Input:
 
@@ -63,6 +94,37 @@ The edge leg found nobody, so the semantic clause never ran: `emptiedBy` names i
 
 Reads `{ userId }` → emits `RecordQueryPage` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "person",
+  "userIdSlot": "userInfo.userId",
+  "clauses": [
+    {
+      "kind": "term",
+      "facet": "language",
+      "slug": "hebrew"
+    },
+    {
+      "kind": "edge",
+      "relation": "friend-of",
+      "where": [
+        {
+          "property": "tag",
+          "op": "eq",
+          "value": "close"
+        }
+      ]
+    },
+    {
+      "kind": "semantic",
+      "text": "loves hiking"
+    }
+  ]
+}
+```
+
 Input:
 
 ```
@@ -91,6 +153,24 @@ Output:
 No semantic clause, so the answer is complete and pages newest-first; the cursor resumes after this page.
 
 Reads `string` → emits `RecordQueryPage` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordType": "person",
+  "clauses": [
+    {
+      "kind": "field",
+      "field": "city",
+      "op": "eq",
+      "value": "Tel Aviv"
+    }
+  ],
+  "cursorSlot": "pageCursor",
+  "limit": 50
+}
+```
 
 Input:
 

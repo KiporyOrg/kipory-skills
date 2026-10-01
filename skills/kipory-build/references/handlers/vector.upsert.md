@@ -35,17 +35,17 @@ Reads `slots` → emits `point in notes` · 4 slots → 1 point · 2 of 2 vector
 
 Input:
 
-- {"index":0,"value":"selfItemId","detail":"pointId"}
-- {"index":1,"value":"contentVector","detail":"vector"}
-- {"index":2,"value":"userLanguageVector","detail":"vector"}
-- {"index":3,"value":"tags","detail":"payload"}
+- `selfItemId` — `pointId`
+- `contentVector` — `vector`
+- `userLanguageVector` — `vector`
+- `tags` — `payload`
 
 Written:
 
-- {"index":0,"value":"id d64e2f78-1825-ecd7-9838-a6ea8e9a7ac5"}
-- {"index":1,"value":"vector vec.content","detail":"3072 dims"}
-- {"index":2,"value":"vector vec.user-language","detail":"3072 dims"}
-- {"index":3,"value":"tags: [\"pasta\", \"whole-foods\", \"weekend\"]"}
+- id d64e2f78-1825-ecd7-9838-a6ea8e9a7ac5
+- vector vec.content — 3072 dims
+- vector vec.user-language — 3072 dims
+- tags: ["pasta", "whole-foods", "weekend"]
 
 #### One vector empty
 
@@ -53,17 +53,17 @@ Reads `slots` → emits `point in notes` · 4 slots → 1 point · 2 of 2 vector
 
 Input:
 
-- {"index":0,"value":"selfItemId","detail":"pointId"}
-- {"index":1,"value":"contentVector","detail":"vector"}
-- {"index":2,"value":"userLanguageVector","detail":"vector"}
-- {"index":3,"value":"tags","detail":"payload"}
+- `selfItemId` — `pointId`
+- `contentVector` — `vector`
+- `userLanguageVector` — `vector`
+- `tags` — `payload`
 
 Written:
 
-- {"index":0,"value":"id d64e2f78-1825-ecd7-9838-a6ea8e9a7ac5"}
-- {"index":1,"value":"vector vec.content","detail":"3072 dims"}
-- {"index":2,"value":"vector vec.user-language","detail":"sparse"}
-- {"index":3,"value":"tags: [\"pasta\"]"}
+- id d64e2f78-1825-ecd7-9838-a6ea8e9a7ac5
+- vector vec.content — 3072 dims
+- vector vec.user-language — `sparse`
+- tags: ["pasta"]
 
 #### No vectors
 
@@ -71,16 +71,16 @@ Reads `slots` → emits `point in notes` · 5 slots → 1 point · 2 of 2 vector
 
 Input:
 
-- {"index":0,"value":"selfItemId","detail":"pointId"}
-- {"index":1,"value":"contentVector","detail":"vector"}
-- {"index":2,"value":"userLanguageVector","detail":"vector"}
-- {"index":3,"value":"category","detail":"payload"}
-- {"index":4,"value":"tags","detail":"payload"}
+- `selfItemId` — `pointId`
+- `contentVector` — `vector`
+- `userLanguageVector` — `vector`
+- `category` — `payload`
+- `tags` — `payload`
 
 Written:
 
-- {"index":0,"value":"id d64e2f78-1825-ecd7-9838-a6ea8e9a7ac5"}
-- {"index":1,"value":"vector vec.content","detail":"sparse"}
-- {"index":2,"value":"vector vec.user-language","detail":"sparse"}
-- {"index":3,"value":"category: \"grocery\""}
-- {"index":4,"value":"tags: [\"pasta\", \"barilla\"]"}
+- id d64e2f78-1825-ecd7-9838-a6ea8e9a7ac5
+- vector vec.content — `sparse`
+- vector vec.user-language — `sparse`
+- category: "grocery"
+- tags: ["pasta", "barilla"]

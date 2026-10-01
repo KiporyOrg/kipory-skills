@@ -6,7 +6,7 @@ Answer typed questions about a value: yes/no, pick one, or score.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `any` → `nothing`
+- **I/O:** `any` → `the step's outputSchema`
 - **Reads:** The value to judge — text, or a JSON object or list. Every question is answered against the same value.
 - **Emits:** The step's output type, each field answered: a chance of yes, a chosen option, or a score. Optionally a `DecisionConfidence` too. Empty when the input was empty.
 - **Suggested input streams:** `state`

@@ -72,9 +72,13 @@ also the one you can test.
 `$now`, `$millis`, `$random` and `$shuffle` — the complete set of ways an expression could return
 a different answer for identical input. (`$eval` is blocked too, as a sandbox escape.)
 
+<!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
+
 **What this means for your design.** "Stamp the current time" and "pick one at random" are not
 wiring concerns. They have to enter a flow as a step's output or as a flow input, where they are
-visible values rather than hidden ones.
+visible values rather than hidden ones. The time already does: `runInfo.now` is the run's own
+clock, an ISO 8601 timestamp taken when the run starts and replayed unchanged on a retry. Read it
+as an input (`runInfo` in a step's inputs) and compute with it in the expression.
 
 **This is usually the feature, not the obstacle.** It is exactly what makes a stored eval case
 meaningful: run the same input twice and the wiring contributes the same answer both times, so any

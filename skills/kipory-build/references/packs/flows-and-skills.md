@@ -622,7 +622,9 @@ so an editor can underline the offending character rather than pointing at the f
 `PATCH /v1/steps/{id}` takes **`validateOnly: true`**. It runs every rule the
 save runs — the normalization, the consumer re-typing cascade, the slot-rename
 plan and the whole flow-graph gate — writes nothing, and answers 200 with a
-verdict.
+verdict. A finding carries the severity the save would give it, the rehearsed write's
+leftovers come back in `leavesBehind`, and `ok` is `false` when the change would leave an error
+behind in the flow, the same verdict a document plan of the change gives.
 
 ⭐⭐ **It is how you ask the run-settings rules without saving.** Every refusal
 in the section above is a save-time rule: tries on a step that runs in the flow,

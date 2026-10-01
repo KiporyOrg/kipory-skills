@@ -38,6 +38,15 @@ The candidate that actually answers the question wins, though the search that pr
 
 Reads `object` → emits `list<RerankHit>` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "queryStreams": "userQuery",
+  "documentItemsSlot": "candidateDocs"
+}
+```
+
 Input:
 
 ```

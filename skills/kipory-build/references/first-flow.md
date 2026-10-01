@@ -94,7 +94,7 @@ POST /v1/steps
 
 `201 { skill, outstandingIssues }`. `outstandingIssues` carries one warning here, and it is expected: `OUTPUT_SLOT_UNBOUND` — the flow promises `summary` and no step's output is bound to it yet. Step 3 clears it.
 
-- `inputStreams` names the slots this step reads — here the flow's own input slot. `inputSchemas` is optional: left out, each input is typed from what feeds it (here the flow's `text` slot). Sent, it is positional and must be the same length; a mismatch is refused before anything else is checked. For a prompt step you may leave `inputStreams` out too — the save reads `{{text}}` from the prompt.
+- `inputStreams` names the slots this step reads — here the flow's own input slot. `inputSchemas` is optional: left out, each input is typed from what feeds it (here the flow's `text` slot). Sent, it is positional and must be the same length; a mismatch is refused before anything else is checked. For a prompt step you may leave `inputStreams` out too — the save reads `{{text}}` from the prompt. Typing from what feeds an input needs the feeder to have a type, so state `outputSchema` on every step a later step reads — `text.generate` and `text.decide` derive none of their own. A feeder whose `outputSchema` is `null` still feeds its readers: they read it as `object`, nothing checks what they take from it, and the plan and health warn `PRODUCER_OUTPUT_UNTYPED` on that step.
 - `promptTemplate` fills `{{text}}` from the slot of that name.
 - `outputSchema` set to the built-in `string` makes `text.generate` return plain text. Any other shape switches it to structured output parsed into that shape. `text.generate` derives no output shape of its own, so state it.
 - `handlerConfig` for `text.generate` is optional throughout (`temperature`, `reasoningEffort`, `modelSlot`, …); `{}` takes the defaults. See `handlers/text.generate.md`.
@@ -105,7 +105,7 @@ POST /v1/steps
 
 ## 3. Bind the output
 
-Without this the flow returns nothing: every live call is refused `422 FLOW_OUTPUT_MISSING` and writes nothing.
+Without this the flow returns nothing: every live call is refused `422 FLOW_OUTPUT_MISSING` and writes nothing — and is still charged for the model call it made (`x-credits-charged` on the refusal says how much).
 
 ```
 PATCH /v1/flows/{id}
@@ -136,7 +136,7 @@ The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlo
 }
 ```
 
-The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`kipory-build`'s SKILL.md lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
+The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`kipory-build`'s SKILL.md lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search handlers type their own output, so their `outputSchema` may stay `null` or state that same type: `entity.create` → `RecordCreate` (with `recordId`), `entity.read` → a list of `RecordRead`, `entity.list` → `RecordPage`, `vector.search` → a list of the hit its `hitShape` names (`RecordHit` for `record`). `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
 
 ## 4. Check the whole flow
 
@@ -161,7 +161,7 @@ GET /v1/flows/{id}/health
 
 ## 5. Preview it
 
-ADMIN, and it spends: the model call is real and billed.
+ADMIN, and it spends: the model call is real and billed, in credits — one credit is one micro-USD.
 
 ```
 POST /v1/flows/{id}/preview
@@ -189,12 +189,12 @@ POST /v1/flows/{id}/preview
 - `input.kind: "slots"` supplies values keyed by the flow's input slot names; an unknown key or a missing required slot is refused before the run. The other arm, `kind: "record"` with `recordId`, seeds from a stored record of a type this flow processes.
 - `apply` defaults to `true`. This flow writes nothing, so `false` changes nothing here — send it anyway; it is the habit that saves you on a flow that does write.
 - `flowOutput` is the declared outputs exactly as the run produced them, with nothing filled in. `missingRequiredOutput` non-null means the flow never produced that slot; a live call is then refused `422 FLOW_OUTPUT_MISSING` and writes nothing, and this preview discarded its writes too, reporting it as an `errors` entry with `skillId: "__runner__"` and `phase: "output-missing"`. That entry is the refusal, not its cause. Read the other `errors` first: a step that failed — a model provider out of quota, a refused config — leaves the output unfed just as a missing binding does, and `errors[].message` says which. Only when that entry is the only one is step 3 the cause.
-- **A provider out of quota** reads `… provider account exhausted (quota/billing)` in `errors[].message`. It is the provider's account, not your flow: bind the task to a model from another creator and preview again — `GET /v1/ai-models?type=chat` for one — every row listed is served (a disabled model is absent, not flagged); take one whose `status` is `active` rather than `deprecated`, whose `modelId` prefix (the creator) differs, and whose `offers[].provider` is not the exhausted account — then `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` with `{task}` = `summarization` (ADMIN, on the project node). `GET /v1/nodes/{nodeId}/task-models` (at the project's id) then shows `source: node` for that task. `kipory-build`'s SKILL.md says why this beats pinning `modelId`, and what the routing policy's `failover` does and does not do.
+- **A provider out of quota** reads `… provider account exhausted (quota/billing)` in `errors[].message`. It is the provider's account, not your flow: bind the task to a model from another creator and preview again — `GET /v1/ai-models?type=chat` for one — every row listed is served (a disabled model is absent, not flagged); take one whose `status` is `active` rather than `deprecated`, whose `modelId` prefix (the creator) differs, and whose `offers[].provider` is not the exhausted account — then `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` with `{task}` = `summarization` (ADMIN, on the project node). `GET /v1/nodes/{nodeId}/task-models` (at the project's id) then shows `boundHere: true` for that task. `source: node` alone does not say that: it is also what a binding on an ancestor — the organization — reads before you bind anything. `kipory-build`'s SKILL.md says why this beats pinning `modelId`, and what the routing policy's `failover` does and does not do.
 - The preview's own response is its whole record. `previewSessionId` reads the change set (`GET /v1/runs/{runId}/change-set`) and nothing else: an inline preview writes no step log and no trace.
 
 ## 6. Put it on HTTP
 
-Check the path is free first: `GET /v1/coded-routes` (api host, with your key — any role) lists every path the platform itself occupies, and a coded route always wins. Keep your path's first word off every word those rows start with — the save refuses `/v1/docs/add` or `/v1/records/…` as `ENDPOINT_PATH_RESERVED_WORD` (`kipory-expose`).
+Check the path is free first: `GET /v1/coded-routes` (api host, with your key — any role) lists every path the platform itself occupies, and a coded route always wins. Keep your path's first word off every word those rows start with — the save refuses `/v1/docs/add` as `ENDPOINT_PATH_RESERVED_WORD`, and a path a coded route itself serves, such as a GET on `/v1/records/mine`, first as `409 CONFLICT` (`kipory-expose`).
 
 ```
 POST /v1/api-endpoints
@@ -228,11 +228,11 @@ POST /v1/api-endpoints
 }
 ```
 
-- `params` is required even when empty. `successStatus` defaults to `200`; an `async` endpoint needs `202`.
+- `params` is required even when empty. It is a map keyed by parameter name — `{ "id": { "in": "path", "type": "string", "required": true } }` for a path `/v1/notes/{id}` — and an input takes one with `"from": "path.id"` (or `"query.<name>"`); `kipory-expose` has the rest. `successStatus` defaults to `200`; an `async` endpoint needs `202`.
 - `flow` is `{ id }` only. The server fills the flow's `key` and the signature snapshot; sending either is a 422.
 - `inputs.text.from: "body"` means the request-body field named `text` — the slot's name, no rename. Every required input slot must be bound. `execution` has no default.
 - `access` is derived, never set. A sync `flow.invoke` on a flow whose steps only read, like this one, comes back `viewers: true`, so a VIEWER key may call it.
-- `invokeUrl` is `null` on a deployment with no public host — a local stack, for one. Never hardcode a host; ask the human for the project host, or, on a bare `localhost`, call the api's own port with the header `x-kipory-project-slug: <project slug>`.
+- `invokeUrl` is `null` only on a deployment with no derivable public host — an api served on a bare `localhost`, for one; a local stack at `api.<name>.localhost` gets a real one. Use it whenever it is set and never hardcode a host; when it is `null`, call the api's own port with the header `x-kipory-project-slug: <project slug>`.
 
 ## 7. Call it from the product
 
@@ -300,7 +300,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 }
 ```
 
-A document step is the whole-graph step row, so it states more than a single create does: `description`, `handlerConfig`, `condition`, `outputSchema` and `enabled` are all **required** here (`null` where there is nothing). The rest is filled as on a single create: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a handler that names its inputs, `promptTemplate` and `taskKey` left out keep a held step's values (a new step starts on `""` and `extraction`), and `outputSlot` needed only by a handler that writes a result. The flow's `skills` map is stated whole — a step you leave out of it is removed.
+A document step is the whole-graph step row, so it states more than a single create does: `description`, `handlerConfig`, `condition`, `outputSchema` and `enabled` are all **required** here (`null` where there is nothing). The rest is filled as on a single create: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a handler that names its inputs, `promptTemplate` and `taskKey` left out keep a held step's values (a new step starts on `""` and `extraction`), and `outputSlot` needed by every handler except `event.emit`, `vector.upsert` and the control handlers whose outputs live in config (`term.upsert` needs one too, though its slot holds only an empty marker). The flow's `skills` map is stated whole — a step you leave out of it is removed.
 
 **Plan it.** The body is the document itself, not an envelope. It writes nothing.
 

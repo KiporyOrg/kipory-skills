@@ -36,6 +36,16 @@ The named fields are merged into the record and the step reports that a row chan
 
 Reads `object` → emits `boolean` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordIdSlot": "patch.recordId",
+  "dataSlot": "patch.data",
+  "mode": "merge"
+}
+```
+
 Input:
 
 ```
@@ -56,6 +66,16 @@ true
 The id belongs to someone else, or the required status did not hold. Nothing changed, and no error.
 
 Reads `object` → emits `boolean` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordIdSlot": "patch.recordId",
+  "dataSlot": "patch.data",
+  "mode": "merge"
+}
+```
 
 Input:
 

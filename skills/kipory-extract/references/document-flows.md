@@ -61,14 +61,17 @@ a changed language hint is a fresh bill.
 
 ## Where these attach
 
-The extracted text is only useful if something keeps it. Two destinations, and they are not
-exclusive:
+The extracted text is only useful if something keeps it. The usual route needs no write step at
+all: make the extraction the record type's **processing flow**. Its declared output (`body`, say)
+becomes the record's processed field, and a `search` use on `{ "family": "processed", "field":
+"body" }` has the platform chunk, embed and index it — `kipory-build`'s `references/patterns.md` §7
+has the whole document, file in and searchable text out.
 
-- **A record field**, via `entity.update` — the text becomes part of the record and travels with it.
-- **A vector collection**, via the retrieval write half — the text becomes searchable.
+Reach past that only when the route does not fit:
 
-Most document pipelines do both: `entity.update` for the canonical copy, then chunk and embed for
-search. `kipory-retrieve` covers the second, `kipory-data` the records themselves.
+- **`entity.update`** writes the text onto a record the flow did not get as its input.
+- **The hand-built chain** (`text.chunk` → `text.embed` → `vector.upsert`) writes points the
+  declaration does not — `kipory-retrieve` covers it, and its limits.
 
 ## Costs worth knowing before you build
 

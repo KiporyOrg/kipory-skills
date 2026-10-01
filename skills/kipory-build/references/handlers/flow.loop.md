@@ -31,8 +31,8 @@ Reads `carry` → emits `carry` · one pass
 
 Input:
 
-- {"index":0,"value":"seed carry","detail":"read at the top of every pass"}
+- seed carry — read at the top of every pass
 
 Each pass:
 
-- {"index":0,"value":"carry (per iteration)"}
+- carry (per iteration)

@@ -30,6 +30,14 @@ The record is pending and its type binds a flow, so it goes on the queue.
 
 Reads `object` → emits `boolean` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "recordIdSlot": "record.recordId"
+}
+```
+
 Input:
 
 ```

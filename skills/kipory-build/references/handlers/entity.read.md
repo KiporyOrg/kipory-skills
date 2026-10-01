@@ -17,7 +17,7 @@ Read records so later steps can use their text, files, and details.
 | `dataNullChecks` | object[] | no | — | Keep rows by whether a path inside `data` is empty or filled. With `failIfEmpty`, this is how a soft-deleted record reads as missing. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. |
 | `failIfEmpty` | boolean | no | `false` | Fail the step when nothing resolves, instead of returning an empty list. Turn it on for a read that should answer not-found. ⚠️ Off by default, because a list read treats missing ids as ordinary. Leaving it off on a single-id read turns a missing record into a confusing downstream failure instead of a clean one. |
 | `fields` | string[] | no | `[]` | Which of the record type's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A name the record type does not declare is ignored, and a list of only unknown names falls back to emitting every field rather than blanking the row. |
-| `idsSlot` | string | yes | — | The slot holding a list of ids to read — plain ids, the candidate objects a vector search emits, or a path into either. ⚠️ It must hold a list: a lone id reads nothing. A path picks the value: `hits[0].recordId` one item, `hits[last]` the last, `hits[].recordId` that field from every item. A bare field off a list reads nothing. |
+| `idsSlot` | string | yes | — | The slot holding a list of ids — plain ids, a vector search's candidate objects, or a path into either (`hits[].recordId`). ⚠️ It must hold a list: a lone id, or a path to one (`created.recordId`), reads nothing — wrap it as `[recordId]` in a `value.transform`. A bare field off a list reads nothing too. |
 | `include` | object | no | `{}` | Extra dimensions per row. Terms come back by default; files, relations and cost are opt-in. None appears in the step's output type. ⚠️ Turning on files signs a download URL for every file on the record. Relations come back grouped by kind, with one property bag per time the pair was named. |
 | `recordType` | string | yes | — | The record type to read. Required: only rows of this one type are ever returned. |
 | `scalars` | object | no | `{}` | Opt-in scalar fields. `statusError` adds the failure summary (string\|null); `fileCount` adds the attached-file count. |
@@ -58,6 +58,15 @@ Four hits in, three rows out: a step reads ONE record type, and the `answer` is 
 
 Reads `list<CandidateHit>` → emits `RecordRead[]` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "idsSlot": "candidates",
+  "recordType": "item"
+}
+```
+
 Input:
 
 ```
@@ -85,6 +94,16 @@ Three ids in, one owned by another user. That row never comes back and no error 
 
 Reads `list<string>` → emits `RecordRead[]` · 1 in → 1 out
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "idsSlot": "candidates",
+  "recordType": "item",
+  "userIdSlot": "userInfo.userId"
+}
+```
+
 Input:
 
 ```
@@ -105,6 +124,15 @@ Output:
 The upstream search found nothing. The handler skips the database entirely and returns an empty list.
 
 Reads `list<CandidateHit>` → emits `RecordRead[]` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "idsSlot": "candidates",
+  "recordType": "item"
+}
+```
 
 Input:
 
