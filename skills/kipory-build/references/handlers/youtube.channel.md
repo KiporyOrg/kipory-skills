@@ -13,7 +13,7 @@ Look up a YouTube channel's details and numbers.
 - **External dependency:** YouTube Data API — Reads channel metadata and statistics from the YouTube Data API (KIPORY_YOUTUBE_API_KEY). Its quota is a shared daily unit budget across every YouTube handler.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 60 per 60000ms in bucket `youtube` — shared with `youtube.trending`, `youtube.video`
-- **Queue:** 2 attempts, exponential from 2000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source)
+- **Queue:** 2 attempts, exponential from 2000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

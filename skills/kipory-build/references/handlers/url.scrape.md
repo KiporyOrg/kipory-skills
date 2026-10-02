@@ -13,7 +13,7 @@ Read a web page and return its main text and details.
 - **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API (KIPORY_FIRECRAWL_API_KEY).
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 10 per 60000ms in bucket `firecrawl` — shared with `url.screenshot`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source)
+- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

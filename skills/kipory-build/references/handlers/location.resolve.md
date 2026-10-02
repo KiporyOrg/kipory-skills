@@ -11,7 +11,7 @@ Turn a map point into a place: city, region, and country.
 - **Emits:** A `Place`, with every field optional because coverage varies. Empty when the provider found nothing. A provider failure throws instead, so the step fails rather than reporting a blank.
 - **External dependency:** OpenStreetMap — Reverse-geocodes through Nominatim, the public OpenStreetMap endpoint. Free, unkeyed and rate-limited by courtesy — answers are cached per coordinate so repeats cost nothing.
 - **Rate limit:** 60 per 60000ms in bucket `location.resolve`
-- **Queue:** 2 attempts, exponential from 5000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source)
+- **Queue:** 2 attempts, exponential from 5000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

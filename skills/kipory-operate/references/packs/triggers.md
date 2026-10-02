@@ -176,10 +176,8 @@ instead of writing: whether the write would be taken (`ok`), what it found (`dia
 whether every rule ran (`complete`). Read `severity`, never `code`: `error` will not save,
 `warning` blocks nothing, and `info` notes something the platform left alone.
 
-⛔ **A key already taken used to be reachable only by attempting the write** — a caught database
-violation, with no way to ask first. It is decided before anything is written now, and both paths
-meet the same answer. The selector and binding rules above were already decided before the write
-and are unchanged; what moved is that you can now hear all of them without making one.
+⭐ **Every refusal above is decided before anything is written**, a key already taken included, so
+you can hear all of them without making the write.
 
 ⚠️ **A stale `version` is NOT reported here.** The optimistic lock is about when the write lands,
 not about whether your draft is coherent — the save answers 409 for it and the verdict says nothing,

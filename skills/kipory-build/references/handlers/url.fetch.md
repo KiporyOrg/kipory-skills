@@ -12,7 +12,7 @@ Download the text behind a web address.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard. No vendor and no key — the site itself is the dependency.
 - **Rate limit:** 120 per 60000ms in bucket `url.fetch`
-- **Queue:** 3 attempts, exponential from 500ms; waits up to 60000ms; cache 86400000ms (custom-derive-source)
+- **Queue:** 3 attempts, exponential from 500ms; waits up to 60000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

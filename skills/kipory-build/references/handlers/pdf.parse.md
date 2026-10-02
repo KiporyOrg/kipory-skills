@@ -10,7 +10,7 @@ Pull the text and document details out of a PDF.
 - **Reads:** One PDF file. A non-PDF mime fails rather than being guessed at — route them elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A `PdfDocument`. Empty text: with `pageCount`, a scan; with `isEncrypted`, locked; with neither, unreadable or missing — warns `PDF_PARSE_FAILED`, uncached. No file named: empty, no warning.
 - **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 180000ms; cache no expiry (custom-derive-source)
+- **Queue:** 1 attempt, no backoff; waits up to 180000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

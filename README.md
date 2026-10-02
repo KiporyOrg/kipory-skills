@@ -13,6 +13,13 @@ Kipory is a platform for building a product's backend — its processes, its dat
 /plugin install kipory@kipory-skills
 ```
 
+In the Claude desktop app `/plugin` opens a dialog and ignores what follows it; run the same two commands from a terminal instead, in the project's folder:
+
+```
+claude plugin marketplace add KiporyOrg/kipory-skills
+claude plugin install kipory@kipory-skills --scope project
+```
+
 **Any agent that reads the Agent Skills format** (Codex, Cursor, Gemini CLI, Copilot and others):
 
 ```

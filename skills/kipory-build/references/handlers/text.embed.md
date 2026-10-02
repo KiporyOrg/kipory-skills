@@ -12,7 +12,7 @@ Turn text into numbers that capture its meaning, for search by meaning.
 - **Suggested input streams:** `inputText`
 - **External dependency:** a model provider — Whichever provider hosts the embedding model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
 - **Rate limit:** 300 per 60000ms in bucket `ai-embed` — shared with `vector.search`
-- **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (custom-derive-source)
+- **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

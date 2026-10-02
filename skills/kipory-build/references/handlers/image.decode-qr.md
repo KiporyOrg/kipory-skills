@@ -10,7 +10,7 @@ Read the QR codes in an image and return what they say.
 - **Reads:** One image — JPEG, PNG, WebP, HEIC, TIFF and the rest. Something that is not an image comes back empty rather than failing the step. _(shape hint: `file`)_
 - **Emits:** What a QR code in the image encodes — web links only, unless you turn `requireUrl` off. Empty when there was no code or the image could not be read.
 - **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 60000ms; cache no expiry (custom-derive-source)
+- **Queue:** 1 attempt, no backoff; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

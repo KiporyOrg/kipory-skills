@@ -10,7 +10,7 @@ Store an item's search data so it can be found by meaning or keywords.
 - **Reads:** The slots named in this step's config: one for the point id, one per named vector, and whichever hold the payload. An empty one leaves that vector unwritten. _(shape hint: `any+`)_
 - **Emits:** Nothing — it writes and returns. Re-running with the same point id overwrites that point. The owning tenant is always stamped on the payload so the point stays reachable.
 - **Rate limit:** 600 per 60000ms in bucket `vector.upsert`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 30000ms; cache no expiry (custom-derive-source)
+- **Queue:** 3 attempts, exponential from 2000ms; waits up to 30000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

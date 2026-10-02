@@ -66,7 +66,7 @@ _Run synchronously inside the flow engine, in order._
 - [`entity.link-retract`](entity.link-retract.md) — Remove a link · entities · `string, string` → `RelationRetraction`
 - [`entity.links`](entity.links.md) — Read a record's links · entities · `string` → `RecordLink[]`
 - [`entity.list`](entity.list.md) — List records · entities · `user id + cursor` → `RecordPage`
-- [`entity.query`](entity.query.md) — Query records · entities · `cursor + user slots` → `RecordQueryPage`
+- [`entity.query`](entity.query.md) — Query records · entities · `clause values + cursor + user slots` → `RecordQueryPage`
 - [`entity.read`](entity.read.md) — Read records · entities · `any+` → `RecordRead[]`
 - [`entity.teardown`](entity.teardown.md) — Clear generated data · entities · `slot map` → `object`
 - [`entity.update`](entity.update.md) — Update a record · entities · `record slot + data/derived patches` → `boolean`

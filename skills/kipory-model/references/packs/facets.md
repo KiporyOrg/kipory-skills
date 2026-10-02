@@ -265,9 +265,8 @@ editor you are standing in.
 - **A stale `version` on update is refused**, and the field is REQUIRED — omitting it used to
   mean last-writer-wins, which is a documented way to lose somebody else's edit.
 - **A parent term sent for a TOP-LEVEL facet is refused**, on both write paths — creating one term
-  and bulk-seeding a batch. It used to be refused by the batch and silently DROPPED by the single
-  create, which returned 201 while the term landed at the top level. If you sent a parent, you
-  meant something by it.
+  and bulk-seeding a batch. If you sent a parent, you meant something by it, so neither path
+  drops it and lands the term at the top level.
 - **An unknown key inside `proposal` is refused.** The bag is closed: guidance prose, a list of
   worked examples (each a term `key` and its `label`; the key must be one a term could hold —
   lowercase segments joined by `-`, at most 128 characters — or the write is a 422), and a flag permitting an empty answer — the exact shape the live schema

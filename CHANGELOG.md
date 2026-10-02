@@ -2,6 +2,63 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261002.62632 — 2026-10-02
+
+Synced from the Kipory monorepo at `12253316f`.
+
+- changed: `README.md`
+- changed: `skills/kipory-build/references/handlers/README.md`
+- changed: `skills/kipory-build/references/handlers/audio.metadata.md`
+- changed: `skills/kipory-build/references/handlers/audio.transcribe.md`
+- changed: `skills/kipory-build/references/handlers/entity.count.md`
+- changed: `skills/kipory-build/references/handlers/entity.list.md`
+- changed: `skills/kipory-build/references/handlers/entity.query.md`
+- changed: `skills/kipory-build/references/handlers/file.read-text.md`
+- changed: `skills/kipory-build/references/handlers/file.stats.md`
+- changed: `skills/kipory-build/references/handlers/image.decode-qr.md`
+- changed: `skills/kipory-build/references/handlers/image.metadata.md`
+- changed: `skills/kipory-build/references/handlers/image.resize.md`
+- changed: `skills/kipory-build/references/handlers/location.resolve.md`
+- changed: `skills/kipory-build/references/handlers/pdf.parse.md`
+- changed: `skills/kipory-build/references/handlers/pdf.screenshot.md`
+- changed: `skills/kipory-build/references/handlers/telegram.resolve-channel.md`
+- changed: `skills/kipory-build/references/handlers/telegram.search-channels.md`
+- changed: `skills/kipory-build/references/handlers/term.upsert.md`
+- changed: `skills/kipory-build/references/handlers/text.decide.md`
+- changed: `skills/kipory-build/references/handlers/text.embed.md`
+- changed: `skills/kipory-build/references/handlers/text.generate.md`
+- changed: `skills/kipory-build/references/handlers/text.rerank.md`
+- changed: `skills/kipory-build/references/handlers/url.fetch-as-file.md`
+- changed: `skills/kipory-build/references/handlers/url.fetch.md`
+- changed: `skills/kipory-build/references/handlers/url.metadata.md`
+- changed: `skills/kipory-build/references/handlers/url.scrape.md`
+- changed: `skills/kipory-build/references/handlers/url.screenshot.md`
+- changed: `skills/kipory-build/references/handlers/vector.upsert.md`
+- changed: `skills/kipory-build/references/handlers/web.rankings.md`
+- changed: `skills/kipory-build/references/handlers/web.search.md`
+- changed: `skills/kipory-build/references/handlers/web.traffic.md`
+- changed: `skills/kipory-build/references/handlers/x.posts.md`
+- changed: `skills/kipory-build/references/handlers/youtube.channel.md`
+- changed: `skills/kipory-build/references/handlers/youtube.transcript.md`
+- changed: `skills/kipory-build/references/handlers/youtube.trending.md`
+- changed: `skills/kipory-build/references/handlers/youtube.video.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/nodes-and-organizations.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-model/references/packs/relations.md`
+- changed: `skills/kipory-operate/references/packs/events.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+
 ## 1.20261001.221252 — 2026-10-01
 
 Synced from the Kipory monorepo at `5933f99ab`.

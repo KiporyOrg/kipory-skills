@@ -13,7 +13,7 @@ Get the words spoken in a YouTube video.
 - **External dependency:** Supadata — Pulls YouTube transcripts via Supadata (KIPORY_SUPADATA_API_KEY).
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `supadata` (vendor: Supadata); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `supadata`
-- **Queue:** 2 attempts, exponential from 2000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source)
+- **Queue:** 2 attempts, exponential from 2000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

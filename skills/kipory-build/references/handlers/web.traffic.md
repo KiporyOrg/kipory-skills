@@ -13,7 +13,7 @@ Look up a website's visits, ranking, and audience by country.
 - **External dependency:** Apify — Runs Apify's `similarweb-scraper` actor (KIPORY_APIFY_API_KEY). Actor runs are billed and queued by Apify, not by this platform.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `telegram.search-channels`, `web.rankings`, `web.search`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 604800000ms (custom-derive-source)
+- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

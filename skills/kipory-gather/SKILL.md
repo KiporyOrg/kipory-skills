@@ -129,6 +129,12 @@ network request.", not as a network error.
   nothing and returns the same answer, so a flow that re-runs is cheap — and a source that changed
   inside the window is one your flow cannot see. The windows differ by an order of magnitude across
   this table: rankings hold for a month, trending for six hours.
+- **Polling a source needs the step's own period.** The windows in the table are each handler's
+  default, not a fixed property: a step sets `reuseResultsForMinutes` — `0` runs fresh every time
+  and saves nothing, a number is the step's own window. A flow that polls a feed, a channel or a
+  profile for what is new sets it on the fetch step, or it reads yesterday's answer for a day.
+  `kipory-build`'s `references/packs/flows-and-skills.md` (run settings) has the rule for steps
+  that share one fetch.
 - **A vendor bills you even though the platform queued the call.** Apify actor runs are billed and
   queued by Apify. The platform's own per-invocation compute fee is charged on top, and bringing
   your own key removes the vendor pass-through but not that fee.

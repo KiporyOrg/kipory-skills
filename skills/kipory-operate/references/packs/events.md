@@ -108,9 +108,8 @@ the user you mean as data.
 - **Seeded types cannot be deleted.**
 - **A run-scoped type cannot be durable** — a run event rides the run's own stream and is never
   logged; `durable: true` on one is a 422.
-- **The version on update is REQUIRED.** It used to be optional, and omitting it meant
-  last-writer-wins: two people editing one type through the same screen both read "saved" and one
-  of the edits was gone.
+- **The version on update is REQUIRED.** Without it a write would be last-writer-wins: two people
+  editing one type through the same screen would both read "saved" and one edit would be lost.
   <br>⚠️ **"Required" applies where the write ACCEPTS one.** Request bodies are closed, so a
   `version` sent to a write that takes none is a **422**, not a courtesy — an unknown key is
   refused rather than dropped. Read the body's own fields, not the row's.

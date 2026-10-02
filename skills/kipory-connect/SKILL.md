@@ -10,17 +10,18 @@ Kipory is a platform for building a product's backend — its processes, its dat
 
 ## What you need before turn one
 
-Three things, and **all three come from the human**:
+Two things, and **both come from the human**:
 
-| You need                         | Why you cannot derive it                                                           |
-| -------------------------------- | ---------------------------------------------------------------------------------- |
-| The **base URL** of the api host | Kipory is deployed per installation. There is no canonical host.                   |
-| An **API key**                   | Only a signed-in person can mint one — a key cannot mint a key.                    |
-| The **project's id**             | Every route addresses a project by its id, and a key is told nothing at mint time. |
+| You need                         | Why you cannot derive it                                         |
+| -------------------------------- | ---------------------------------------------------------------- |
+| The **base URL** of the api host | Kipory is deployed per installation. There is no canonical host. |
+| An **API key**                   | Only a signed-in person can mint one — a key cannot mint a key.  |
 
-A project has **one id**: the `id` its create call returns, which is its node in the ownership tree. Every route takes it — `{nodeId}` in a `/v1/projects/…` path, `?project=` on a list, `project` in a create body.
+A trailing slash on the base URL is harmless: the api reads `//health` as `/health`.
 
-**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (VIEWER unless they pick one; anything that previews or runs a flow needs ADMIN) and an expiry. The plaintext is shown once. Ask them for the project's id at the same time.
+The third thing, the **project's id**, the key tells you itself — step 2. A project has **one id**: the `id` its create call returns, which is its node in the ownership tree. Every route takes it — `{nodeId}` in a `/v1/projects/…` path, `?project=` on a list, `project` in a create body.
+
+**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (viewer unless they pick one; anything that previews or runs a flow needs admin) and an expiry. The plaintext is shown once, with the project's id beside it. The id is also on the project's **Settings** page; a human who reads it there must be on _this_ project's settings.
 
 > Never ask the human to paste the key into a file you will write, a commit, or a log line. Read it from the environment.
 
@@ -35,15 +36,21 @@ GET /v1/capability-packs    → 200, the pack index and a `version`
 
 `/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error. Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare handlers) in the environment: it compares the versions of the packs, the handler catalog and the API pages bundled with these skills against what this deployment serves. Exit 0 means every layer is current; exit 1 means one differs, and it prints which layer to read live instead; exit 2 means something could not be compared — the deployment was unreachable, or a layer could not be read (without `KIPORY_API_KEY` the handler catalog cannot be), and it says which. A difference does not say which side is newer — a deployment older than these files is ordinary — and either way **the deployment wins**.
 
-**2. Prove the key is alive.**
+**2. Prove the key is alive, and ask it what it holds.**
 
 ```
-GET /v1/handlers            Authorization: Bearer <key>
+GET /v1/grant               Authorization: Bearer <key>
+→ 200 { key: { id, label, keyPrefix, expiresAt },
+        node: { id, name, kind },      — where the key acts
+        role,                          — viewer | editor | admin | owner
+        projects: [{ id, slug, name }] }
 ```
 
-Authenticated but floored on no project, so a 200 means the key exists, is not revoked and not expired — and nothing about reach.
+It takes no id, so a 200 means the key exists, is not revoked and not expired, and the body is its grant. When `node.kind` is `project`, `node.id` is the project's id. When it is `organization`, the key reaches every project in `projects`; ask the human which one, or create one (below). Check `role` against the work now: a `viewer` key will pass every read here and refuse the first write.
 
-**3. Prove the key reaches the project, and read everything it holds.**
+If the human also gave you a project id, compare it with `projects` before using it. An id from another project is the commonest wrong input, and without this read it shows up only as a 403.
+
+**3. Read everything the project holds.**
 
 ```
 GET /v1/projects/{nodeId}                         → 200 and you are connected
@@ -51,9 +58,9 @@ GET /v1/bootstrap?project={nodeId}                → the whole authored configu
 GET /v1/bootstrap?project={nodeId}&sections=tenancy   → your grant: the nodes you reach, with your role on each
 ```
 
-The bootstrap read returns nine sections — project, schema, relations, events, flows, surfaces, vectors, evals, tenancy — each the resource's own envelope, with a `structureVersion` to cache against and a `sections` map that says which moved. **The `tenancy` section is how a key learns its own grant**: the shallowest node in `nodes[]` is the grant node and `role` on every node is the grant's role. Read it once; do not probe ids to discover reach.
+The bootstrap read returns nine sections — project, schema, relations, events, flows, surfaces, vectors, evals, tenancy — each the resource's own envelope, with a `structureVersion` to cache against and a `sections` map that says which moved. The `tenancy` section is the same grant as step 2, drawn as a tree: the shallowest node in `nodes[]` is the grant node and `role` on every node is the grant's role. Do not probe ids to discover reach.
 
-**If you must create the project** you need OWNER at the parent organisation node:
+**If you must create the project** you need `owner` at the parent organisation node:
 
 ```
 POST /v1/projects  { name, slug, parentNodeId }       → 201 { id, slug, name }   — `id` is the project's id everywhere
@@ -72,10 +79,10 @@ transaction — a refused one leaves no project behind.
 | Code  | Means                                                                                                                                                                                            | Do                                                                  |
 | ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
 | `401` | The credential is missing, malformed, revoked or expired                                                                                                                                         | Re-check the header, then ask the human for a live key              |
-| `403` | The credential is fine; the grant does not authorise this                                                                                                                                        | Check role, then reach — in that order                              |
+| `403` | The credential is fine; the grant does not authorise this                                                                                                                                        | Read `details`: `requiredRole` against `grant` — below              |
 | `404` | On the api host: the node resolved and hosts no project, or the route is served on the other host — or, on an item route, an id you cannot see (missing, or in a project your key doesn't reach) | You are holding an organisation's id — or you are on the wrong host |
 
-A `403` is deliberately not an existence oracle: an unresolvable node, a project never created and an insufficient role all refuse identically. A key holds **one node and one role**. Reach is plain descent — a grant at an organisation reaches every project beneath it; a grant at one project reaches that project only. The role is uniform over the whole reach and cumulative: read → VIEWER, design mutation → EDITOR, destructive, structural or spending → ADMIN; creating a project needs OWNER at the parent. **A key is minted at VIEWER unless a role was asked for**, so if every write refuses while reads succeed, suspect the role first. Anything that runs a flow — preview, tests, eval runs, vector search — is ADMIN, because it spends.
+A role-floor `403` carries `details: { reason: "insufficient_project_role", requiredRole, grant: { nodeId, role } }` — what the route needs, and what your key holds. Compare the two roles: if `grant.role` is below `requiredRole`, ask the human for a key with that role. If it is at or above it, the role was never the problem: the node you addressed is not `grant.nodeId` or beneath it — you were given another project's id, or one that does not exist. The body cannot say which of those two, deliberately: an unresolvable node, a project never created and an insufficient role all refuse identically, so a `403` is not an existence oracle. A key holds **one node and one role**. Reach is plain descent — a grant at an organisation reaches every project beneath it; a grant at one project reaches that project only. The role is uniform over the whole reach and cumulative: read → `viewer`, design mutation → `editor`, destructive, structural or spending → `admin`; creating a project needs `owner` at the parent. **A key is minted at `viewer` unless a role was asked for**, so if every write refuses while reads succeed, suspect the role first. Anything that runs a flow — preview, tests, eval runs, vector search — is `admin`, because it spends.
 
 ## What the platform refuses a key, always
 
@@ -84,14 +91,14 @@ A `403` is deliberately not an existence oracle: an unresolvable node, a project
 
 The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The ones you will meet:
 
-- **A key cannot mint a key.** Key management accepts a signed-in session only. The human mints it, on the api host, and tells you the node, the role and the expiry.
-- **A key is never platform staff.** `GET /v1/projects` — every project on the installation — answers 403 to every customer key. Keep the id the create answered, or ask the human for it.
-- **A key has no `me`.** Every `/v1/me*` route and the charges statement `GET /v1/credits/events` answer 401 from inside the handler. Reading a node's members, or the node itself through `/v1/nodes`, is a human's surface too; the bootstrap's `tenancy` section is yours.
+- **A key cannot mint a key.** Key management accepts a signed-in session only. The human mints it, on the api host; `GET /v1/grant` tells you the node, the role and the expiry.
+- **A key is never platform staff.** `GET /v1/projects` — every project on the installation — answers 403 to every customer key. `GET /v1/grant` lists the ones your key reaches.
+- **A key has no `me`.** Every `/v1/me*` route and the charges statement `GET /v1/credits/events` answer 401 from inside the handler. Reading a node's members, or the node itself through `/v1/nodes`, is a human's surface too; `GET /v1/grant` and the bootstrap's `tenancy` section are yours.
 - **A key cannot act as an end user.** A flow that writes person-owned records, or an events subscription scoped to a user or a record, refuses a key with 403; a key's runs are project-owned.
 
 ## What will bite you
 
-- **Silence about the node id.** Nothing at mint time tells the key its grant. Ask for it at turn zero — or read `tenancy` — not at the first 403.
+- **Silence about the node id.** Nothing at mint time tells the key its grant. Read `GET /v1/grant` at turn zero, not at the first 403.
 - **`parentNodeId` omitted on create** — defaults to the platform organisation, refuses, and reads like an auth failure.
 - **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider shapes are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/schema-entries/seed`.
 - **A retired project freezes writes.** Every POST, PUT, PATCH and DELETE naming it answers 409 while reads pass.

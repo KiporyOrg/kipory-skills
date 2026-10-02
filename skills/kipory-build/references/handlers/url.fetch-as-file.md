@@ -12,7 +12,7 @@ Download a web address and save it as a file.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard, and stores the bytes. The site itself is the dependency.
 - **Rate limit:** 60 per 60000ms in bucket `url.fetch-as-file`
-- **Queue:** 3 attempts, exponential from 1000ms; waits up to 90000ms; cache 86400000ms (custom-derive-source)
+- **Queue:** 3 attempts, exponential from 1000ms; waits up to 90000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

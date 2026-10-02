@@ -104,9 +104,8 @@ removed. A record type's `uses` names each field's use as the record-type API do
 `key`, `search`, `link`, `stream`; there is no `file` use (retired 2026-09-24), and a document
 naming one is refused. A field reference's `family` is `submission`, `processed` or `system`, and
 `uses.search` carries no `stages`: a search slot reads exactly one field the record stores, and a
-profile under `vectors` defaults only `defaultChunking`. The `derived` family and projection
-stages — on a type or as a profile default — were removed 2026-09-27, and a document naming any of
-them is refused.
+profile under `vectors` defaults only `defaultChunking`. A document naming a `derived` family or projection stages — on a type or as a profile
+default — is refused.
 
 ## Plan a document before applying it
 

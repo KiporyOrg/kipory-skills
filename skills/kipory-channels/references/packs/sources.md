@@ -121,11 +121,9 @@ instead of writing: whether the write would be taken (`ok`), what it found (`dia
 every rule ran (`complete`), and what it would compute (`derived`). Read `severity`, never `code`:
 `error` will not save, `warning` blocks nothing, and `info` notes something the platform left alone.
 
-⛔ **Two of the refusals above used to be reachable only by attempting the write.** A key already
-taken was a caught database violation, and a channel already watched was a query inside the
-transaction — so the only way to ask "does this project already watch that channel" was to try to
-watch it again. Both are decided before anything is written now, and both paths meet the same
-answer.
+⭐ **Every refusal above is decided before anything is written**, a key already taken and a channel
+already watched included — so `validateOnly` answers "does this project already watch that
+channel" without watching it again.
 
 ⚠️ **A stale `version` is NOT reported here.** The optimistic lock is about when the write lands,
 not about whether your draft is coherent — the save answers 409 for it and the verdict says nothing,

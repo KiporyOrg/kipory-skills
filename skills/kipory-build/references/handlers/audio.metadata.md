@@ -10,7 +10,7 @@ Read an audio file's length, format, and tags.
 - **Reads:** One audio file. A non-audio mime fails rather than being guessed at. _(shape hint: `file`)_
 - **Emits:** An `AudioMetadata`. Every field is independently optional, so a file with no tags still returns its length and format. An empty object means nothing was readable.
 - **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 60000ms; cache no expiry (custom-derive-source)
+- **Queue:** 1 attempt, no backoff; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

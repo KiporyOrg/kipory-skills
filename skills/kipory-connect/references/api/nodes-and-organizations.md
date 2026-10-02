@@ -2,7 +2,7 @@
 
 # Nodes and organisations
 
-The ownership tree: an organisation node holds project nodes, and a grant at a node reaches everything beneath it. Reading or administering a node and its members is a signed-in human's surface; the routes here are the ones an API key can call. A key learns its own grant from the `tenancy` section of `GET /v1/bootstrap`.
+The ownership tree: an organisation node holds project nodes, and a grant at a node reaches everything beneath it. Reading or administering a node and its members is a signed-in human's surface; the routes here are the ones an API key can call. A key learns its own grant from `GET /v1/grant`, which takes no id.
 
 Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -10,8 +10,23 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 | Method | Path | Notes |
 | --- | --- | --- |
+| `GET` | [`/v1/grant`](#get-v1-grant) |  |
 | `GET` | [`/v1/nodes/{nodeId}/effective-role`](#get-v1-nodes-nodeid-effective-role) |  |
 | `POST` | [`/v1/organizations`](#post-v1-organizations) |  |
+
+### `GET /v1/grant`
+
+What the API key making this call holds: the node it was granted at, its role, and every project it reaches. It takes no id, so it is the first call for a key holder who was not told which project the key is for — `node.id` is that project's id when `node.kind` is `project`, and `projects` lists the choices when the key was granted on an organization.
+It answers an API key only; a session gets 403 (`details.reason: "not_an_api_key"`). The same grant rides every role-floor 403 as `details.grant`.
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `object` | yes | The key making this call. |
+| `node` | `object` | yes | Where the key acts: this node and everything beneath it. |
+| `role` | `"viewer" \| "editor" \| "admin" \| "owner"` | yes | What the key may do over its whole reach. Reading needs `viewer`, a design change `editor`, anything destructive, structural or spending — including running a flow — `admin`, creating a project `owner`. |
+| `projects` | `object[]` | yes | Every live project the key reaches, by slug. One entry for a key granted on a project; empty for a key granted on an organization that has no project yet. |
 
 ### `GET /v1/nodes/{nodeId}/effective-role`
 

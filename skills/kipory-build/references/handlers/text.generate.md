@@ -11,7 +11,7 @@ Send your prompt to an AI model and return its answer.
 - **Emits:** The model's answer — text, or a structured value when the step declares an output shape.
 - **External dependency:** a model provider — Whichever provider hosts the model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
 - **Rate limit:** 60 per 60000ms in bucket `text.generate`
-- **Queue:** 2 attempts, exponential from 1000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source)
+- **Queue:** 2 attempts, exponential from 1000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

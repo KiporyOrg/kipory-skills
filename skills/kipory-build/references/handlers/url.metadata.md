@@ -12,7 +12,7 @@ Read a web page's title, description, icon, and preview image.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
 - **Rate limit:** 120 per 60000ms in bucket `url.metadata`
-- **Queue:** 2 attempts, exponential from 1000ms; waits up to 30000ms; cache 86400000ms (custom-derive-source)
+- **Queue:** 2 attempts, exponential from 1000ms; waits up to 30000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

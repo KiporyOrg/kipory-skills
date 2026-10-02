@@ -12,7 +12,7 @@ Turn speech in an audio file into text.
 - **Suggested input streams:** `currentFile`
 - **External dependency:** a model provider — Whichever provider hosts the transcription model this step is set to. `whisper-1` is the seed, not the contract — the call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
 - **Rate limit:** 50 per 60000ms in bucket `audio.transcribe`
-- **Queue:** 2 attempts, exponential from 2000ms; waits up to 600000ms; cache no expiry (custom-derive-source)
+- **Queue:** 2 attempts, exponential from 2000ms; waits up to 600000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

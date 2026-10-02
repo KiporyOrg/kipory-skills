@@ -13,7 +13,7 @@ Sort documents by how well they answer a question.
 - **External dependency:** Cohere — Re-scores candidates through Cohere's rerank API (KIPORY_COHERE_API_KEY).
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `cohere` (vendor: Cohere); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 600 per 60000ms in bucket `cohere`
-- **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (default-input-slot-hash)
+- **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (default-input-slot-hash) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

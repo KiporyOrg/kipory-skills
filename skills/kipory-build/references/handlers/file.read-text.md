@@ -12,7 +12,7 @@ Read a text file and return what it says.
 - **Suggested input streams:** `currentFile`
 - **External dependency:** S3 / MinIO — Downloads the object's bytes from the store. S3-compatible rather than S3: the deployment runs MinIO on its own box.
 - **Rate limit:** 240 per 60000ms in bucket `file.read-text`
-- **Queue:** 3 attempts, exponential from 500ms; waits up to 60000ms; cache no expiry (custom-derive-source)
+- **Queue:** 3 attempts, exponential from 500ms; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

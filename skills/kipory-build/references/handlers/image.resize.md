@@ -10,7 +10,7 @@ Make an image smaller and return the new file.
 - **Reads:** One image file. A non-image input throws, so route those elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the resized image. A retry on the same item reuses the previous encode. An empty input gives an empty file back.
 - **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 120000ms; cache no expiry (custom-derive-source)
+- **Queue:** 1 attempt, no backoff; waits up to 120000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

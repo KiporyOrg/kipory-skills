@@ -6,6 +6,20 @@
 > the handler keys and configs a skill can use → live `GET /v1/handlers`. **Always** confirm a
 > handler key against the live catalog, never against this pack. This pack carries judgment.
 
+## If you read one screen
+
+Three facts change a plan more than the rest of this pack, and each sits deep in it:
+
+- **Preview writes unless you say otherwise.** `apply` defaults to `true`; `apply: false` is the
+  dry run. → _Preview — run it for real, in a sandbox_
+- **A schedule resolves nobody.** `userInfo` is absent, a step that reads only it is skipped, and
+  the run fails `FLOW_OUTPUT_MISSING` while preview passes. → the same section
+- **A step can replace its handler's cache.** `reuseResultsForMinutes: 0` runs fresh every time,
+  which is what polling a source needs. → _How a step runs_
+
+Building a product, you can skip the three "Asking…" sections on a first read: they describe
+`validateOnly` and `derived` in the depth an editor over this API needs.
+
 ## What they are
 
 A **flow** is the unit of doing work: a typed signature (input slots and output slots), an
@@ -415,8 +429,7 @@ together. A document step may leave out what `POST /v1/steps` lets it — `descr
 its handler's own output type, a held one keeping its own. See `capability-packs/project-document.md`.
 
 There is no per-flow export: the project document IS the portable form, and the one that writes
-back — keyed, planned and versioned. (The per-flow export route, which answered persisted slot
-shapes carrying SOURCE-project registry ids, is gone.)
+back — keyed, planned and versioned.
 
 ⚠️ **A type the target lacks is seeded if it is a library type; an operator-defined one is not.**
 That is the target project's own configuration, so the plan names it and the apply refuses rather
@@ -489,8 +502,7 @@ PATCH /v1/steps/{id}   { …, "validateOnly": true }   a step you are changing
 Both dry runs answer `derived.draft`: what the platform makes of the step's CONFIGURATION — its
 `diagnostics`, the `derivedInputStreams` it names and the `derivedInputSchemas` it would type them
 as. Nothing is persisted and nothing is executed. On the PATCH it describes the stored step with your
-patch applied, so send only what changes. (It had a route of its own, `validate-draft`, until feature
-343 folded it into the writes — one route, one set of rules.)
+patch applied, so send only what changes.
 
 ⚠️ **If the draft changes the wiring, send `inputStreams`, `inputPaths` and `inputProjectionNames`
 together.** They are positionally aligned, exactly as on the skill row. The save resolves a projection
@@ -715,16 +727,9 @@ in for. It calls no model, resolves no project
 and names no payer. Its reply is the interpolated prompt and the elapsed time; there is no
 `response` and there are no token counts, because there is no call to report.
 
-<!-- field-ok: interpolateOnly — REMOVED, and named here on purpose: this paragraph is the
-     migration note telling a caller that still sends it where the request goes now. The guard is
-     right that no wire contract declares it; that is the fact being reported. -->
-
-⛔ **It was a flag on `/preview` and is now a route, and the reason is the role floor.**
-`interpolateOnly: true` made a SPENDING route not spend — which meant the floor had to depend on
-the request BODY, and a floor that does that cannot be graded by the gate whose whole job is to
-prove that a spending route sits at ADMIN. A route either spends or it does not, and now each one
-says which in its own name. **If you were sending `interpolateOnly`, send the request to
-`/v1/steps/interpolate` instead; the field is gone.**
+⛔ **It is a route of its own, not a flag on `/preview`, and the reason is the role floor.** A
+route either spends or it does not, and each one says which in its own name: `/preview` spends and
+sits at ADMIN, `/interpolate` never does.
 
 ⛔ **Both still take `handlerKey`, and you should not lie about it.** That field decides TWO things,
 not one: whether a model is called AND whether `{{#slot}}` sections ITERATE. Before the free render
@@ -954,8 +959,7 @@ PATCH /v1/steps/{id}   { …, "confirmedOutputSlotRenames": [ … ] }           
 ```
 
 The dry run answers `derived.rename` whenever the patch changes `outputSlot` from one non-empty name
-to another. (It had a route of its own, `rename-preview`, until feature 343 folded it into the
-PATCH.) It reports `skillsAffected`, `sitesAffected`, and a per-step `reports` array naming every
+to another. It reports `skillsAffected`, `sitesAffected`, and a per-step `reports` array naming every
 site. It uses the **same scanner** the write's rewrite plan uses, so a site it names is a site the
 rewrite touches.
 

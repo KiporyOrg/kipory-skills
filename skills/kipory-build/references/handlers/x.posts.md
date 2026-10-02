@@ -13,7 +13,7 @@ Read the posts from an X post, profile, or search link.
 - **External dependency:** Apify or twitterapi.io — Each step picks its vendor (`provider`): Apify's `twitter-scraper-lite` actor (KIPORY_APIFY_API_KEY), the default, or twitterapi.io's API (KIPORY_TWITTERAPI_API_KEY). With `fallback` on — the default — a failed vendor hands the URL to the other, and the output says which answered.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source)
+- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

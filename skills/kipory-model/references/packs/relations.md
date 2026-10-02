@@ -52,10 +52,8 @@ kind is legal, listed, and doing nothing. That state is _reported_ rather than r
 previous generation of this system had a silent version of exactly this, and a whole edge
 vocabulary could look healthy while producing no edges at all.
 
-⛔ **A kind with NO pairing is a different case, and it is now refused outright.** It used to be
-allowed and called _inert_: a create could omit the pairing seed, the last pairing could be deleted,
-and what was left was a vocabulary entry that applied to no record types and could connect nothing.
-Three things changed at once:
+⛔ **A kind with NO pairing is a different case, and it is refused outright**: it would be a
+vocabulary entry that applies to no record types and can connect nothing. Three rules keep it out:
 
 - `POST /v1/relation-kinds` **requires** at least one pairing. The kind and its first pair are
   written in one transaction, so nothing is lost by requiring it.
@@ -63,12 +61,7 @@ Three things changed at once:
 RELATION_KIND_NO_PAIRINGS`. Delete the kind if that is what you meant.
 - Declaring a field that feeds a kind with no pairing is refused rather than warned.
 
-The state was reported through a `warnings` list that no caller read, and the behaviour it warned
-about — edges being discarded at write time — had already been retired with the handler that
-enforced it. So it was a legal state that described nothing, warned nobody, and no longer did what
-it claimed.
-
-⭐ **A kind left unpaired from before the change is still editable.** The refusal is on the CREATE,
+⭐ **A kind that is nonetheless unpaired is still editable.** The refusal is on the CREATE,
 not on every write: `PATCH /v1/relation-kinds/{id}` carries no `pairings` field, so refusing it
 would name something the request could not have contained — and would lock the row out of having
 its label or its properties entry changed. Adding a pairing is the repair, and it is never
@@ -144,14 +137,9 @@ different field and keeps its own spelling.
 
 <!-- field-ok: joinRecord — the REFUSED old spelling of a `producer` value, named only to say it is refused -->
 <!-- field-ok: manyToOne — the REFUSED old spelling of a `cardinality` value, named only to say it is refused -->
-<!-- field-ok: traversalLimit — a RETIRED column, named only to say it is gone; no contract declares it and none should -->
-<!-- field-ok: oneToOne — a REMOVED enum value, named only to say it is gone -->
 
-⛔ **`oneToOne` was removed, and what it promised was never enforced.** It meant `many-to-one` PLUS
-"at most one edge into a target" — and nothing ever checked the second half: every write path plans
-one source's edges at a time, so the in-degree branch was unreachable, and the unique index its
-comment named does not exist (`(kindId, targetRecordId)` is a plain index). It behaved exactly like
-`many-to-one`. **A kind that carried it should be `many-to-one`** — that is what it actually delivered.
+⛔ **There is no one-to-one cardinality.** Nothing limits how many edges point INTO a target: every
+write path plans one source's edges at a time. `many-to-one` is the closest there is.
 
 The pair-sorting a symmetric kind does is why: the degree count runs on the STORED `source`, which
 after the swap is whichever record id happens to sort lower — so the limit would fall on an arbitrary half of the
@@ -329,13 +317,9 @@ Three behaviours worth knowing before you debug an empty answer:
 
 - **`limit` is yours to set, within a platform ceiling.** It defaults to **50** and is capped at
   **500**; asking for more is a 400, and the resolver clamps regardless of which route calls it.
-  ⚠️ It used to be a ceiling the KIND set and you could only lower — that per-link
-  `traversalLimit` is removed. How many edges a read returns is a property of the question.
+  How many edges a read returns is a property of the question, not of the kind.
 - ⚠️ **An unknown kind answers 200 with no edges, not 404.** **So an empty list is not evidence
-  the record has no edges** — check the kind exists before concluding anything. (This used to be
-  load-bearing for a second reason: a kind could be marked "not exposed" and had to be
-  indistinguishable from a missing one. That flag is gone; the shape stays, so the three read
-  surfaces cannot diverge on what they return.)
+  the record has no edges** — check the kind exists before concluding anything.
 - **The 404 that does exist is for the record**, and it fires before any edge is read — so an
   absent record stays distinguishable from a record with no edges of that kind.
 

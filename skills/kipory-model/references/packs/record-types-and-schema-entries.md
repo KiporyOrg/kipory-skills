@@ -210,9 +210,9 @@ spelling (`USER`, `PROJECT`) is refused on the wire.
 **Scope freezes once records exist** (`RECORD_TYPE_PINNED_BY_RECORDS`). Decide it before you
 write anything, because unwinding it means deleting the data.
 
-⛔ **`ownerScope` is therefore REQUIRED on `POST /v1/record-types`.** It used to be optional and
-default to `user`, which meant a create that never mentioned it made this permanent decision on
-your behalf — and you could not undo it after the first write. A body without it is now refused.
+⛔ **`ownerScope` is therefore REQUIRED on `POST /v1/record-types`.** A body without it is refused:
+a default would make this permanent decision on your behalf, and you could not undo it after the
+first write.
 
 ⚠️ **`PATCH` keeps it optional, and that is not an inconsistency.** There, omitting a key means
 _keep the current value_, which is a real answer. On a create there is nothing to keep, so silence
@@ -379,10 +379,9 @@ cost nobody asked for. Poll during a re-embed rather than attaching either to ro
 **A `search` use needs text, and the platform says so before it derives anything.** `search` on a
 number, a date, a boolean, a file, an object or a list of objects is refused `USES_SEARCH_NO_TEXT`
 with a remedy: have the type's processing flow write the text into a text field (for a file, extract
-its text), and search that field. It used to be
-possible to save such a slot, and the result was the worst of the three possible outcomes: nothing
-errored, every record rendered to an empty string, each one was skipped as having no content, and
-the type sat there looking searchable while indexing nothing at all.
+its text), and search that field. The refusal is the point: such a slot would render every record
+to an empty string, skip each one as having no content, and leave the type looking searchable while
+indexing nothing at all.
 
 The refusal is about the field's **shape**: a record that happens to be empty is reported per
 record, which is a fact about data rather than about the declaration.
@@ -398,12 +397,9 @@ perfectly embeddable.
 
 ### There is no partial edit: `uses` is one statement, sent whole
 
-The three derived documents used to be authored one by one, each with a merge form so a client
-could edit one slot without re-sending the parts it did not model. All of that is gone. What you
-send is the whole `uses` statement, and the three documents are derived from it in the same
-transaction — so the trap the merge form existed for (a client silently dropping the chunking it
-never modelled) cannot happen: chunking lives on the profile, and a field's every purpose is stated
-in one place. Read `uses`, change it, send it back with the `version` you read.
+What you send is the whole `uses` statement, and the three derived documents are computed from it
+in the same transaction. There is no merge form and nothing to drop by accident: chunking lives on
+the profile, and a field's every purpose is stated in one place. Read `uses`, change it, send it back with the `version` you read.
 
 ## Making fields filterable
 
@@ -667,15 +663,15 @@ Each kind of clause is answered by the store its use routed the field to, so eac
 - **`edge`** needs a `link` for the `relation`. `direction` is `outgoing` unless you say
   `incoming` or `either` (a symmetric link matches on either side whatever you ask); `where` speaks
   the link's `element.filters`; `count` is a comparison on matching edges (omitted: at least one);
-  `peer` is a list of `field` and `term` clauses on the record at the far end — ONE hop, and those
-  two kinds only.
+  `peer` is a list of clauses on the record at the far end — ONE hop: `field`, `term`, and at most
+  one `semantic` (below).
 - **`stream`** needs `stream` on the field. `window` is `{ from, to }` on the event's own time —
   omitted, it is bounded by the stream's retention, and a `from` before the retention cutoff is 422
   `STREAM_WINDOW_BEYOND_RETENTION`; `where` speaks the stream's `filters`; `count` is `exists`
   (default), `none` (no matching event), or a comparison.
 - **`semantic`** needs a `search` use somewhere on the type (or on the named `field`). `text` is
   the phrase, up to 8 000 characters; `topK` is how many to rank, 1–200, default 50. At most one per
-  query.
+  query, counting one inside a `peer`.
 
 Up to sixteen clauses. **How it is answered:** the exact clauses run first, cheapest first, each
 one narrowing the next; their intersection is then pushed into the meaning index and scored
@@ -683,10 +679,105 @@ EXACTLY when it holds at most 25 000 records, so a record satisfying every claus
 by the ranking. Above that the ranking runs first and the exact clauses narrow it — a bounded
 answer, and the answer says so.
 
+**A link's far end matched by meaning.** A `semantic` clause inside `peer` asks for the records
+linked to something that resembles a phrase — "guides who have led an outing about river
+crossings" is a query on `guide` with one `edge` clause:
+
+```json
+{
+  "kind": "edge",
+  "relation": "led-by",
+  "direction": "incoming",
+  "peer": [
+    { "kind": "semantic", "text": "river crossings", "topK": 50 },
+    { "kind": "field", "field": "status", "op": "eq", "value": "published" }
+  ]
+}
+```
+
+The peer type is ranked first — its own `field` and `term` clauses narrowing the ranking — and the
+edge then reaches only the closest `topK` peers. So the answer is the records linked to one of
+them, in the query's own order (newest first unless you set `order`), and it PAGES. It is still a
+bounded answer, `peer-top-k`: a record whose only matching peer ranked below `topK` is not in
+reach. ⚠️ There is no similarity cut-off — the nearest peers always come back — so narrow the peer
+with a `field` or `term` clause when "nothing matches" must be possible. The relation must pair
+the type with exactly ONE peer type; one that pairs it with several is refused for this clause.
+
+<!-- field-ok: lastPostAt — a project-authored field name, an example of a value kept on the record to order by -->
+
+**The order of the answer.** `order` is optional, beside `clauses`:
+
+- `{ "by": "created" }` — newest created first. The default without a semantic clause.
+- `{ "by": "meaning" }` — closest first. The default with a semantic clause of the query's own,
+  and refused without one (a peer's phrase chooses which records are in reach; it does not order
+  them).
+- `{ "by": "field", "field": "startsAt", "direction": "desc" }` — by one of the type's own DATE
+  fields carrying a `filter` use. An exact-only query pages by it. A record with no value in the
+  field is left out. Beside a semantic clause it re-orders the ranking: the same at-most-`topK`
+  records, listed by the field, with no cursor.
+
+A cursor belongs to the order that minted it; passed under another it is a 422. ⛔ There is no
+order by something on a LINKED record ("stories by their newest post", "most commented"): keep
+that value on the record itself — a processed `lastPostAt`, a count its processing flow maintains
+— and order by the field.
+
+**In a step, what a clause compares against can come from the run.** Each operand may be named by
+a slot instead of written in place: `valueSlot` for a `field` clause's `value` (top level or in
+`peer`) and for a `where` entry's `value`, `slugSlot` for a `term`'s `slug`, `textSlot` for the
+`semantic` phrase, `fromSlot` / `toSlot` for a stream `window`. Exactly one of the literal and its
+slot. Which field, operator, facet, relation and count the clause names stays in the config, so
+the routing check at save is the same either way.
+
+```json
+{
+  "recordType": "outing",
+  "clauses": [
+    {
+      "kind": "field",
+      "field": "guideId",
+      "op": "in",
+      "valueSlot": "followed.guideIds"
+    },
+    {
+      "kind": "field",
+      "field": "startsAt",
+      "op": "gte",
+      "valueSlot": "runInfo.now"
+    }
+  ]
+}
+```
+
+A search behind an endpoint is the same move on the phrase — `{ "kind": "semantic", "textSlot":
+"request.q" }` — which composes with any other clause, so "outings resembling what the caller
+typed, among the guides they follow" is one step.
+
+- ⛔ **Every slot a clause names must be there, or the step does not run.** A value that is
+  missing (undefined or null) SKIPS the step, even when its other inputs are present — a query
+  with one condition missing is a wider question, and it is never asked. There is no optional
+  clause: an endpoint with an optional filter routes to one of two steps with `flow.dispatch`.
+- **An empty list is not missing.** It matches nothing, so the answer is empty with `emptiedBy`
+  naming that clause, and the step runs even when that list is its only input.
+- **A value of the wrong kind fails the step**, `QUERY_OPERAND_INVALID`, before any store is read:
+  a single value where `in` needs a list (or the reverse), more than 1 000 distinct members, a
+  link or stream filter value that is not text, a window bound that is not an ISO moment with an
+  offset, a blank phrase. A value of the wrong type for the field is refused as the same written
+  value would be.
+- The answer's `explanation` marks each such operand — `operands: [{ path, slot, members }]` on
+  the clause's row — and never repeats the value.
+- The save warns `QUERY_OPERAND_TYPE_MISMATCH` when the slot's declared type certainly cannot
+  be the operand — a list where one value is compared, one value where `in` needs a list, a
+  number where text is needed. A warning: the step saves, and the run would refuse the value.
+- `entity.list` and `entity.count` hold their filter slots to the same rule: a missing filter
+  value skips the step, a wrong one fails it (`FILTER_VALUE_INVALID`), an empty list matches
+  nothing. A filter is never dropped, so an optional one is two steps behind a `flow.dispatch`.
+- The request body of the route takes written values only; a `…Slot` key there is a 422.
+
 **Two honesty fields, never omitted.** Read them before you read `records`:
 
 - `bounded` — `false` means every record satisfying every clause is in reach. Otherwise
-  `{ bound, reason }`: `top-k` (every satisfying record was scored, more than `topK` satisfied, the
+  `{ bound, reason }`: `peer-top-k` (a link's peers were ranked and only the closest `bound` were
+  followed), `top-k` (every satisfying record was scored, more than `topK` satisfied, the
   closest `bound` are here), `pushdown-cap` (the exact intersection was too large to push, so the
   ranking ran first and this is at most `bound` of it), or `semantic-only` (no exact clause; a
   plain ranking).
@@ -707,7 +798,7 @@ answer, and the answer says so.
   `uses` does not route. The message names the field and the use to declare; no store scans for it.
   For the step, at flow save; for the route, at request — it has no save step. The two shape
   refusals sit beside it: `QUERY_SEMANTIC_MULTIPLE` (a second semantic clause) and
-  `QUERY_PEER_DEPTH` (a `peer` holding anything but `field` and `term`).
+  `QUERY_PEER_DEPTH` (a `peer` holding anything but `field`, `term` and `semantic`).
 - 422 `QUERY_CLAUSE_TOO_BROAD` — the first exact clause selected more than a million records
   before any other clause could narrow it. Add a narrower clause the planner will run first — a
   term, or a field equality — rather than reordering yours: the order is the planner's.
@@ -721,8 +812,10 @@ answer, and the answer says so.
 and `limit` caps what is returned of it.
 
 **Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
-hop through `peer`. A query language — the grammar is this JSON, in a step's config or a request
-body. A cached answer — every query reads the stores as they are now. The operator app draws an `entity.query` step's clauses as a read-only tree and says so on the step page; a step's clauses are written through the design API (`POST /v1/steps`, `PATCH /v1/steps/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
+hop through `peer`. Ordering by how closely a LINKED record matches, or by any value on a linked
+record. A similarity cut-off on a ranking. An answer carrying records of two types. A query language — the grammar is this JSON, in a step's config or a request
+body. A slot for WHICH field, operator or link a clause asks about — only the value compared
+against can come from the run. A cached answer — every query reads the stores as they are now. The operator app draws an `entity.query` step's clauses as a read-only tree and says so on the step page; a step's clauses are written through the design API (`POST /v1/steps`, `PATCH /v1/steps/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
 
 ## What the platform refuses
 
@@ -801,8 +894,7 @@ body. A cached answer — every query reads the stores as they are now. The oper
   it would change (`relation-kinds`, `joins`, `refuses: false`) — present on a refused verdict
   too, so a refused dry run names the count that refused it. ⛔ `total` sums only the refusing
   counts, so a seeded or reserved type reads `total: 0` and is refused anyway — never gate on
-  `total`. It needs ADMIN on the type, the delete's own floor. (`?expand=dependents` on the item
-  read, which published this census with a `deleteRefusal` copy of the verdict, is gone.)
+  `total`. It needs ADMIN on the type, the delete's own floor.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
 facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
@@ -1098,8 +1190,6 @@ verdict says so in the save's words: `ok: false` with the 409's code,
 - It answers the ONE key the statement declares; ask about another field by sending the statement
   with the key moved there. `derived.naturalKey` is absent when the key does not move — a declared
   key is already stamped, and the save does not verify it again. **EDITOR**, the PATCH's own floor.
-  (`POST …/natural-key-preview`, which measured several candidates in one call, is gone — and the
-  dry run used to answer `ok: true` for a key the save then refused.)
 
 ### The rules a key must satisfy
 
