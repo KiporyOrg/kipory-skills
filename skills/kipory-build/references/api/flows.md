@@ -79,9 +79,9 @@ Create a flow — its key, label and typed signature (`inputTypeNames`, `outputT
 | `label` | `string` | yes | Display text, editable at any time. |
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
-| `inputSlots` | `unknown` | no | The flow's resolved input signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
-| `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
-| `outputBinding` | `unknown` | no | Which skill output feeds each output slot, as resolved, or null when no binding was ever authored (null is UNDECLARED, `{}` is authored-empty). Read-only here; author it through `outputBinding` on create or patch. |
+| `inputSlots` | `unknown[]` | yes | The flow's resolved input signature — always a list, `[]` when the flow declares no inputs. Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
+| `outputSlots` | `unknown[]` | yes | The flow's resolved output signature — always a list, `[]` when the flow declares no outputs. Read-only and opaque — authored as `outputTypeNames`. |
+| `outputBinding` | `object` | yes | Which skill output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
 | `skillCount` | `integer` | yes | How many skills the flow currently contains. |
 | `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -115,9 +115,9 @@ Read one flow — its signature, binding, step count and `version` (the lock `PA
 | `label` | `string` | yes | Display text, editable at any time. |
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
-| `inputSlots` | `unknown` | no | The flow's resolved input signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
-| `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
-| `outputBinding` | `unknown` | no | Which skill output feeds each output slot, as resolved, or null when no binding was ever authored (null is UNDECLARED, `{}` is authored-empty). Read-only here; author it through `outputBinding` on create or patch. |
+| `inputSlots` | `unknown[]` | yes | The flow's resolved input signature — always a list, `[]` when the flow declares no inputs. Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
+| `outputSlots` | `unknown[]` | yes | The flow's resolved output signature — always a list, `[]` when the flow declares no outputs. Read-only and opaque — authored as `outputTypeNames`. |
+| `outputBinding` | `object` | yes | Which skill output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
 | `skillCount` | `integer` | yes | How many skills the flow currently contains. |
 | `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -158,9 +158,9 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 | `label` | `string` | yes | Display text, editable at any time. |
 | `key` | `string` | yes | The flow's key, fixed when the flow is created. It cannot be changed afterwards — change the display text through `label`. |
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
-| `inputSlots` | `unknown` | no | The flow's resolved input signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
-| `outputSlots` | `unknown` | no | The flow's resolved output signature, or null when none was ever declared (null is UNDECLARED, `[]` is declared-empty). Read-only and opaque — authored as `outputTypeNames`. |
-| `outputBinding` | `unknown` | no | Which skill output feeds each output slot, as resolved, or null when no binding was ever authored (null is UNDECLARED, `{}` is authored-empty). Read-only here; author it through `outputBinding` on create or patch. |
+| `inputSlots` | `unknown[]` | yes | The flow's resolved input signature — always a list, `[]` when the flow declares no inputs. Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
+| `outputSlots` | `unknown[]` | yes | The flow's resolved output signature — always a list, `[]` when the flow declares no outputs. Read-only and opaque — authored as `outputTypeNames`. |
+| `outputBinding` | `object` | yes | Which skill output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
 | `skillCount` | `integer` | yes | How many skills the flow currently contains. |
 | `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |

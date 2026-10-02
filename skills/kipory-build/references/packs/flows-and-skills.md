@@ -216,6 +216,18 @@ sufficient cache key for this read.
 The binding maps internal slots onto the flow's declared outputs. Without it a flow computes
 correctly and returns nothing.
 
+Every flow is declared: on every read `inputSlots` and `outputSlots` are lists (`[]` declares no
+slot) and `outputBinding` is an object (`{}` binds no output). Neither is ever null, so there is no
+"undeclared" flow to handle.
+
+⚠️ **The binding is all any caller gets — a calling flow included.** A `flow.invoke` step receives
+the outputs the sub-flow BINDS and nothing else: what the sub-flow's steps wrote to their own slots
+never crosses the boundary. An output the sub-flow declares but does not bind returns nothing to the
+flow that invoked it; the sub-flow's `OUTPUT_SLOT_UNBOUND` warning is where that shows.
+
+Every output slot is an ordinary output: there is no kind of output that is emitted beside the
+result. A flow that must persist terms does it with a `term.upsert` step, never through a slot.
+
 Each entry is `{ fromSlot, path? }`. `path` omitted or `null` returns the step's whole value; to
 return part of it, `path` is an object — `{ "segments": [{ "kind": "field", "name": "recordId" }] }`
 — never a dotted string. The segments are the ones `inputPaths` uses: `field` (one property),
@@ -1078,11 +1090,13 @@ Three things worth knowing about that array:
 never built against. Treat an unrecognised code as a generic refusal and fall back to showing
 `message` — do not fail the response over it.
 
-- **A skill key must be a step name** — lower-case kebab, `analyze-text` is a complete key. A dot
+- **A skill key must be a step name** on every write that states one — a single create, a batch, a
+  project document's step alike — lower-case kebab, `analyze-text` is a complete key. A dot
   may group segments (`custom.my-skill`), but grouping is yours to choose: nothing dispatches on
   the segment before the dot, and no group has to exist before a key does. What is refused is
   anything outside the grammar: uppercase, underscores, spaces, a leading digit, an empty
-  segment. Slots use a different, plainer identifier grammar.
+  segment. Slots use a different, plainer identifier grammar. The rule is a write rule: a
+  captured step (a checkpoint, a run's flow snapshot) is returned with its key as stored.
 - **Declared input schemas, when you send them, must line up one-for-one with the input streams
   you send beside them**, and any paths or projection names alongside them too. This is refused
   before any database work happens. Leave them out and the platform types the inputs.

@@ -91,7 +91,9 @@ key always means this project's flow. A library or system flow — one that belo
 no project — is `system:<key>`. A facet's `resolver` is the one reference with a default: omit it
 on a new facet and the platform binds a semantic facet to its default resolver where it holds one,
 so "none" is stated as `resolver: null` — which is how an unbound facet exports, and why that export
-re-applies as unbound rather than picking up a resolver on the way back in. A shape may be stated
+re-applies as unbound rather than picking up a resolver on the way back in. A facet states no
+`binding`: a term attaches to the whole record, an export carries no such field, and a document
+that states one breaks the schema on that facet's path. A shape may be stated
 inline under the record type that uses it,
 in which case that record type OWNS it: the shape is edited only through the type, and every
 other consumer is refused until it is promoted to a shared entry.
@@ -277,7 +279,9 @@ same document again to retry, and only what is still missing is attempted.
 An apply whose only change is a facet's terms is still a change: it moves the version, and its
 seed runs after the commit like any other.
 
-A flow's `skills` are matched by `id`, then by key. A step the document leaves as it is is not
+A flow's `skills` are matched by `id`, then by key. A step's key is a step name, the one format
+every step write takes (lower-case kebab, optionally grouped with dots); a key outside it refuses
+that step on its own path. A step the document leaves as it is is not
 written; one it changes is updated in place, keeps its `id` and moves its `version`; a new key is
 created; a key the map omits is deleted. So a step id held across an apply stays good — a step
 renamed by keeping its `id` under the new key keeps it too; only one restated under a new key

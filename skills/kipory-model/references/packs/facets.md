@@ -129,7 +129,7 @@ the platform binds for that kind of decision.
 
 ```
 GET   /v1/facets/resolvers what this project may bind
-POST  /v1/facets           create the facet (identity, binding, cardinality)
+POST  /v1/facets           create the facet (identity, cardinality)
   … or build your own resolver flow …
 PATCH /v1/facets/{id}      bind resolverFlowId (and mint, matching, params, proposal)
   … then author the ingest flow that resolves it …
@@ -155,13 +155,8 @@ declaring a parameter shape the platform has no default for stores nothing eithe
 supply the values.
 
 Scoped by the project's `OrgNode` id. Create takes the facet key (camelCase, and it is the
-identity), a label, a `cardinality` of `one` or `many`, and optionally a parent facet key. The
-`binding` is **`record`** — the whole record — and that is the only value you can create.
-
-⚠️ A `sub-entity` binding, which labelled a part INSIDE a record, is retracted. It resolved
-`{ subject, value }` pairings and then had nowhere to store the subject, so two subjects sharing a
-term collapsed into one row. Existing facets still read; new ones are refused with
-`FACET_BINDING_RETRACTED`. Model a part inside a record as its own record type with a relation.
+identity), a label, a `cardinality` of `one` or `many`, and optionally a parent facet key. A term
+attaches to the whole record: model a part inside a record as its own record type with a relation.
 
 **The label is editable; nothing else about a facet's shape is.** Renaming touches only the display
 string — the key is the identity, so no term, no link and no stored resolution moves. There is no
@@ -194,8 +189,7 @@ Its output must reach **exactly one persistence sink**, and a `term.upsert` node
 it persists, and it backfills parent links inside the same transaction, so a child term can point at
 a parent minted in the same batch. ⚠️ **A resolver SUBFLOW is the exception** — one invoked by
 another flow legitimately hands persistence off to its caller by binding the bundle to an ordinary
-flow output, and adding a `term.upsert` there is not required. (A legacy side-channel output is the
-other sanctioned sink, and is being retired.)
+flow output, and adding a `term.upsert` there is not required.
 
 **A resolve flow with no sink at all resolves nothing** — the values simply never land, because
 resolving itself succeeded and nothing failed. It is not silent at save, though: it warns there like
@@ -266,7 +260,6 @@ editor you are standing in.
   verb ran it — so a client branching on the code for `POST /v1/facets` saw the key's failure over
   a label. ⭐ Every one of these refusals now carries the field it is about on `details.issues`,
   so a form marks the box rather than showing a sentence.
-- **A `sub-entity` binding is refused** with `FACET_BINDING_RETRACTED` — see above.
 - **A parent facet is cardinality `one`** (`FACET_PARENT_CARDINALITY` on the child's create): a
   child term hangs under exactly one parent term, so the record must carry exactly one. This is
   a product decision, not a detail — every record gets ONE top-level value, and `cardinality`

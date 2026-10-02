@@ -59,7 +59,7 @@ POST /v1/flows
       "required": true
     }
   ],
-  "outputBinding": null
+  "outputBinding": {}
 }
 ```
 

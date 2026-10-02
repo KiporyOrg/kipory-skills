@@ -73,9 +73,16 @@ captured signature would break what is bound to the flow (409 on the real call),
 step is refused by today's rules (422 on the real call) — run settings held to today's handlers, a
 pinned model its call cannot use. **Any error in `diagnostics` means the restore fails and changes
 nothing**, so read the verdict before you call restore. A stored payload the platform cannot parse
-is still a plain 422. A platform flow's restore is rehearsed the same way, with `leavesBehind` and
+is still a plain 422 — and so is one that could not put back a whole signature: a checkpoint whose
+captured input or output slots are not lists, or that holds no output-binding object, is refused
+(422 `VALIDATION_FAILED`) on the dry run and on the restore, because a flow always declares both
+slot lists and holds a binding. A platform flow's restore is rehearsed the same way, with `leavesBehind` and
 `consequences` empty: they judge one project's flows, and the projects bound to a platform flow are
 held by the signature guards instead.
+
+The steps a dry run returns (`currentSteps`, `restoredSteps`) carry each step's `key` as it was
+captured. A read does not apply the step-name rule, so a checkpoint taken before that rule can show
+a key no write would accept today.
 
 Whatever the verdict, `derived.restore` says what the restore would do. `currentSteps` and
 `restoredSteps` are the flow's steps now and the checkpoint's — pair them by `key`, never by

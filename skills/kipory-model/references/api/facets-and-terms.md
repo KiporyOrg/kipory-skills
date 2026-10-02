@@ -52,7 +52,6 @@ Create one facet. With `validateOnly: true` it answers whether the facet would b
 | `project` | `string` | yes | Node id of the project that will own the facet. |
 | `key` | `string` | yes | The facet's key, unique within the project. Permanent — it cannot be changed later. camelCase letters and digits starting with a lowercase letter, like `personRole`, up to 64 characters. |
 | `label` | `string` | yes | Display text. Editable later with PATCH; the rest of a facet's shape is fixed at creation. |
-| `binding` | `"record"` | no | Defaults to `record` when omitted, and `record` is the only value. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | no | Key of a facet to nest this one under. Omit or pass null for a top-level facet. Permanent. |
 | `mint` | `"none" \| "active" \| "candidate"` | no | Defaults to `active` when omitted. |
@@ -79,7 +78,6 @@ Create one facet. With `validateOnly: true` it answers whether the facet would b
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The facet's key within its project, unique there. Set at creation and not editable. |
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
-| `binding` | `"record" \| "sub-entity"` | yes | What a term on this facet attaches to. `record` tags the whole record. `sub-entity` tagged something inside it and is RETRACTED — it cannot be created any more, because the subject half of the pairing was never stored; it appears here only so an existing facet can still be read. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | yes | Key of the facet this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this facet has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
@@ -121,7 +119,6 @@ Read one facet by id, with the `version` its PATCH takes; `expand` adds its `sta
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The facet's key within its project, unique there. Set at creation and not editable. |
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
-| `binding` | `"record" \| "sub-entity"` | yes | What a term on this facet attaches to. `record` tags the whole record. `sub-entity` tagged something inside it and is RETRACTED — it cannot be created any more, because the subject half of the pairing was never stored; it appears here only so an existing facet can still be read. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | yes | Key of the facet this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this facet has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
@@ -170,7 +167,6 @@ Rename a facet or change how it admits values (`mint`, `matching`, `proposal`, t
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The facet's key within its project, unique there. Set at creation and not editable. |
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
-| `binding` | `"record" \| "sub-entity"` | yes | What a term on this facet attaches to. `record` tags the whole record. `sub-entity` tagged something inside it and is RETRACTED — it cannot be created any more, because the subject half of the pairing was never stored; it appears here only so an existing facet can still be read. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry on this facet — exactly one, or any number. Fixed when the facet is created. |
 | `parentFacetKey` | `string \| null` | yes | Key of the facet this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this facet has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |

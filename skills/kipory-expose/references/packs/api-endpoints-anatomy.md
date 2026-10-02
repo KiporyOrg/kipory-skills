@@ -165,7 +165,9 @@ contract to disagree with the flow it was snapshotted from.
 ## The snapshot, and the one way it goes stale
 
 The bound flow's signature is **snapshotted at save**, authoritatively — there is no field for you
-to supply your own copy. Saving again re-takes it.
+to supply your own copy. Saving again re-takes it. Each captured output slot is a name, its shape
+and whether it is required, and every one of them is a field of the response: a flow has no output
+that travels beside its result.
 
 **Nothing else re-takes it.** If the flow's signature changes afterwards, the endpoint keeps
 publishing and validating the shape it captured, and the flow's new output is rejected by the

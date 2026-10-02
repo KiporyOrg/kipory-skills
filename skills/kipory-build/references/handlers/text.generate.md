@@ -29,7 +29,6 @@ Send your prompt to an AI model and return its answer.
 | --- | --- | --- | --- | --- |
 | `field` | string | yes | — |  |
 | `facet` | string | yes | — |  |
-| `subject` | string | no | — |  |
 
 ### `outputs` — each item
 

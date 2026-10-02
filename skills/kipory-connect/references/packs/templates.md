@@ -33,7 +33,8 @@ hidden part, and no parameters: a template is applied as written. `Accept: appli
 answers YAML. The document is in the current format, `kipory: 2`, and reads exactly as the
 project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) pack describes — elements by `key` and `label`, a
 relation kind's pairings by `fromRecordTypeKey`/`toRecordTypeKey`, a `skill-outcome` assertion
-by `skillKey`, a facet's worked examples by term `key` and `label`, a record type's
+by `skillKey`, a facet's worked examples by term `key` and `label` (a facet states no `binding` —
+a term attaches to the whole record), a record type's
 `ownerScope` as `user` or `project`, a relation kind's required `producer` and its `cardinality` in kebab
 (`join-record`, `many-to-one`), an eval suite's `coverageMode` as `strict` or `report-only`, its
 `scoreRules` directions in kebab (bounded as on the suite write) and its cases (each with an optional `label`) under

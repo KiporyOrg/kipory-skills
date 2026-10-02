@@ -1321,7 +1321,7 @@ its own (and `expand=uses` shows each facet's position). An empty list means the
 nothing — which is not the same as the project having no facets, and the difference is the whole
 point of the link.
 
-Each entry carries the facet's own label, binding, cardinality and BOTH of its admission
+Each entry carries the facet's own label, cardinality and BOTH of its admission
 settings — `mint` (what a value the facet has never seen may become: `none`, `active` or
 `candidate`) and `matching` (how an existing term is found: `exact` or `semantic`) — so a client
 can render the list without a second call. These two replaced a single `mode` field that conflated
