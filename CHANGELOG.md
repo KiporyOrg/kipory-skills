@@ -2,6 +2,15 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261002.222015 — 2026-10-02
+
+Synced from the Kipory monorepo at `d61d4e66e`.
+
+- changed: `skills/kipory-build/references/handlers/text.decide.md`
+- changed: `skills/kipory-build/references/handlers/text.generate.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261002.215939 — 2026-10-02
 
 Synced from the Kipory monorepo at `4edf02819`.

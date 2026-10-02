@@ -20,14 +20,14 @@ Answer typed questions about a value: yes/no, pick one, or score.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `model` | string | no | `"typesafe/jev-latest"` | Which decision model answers, by its catalog id (creator/slug, as GET /v1/ai-models lists it). ⚠️ Only a decision model can answer. A chat model is refused when the step saves. |
-| `outputs` | object[] | no | — | An extra slot for how sure the model was of each answer. Type it DecisionConfidence; leave it out to write the answers alone. |
+| `outputs` | object[] | no | — | One extra slot for how sure the model was of each answer. Type it DecisionConfidence; leave it out to write the answers alone. ⚠️ Every question gets an answer: an option such as `unknown` is one more option, not a refusal to answer. To catch a guess, compare this slot's `lowest` in a later step's condition. |
 
 ### `outputs` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `slot` | string | yes | — |  |
-| `schema` | union | yes | — |  |
+| `slot` | string | yes | — | The slot the extra value is written to. A later step reads it by this name. |
+| `schema` | union | yes | — | The type of the value in that slot, as a schema reference. |
 
 ## Worked example
 
@@ -54,5 +54,43 @@ Output:
   "team": "billing",
   "refund": 0.99,
   "urgency": 1.43
+}
+```
+
+#### an input with no answer
+
+Every field is still answered. `sureness.lowest` comes back near 0.4, so a later step's condition can catch the guess.
+
+Reads `string` → emits `TicketTriage` · 1 in → 1 out
+
+Step settings (`handlerConfig`):
+
+```json
+{
+  "outputs": [
+    {
+      "slot": "sureness",
+      "schema": {
+        "kind": "ref",
+        "entryId": "DecisionConfidence"
+      }
+    }
+  ]
+}
+```
+
+Input:
+
+```
+"asdf https://example.com/x1 @someone"
+```
+
+Output:
+
+```
+{
+  "team": "billing",
+  "refund": 0.41,
+  "urgency": 0.87
 }
 ```

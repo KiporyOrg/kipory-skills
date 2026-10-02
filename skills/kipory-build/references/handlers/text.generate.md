@@ -34,8 +34,8 @@ Send your prompt to an AI model and return its answer.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `slot` | string | yes | — |  |
-| `schema` | union | yes | — |  |
+| `slot` | string | yes | — | The slot the extra value is written to. A later step reads it by this name. |
+| `schema` | union | yes | — | The type of the value in that slot, as a schema reference. |
 
 ## Worked example
 
