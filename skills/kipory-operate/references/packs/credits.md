@@ -47,6 +47,41 @@ ceiling from this field at all, and should not infer one is absent.
 `perUserSpendConsumed` is always present — `0` for a first-time caller, and still reported when the
 cap is `null` — so "no cap configured" is never confused with "no data".
 
+## A project can give each member their own wallet
+
+A project has one more setting on `PATCH /v1/projects/{nodeId}/settings`: `memberWallets`. With it
+on, each member of the project holds a wallet **in that project**, and `GET /v1/credits/balance`
+called by a member's session answers that wallet: `wallet` reads `member`, where every other
+caller reads `node`.
+
+- **The credits are the project's, moved.** A member's wallet is funded only by transfers out of
+  the wallet the project is paid from: `memberJoinGrantCredits` once when a member joins,
+  `memberPeriodicGrantCredits` every `memberGrantPeriod` (`day`, `week` or `month`), and whatever
+  an ADMIN grants one member with `POST /v1/projects/{nodeId}/members/{userId}/credits`. A grant
+  the paying wallet cannot cover is refused with `422 PAYING_WALLET_CANNOT_COVER`; an automatic
+  one is skipped and made on a later day.
+- **Zero refuses, and nothing else pays.** A member's wallet has no headroom below zero. At zero
+  or below their billable calls answer `402 MEMBER_WALLET_EMPTY`, with `balance` and
+  `nextGrantAt` in `details`. The project's wallet is not charged in their place.
+- **The per-user ceiling is replaced, not added.** While the project has member wallets on the
+  ceiling is applied to nobody, and `perUserSpendCap` reads `null`: the wallet is a member's
+  bound. The stored ceiling applies again if the project
+  turns member wallets off.
+- **Unused periodic credits go back.** When a period ends, what a member did not use of that
+  period's grant returns to the paying wallet before the next grant is made. Credits from the
+  joining grant or from an ADMIN's grant stay. When a member leaves, or the project turns member
+  wallets off, the whole balance returns.
+- ⚠️ **A key is never a member.** A request made with an API key is charged to the project's
+  wallet whatever user it acts for, so `wallet` reads `node` for every key. Only a signed-in
+  member's own session spends a member wallet.
+
+`nextGrantAt` is when the next periodic grant is due, and `null` when the project makes none or
+when `wallet` is `node`. Read it; do not compute it from the period.
+
+To see what each member holds, read `wallet` on each row of `GET /v1/projects/{nodeId}/members`;
+`grantMissed` there says an active member has not had this period's grant yet. One member's history — each
+grant, expiry, return and charge — is `GET /v1/projects/{nodeId}/members/{userId}/ledger`.
+
 ## The window is given to you, not derived
 
 `perUserSpendConsumed` covers `perUserSpendCapPeriod` — `lifetime`, `day`, `week` or `month`,
@@ -137,6 +172,9 @@ deliberate about which credential the question is being asked with.
 | To                                                  | Call                                                   |
 | --------------------------------------------------- | ------------------------------------------------------ |
 | See the wallet, the ceiling and the window          | `GET /v1/credits/balance`                              |
+| Turn member wallets on, and set the grants          | `PATCH /v1/projects/{nodeId}/settings`                 |
+| Give one member credits                             | `POST /v1/projects/{nodeId}/members/{userId}/credits`  |
+| Read one member's wallet history                    | `GET /v1/projects/{nodeId}/members/{userId}/ledger`    |
 | Page one person's charges (session bearers)         | `GET /v1/credits/events`                               |
 | Attribute a machine-driven charge to what caused it | `GET /v1/runs/{runId}/spend`                           |
 | Total one schedule occurrence's billed charges      | the occurrence's `creditCost` on the schedule's `runs` |
@@ -155,6 +193,9 @@ never depended on the run and is complete.
 - **Sending an API key at `GET /v1/credits/events`** and reading the `401` as a broken credential.
   The key is fine; the route needs a person.
 - **Recomputing the window** from the period instead of reading the boundary that was returned.
+- **Treating `402 MEMBER_WALLET_EMPTY` like the wallet refusal.** Topping up the project's wallet
+  does not help: the remedy is the member's next grant, or one an ADMIN gives them.
+- **Expecting a key to spend a member's wallet.** It never does; the project pays for key traffic.
 - **Reading `perUserSpendCap` with a falsy check**, which erases a zero ceiling into "unlimited".
 - **Expecting the tenant's charges.** This is one caller's own; breadth of grant does not widen it.
 - **Looking for prices here.** What things cost is an operator surface; what you spent is this one.

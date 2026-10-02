@@ -355,7 +355,7 @@ Bring a retired project back before its `purgeAfter`: its node, keys, schedules 
 
 ### `GET /v1/projects/{nodeId}/settings`
 
-The project's spend ceilings, the warning threshold, the describer switch, and what design-time work has cost in the current window. Change them with `PATCH` on this path.
+The project's spend ceilings, the warning threshold, its member-wallet settings (whether members hold their own wallets, and the joining and periodic grants), the describer switch, and what design-time work has cost in the current window. Change them with `PATCH` on this path.
 
 **Path parameters**
 
@@ -372,12 +372,16 @@ The project's spend ceilings, the warning threshold, the describer switch, and w
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `day`. |
 | `spendCapWarnPercent` | `integer \| null` | yes | Warn the project's operators when design-time spend passes this share of the build ceiling (`designSpendCapCredits`), in whole percent. Null = no warning. It watches the build ceiling only — the per-user ceiling raises no warning. The ceilings refuse at 100% regardless. |
+| `memberWallets` | `boolean` | yes | Whether each member of the project holds their own wallet in it. On: a signed-in member's usage is paid from their wallet and refused when it is empty, and the per-user ceiling above is not applied to them. Off: every member's usage is paid from the wallet the project is paid from. |
+| `memberJoinGrantCredits` | `integer \| null` | yes | Credits moved into a member's wallet once, when they join, out of the wallet the project is paid from. Null means no joining grant. Paid only to members who join after member wallets were turned on. |
+| `memberPeriodicGrantCredits` | `integer \| null` | yes | Credits moved into each member's wallet every `memberGrantPeriod`. Null means no periodic grant. What is left of one period's grant returns to the paying wallet when the next period begins. |
+| `memberGrantPeriod` | `"day" \| "week" \| "month"` | yes | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
 | `describerEnabled` | `boolean` | yes | Whether the platform keeps this project's element descriptions current (`GET /v1/descriptions`). Off keeps what exists and adds nothing. The platform pays for descriptions, so this is not a spend setting — it is here because it is a decision about the project. Defaults on. |
 | `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 
 ### `PATCH /v1/projects/{nodeId}/settings`
 
-Change the project's spend ceilings, warning threshold or describer switch; absent keys stay as they are. Answers what `GET` on this path answers. The descriptions the describer writes are `GET /v1/descriptions?project=`.
+Change the project's spend ceilings, warning threshold, member-wallet settings or describer switch; absent keys stay as they are. Answers what `GET` on this path answers. A change to a member-wallet setting is applied to the members' wallets moments after the save, by a queued run: turning `memberWallets` off returns every member's balance to the wallet the project is paid from and closes the wallets; one member's grant is `POST …/members/{userId}/credits`. The descriptions the describer writes are `GET /v1/descriptions?project=`.
 
 **Path parameters**
 
@@ -394,6 +398,10 @@ Change the project's spend ceilings, warning threshold or describer switch; abse
 | `designSpendCapCredits` | `integer \| null` | no | Absent leaves it unchanged. Null removes the design-time ceiling; `0` blocks all design-time work. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | no | The window a spend ceiling is measured over. The calendar windows clear themselves as the clock moves. ⚠️ `lifetime` never clears — it is a quota rather than a budget, so an active user eventually reaches it and is blocked permanently. |
 | `spendCapWarnPercent` | `integer \| null` | no | Absent leaves it unchanged; null turns the warning off. Whole percent of a ceiling, 1–100. |
+| `memberWallets` | `boolean` | no | Absent leaves it unchanged. Turning it off returns every member wallet's balance to the wallet the project is paid from and closes the wallets; the two grant settings keep their values. |
+| `memberJoinGrantCredits` | `integer \| null` | no | Absent leaves it unchanged; null stops the joining grant. At least 1. |
+| `memberPeriodicGrantCredits` | `integer \| null` | no | Absent leaves it unchanged; null stops the periodic grant. At least 1. |
+| `memberGrantPeriod` | `"day" \| "week" \| "month"` | no | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
 | `describerEnabled` | `boolean` | no | Absent leaves it unchanged. Turn the platform's describer on or off for this project — what `GET /v1/descriptions` reads. |
 
 **Response `200`**
@@ -405,6 +413,10 @@ Change the project's spend ceilings, warning threshold or describer switch; abse
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `day`. |
 | `spendCapWarnPercent` | `integer \| null` | yes | Warn the project's operators when design-time spend passes this share of the build ceiling (`designSpendCapCredits`), in whole percent. Null = no warning. It watches the build ceiling only — the per-user ceiling raises no warning. The ceilings refuse at 100% regardless. |
+| `memberWallets` | `boolean` | yes | Whether each member of the project holds their own wallet in it. On: a signed-in member's usage is paid from their wallet and refused when it is empty, and the per-user ceiling above is not applied to them. Off: every member's usage is paid from the wallet the project is paid from. |
+| `memberJoinGrantCredits` | `integer \| null` | yes | Credits moved into a member's wallet once, when they join, out of the wallet the project is paid from. Null means no joining grant. Paid only to members who join after member wallets were turned on. |
+| `memberPeriodicGrantCredits` | `integer \| null` | yes | Credits moved into each member's wallet every `memberGrantPeriod`. Null means no periodic grant. What is left of one period's grant returns to the paying wallet when the next period begins. |
+| `memberGrantPeriod` | `"day" \| "week" \| "month"` | yes | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
 | `describerEnabled` | `boolean` | yes | Whether the platform keeps this project's element descriptions current (`GET /v1/descriptions`). Off keeps what exists and adds nothing. The platform pays for descriptions, so this is not a spend setting — it is here because it is a decision about the project. Defaults on. |
 | `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 

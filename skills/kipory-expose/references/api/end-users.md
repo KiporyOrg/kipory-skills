@@ -17,6 +17,8 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | `GET` | [`/v1/projects/{nodeId}/auth-config`](#get-v1-projects-nodeid-auth-config) |  |
 | `PUT` | [`/v1/projects/{nodeId}/auth-config`](#put-v1-projects-nodeid-auth-config) |  |
 | `GET` | [`/v1/projects/{nodeId}/members`](#get-v1-projects-nodeid-members) |  |
+| `POST` | [`/v1/projects/{nodeId}/members/{userId}/credits`](#post-v1-projects-nodeid-members-userid-credits) |  |
+| `GET` | [`/v1/projects/{nodeId}/members/{userId}/ledger`](#get-v1-projects-nodeid-members-userid-ledger) |  |
 | `GET` | [`/v1/projects/{nodeId}/profile-schema`](#get-v1-projects-nodeid-profile-schema) |  |
 | `PUT` | [`/v1/projects/{nodeId}/profile-schema`](#put-v1-projects-nodeid-profile-schema) |  |
 | `DELETE` | [`/v1/projects/{nodeId}/profile-schema`](#delete-v1-projects-nodeid-profile-schema) |  |
@@ -184,6 +186,61 @@ One page of the people who use the project — its end users — with their stan
 | `order` | `"asc" \| "desc"` | yes | Which way it ran — the `order` sent, or `desc`. |
 | `atCeiling` | `integer \| null` | yes | Seats across the WHOLE roster, every standing, whose spend in the current window has reached the project's per-person ceiling — the members the spend gate is refusing now. Null when the project sets no ceiling, which is not the same as nobody at it. |
 | `standingCounts` | `object` | yes | How many seats each standing holds, across the WHOLE roster rather than this page — the filter chips' counts. They sum to the unfiltered total; a chip whose count came from the filtered page would report the narrowing it is offering to apply. |
+
+### `POST /v1/projects/{nodeId}/members/{userId}/credits`
+
+Grant a member credits in their wallet in this project, moved out of the wallet the project is paid from, with a reason for the ledger. Idempotent on `idempotencyKey`. Refused while member wallets are off (`PATCH /v1/projects/{nodeId}/settings` turns them on, and sets the automatic joining and periodic grants), and when the paying wallet cannot cover it. Each member's balance is on `GET …/members`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id. |
+| `userId` | `string` | yes | The member's user id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `amountCredits` | `integer` | yes | How many credits to move into this member's wallet in the project, out of the wallet the project is paid from. |
+| `reason` | `string` | yes | Why. Written on both ledger entries of the transfer — the only record of why the two balances moved. |
+| `idempotencyKey` | `string` | no | Makes a double-submit resolve to the existing grant instead of a second one. Omitted, every call is a fresh grant. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `balanceCredits` | `integer` | yes | The member's wallet balance after the grant. |
+
+### `GET /v1/projects/{nodeId}/members/{userId}/ledger`
+
+One member's wallet in this project: its balance and its history, newest first, walked on `after`/`before` — the member's charges, and each grant, expiry and return with the wallet on the other side. Answers for a closed wallet too (a member who left). Requires **ADMIN**. Every member's balance at once is `GET …/members`; the paying wallet's own history is `GET /v1/organizations/{nodeId}/ledger`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's OrgNode id. |
+| `userId` | `string` | yes | The member's user id. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `after` | `string` | no | The page OLDER than this entry — pass back the `nextCursor` you were given. Omit for the newest page. |
+| `before` | `string` | no | The page NEWER than this entry — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `limit` | `integer` | no | How many entries per page, up to 200. Defaults to 50. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `balanceCredits` | `integer` | yes | What the wallet holds now, in credits. Can be below zero by the overshoot of the last charge. |
+| `open` | `boolean` | yes | Whether the wallet is open. A closed wallet belonged to a member who left, or to a project that turned member wallets off: its balance went back and its history stays. |
+| `entries` | `object[]` | yes | Newest first: the member's charges (`usage-debit`), and the grants, expiries and returns (`transfer`, each naming the wallet on the other side). |
+| `paging` | `null` | yes | Always null: the walk is on the cursors, which are exact and measured. |
+| `nextCursor` | `string \| null` | yes | Pass as `after` for the next older page; null at the end. |
+| `prevCursor` | `string \| null` | yes | Pass as `before` for the next newer page; null at the start. |
 
 ### `GET /v1/projects/{nodeId}/profile-schema`
 

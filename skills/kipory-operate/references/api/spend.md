@@ -152,7 +152,7 @@ The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures
 
 ### `GET /v1/credits/balance`
 
-Your own standing: the balance of the wallet that pays for you (`active`, `over-soft-cap`, `suspended`), and your per-user spend cap and what you have consumed of it. For a billable bearer credential only. An organization's spend is `GET /v1/organizations/{nodeId}/usage` (ADMIN); one project's is `GET /v1/projects/{nodeId}/usage`; the installation's is `GET /v1/spend` (staff).
+Your own standing: the balance of the wallet that pays for you (`active`, `over-soft-cap`, `suspended`) — your own wallet in the project when it gives its members wallets (`wallet: "member"`, with `nextGrantAt`), else the project's — and your per-user spend cap and what you have consumed of it. For a billable bearer credential only. An organization's spend is `GET /v1/organizations/{nodeId}/usage` (ADMIN); one project's is `GET /v1/projects/{nodeId}/usage`; the installation's is `GET /v1/spend` (staff).
 
 **Response `200`**
 
@@ -161,6 +161,8 @@ Your own standing: the balance of the wallet that pays for you (`active`, `over-
 | `creditsRemaining` | `integer` | yes | What is left in the wallet, in credits (one credit is one micro-USD). |
 | `softCapCredits` | `integer` | yes | How far BELOW zero the balance may go before requests start being refused with 402 — headroom, not a second balance. |
 | `status` | `"active" \| "over-soft-cap" \| "suspended"` | yes | Whether this wallet may still pay for work. `active` is fine; `over-soft-cap` means the balance has passed the agreed floor and requests are being refused with 402; `suspended` means the account is stopped for a reason other than balance. |
+| `wallet` | `"member" \| "node"` | yes | Whose wallet this is: `member` is your own wallet in this project, funded by the project's grants and refused at zero; `node` is the wallet the project settles to. |
+| `nextGrantAt` | `string \| null` | yes | When the project's next periodic grant to your member wallet is due, or null when `wallet` is `node` or the project makes no periodic grant. |
 | `perUserSpendCap` | `integer \| null` | yes | The ceiling on what YOU personally may spend, or null when the project sets none. ⚠️ NOT a second balance: it limits your share of the wallet above, and both gates must pass independently. |
 | `perUserSpendConsumed` | `integer` | yes | What you have spent against that ceiling in the current window. Always present, and 0 rather than absent for a first-time caller — so 'no cap' is never confused with 'no data'. |
 | `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window `perUserSpendConsumed` covers. Without it that figure is ambiguous where it matters most: '8 of 10' is a wall about to be hit if the window is LIFETIME, and an ordinary month if it is monthly. |
