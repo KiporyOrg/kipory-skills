@@ -2,6 +2,13 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261002.174355 — 2026-10-02
+
+Synced from the Kipory monorepo at `a3459b6df`.
+
+- changed: `skills/kipory-build/references/handlers/text.detect-language.md`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261002.153301 — 2026-10-02
 
 Synced from the Kipory monorepo at `a02cd1ac4`.
