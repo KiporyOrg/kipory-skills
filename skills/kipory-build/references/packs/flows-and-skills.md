@@ -1182,7 +1182,8 @@ facet's (which also carries `confirm` and `assignedTerms`); anything else in the
   **`GET /v1/nodes/{nodeId}/task-models`, at the project's id, is how you see the binding you
   would be stepping around.** It reports, per task kind, the model that resolves for this project
   and — the field worth reading — `source`: which layer decided. `boundHere` says whether the
-  project itself chose it or inherits it.
+  project itself chose it or inherits it. `callable` says whether a call on it would be served
+  here; `inherited`, on a task the project bound, is what that binding overrides.
 
   | `source`       | what it means                                                                                                                                   |
   | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
