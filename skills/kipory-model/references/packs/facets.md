@@ -50,6 +50,14 @@ gets one that can never grow — and if nothing was seeded it reads `blocked`, n
 - **`semantic`** dispatches to the facet's resolver flow — embed, search, gate — so `ML` can reach
   `machine-learning`. It needs a resolver bound.
 
+⛔ **`candidate` does not count proposals — it makes twins.** Matching reads active terms only,
+so a second record proposing the same idea in other words (`tv`, then `television`) finds
+nothing and coins a second candidate. A rule such as "admit a value once three records proposed
+it" therefore never fires: there is no shared candidate to count. Under `candidate` somebody
+reads the candidates and admits, merges or archives them by hand, and until they do, the same
+idea keeps arriving as new rows. If nobody will do that regularly, seed the terms you want and
+use `none` with `semantic` (below); read what was dropped later and add terms on purpose.
+
 Choose `none` when the value set is authoritative and finite, `active` when the vocabulary should
 learn from what arrives, `candidate` when it should learn but not unsupervised. Getting `mint`
 wrong is expensive in one direction only: `active` pointed at data it should not have been
@@ -259,6 +267,14 @@ editor you are standing in.
   a label. ⭐ Every one of these refusals now carries the field it is about on `details.issues`,
   so a form marks the box rather than showing a sentence.
 - **A `sub-entity` binding is refused** with `FACET_BINDING_RETRACTED` — see above.
+- **A parent facet is cardinality `one`** (`FACET_PARENT_CARDINALITY` on the child's create): a
+  child term hangs under exactly one parent term, so the record must carry exactly one. This is
+  a product decision, not a detail — every record gets ONE top-level value, and `cardinality`
+  has no PATCH. Before seeding a parent facet, ask of every pair of its terms "can one record be
+  both?". Where the answer is yes (a term for a field and one for a part of that field, two
+  names for neighbouring ideas, a term whose meaning depends on the reader), fold the narrower
+  one into the child facet under the broader, or drop it. A term's key is permanent, so this is
+  cheapest before the first seed.
 - **A facet cannot nest under itself** (`FACET_PARENT_SELF`). The hierarchy is a chain of FACETS,
   not a tree of terms inside one: each level is its own facet with its own admission, resolver and
   record-type links, which is the whole reason it is a separate facet.

@@ -178,6 +178,7 @@ Some destructive changes are refused outright:
 - **A flow something still references cannot be deleted** — the refusal counts what references it, by kind (`details` on the 409, `derived.dependents.kinds` on the dry run), without naming the rows; `GET /v1/projects/{nodeId}/connections` names them.
 - **A step whose output later steps read cannot be deleted** — the refusal counts the dependents and
   names the slots they read.
+- **A seeded vocabulary is repaired, not rewritten.** A term's key never changes. Two terms that mean the same: merge the one you do not want into the other (below) — its records move and it stays as an alias, so the old word still resolves. A term that should not exist: archive it, and nothing new is assigned to it. Candidates a supervised facet coined are the same rows with `status: candidate`: admit one with `status: active`, merge its twins into it, archive the rest. A merge has no undo.
 - **A term assigned to records cannot be deleted** (`TERM_DELETE_HAS_ASSIGNMENTS`) — archive it
   instead (`PATCH /v1/terms/{id}` with `status: archived` and the term's `version`). Nor can a term that is the parent of
   others or the canonical of aliases. `POST /v1/terms/{id}/merge` is the way to retire a term

@@ -122,6 +122,7 @@ re-stamped, vectors re-indexed, and `records-invalid`, the stored records that w
 fit a shape you changed), and the `delete` rows of `changes`, which include what a removal takes
 along by cascade.
 
+- **Plan a large document as it grows, not all at once.** A section you leave out is untouched, so plan the shapes and facets alone, then add the record types and plan again, then the flows, then the endpoints — each plan carrying everything before it. One mistake then shows in the section that introduced it, and a refusal that is not a finding (a 5xx) is found in one call instead of by bisecting the whole. Apply once, when the full document plans clean.
 - **Every element is addressed by its `key`** — the key each section's map is keyed by; display
   text is `label`. Where the row API takes an id (`dataEntryId`, `flowId`, `resolverFlowId`) the
   document takes the key (`shape`, `flow`, `resolver`). A bare flow key is this project's; a

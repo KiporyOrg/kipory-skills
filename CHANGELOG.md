@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261002.122432 — 2026-10-02
+
+Synced from the Kipory monorepo at `989c2bb3b`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-model/references/classification-runtime.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-plan/SKILL.md`
+
 ## 1.20261002.62632 — 2026-10-02
 
 Synced from the Kipory monorepo at `12253316f`.

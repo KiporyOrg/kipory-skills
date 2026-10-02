@@ -34,7 +34,9 @@ ambiguous — the middle band is strictly between them.
 
 **The middle band is the point of the gate.** A single threshold forces every borderline value into
 one of two wrong answers: a near-duplicate term, or a wrong match that quietly merges two things.
-The gate refuses to guess and hands the decision to a `text.generate` tiebreak step instead. That
+The gate refuses to guess and hands the decision to a `text.generate` tiebreak step instead
+(where the deployment offers a decision model, the same yes/no is one `text.decide` probability
+field — `kipory-build`'s `references/patterns.md`, "Model choice"). That
 step is skipped on a decisive score **only because you gate it**: give it `condition: slotEquals`
 on `<gateOut>.kind` = `tiebreak`, and give the step that carries the decisive resolution the same
 condition on `resolved`. A flow missing either branch carries the error

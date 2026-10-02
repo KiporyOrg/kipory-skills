@@ -263,6 +263,53 @@ What a flow endpoint can answer besides its bound output — and nothing else re
   - **File the values as facet terms** (`kipory-model`). `entity.list`'s `facetFilter` takes fixed `{ facet, slug }` pairs in config, not a slot, so a parameter needs one list step per term behind a `flow.dispatch`; the records API's `term=facet:key` is the operator's side of the same filter.
 - **Natural-key collisions fail the whole run.** A flow's `entity.create` on a project-wide type is keyed by its content, so writing identical data again converges on the same record. Writing _different_ data under a `key` field another record already holds is a `409 RECORD_NATURAL_KEY_TAKEN` naming the refused write's `seq`, the step that staged it, the record type, `details.refusedRecordId` — the refused write's own id (for a create, the id it would have had, which exists nowhere) — and, for a create or an update, `details.holderRecordId`, the record that holds the key and the one to update (never the key's value), and the run is all-or-nothing: no other row it wrote is kept. There is no upsert handler. For an importer: look the key up first (`entity.list` filtered on it), then split with `value.transform` into an existing id — `entity.update` with `recordIdSlot` — or new data — `entity.create` — each guarded with `slotPresent`.
 
+## 9. Read what one user follows
+
+"Show me what is new from the things I follow" is three steps and no loop. The follows are a per-user record type; the feed is one `entity.query` whose values come from the run.
+
+```
+entity.list (my follows → follows)  →  value.transform (follows.records → { ids })  →  entity.query (→ page)
+```
+
+```json
+{
+  "recordType": "collection",
+  "clauses": [
+    {
+      "kind": "edge",
+      "relation": "in-collection",
+      "direction": "incoming",
+      "peer": [
+        {
+          "kind": "field",
+          "field": "authorId",
+          "op": "in",
+          "valueSlot": "followed.ids"
+        }
+      ]
+    }
+  ],
+  "order": { "by": "field", "field": "lastItemAt", "direction": "desc" },
+  "limit": 20,
+  "cursorSlot": "request.cursor"
+}
+```
+
+- **Query the thing the user sees, not the thing they follow.** The clause above asks for collections linked to an item by a followed author, so each collection comes back once however many of its items match. Paging the items and collapsing them afterwards repeats a collection across pages.
+- **Following nobody is an answer.** A slot holding `[]` runs the step and returns no records. A slot that is absent skips the step, so produce the list in a step that always runs.
+- **`in` takes at most 1,000 values.** Past that the step fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
+- **Order by a date the record carries.** `order` takes `created`, or one of the type's own date fields with a `filter` use; a record with no value there is left out. To order by something a linked record holds (the newest item's date), keep it on the record — the next pattern.
+- **"Due now" is the same shape.** `{ "kind": "field", "field": "nextRunAt", "op": "lte", "valueSlot": "runInfo.now" }` reads only the due records; listing them all and filtering in a transform reads the whole type.
+
+## 10. Keep a value rolled up from linked records
+
+A parent that shows its children's count, latest date or common language stores those values itself.
+
+- **Write them with `entity.update`, in the parent's flow.** A field that is the OUTPUT of the type's processing flow cannot carry a `filter` use (`RECORD_TYPE_QUERYABLE_INVALID`): a filterable field is stamped from the record's own data, and nothing stamps a flow output. Declare the roll-up as an optional field of the shape, compute it in the flow (`entity.list` the children → `value.transform`), and write it back with `entity.update`. It can then be filtered and ordered by.
+- **Re-run the parent when a child joins.** The child's flow sets the parent back to `PENDING` and enqueues it (`entity.enqueue-process` with `replay: "rerun"`); the parent's flow recomputes from all its children, so the value never drifts from a running total.
+- **Take the majority, not the first.** For a value the children can disagree on (a language, a category), count them and take the commonest, ignoring an unknown while any child has a known value. Copying the first child's value lets one early odd record decide for the rest.
+- **Do not store the children as a list on the parent.** They are the incoming edges of the link; a list in the record grows without bound and cannot be filtered on.
+
 ## Utilities you will reach for
 
 - `value.first-non-empty` — an ordered `inputs` list of slots or paths; emits the first non-empty **preserving its runtime shape**, which is what lets it coalesce a URL string and a file. `valueKind` narrows to `string` or `file`. `inputStreams` must list the root slot of every entry in `inputs`, no more and no fewer.
@@ -272,5 +319,18 @@ What a flow endpoint can answer besides its bound output — and nothing else re
 - `list.concat` — an ordered `inputs` list of slots; flattens lists, lifts scalars to one-element lists, and joins them in the order given. `strategy` is `concat` or `dedup-concat`. It collects contributions from parallel sources **without needing a fan-out and merge pair**, which is the cheaper answer whenever the branches were never really a fan-out.
 
 ## Model choice
+
+**Which model handler asks the question.** Three handlers put a question to a model, and the cheap one is the one the question's shape allows:
+
+| The question                                                                         | Handler         | What you write                                                                                                                                                                        |
+| ------------------------------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Yes or no, pick one of a closed list, or a score on named levels                     | `text.decide`   | no prompt: the step's output type IS the questions — a probability field, an enum field (up to 255 options), or a number with its levels, each field's description being the question |
+| Which term of a facet does this belong to, in a vocabulary that is searched or grows | `facet.resolve` | the facet's own settings; it proposes with a model, then matches and mints by the facet's rules                                                                                       |
+| Anything that needs written words back — a summary, a title, an extraction           | `text.generate` | a prompt and a typed output                                                                                                                                                           |
+
+- A closed pick written as a `text.generate` prompt, or as a `facet.resolve` over a facet that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` and assign the term from the answer.
+- "Is this the same thing as that?" is a probability, not prose: one `text.decide` field, compared against a threshold where you branch.
+- `text.decide` runs on a decision model, not a chat model. It needs one in the deployment's catalog: `GET /v1/ai-models?type=decision` empty means the step cannot run there, and a step save refuses it (`HANDLER_MODEL_UNUSABLE`).
+- No customer read lists prices. Compare by measuring: run each design once with `apply: false` and read `GET /v1/runs/{runId}/spend`.
 
 A step's model resolves in this order: `text.generate`'s `modelSlot` at run time → the step's `modelId` → the binding for the step's `taskKey` on the nearest node that has one (the project, or an ancestor) → the environment → the code default. Omitting `modelId` inherits, and inheriting is a real answer. `GET /v1/ai-models` lists what a project may bind (no prices — a non-null `deprecatedAt` means still runnable, retiring on that date); `GET /v1/nodes/{nodeId}/task-models` (at the project's id) shows each task's current model and its `source` — `node` (a binding on this project or an ancestor; `decidedAt` names which), `environment`, `code-default` — and whether it is `assignableToStep`. Only five task kinds are writable on a step: `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`.
