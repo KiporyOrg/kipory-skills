@@ -17,11 +17,14 @@
 | "Who is trending here?"                     | `youtube.trending`                        | six-hour cache — the only genuinely fast-moving one                                                                                                      |
 | "Which Telegram channels cover this?"       | `telegram.search-channels`                | discovery; subscribing is `kipory-channels`                                                                                                              |
 | "Where is this?"                            | `location.resolve`                        | free and unkeyed, rate-limited by courtesy                                                                                                               |
+| "What is this place, and when is it open?"  | `place.details`                           | a place ID, a full map link, or "name, city"; a name returns the best match only                                                                         |
+| "What do people say about this place?"      | `place.details` then `place.reviews`      | reviews need a place ID or map link, not a name — wire the card's `placeId` in; each review is charged; reviewer names stay out unless the step asks     |
 
 ## The three budgets
 
 ```
 apify      30/min   web.search · web.rankings · web.traffic · x.posts · telegram.search-channels
+                    · place.details · place.reviews
 youtube    60/min   youtube.video · youtube.channel · youtube.trending    + a daily unit quota
 firecrawl  10/min   url.scrape · url.screenshot
 supadata   30/min   youtube.transcript

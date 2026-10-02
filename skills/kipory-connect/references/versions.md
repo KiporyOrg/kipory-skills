@@ -7,7 +7,7 @@ Every page under `references/api/`, `references/handlers/` and `references/packs
 | Source | Version | Served live as |
 | --- | --- | --- |
 | packs | `dce97a2233e3` | `version` on `GET /v1/capability-packs` |
-| handlers | `25e63494c42fc48901bdba181631dd7d77d873b766bef150883ea89e4ed47a55` | `version` on `GET /v1/handlers` |
+| handlers | `0e5bd22698fac17e2b1135cf8ec85fe0e698c2ab6f0924d49b8726b5c29a4f3b` | `version` on `GET /v1/handlers` |
 | api | `35e01d8cb6b2` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 
-Handler pages: 71 customer handlers, key set `2bb4638c3c31`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
+Handler pages: 73 customer handlers, key set `54be51144865`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.

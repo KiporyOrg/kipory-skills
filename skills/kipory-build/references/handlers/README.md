@@ -2,13 +2,13 @@
 
 # Handler catalog
 
-71 customer handlers, one page each. A step in a flow is one of these plus its config. `GET /v1/handlers` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+73 customer handlers, one page each. A step in a flow is one of these plus its config. `GET /v1/handlers` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 ## Groups
 
 - **ai** (4) — Model calls: generate text, turn text into a vector, or rank a list.
 - **text** (5) — Work on text without a model: split, match, fill a template, clean.
-- **sources** (17) — Fetch data from outside — pages, videos, feeds, places. Can be slow and cost money.
+- **sources** (19) — Fetch data from outside — pages, videos, feeds, places. Can be slow and cost money.
 - **files** (10) — Read what a file holds — metadata, text, transcripts — make a resized or rendered copy, or a download link.
 - **search** (5) — Vectors: encode a value, store it, and find the nearest matches.
 - **entities** (17) — Read and change the project's records and terms. Only these steps can change a record.
@@ -16,7 +16,7 @@
 - **flow** (9) — Steer the run: branch, loop, call another flow, keep state between steps.
 - **utility** (3) — Reshape a value, or pick between values from earlier steps.
 
-## ingest (31)
+## ingest (33)
 
 _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound steps._
 
@@ -30,6 +30,8 @@ _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO
 - [`location.resolve`](location.resolve.md) — Find a place from a map point · sources · `Location` → `Place`
 - [`pdf.parse`](pdf.parse.md) — Extract text from a PDF · files · `file` → `PdfDocument`
 - [`pdf.screenshot`](pdf.screenshot.md) — Save a PDF page as an image · files · `file` → `file`
+- [`place.details`](place.details.md) — Fetch a place · sources · `string` → `PlaceCard`
+- [`place.reviews`](place.reviews.md) — Fetch place reviews · sources · `string` → `PlaceReviews`
 - [`telegram.resolve-channel`](telegram.resolve-channel.md) — Fetch a Telegram channel · sources · `string` → `TelegramChannelResolution`
 - [`telegram.search-channels`](telegram.search-channels.md) — Search Telegram channels · sources · `string` → `TelegramChannelSearchResults`
 - [`term.upsert`](term.upsert.md) — Save terms · entities · `1` → `nothing`

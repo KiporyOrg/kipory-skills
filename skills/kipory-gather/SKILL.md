@@ -27,30 +27,32 @@ neither handler's own page mentions.
 
 ## The sources
 
-| Handler                    | Brings back                                    | Vendor        | Bucket              | Cached |
-| -------------------------- | ---------------------------------------------- | ------------- | ------------------- | ------ |
-| `url.fetch`                | raw text or JSON, nothing rendered             | the site      | `url.fetch`         | 24h    |
-| `url.fetch-as-file`        | the bytes, saved as a file                     | the site      | `url.fetch-as-file` | 24h    |
-| `url.metadata`             | title, description, icon, social preview       | the site      | `url.metadata`      | 24h    |
-| `url.scrape`               | the rendered page as clean markdown            | Firecrawl     | `firecrawl`         | 24h    |
-| `url.screenshot`           | a full-page image file                         | Firecrawl     | `firecrawl`         | 24h    |
-| `web.search`               | one page of organic search results             | Apify         | `apify`             | 24h    |
-| `web.rankings`             | a country's most-visited sites, ranked         | Apify         | `apify`             | 30d    |
-| `web.traffic`              | one site's visits, ranking and audience        | Apify         | `apify`             | 7d     |
-| `x.posts`                  | a tweet, profile or search URL as posts        | Apify ¹       | `apify` ¹           | 24h    |
-| `telegram.search-channels` | public channels matching search terms          | Apify         | `apify`             | 7d     |
-| `youtube.video`            | a video's metadata and stats                   | YouTube       | `youtube`           | 7d     |
-| `youtube.channel`          | a channel's metadata and stats                 | YouTube       | `youtube`           | 7d     |
-| `youtube.trending`         | the channels behind a region's trending videos | YouTube       | `youtube`           | 6h     |
-| `youtube.transcript`       | a video's captions as text                     | Supadata      | `supadata`          | 24h    |
-| `location.resolve`         | a place from latitude and longitude            | OpenStreetMap | `location.resolve`  | 7d     |
+| Handler                    | Brings back                                     | Vendor        | Bucket              | Cached |
+| -------------------------- | ----------------------------------------------- | ------------- | ------------------- | ------ |
+| `url.fetch`                | raw text or JSON, nothing rendered              | the site      | `url.fetch`         | 24h    |
+| `url.fetch-as-file`        | the bytes, saved as a file                      | the site      | `url.fetch-as-file` | 24h    |
+| `url.metadata`             | title, description, icon, social preview        | the site      | `url.metadata`      | 24h    |
+| `url.scrape`               | the rendered page as clean markdown             | Firecrawl     | `firecrawl`         | 24h    |
+| `url.screenshot`           | a full-page image file                          | Firecrawl     | `firecrawl`         | 24h    |
+| `web.search`               | one page of organic search results              | Apify         | `apify`             | 24h    |
+| `web.rankings`             | a country's most-visited sites, ranked          | Apify         | `apify`             | 30d    |
+| `web.traffic`              | one site's visits, ranking and audience         | Apify         | `apify`             | 7d     |
+| `x.posts`                  | a tweet, profile or search URL as posts         | Apify ¹       | `apify` ¹           | 24h    |
+| `telegram.search-channels` | public channels matching search terms           | Apify         | `apify`             | 7d     |
+| `place.details`            | one place's map listing: address, hours, rating | Apify         | `apify`             | 7d     |
+| `place.reviews`            | what people wrote about one place               | Apify         | `apify`             | 24h    |
+| `youtube.video`            | a video's metadata and stats                    | YouTube       | `youtube`           | 7d     |
+| `youtube.channel`          | a channel's metadata and stats                  | YouTube       | `youtube`           | 7d     |
+| `youtube.trending`         | the channels behind a region's trending videos  | YouTube       | `youtube`           | 6h     |
+| `youtube.transcript`       | a video's captions as text                      | Supadata      | `supadata`          | 24h    |
+| `location.resolve`         | a place from latitude and longitude             | OpenStreetMap | `location.resolve`  | 7d     |
 
 ¹ `x.posts` runs on Apify by default; a step may choose twitterapi.io instead
 (`provider: "twitterapi"`, key purpose `twitterapi`). With `fallback` on — the
 default — a failed vendor hands the URL to the other, and the output's
 `data.provider` says which one answered.
 
-Five handlers share `apify` at 30 a minute. Three share `youtube` at 60 a minute **and a single
+Seven handlers share `apify` at 30 a minute. Three share `youtube` at 60 a minute **and a single
 daily quota measured in units, not calls** — a heavy day of channel reads can exhaust what a later
 video read needed. `url.scrape` and `url.screenshot` share `firecrawl` at **10 a minute**, the
 tightest budget here by a wide margin, and both are the slow kind of step: they render a page in a
@@ -158,7 +160,7 @@ network request.", not as a network error.
   and twenty branches each making an Apify call is most of a minute's budget in one run. Set
   `maxParallelBranches` deliberately when the branch body reaches a shared bucket.
 - **Retries are already configured and they are not free.** They differ per handler — each handler
-  page's **Queue** line in `kipory-build` has the numbers. The five Apify handlers and `url.scrape`
+  page's **Queue** line in `kipory-build` has the numbers. The seven Apify handlers and `url.scrape`
   make three attempts with exponential backoff and wait up to five minutes; `url.screenshot` waits
   up to two minutes; `url.fetch` and `url.fetch-as-file` make three attempts within one and
   one-and-a-half minutes; `url.metadata` and the four YouTube handlers make two, waiting up to a
