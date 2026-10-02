@@ -45,7 +45,7 @@ Find the stored items closest in meaning to a query.
 | --- | --- | --- | --- | --- |
 | `parentTermId` | string \| null | no | — | Keep only candidates under this parent term. `null` searches the roots. |
 | `facet` | string | no | — | Which facet to search within. All facets share one collection, so this scopes the search rather than choosing a collection. |
-| `status` | `active` \| `archived` \| `READY` \| null | no | — | Which term statuses to include. Left unset, a terms collection searches active ones; `null` searches every status. |
+| `status` | `active` \| `archived` \| `READY` \| null | no | — | Which term statuses to include. Unset, a terms collection searches active ones, plus candidates of a facet that mints them; `null` searches every status. |
 
 ## Worked example
 

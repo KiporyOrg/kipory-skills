@@ -84,5 +84,19 @@ is already scoped correctly.
 - **A `tiebreak` that nothing handles is a value that never lands.** The branch rule is a
   whole-flow check: it never refuses the step write that creates the gate (the branch steps cannot
   exist yet), so read `GET /v1/flows/{id}/health` after wiring both branches.
+- **`mint: candidate` reuses its candidates, as well as the match allows.** A `candidate` facet
+  searches its active terms and its own candidates, so a second record proposing the same thing
+  lands on the candidate the first one coined and the candidate's record count grows. The
+  identical key always matches; a near-synonym (`ai`, `artificial-intelligence`) matches only
+  when its score clears the facet's thresholds, so twins still appear and merging them is part
+  of reviewing candidates. Nothing activates a candidate on its own. A resolver flow of your own
+  must leave `status` unset on its `vector.search` step: one that states `active` reuses nothing.
+- **A record's `terms` say which are candidates.** Each entry of `terms` on a record read carries
+  `status` — `active`, `candidate` or `archived` — so a client can leave an unadmitted term out
+  without a second read of the vocabulary.
+- **A proposal of `null`, `none` or `n/a` is never coined.** A model asked for a required value
+  answers with one of those words when nothing fits. It still matches a term your vocabulary
+  really holds under that key; it is never minted, and the step reports it as unresolved. Set the
+  facet's `proposal.allowEmpty` so the model can leave the value out instead.
 - **Changing a facet's thresholds does not re-resolve anything.** Existing assignments stay as they
   were decided under the old numbers.

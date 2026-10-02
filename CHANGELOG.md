@@ -2,6 +2,17 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261002.215939 — 2026-10-02
+
+Synced from the Kipory monorepo at `4edf02819`.
+
+- changed: `skills/kipory-build/references/handlers/vector.search.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/references/classification-runtime.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+
 ## 1.20261002.185326 — 2026-10-02
 
 Synced from the Kipory monorepo at `e09c48c6f`.

@@ -1329,6 +1329,11 @@ them; a reader that showed one word could not distinguish a fixed vocabulary mat
 one searched by meaning, which are very different facets to hand a record type. See
 Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) for what to choose.
 
+On the records API — the list, one record, a query, a filing — a record's `terms` are
+`{ facetKey, key, label, status }` entries. `status` is the term's place in its vocabulary:
+`active`, `candidate` (coined by a `mint: candidate` facet and not yet admitted) or `archived`. A
+client that shows only admitted vocabulary keeps the `active` ones.
+
 Unlinking is not deletion. The term rows a record already carries survive it; the link decides what
 is projected, never what is stored, so re-linking brings the same values back.
 

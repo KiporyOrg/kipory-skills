@@ -41,8 +41,13 @@ gets one that can never grow — and if nothing was seeded it reads `blocked`, n
 - **`active`** coins a live term you can match against immediately.
 - **`none`** drops the value and reports it unresolved.
 - **`candidate`** coins a term that stays attached to the record that proposed it and OUT of the
-  vocabulary until you activate it. Nothing matches against a candidate; activating one is a
-  status change on the term.
+  vocabulary until you activate it. The facet's own later proposals reuse it; nothing else matches
+  against a candidate. Activating one is a status change on the term. A record read says which of its `terms` are candidates: each entry
+  carries `status`.
+
+A value that is a word for nothing — `null`, `none`, `n/a`, or one with no letters or digits — is
+never coined, whatever `mint` says. It still matches a term the vocabulary really holds under that
+key; otherwise it is reported unresolved.
 
 **`matching` — how a value it already has is found.**
 
@@ -50,13 +55,18 @@ gets one that can never grow — and if nothing was seeded it reads `blocked`, n
 - **`semantic`** dispatches to the facet's resolver flow — embed, search, gate — so `ML` can reach
   `machine-learning`. It needs a resolver bound.
 
-⛔ **`candidate` does not count proposals — it makes twins.** Matching reads active terms only,
-so a second record proposing the same idea in other words (`tv`, then `television`) finds
-nothing and coins a second candidate. A rule such as "admit a value once three records proposed
-it" therefore never fires: there is no shared candidate to count. Under `candidate` somebody
-reads the candidates and admits, merges or archives them by hand, and until they do, the same
-idea keeps arriving as new rows. If nobody will do that regularly, seed the terms you want and
-use `none` with `semantic` (below); read what was dropped later and add terms on purpose.
+**A candidate is reused, so its records are a count.** A `candidate` facet looks for a value among
+its active terms and its own candidates, the same way it would look among active terms alone: the
+identical key always matches, and under `semantic` so does a value the resolver scores at or above
+the facet's high threshold (or the tiebreak accepts). A second record about the same thing lands on
+the candidate the first one coined, and that candidate stays a candidate. How many records a
+candidate carries is the evidence for admitting it — read it from the terms list — and admitting,
+merging or archiving is still your step: nothing activates a candidate on its own.
+
+⚠️ Reuse is as good as the match. Short or differently worded values (`tv`, then `television`)
+score low against each other and can still coin two candidates; merge them when you review. A
+resolver flow of your own that states `status: active` on its `vector.search` step searches active
+terms only and reuses no candidate — leave the status unset.
 
 Choose `none` when the value set is authoritative and finite, `active` when the vocabulary should
 learn from what arrives, `candidate` when it should learn but not unsupervised. Getting `mint`
