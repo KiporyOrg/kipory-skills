@@ -12,6 +12,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 | --- | --- | --- |
 | `GET` | [`/v1/files`](#get-v1-files) |  |
 | `DELETE` | [`/v1/files/{id}`](#delete-v1-files-id) |  |
+| `POST` | [`/v1/files/{id}/attach`](#post-v1-files-id-attach) |  |
 | `POST` | [`/v1/files/{id}/confirm`](#post-v1-files-id-confirm) |  |
 | `POST` | [`/v1/files/{id}/detach`](#post-v1-files-id-detach) |  |
 | `GET` | [`/v1/files/{id}/download-url`](#get-v1-files-id-download-url) |  |
@@ -73,6 +74,29 @@ Delete a file: the row, and its bytes when no other file row still names them. Y
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The file that was deleted. |
 | `deleted` | `true` | yes | Always true: the file is gone. |
+
+### `POST /v1/files/{id}/attach`
+
+Hang a file from the project's library on one of its records (EDITOR, api host). The record's flow is not run again. Refuses (409) a file a flow produced, an upload not confirmed yet, a file another record already carries, a person's own upload on a record that is not theirs, and a record that already holds the same content. To put a file into the library first, `POST /v1/files/upload-url` with `project`; to release it again, `POST /v1/files/{id}/detach`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The file's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `record` | `string` | yes | The record to hang the file on, by its id. It must be a record of the project that holds the file. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The file that was attached. |
+| `record` | `object` | yes | The record that carries the file now — echoed so a client can update its row in place. Nothing ran: to process the record with the file, run its flow again. |
 
 ### `POST /v1/files/{id}/confirm`
 
