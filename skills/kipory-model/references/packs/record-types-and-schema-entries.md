@@ -777,7 +777,7 @@ typed, among the guides they follow" is one step.
 
 - `bounded` — `false` means every record satisfying every clause is in reach. Otherwise
   `{ bound, reason }`: `peer-top-k` (a link's peers were ranked and only the closest `bound` were
-  followed), `top-k` (every satisfying record was scored, more than `topK` satisfied, the
+  followed), `top-k` (every satisfying record was scored, more than `topK` or `limit` satisfied, the
   closest `bound` are here), `pushdown-cap` (the exact intersection was too large to push, so the
   ranking ran first and this is at most `bound` of it), or `semantic-only` (no exact clause; a
   plain ranking).
