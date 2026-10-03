@@ -52,6 +52,7 @@ Every system handler this deployment runs — what each reads, emits and accepts
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `version` | `string` | yes | Content hash of the catalog — a stable cache key. Two deployments serving the same handlers hash identically, and any change (a new handler, a config field, a copy edit) changes it. |
+| `hashes` | `object` | yes | One content hash per handler key, over what `GET /v1/handlers/{key}` answers. A handler's hash moves only when that handler changes, so a cached copy of one handler can be checked without re-reading the rest. |
 | `handlers` | `object[]` | yes | Every system handler this deployment registers, sorted by key. With `?project=`, each also carries `inputContract`, `variadicInputContract`, `staticOutputSchema`, `contractUnresolved`, `configDefaults`, `configDefaultsValid` and `freeFormInput`, resolved against that project's types; without it those are absent. |
 | `groups` | `object[]` | yes | Every picker group, IN DISPLAY ORDER, with the one sentence that says what it is for. Order is meaningful: it runs roughly from what a flow produces toward what it is plumbed with. |
 

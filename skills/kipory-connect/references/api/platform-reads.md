@@ -16,7 +16,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/capability-packs`
 
-The index of the capability packs this deployment serves: each pack's `id`, title, one-line description and size in bytes, with a `version` hash to cache on. A pack is the judgment for authoring a project — when to reach for a capability and what a wrong choice costs; no content is returned here.
+The index of the capability packs this deployment serves: each pack's `id`, title, one-line description, size in bytes and content `hash`, with a `version` hash of the whole set to cache on. A pack is the judgment for authoring a project — when to reach for a capability and what a wrong choice costs; no content is returned here.
 Read one pack's markdown with `GET /v1/capability-packs/{id}`. What each handler reads, emits and accepts is `GET /v1/handlers`; every route and body is `GET /v1/openapi.json`.
 Public: no credential needed.
 

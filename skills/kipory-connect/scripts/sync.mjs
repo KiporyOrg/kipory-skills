@@ -10,11 +10,21 @@
 // deployment would return; when they differ, the deployment moved (or these
 // files are older than it) and the live one wins.
 //
+// A layer that differs is then compared item by item. `references/manifest.json`
+// records one hash per pack, per handler and per API route, and the same three
+// reads serve the same hashes: `hash` on each pack in the index, `hashes` on
+// the handler catalog, `info["x-kipory-surface-operations"]` on the OpenAPI
+// document. The script prints the names that differ, so only those pages need
+// a live read — the rest of the layer is what the deployment serves.
+//
 // Usage (from any directory — it finds versions.md beside itself):
 //   KIPORY_BASE_URL=https://api.example.com [KIPORY_API_KEY=…] node <this skill>/scripts/sync.mjs
 //
 // Zero dependencies; Node 18 or newer (global fetch). Prints one line per
-// source, then what to do. Exit 0: every layer was compared and nothing
+// source — under a layer that differs, one line per item: `changed` (both
+// sides have it, with different content), `added` (the deployment has it, the
+// bundle does not) or `removed` (the bundle has it, the deployment does not),
+// with the bundled page that documents it — then what to do. Exit 0: every layer was compared and nothing
 // bundled differs from the deployment. Exit 1: something differs — the lines
 // say which layer to read live instead. Exit 2: something could not be
 // compared — the deployment was unreachable, a layer could not be read (a
@@ -45,12 +55,15 @@ if (!baseUrl) {
 // versions.md is a generated table: one row per source, the hash in a code
 // span. Its shape is the generator's contract with this script
 // (scripts/generate-customer-skills-references.ts, `renderVersionsPage`).
-const versionsFile = resolve(
+const referencesDir = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "references",
-  "versions.md",
 );
+const versionsFile = resolve(referencesDir, "versions.md");
+// manifest.json is the per-item companion, from the same generator
+// (`renderManifest`): { packs | handlers | api: { <name>: { hash, page? } } }.
+const manifestFile = resolve(referencesDir, "manifest.json");
 // One row per layer: where the deployment serves its version, and what to do
 // when it differs from the bundled one.
 const LAYERS = [
@@ -59,8 +72,17 @@ const LAYERS = [
     path: "/v1/capability-packs",
     withKey: false,
     pick: (json) => json?.version,
+    items: (json) => {
+      if (!Array.isArray(json?.packs)) return undefined;
+      // A deployment older than the per-pack hash serves none: "cannot say
+      // which", never "every pack differs".
+      if (json.packs.some((p) => typeof p?.hash !== "string")) return undefined;
+      return Object.fromEntries(json.packs.map((p) => [p.id, p.hash]));
+    },
     advice:
       "read GET /v1/capability-packs/{id} live instead of references/packs/",
+    itemAdvice:
+      "read GET /v1/capability-packs/{id} live for the packs listed above; the other pages under references/packs/ are what the deployment serves",
   },
   {
     // The live list also carries the platform-only handlers, which have no
@@ -76,8 +98,25 @@ const LAYERS = [
         .map((h) => h.key);
       return { count: keys.length, hash: keySetHash(keys) };
     },
+    items: (json) => {
+      if (!Array.isArray(json?.handlers) || !isHashMap(json?.hashes)) {
+        return undefined;
+      }
+      return Object.fromEntries(
+        json.handlers
+          .filter((h) => h?.run?.platformOnly !== true && h.key in json.hashes)
+          .map((h) => [h.key, json.hashes[h.key]]),
+      );
+    },
     advice:
       "read GET /v1/handlers/{key} live before authoring a step; treat references/handlers/ as a sketch",
+    itemAdvice:
+      "read GET /v1/handlers/{key} live for the handlers listed above; the other handler pages are what the deployment serves, and the index, references/handlers/README.md, is stale for the listed ones",
+    // The catalog version also covers the group notes and the platform-only
+    // handlers; neither has a per-item hash here, so which of the two moved
+    // is not known.
+    noItemAdvice:
+      "no documented handler differs — a group note or a platform-only handler moved; every handler page is what the deployment serves, and only the index, references/handlers/README.md, may be stale",
   },
   {
     // A deployment older than the served surface version has no such field:
@@ -86,10 +125,24 @@ const LAYERS = [
     path: "/v1/openapi.json",
     withKey: false,
     pick: (json) => json?.info?.["x-kipory-surface-version"],
+    items: (json) => {
+      const operations = json?.info?.["x-kipory-surface-operations"];
+      return isHashMap(operations) ? operations : undefined;
+    },
     advice:
       "read a route's fields on GET /v1/openapi.json before sending a body; treat references/api/ as a sketch",
+    itemAdvice:
+      "read the routes listed above on GET /v1/openapi.json before sending a body; every other route in references/api/ is as the deployment serves it",
   },
 ];
+function isHashMap(value) {
+  return (
+    typeof value === "object" &&
+    value !== null &&
+    !Array.isArray(value) &&
+    Object.values(value).every((v) => typeof v === "string")
+  );
+}
 const ROW = new RegExp(
   `^\\| (${LAYERS.map((l) => l.label).join("|")}) \\| \`([0-9a-f]+)\` \\|`,
 );
@@ -106,6 +159,45 @@ for (const line of versionsText.split("\n")) {
   const m = ROW.exec(line);
   if (m) bundled.set(m[1], m[2]);
 }
+// The per-item hashes, when the bundle carries them. A bundle without the file
+// (or with one this script cannot read) still compares versions; it only
+// cannot say which items differ.
+let manifest = {};
+try {
+  const parsed = JSON.parse(readFileSync(manifestFile, "utf8"));
+  if (typeof parsed === "object" && parsed !== null) manifest = parsed;
+} catch {
+  // Reported per layer, on the line that would have listed the items.
+}
+const bundledItems = (label) => {
+  const layer = manifest[label];
+  if (typeof layer !== "object" || layer === null) return undefined;
+  const entries = Object.entries(layer);
+  if (entries.some(([, item]) => typeof item?.hash !== "string")) {
+    return undefined;
+  }
+  return layer;
+};
+// Names by what happened to them, each list in code-point order. Relative to
+// the bundle: `added` is on the deployment only, `removed` in the bundle only.
+const diffItems = (bundledLayer, liveHashes) => {
+  const names = (list) => list.sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+  return {
+    changed: names(
+      Object.keys(bundledLayer).filter(
+        (name) =>
+          name in liveHashes && liveHashes[name] !== bundledLayer[name].hash,
+      ),
+    ),
+    added: names(
+      Object.keys(liveHashes).filter((name) => !(name in bundledLayer)),
+    ),
+    removed: names(
+      Object.keys(bundledLayer).filter((name) => !(name in liveHashes)),
+    ),
+  };
+};
+
 // The customer handler key set the handler pages document, as the generator
 // wrote it: sorted keys, one per line, sha256, first 12 hex.
 const keySetHash = (keys) =>
@@ -173,6 +265,38 @@ console.log(
 
 const differs = [];
 const uncompared = [];
+// label → how many items were named under a layer that differs; absent when
+// the items could not be compared.
+const itemised = new Map();
+const INDENT = " ".repeat(12);
+const reportItems = (label, result) => {
+  const bundledLayer = bundledItems(label);
+  if (bundledLayer === undefined || result.items === undefined) {
+    const why =
+      bundledLayer === undefined
+        ? "references/manifest.json is missing from this bundle"
+        : "this deployment serves no per-item hashes";
+    console.log(`${INDENT}which items differ: not known — ${why}`);
+    return;
+  }
+  const { changed, added, removed } = diffItems(bundledLayer, result.items);
+  const page = (name) =>
+    bundledLayer[name]?.page ? `   ${bundledLayer[name].page}` : "";
+  for (const name of changed) {
+    console.log(`${INDENT}changed   ${name}${page(name)}`);
+  }
+  for (const name of added) {
+    console.log(`${INDENT}added     ${name}   (no bundled page)`);
+  }
+  for (const name of removed) {
+    console.log(`${INDENT}removed   ${name}${page(name)}`);
+  }
+  const count = changed.length + added.length + removed.length;
+  if (count === 0) {
+    console.log(`${INDENT}no listed item differs`);
+  }
+  itemised.set(label, count);
+};
 const report = ({ label }, result, local) => {
   const live = result.live;
   /* ⛔ AN EQUAL CATALOG HASH IS "IDENTICAL" ONLY OVER THE SET THE PAGES
@@ -214,6 +338,7 @@ const report = ({ label }, result, local) => {
       `  ${label.padEnd(9)} bundled: ${local}   live: ${live}   ✗ DIFFERS — prefer the deployment: it moved, or these files predate it${set}`,
     );
     differs.push(label);
+    reportItems(label, result);
   }
 };
 
@@ -227,6 +352,7 @@ const results = await Promise.all(
       : {
           live: layer.pick(res.json),
           documented: layer.documented?.(res.json),
+          items: layer.items(res.json),
         };
   }),
 );
@@ -240,9 +366,18 @@ LAYERS.forEach((layer, i) =>
 // deployment is what will answer your calls.
 console.log("\nwhat to do:");
 for (const layer of LAYERS) {
-  if (differs.includes(layer.label)) {
-    console.log(`  ${layer.label.padEnd(9)} ${layer.advice}`);
-  }
+  if (!differs.includes(layer.label)) continue;
+  // Only a full item-by-item comparison narrows the advice: without one, the
+  // whole layer is suspect.
+  const count = itemised.get(layer.label);
+  const advice =
+    count === undefined
+      ? layer.advice
+      : count > 0
+        ? layer.itemAdvice
+        : (layer.noItemAdvice ??
+          `no listed item differs, so what moved is outside the per-item hashes — ${layer.advice}`);
+  console.log(`  ${layer.label.padEnd(9)} ${advice}`);
 }
 for (const label of uncompared) {
   const layer = LAYERS.find((l) => l.label === label);
