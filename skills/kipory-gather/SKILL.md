@@ -1,6 +1,6 @@
 ---
 name: kipory-gather
-description: Bring data into a Kipory project from outside it — fetch and scrape web pages, run a web search, read YouTube videos, channels and transcripts, pull X posts, capture a page as an image, find Telegram channels, and turn coordinates into a place. Use when a flow needs something the project does not already hold, when a source handler is slow, refused or rate-limited, when a vendor bill is larger than expected, or when deciding whether the project's own key or the platform's should pay for a source.
+description: Bring data into a Kipory project from outside it — fetch and scrape web pages, run a web search, read YouTube videos, channels, comments and transcripts, pull X posts and profiles, read TikTok, Instagram, LinkedIn, Reddit and Threads profiles, posts and comments, search the Facebook, Google, TikTok and LinkedIn ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, and turn coordinates into a place. Use when a flow needs something the project does not already hold, when a source handler is slow, refused or rate-limited, when a vendor bill is larger than expected, or when deciding whether the project's own key or the platform's should pay for a source.
 license: MIT
 ---
 
@@ -27,30 +27,53 @@ neither handler's own page mentions.
 
 ## The sources
 
-| Handler                    | Brings back                                     | Vendor        | Bucket              | Cached |
-| -------------------------- | ----------------------------------------------- | ------------- | ------------------- | ------ |
-| `url.fetch`                | raw text or JSON, nothing rendered              | the site      | `url.fetch`         | 24h    |
-| `url.fetch-as-file`        | the bytes, saved as a file                      | the site      | `url.fetch-as-file` | 24h    |
-| `url.metadata`             | title, description, icon, social preview        | the site      | `url.metadata`      | 24h    |
-| `url.scrape`               | the rendered page as clean markdown             | Firecrawl     | `firecrawl`         | 24h    |
-| `url.screenshot`           | a full-page image file                          | Firecrawl     | `firecrawl`         | 24h    |
-| `web.search`               | one page of organic search results              | Apify         | `apify`             | 24h    |
-| `web.rankings`             | a country's most-visited sites, ranked          | Apify         | `apify`             | 30d    |
-| `web.traffic`              | one site's visits, ranking and audience         | Apify         | `apify`             | 7d     |
-| `x.posts`                  | a tweet, profile or search URL as posts         | Apify ¹       | `apify` ¹           | 24h    |
-| `telegram.search-channels` | public channels matching search terms           | Apify         | `apify`             | 7d     |
-| `place.details`            | one place's map listing: address, hours, rating | Apify         | `apify`             | 7d     |
-| `place.reviews`            | what people wrote about one place               | Apify         | `apify`             | 24h    |
-| `youtube.video`            | a video's metadata and stats                    | YouTube       | `youtube`           | 7d     |
-| `youtube.channel`          | a channel's metadata and stats                  | YouTube       | `youtube`           | 7d     |
-| `youtube.trending`         | the channels behind a region's trending videos  | YouTube       | `youtube`           | 6h     |
-| `youtube.transcript`       | a video's captions as text                      | Supadata      | `supadata`          | 24h    |
-| `location.resolve`         | a place from latitude and longitude             | OpenStreetMap | `location.resolve`  | 7d     |
+| Handler                                                     | Brings back                                                                                 | Vendor         | Bucket              | Cached |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------- | ------------------- | ------ |
+| `url.fetch`                                                 | raw text or JSON, nothing rendered                                                          | the site       | `url.fetch`         | 24h    |
+| `url.fetch-as-file`                                         | the bytes, saved as a file                                                                  | the site       | `url.fetch-as-file` | 24h    |
+| `url.metadata`                                              | title, description, icon, social preview                                                    | the site       | `url.metadata`      | 24h    |
+| `url.scrape`                                                | the rendered page as clean markdown                                                         | Firecrawl      | `firecrawl`         | 24h    |
+| `url.screenshot`                                            | a full-page image file                                                                      | Firecrawl      | `firecrawl`         | 24h    |
+| `web.search`                                                | one page of organic search results                                                          | Apify          | `apify`             | 24h    |
+| `web.rankings`                                              | a country's most-visited sites, ranked                                                      | Apify          | `apify`             | 30d    |
+| `web.traffic`                                               | one site's visits, ranking and audience                                                     | Apify          | `apify`             | 7d     |
+| `x.posts`                                                   | a tweet, profile or search URL as posts                                                     | Apify ¹        | `apify` ¹           | 24h    |
+| `telegram.search-channels`                                  | public channels matching search terms                                                       | Apify          | `apify`             | 7d     |
+| `place.details`                                             | one place's map listing: address, hours, rating                                             | Apify          | `apify`             | 7d     |
+| `place.reviews`                                             | what people wrote about one place                                                           | Apify          | `apify`             | 24h    |
+| `youtube.video`                                             | a video's metadata and stats                                                                | YouTube        | `youtube`           | 7d     |
+| `youtube.channel`                                           | a channel's metadata and stats                                                              | YouTube        | `youtube`           | 7d     |
+| `youtube.trending`                                          | the channels behind a region's trending videos                                              | YouTube        | `youtube`           | 6h     |
+| `youtube.transcript`                                        | a video's captions as text                                                                  | Supadata ²     | `supadata` ²        | 24h    |
+| `youtube.posts` · `youtube.comments` · `youtube.search`     | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`    | 24h    |
+| `x.profile` · `x.transcript`                                | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`    | 24h    |
+| `tiktok.*` (11)                                             | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`    | 24h    |
+| `instagram.*` (5)                                           | profile, posts, post, transcript, comments                                                  | ScrapeCreators | `scrapecreators`    | 24h    |
+| `linkedin.*` (6)                                            | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`    | 24h    |
+| `reddit.*` (4)                                              | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`    | 24h    |
+| `threads.*` (4)                                             | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`    | 24h    |
+| `facebook.ads` · `facebook.ad` · `google.ads` · `google.ad` | ads from a platform's public ad library                                                     | ScrapeCreators | `scrapecreators`    | 24h    |
+| `location.resolve`                                          | a place from latitude and longitude                                                         | OpenStreetMap  | `location.resolve`  | 7d     |
 
-¹ `x.posts` runs on Apify by default; a step may choose twitterapi.io instead
-(`provider: "twitterapi"`, key purpose `twitterapi`). With `fallback` on — the
-default — a failed vendor hands the URL to the other, and the output's
-`data.provider` says which one answered.
+¹ `x.posts` runs on Apify by default; a step may choose twitterapi.io
+(`provider: "twitterapi"`, key purpose `twitterapi`) or ScrapeCreators
+(`provider: "scrapecreators"`), which reads a post or a profile but not a search —
+and its profile read is about a hundred of the account's most popular posts, not
+its latest. With `fallback` on — the default — a failed vendor hands the URL to
+the next, and the output's `data.provider` says which one answered. A key the
+chosen vendor refuses fails the step instead.
+
+² `youtube.transcript` runs on Supadata by default; a step may choose
+ScrapeCreators (`provider: "scrapecreators"`). With `fallback` on — the default —
+a vendor that fails hands the video to the other; a key the chosen vendor refuses
+fails the step instead. A video with no captions is an
+answer, and is not retried on the second vendor.
+
+The social-platform reads return shared shapes — `SocialProfile`, `SocialPost`,
+`SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
+a flow built for one platform is re-pointed at another by changing the step's
+handler. The transcript reads return text. Every list read takes a `maxItems`
+bound; on a read that pages, each page is one paid request.
 
 Seven handlers share `apify` at 30 a minute. Three share `youtube` at 60 a minute **and a single
 daily quota measured in units, not calls** — a heavy day of channel reads can exhaust what a later
@@ -163,8 +186,9 @@ network request.", not as a network error.
   page's **Queue** line in `kipory-build` has the numbers. The seven Apify handlers and `url.scrape`
   make three attempts with exponential backoff and wait up to five minutes; `url.screenshot` waits
   up to two minutes; `url.fetch` and `url.fetch-as-file` make three attempts within one and
-  one-and-a-half minutes; `url.metadata` and the four YouTube handlers make two, waiting up to a
-  minute (two for `youtube.transcript`); `location.resolve` makes two within a minute. A step that
+  one-and-a-half minutes; `url.metadata`, `youtube.video`, `youtube.channel`, `youtube.trending` and
+  `youtube.transcript` make two, waiting up to a minute (two for `youtube.transcript`); the
+  social-platform reads make three, waiting up to five minutes; `location.resolve` makes two within a minute. A step that
   looks hung is usually a source that is slow, and the wait ceiling is the handler's, not something
   the flow overrides.
 

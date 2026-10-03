@@ -10,7 +10,7 @@ Get the words spoken in a YouTube video.
 - **Reads:** One bare video id. A full URL is refused — parse it with `youtube.video` first. Anything else is dropped without a call. _(shape hint: `string`)_
 - **Emits:** The transcript as text — plain prose, or lines prefixed with timestamps when you ask for them. An empty string when the video has no captions.
 - **Suggested input streams:** `youtubeVideoId`
-- **External dependency:** Supadata — Pulls YouTube transcripts via Supadata (KIPORY_SUPADATA_API_KEY).
+- **External dependency:** Supadata or ScrapeCreators — Each step picks its vendor (`provider`): Supadata (KIPORY_SUPADATA_API_KEY), the default, or ScrapeCreators (KIPORY_SCRAPECREATORS_API_KEY). With `fallback` on — the default — a vendor that fails hands the video to the other; a video with no captions is an answer and is not retried elsewhere, and a key the chosen vendor refuses fails the step.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `supadata` (vendor: Supadata); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `supadata`
 - **Queue:** 2 attempts, exponential from 2000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
@@ -19,8 +19,10 @@ Get the words spoken in a YouTube video.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `fallback` | boolean | no | `true` | If the chosen vendor errors, is rate-limited or has no key, try the others in turn. An empty answer does not fall back. ⚠️ A fallback is billed by the vendor that answered — a step whose chosen vendor runs on your own key can be charged for the other vendor on the platform's. |
 | `includeTimestamps` | boolean | no | `false` | When true, prefix each line with its start timestamp; otherwise return prose. |
 | `lang` | string | no | — | ISO language code (e.g. 'en', 'es'). Unset = the provider picks the default track. |
+| `provider` | `supadata` \| `scrapecreators` | no | `"supadata"` | Which vendor does the work: supadata or scrapecreators. Each spends its own key and bills at its own rate. "supadata" when left unset. |
 
 ## Worked example
 

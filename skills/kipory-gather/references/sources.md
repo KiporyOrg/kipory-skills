@@ -2,25 +2,29 @@
 
 ## By the question you are answering
 
-| The question                                | Reach for                                 | Note                                                                                                                                                     |
-| ------------------------------------------- | ----------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "What does this page say?"                  | `url.scrape`                              | renders JS; tightest bucket, slowest step                                                                                                                |
-| "What does this endpoint return?"           | `url.fetch`                               | no vendor, no key, 120 a minute                                                                                                                          |
-| "What is this link, for a preview card?"    | `url.metadata`                            | head only, no render                                                                                                                                     |
-| "Give me the file behind this URL"          | `url.fetch-as-file`                       | emits a file for `kipory-extract`                                                                                                                        |
-| "What does this page look like?"            | `url.screenshot`                          | an image file, for a vision step or an archive                                                                                                           |
-| "Who writes about X?"                       | `web.search`                              | one SERP page, organic only                                                                                                                              |
-| "How big is this site?"                     | `web.traffic`                             | every metric nullable for small sites                                                                                                                    |
-| "Which sites matter in this country?"       | `web.rankings`                            | cached a month; empty means failure, not absence                                                                                                         |
-| "What is being said on X about this?"       | `x.posts`                                 | a tweet, profile or search URL                                                                                                                           |
-| "What is this video, and what does it say?" | `youtube.video` then `youtube.transcript` | wire `youtube.video`'s `videoId` into the transcript step — it takes a bare id and drops a URL without a call; two vendors, two buckets, two credentials |
-| "Who is trending here?"                     | `youtube.trending`                        | six-hour cache — the only genuinely fast-moving one                                                                                                      |
-| "Which Telegram channels cover this?"       | `telegram.search-channels`                | discovery; subscribing is `kipory-channels`                                                                                                              |
-| "Where is this?"                            | `location.resolve`                        | free and unkeyed, rate-limited by courtesy                                                                                                               |
-| "What is this place, and when is it open?"  | `place.details`                           | a place ID, a full map link, or "name, city"; a name returns the best match only                                                                         |
-| "What do people say about this place?"      | `place.details` then `place.reviews`      | reviews need a place ID or map link, not a name — wire the card's `placeId` in; each review is charged; reviewer names stay out unless the step asks     |
+| The question                                  | Reach for                                                   | Note                                                                                                                                                     |
+| --------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "What does this page say?"                    | `url.scrape`                                                | renders JS; tightest bucket, slowest step                                                                                                                |
+| "What does this endpoint return?"             | `url.fetch`                                                 | no vendor, no key, 120 a minute                                                                                                                          |
+| "What is this link, for a preview card?"      | `url.metadata`                                              | head only, no render                                                                                                                                     |
+| "Give me the file behind this URL"            | `url.fetch-as-file`                                         | emits a file for `kipory-extract`                                                                                                                        |
+| "What does this page look like?"              | `url.screenshot`                                            | an image file, for a vision step or an archive                                                                                                           |
+| "Who writes about X?"                         | `web.search`                                                | one SERP page, organic only                                                                                                                              |
+| "How big is this site?"                       | `web.traffic`                                               | every metric nullable for small sites                                                                                                                    |
+| "Which sites matter in this country?"         | `web.rankings`                                              | cached a month; empty means failure, not absence                                                                                                         |
+| "What is being said on X about this?"         | `x.posts`                                                   | a tweet, profile or search URL                                                                                                                           |
+| "What is this video, and what does it say?"   | `youtube.video` then `youtube.transcript`                   | wire `youtube.video`'s `videoId` into the transcript step — it takes a bare id and drops a URL without a call; two vendors, two buckets, two credentials |
+| "Who is trending here?"                       | `youtube.trending`                                          | six-hour cache — the only genuinely fast-moving one                                                                                                      |
+| "What has this channel published?"            | `youtube.posts`                                             | videos or shorts; `youtube.comments` and `youtube.search` are its siblings                                                                               |
+| "Who is this account, and what do they post?" | `<platform>.profile` then `<platform>.posts`                | `tiktok`, `instagram`, `threads`, `x`; `linkedin.company` and `reddit.posts` take a page or a subreddit                                                  |
+| "What was said in this video?"                | `tiktok.transcript`, `instagram.transcript`, `x.transcript` | text out; empty when nothing is said                                                                                                                     |
+| "What ads is this company running?"           | `facebook.ads`, `google.ads`, `tiktok.ads`, `linkedin.ads`  | one ad shape for all four libraries                                                                                                                      |
+| "Which Telegram channels cover this?"         | `telegram.search-channels`                                  | discovery; subscribing is `kipory-channels`                                                                                                              |
+| "Where is this?"                              | `location.resolve`                                          | free and unkeyed, rate-limited by courtesy                                                                                                               |
+| "What is this place, and when is it open?"    | `place.details`                                             | a place ID, a full map link, or "name, city"; a name returns the best match only                                                                         |
+| "What do people say about this place?"        | `place.details` then `place.reviews`                        | reviews need a place ID or map link, not a name — wire the card's `placeId` in; each review is charged; reviewer names stay out unless the step asks     |
 
-## The three budgets
+## The budgets
 
 ```
 apify      30/min   web.search · web.rankings · web.traffic · x.posts · telegram.search-channels
@@ -29,6 +33,9 @@ youtube    60/min   youtube.video · youtube.channel · youtube.trending    + a 
 firecrawl  10/min   url.scrape · url.screenshot
 supadata   30/min   youtube.transcript
 twitterapi 60/min   x.posts, on a step that chose twitterapi.io
+scrapecreators 120/min   every tiktok.*, instagram.*, linkedin.*, reddit.*, threads.*, facebook.*, google.* read;
+                    x.profile · x.transcript · youtube.posts · youtube.comments · youtube.search;
+                    x.posts and youtube.transcript on a step that chose it
 ```
 
 The unkeyed handlers get their own buckets and are far wider: `url.fetch` and `url.metadata` at 120
@@ -38,7 +45,7 @@ Two consequences worth designing around:
 
 1. **A YouTube video plus its transcript is two vendors.** The metadata comes from the YouTube Data
    API against a daily unit quota; the captions come from Supadata against a separate per-minute
-   bucket. Either can be exhausted while the other is fine, so a flow that reads both fails in two
+   bucket, or from ScrapeCreators when Supadata fails and the step's `fallback` is on. Either can be exhausted while the other is fine, so a flow that reads both fails in two
    distinct ways.
 2. **Scraping does not scale by fan-out.** Ten pages a minute is the ceiling for `url.scrape` and
    `url.screenshot` together. A fan-out of twenty pages is a two-minute run at best, and it is

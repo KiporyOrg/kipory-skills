@@ -49,7 +49,11 @@ how plausible a catalog example value makes it look.
 Which vendor a given handler needs is part of that handler's own description — confirm it against
 `GET /v1/handlers`, never against a pack. The provider keys that resolve this way today are the
 external web-fetch vendors, stored under a purpose matching the vendor's name: `firecrawl`,
-`apify`, `youtube`, `supadata`. Each is a credential of the catalog's plain bearer-key type.
+`apify`, `twitterapi`, `youtube`, `supadata`, and `scrapecreators` — the last for every
+social-platform read (`tiktok.*`, `instagram.*`, `linkedin.*`, `reddit.*`, `threads.*`,
+`facebook.*`, `google.*`, `x.profile`, `x.transcript`, `youtube.posts`, `youtube.comments`,
+`youtube.search`) and for `x.posts` and `youtube.transcript` on a step that chose it. Each is a
+credential of the catalog's plain bearer-key type.
 
 **Read the handler's `credential` field, not its `requiredApiKey`.** A handler that resolves a
 tenant key carries `credential` — the catalog `type` and the `purpose` to store it under, plus the
