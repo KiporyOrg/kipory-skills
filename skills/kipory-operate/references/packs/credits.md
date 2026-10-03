@@ -34,6 +34,11 @@ machine principal with no person behind it — so **the ceiling does not bind ke
 traffic at all**. For an API key there is exactly one gate that can refuse a call, and it is the
 wallet, which `status` summarises. For an end-user session token both gates apply.
 
+⚠️ **The wallet may not be the project's.** A project without a wallet of its own draws on the
+nearest wallet above it, so a new project can open with a balance that is not zero, shared with
+everything else that settles there. `payer` on the balance names the node holding the wallet, and
+its `own` field is `false` when that is not this project.
+
 **Where both apply, both must pass.** A session caller can read `status: "active"` on a perfectly
 healthy wallet and still be refused, because the ceiling is what stopped them. A dashboard showing
 only the wallet reports that everything is fine right up to a refusal it cannot explain.

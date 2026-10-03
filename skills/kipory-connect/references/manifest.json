@@ -10,7 +10,7 @@
       "page": "kipory-build/references/packs/authoring-order.md"
     },
     "credits": {
-      "hash": "730a3a69b969",
+      "hash": "f536dfc6ab81",
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embedding-profiles": {
@@ -732,7 +732,7 @@
       "page": "kipory-connect/references/api/platform-reads.md"
     },
     "GET /v1/credits/balance": {
-      "hash": "d5c10c66033c",
+      "hash": "b83c00749256",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/credits/events": {
