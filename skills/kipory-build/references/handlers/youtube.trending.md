@@ -47,9 +47,9 @@ Output:
 {
   "regionCode": "IL",
   "channels": [
-    { "channelId": "UCFmc1S3LEovsxhK73yi6_gg", "title": "עדן חסון - Eden Hason", "videoCount": 1 },
-    { "channelId": "UCKw5dh0Q1Y_SvsW4nXnLjcg", "title": "איתי לוי - הערוץ הרשמי", "videoCount": 1 },
-    { "channelId": "UCvC4D8onUfXzvjTOM-dBfEA", "title": "Marvel Entertainment",      "videoCount": 1 }
+    { "platform": "youtube", "id": "UCFmc1S3LEovsxhK73yi6_gg", "name": "עדן חסון - Eden Hason", "trendingVideoCount": 1 },
+    { "platform": "youtube", "id": "UCKw5dh0Q1Y_SvsW4nXnLjcg", "name": "איתי לוי - הערוץ הרשמי", "trendingVideoCount": 1 },
+    { "platform": "youtube", "id": "UCvC4D8onUfXzvjTOM-dBfEA", "name": "Marvel Entertainment", "trendingVideoCount": 1 }
   ]
 }
 ```
@@ -72,8 +72,8 @@ Output:
 {
   "regionCode": "US",
   "channels": [
-    { "channelId": "UCzXwjTI6c6mVn6oui_p6oiw", "title": "SMii7Y",           "videoCount": 1 },
-    { "channelId": "UC7yRILFFJ2QZCykymr8LPwA", "title": "New Rockstars",    "videoCount": 1 }
+    { "platform": "youtube", "id": "UCzXwjTI6c6mVn6oui_p6oiw", "name": "SMii7Y", "trendingVideoCount": 1 },
+    { "platform": "youtube", "id": "UC7yRILFFJ2QZCykymr8LPwA", "name": "New Rockstars", "trendingVideoCount": 1 }
   ]
 }
 ```

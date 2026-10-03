@@ -31,7 +31,7 @@ Reads: parse + lookup. Emits: map fields.
 
 #### From a link
 
-Default `parts: ['snippet','statistics']` — identity fields + view / subscriber / video counts (parsed from API strings to JS numbers).
+Default `parts: ['snippet','statistics']` — the shared account fields plus the view count.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
@@ -45,21 +45,19 @@ Output:
 
 ```
 {
-  "channelId": "UCBJycsmduvYEL83R_U4JriQ",
-  "title": "Marques Brownlee",
-  "description": "MKBHD: Quality Tech Videos",
+  "platform": "youtube",
+  "id": "UCBJycsmduvYEL83R_U4JriQ",
+  "url": "https://www.youtube.com/channel/UCBJycsmduvYEL83R_U4JriQ",
+  "name": "Marques Brownlee",
+  "bio": "MKBHD: Quality Tech Videos",
   "handle": "mkbhd",
-  "publishedAt": "2008-03-21T15:24:33Z",
+  "createdAt": "2008-03-21T15:24:33Z",
   "country": "US",
-  "thumbnails": {
-    "default": "https://yt3.ggpht.com/.../default.jpg",
-    "medium":  "https://yt3.ggpht.com/.../medium.jpg",
-    "high":    "https://yt3.ggpht.com/.../high.jpg"
-  },
-  "viewCount":       4567890123,
-  "subscriberCount": 19500000,
-  "hiddenSubscriberCount": false,
-  "videoCount":      1750
+  "avatarUrl": "https://yt3.ggpht.com/.../high.jpg",
+  "followerCount": 19500000,
+  "postCount":     1750,
+  "viewCount":     4567890123,
+  "hiddenSubscriberCount": false
 }
 ```
 
@@ -79,8 +77,9 @@ Output:
 
 ```
 {
-  "channelId": "UCBJycsmduvYEL83R_U4JriQ",
-  "title": "Marques Brownlee",
+  "platform": "youtube",
+  "id": "UCBJycsmduvYEL83R_U4JriQ",
+  "name": "Marques Brownlee",
   "handle": "mkbhd",
   ...
 }
@@ -110,8 +109,9 @@ Output:
 
 ```
 {
-  "channelId": "UCBJycsmduvYEL83R_U4JriQ",
-  "title": "Marques Brownlee",
+  "platform": "youtube",
+  "id": "UCBJycsmduvYEL83R_U4JriQ",
+  "name": "Marques Brownlee",
   "uploadsPlaylistId": "UUBJycsmduvYEL83R_U4JriQ",
   ...
   "uploads": [

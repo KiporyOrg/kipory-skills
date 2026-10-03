@@ -6,9 +6,9 @@ Read the posts from an X post, profile, or search link.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `string` → `ScrapedPage`
+- **I/O:** `string` → `XPost[]`
 - **Reads:** One X URL — a single post, a profile, or a search. Results are cached for a day by default. _(shape hint: `string`)_
-- **Emits:** A `ScrapedPage` — markdown body of the posts, a `UrlMeta` header, and a `data` bag carrying author stats, per-post languages and engagement. A bare `{}` when the source returns nothing.
+- **Emits:** A list of `XPost`, in the order the source gave them. An empty list when the source returns nothing.
 - **Suggested input streams:** `source`
 - **External dependency:** Apify, twitterapi.io or ScrapeCreators — Each step picks its vendor (`provider`): Apify's `twitter-scraper-lite` actor, the default, twitterapi.io's API, or ScrapeCreators, which reads a post or a profile but not a search. Its profile read is one request returning about a hundred of the account's most popular posts, whatever `sort` and `maxItems` say — not a timeline to watch for new posts. With `fallback` on — the default — a failed vendor hands the URL to the next, and the output says which answered; a key the chosen vendor refuses fails the step instead. Each vendor uses its own API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
@@ -26,15 +26,15 @@ Read the posts from an X post, profile, or search link.
 
 ## Worked example
 
-Scrapes one X URL — a post, a profile, or a search — into a page with the posts as markdown.
+Reads one X URL — a post, a profile, or a search — into a list of posts.
 
-Reads: scrape posts. Emits: page + data.
+Reads: read posts. Emits: posts.
 
 #### A profile
 
-A profile digest — the posts rendered into the body, with author stats and engagement alongside.
+The account's recent posts, each with its text, time, counts and whether it is a repost or a reply.
 
-Reads `string` → emits `ScrapedPage` · 1 in → 1 out
+Reads `string` → emits `XPost[]` · 1 in → 1 out
 
 Input:
 
@@ -45,18 +45,20 @@ https://x.com/paulg
 Output:
 
 ```
-{
-  "content": "**Paul Graham (@paulg ✓)** …",
-  "meta": {
-    "url":         "https://x.com/paulg",
-    "finalUrl":    "https://x.com/paulg/status/1900000000000000000",
-    "httpStatus":  200,
-    "contentType": "text/html",
-    "siteName":    "X",
-    "ogType":      "profile"
+[
+  {
+    "platform": "x",
+    "id": "1900000000000000000",
+    "url": "https://x.com/paulg/status/1900000000000000000",
+    "text": "The best way to get startup ideas is …",
+    "author": { "handle": "paulg", "name": "Paul Graham", "url": "https://x.com/paulg", "verified": true },
+    "postedAt": "2026-03-13T08:00:00.000Z",
+    "language": "en",
+    "counts": { "likes": 4210, "comments": 181, "shares": 392, "views": 601200 },
+    "isRepost": false,
+    "isReply": false,
+    "provider": "apify"
   },
-  "data": { "source": "x", "kind": "profile-or-search", "tweetCount": 20,
-            "author": { "handle": "paulg", "followers": 4380126 },
-            "languages": ["en"] }
-}
+  ...
+]
 ```

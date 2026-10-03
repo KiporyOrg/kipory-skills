@@ -43,20 +43,16 @@ Output:
 
 ```
 {
-  "videoId": "dQw4w9WgXcQ",
+  "platform": "youtube",
+  "id": "dQw4w9WgXcQ",
+  "url": "https://www.youtube.com/watch?v=dQw4w9WgXcQ",
   "title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
-  "channelName": "Rick Astley",
-  "channelId": "UCuAXFkgsw1L7xaCfnd5JJOw",
-  "thumbnails": {
-    "default": "https://i.ytimg.com/vi/dQw4w9WgXcQ/default.jpg",
-    "medium":  "https://i.ytimg.com/vi/dQw4w9WgXcQ/mqdefault.jpg",
-    "high":    "https://i.ytimg.com/vi/dQw4w9WgXcQ/hqdefault.jpg",
-    "maxres":  "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg"
-  },
-  "publishedAt":  "2009-10-25T06:57:33Z",
+  "author": { "id": "UCuAXFkgsw1L7xaCfnd5JJOw", "name": "Rick Astley" },
+  "thumbnailUrl": "https://i.ytimg.com/vi/dQw4w9WgXcQ/maxresdefault.jpg",
+  "postedAt":     "2009-10-25T06:57:33Z",
   "durationSec":  213,
+  "counts":       { "views": 1500000000 },
   "hasCaptions":  true,
-  "viewCount":    1500000000,
   "isLive":       false,
   "isShort":      false
 }
@@ -64,7 +60,7 @@ Output:
 
 #### From an id
 
-Same video resolved from an 11-char bare videoId — produces the identical cached row as the URL variant.
+Same video resolved from a bare 11-character id — produces the identical cached row as the URL variant.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
@@ -78,7 +74,8 @@ Output:
 
 ```
 {
-  "videoId": "dQw4w9WgXcQ",
+  "platform": "youtube",
+  "id": "dQw4w9WgXcQ",
   "title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
   "durationSec": 213,
   "hasCaptions": true,

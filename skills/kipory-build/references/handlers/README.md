@@ -82,7 +82,7 @@ _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO
 - [`web.rankings`](web.rankings.md) — Fetch top websites · sources · `string` → `TopSiteRanking`
 - [`web.search`](web.search.md) — Search the web · sources · `string` → `WebSearchResults`
 - [`web.traffic`](web.traffic.md) — Fetch website traffic · sources · `string` → `SiteTrafficMetrics`
-- [`x.posts`](x.posts.md) — Fetch X posts · sources · `string` → `ScrapedPage`
+- [`x.posts`](x.posts.md) — Fetch X posts · sources · `string` → `XPost[]`
 - [`x.profile`](x.profile.md) — Fetch an X profile · sources · `string` → `SocialProfile`
 - [`x.transcript`](x.transcript.md) — Fetch an X transcript · sources · `string` → `string`
 - [`youtube.channel`](youtube.channel.md) — Fetch a YouTube channel · sources · `string` → `YoutubeChannel`

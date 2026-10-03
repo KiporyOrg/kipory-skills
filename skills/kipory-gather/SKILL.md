@@ -60,7 +60,7 @@ neither handler's own page mentions.
 (`provider: "scrapecreators"`), which reads a post or a profile but not a search —
 and its profile read is about a hundred of the account's most popular posts, not
 its latest. With `fallback` on — the default — a failed vendor hands the URL to
-the next, and the output's `data.provider` says which one answered. A key the
+the next, and each post's `provider` says which one answered. A key the
 chosen vendor refuses fails the step instead.
 
 ² `youtube.transcript` runs on Supadata by default; a step may choose
@@ -72,7 +72,10 @@ answer, and is not retried on the second vendor.
 The social-platform reads return shared shapes — `SocialProfile`, `SocialPost`,
 `SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
 a flow built for one platform is re-pointed at another by changing the step's
-handler. The transcript reads return text. Every list read takes a `maxItems`
+handler. `x.posts`, `youtube.video` and `youtube.channel` return those shapes with
+typed fields of their own added (`XPost`, `YoutubeVideo`, `YoutubeChannel`): a
+path over a shared field carries across platforms, a path over an added one does
+not. The transcript reads return text. Every list read takes a `maxItems`
 bound; on a read that pages, each page is one paid request.
 
 Seven handlers share `apify` at 30 a minute. Three share `youtube` at 60 a minute **and a single
