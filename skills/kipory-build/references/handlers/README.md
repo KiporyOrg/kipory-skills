@@ -2,7 +2,7 @@
 
 # Handler catalog
 
-112 customer handlers, one page each. A step in a flow is one of these plus its config. `GET /v1/handlers` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+113 customer handlers, one page each. A step in a flow is one of these plus its config. `GET /v1/handlers` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 ## Groups
 
@@ -12,7 +12,7 @@
 - **files** (10) — Read what a file holds — metadata, text, transcripts — make a resized or rendered copy, or a download link.
 - **search** (5) — Vectors: encode a value, store it, and find the nearest matches.
 - **entities** (17) — Read and change the project's records and terms. Only these steps can change a record.
-- **outbound** (1) — Reach a person outside the platform. Nothing is sent until the run's changes are saved.
+- **outbound** (2) — Reach a person or a system outside the platform. Nothing is sent until the run's changes are saved.
 - **flow** (9) — Steer the run: branch, loop, call another flow, keep state between steps.
 - **utility** (3) — Reshape a value, or pick between values from earlier steps.
 
@@ -93,7 +93,7 @@ _Run in the async ingest worker: queued, retried, cached — the heavy, paid, IO
 - [`youtube.trending`](youtube.trending.md) — Fetch trending YouTube channels · sources · `string` → `YoutubeTrendingChannels`
 - [`youtube.video`](youtube.video.md) — Fetch a YouTube video · sources · `string` → `YoutubeVideo`
 
-## inline (34)
+## inline (35)
 
 _Run synchronously inside the flow engine, in order._
 
@@ -126,6 +126,7 @@ _Run synchronously inside the flow engine, in order._
 - [`text.extract`](text.extract.md) — Pull out matching text · text · `string+` → `string[]`
 - [`text.interpolate`](text.interpolate.md) — Fill a template · text · `any+` → `string`
 - [`text.sanitize`](text.sanitize.md) — Make text safe for a prompt · text · `any+` → `object`
+- [`url.send`](url.send.md) — Send a request · outbound · `string` → `boolean`
 - [`value.first-non-empty`](value.first-non-empty.md) — Take the first filled value · utility · `any+` → `nothing`
 - [`value.transform`](value.transform.md) — Reshape values · utility · `any+` → `object`
 - [`vector.fetch`](vector.fetch.md) — Read stored search data · search · `string` → `Record<string, number[]>`

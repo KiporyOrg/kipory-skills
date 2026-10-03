@@ -62,11 +62,49 @@ answer to "what do I store, and under what name". `requiredApiKey` beside it is 
 person** ("a Firecrawl API key"), not an address; deriving a purpose from it is a guess that has no
 reason to keep working.
 
-⚠️ **A handler with no `credential` cannot use a key you store, at any price.** Model calls are
+⚠️ **A handler with neither `credential` nor `stepCredential` cannot use a key you store, at any
+price.** Model calls are
 the population that matters: text generation, embedding and transcription reach their provider
 through the platform's own configuration and never consult the vault, so a credential stored for
-one of those is a row nothing will ever read. Absence of the field is the whole signal — there is
-no error, and every other sign the row is healthy will be present.
+one of those is a row nothing will ever read. Absence of both fields is the whole signal — there is
+no error, and every other sign the row is healthy will be present. (`stepCredential` is the other
+way a handler reads a key: see the request credential below.)
+
+The `custom` type is in the same position: it stores a value under a name of your choosing, and no
+handler reads it. Storing an outside service's API key as a `custom` secret does not make that
+service reachable from a flow — store it as an `http_credential` instead.
+
+## A key for a service that has no handler: `http_credential`
+
+A handler whose catalog entry carries `stepCredential` lets a **step** name a secret of its own.
+Today that is `url.fetch`, `url.fetch-as-file` and `url.send`. The purpose is yours to choose; the step writes
+it in the config field `stepCredential.configPath` names (`secret`).
+
+The stored value says where it goes in a request, so the step never does:
+
+| Field       | Required | What it is                                                                  |
+| ----------- | -------- | --------------------------------------------------------------------------- |
+| `value`     | yes      | The key or token, with no line break. Encrypted, never returned.            |
+| `placement` | yes      | `header` sends it as a request header. `query` puts it in the address.      |
+| `name`      | yes      | The header or query-parameter name, e.g. `X-Api-Key` or `Authorization`.    |
+| `scheme`    | no       | One word sent before a header's value with a space, e.g. `Bearer`.          |
+| `hosts`     | no       | Host names that may receive it, separated by commas. Exact names, no ports. |
+
+⚠️ **Leave `hosts` empty and the secret goes to whatever address a step reads.** Anyone who can edit
+a flow in a project the secret reaches can then send it to a server of their own, and read it. List
+the service's hosts unless you have a reason not to.
+
+How it behaves:
+
+- A step addressed to a host the secret does not list fails before any request is made.
+- It is sent over `https` on the default port only, and never to a redirect target the secret does
+  not list.
+- An answer that comes back compressed fails the step: it could not be checked for the value.
+- It resolves from the project's node and the organisations above it. Kipory holds none.
+- Replacing the secret replaces every field: enter the hosts again, or they are gone.
+- The value never appears in a step's output, a warning, an error or a log line.
+- `url.send` reads it when the request is delivered, after the run. A secret removed or narrowed by
+  then fails that delivery, and the run has already finished.
 
 ## Address by node, not by project
 

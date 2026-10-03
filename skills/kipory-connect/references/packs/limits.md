@@ -100,6 +100,17 @@ _None currently._
 Things believed absent that are present. Each is kept because it was acted on at least once
 before anyone checked.
 
+<!-- present: keyed-outbound-request-exists -->
+
+- **Reaching a vendor that has no handler.** `url.fetch`, `url.fetch-as-file` and `url.send` send
+  query parameters, headers, a body and a stored request credential, so an API that needs a key is
+  reachable by configuration. Store the key as an `http_credential` secret and name its purpose in
+  the step's `secret`. This entry once said the opposite, and it was true: until October 2026
+  `url.fetch` was a key-less GET and nothing read a secret a customer named. What is still out of
+  reach: a request the platform must sign or exchange a token for, a write whose answer the flow
+  needs (`url.send` sends after the run and returns nothing), and a `custom` secret, which no
+  handler reads.
+
 <!-- present: facet-delete-has-an-affordance -->
 
 - **Deleting a facet.** `DELETE /v1/facets/{id}` exists, and so does the operator UI for it — a

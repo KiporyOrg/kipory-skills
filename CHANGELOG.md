@@ -2,6 +2,24 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261003.185149 — 2026-10-03
+
+Synced from the Kipory monorepo at `0ea161c20`.
+
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-build/references/api/skills.md`
+- changed: `skills/kipory-build/references/handlers/README.md`
+- changed: `skills/kipory-build/references/handlers/url.fetch-as-file.md`
+- changed: `skills/kipory-build/references/handlers/url.fetch.md`
+- added: `skills/kipory-build/references/handlers/url.send.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20261003.175717 — 2026-10-03
 
 Synced from the Kipory monorepo at `664845be5`.

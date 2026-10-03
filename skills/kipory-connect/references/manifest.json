@@ -34,11 +34,11 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-skills": {
-      "hash": "efd42df42d64",
+      "hash": "952089788149",
       "page": "kipory-build/references/packs/flows-and-skills.md"
     },
     "limits": {
-      "hash": "f4a863533f35",
+      "hash": "3f3a22f16870",
       "page": "kipory-connect/references/packs/limits.md"
     },
     "planning-protocol": {
@@ -74,7 +74,7 @@
       "page": "kipory-operate/references/packs/schedules.md"
     },
     "secrets": {
-      "hash": "3e283af5cfe0",
+      "hash": "4b8188d0e5b4",
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
@@ -444,11 +444,11 @@
       "page": "kipory-build/references/handlers/tiktok.transcript.md"
     },
     "url.fetch": {
-      "hash": "47f133e81a1a",
+      "hash": "cf8b49e01328",
       "page": "kipory-build/references/handlers/url.fetch.md"
     },
     "url.fetch-as-file": {
-      "hash": "69cc8eddaafd",
+      "hash": "848913ef8d2b",
       "page": "kipory-build/references/handlers/url.fetch-as-file.md"
     },
     "url.metadata": {
@@ -462,6 +462,10 @@
     "url.screenshot": {
       "hash": "c5120ff72034",
       "page": "kipory-build/references/handlers/url.screenshot.md"
+    },
+    "url.send": {
+      "hash": "567b5d40be4b",
+      "page": "kipory-build/references/handlers/url.send.md"
     },
     "value.first-non-empty": {
       "hash": "14ece27239dc",
@@ -879,7 +883,7 @@
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/handlers/{key}": {
-      "hash": "3d020b7f348a",
+      "hash": "401bde2bb73c",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/keys/": {
@@ -1174,7 +1178,7 @@
       "page": "kipory-build/references/api/skills.md"
     },
     "GET /v1/steps/input-options": {
-      "hash": "b5d219bbdc7d",
+      "hash": "6665ece7eea3",
       "page": "kipory-build/references/api/skills.md"
     },
     "GET /v1/steps/{id}": {

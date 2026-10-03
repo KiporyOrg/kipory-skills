@@ -10,8 +10,8 @@ Download a web address and save it as a file.
 - **Reads:** One URL — the thing to download. Anything that is not `http` or `https`, or that resolves to a private address, is refused. _(shape hint: `string`)_
 - **Emits:** A `FileRef` for the downloaded bytes, saved to storage. An empty one when the URL is missing, or when a soft failure turns a failed download into a warning.
 - **Suggested input streams:** `currentUrl`
-- **External dependency:** the open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard, and stores the bytes. The site itself is the dependency.
-- **Rate limit:** 60 per 60000ms in bucket `url.fetch-as-file`
+- **External dependency:** the open web — Fetches whatever the URL points at, through the SSRF guard, and stores the bytes. The site itself is the dependency. A service that needs a key takes a stored request credential, named in `secret`.
+- **Rate limit:** 60 per 60000ms in bucket `outbound-request`, counted per project and host addressed — shared with `url.fetch`
 - **Queue:** 3 attempts, exponential from 1000ms; waits up to 90000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
@@ -19,9 +19,18 @@ Download a web address and save it as a file.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `allowedMimePatterns` | string[] | no | — | Content types to accept, as regular expressions. A response matching none of them fails the step. Leave it empty to accept anything. |
+| `bodyAs` | `json` \| `form` \| `text` | no | — | How the body is sent: `json` (the default), `form` (an object of plain values, URL-encoded) or `text` (a string, as it is). ⚠️ Under `json` a string is sent quoted, as a JSON string. To send text you built yourself, use `text` and set `contentType`. |
+| `bodySlot` | string | no | — | The slot holding the request body, built by an earlier step. |
+| `contentType` | string | no | — | The content type of a `text` body. |
 | `failureMode` | `hard` \| `soft` | no | `"hard"` | What happens when the download fails. `hard` fails the step; `soft` returns an empty file reference and lets the flow carry on. ⚠️ A bad URL, a private address, or a storage failure stays hard either way — `soft` only covers a download that could have worked. |
+| `headerSlots` | object | no | — | Request headers whose value is read from a slot. An empty slot leaves the header out. |
+| `headers` | object | no | — | Request headers with fixed values. A credential does not go here: store it and name it in `secret`. |
 | `maxBytes` | integer | no | `25000000` | Hard cap on the downloaded response size. Larger responses fail the handler rather than silently truncate. |
 | `maxRedirects` | integer | no | `5` | Maximum HTTP redirect hops to follow. SSRF re-validates the host on every hop to defeat DNS rebinding. |
+| `method` | `GET` \| `POST` | no | — | GET, the default, or POST for a service that returns a file only to a POST. ⚠️ A POST here is a read: it may be sent several times and is answered from the cache. Use it only where it changes nothing. |
+| `query` | object | no | — | Query parameters with fixed values, appended to the address. One the address already carries is kept, not replaced. |
+| `querySlots` | object | no | — | Query parameters whose value is read from a slot. An empty slot leaves the parameter out. |
+| `secret` | string | no | — | The name of a stored request credential. Its stored row says where in the request it goes and which hosts may receive it. ⚠️ Sent only over `https` on the default port. If the stored credential lists hosts, any other host fails before a request is made; with none listed, it goes wherever the step is addressed. |
 | `timeoutMs` | integer | no | `30000` | HTTP request timeout in milliseconds. |
 
 ## Worked example

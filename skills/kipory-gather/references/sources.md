@@ -5,7 +5,7 @@
 | The question                                  | Reach for                                                   | Note                                                                                                                                                 |
 | --------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | "What does this page say?"                    | `url.scrape`                                                | renders JS; tightest bucket, slowest step                                                                                                            |
-| "What does this endpoint return?"             | `url.fetch`                                                 | no vendor, no key, 120 a minute                                                                                                                      |
+| "What does this endpoint return?"             | `url.fetch`                                                 | no vendor; takes a stored key; 60 a minute per host                                                                                                  |
 | "What is this link, for a preview card?"      | `url.metadata`                                              | head only, no render                                                                                                                                 |
 | "Give me the file behind this URL"            | `url.fetch-as-file`                                         | emits a file for `kipory-extract`                                                                                                                    |
 | "What does this page look like?"              | `url.screenshot`                                            | an image file, for a vision step or an archive                                                                                                       |
@@ -38,8 +38,10 @@ scrapecreators 120/min   every tiktok.*, instagram.*, linkedin.*, reddit.*, thre
                     x.posts and youtube.transcript on a step that chose it
 ```
 
-The unkeyed handlers get their own buckets and are far wider: `url.fetch` and `url.metadata` at 120
-a minute, `url.fetch-as-file` and `location.resolve` at 60.
+The handlers with no vendor are far wider. `url.metadata` has its own bucket at 120 a minute and
+`location.resolve` its own at 60. `url.fetch`, `url.fetch-as-file` and `url.send` share one budget,
+`outbound-request`: 60 a minute **per project and per host**, so two hosts are two budgets and no
+other project can spend yours.
 
 Two consequences worth designing around:
 

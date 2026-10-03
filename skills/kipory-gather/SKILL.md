@@ -27,33 +27,33 @@ neither handler's own page mentions.
 
 ## The sources
 
-| Handler                                                     | Brings back                                                                                 | Vendor         | Bucket              | Cached |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------- | ------------------- | ------ |
-| `url.fetch`                                                 | raw text or JSON, nothing rendered                                                          | the site       | `url.fetch`         | 24h    |
-| `url.fetch-as-file`                                         | the bytes, saved as a file                                                                  | the site       | `url.fetch-as-file` | 24h    |
-| `url.metadata`                                              | title, description, icon, social preview                                                    | the site       | `url.metadata`      | 24h    |
-| `url.scrape`                                                | the rendered page as clean markdown                                                         | Firecrawl      | `firecrawl`         | 24h    |
-| `url.screenshot`                                            | a full-page image file                                                                      | Firecrawl      | `firecrawl`         | 24h    |
-| `web.search`                                                | one page of organic search results                                                          | Apify          | `apify`             | 24h    |
-| `web.rankings`                                              | a country's most-visited sites, ranked                                                      | Apify          | `apify`             | 30d    |
-| `web.traffic`                                               | one site's visits, ranking and audience                                                     | Apify          | `apify`             | 7d     |
-| `x.posts`                                                   | a tweet, profile or search URL as posts                                                     | Apify ¹        | `apify` ¹           | 24h    |
-| `telegram.search-channels`                                  | public channels matching search terms                                                       | Apify          | `apify`             | 7d     |
-| `place.details`                                             | one place's map listing: address, hours, rating                                             | Apify          | `apify`             | 7d     |
-| `place.reviews`                                             | what people wrote about one place                                                           | Apify          | `apify`             | 24h    |
-| `youtube.video`                                             | a video's metadata and stats                                                                | YouTube        | `youtube`           | 7d     |
-| `youtube.channel`                                           | a channel's metadata and stats                                                              | YouTube        | `youtube`           | 7d     |
-| `youtube.trending`                                          | the channels behind a region's trending videos                                              | YouTube        | `youtube`           | 6h     |
-| `youtube.transcript`                                        | a video's captions as text                                                                  | Supadata ²     | `supadata` ²        | 24h    |
-| `youtube.posts` · `youtube.comments` · `youtube.search`     | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`    | 24h    |
-| `x.profile` · `x.transcript`                                | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`    | 24h    |
-| `tiktok.*` (11)                                             | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`    | 24h    |
-| `instagram.*` (5)                                           | profile, posts, post, transcript, comments                                                  | ScrapeCreators | `scrapecreators`    | 24h    |
-| `linkedin.*` (6)                                            | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`    | 24h    |
-| `reddit.*` (4)                                              | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`    | 24h    |
-| `threads.*` (4)                                             | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`    | 24h    |
-| `facebook.ads` · `facebook.ad` · `google.ads` · `google.ad` | ads from a platform's public ad library                                                     | ScrapeCreators | `scrapecreators`    | 24h    |
-| `location.resolve`                                          | a place from latitude and longitude                                                         | OpenStreetMap  | `location.resolve`  | 7d     |
+| Handler                                                     | Brings back                                                                                 | Vendor         | Bucket             | Cached |
+| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------- | ------------------ | ------ |
+| `url.fetch`                                                 | raw text or JSON, nothing rendered                                                          | the site       | `outbound-request` | 24h    |
+| `url.fetch-as-file`                                         | the bytes, saved as a file                                                                  | the site       | `outbound-request` | 24h    |
+| `url.metadata`                                              | title, description, icon, social preview                                                    | the site       | `url.metadata`     | 24h    |
+| `url.scrape`                                                | the rendered page as clean markdown                                                         | Firecrawl      | `firecrawl`        | 24h    |
+| `url.screenshot`                                            | a full-page image file                                                                      | Firecrawl      | `firecrawl`        | 24h    |
+| `web.search`                                                | one page of organic search results                                                          | Apify          | `apify`            | 24h    |
+| `web.rankings`                                              | a country's most-visited sites, ranked                                                      | Apify          | `apify`            | 30d    |
+| `web.traffic`                                               | one site's visits, ranking and audience                                                     | Apify          | `apify`            | 7d     |
+| `x.posts`                                                   | a tweet, profile or search URL as posts                                                     | Apify ¹        | `apify` ¹          | 24h    |
+| `telegram.search-channels`                                  | public channels matching search terms                                                       | Apify          | `apify`            | 7d     |
+| `place.details`                                             | one place's map listing: address, hours, rating                                             | Apify          | `apify`            | 7d     |
+| `place.reviews`                                             | what people wrote about one place                                                           | Apify          | `apify`            | 24h    |
+| `youtube.video`                                             | a video's metadata and stats                                                                | YouTube        | `youtube`          | 7d     |
+| `youtube.channel`                                           | a channel's metadata and stats                                                              | YouTube        | `youtube`          | 7d     |
+| `youtube.trending`                                          | the channels behind a region's trending videos                                              | YouTube        | `youtube`          | 6h     |
+| `youtube.transcript`                                        | a video's captions as text                                                                  | Supadata ²     | `supadata` ²       | 24h    |
+| `youtube.posts` · `youtube.comments` · `youtube.search`     | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`   | 24h    |
+| `x.profile` · `x.transcript`                                | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`   | 24h    |
+| `tiktok.*` (11)                                             | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`   | 24h    |
+| `instagram.*` (5)                                           | profile, posts, post, transcript, comments                                                  | ScrapeCreators | `scrapecreators`   | 24h    |
+| `linkedin.*` (6)                                            | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`   | 24h    |
+| `reddit.*` (4)                                              | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`   | 24h    |
+| `threads.*` (4)                                             | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`   | 24h    |
+| `facebook.ads` · `facebook.ad` · `google.ads` · `google.ad` | ads from a platform's public ad library                                                     | ScrapeCreators | `scrapecreators`   | 24h    |
+| `location.resolve`                                          | a place from latitude and longitude                                                         | OpenStreetMap  | `location.resolve` | 7d     |
 
 ¹ `x.posts` runs on Apify by default; a step may choose twitterapi.io
 (`provider: "twitterapi"`, key purpose `twitterapi`) or ScrapeCreators
@@ -87,7 +87,24 @@ real browser.
 ## Choosing between the four ways to read a page
 
 - **`url.fetch`** when the URL returns data — an API, a JSON feed, a text file. It renders nothing
-  and re-encodes nothing. No vendor, no key.
+  and re-encodes nothing. No vendor. A plain GET needs no config; an API that needs more takes
+  `query`, `headers`, a POST `bodySlot` and a stored key named in `secret` (the `kipory-secrets`
+  skill says how to store one). Set `responseAs` to `json` to address an object's fields, or to `json-list` for an API that returns
+  a list of objects, which a fan-out can then walk. It is a
+  read: it may be sent several times and is cached, so a POST here must change nothing.
+  <!-- field-ok: bodySlot — a `url.fetch` config field, listed on the handler's reference page -->
+- **`url.send`** is not a read. It tells an outside system something — a POST, PUT, PATCH or DELETE
+  — and it is listed here only so nobody reaches for `url.fetch` to do it. The request is sent once,
+  after the run has saved everything else: a run that fails sends nothing, a preview sends nothing,
+  and the flow never sees the answer. A new run of the same input sends again; name an
+  `idempotencyKeySlot` so the receiving system can recognise the repeat.
+  <!-- field-ok: idempotencyKeySlot — a `url.send` config field, listed on the handler's reference page -->
+
+`url.fetch`, `url.fetch-as-file` and `url.send` share one budget, `outbound-request`: 60 requests a
+minute **per project and per host**. Two projects never share it, and two hosts are two budgets. A
+fan-out wider than that over one host is delayed, not failed; the service's own limit is its 429,
+which a read waits out once when the wait is short.
+
 - **`url.metadata`** when you only need the head: title, description, icon. It reads the page's head
   over plain HTTP with no JS render, so it is cheap and it is wrong about pages that build their
   own title in the browser.

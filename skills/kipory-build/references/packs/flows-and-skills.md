@@ -625,7 +625,7 @@ exactly the case that returns both.
 
 ⛔ **`derivedFrom` is not the field that decides whether to show an input picker.** That is
 `editor.inputStreams` on the handler catalog, and the two answer different questions — they disagree
-for seven handlers. `flow.merge` hides the row picker while deriving nothing here; `entity.count`
+for ten handlers. `flow.merge` hides the row picker while deriving nothing here; `entity.count`
 shows it while naming slots in its config. Branch your UI on the catalog field.
 
 Diagnostic codes are the platform's own save-time codes, so one you recognise here is the same one
@@ -816,11 +816,17 @@ prompt handler that refuses file inputs outright, so `picker === "prompt"` is no
 "may this step take a file": `attaches` is. A step's handler says the same thing ahead of this
 read, as `attachesFiles` on its `GET /v1/handlers` entry.
 
-`bounds` and `candidates` are filled for `row` and for a step that attaches; they are empty for
-`config`, whose settings are where its slots are named.
+⭐ **A `config` step can still take inputs by position.** A handler that reads its first inputs by
+position and names the rest in its settings (`url.fetch` reads the address as input 0) answers
+`picker: "config"` with `attaches: "positional"`: `count` is how many leading inputs are chosen on
+the step, and `bounds` and `candidates` are filled for them as for `row`. Send those first in
+`inputStreams`, then the slots the settings name.
 
-`count` is how many inputs the step takes, or null for any number — and null for an attachment,
-which takes any number and requires none. `bounds` says what each must hold: with a `count`, one
+`bounds` and `candidates` are filled for `row` and for a step that attaches; they are empty for a
+`config` step with no positional input, whose settings are where its slots are named.
+
+`count` is how many inputs the step takes, or null for any number — and null for a file
+attachment, which takes any number and requires none. `bounds` says what each must hold: with a `count`, one
 entry per position in order; without one, a single entry every position shares. Its `rule` is
 `contract` (the handler declares the shape, in `wants`), `list` (a fan-out's one input), `file`
 (something the step attaches: a slot holding a file or a list of files, or a field inside one that

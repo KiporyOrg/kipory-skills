@@ -8,18 +8,28 @@ Download the text behind a web address.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Reads:** One URL to fetch. Anything that is not `http` or `https`, resolves to a private address, or does not resolve at all is refused as a blocked request. _(shape hint: `string`)_
-- **Emits:** The response body as text, nothing rendered. Empty on no URL or a 5xx, with a warning. Any other non-2xx answer fails the step, and with it the run.
+- **Emits:** The body as text, or parsed: an object under `json`, a list of objects under `json-list`. Empty, with a warning, on no URL or a 5xx; another non-2xx fails.
 - **Suggested input streams:** `currentUrl`
-- **External dependency:** the open web — Fetches whatever the URL points at, over plain HTTP, through the SSRF guard. No vendor and no key — the site itself is the dependency.
-- **Rate limit:** 120 per 60000ms in bucket `url.fetch`
+- **External dependency:** the open web — Fetches whatever the URL points at, through the SSRF guard. No vendor — the site itself is the dependency. A service that needs a key takes a stored request credential, named in `secret`.
+- **Rate limit:** 60 per 60000ms in bucket `outbound-request`, counted per project and host addressed — shared with `url.fetch-as-file`
 - **Queue:** 3 attempts, exponential from 500ms; waits up to 60000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `bodyAs` | `json` \| `form` \| `text` | no | — | How the body is sent: `json` (the default), `form` (an object of plain values, URL-encoded) or `text` (a string, as it is). ⚠️ Under `json` a string is sent quoted, as a JSON string. To send text you built yourself, use `text` and set `contentType`. |
+| `bodySlot` | string | no | — | The slot holding the request body, built by an earlier step. |
+| `contentType` | string | no | — | The content type of a `text` body. |
+| `headerSlots` | object | no | — | Request headers whose value is read from a slot. An empty slot leaves the header out. |
+| `headers` | object | no | — | Request headers with fixed values. A credential does not go here: store it and name it in `secret`. |
 | `maxBytes` | integer | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body under it can still exceed the slot cap (500 000 characters unless the deployment set another): its text is cut to fit, ends in `[TRUNCATED]`, and the run warns `slot-truncated`. |
 | `maxRedirects` | integer | no | `3` | Maximum HTTP redirect hops to follow. |
+| `method` | `GET` \| `POST` | no | — | GET, the default, or POST for a service that answers a query only by POST. ⚠️ A POST here is a read: it may be sent several times and is answered from the cache. Use it only where it changes nothing. |
+| `query` | object | no | — | Query parameters with fixed values, appended to the address. One the address already carries is kept, not replaced. |
+| `querySlots` | object | no | — | Query parameters whose value is read from a slot. An empty slot leaves the parameter out. |
+| `responseAs` | `text` \| `json` \| `json-list` | no | — | `text`, the default, emits the body as text. `json` parses it and emits an object. `json-list` parses it and emits a list of objects. ⚠️ Pick by what the service returns: a list under `json` arrives under `value`, and anything but a list of objects fails `json-list`. A parsed value over the slot cap is replaced by an empty one. |
+| `secret` | string | no | — | The name of a stored request credential. Its stored row says where in the request it goes and which hosts may receive it. ⚠️ Sent only over `https` on the default port. If the stored credential lists hosts, any other host fails before a request is made; with none listed, it goes wherever the step is addressed. |
 | `timeoutMs` | integer | no | `15000` | Request timeout in milliseconds. |
 
 ## Worked example
