@@ -16,7 +16,7 @@ Fields are listed one level deep with the text the API itself carries. The full 
 
 ### `GET /v1/grant`
 
-What the API key making this call holds: the node it was granted at, its role, and every project it reaches. It takes no id, so it is the first call for a key holder who was not told which project the key is for — `node.id` is that project's id when `node.kind` is `project`, and `projects` lists the choices when the key was granted on an organization.
+What the API key making this call holds: the node it was granted at, its role, and every project it reaches. It takes no id, so it is the first call for a key holder who was not told which project the key is for — `node.id` is that project's id when `node.kind` is `project`, and `projects` lists the choices when the key was granted on an organization. Each project carries `baseUrl`, the address its own API is served at: the endpoints you author answer there, not on this host.
 It answers an API key only; a session gets 403 (`details.reason: "not_an_api_key"`). The same grant rides every role-floor 403 as `details.grant`.
 
 **Response `200`**

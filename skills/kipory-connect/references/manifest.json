@@ -871,7 +871,7 @@
       "page": "kipory-diagnose/references/api/traces.md"
     },
     "GET /v1/grant/": {
-      "hash": "9769c3a90efb",
+      "hash": "f49f6c29b3c7",
       "page": "kipory-connect/references/api/nodes-and-organizations.md"
     },
     "GET /v1/handlers/": {
@@ -908,7 +908,7 @@
       "hash": "44badcfb3659"
     },
     "GET /v1/me/projects": {
-      "hash": "305be39450c4"
+      "hash": "0f9710e7fe6c"
     },
     "GET /v1/me/sessions": {
       "hash": "b178fe99e16e"
@@ -974,7 +974,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}": {
-      "hash": "02b2faa5abf7",
+      "hash": "02bb9488d2c6",
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/app-domain": {
@@ -1284,7 +1284,7 @@
       "hash": "2983090e0d93"
     },
     "PATCH /v1/projects/{nodeId}": {
-      "hash": "d2b7ef3022ff",
+      "hash": "3122be738d61",
       "page": "kipory-connect/references/api/projects.md"
     },
     "PATCH /v1/projects/{nodeId}/settings": {
@@ -1433,7 +1433,7 @@
       "page": "kipory-channels/references/api/managed-email-addresses.md"
     },
     "POST /v1/me/projects": {
-      "hash": "1657cd9e2986"
+      "hash": "3f3b742acce6"
     },
     "POST /v1/nodes/{nodeId}/invites": {
       "hash": "250aa62a98ad"
@@ -1485,7 +1485,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/projects/{nodeId}/restore": {
-      "hash": "ddbbd11cff7b",
+      "hash": "e49ed6f074d2",
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/record-types/": {

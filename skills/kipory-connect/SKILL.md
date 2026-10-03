@@ -45,10 +45,12 @@ GET /v1/grant               Authorization: Bearer <key>
 → 200 { key: { id, label, keyPrefix, expiresAt },
         node: { id, name, kind },      — where the key acts
         role,                          — viewer | editor | admin | owner
-        projects: [{ id, slug, name }] }
+        projects: [{ id, slug, name, baseUrl }] }
 ```
 
 It takes no id, so a 200 means the key exists, is not revoked and not expired, and the body is its grant. When `node.kind` is `project`, `node.id` is the project's id. When it is `organization`, the key reaches every project in `projects`; ask the human which one, or create one (below). Check `role` against the work now: a `viewer` key will pass every read here and refuse the first write.
+
+Keep the project's `baseUrl`: it is the **project's host**, where the endpoints you author, the end-user session routes and `GET /v1/credits/balance` answer. Read it here or from `GET /v1/projects/{nodeId}`; do not build it from the api host or from `subdomain`. `null` means this deployment publishes no public host.
 
 If the human also gave you a project id, compare it with `projects` before using it. An id from another project is the commonest wrong input, and without this read it shows up only as a 403.
 

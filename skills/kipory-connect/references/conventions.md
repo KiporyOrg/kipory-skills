@@ -5,9 +5,10 @@ The rules below hold across the whole design API. Each resource's own page under
 ## Two hosts, two planes
 
 - **The api host** serves the design API: everything under `/v1/` that authors or reads a project's configuration and runs. It answers to your key. Coded route groups `management` and `keys` live only here.
-- **The project's host** — `https://<subdomain>.<deployment-host>` — serves the product: the dynamic endpoints you authored, the end-user session routes, and the credit balance. Dynamic endpoints exist only there; calling one on the api host is a 404 `No project matched this request's host`.
+- **The project's host** serves the product: the dynamic endpoints you authored, the end-user session routes, and the credit balance. Its address is the project's `baseUrl` — on each project in `GET /v1/grant` and on `GET /v1/projects/{nodeId}`. Read it; never build it from `subdomain`, which is a label, or from the api host you were handed. Dynamic endpoints exist only there; calling one on the api host is a 404 `No project matched this request's host`.
+- `baseUrl` is `null` on a deployment that publishes no public host (a local api on `localhost`); there the project is reached on the api host with the header `x-kipory-project-slug: <slug>`.
 - A route served on the wrong host is a 404, before authentication. The api host gives the same `No project matched this request's host` answer to a mistyped design route, so a 404 with that message on a design call means the path is wrong, not the host.
-- The `invokeUrl` an endpoint read returns is the project-host URL, with its `{param}` placeholders kept. It is `null` on a deployment with no derivable public host; it follows the deployment's configured address, not the base URL you call, so read it and never infer it.
+- The `invokeUrl` an endpoint read returns is the project's `baseUrl` plus the endpoint's path, with its `{param}` placeholders kept. It is `null` wherever `baseUrl` is; it follows the deployment's configured address, not the base URL you call, so read it and never infer it.
 
 ## Ids
 

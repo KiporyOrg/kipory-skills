@@ -110,7 +110,7 @@ Create a project under an organization, empty or from a template, in one transac
 
 ### `GET /v1/projects/{nodeId}`
 
-One project: its id, slug, name, description, address, kind and retirement state. Its settings, auth configuration, profile schema and app domain are their own reads under this path; its whole configuration is `GET /v1/projects/{nodeId}/document` or `GET /v1/bootstrap?project=`.
+One project: its id, slug, name, description, address label, base URL, kind and retirement state. Its settings, auth configuration, profile schema and app domain are their own reads under this path; its whole configuration is `GET /v1/projects/{nodeId}/document` or `GET /v1/bootstrap?project=`.
 
 **Path parameters**
 
@@ -126,7 +126,8 @@ One project: its id, slug, name, description, address, kind and retirement state
 | `slug` | `string` | yes | The project's URL-safe short name, unique across the platform. |
 | `name` | `string` | yes | The project's display name. |
 | `description` | `string` | yes | What the project is for, in its operators' own words. Empty when nobody has written one. |
-| `subdomain` | `string` | yes | The host this project's own API is served at. Endpoints you author are reachable here, NOT on the design API's host. |
+| `subdomain` | `string` | yes | The project's address label: the first label of the host its own API is served at. A label, not a host and not a URL — call `baseUrl`. |
+| `baseUrl` | `string \| null` | yes | The base URL this project's own API is served at, e.g. `https://<subdomain>.<installation host>`. Endpoints you author, the end-user session routes and the credit balance are reachable here, NOT on the design API's host. Read it; do not build it from `subdomain`. Null when this installation publishes no public host (a local API on `localhost`). |
 | `kind` | `"product" \| "fixture"` | yes | `product` is a real tenant project; `fixture` is platform scaffolding. Worth checking when you read a project by id: the LIST returns only `product`, while reading one directly returns either, so an id that never appeared in a listing can still resolve here. |
 | `lifecycle` | `object` | yes | Whether this project is live or retired. Grouped because the two dates are one fact — `purgeAfter` means nothing without `retiredAt`, and a live project has neither. |
 | `createdAt` | `string` | yes | When the project was created (ISO). |
@@ -156,7 +157,8 @@ Rename a project or change its description. The slug never changes; the address 
 | `slug` | `string` | yes | The project's URL-safe short name, unique across the platform. |
 | `name` | `string` | yes | The project's display name. |
 | `description` | `string` | yes | What the project is for, in its operators' own words. Empty when nobody has written one. |
-| `subdomain` | `string` | yes | The host this project's own API is served at. Endpoints you author are reachable here, NOT on the design API's host. |
+| `subdomain` | `string` | yes | The project's address label: the first label of the host its own API is served at. A label, not a host and not a URL — call `baseUrl`. |
+| `baseUrl` | `string \| null` | yes | The base URL this project's own API is served at, e.g. `https://<subdomain>.<installation host>`. Endpoints you author, the end-user session routes and the credit balance are reachable here, NOT on the design API's host. Read it; do not build it from `subdomain`. Null when this installation publishes no public host (a local API on `localhost`). |
 | `kind` | `"product" \| "fixture"` | yes | `product` is a real tenant project; `fixture` is platform scaffolding. Worth checking when you read a project by id: the LIST returns only `product`, while reading one directly returns either, so an id that never appeared in a listing can still resolve here. |
 | `lifecycle` | `object` | yes | Whether this project is live or retired. Grouped because the two dates are one fact — `purgeAfter` means nothing without `retiredAt`, and a live project has neither. |
 | `createdAt` | `string` | yes | When the project was created (ISO). |
@@ -351,7 +353,7 @@ Bring a retired project back before its `purgeAfter`: its node, keys, schedules 
 | `restored` | `true` | yes | Always `true` — the project is live again. |
 | `nodeId` | `string` | yes | The restored project's id (its node id). |
 | `slug` | `string` | yes | The restored project's slug. |
-| `subdomain` | `string` | yes | The host the project's own API is served at again. |
+| `subdomain` | `string` | yes | The address label the project's own API is served under again. A label, not a host — its URL is `baseUrl` on `GET /v1/projects/{nodeId}`. |
 
 ### `GET /v1/projects/{nodeId}/settings`
 
