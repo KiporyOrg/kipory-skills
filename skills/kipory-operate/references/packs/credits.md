@@ -196,6 +196,15 @@ duration, that flow's waits included. ⚠️ **Not for a run from before 2026-09
 charge carried no run, so an older run reads only its in-process fees. Its occurrence's `creditCost`
 never depended on the run and is complete.
 
+Each step, and the run, carries `uncharged`: how many of its `events` the platform paid for and
+charged to nobody. ⚠️ **`credits: 0` is a price only when `uncharged` is 0.** `credits: 0,
+events: 6, uncharged: 6` is work nobody was charged for, and the same step in a charged run costs
+credits; a cache hit is `credits: 0` with `uncharged: 0`.
+
+A record's first processing and its reprocess (`POST /v1/records/{id}/reprocess`) are both charged.
+A reprocess reuses nothing from the cache, so it costs about what the first processing did, and
+every run it queues through `entity.enqueue-process` is charged the same way.
+
 ## Mistakes already made
 
 - **Rendering `status` alone** for a session caller and calling it a billing view. There it is one

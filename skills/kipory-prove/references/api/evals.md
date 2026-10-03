@@ -232,6 +232,7 @@ What one eval run cost, and which step spent it: one entry per step of the subje
 | `runId` | `string` | yes | The eval run this spend belongs to (`GET /v1/eval-runs/{id}`). |
 | `credits` | `integer` | yes | What the run's case and scorer previews were charged, summed from the same rows as `bySkill`. ⚠️ The run's own `credits` is measured per case while it runs and may differ: a case cut by the run's budget is charged here and not scored there. |
 | `events` | `integer` | yes | Billable operations across the whole eval run. |
+| `uncharged` | `integer` | yes | How many of the eval run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. |
 | `bySkill` | `object[]` | yes | One entry per step, across every case and repeat, the subject flow's steps and the scorer flows' alike; descending by charge. Each entry's `charges` says what the step was charged for, by kind, with the seconds or tokens billed. ⚠️ EMPTY has more than one cause: the run spent nothing, or it ran before eval spend was attributed to its run (2026-10-02) and its charges cannot be found. |
 
 ### `GET /v1/eval-runs/{id}/traces/{traceId}`

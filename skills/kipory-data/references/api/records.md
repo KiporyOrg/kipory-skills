@@ -302,7 +302,7 @@ Retract the curated edge this caller stated between the two records: it EXPIRES 
 
 ### `POST /v1/records/{id}/reprocess`
 
-Re-run the record's processing flow from a clean slate: its derived output, generated files, facets and vector points are swept and produced again. Answers 202 once a worker has been asked; the record reads `pending` until it runs. An edit (`PATCH`) never re-runs the flow — this is the gesture that does.
+Re-run the record's processing flow from a clean slate: its derived output, generated files, facets and vector points are swept and produced again. Answers 202 once a worker has been asked; the record reads `pending` until it runs. The run is charged like the record's first processing, with nothing reused from the cache, and so is every run it queues. An edit (`PATCH`) never re-runs the flow — this is the gesture that does.
 
 **Path parameters**
 
@@ -316,7 +316,7 @@ Re-run the record's processing flow from a clean slate: its derived output, gene
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record a run was queued for, echoed. |
 | `status` | `"pending"` | yes | Where the record now sits, waiting for the worker to claim it. |
-| `mode` | `"full"` | yes | An explicit re-run is always a CLEAN SLATE — prior output, generated files, facets and vector points are swept and regenerated, and the skill cache is bypassed. ⚠️ Facets included: a filing set by hand is swept with the rest, and the resolver decides again. An edit runs no flow at all, so it is not a cheaper version of this. |
+| `mode` | `"full"` | yes | An explicit re-run is always a CLEAN SLATE — prior output, generated files, facets and vector points are swept and regenerated, and the skill cache is bypassed. ⚠️ Facets included: a filing set by hand is swept with the rest, and the resolver decides again. ⚠️ Charged like the record's first processing, every model call included. An edit runs no flow at all, so it is not a cheaper version of this. |
 
 ### `GET /v1/records/{id}/stream/{field}`
 

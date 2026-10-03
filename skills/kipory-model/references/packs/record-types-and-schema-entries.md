@@ -921,6 +921,7 @@ facet's (which also carries `confirm` and `assignedTerms`); anything else in the
   only. A record already stranded this way is processed with
   `POST /v1/records/{id}/reprocess`, which accepts a `pending` record only when
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
+  A reprocess is charged like a first processing and reuses nothing from the cache.
 
 - **Re-pointing or renaming a type that already has records**, and renaming — changing the `key`
   of — a type any flow step's configuration names (`RECORD_TYPE_NAMED_BY_CONFIG`, listing the

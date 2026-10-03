@@ -374,7 +374,7 @@ _No fields._
 
 ### `GET /v1/runs/{runId}/spend`
 
-What one run cost, and which step spent it. `0` for a run that spent nothing. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
+What one run cost, and which step spent it. `0` for a run that spent nothing; `uncharged` counts the operations the platform paid for, whose `0` is not a price. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
 
 **Path parameters**
 
@@ -389,4 +389,5 @@ What one run cost, and which step spent it. `0` for a run that spent nothing. A 
 | `runId` | `string` | yes | The run this spend belongs to. The same heterogeneous id space `GET /v1/runs/{runId}/steps`, `/change-set` and `/flow-snapshots` take — a record attempt id, a flow run's request id, or an endpoint invocation id. |
 | `credits` | `integer` | yes | The run's whole charge. ⭐ Computed from the SAME rows as `bySkill`, not by a second query, so the total and its parts cannot disagree. |
 | `events` | `integer` | yes | Billable operations across the whole run. |
+| `uncharged` | `integer` | yes | How many of the run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. ⚠️ When this equals `events` the whole run was platform-paid, and `credits: 0` is not what the same work costs when it is charged. A record's first processing and its reprocess are both charged; a run the platform started for its own purposes is not. |
 | `bySkill` | `object[]` | yes | Descending by charge, so the expensive step is first. Each entry's `charges` says what the step was charged for, by kind — `handler-run` with the seconds of compute billed, `llm-call` per direction with its tokens. ⚠️ EMPTY is a real answer with more than one cause and this route cannot tell them apart: a run of pure transforms spent nothing, a run that failed before its first billable op spent nothing, and a run that predates per-run attribution has spend that cannot be found. A caller must not draw any of the three as `0 credits` without saying which it cannot rule out. |

@@ -73,7 +73,8 @@ Skipping the teardown is how a record ends up with two generations of derived da
 every run your key starts — and reaches only that user's own records, never pool records. To
 reprocess from your key (a run with no signed-in user), or to reprocess a pool record, use
 `POST /v1/records/{id}/reprocess` (`references/api/records.md`), which sweeps
-the prior output itself — generated files, facets and vector points — before the run.
+the prior output itself — generated files, facets and vector points — before the run. That run is
+charged like the record's first processing, and so is every run it queues.
 
 ## The scoping that catches people
 
