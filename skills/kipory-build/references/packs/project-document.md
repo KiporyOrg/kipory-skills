@@ -91,7 +91,10 @@ key always means this project's flow. A library or system flow — one that belo
 no project — is `system:<key>`. A facet's `resolver` is the one reference with a default: omit it
 on a new facet and the platform binds a semantic facet to its default resolver where it holds one,
 so "none" is stated as `resolver: null` — which is how an unbound facet exports, and why that export
-re-applies as unbound rather than picking up a resolver on the way back in. A facet states no
+re-applies as unbound rather than picking up a resolver on the way back in. A relation kind's
+`properties` follows the same reading on an update: omit it and the kind keeps the entry it holds,
+state `properties: null` and the kind carries none. An export leaves the field out when there is
+none, so it re-applies without touching what a project already holds. A facet states no
 `binding`: a term attaches to the whole record, an export carries no such field, and a document
 that states one breaks the schema on that facet's path. A shape may be stated
 inline under the record type that uses it,

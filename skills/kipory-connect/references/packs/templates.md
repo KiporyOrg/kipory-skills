@@ -81,7 +81,8 @@ Three things to know about the result:
 There is no "apply a template" call, and none is needed: a template's `document` is an ordinary
 project document, with the document's own rules — a facet that omits `resolver` takes the
 platform's default binding on the deployment it lands on, and one that states `resolver: null`
-lands unbound everywhere. Read it with `GET /v1/templates/{slug}`, plan it against your project to see
+lands unbound everywhere. A relation kind that states `properties: null` lands with no
+properties type, and one that omits the field keeps what the project already holds. Read it with `GET /v1/templates/{slug}`, plan it against your project to see
 what it would add or change, and apply it like any other document. Rows your project already has
 under the same keys are UPDATED to the template's, which is rarely what you want for a whole
 template — plan first, and send the sections you mean.
