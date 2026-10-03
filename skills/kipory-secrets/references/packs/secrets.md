@@ -58,9 +58,9 @@ credential of the catalog's plain bearer-key type.
 **Read the handler's `credential` field, not its `requiredApiKey`.** A handler that resolves a
 tenant key carries `credential` — the catalog `type` and the `purpose` to store it under, plus the
 vendor's own name for prose. That pair is the thing this surface is addressed by, so it is the
-answer to "what do I store, and under what name". `requiredApiKey` beside it names an
-**environment variable on the platform**, which is a fact about the deployment's own fallback and
-not about your vault; deriving a purpose from it is a guess that has no reason to keep working.
+answer to "what do I store, and under what name". `requiredApiKey` beside it is a **phrase for a
+person** ("a Firecrawl API key"), not an address; deriving a purpose from it is a guess that has no
+reason to keep working.
 
 ⚠️ **A handler with no `credential` cannot use a key you store, at any price.** Model calls are
 the population that matters: text generation, embedding and transcription reach their provider

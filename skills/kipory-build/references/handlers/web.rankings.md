@@ -10,7 +10,7 @@ List a country's most visited websites, in order.
 - **Reads:** One country slug, like `israel` or `worldwide`. The ranking is by where the traffic comes from, not where a site is published. _(shape hint: `string`)_
 - **Emits:** `TopSiteRanking` — ranked domains with search traffic parsed to numbers. An empty ranking is treated as a SOURCE FAILURE, never cached: a country with no popular websites does not exist.
 - **Suggested input streams:** `country`
-- **External dependency:** Apify — Runs Apify's `top-websites` actor (KIPORY_APIFY_API_KEY). Actor runs are billed and queued by Apify, not by this platform.
+- **External dependency:** Apify — Runs Apify's `top-websites` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.search`, `web.traffic`, `x.posts`
 - **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 2592000000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

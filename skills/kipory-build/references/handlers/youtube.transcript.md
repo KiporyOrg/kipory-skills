@@ -10,7 +10,7 @@ Get the words spoken in a YouTube video.
 - **Reads:** One bare video id. A full URL is refused — parse it with `youtube.video` first. Anything else is dropped without a call. _(shape hint: `string`)_
 - **Emits:** The transcript as text — plain prose, or lines prefixed with timestamps when you ask for them. An empty string when the video has no captions.
 - **Suggested input streams:** `youtubeVideoId`
-- **External dependency:** Supadata or ScrapeCreators — Each step picks its vendor (`provider`): Supadata (KIPORY_SUPADATA_API_KEY), the default, or ScrapeCreators (KIPORY_SCRAPECREATORS_API_KEY). With `fallback` on — the default — a vendor that fails hands the video to the other; a video with no captions is an answer and is not retried elsewhere, and a key the chosen vendor refuses fails the step.
+- **External dependency:** Supadata or ScrapeCreators — Each step picks its vendor (`provider`): Supadata, the default, or ScrapeCreators. Each vendor uses its own API key: the project's own, stored in its secrets, or Kipory's. With `fallback` on — the default — a vendor that fails hands the video to the other; a video with no captions is an answer and is not retried elsewhere, and a key the chosen vendor refuses fails the step.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `supadata` (vendor: Supadata); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `supadata`
 - **Queue:** 2 attempts, exponential from 2000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

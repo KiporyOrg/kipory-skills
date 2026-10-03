@@ -10,7 +10,7 @@ Sort documents by how well they answer a question.
 - **Reads:** Two slots you name: the text to match against, and the documents to score. Each document carries its own id. _(shape hint: `slot map`)_
 - **Emits:** A `list<RerankHit>`, best first and capped at `topN`. Empty when either slot was empty; when the scorer cannot answer, the candidates come back in the order they arrived.
 - **Suggested input streams:** `query`, `documents`
-- **External dependency:** Cohere — Re-scores candidates through Cohere's rerank API (KIPORY_COHERE_API_KEY).
+- **External dependency:** Cohere — Re-scores candidates through Cohere's rerank API. Uses a Cohere API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `cohere` (vendor: Cohere); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 600 per 60000ms in bucket `cohere`
 - **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (default-input-slot-hash) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

@@ -10,7 +10,7 @@ Read what people wrote about a place on the map.
 - **Reads:** One place: a place ID or a full map link. A name alone returns nothing, with a warning. _(shape hint: `string`)_
 - **Emits:** `PlaceReviews` — the place and its reviews. A place with no reviews comes back empty, and that answer is cached.
 - **Suggested input streams:** `place`
-- **External dependency:** Apify — Runs an Apify actor that reads the place's reviews (KIPORY_APIFY_API_KEY). Actor runs are billed and queued by Apify, not by this platform.
+- **External dependency:** Apify — Runs an Apify actor that reads the place's reviews. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.details`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
 - **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

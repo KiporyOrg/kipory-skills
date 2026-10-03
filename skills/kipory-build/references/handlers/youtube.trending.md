@@ -10,7 +10,7 @@ List the channels behind a region's trending YouTube videos.
 - **Reads:** One two-letter region code, like `US` or `DE` — the same shape a user's profile region uses. _(shape hint: `string`)_
 - **Emits:** A `YoutubeTrendingChannels`. One flat list however much was read, so a channel trending in two categories arrives once with a higher count. Empty when the region returns nothing.
 - **Suggested input streams:** `regionCode`
-- **External dependency:** YouTube Data API — Reads the trending chart from the YouTube Data API (KIPORY_YOUTUBE_API_KEY). Its quota is a shared daily unit budget across every YouTube handler.
+- **External dependency:** YouTube Data API — Reads the trending chart from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube handler. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 60 per 60000ms in bucket `youtube` — shared with `youtube.channel`, `youtube.video`
 - **Queue:** 2 attempts, exponential from 2000ms; waits up to 60000ms; cache 21600000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

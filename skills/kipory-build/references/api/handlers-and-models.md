@@ -85,7 +85,7 @@ Any authenticated caller; the answer is the same for everyone.
 | `reads` | `string` | no | What it consumes, in prose. |
 | `inputHint` | `string` | no | A short hint at the input shape — "string", "file", "slot map". |
 | `suggestedInputStreams` | `string[]` | yes | The input wiring suggested when a step picks this handler. A starting point, not a constraint. |
-| `requiredApiKey` | `string` | no | The environment variable this handler needs at run time. Present means the handler CANNOT run without it configured. |
+| `requiredApiKey` | `string` | no | The vendor key this handler needs at run time, as a phrase to read ("a Firecrawl API key"). Present means the handler CANNOT run without one: the project's own, stored in its secrets, or the platform's. The exact credential to store is `credential`. |
 | `externalDep` | `object` | no | An outside service this handler depends on, when it needs one. |
 | `followsTaskModel` | `boolean` | yes | True when the model this handler runs on is decided by the step's `taskKey` binding, so changing that binding moves this step. False when the handler uses no model at all, or picks one a task binding cannot move. |
 | `attachesFiles` | `boolean` | yes | True when this handler attaches a file-shaped input to what the model is sent — no `{{placeholder}}` names it, and the step's prompt is not where it is wired. False when a file input is refused outright, and for every handler that calls no model. |
@@ -95,7 +95,7 @@ Any authenticated caller; the answer is the same for everyone.
 | `configOutputSlots` | `object[]` | no | Where this handler's config names the slots the step WRITES. Absent means the config names none and the step's own output slot is the whole answer. A form reads these to draw those settings as slot NAMES — which a rename has to carry across every step that reads them — rather than as free text. |
 | `io` | `object` | yes | Input and output as comparable tokens, beside the prose in `reads` / `emits`. |
 | `rateLimit` | `object` | no | How fast it may call upstream, and whose allowance that spends. Absent means it declares no limit and counts into no bucket -- which is NOT the same as being free. |
-| `credential` | `object` | no | The secret-vault credential this handler resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU handler, and ALSO of the AI ones, which build their client from the environment and never consult the vault at all. For a handler whose vendor is chosen per step, the DEFAULT vendor's -- see `providers`. |
+| `credential` | `object` | no | The secret-vault credential this handler resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU handler, and ALSO of the AI ones: a model call runs on the platform's own key for its provider, and no project can bring one. For a handler whose vendor is chosen per step, the DEFAULT vendor's -- see `providers`. |
 | `providers` | `object` | no | Present only when each step chooses the vendor (`handlerConfig.provider`): every vendor it may name and the credential each spends. Absent means the handler has one vendor, the one `credential` names. |
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` handlers; an inline or control handler runs in the pipeline with neither. |
 | `run` | `object` | yes | How a step using this handler is run: what its time limit bounds, where the default comes from, and any limit the handler keeps whatever the step says. Always present. |

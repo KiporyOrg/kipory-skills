@@ -10,7 +10,7 @@ Read a web page and return its main text and details.
 - **Reads:** One URL — the page to scrape. Anything that is not `http` or `https` is refused before a call is spent; an empty slot emits an empty result. _(shape hint: `string`)_
 - **Emits:** A `ScrapedPage` — the rendered body as markdown, plus its metadata. Empty, with a `SCRAPE_FAILED` or `RATE_LIMITED` warning rather than a failed run, when the page could not be rendered.
 - **Suggested input streams:** `currentUrl`
-- **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API (KIPORY_FIRECRAWL_API_KEY).
+- **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 10 per 60000ms in bucket `firecrawl` — shared with `url.screenshot`
 - **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

@@ -10,7 +10,7 @@ Look up a website's visits, ranking, and audience by country.
 - **Reads:** One site URL, reduced to its bare domain. Numbers are monthly, so results are cached for a week by default. _(shape hint: `string`)_
 - **Emits:** A `SiteTrafficMetrics`. Every metric can be null — the upstream hides data for small sites — while `domain` echoes the normalised host. Empty when the domain is unknown.
 - **Suggested input streams:** `source`
-- **External dependency:** Apify — Runs Apify's `similarweb-scraper` actor (KIPORY_APIFY_API_KEY). Actor runs are billed and queued by Apify, not by this platform.
+- **External dependency:** Apify — Runs Apify's `similarweb-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `x.posts`
 - **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

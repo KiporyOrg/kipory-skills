@@ -10,7 +10,7 @@ Answer typed questions about a value: yes/no, pick one, or score.
 - **Reads:** The value to judge — text, or a JSON object or list. Every question is answered against the same value.
 - **Emits:** The step's output type, each field answered: a chance of yes, a chosen option, or a score. Optionally a `DecisionConfidence` too. Empty when the input was empty.
 - **Suggested input streams:** `state`
-- **External dependency:** TypeSafe AI — Answers through TypeSafe's decision model, Jev (KIPORY_TYPESAFE_API_KEY).
+- **External dependency:** TypeSafe AI — Answers through TypeSafe's decision model, Jev. Uses a TypeSafe AI API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `typesafe` (vendor: TypeSafe AI); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 600 per 60000ms in bucket `typesafe`
 - **Queue:** 2 attempts, exponential from 1000ms; waits up to 60000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

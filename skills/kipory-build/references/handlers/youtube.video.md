@@ -10,7 +10,7 @@ Look up a YouTube video's details, numbers, and thumbnail.
 - **Reads:** One string naming a video — a full URL in any of its forms, or a bare video id. Anything unrecognisable is dropped without a call. _(shape hint: `string`)_
 - **Emits:** A `YoutubeVideo`. Which fields arrive depends on the parts you asked for, and every one is optional. Empty when it could not be read — missing, private, or refused.
 - **Suggested input streams:** `currentUrl`
-- **External dependency:** YouTube Data API — Reads video metadata and statistics from the YouTube Data API (KIPORY_YOUTUBE_API_KEY). Its quota is a shared daily unit budget across every YouTube handler.
+- **External dependency:** YouTube Data API — Reads video metadata and statistics from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube handler. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 60 per 60000ms in bucket `youtube` — shared with `youtube.channel`, `youtube.trending`
 - **Queue:** 2 attempts, exponential from 2000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

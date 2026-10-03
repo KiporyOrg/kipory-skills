@@ -2,6 +2,68 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261003.141356 — 2026-10-03
+
+Synced from the Kipory monorepo at `b14dd0413`.
+
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-build/references/handlers/facebook.ad.md`
+- changed: `skills/kipory-build/references/handlers/facebook.ads.md`
+- changed: `skills/kipory-build/references/handlers/google.ad.md`
+- changed: `skills/kipory-build/references/handlers/google.ads.md`
+- changed: `skills/kipory-build/references/handlers/instagram.comments.md`
+- changed: `skills/kipory-build/references/handlers/instagram.post.md`
+- changed: `skills/kipory-build/references/handlers/instagram.posts.md`
+- changed: `skills/kipory-build/references/handlers/instagram.profile.md`
+- changed: `skills/kipory-build/references/handlers/instagram.transcript.md`
+- changed: `skills/kipory-build/references/handlers/linkedin.ad.md`
+- changed: `skills/kipory-build/references/handlers/linkedin.ads.md`
+- changed: `skills/kipory-build/references/handlers/linkedin.company.md`
+- changed: `skills/kipory-build/references/handlers/linkedin.post.md`
+- changed: `skills/kipory-build/references/handlers/linkedin.posts.md`
+- changed: `skills/kipory-build/references/handlers/linkedin.profile.md`
+- changed: `skills/kipory-build/references/handlers/place.details.md`
+- changed: `skills/kipory-build/references/handlers/place.reviews.md`
+- changed: `skills/kipory-build/references/handlers/reddit.comments.md`
+- changed: `skills/kipory-build/references/handlers/reddit.post.md`
+- changed: `skills/kipory-build/references/handlers/reddit.posts.md`
+- changed: `skills/kipory-build/references/handlers/reddit.search.md`
+- changed: `skills/kipory-build/references/handlers/telegram.search-channels.md`
+- changed: `skills/kipory-build/references/handlers/text.decide.md`
+- changed: `skills/kipory-build/references/handlers/text.rerank.md`
+- changed: `skills/kipory-build/references/handlers/threads.post.md`
+- changed: `skills/kipory-build/references/handlers/threads.posts.md`
+- changed: `skills/kipory-build/references/handlers/threads.profile.md`
+- changed: `skills/kipory-build/references/handlers/threads.search.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.ad.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.ads.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.audience.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.comments.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.followers.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.following.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.post.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.posts.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.profile.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.search.md`
+- changed: `skills/kipory-build/references/handlers/tiktok.transcript.md`
+- changed: `skills/kipory-build/references/handlers/url.scrape.md`
+- changed: `skills/kipory-build/references/handlers/url.screenshot.md`
+- changed: `skills/kipory-build/references/handlers/web.rankings.md`
+- changed: `skills/kipory-build/references/handlers/web.search.md`
+- changed: `skills/kipory-build/references/handlers/web.traffic.md`
+- changed: `skills/kipory-build/references/handlers/x.posts.md`
+- changed: `skills/kipory-build/references/handlers/x.profile.md`
+- changed: `skills/kipory-build/references/handlers/x.transcript.md`
+- changed: `skills/kipory-build/references/handlers/youtube.channel.md`
+- changed: `skills/kipory-build/references/handlers/youtube.comments.md`
+- changed: `skills/kipory-build/references/handlers/youtube.posts.md`
+- changed: `skills/kipory-build/references/handlers/youtube.search.md`
+- changed: `skills/kipory-build/references/handlers/youtube.transcript.md`
+- changed: `skills/kipory-build/references/handlers/youtube.trending.md`
+- changed: `skills/kipory-build/references/handlers/youtube.video.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20261003.111315 — 2026-10-03
 
 Synced from the Kipory monorepo at `d12ca494d`.
