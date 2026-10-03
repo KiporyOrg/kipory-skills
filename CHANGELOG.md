@@ -2,6 +2,18 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261003.153919 — 2026-10-03
+
+Synced from the Kipory monorepo at `a7e23f79e`.
+
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-operate/references/packs/credits.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+
 ## 1.20261003.151505 — 2026-10-03
 
 Synced from the Kipory monorepo at `594cb3522`.

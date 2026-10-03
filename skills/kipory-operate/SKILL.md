@@ -81,15 +81,26 @@ GET /v1/credits/balance                            the wallet — on the PROJECT
 ```
 
 **The per-step fee is compute time, in whole seconds rounded up.** Every step that runs bills one
-handler charge priced per second of its duration, with a one-second minimum — at a rate of 10 credits a second, the same step
+handler charge priced per second it ran, with a one-second minimum — at a rate of 10 credits a second, the same step
 costs 10 in one run and 20 in the next when it took 0.9 s and then 1.2 s. The rate is the
-deployment's; you cannot read it. A model step's
-duration includes its wait in the ingest worker's queue, so a busy worker raises the fee, not the
-model's cost. A run with no model call is therefore not free: each step that runs bills its
+deployment's; you cannot read it. **Waiting is not billed.** A step that runs as a queued job —
+a model step, a fetch, `term.upsert` and the other ingest-phase steps — is charged for the time
+its job ran, summed over its tries, and not for the time the job waited for a free worker, for a
+rate-limit allowance or between tries. So a busy worker makes such a step slower, not dearer, and
+its `durationMs` on `GET /v1/runs/{runId}/steps` can be many seconds longer than the seconds
+it was charged. The exception is a step that runs other steps inside itself — a `facet.resolve`
+step that runs a facet's resolver flow: it is charged for its whole duration, the
+resolver flow's waits included, on top of what the resolver flow's own steps are charged. A run with no model call is still not free: each step that runs bills its
 second. The other way round, a live run that repeats an input can cost far less than the first: a
 step answered from the step-result cache bills nothing, and one answered from a handler's
 input-keyed cache bills its fee but not the model or vendor call behind it. Predict a range, and
 reconcile against `GET /v1/runs/{runId}/spend` rather than a fixed number.
+
+**The spend read says what each step was charged for.** Every entry of `bySkill` carries
+`charges`, one per kind: `handler-run` is the compute fee and its `units` are the seconds billed;
+`llm-call` appears once per `direction` (`in`, `out`, `cached`, `cache-write`) with `units` in
+tokens; `embedding` is tokens; `vendor-fetch` is a paid fetch. The entries sum to the step's
+`credits`, so a step that cost 46 reads as 10 for one second of compute and 36 for the model.
 
 A machine caller has no statement of its own: `GET /v1/credits/events` scopes to a person and answers 401 to a key from inside the handler. Account for key-driven spend per run, or per project through `usage`. Its `by=key` breakdown names a key only on the product calls that key made: a key's previews, test and eval runs are design-time charges, and schedule and trigger runs have no caller, so all of those land under `key: null`.
 

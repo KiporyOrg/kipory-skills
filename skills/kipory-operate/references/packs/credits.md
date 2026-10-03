@@ -180,7 +180,14 @@ deliberate about which credential the question is being asked with.
 | Total one schedule occurrence's billed charges      | the occurrence's `creditCost` on the schedule's `runs` |
 
 `/runs/{runId}/spend` holds every charge the run made, by step — a model call a `text.generate` step
-makes on a worker included. ⚠️ **Not for a run from before 2026-09-28.** Until then a worker-side
+makes on a worker included. Each step's `charges` says what it was charged for, by kind:
+`handler-run` is the compute fee, with `units` in whole seconds billed; `llm-call` is the model,
+once per `direction`, with `units` in tokens; `embedding` and `vendor-fetch` likewise. Compute is
+billed for the time a step ran, each run rounded up to a whole second: a step that runs as a queued
+job is not charged for the time its job waited for a worker, a rate-limit allowance or a retry, so
+the seconds billed can be far fewer than the step's `durationMs` on `/runs/{runId}/steps`. A
+`facet.resolve` step that runs a resolver flow is the exception: it is charged for its whole
+duration, that flow's waits included. ⚠️ **Not for a run from before 2026-09-28.** Until then a worker-side
 charge carried no run, so an older run reads only its in-process fees. Its occurrence's `creditCost`
 never depended on the run and is complete.
 

@@ -10,7 +10,7 @@
       "page": "kipory-build/references/packs/authoring-order.md"
     },
     "credits": {
-      "hash": "502ad9bce05f",
+      "hash": "730a3a69b969",
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embedding-profiles": {
@@ -767,7 +767,7 @@
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/eval-runs/{id}/spend": {
-      "hash": "e3733d265eb3",
+      "hash": "04cf22b3de74",
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/eval-runs/{id}/traces/{traceId}": {
@@ -1106,7 +1106,7 @@
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}/spend": {
-      "hash": "0e40ef68b5b9",
+      "hash": "5bacad03fb08",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/runs/{runId}/steps": {
