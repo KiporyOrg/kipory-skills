@@ -88,9 +88,9 @@ a model step, a fetch, `term.upsert` and the other ingest-phase steps — is cha
 its job ran, summed over its tries, and not for the time the job waited for a free worker, for a
 rate-limit allowance or between tries. So a busy worker makes such a step slower, not dearer, and
 its `durationMs` on `GET /v1/runs/{runId}/steps` can be many seconds longer than the seconds
-it was charged. The exception is a step that runs other steps inside itself — a `facet.resolve`
-step that runs a facet's resolver flow: it is charged for its whole duration, the
-resolver flow's waits included, on top of what the resolver flow's own steps are charged. A run with no model call is still not free: each step that runs bills its
+it was charged. A step that runs other steps inside itself — a `facet.resolve`
+step that runs a facet's resolver flow — is charged for its own work only: the resolver flow's
+steps are each charged as their own steps, and the time spent in them is not charged again. A run with no model call is still not free: each step that runs bills its
 second. The other way round, a live run that repeats an input can cost far less than the first: a
 step answered from the step-result cache bills nothing, and one answered from a handler's
 input-keyed cache bills its fee but not the model or vendor call behind it. Predict a range, and

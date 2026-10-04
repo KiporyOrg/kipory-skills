@@ -191,8 +191,8 @@ once per `direction`, with `units` in tokens; `embedding` and `vendor-fetch` lik
 billed for the time a step ran, each run rounded up to a whole second: a step that runs as a queued
 job is not charged for the time its job waited for a worker, a rate-limit allowance or a retry, so
 the seconds billed can be far fewer than the step's `durationMs` on `/runs/{runId}/steps`. A
-`facet.resolve` step that runs a resolver flow is the exception: it is charged for its whole
-duration, that flow's waits included. ⚠️ **Not for a run from before 2026-09-28.** Until then a worker-side
+`facet.resolve` step that runs a resolver flow is charged for its own work only: that flow's steps
+are charged as their own steps, and the time spent in them is not charged to the parent again. ⚠️ **Not for a run from before 2026-09-28.** Until then a worker-side
 charge carried no run, so an older run reads only its in-process fees. Its occurrence's `creditCost`
 never depended on the run and is complete.
 
