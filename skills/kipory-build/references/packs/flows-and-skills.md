@@ -833,9 +833,11 @@ a read the new type cannot satisfy refuses the whole save with a 422 that names 
 document that reader is not retyped — it keeps the type it had, and the apply's own validation
 judges the read.
 
-⚠️ **A cleared type leaves its readers as they were**: there is nothing to type them from. The save
-goes through carrying `PRODUCER_OUTPUT_UNTYPED` as a warning — the reader takes the value as an
-object and nothing checks what it reads from it. State the step's type, or re-point the reader.
+⚠️ **A cleared type gives its readers nothing to be typed from.** On a PATCH or a batch they keep
+the type they had; in a document a reader whose entry states no `inputSchemas` is typed again as the
+builtin `object`, as any reader of a step with no declared type is. Either way the save goes through
+carrying `PRODUCER_OUTPUT_UNTYPED` as a warning — nothing checks what the reader takes from the
+value. State the step's type, or re-point the reader.
 
 A type travels back the way a read showed it: send `outputSchema` and `inputSchemas` with the ids
 the step read answered. They are stored as the project's own.
