@@ -713,7 +713,7 @@
       "hash": "32b82dbac280"
     },
     "GET /v1/auth/signout": {
-      "hash": "f353629cbcc0"
+      "hash": "3a010cc1e093"
     },
     "GET /v1/bootstrap/": {
       "hash": "635a7d225671",
