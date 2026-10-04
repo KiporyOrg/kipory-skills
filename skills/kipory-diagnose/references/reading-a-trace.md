@@ -12,7 +12,7 @@ The caller has the response's `x-request-id` header. That is the run id.
 GET /v1/runs/{runId}
 ```
 
-`run.lifecycle` is `unknown` — ordinary for a synchronous endpoint call, which leaves no invocation row to say how it ended; it means "no outcome recorded", not "still running" and not "finished". The step log answers instead: `closing.kind` is `run-finished`, with `verdict: failed` and `missingOutputs: ["summary"]`, and `stepsStarted` is 3 against `declaredSteps` 3. So no step failed: the run reached its end without producing a required output, and the platform refused it.
+`run.lifecycle` is `settled` — a synchronous endpoint call leaves no invocation row, so its closing frame is what says it ended; with no closing frame it would read `unknown`, which means "no outcome recorded", not "still running" and not "finished". `closing.kind` is `run-finished`, with `verdict: failed` and `missingOutputs: ["summary"]`, and `stepsStarted` is 3 against `declaredSteps` 3. So no step failed: the run reached its end without producing a required output, and the platform refused it.
 
 ## 2. Read the step log — it is complete
 

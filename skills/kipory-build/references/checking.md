@@ -58,7 +58,9 @@ GET /v1/runs/{runId}/spend        what it cost, by step
 GET /v1/runs/{runId}/change-set   what it wrote, or would have
 ```
 
-Those reads answer 404 until the worker has started the run, so poll. `kipory-diagnose` reads a trace.
+Those reads answer 404 until the worker has started the run, so poll `GET /v1/runs/{runId}`: the run is finished when `run.closing` is non-null. `run.closing.verdict` is then `succeeded` or `failed`, or null with `run.closing.kind: "run-aborted"` when the run was ended from outside. `run.lifecycle` reads `unknown` until then and `settled` after.
+
+**`succeeded` does not mean every step got an answer.** A step whose vendor refused the call — a search, a page read, a screenshot — ends `step-applied` with an empty output, and the run still succeeds. Each such step leaves a `step-warned` row in `GET /v1/runs/{runId}/steps` (`detail.warningKind`: `SEARCH_FAILED`, `SCRAPE_FAILED`, …) whose `detail.message` is the vendor's reason, so read the step log for them before designing around an empty result. `kipory-diagnose` reads a trace.
 
 ## 4. What needs ADMIN
 

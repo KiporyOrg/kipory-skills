@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261004.204319 — 2026-10-04
+
+Synced from the Kipory monorepo at `f986e12df`.
+
+- changed: `skills/kipory-build/references/checking.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-diagnose/references/reading-a-trace.md`
+- changed: `skills/kipory-extract/SKILL.md`
+
 ## 1.20261004.202006 — 2026-10-04
 
 Synced from the Kipory monorepo at `a2c443123`.

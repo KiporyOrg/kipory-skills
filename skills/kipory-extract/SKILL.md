@@ -63,7 +63,8 @@ set is a scan; `text` empty with `isEncrypted: true` is a locked file; `text` em
 means the parser could not read the file — the step warns `PDF_PARSE_FAILED`, and the empty result
 is not cached, so a later run reads the file again. The warning does not fail the step: in a record's
 processing flow the record still goes `ready`, with an empty body and no `statusError`, and the only
-trace is a `step-warned` row in that run's step log (`GET /v1/runs/{runId}/steps`). To fail the
+trace is a `step-warned` row in that run's step log (`GET /v1/runs/{runId}/steps`), whose
+`detail.message` says what the parser reported. To fail the
 record with a reason instead, `$assert` on the extracted text in the step that picks the body
 (`kipory-build`'s `references/records-and-endpoints.md`). Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
 `pdf.screenshot` renders **one page**, and that page is the static config field `page` — no slot

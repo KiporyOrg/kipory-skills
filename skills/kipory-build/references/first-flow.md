@@ -245,7 +245,7 @@ curl -sS -X POST "$INVOKE_URL" \
   -d '{"text": "<a paragraph to summarise>"}'
 ```
 
-`200 {"summary": "<two sentences>"}` — the bound outputs, keyed by output slot, nothing else. The body is validated against the flow's inputs with no extra fields allowed — an unknown field is a 422. The `x-request-id` response header is the run id: `GET /v1/runs/{runId}/steps` on the api host reads its step log, and the run lists in `GET /v1/runs?project={nodeId}` with `lifecycle: "unknown"` — a synchronous run has no queue row to report one — and its `closing.verdict`. A run past 30 seconds (the default `syncTimeoutMs`) is a 504 — and a `text.generate` step waits its turn on the platform's worker, so the wait counts too. For an endpoint over a model step, set `"syncTimeoutMs": 120000` in `actionConfig` or make it `async`. The rest of the caller's side is `kipory-expose`'s `references/consumer.md`.
+`200 {"summary": "<two sentences>"}` — the bound outputs, keyed by output slot, nothing else. The body is validated against the flow's inputs with no extra fields allowed — an unknown field is a 422. The `x-request-id` response header is the run id: `GET /v1/runs/{runId}/steps` on the api host reads its step log, and the run lists in `GET /v1/runs?project={nodeId}` with `lifecycle: "settled"` and its `closing.verdict`. A run past 30 seconds (the default `syncTimeoutMs`) is a 504 — and a `text.generate` step waits its turn on the platform's worker, so the wait counts too. For an endpoint over a model step, set `"syncTimeoutMs": 120000` in `actionConfig` or make it `async`. The rest of the caller's side is `kipory-expose`'s `references/consumer.md`.
 
 ## 8. The same project as one document
 
