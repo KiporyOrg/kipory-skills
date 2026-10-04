@@ -288,12 +288,16 @@
       "page": "kipory-build/references/handlers/pdf.screenshot.md"
     },
     "place.details": {
-      "hash": "ae4e19354051",
+      "hash": "4c32da979d3c",
       "page": "kipory-build/references/handlers/place.details.md"
     },
     "place.reviews": {
-      "hash": "ce5d5c5623a1",
+      "hash": "4ad5f4ae39ed",
       "page": "kipory-build/references/handlers/place.reviews.md"
+    },
+    "place.search": {
+      "hash": "20c16d2fa1f3",
+      "page": "kipory-build/references/handlers/place.search.md"
     },
     "reddit.comments": {
       "hash": "4147328bd8a7",
@@ -328,7 +332,7 @@
       "page": "kipory-build/references/handlers/telegram.resolve-channel.md"
     },
     "telegram.search-channels": {
-      "hash": "56e3c033585b",
+      "hash": "e91dba7caeb8",
       "page": "kipory-build/references/handlers/telegram.search-channels.md"
     },
     "telegram.stats": {
@@ -448,11 +452,11 @@
       "page": "kipory-build/references/handlers/url.fetch.md"
     },
     "url.fetch-as-file": {
-      "hash": "71152c175047",
+      "hash": "ad36a1169abf",
       "page": "kipory-build/references/handlers/url.fetch-as-file.md"
     },
     "url.metadata": {
-      "hash": "938306926f0a",
+      "hash": "1f2d08b77544",
       "page": "kipory-build/references/handlers/url.metadata.md"
     },
     "url.scrape": {
@@ -492,19 +496,19 @@
       "page": "kipory-build/references/handlers/vector.upsert.md"
     },
     "web.rankings": {
-      "hash": "38a62e17791e",
+      "hash": "5aa170393752",
       "page": "kipory-build/references/handlers/web.rankings.md"
     },
     "web.search": {
-      "hash": "2f2a9a702007",
+      "hash": "36d1f261ac75",
       "page": "kipory-build/references/handlers/web.search.md"
     },
     "web.traffic": {
-      "hash": "d6e4e27f05eb",
+      "hash": "f1b1f7d5d02b",
       "page": "kipory-build/references/handlers/web.traffic.md"
     },
     "x.posts": {
-      "hash": "3ed9e64c5a8c",
+      "hash": "260eaa246fdc",
       "page": "kipory-build/references/handlers/x.posts.md"
     },
     "x.profile": {

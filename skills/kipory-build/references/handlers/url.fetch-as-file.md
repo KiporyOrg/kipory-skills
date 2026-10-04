@@ -23,7 +23,7 @@ Download a web address and save it as a file.
 | `bodyAs` | `json` \| `form` \| `text` | no | — | How the body is sent: `json` (the default), `form` (an object of plain values, URL-encoded) or `text` (a string, as it is). ⚠️ Under `json` a string is sent quoted, as a JSON string. To send text you built yourself, use `text` and set `contentType`. |
 | `bodySlot` | string, at most 4096 characters | no | — | The slot holding the request body, built by an earlier step. |
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
-| `failureMode` | `hard` \| `soft` | no | `"hard"` | What happens when the download fails. `hard` fails the step; `soft` returns an empty file reference and lets the flow carry on. ⚠️ A bad URL, a private address, or a storage failure stays hard either way — `soft` only covers a download that could have worked. |
+| `failureMode` | `hard` \| `soft` | no | `"hard"` | What happens when the download fails. `hard` fails the step; `soft` returns an empty file reference and lets the flow carry on. ⚠️ A bad URL, a private address, or a storage failure stays hard either way — `soft` covers a download that could not happen, including a site whose name no longer resolves. |
 | `headerSlots` | object | no | — | Request headers whose value is read from a slot. An empty slot leaves the header out. |
 | `headers` | object | no | — | Request headers with fixed values. A credential does not go here: store it and name it in `secret`. |
 | `maxBytes` | integer, more than 0 | no | `25000000` | Hard cap on the downloaded response size. Larger responses fail the handler rather than silently truncate. |

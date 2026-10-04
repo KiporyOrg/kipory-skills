@@ -12,7 +12,7 @@ Search the web and return the results.
 - **Suggested input streams:** `query`
 - **External dependency:** Apify — Runs Apify's `google-search-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.traffic`, `x.posts`
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `place.search`, `telegram.search-channels`, `web.rankings`, `web.traffic`, `x.posts`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

@@ -12,7 +12,7 @@ Read the posts from an X post, profile, or search link.
 - **Suggested input streams:** `source`
 - **External dependency:** Apify, twitterapi.io or ScrapeCreators — Each step picks its vendor (`provider`): Apify's `twitter-scraper-lite` actor, the default, twitterapi.io's API, or ScrapeCreators, which reads a post or a profile but not a search. Its profile read is one request returning about a hundred of the account's most popular posts, whatever `sort` and `maxItems` say — not a timeline to watch for new posts. With `fallback` on — the default — a failed vendor hands the URL to the next, and the output says which answered; a key the chosen vendor refuses fails the step instead. Each vendor uses its own API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** one per vendor the step's `provider` names, each resolved from the secrets vault and falling through to the platform's own key when no node holds one: `apify` (the default) — type `api_key`, purpose `apify`; `twitterapi` — type `api_key`, purpose `twitterapi`; `scrapecreators` — type `api_key`, purpose `scrapecreators`.
-- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `place.search`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

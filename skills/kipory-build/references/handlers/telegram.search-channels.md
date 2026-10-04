@@ -12,7 +12,7 @@ Find public Telegram channels that match your search words.
 - **Suggested input streams:** `terms`
 - **External dependency:** Apify — Runs Apify's `telegram-search` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `place.search`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 7 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

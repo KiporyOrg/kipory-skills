@@ -8,7 +8,7 @@ Read a web page's title, description, icon, and preview image.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `UrlMeta`
 - **Reads:** One URL — the page to read. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
-- **Emits:** A `UrlMeta`; a meta tag the page lacks stays unset, and an unreadable page comes back empty. Only `&amp;` `&lt;` `&gt;` `&quot;` `&#39;` `&apos;` are decoded; others stay as written.
+- **Emits:** A `UrlMeta`; an unreachable site does not fail the step and carries `failure` instead of a status. Only `&amp;` `&lt;` `&gt;` `&quot;` `&#39;` `&apos;` are decoded.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
 - **Rate limit:** 120 per min in bucket `url.metadata`
@@ -18,10 +18,9 @@ Read a web page's title, description, icon, and preview image.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `failureMode` | `hard` \| `soft` | no | `"hard"` | What happens when the site cannot be reached. `hard` fails the step; `soft` returns an empty result and lets the flow carry on. ⚠️ Only covers an unreachable site. HTTP 403 or 404 returns what it can either way; an unresolvable or private-address host stays hard. To continue past those, set the step's `onFailure` to `continue`. |
 | `maxBytes` | integer, more than 0 | no | `65536` | Cap on bytes parsed for `<head>` meta. The handler asks for a Range and truncates anyway; this is the second-line guard. |
-| `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow before giving up. |
-| `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. Probe is meant to be fast. ⚠️ Shares its name with the step's own `timeoutMs` run setting and is not it: this one, inside `handlerConfig`, bounds the one request. |
+| `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow before giving up. ⚠️ A site that redirects more times than this is reported with the code `redirect-limit`. |
+| `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. Probe is meant to be fast. ⚠️ Shares its name with the step's own `timeoutMs` run setting and is not it: this one, inside `handlerConfig`, bounds the one request. Keep it below the step's wait, or a silent site fails the step. |
 
 ## Worked example
 
@@ -129,31 +128,26 @@ Output:
 }
 ```
 
-#### Site is down
+#### Domain is gone
 
-The connection never opened. The step still succeeds, with an empty result and a warning.
+Never answered, so `failure.code` says why: `dns-not-found`, `connection-refused`, `tls-failed`, `redirect-limit`, `timeout`, `connection-reset` or `unreachable`.
 
 Reads `string` → emits `string` · 1 in → 1 out
-
-Step settings (`handlerConfig`):
-
-```json
-{
-  "failureMode": "soft"
-}
-```
 
 Input:
 
 ```
-https://offline.example.com/article
+https://expired-domain.example.com/
 ```
 
 Output:
 
 ```
-{}
-
-// warning: FETCH_FAILED
-//   "url.metadata: connect ECONNREFUSED 203.0.113.7:443"
+{
+  "url":     "https://expired-domain.example.com/",
+  "failure": {
+    "code":    "dns-not-found",
+    "message": "DNS resolution failed for \"expired-domain.example.com\": getaddrinfo ENOTFOUND expired-domain.example.com"
+  }
+}
 ```

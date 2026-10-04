@@ -46,6 +46,7 @@ mentions.
 | `telegram.resolve-channel`                                     | one public channel by handle: name, members, description, picture                           | the platform   | none               | 6h     |
 | `place.details`                                                | one place's map listing: address, hours, rating                                             | Apify          | `apify`            | 7d     |
 | `place.reviews`                                                | what people wrote about one place                                                           | Apify          | `apify`            | 24h    |
+| `place.search`                                                 | the places a map lists for a query, each as the card `place.details` returns                | Apify          | `apify`            | 24h    |
 | `youtube.video`                                                | a video's metadata and stats                                                                | YouTube        | `youtube`          | 7d     |
 | `youtube.channel`                                              | a channel's metadata and stats                                                              | YouTube        | `youtube`          | 7d     |
 | `youtube.trending`                                             | the channels behind a region's trending videos                                              | YouTube        | `youtube`          | 6h     |
@@ -104,7 +105,20 @@ real browser.
   <!-- field-ok: bodySlot — a `url.fetch` config field, listed on the handler's reference page -->
 - **`url.metadata`** when you only need the head: title, description, icon. It reads the page's head
   over plain HTTP with no JS render, so it is cheap and it is wrong about pages that build their
-  own title in the browser.
+  own title in the browser. It is also the liveness check: a site that cannot be reached does not
+  fail the step. The output carries `failure.code` instead of `httpStatus`, one of
+  `dns-not-found` (the name has no address), `connection-refused` (the host answered that nothing
+  listens there), `tls-failed` (the certificate or handshake was refused), `redirect-limit` (more
+  redirects than `maxRedirects`, or one that names no target), `timeout` (no answer within
+  `timeoutMs`), `connection-reset` (the connection was dropped mid-request) and `unreachable`
+  (anything else). Wire `failure.code` to store why; a step wired to `httpStatus` is skipped when
+  the site never answered. To stop a flow on a dead site, put a condition on `failure`: the step
+  itself no longer fails. An HTTP error such as 404 is an answer: it has `httpStatus` and no
+  `failure`. A live page often reads `206`, not `200`, because the handler asks for the head of the
+  page only: test for a status below 400, or for `failure` being absent, never for `200`. A
+  `flow.dispatch` that matches on `contentType` sends a dead site to its `default` branch, since
+  the field is absent: branch on `failure` first. Only a missing name and a redirect dead end are
+  remembered for the cache period; every other failure is read afresh next time.
 - **`url.scrape`** when you need the readable body of a modern page. It renders JavaScript, which is
   why it costs a vendor call and sits in the tightest bucket.
 - **`url.fetch-as-file`** when you want the bytes rather than the text — a PDF, an image, an
@@ -125,9 +139,11 @@ tag-stripping expression and the no-vendor variant:
   steps included — a step runs while any one input is present.
 
 `url.fetch`, `url.fetch-as-file` and `url.metadata` go through an SSRF guard: they reach the open
-web, not the deployment's own network. A host name that does not resolve is refused by the same
-guard, so a typo in a URL reaches the caller as `400 BAD_REQUEST` "The flow attempted a blocked
-network request.", not as a network error.
+web, not the deployment's own network. On `url.fetch` a host name that does not resolve is refused
+by the same guard, so a typo in a URL reaches the caller as `400 BAD_REQUEST` "The flow attempted a
+blocked network request.", not as a network error. `url.metadata` reports it as a value
+(`failure.code: "dns-not-found"`), and `url.fetch-as-file` softens it when its `failureMode` is
+`soft`. A private address is refused by all three, always.
 
 ## Telling an outside system something: `url.send`
 
@@ -219,7 +235,10 @@ read waits out once when the wait is short.
   page's **Queue** line in `kipory-build` has the numbers. The Apify handlers and `url.scrape`
   make three attempts with exponential backoff and wait up to five minutes; `url.screenshot` waits
   up to two minutes; `url.fetch` and `url.fetch-as-file` make three attempts within one and
-  one-and-a-half minutes; `url.metadata` makes two within thirty seconds; `youtube.video`,
+  one-and-a-half minutes; `url.metadata` looks twice, inside its own `timeoutMs`, before it reports a refused or
+  dropped connection, and never fails on a site it cannot reach; a step with its own tries reads a
+  timed-out site again, and each try gets half the handler's thirty-second wait, so keep
+  `timeoutMs` under about twelve seconds when you set tries; `youtube.video`,
   `youtube.channel` and `youtube.trending` make two, waiting up to a minute; `youtube.transcript`
   makes two, waiting up to two minutes; the social-platform reads make three, waiting up to five
   minutes; `location.resolve` makes two within a minute. A step that
