@@ -55,7 +55,9 @@ kind's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
 `POST /v1/relation-kinds` (the camelCase `joinRecord` / `manyToOne` is refused; `producer` is
 required on every relation row, as on the create), and an eval
 suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`, its `scoreRules`
-the same list under the same bounds, with `direction` in kebab (`higher-is-better`).
+the same list under the same bounds, with `direction` in kebab (`higher-is-better`). A suite's
+`applyWrites` rides along too: an export always states it, and `false` means the suite's runs
+discard what the flow writes (eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)).
 
 ## Three reference forms
 

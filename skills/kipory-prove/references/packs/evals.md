@@ -133,9 +133,9 @@ behind it the payer's wallet (`402` `BALANCE_BELOW_SOFT_CAP`); the two look iden
 line and their remedies are not interchangeable. Run a suite when something changed, never as a
 polling heartbeat.
 
-⚠️ **A run applies its record writes and publishes no events** — see [The subject](#the-subject)
-below. Point a contract suite at a flow that does not write, or accept that each run changes the
-data it reads.
+⚠️ **A run applies its record writes unless the suite says `applyWrites: false`, and publishes no
+events** — see [The subject](#the-subject) below. Set it false on a suite over a flow that writes,
+or accept that each run changes the data it reads.
 
 ### In a project document
 
@@ -399,17 +399,38 @@ design-time ceiling and `402` when the project is over its cap. The case's trace
 suite's project marked `platformFlowRun: true`, so a reader can tell it from the project's own
 flows. The run read carries the same mark on each case result, `results[].platformFlowRun`.
 
-⛔ **A suite runs through the preview engine, and a preview APPLIES its writes.** `apply` defaults to
-true and the eval runner does not pass `apply: false`, so a suite over a flow that creates or
-updates records **mutates the very corpus it is measuring** — which also moves the case fingerprint
-and makes the next delta incomparable. Files land in a sandbox prefix, a send is refused — an `email.send` or `url.send` step
+⛔ **A suite runs through the preview engine, and a preview APPLIES its writes.** The suite's
+`applyWrites` is the preview's `apply`, and it defaults to true, so a suite over a flow that creates
+or updates records **mutates the very corpus it is measuring** — which also moves the case
+fingerprint and makes the next delta incomparable.
+
+⭐ **`applyWrites: false` makes every case a dry run.** Every step runs — every model call, the
+same credits — and the records and terms the flow would have written are discarded when the case
+ends, on both arms of a bracketed run. An `entity.enqueue-process` handoff is discarded with the
+writes, so the record's processing flow does not run. Scorer flows are not covered: a scorer that
+writes still applies. Each run keeps the answer it started under as
+`measurementConditions.writesApplied` (`null` on a run recorded before it was kept), so a later edit of
+the suite does not change what an earlier run says it left behind.
+
+⚠️ **A dry run does not prove the writes would save.** The platform checks a run's writes against
+the database when it applies them, and a dry run stops before that. A write the apply would refuse
+— a record another writer changed while the case ran, a unique value taken in the meantime, a write
+the database rejects — fails an applying case with a run-level error and passes a dry one. Keep one
+applying case, or preview the flow once with `apply` left on, when the write itself is what you are
+checking.
+
+In either mode a run reads its own writes one way only: a step that reads a record by id sees what
+an earlier step of the same case wrote, and a list, query, count or search does not.
+
+Whatever `applyWrites` says: files land in a sandbox prefix, a send is refused — an `email.send` or `url.send` step
 fails rather than sending — and an
 emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
-published, so no trigger starts. Records and terms are not isolated, and neither is a processing
-handoff: an `entity.enqueue-process` step runs the record's processing flow live once the case
-applies, and that flow's events publish and its mail is sent. An eval run's model calls are
-`origin: test` in the AI-call list; the run's own `credits` is the per-suite figure. Re-running a suite over a mutating flow is not a safe idempotent act:
-measure a flow that does not write, or accept that each run changes the baseline.
+published, so no trigger starts. In an applying suite, records and terms are not isolated, and
+neither is a processing handoff: an `entity.enqueue-process` step runs the record's processing flow
+live once the case applies, and that flow's events publish and its mail is sent. An eval run's model calls are
+`origin: test` in the AI-call list; the run's own `credits` is the per-suite figure. Re-running an applying suite over a mutating flow is not a safe idempotent act:
+set `applyWrites: false`, measure a flow that does not write, or accept that each run changes the
+baseline.
 
 ## Two tiers of scorer — reach for the free one first
 
