@@ -4,6 +4,7 @@
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: isDesign — one project's example field name, not a platform field -->
 <!-- field-ok: isTech — one project's example field name, not a platform field -->
+<!-- field-ok: authorId — one project's example field name, not a platform field -->
 
 Four shapes for flows that read and write the project's records. The section numbers continue `patterns.md` (§1–§6, the control shapes), so "§8" means the same section wherever it is cited. Field names are the handlers' own config keys — `handlers/<key>.md` has each table.
 
@@ -160,6 +161,38 @@ entity.list (my follows → follows)  →  value.transform (follows.records → 
 
 The transform writes the slot `followed`, an object with one field: `{ "ids": [ … ] }`. `cursor` is an optional flow input carrying the `nextCursor` a previous page answered; absent, the query returns the first page.
 
+The link is declared once, on the child: an `item` points at its `collection`, and the relation `in-collection` is paired from `item` to `collection`. The `uses` of `item`:
+
+```json
+{
+  "fields": [
+    {
+      "source": { "family": "submission", "field": "collectionId" },
+      "uses": [{ "kind": "link", "relation": "in-collection" }]
+    },
+    {
+      "source": { "family": "submission", "field": "authorId" },
+      "uses": ["filter"]
+    }
+  ]
+}
+```
+
+The parent declares no link. The `uses` of `collection` carry only what the query orders by:
+
+```json
+{
+  "fields": [
+    {
+      "source": { "family": "submission", "field": "lastItemAt" },
+      "uses": ["filter"]
+    }
+  ]
+}
+```
+
+The query is asked of the parent, with the edge coming IN:
+
 ```json
 {
   "recordType": "collection",
@@ -185,6 +218,7 @@ The transform writes the slot `followed`, an object with one field: `{ "ids": [ 
 ```
 
 - **Query the thing the user sees, not the thing they follow.** The clause above asks for collections linked to an item by a followed author, so each collection comes back once however many of its items match. Paging the items and collapsing them afterwards repeats a collection across pages.
+- **`incoming` is asked of the type the link points at.** The `link` use stays on the child's field (`item.collectionId`); the parent needs none, and `peer` clauses are checked against the child's `uses` (`authorId` carries `filter`). Without `direction: "incoming"` the same clause on `collection` is refused `QUERY_CLAUSE_UNROUTED`: the default, `outgoing`, needs the link on the queried type. The refusal says to ask `incoming`.
 - **Following nobody is an answer.** A slot holding `[]` runs the step and returns no records. A slot that is absent skips the step, so produce the list in a step that always runs.
 - **`in` takes at most 1,000 values.** Past that the step fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
 - **Order by a date the record carries.** `order` takes `created`, or one of the type's own date fields with a `filter` use; a record with no value there is left out. To order by something a linked record holds (the newest item's date), keep it on the record — the next pattern.
@@ -194,13 +228,13 @@ The transform writes the slot `followed`, an object with one field: `{ "ids": [ 
 
 `entity.query` is the one handler that joins: a record matches when it matches **every** clause in `clauses` (at most 16). Each clause is one of five kinds, and each value may be written in config or named by a slot — one or the other, never both:
 
-| `kind`     | Members                                                                                                                                                                                                         | Matches                                                                                                                                                                     |
-| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `field`    | `field`, `op` (`eq`, `lt`, `lte`, `gt`, `gte`, `in`), `value` or `valueSlot`                                                                                                                                    | a field of the type that carries a `filter` use. `in` takes a list (any of them, at most 1,000); dates are ISO 8601 strings                                                 |
-| `term`     | `facet`, `slug` or `slugSlot`                                                                                                                                                                                   | a term of a facet the type surfaces, by slug; an alias resolves to its canonical term                                                                                       |
-| `semantic` | `text` or `textSlot`, optional `field`, optional `topK` (default 50, at most 200)                                                                                                                               | records ranked by meaning against the type's search index. At most one per query, counting one inside an edge's `peer`                                                      |
-| `edge`     | `relation`, optional `direction` (`outgoing` by default, `incoming` or `either`), optional `where[]`, `count` (`{ op, n }` with `op` one of `>=`, `>`, `=`, `<`, `<=`; omitted means at least one) and `peer[]` | records linked by a relation kind a field of the type carries a `link` use for; `peer` holds `field`, `term` and `semantic` clauses on the record at the other end, one hop |
-| `stream`   | `field`, optional `window` (`from` or `fromSlot`, `to` or `toSlot`), optional `where[]` and `count` (`"exists"` by default, `"none"`, or `{ op, n }`)                                                           | event rows of a field that carries a `stream` use, inside a time window                                                                                                     |
+| `kind`     | Members                                                                                                                                                                                                         | Matches                                                                                                                                                                                                                                               |
+| ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `field`    | `field`, `op` (`eq`, `lt`, `lte`, `gt`, `gte`, `in`), `value` or `valueSlot`                                                                                                                                    | a field of the type that carries a `filter` use. `in` takes a list (any of them, at most 1,000); dates are ISO 8601 strings                                                                                                                           |
+| `term`     | `facet`, `slug` or `slugSlot`                                                                                                                                                                                   | a term of a facet the type surfaces, by slug; an alias resolves to its canonical term                                                                                                                                                                 |
+| `semantic` | `text` or `textSlot`, optional `field`, optional `topK` (default 50, at most 200)                                                                                                                               | records ranked by meaning against the type's search index. At most one per query, counting one inside an edge's `peer`                                                                                                                                |
+| `edge`     | `relation`, optional `direction` (`outgoing` by default, `incoming` or `either`), optional `where[]`, `count` (`{ op, n }` with `op` one of `>=`, `>`, `=`, `<`, `<=`; omitted means at least one) and `peer[]` | records linked by a relation kind a `link` use declares: on a field of the type, or, for `incoming` and `either`, on a field of a type that points at it; `peer` holds `field`, `term` and `semantic` clauses on the record at the other end, one hop |
+| `stream`   | `field`, optional `window` (`from` or `fromSlot`, `to` or `toSlot`), optional `where[]` and `count` (`"exists"` by default, `"none"`, or `{ op, n }`)                                                           | event rows of a field that carries a `stream` use, inside a time window                                                                                                                                                                               |
 
 A `where[]` entry is `{ property, op, value | valueSlot }` over a filter the relation kind or the stream declares. Only a query without a `semantic` clause pages (`cursorSlot`); `limit` is 1 to 100. `POST /v1/records/query` asks the same clauses from outside a flow (`kipory-data`).
 

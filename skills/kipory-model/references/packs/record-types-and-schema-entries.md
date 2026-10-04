@@ -672,9 +672,14 @@ Each kind of clause is answered by the store its use routed the field to, so eac
   its canonical term, as every term read does. It matches **active** terms only: a record filed
   under a candidate term is not found by a `term` clause, or by the list's `term=` condition, until
   the term is admitted (`PATCH /v1/terms/{id}`).
-- **`edge`** needs a `link` for the `relation`. `direction` is `outgoing` unless you say
-  `incoming` or `either` (a symmetric link matches on either side whatever you ask); `where` speaks
-  the link's `element.filters`; `count` is a comparison on matching edges (omitted: at least one);
+- **`edge`** needs a `link` for the `relation`, on the field that points. `direction` is
+  `outgoing` unless you say `incoming` or `either` (a symmetric link matches on either side
+  whatever you ask). Asked `outgoing`, the link is on a field of the queried type. Asked `incoming`
+  or `either`, a link on a field of a type that points AT the queried one routes it too: with
+  `in-story` declared on `post.storyId`, query `story` with `direction: "incoming"` — `story`
+  declares no link and keeps no list of its posts. The default direction from `story` is refused
+  `QUERY_CLAUSE_UNROUTED`, and the refusal says to ask `incoming`. `where` speaks the link's
+  `element.filters`; `count` is a comparison on matching edges (omitted: at least one);
   `peer` is a list of clauses on the record at the far end — ONE hop: `field`, `term`, and at most
   one `semantic` (below).
 - **`stream`** needs `stream` on the field. `window` is `{ from, to }` on the event's own time —

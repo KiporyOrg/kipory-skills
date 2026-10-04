@@ -48,8 +48,8 @@ Find records by their fields, terms, links, or meaning, all in one question.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `edge` | yes | — | A relation the type routes with `link`, optionally narrowed by its edge filters, a count and one hop of peer clauses. |
-| `relation` | string | yes | — | A relation kind some field of the type carries a `link` use for. |
+| `kind` | `edge` | yes | — | A relation a `link` use declares, optionally narrowed by its edge filters, a count and one hop of peer clauses. |
+| `relation` | string | yes | — | A relation kind a `link` use declares: on a field of this type, or, asked `incoming` or `either`, of a type pointing at it. |
 | `direction` | `outgoing` \| `incoming` \| `either` | no | — | Which end the record is on. Omitted: `outgoing`. |
 | `where` | object[], 1 to 16 items | no | — | Clauses on the kind's declared edge filters, ANDed. |
 | `count` | object | no | — | Keep records whose number of matching edges compares so. Omitted: at least one. |
