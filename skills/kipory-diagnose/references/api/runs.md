@@ -58,6 +58,7 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `window` | `"24h" \| "7d" \| "30d"` | no | Narrow to runs STARTED in this window. ⭐ THE SAME VOCABULARY the calls, ingestion and usage surfaces take, so a drill-through from one of them carries its window across without a translation table and a reader who narrowed there is never silently re-widened here. ⚠️ IT FILTERS, IT DOES NOT ORDER: the page is still a keyset on `seq`, and a bound on `at` does not change which column the cursor walks. Ranges on the OPENER's `at` — when the run started — which is what a reader means by a run being 'in' a window. Counted in whole slices, as usage counts it: `24h` from the top of the hour 23 hours before the current one, `7d` and `30d` from 00:00 UTC that many days back counting today. ⛔ NOT VALID WITH `since` or `until` (400): a preset and an explicit range are two answers to one question. |
 | `since` | `string` | no | Only runs STARTED at or after this instant — the explicit form of `window`, for a range no preset names. Ranges on the opener's `at`, like `window`, and filters without changing the cursor. |
 | `until` | `string` | no | Only runs started STRICTLY BEFORE this instant. Omit it for up to now. Refused (400) at or before `since`: that range is empty by construction. |
+| `tally` | `"hour" \| "day"` | no | Also answer how many runs STARTED in each hour or day of the range, as `started`. ⛔ NEEDS A LOWER BOUND (`window` or `since`): refused (400) without one, since an unbounded range has no first slice. Counted on the same instant and under the same `flowKey` as the list, so the slices sum to `total`. Not moved by the cursor. |
 | `order` | `"desc" \| "asc"` | no | Which way the list runs by start (insertion `seq`): `desc` (the default) is newest first, `asc` oldest first. |
 
 **Response `200`**
@@ -72,6 +73,7 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the previous page along `order`. `null` on page one. ⛔ MEASURED, NEVER INFERRED FROM THE REQUEST. It was once taken from `after !== undefined` — 'a caller that passed a cursor came from somewhere' — which is true of a caller who walked here and false of every other way of arriving, and is the reasoning `/files` shipped and withdrew after it drew the newer control inert on every jumped page. It is an existence probe now, in both directions. |
 | `since` | `string \| null` | yes | The lower bound the list was read from — the instant `window` resolved to, or the `since` sent — or `null` when neither was asked, so a reader states the range the list was read over rather than re-deriving it from a label and a clock that may differ. |
 | `until` | `string \| null` | yes | The `until` sent, or `null` for up to now. |
+| `started` | `object[] \| null` | yes | Runs started per slice of the range, oldest first, when `tally` was sent. Every slice is PRESENT, a quiet one with zero, so the shape is not compressed. `null` when `tally` was not sent, or when the range holds too many runs to tally — never an empty list for a range that was not counted. |
 
 Each item of `runs`:
 
@@ -90,6 +92,13 @@ Each item of `runs`:
 | `stepsStarted` | `integer` | yes | The `x`: how many steps this run has been observed to START. Counted from the log, so it is what HAPPENED — never a plan. |
 | `lifecycle` | `"in-flight" \| "settled" \| "unknown"` | yes | Whether the run is still going. ⛔ NOT from the step log, which cannot answer it — a run with no closing frame is three facts at once (in flight, dead with its buffer, reaped). It comes from whichever row the run id belongs to: an endpoint run's INVOCATION status, or a record-processing ATTEMPT's terminal marker. ⭐ ON THE ROW rather than on the single-run response, because BOTH screens draw it: while it lived on only one, the listing said `no end recorded` about a run the run page called `running`. A run with no row in either table — a synchronous call, a preview — is `settled` once it has a closing frame (`closing` non-null) and `unknown` until then. ⚠️ `unknown` is ordinary rather than an error; a lifecycle state the platform has grown but this reader has not been taught resolves to it as well. It means `no outcome recorded`, never `finished`. |
 | `closing` | `object \| null` | yes | How a run ended, where that has been observed. |
+
+Each item of `started`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `at` | `string` | yes | The slice's first instant: the top of a UTC hour, or 00:00 UTC. |
+| `runs` | `integer` | yes | Runs that started in this slice. |
 
 ### `GET /v1/runs/{runId}`
 

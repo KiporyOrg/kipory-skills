@@ -189,6 +189,7 @@ Each item of `skills`:
 | `failed` | `integer` | yes | A subset of this skill's `calls`, never a second total. |
 | `p50Ms` | `integer \| null` | yes | Null when too few calls to characterise — never zero. |
 | `p95Ms` | `integer \| null` | yes | Null exactly when `p50Ms` is. The pair is decided together. |
+| `answeredP50Ms` | `integer \| null` | yes | The median over this skill's calls that answered (did not fail). Null when too few answered to characterise — never zero. `p50Ms` is over every call, failed ones included. |
 | `credits` | `integer` | yes | What this skill's calls CHARGED over the window, in credits. ⚠️ A FLOOR, not a total: read it beside `callsWithNoCostEvent`. |
 | `callsWithNoCostEvent` | `integer` | yes | This skill's calls with no `CostEvent`. ⛔ AN ABSENT SUM IS NOT A ZERO SUM — without this figure a skill whose billing dropped reports a confident `$0.0000` and sorts as the cheapest thing in the window. |
 
