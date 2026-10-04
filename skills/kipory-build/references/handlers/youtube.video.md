@@ -12,20 +12,18 @@ Look up a YouTube video's details, numbers, and thumbnail.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** YouTube Data API — Reads video metadata and statistics from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube handler. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 60 per 60000ms in bucket `youtube` — shared with `youtube.channel`, `youtube.trending`
-- **Queue:** 2 attempts, exponential from 2000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 60 per min in bucket `youtube` — shared with `youtube.channel`, `youtube.trending`
+- **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 7 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `parts` | string[] | no | `["snippet","contentDetails","statistics"]` | Which parts of the video to fetch. Snippet, content details and statistics by default — enough for a cheap check. ⚠️ Each part costs one quota unit per call, against a daily pool. |
+| `parts` | string[], at least 1 item | no | `["snippet","contentDetails","statistics"]` | Which parts of the video to fetch. Snippet, content details and statistics by default — enough for a cheap check. ⚠️ Each part costs one quota unit per call, against a daily pool. |
 
 ## Worked example
 
 Turns a video URL or id into its metadata and stats — cheap enough to check before paying for a transcript.
-
-Reads: parse + lookup. Emits: map fields.
 
 #### From a link
 

@@ -13,6 +13,14 @@ asynchronous path a dynamic endpoint uses.
 
 The fire is attributed to the **project**, not to a person, and billed to the project's payer.
 
+<!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field a caller sends -->
+
+**A fire has no end user.** `userInfo` is absent from the run. A step that reads only provider
+slots still runs, with no user behind it — so a per-user record type refuses there, a project-wide
+one reads normally, and a `user`-scoped emit is dropped. A step that reads `userInfo` beside
+another slot waits on that other slot. Carry the person you mean as an input, and preview the flow
+with `"principal": "no-end-user"`, which is the run a fire makes.
+
 ## When you need it — and when you don't
 
 - **Against an endpoint:** use an endpoint when an outside caller decides _when_. Use a schedule
@@ -41,9 +49,9 @@ that suppresses fires, so state it when you meant `allow`.
 
 ## The key you author
 
-Every project element is addressed by its `key`, a string **you** choose rather than the row id.
-Endpoints, schedules and schema entries — with triggers, sources, eval suites and eval cases —
-share one format, the **address key**, and it is checked on write:
+A schedule is addressed by its `key`, a string **you** choose rather than the row id. Schedules,
+triggers, sources, endpoints, schema entries, eval suites and eval cases share one format, the
+**address key**, checked on write:
 
 ```
 letters, digits, dots, dashes, underscores
@@ -51,26 +59,18 @@ first character a letter or a digit
 64 characters maximum
 ```
 
-<!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
-
-⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
-event types and their namespaces, relation kinds and embedding profiles), a facet's is camelCase, a record
-type's is a type name and a skill's a dotted kebab step name. Address keys are none of those, and
-deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
-element's key has exactly one format; do not assume one from another. A key outside its format is
-refused, never re-cased for you.
-
-The reason for the charset is narrow and worth knowing: these keys end up as **one segment of a
-URL**. Anything needing an escape to survive that — a slash, a space, a `{}` placeholder, a `?` or
-a `#` — is refused at the write rather than mangled later.
+It is not the flow-key rule (strict lower-case kebab): each element's key has exactly one format,
+and a key outside its format is refused, never re-cased for you.
+Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) sets the formats side by side and says
+why the charset is what it is.
 
 ⚠️ The schedule key is **immutable**, and the patch body has no `key` member at all — sending one
 is a 422 naming the field, not a silent no-op. An address that moves is a link that breaks.
 
 **Rename through `label`.** A schedule carries a display label beside its key, editable at any time —
 the same `key`+`label` pair a flow, a trigger and a source carry. On the read it is **nullable**:
-`null` means nobody has labelled this schedule, which is true of every row created before the field
-existed, and tooling should fall back to the bound flow's label there. On the create it is optional
+`null` means nobody has labelled this schedule; fall back to the bound flow's label there. On the
+create it is optional
 **and nullable** — omitting it and passing `null` both mean "no label", so a client holding the
 `string | null` the read gave it can post that value back without branching first. On
 the patch it is a tri-state — omit it to leave the label alone, pass a string to replace it, pass
@@ -125,8 +125,7 @@ read the one schedule you are about to show from it when the list left it `null`
   string, `null` or an empty list is refused with a 422 `FLOW_INPUT_BLANK`, in the save and the
   `validateOnly` dry run, carrying one issue per blank slot whose `field` is its place in the body
   (`inputs.<slot>`). A missing slot is addressed the same way under
-  `VALIDATION_FAILED`. A schedule stored with a blank before this rule still fires; the next
-  write that sends its inputs (or moves its flow) must fill it. The flow's _live_ signature is read at save
+  `VALIDATION_FAILED`. The flow's _live_ signature is read at save
   time to check it, and **nothing is stored** — the same question is asked again at fire time,
   from the same code, so the two cannot drift apart.
 
@@ -146,15 +145,8 @@ read the one schedule you are about to show from it when the list left it `null`
   are minute, hour, day of month, month and day of week, counted on runs of whitespace, and the
   refusal says how many fields the one you sent had. So a six-field _seconds_ pattern like
   `0 */5 * * * *` is refused, and so are a four-field pattern, a blank or whitespace-only one, and
-  an `@daily`-style macro. ⚠️ **The seconds form is the one that used to bite**: the cron library
-  reads six fields SECONDS-FIRST, so before the count was checked a stray token after a
-  Monday-06:00 pattern stored as "minute 6 of every hour, on Tuesdays in January" — accepted, given
-  a confident next-run time, and nobody the wiser.
-
-  ⚠️ **Only a pattern the request CARRIES is counted** — on the create, and on an update whose body
-  names `cronPattern`. A row stored before the rule therefore keeps firing on the pattern it has,
-  and can still be enabled, disabled, renamed or re-zoned; it is refused the moment someone writes
-  its pattern, which is the request where they can fix it.
+  an `@daily`-style macro. The pattern is counted on the create, and on an update whose body names
+  `cronPattern`.
 
 - **A pattern with no future occurrence at all is refused.** Granularity is one minute — ⚠️ and that
   comes from the TICK, not from the pattern grammar, so nothing here fires faster than once a minute
@@ -185,7 +177,7 @@ run's invocation. Reach for them in this order:
   **names the step that failed** and the category of failure. Present only for a step-level failure.
   `reason` is set only for a refusal a caller may read: a mail step's sender refusal, or
   `project-mail-cap-reached` past the project's daily mail cap; `statusError` then names it too.
-- **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary skill failure
+- **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary step failure
   it is the fixed string _"The flow failed to run."_ on every run, because the raw error can carry
   provider bodies and prompt fragments and is deliberately not put there. The step's own words, cut
   to 500 characters, are on its `step-failed` row in `GET /v1/runs/{runId}/steps`. Three other shapes exist:
@@ -308,15 +300,18 @@ of rules, so a check that passes and a save that refuses cannot come apart.
 
 A delete asks the same way: `DELETE /v1/schedules/{id}?validateOnly=true` answers whether it would
 go through, writing nothing. Nothing refuses a schedule's delete, so the verdict is `ok` for any
-schedule the id addresses. The flag is the delete's only query parameter, the same one every design
-delete takes except a facet's (which also carries `confirm` and `assignedTerms`); anything else in
-the query is refused.
+schedule the id addresses. The flag is the delete's only query parameter; anything else in the
+query is refused.
 
 ## What will bite you
 
 - **There is no owner to name.** A schedule belongs to the project. The creator is recorded as
   provenance only, read by nothing at fire time, and is empty for a token-authenticated caller.
   This is deliberate: a departed creator's account can never stop or misattribute a run.
+- **A flow that works from an endpoint can do nothing on a schedule.** The endpoint run had a
+  signed-in user and the fire has none (above): a per-user record type refuses and a `user`-scoped
+  emit drops. A preview run as yourself resolves you and reports the flow healthy, so preview with
+  `"principal": "no-end-user"`.
 - **A schedule stored before a change keeps firing.** The fire asks only presence, so a value a
   later change made the wrong type still reaches the flow. The change's own rehearsal or plan
   named it (`SCHEDULE_INPUT_MISTYPED`); patch the schedule's `inputs` when it does.

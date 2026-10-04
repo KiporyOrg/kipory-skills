@@ -28,8 +28,6 @@ Change an existing record's data.
 
 Patches an existing record in place and says whether a row changed.
 
-Reads: the record id and the patch. Emits: changed?.
-
 #### Record updated
 
 The named fields are merged into the record and the step reports that a row changed.

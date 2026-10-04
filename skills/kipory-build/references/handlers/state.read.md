@@ -6,7 +6,7 @@ Recall a value saved earlier in this run.
 
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `none` → `string`
+- **I/O:** `none` → `string, or string[] for an append or union cell`
 - **Reads:** No slots. It returns whatever the named cell holds, or empty if nothing has written it. _(shape hint: `none`)_
 - **Emits:** The current value of a named run-state cell, materialized into this skill's output slot (a string for set/add cells, a list for append/union cells).
 
@@ -19,8 +19,6 @@ Recall a value saved earlier in this run.
 ## Worked example
 
 Reads a run-state cell that an earlier step wrote.
-
-Reads: nothing. Emits: the stored value.
 
 #### Value saved
 

@@ -9,8 +9,11 @@
 
 Where a project's RECORD vector space is defined. A profile names a dense embedding model and an
 ordered set of named vector slots — and it may also declare a **sparse** slot, which is worth
-deciding deliberately: declaring one makes every record carry sparse vectors whether or not anything
-searches them, and only a hybrid search step ever reads them. The **geometry** — how many dimensions, and which distance
+deciding deliberately: declaring one makes every record carry sparse vectors, and every `semantic`
+query clause — in `entity.query`, `POST /v1/records/query` and the records list's `mode=semantic` —
+then fuses keyword rank with meaning on its own; a `vector.search` step reads them only with
+`hybrid: true`. Declare one when exact words (names, codes) must be findable, and know that a fused
+score is derived from rank, not a cosine. The **geometry** — how many dimensions, and which distance
 metric — is **derived** from the model and returned read-only.
 
 A profile is also **the default way records enter the space**: `defaultChunking` (required on

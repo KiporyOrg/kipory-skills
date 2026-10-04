@@ -6,8 +6,8 @@ Clear a record's generated files and terms so it can be processed again.
 
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `slot map` → `object`
-- **Reads:** The record id, from the slot `recordIdSlot` names. The owner comes from the run, so a record owned by anyone else matches nothing. _(shape hint: `slot map`)_
+- **I/O:** `record id` → `object`
+- **Reads:** The record id, from the slot `recordIdSlot` names. The owner comes from the run, so a record owned by anyone else matches nothing. _(shape hint: `record id`)_
 - **Emits:** One count per target actually run. A target you did not ask for is absent, so a reader can tell 'not asked' from 'nothing to delete'.
 
 ## Config
@@ -15,13 +15,11 @@ Clear a record's generated files and terms so it can be processed again.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to strip. |
-| `targets` | string[] | no | `["files","terms"]` | Which stores to clear: generated files, term assignments, or both. Both by default. ⚠️ Files you submitted are never touched, only ones a run generated. Search vectors are not a target — the record is re-projected when it next turns ready. |
+| `targets` | string[], at least 1 item | no | `["files","terms"]` | Which stores to clear: generated files, term assignments, or both. Both by default. ⚠️ Files you submitted are never touched, only ones a run generated. Search vectors are not a target — the record is re-projected when it next turns ready. |
 
 ## Worked example
 
 Strips what a processing run produced for a record, so the next run starts clean.
-
-Reads: the record id. Emits: what was cleared.
 
 #### Files and terms
 

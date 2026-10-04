@@ -4,7 +4,7 @@
 
 The project's vector space and the collections derived from it. Creating a profile is inert; activating one repoints every declaration and reindexes.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -39,6 +39,31 @@ List a project's embedding profiles — every generation of every key, supersede
 | --- | --- | --- | --- |
 | `profiles` | `object[]` | yes | Every profile generation in the project, including superseded ones — a key can have several generations and only one is active. |
 
+Each item of `profiles`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Unique id of this profile generation. |
+| `project` | `string` | yes | Id of the project node that owns this profile. |
+| `key` | `string` | yes | The profile's key, shared by every generation of this profile and used verbatim in its collection names. Immutable — change the display text through `label` instead. |
+| `label` | `string \| null` | yes | Display text, or null if none was set. |
+| `generation` | `integer` | yes | Which generation of this profile key this is — the `v{n}` in its collection names. Each generation owns its own collections, so several can exist at once and only one is active. Minted by `POST /v1/embedding-profiles/{id}/generations`; never a lock. |
+| `version` | `integer` | yes | Increments on every write to this row. Send it back on `PATCH /v1/embedding-profiles/{id}` and `POST /v1/embedding-profiles/{id}/activate`; either is refused with 409 `VERSION_CONFLICT` if someone else changed the profile since you read it. Not the geometry — that is `generation`. |
+| `modelId` | `string` | yes | Id of the embedding model this generation uses. It determines the geometry, so changing it requires a new generation. |
+| `modelDisplayName` | `string \| null` | yes | Display name of that model, or null when the model is no longer in the catalog. |
+| `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
+| `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
+| `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
+| `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
+| `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
+| `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `canDelete` | `boolean` | yes | True when you may delete this profile right now: `deleteRefusal` is null, your role on the project is ADMIN or above, and the project is not retired. A UI affordance, not a permission — the delete re-checks on the server. |
+
 ### `POST /v1/embedding-profiles`
 
 Declare a vector space: a new profile key at generation 1, its geometry derived from the embedding model. With `validateOnly: true` it answers whether the create would be taken, writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (the `vectors.profiles` section; `/document/plan` to preview).
@@ -65,6 +90,15 @@ Declare a vector space: a new profile key at generation 1, its geometry derived 
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
 **Response `201`**
 
 | Field | Type | Required | Meaning |
@@ -89,6 +123,23 @@ Declare a vector space: a new profile key at generation 1, its geometry derived 
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+
+Each item of `collections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
+| `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
+| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
+
+Each item of `touched`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `record-types`, `schema-entries`, `relation-kinds`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `id` | `string` | yes | The row's id. |
+| `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
 ### `GET /v1/embedding-profiles/{id}`
 
@@ -129,6 +180,15 @@ Read one embedding profile generation: its model, slots, derived geometry, defau
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+
+Each item of `collections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
+| `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
+| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
 
 ### `PATCH /v1/embedding-profiles/{id}`
 
@@ -179,6 +239,32 @@ Change a profile's label, whether it is the project default, or the chunking its
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
+Each item of `collections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
+| `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
+| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
+
+Each item of `touched`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `record-types`, `schema-entries`, `relation-kinds`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `id` | `string` | yes | The row's id. |
+| `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
 ### `DELETE /v1/embedding-profiles/{id}`
 
 Delete one profile generation. Refused (409) while a searchable record type uses it, or while it still owns provisioned collections (the rollback path of the generation that superseded it) — the list publishes that refusal per profile as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. A whole key, every generation: `POST /v1/projects/{nodeId}/document` with `delete: true`.
@@ -205,6 +291,15 @@ Delete one profile generation. Refused (409) while a searchable record type uses
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
 ### `POST /v1/embedding-profiles/{id}/activate`
 
 Make this generation the live one for its key: every searchable record type on the key moves onto it, saved search steps are repointed at its collections, and the project reindexes. Activating a superseded generation is the rollback. Requires the addressed profile's `version` (409 `VERSION_CONFLICT` when stale); each moved record type's own lock is checked too. Safe to repeat: an already-live generation moves nothing and is answered 200 whatever `version` the retry carries. 409 too when the project default moved while the activation ran. To mint the generation first: `POST /v1/embedding-profiles/{id}/generations`.
@@ -229,6 +324,14 @@ Make this generation the live one for its key: every searchable record type on t
 | `movedRecordTypes` | `string[]` | yes | Record types moved onto this generation by this call. Empty when it was already the active one — activation is safe to repeat. |
 | `repointedSteps` | `string[]` | yes | Names of saved search steps whose stored collection name was rewritten onto the new generation. A step stores that name as a literal and the generation is part of it, so a step left behind keeps querying the superseded collection — which still exists, so it returns stale results rather than an error. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
+
+Each item of `touched`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `record-types`, `schema-entries`, `relation-kinds`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `id` | `string` | yes | The row's id. |
+| `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
 ### `POST /v1/embedding-profiles/{id}/generations`
 
@@ -258,6 +361,15 @@ Mint the next generation of this profile's key — a new, INERT row with a new m
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
 **Response `201`**
 
 | Field | Type | Required | Meaning |
@@ -282,6 +394,15 @@ Mint the next generation of this profile's key — a new, INERT row with a new m
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
 
+Each item of `collections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
+| `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
+| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
+
 ### `GET /v1/vector-collections`
 
 The vector collections of the project named by `?project=`, each derived from an embedding profile. One collection with its identity is `GET /v1/vector-collections/{name}`; collections are not created here but by the embedding profiles at `/v1/embedding-profiles`. Requires **VIEWER**.
@@ -298,6 +419,18 @@ The vector collections of the project named by `?project=`, each derived from an
 | --- | --- | --- | --- |
 | `collections` | `object[]` | yes | The project's live collections. Empty AND `reachable: false` means unknown, not none — check `reachable` before concluding anything from an empty list. |
 | `reachable` | `boolean` | yes | Whether the vector store answered the ENUMERATION. False means the SET is unknown, not empty; reading an empty list as “this project has no collections” is how an outage becomes a wrong answer. It says nothing about any one collection — read that row's `storeState`. |
+
+Each item of `collections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | Node id of the project that owns the collection. |
+| `name` | `string` | yes | Collection name without the project prefix — the short name an operator recognises. |
+| `collectionName` | `string` | yes | Physical collection name (`{slug}.{name}`) — the value a vector-search skill's `collection` setting carries. |
+| `live` | `object \| null` | yes | Geometry read from the vector store. Null means the store did not hand one over — either it has no such collection or the read failed — and `storeState` says WHICH. Do not read a null here as an empty collection, and do not read it as an outage either. |
+| `storeState` | `"present" \| "absent" \| "unreachable"` | yes | What the store said about THIS collection. `present`: it answered and `live` carries the geometry. `absent`: it answered clearly that it holds no such collection — a divergence to act on, NOT an outage. `unreachable`: the read failed, so the geometry and everything derived from it are unknown. `live` is null under both of the last two and they must never be folded together. |
+| `role` | `"derived" \| "terms" \| "preview" \| "unregistered"` | yes | What this collection is. `derived`: a registry row claims it — the record vectors of one embedding profile version, for one scope and isolation group; `identity` names them. `terms`: the project's facet vocabulary. `preview`: the project's flow-preview store, partitioned by session. `unregistered`: none of those — nothing on the platform owns it, so it is residue to investigate. Decided by the registry and the two fixed names, never by parsing the rest of the name. |
+| `identity` | `object` | yes | The tuple the physical name was computed from, read from the registry. Nobody parses the name: for anything but a `derived` collection `registered` is false and every profile field is null. |
 
 ### `GET /v1/vector-collections/{name}`
 
@@ -330,6 +463,13 @@ One collection of the project named by `?project=`, by the `name` a listing retu
 | `recordTypeKeys` | `string[]` | yes | Keys of the record types whose points land here, from the registry's own reads. Empty for a collection no declaration owns. |
 | `counts` | `object` | yes | How much is in the collection, and of what. |
 
+Each item of `payloadIndexes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `field` | `string` | yes | Physical payload key — namespaced (`post_language`) for a declared field, bare for a system one. |
+| `type` | `"keyword" \| "integer" \| "float" \| "text" \| "geo" \| "datetime" \| "bool" \| "uuid"` | yes | Index type Qdrant reports for the key. |
+
 ### `GET /v1/vector-collections/{name}/points`
 
 Page through the points stored in one collection, optionally narrowed by `filter`, a JSON array of `{key, value}` clauses. Free: it reads what is stored. To rank points against query text, `POST /v1/vector-collections/{name}/search`. Requires **VIEWER**.
@@ -358,6 +498,16 @@ Page through the points stored in one collection, optionally narrowed by `filter
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 | `paging` | `null` | yes | Always null here: a scroll cursor is a point id rather than an offset, so this route cannot say which page you are on and offers no page jump. `total` carries the half it CAN answer. |
 | `total` | `integer \| null` | yes | How many points this walk will visit in all, under the same filter — an exact count off the payload index. Null when the store did not answer it, which is NOT zero: a range drawn over a failed count would report an empty collection. |
+
+Each item of `points`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Qdrant point id. |
+| `subject` | `object \| null` | yes | The record or term this point was projected from. Null when the payload names neither — a foreign collection, or one written before the projector stamped its system keys. |
+| `chunkIndex` | `integer \| null` | yes | Which chunk of the record this point is. ⚠️ Always null for a TERM: one point is one term and there is nothing to chunk, so an absence here is a fact about the collection rather than a missing read. |
+| `label` | `string \| null` | yes | A readable name for the SUBJECT — a record's own title, or a term's `label`. ⚠️ NOT the embedded text — no point payload carries that — so every chunk of one record shares this label and only `chunkIndex` separates them. |
+| `payload` | `object \| null` | yes | The point's payload exactly as stored. |
 
 ### `POST /v1/vector-collections/{name}/search`
 
@@ -392,3 +542,14 @@ Rank one collection's points against `query` text. It writes nothing but embeds 
 | `results` | `object[]` | yes | Ranked results, nearest first. |
 | `slot` | `string \| null` | yes | The slot actually queried, so the caller never has to infer it. Null means the collection's single unnamed vector. |
 | `grouped` | `boolean` | yes | Whether one result is one record (scored by its best-matching chunk) or one raw point. ⚠️ A grouped result does NOT report how many chunks of that record matched: the store returns a bounded number of hits per group, so any such figure would be a cap presented as a count. |
+
+Each item of `results`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Qdrant point id. |
+| `subject` | `object \| null` | yes | The record or term this point was projected from. Null when the payload names neither — a foreign collection, or one written before the projector stamped its system keys. |
+| `chunkIndex` | `integer \| null` | yes | Which chunk of the record this point is. ⚠️ Always null for a TERM: one point is one term and there is nothing to chunk, so an absence here is a fact about the collection rather than a missing read. |
+| `label` | `string \| null` | yes | A readable name for the SUBJECT — a record's own title, or a term's `label`. ⚠️ NOT the embedded text — no point payload carries that — so every chunk of one record shares this label and only `chunkIndex` separates them. |
+| `payload` | `object \| null` | yes | The point's payload exactly as stored. |
+| `score` | `number` | yes | Similarity under the collection's metric. Every metric this platform admits ranks higher-is-nearer. |

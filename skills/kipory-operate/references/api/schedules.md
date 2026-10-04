@@ -4,7 +4,7 @@
 
 Run a flow on a cron in a timezone. Enable recomputes the next run from now; the run history carries the occurrence, its outcome, and the failing step.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -35,6 +35,37 @@ List one project's schedules (`?project=<nodeId>`), each with the `version` its 
 | --- | --- | --- | --- |
 | `schedules` | `object[]` | yes | The project's schedules, unpaginated. |
 
+Each item of `schedules`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
+| `project` | `string` | yes | Node id of the owning project. |
+| `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
+| `flowId` | `string` | yes | The flow this schedule runs. |
+| `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
+| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `tz` | `string` | yes | IANA timezone the pattern is read in. This is what decides behaviour across daylight-saving changes, so it is not cosmetic. |
+| `enabled` | `boolean` | yes | Whether the schedule is currently firing. Switch it with `PATCH /v1/schedules/{id}` `{enabled, version}`: switching on re-arms `nextRunAt` from now, switching off clears it. |
+| `startsAt` | `string \| null` | yes | Nothing fires before this instant, or null for no start bound. |
+| `endsAt` | `string \| null` | yes | Nothing fires after this instant, or null for no end bound. |
+| `maxRuns` | `integer \| null` | yes | Stop after this many firings, or null for no limit. Compared against `runCount`. |
+| `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an occurrence comes due while the previous one is still running. |
+| `createdByUserId` | `string \| null` | yes | Who set the schedule up. History only — a schedule is owned by its project and fires as its project, so nothing at fire time reads this. Null for a schedule created by a token, or once that account is gone. |
+| `nextRunAt` | `string \| null` | yes | When it next fires, or null when it is disabled, outside its window, or has hit `maxRuns`. |
+| `lastRunAt` | `string \| null` | yes | When it last actually fired, or null if it never has. |
+| `runCount` | `integer` | yes | How many times it has fired. Counted against `maxRuns`. |
+| `version` | `integer` | yes | Increments on every write. Send it back on a patch — switching `enabled` included — to be refused with 409 if someone changed the schedule in the meantime. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that this schedule's stored `inputs` do not supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
+| `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
+| `lastRunStatus` | `"succeeded" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
+| `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound — the judgement the scheduler makes when it advances a fired schedule. A disabled schedule answers `kind: "disabled"`, with `stop` saying whether it could run again. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. |
+| `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. Empty on a disabled schedule, which fires nothing. |
+| `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. Empty on a disabled schedule, which fires nothing. |
+
 ### `POST /v1/schedules`
 
 Create a schedule: a flow run on a five-field cron pattern in a timezone, with fixed inputs and optional bounds (`startsAt`, `endsAt`, `maxRuns`). It is created switched on; a pattern and bounds that can never fire are refused (422). With `validateOnly: true` it answers whether the create would be refused and the occurrences it would fire (`derived.upcoming`), writing nothing. Several schedules at once, beside the flows they run: the `surfaces.schedules` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
@@ -64,6 +95,15 @@ Create a schedule: a flow run on a five-field cron pattern in a timezone, with f
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to walk it, which is not the same as `ok` — a draft that will never fire still walks. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
 **Response `201`**
 
@@ -206,6 +246,15 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to walk it, which is not the same as `ok` — a draft that will never fire still walks. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
 ### `DELETE /v1/schedules/{id}`
 
 Delete one schedule and its run history; it stops firing at once. Nothing refuses it. With `?validateOnly=true` it answers the verdict, writing nothing. To stop it but keep it: `PATCH /v1/schedules/{id}` with `enabled: false`. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
@@ -231,6 +280,15 @@ Delete one schedule and its run history; it stops firing at once. Nothing refuse
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
 ### `GET /v1/schedules/{id}/runs`
 
@@ -258,3 +316,17 @@ One schedule's occurrences, newest first, walked on `after`/`before` — fired, 
 | `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+
+Each item of `runs`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Unique id of this occurrence. |
+| `occurrenceAt` | `string` | yes | The instant this occurrence was due. |
+| `outcome` | `"fired" \| "skipped" \| "blocked"` | yes | What happened at that instant — it fired, or it was skipped or blocked without firing. |
+| `reason` | `string \| null` | yes | Why it did not fire, or null when it did. This is where a skipped occurrence explains itself. |
+| `status` | `"succeeded" \| "failed" \| "running" \| "skipped" \| "blocked"` | yes | How this occurrence went: `succeeded`, `failed` or `running` from the run it started, `skipped` or `blocked` when it did not fire. The same answer `lastRunStatus` gives for the most recent one — a fired occurrence whose run is not linked (yet, or any more) reads `running`. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `invocation` | `object \| null` | yes | The run this occurrence started, or null when it did not fire at all. |
+| `timing` | `object \| null` | yes | How long it waited and how long it took, or null if it never ran. |
+| `creditCost` | `number \| null` | yes | What this occurrence cost in credits. **Null means no cost was recorded, which is not the same as a real zero** — a genuinely free run reports 0. |

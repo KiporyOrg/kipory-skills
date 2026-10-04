@@ -56,14 +56,11 @@ facet's (which also carries `confirm` and `assignedTerms`); anything else in the
 who made it and when — but not the snapshot itself. If you want to know what a restore would do,
 that is what the restore's dry run is for.
 
-**Who made it is the account as it is now, not as it was.** `createdByName`, `createdByEmail` and
-`createdByImage` are read through the author's account on every request — enough to draw the person —
-so a renamed author shows their new name on every old checkpoint. The checkpoint a restore takes of
-what it replaces is authored by whoever restored. All three are null where nobody is recorded — a
-checkpoint the platform took before a write to one of its own flows, one taken with a token, and one
-whose author's account is gone — and those cases look the same. They are also null whenever YOU call
-with an API key: a machine credential is shown no roster of humans, so a key reads `createdById` and
-nothing that names the person.
+**Who made it reads as null to a key.** `createdByName`, `createdByEmail` and `createdByImage` are
+read through the author's account as it is now, and a machine credential is shown no roster of
+humans: a key reads `createdById` and nothing that names the person. They are also null where
+nobody is recorded — a checkpoint the platform took itself, or one whose author's account is gone.
+The checkpoint a restore takes of what it replaces is authored by whoever restored.
 
 ## Ask before you restore — the dry run
 

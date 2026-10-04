@@ -16,13 +16,11 @@ Send an existing record back through its processing flow.
 | --- | --- | --- | --- | --- |
 | `mode` | `full` \| `from-cache` | no | `"full"` | How much of the previous run to reuse. `full` re-runs every step; `from-cache` replays the ones that have not changed. ⚠️ Only use `from-cache` when the earlier derived state is still there — replaying a step whose output was torn down produces nothing. |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to queue. ⚠️ Scoped to the signed-in user, so an id owned by anyone else queues nothing and reports no error. |
-| `replay` | `resume` \| `rerun` \| `clean` | no | `"resume"` | What a re-run carries over. `resume` skips steps the last attempt finished, `rerun` runs them all again, and `clean` also strips what it produced. ⚠️ `resume` is the default and is wrong on a schedule — the second run finds nothing left to do. `clean` deletes generated files, including ones from a step that is now switched off. |
+| `replay` | `resume` \| `rerun` \| `clean` | no | `"resume"` | What a re-run carries over. Every step runs again under each value; `clean` also strips what the last attempt produced. ⚠️ `resume` and `rerun` behave the same: a record run applies its writes at the end, so no finished step is skipped. `clean` deletes generated files, including ones from a step that is now switched off. |
 
 ## Worked example
 
 Puts an existing record back on the processing queue. It only triggers; it changes nothing itself.
-
-Reads: the record id. Emits: queued?.
 
 #### Queued
 

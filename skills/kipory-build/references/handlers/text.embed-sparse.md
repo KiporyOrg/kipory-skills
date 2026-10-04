@@ -15,14 +15,12 @@ Turn text into numbers that capture its keywords, for keyword search.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string | no | `"en"` | Which language's rules to tokenise by. Today's tokeniser reads the tag without branching on it; future ones will. ⚠️ It is part of the cache key, so changing it changes how terms map to dimensions. |
+| `language` | string, at least 2 characters, at most 8 characters | no | `"en"` | Which language's rules to tokenise by. Today's tokeniser reads the tag without branching on it; future ones will. ⚠️ It is part of the cache key, so changing it changes how terms map to dimensions. |
 | `tokenizer` | `naive-bm25` | no | `"naive-bm25"` | How the text is cut into terms and weighted. Today there is one mode: split on word boundaries, lowercase, weight by frequency. |
 
 ## Worked example
 
 One string in, a sparse vector out — a dimension per word. The variants show an exact identifier, a repeated word, and no text.
-
-Reads: read string slot. Emits: tokenize + BM25.
 
 #### An exact ID
 

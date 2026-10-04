@@ -4,7 +4,7 @@
 
 What the async ingest workers did with a project's records and what they cached; the read to check before concluding a processing flow never ran.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -62,3 +62,38 @@ What the project fetched from outside over a window (`24h`, `7d`, `30d`): per in
 | `handlers` | `object[]` | yes | Every handler with traffic in the window OR cache rows on disk — the union, deliberately. A handler holding 800 MB and running nothing is exactly the row an operator is looking for, and a traffic-only list would omit it. |
 | `quotaDay` | `object[] \| null` | yes | Shared budgets this project drew on today, or `null` when the counter could not be read. ⛔ `null` IS NOT AN EMPTY LIST: an empty list says this project touched no metered pool today, and `null` says nobody knows. |
 | `recentFailures` | `object[]` | yes | The newest failures in the window, capped. `totals.failed` is the real count — this list being short does not mean the failures were. |
+
+Each item of `handlers`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `handlerKey` | `string` | yes | The system handler key — `url.scrape`, `youtube.video`. |
+| `jobs` | `integer` | yes | Invocations in the window. |
+| `servedFromCache` | `integer` | yes | Of `jobs`, the ones this handler answered from the cache. |
+| `fetched` | `integer` | yes | Of `jobs`, the misses that came back with content. What this handler actually cost in vendor calls. |
+| `failed` | `integer` | yes | `miss-failure` + `wait-timeout` + `rejected-input`, on the same reading as `totals.failed`. |
+| `hitRate` | `number \| null` | yes | `null` when this handler ran nothing in the window — which is how a handler that holds cache rows but has gone quiet is distinguished from one that is missing every time. |
+| `cachedEntries` | `integer` | yes | Stored fetches this project holds for this handler, ALL of them — not windowed. A cache entry outlives the window that created it. |
+| `cachedBytes` | `integer` | yes | What those entries occupy. |
+| `quotaUnits` | `integer \| null` | yes | Shared external quota this handler's fetches recorded in the window — HISTORY, not the enforcement counter; see this module's header for why the two must not be added. `null` for every handler that draws on no metered budget, which is most of them, and for a window in which none was recorded. Never `0` for either. |
+
+Each item of `quotaDay`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Pool identity, from the handler descriptor's `ingest.externalQuota.resource`. One pool is shared by every handler declaring it, which is why this is not reported per handler: the three YouTube Data API v3 handlers draw on ONE budget, and `youtube.transcript` shares the subject but not the pool. |
+| `unitsUsed` | `integer` | yes | What THIS project has drawn in the current quota-day, from the enforcement counter rather than from the job log. Exact, and a measured `0` — a project that has spent nothing is a known quantity, not an absence. |
+| `resetsAt` | `string` | yes | When the pool's day rolls over, in the PROVIDER's zone. Carried because the window is not UTC and a reader assuming it is will misread a full budget as a spent one for up to eight hours. |
+
+Each item of `recentFailures`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The `IngestJobLog` row id. |
+| `at` | `string` | yes | When the invocation was logged. |
+| `handlerKey` | `string` | yes | The handler that failed — a key in `handlers` above. |
+| `outcome` | `"hit" \| "miss-success" \| "miss-failure" \| "wait-timeout" \| "rejected-input"` | yes | Which KIND of failure. Always one of `miss-failure`, `wait-timeout` or `rejected-input`; a `hit` or a `miss-success` never appears here. |
+| `attempts` | `integer` | yes | How many times the wrapper tried before giving up. `1` on a `rejected-input`, which never reached the queue at all. |
+| `durationMs` | `integer` | yes | Wall time this invocation spent. On a `wait-timeout` it is mostly the wait, not the work. |
+| `sourceHashPrefix` | `string` | yes | First 16 characters of the source hash. TRUNCATED ON PURPOSE: the full hash identifies a customer's source and nothing on this surface needs to, since the cache is addressed by the whole triple and no caller can look one up from here. |
+| `errorMessage` | `string \| null` | yes | What the handler said, verbatim, or `null` — which a `rejected-input` row always is, because nothing threw. |

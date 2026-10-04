@@ -4,7 +4,7 @@
 
 A project is the container everything else scopes by. Creating one needs OWNER at the parent organisation node, and the `id` the create answers is the project's one id: `{nodeId}` in these paths, `?project=` on every list, `project` in every create body. The project's generated element descriptions are here too.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -43,6 +43,25 @@ The newest generated description of every element of a project, with the describ
 | --- | --- | --- | --- |
 | `describer` | `object` | yes | The state of the platform's describer for this project: whether it is on, how far the configuration has been described, and how its last run ended. |
 | `elements` | `object[]` | yes | The newest description of every described element. |
+
+Each item of `elements`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"project" \| "flow" \| "step" \| "record-type" \| "endpoint" \| "schedule" \| "trigger" \| "facet" \| "event-type"` | yes | What kind of element. |
+| `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
+| `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
+| `summary` | `string` | yes | One line, for a list row. |
+| `description` | `string` | yes | One to three sentences on what the element does and why. |
+| `reads` | `string[]` | yes | What it takes in, in plain words. |
+| `writes` | `string[]` | yes | What it creates, changes, sends or announces. |
+| `external` | `string[]` | yes | Outside services and AI models it calls. |
+| `when` | `string \| null` | yes | What starts it, when the configuration says; null otherwise. |
+| `knobs` | `object[]` | yes | The settings that decide its behaviour, with current values. |
+| `questions` | `string[]` | yes | What a reader would want to know that the configuration cannot tell — an audit list. |
+| `confidence` | `"high" \| "medium" \| "low"` | yes | How sure the description is, given what the platform knew. |
+| `derivedAtVersion` | `string` | yes | The structure version the description was written at. |
+| `describedAt` | `string` | yes | When it was written (ISO 8601). |
 
 ### `POST /v1/descriptions/describe`
 
@@ -84,6 +103,25 @@ One element's generated descriptions, newest first, one page at a time — walk 
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 | `paging` | `null` | yes | Always null: the history is walked by its cursors, with no page count — a drill-in view reads it page by page. |
+
+Each item of `versions`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"project" \| "flow" \| "step" \| "record-type" \| "endpoint" \| "schedule" \| "trigger" \| "facet" \| "event-type"` | yes | What kind of element. |
+| `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
+| `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
+| `summary` | `string` | yes | One line, for a list row. |
+| `description` | `string` | yes | One to three sentences on what the element does and why. |
+| `reads` | `string[]` | yes | What it takes in, in plain words. |
+| `writes` | `string[]` | yes | What it creates, changes, sends or announces. |
+| `external` | `string[]` | yes | Outside services and AI models it calls. |
+| `when` | `string \| null` | yes | What starts it, when the configuration says; null otherwise. |
+| `knobs` | `object[]` | yes | The settings that decide its behaviour, with current values. |
+| `questions` | `string[]` | yes | What a reader would want to know that the configuration cannot tell — an audit list. |
+| `confidence` | `"high" \| "medium" \| "low"` | yes | How sure the description is, given what the platform knew. |
+| `derivedAtVersion` | `string` | yes | The structure version the description was written at. |
+| `describedAt` | `string` | yes | When it was written (ISO 8601). |
 
 ### `POST /v1/projects`
 
@@ -201,9 +239,18 @@ Retire a project: its node is suspended, its API keys, schedules and sources are
 | `counts` | `object` | yes | What a purge would destroy, by kind. A PREVIEW — reading it changes nothing, and the figures move as the project keeps being used. |
 | `external` | `object` | yes | What would be destroyed OUTSIDE the main database, and therefore not recoverable from a database backup. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
 ### `PUT /v1/projects/{nodeId}/address`
 
-Move the project to a new address (its subdomain); the slug never changes. The old address is reserved for a few minutes. Ask `GET /v1/projects/address-availability?project=` first.
+Move the project to a new address (its subdomain); the slug never changes. The old address is reserved for a few minutes. Ask `GET /v1/projects/address-availability?candidate=&project=` first: `candidate` is the new subdomain, `project` this project's id.
 
 **Path parameters**
 
@@ -243,6 +290,44 @@ Every element of the project — flows, steps, record types, endpoints, schedule
 | `relations` | `object[]` | yes | Every relation between two elements. |
 | `calls` | `object[]` | yes | Every model, outside service and mail call a step makes. A flow calls what its steps call. |
 
+Each item of `elements`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ref` | `string` | yes | `<kind>:<id>` — the element's reference, the same `elementRef` the element descriptions use. An opaque identifier: its prefix keeps the descriptions' spelling (`recordType:`, `eventType:`), so read an element's kind from `kind`, never from the prefix. |
+| `kind` | `"flow" \| "step" \| "record-type" \| "endpoint" \| "schedule" \| "trigger" \| "facet" \| "event-type"` | yes | What kind of element. |
+| `label` | `string` | yes | The element's display text. A step's own key; its flow is `flowRef`. |
+| `flowRef` | `string \| null` | yes | Steps only: the reference of the flow the step is part of. |
+| `order` | `integer \| null` | yes | Steps only: the step's position in its flow, 1-based. |
+| `enabled` | `boolean` | yes | False for a step, schedule or trigger that is switched off; true otherwise. |
+| `platform` | `boolean` | yes | True for a platform (SYSTEM) flow the project uses — named here because a project relation reaches it, never one of the project's own. |
+| `handlerUnknown` | `boolean` | yes | Steps only: the step names a handler the platform no longer knows, so its data relations and calls cannot be stated. |
+| `startedByNothing` | `boolean` | yes | Flows only: nothing in the project starts it — no endpoint, schedule, trigger, record type, facet, flow or evaluation suite. |
+
+Each item of `relations`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `from` | `string` | yes | The reference of the element the relation starts at. An evaluation suite, which has no element of its own here, is `evalSuite:<id>`. |
+| `to` | `string \| null` | yes | The reference of the element the relation ends at; null when the configuration does not resolve it (see `unresolved`). |
+| `verb` | `"runs" \| "processes" \| "resolves" \| "invokes" \| "evaluates" \| "scores" \| "creates" \| "reads" \| "updates" \| "deletes" \| "appends" \| "queues" \| "strips" \| "links" \| "unlinks" \| "searches" \| "counts" \| "aggregates" \| "writes" \| "tags" \| "extracts" \| "matches" \| "groups" \| "filters" \| "uses" \| "declares" \| "nests" \| "emits" \| "listens" \| "streams" \| "contains"` | yes | What the relation says `from` does to `to`. |
+| `via` | `string \| null` | yes | The reference of the step that carries the relation, when `from` is a flow and a step of it is what acts — an invoke, for one. |
+| `through` | `string \| null` | yes | Set when the relation is reached through a sub-flow: the reference of the flow invoked on the way. The relation belongs to that sub-flow, not to the flow that invokes it. |
+| `switchedOff` | `boolean` | yes | True when the step, schedule, trigger or evaluation suite behind the relation is switched off. |
+| `detail` | `string \| null` | yes | A short fact the verb needs, when it has one: a schedule's cron and time zone, an endpoint's mode (sync, queued, streamed), an evaluation suite's name — or, on a relation to something that no longer exists, the name the configuration still uses for it. |
+| `unresolved` | `"missing-element" \| "type-not-stated"` | yes | Why `to` is null: `missing-element` — the configuration names something that no longer exists; `type-not-stated` — the step acts on record ids whose type the configuration does not state. Null when resolved. |
+
+Each item of `calls`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `stepRef` | `string` | yes | The reference of the step that makes the call. |
+| `kind` | `"model" \| "service" \| "mail"` | yes | `model` — it calls a language or embedding model; `service` — it reaches an outside vendor; `mail` — it sends mail. |
+| `task` | `string \| null` | yes | Model calls: the task the step names, when it names one. |
+| `model` | `string \| null` | yes | Model calls: the model the step pins or configures, when it names one. |
+| `vendor` | `string \| null` | yes | Service calls: the vendor the step reaches. |
+| `switchedOff` | `boolean` | yes | True when the step that makes the call is switched off, so the call does not happen. |
+
 ### `GET /v1/projects/{nodeId}/history`
 
 The applied changes to the project's configuration, newest first, one action per entry (one action may change many rows). For one action's full change list, `GET /v1/projects/{nodeId}/history/{structureVersion}`. A record of what happened, not something to go back to: to keep a flow as it is and restore it later, take a checkpoint (`/v1/flow-checkpoints?flowId=`). For runs and calls, the runs routes.
@@ -277,6 +362,19 @@ The applied changes to the project's configuration, newest first, one action per
 | `prevCursor` | `string \| null` | yes | Pass as `before`, with the same `order`, for the previous page along `order`. Null on the first page. |
 | `recordingSince` | `string \| null` | yes | When this deployment began recording configuration changes — the instant the audit migration finished. Changes applied before it were not recorded and never will be. ⛔ A client MUST show this alongside an empty result: without it, 'no changes' reads as 'this project has never changed', which is false for any project older than the trail. ⚠️ NULL means the date itself could not be established, NOT that recording never started — a client says it cannot date the start rather than omitting the caveat. |
 
+Each item of `actions`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `structureVersion` | `string` | yes | The project configuration version this action produced, as a decimal string. Compare for equality and display it; do not parse it to a number — it is a 64-bit value and JSON cannot carry one. |
+| `at` | `string` | yes | When the action was applied. ⛔ NOT an ordering key — every change of one action shares it. Order on `structureVersion`. |
+| `actor` | `object` | yes | Who applied this action — a person, an API key, or the platform. One action has exactly one principal, guaranteed by the write path: `withDesignWrite` takes the actor as a required parameter, so every change of a transaction carries the same value. |
+| `changeCount` | `integer` | yes | How many changes this action RECORDED. Excludes anything elided — see `elidedCount`, which is a separate number on purpose. |
+| `elidedCount` | `integer \| null` | yes | How many changes were NOT recorded, when the action exceeded the per-transaction detail cap. NULL means the action was recorded in full. ⛔ Never 0: a summary that elided nothing would not exist. A client MUST surface a non-null value — the recorded subset is not the whole action. |
+| `resources` | `string[]` | yes | The distinct resources this action touched, for summarising it. ⛔ A summary derived from these may name KINDS and COUNTS and nothing else. No column records what the operator did, so a title like 'restored a checkpoint' asserts more than the trail holds. |
+| `preview` | `object[]` | yes | The first few changes, for the row's own line. Bounded by the route; read `changeCount` for the real total and the detail route for all of them. |
+| `document` | `object \| null` | yes | Set when this action was ONE project-document apply: what the document's plan counted. NULL for every other action. ⭐ The one place the trail records what the operator DID rather than only which objects moved — so a title may say 'document applied' here, and nowhere else may it name an operation. |
+
 ### `GET /v1/projects/{nodeId}/history/{structureVersion}`
 
 One applied action and every row it changed. The list is `GET /v1/projects/{nodeId}/history`.
@@ -310,6 +408,21 @@ One applied action and every row it changed. The list is `GET /v1/projects/{node
 | `paging` | `null` | yes | Always NULL here. The total is `changes.length` plus what paging has yet to return, and neither this route nor its page offers a jump. |
 | `nextCursor` | `string \| null` | yes | Pass as `after` for the next changes. Null on the last page. |
 | `prevCursor` | `string \| null` | yes | Pass as `before` for the previous changes. Null on the first page. |
+
+Each item of `changes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The audit record's own id. |
+| `resource` | `string` | yes | The design resource, one of the 23 in use — `facets`, `flows`, `record-types` — or, on a record written before a resource was retired, its old name (`flow-test-cases`). A string rather than an enum so a new resource needs no migration, matching the stored column. |
+| `section` | `string` | yes | The bootstrap section the resource maps to. |
+| `operation` | `"create" \| "update" \| "delete"` | yes | What happened to this object. |
+| `targetModel` | `string` | yes | The Prisma model the mutated row belongs to. |
+| `targetId` | `string` | yes | The row's primary key. Globally unique, and NOT a substitute for `targetKey` — nor the reverse. |
+| `targetKey` | `string \| null` | yes | The object's name in the reader's own vocabulary — a facet key, a flow slug. NULL when the model carries no such field, which is a property of the model rather than a gap in the record. |
+| `priorState` | `"versioned" \| "not-applicable" \| "created" \| "deleted"` | yes | Why `fromVersion`/`toVersion` are absent when they are. `versioned` — both present. `not-applicable` — this kind carries no version column at all. `created` / `deleted` — one end of the pair does not exist. ⛔ A client MUST render these differently: 'has no version' and 'we failed to capture one' are the same two nulls without this field. |
+| `fromVersion` | `integer \| null` | yes | The version this change replaced. NULL unless `priorState` says otherwise. |
+| `toVersion` | `integer \| null` | yes | The version this change produced. NULL unless `priorState` says otherwise. |
 
 ### `POST /v1/projects/{nodeId}/purge`
 

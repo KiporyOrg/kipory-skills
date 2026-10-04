@@ -1,28 +1,34 @@
 # Picking a source
 
+<!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
+
 ## By the question you are answering
 
-| The question                                  | Reach for                                                   | Note                                                                                                                                                 |
-| --------------------------------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
-| "What does this page say?"                    | `url.scrape`                                                | renders JS; tightest bucket, slowest step                                                                                                            |
-| "What does this endpoint return?"             | `url.fetch`                                                 | no vendor; takes a stored key; 60 a minute per host                                                                                                  |
-| "What is this link, for a preview card?"      | `url.metadata`                                              | head only, no render                                                                                                                                 |
-| "Give me the file behind this URL"            | `url.fetch-as-file`                                         | emits a file for `kipory-extract`                                                                                                                    |
-| "What does this page look like?"              | `url.screenshot`                                            | an image file, for a vision step or an archive                                                                                                       |
-| "Who writes about X?"                         | `web.search`                                                | one SERP page, organic only                                                                                                                          |
-| "How big is this site?"                       | `web.traffic`                                               | every metric nullable for small sites                                                                                                                |
-| "Which sites matter in this country?"         | `web.rankings`                                              | cached a month; empty means failure, not absence                                                                                                     |
-| "What is being said on X about this?"         | `x.posts`                                                   | a tweet, profile or search URL                                                                                                                       |
-| "What is this video, and what does it say?"   | `youtube.video` then `youtube.transcript`                   | wire `youtube.video`'s `id` into the transcript step — it takes a bare id and drops a URL without a call; two vendors, two buckets, two credentials  |
-| "Who is trending here?"                       | `youtube.trending`                                          | six-hour cache — the only genuinely fast-moving one                                                                                                  |
-| "What has this channel published?"            | `youtube.posts`                                             | videos or shorts; `youtube.comments` and `youtube.search` are its siblings                                                                           |
-| "Who is this account, and what do they post?" | `<platform>.profile` then `<platform>.posts`                | `tiktok`, `instagram`, `threads`, `x`; `linkedin.company` and `reddit.posts` take a page or a subreddit                                              |
-| "What was said in this video?"                | `tiktok.transcript`, `instagram.transcript`, `x.transcript` | text out; empty when nothing is said                                                                                                                 |
-| "What ads is this company running?"           | `facebook.ads`, `google.ads`, `tiktok.ads`, `linkedin.ads`  | one ad shape for all four libraries                                                                                                                  |
-| "Which Telegram channels cover this?"         | `telegram.search-channels`                                  | discovery; subscribing is `kipory-channels`                                                                                                          |
-| "Where is this?"                              | `location.resolve`                                          | free and unkeyed, rate-limited by courtesy                                                                                                           |
-| "What is this place, and when is it open?"    | `place.details`                                             | a place ID, a full map link, or "name, city"; a name returns the best match only                                                                     |
-| "What do people say about this place?"        | `place.details` then `place.reviews`                        | reviews need a place ID or map link, not a name — wire the card's `placeId` in; each review is charged; reviewer names stay out unless the step asks |
+| The question                                  | Reach for                                                   | Note                                                                                                                                                                             |
+| --------------------------------------------- | ----------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| "What does this page say?"                    | `url.scrape`                                                | renders JS; tightest bucket, slowest step                                                                                                                                        |
+| "What does this endpoint return?"             | `url.fetch`                                                 | no vendor; takes query, headers, a body and a stored key (`secret`); 60 a minute per project and host                                                                            |
+| "What is new in this feed?"                   | `url.fetch` then `text.extract` and `value.transform`       | no feed handler exists <!-- absent-handler: feed.* -->: fetch the XML with the step's own `reuseResultsForMinutes`, cut the items by regex, fan out, look each up — recipe below |
+| "What is this link, for a preview card?"      | `url.metadata`                                              | head only, no render                                                                                                                                                             |
+| "Give me the file behind this URL"            | `url.fetch-as-file`                                         | emits a file for `kipory-extract`                                                                                                                                                |
+| "What does this page look like?"              | `url.screenshot`                                            | an image file, for a vision step or an archive                                                                                                                                   |
+| "Who writes about X?"                         | `web.search`                                                | one SERP page, organic only                                                                                                                                                      |
+| "How big is this site?"                       | `web.traffic`                                               | every metric nullable for small sites                                                                                                                                            |
+| "Which sites matter in this country?"         | `web.rankings`                                              | cached a month; empty means failure, not absence                                                                                                                                 |
+| "What is being said on X about this?"         | `x.posts`                                                   | a tweet, profile or search URL                                                                                                                                                   |
+| "What is being said about this elsewhere?"    | `tiktok.search`, `reddit.search`, `threads.search`          | a platform's own search, as posts in the shared post shape; `youtube.search` is the same for videos                                                                              |
+| "What is this video, and what does it say?"   | `youtube.video` then `youtube.transcript`                   | wire `youtube.video`'s `id` into the transcript step — it takes a bare id and drops a URL without a call; two vendors, two buckets, two credentials                              |
+| "Who is trending here?"                       | `youtube.trending`                                          | six-hour cache — the only genuinely fast-moving one                                                                                                                              |
+| "What has this channel published?"            | `youtube.posts`                                             | videos or shorts; `youtube.comments` and `youtube.search` are its siblings                                                                                                       |
+| "Who is this account, and what do they post?" | `<platform>.profile` then `<platform>.posts`                | `tiktok`, `instagram`, `threads`, `linkedin`, `x`; `linkedin.company` and `reddit.posts` take a company page or a subreddit                                                      |
+| "Who follows this account, and from where?"   | `tiktok.followers`, `tiktok.following`, `tiktok.audience`   | TikTok only: the accounts that follow it, the accounts it follows, the countries its audience is in                                                                              |
+| "What was said in this video?"                | `tiktok.transcript`, `instagram.transcript`, `x.transcript` | text out; empty when nothing is said                                                                                                                                             |
+| "What ads is this company running?"           | `facebook.ads`, `google.ads`, `tiktok.ads`, `linkedin.ads`  | one ad shape for all four libraries                                                                                                                                              |
+| "Which Telegram channels cover this?"         | `telegram.search-channels`                                  | discovery; subscribing is `kipory-channels`                                                                                                                                      |
+| "What is this Telegram channel?"              | `telegram.resolve-channel`                                  | one public handle or `t.me` link → name, members, description, picture; an invite link cannot be resolved                                                                        |
+| "Where is this?"                              | `location.resolve`                                          | free and unkeyed, rate-limited by courtesy                                                                                                                                       |
+| "What is this place, and when is it open?"    | `place.details`                                             | a place ID, a full map link, or "name, city"; a name returns the best match only                                                                                                 |
+| "What do people say about this place?"        | `place.details` then `place.reviews`                        | reviews need a place ID or map link, not a name — wire the card's `placeId` in; each review is charged; reviewer names stay out unless the step asks                             |
 
 ## The budgets
 
@@ -47,11 +53,118 @@ Two consequences worth designing around:
 
 1. **A YouTube video plus its transcript is two vendors.** The metadata comes from the YouTube Data
    API against a daily unit quota; the captions come from Supadata against a separate per-minute
-   bucket, or from ScrapeCreators when Supadata fails and the step's `fallback` is on. Either can be exhausted while the other is fine, so a flow that reads both fails in two
-   distinct ways.
+   bucket, or from ScrapeCreators when Supadata fails and the step's `fallback` is on. Either can be
+   exhausted while the other is fine, so a flow that reads both fails in two distinct ways.
 2. **Scraping does not scale by fan-out.** Ten pages a minute is the ceiling for `url.scrape` and
    `url.screenshot` together. A fan-out of twenty pages is a two-minute run at best, and it is
    sharing that budget with every other run in the project.
+
+## Scrape with a plain-fetch fallback
+
+A page read that must not come back empty. Run the two sources side by side off the same `url`
+slot and keep whichever filled:
+
+```
+scrape   url.scrape                  url → page            (page.content: rendered markdown, or "")
+fetch    url.fetch                   url → raw             (the raw HTML/text, no vendor)
+strip    value.transform             raw → plain           (tags stripped, below)
+body     value.first-non-empty       { "inputs": ["page.content", "plain"], "valueKind": "string" } → body
+```
+
+1. **Coalesce text with text.** The two sources emit different types — `url.scrape` a
+   `ScrapedPage` object, `url.fetch` the raw body as one string — so the `body` step reads
+   `page.content` (the scraped markdown) against `plain`, never the bare `page` against `raw`. It
+   lists every root it reads in `inputStreams` (`page`, `plain`), types them `ScrapedPage` and
+   `string` in `inputSchemas`, and states `outputSchema` `string`.
+2. **Strip the tags in `strip`.** The expression (in a JSON document every `\` doubles):
+
+   ```
+   $trim($replace($replace($replace(raw, /<(script|style)[\s\S]*?<\/(script|style)>/i, " "), /<[^>]+>/, " "), /\s+/, " "))
+   ```
+
+3. **Set `"onFailure": "continue"` on the `fetch` step.** The two sources fail differently.
+   `url.scrape` turns a vendor refusal into a warning and an empty page. `url.fetch` fails the step
+   on a 4xx page, on an address that does not resolve and on a refused one — and one failed step
+   fails the whole run, even when the scrape beside it worked: a sync endpoint answers `502`
+   (`details.phase: "handler-error"`), or `400` "blocked network request" for a lookup failure or a
+   private address. Only a 5xx from the site comes back as an empty value with a `FETCH_FAILED`
+   warning. With `continue` a failed fetch is a warning, its readers skip, and `body` takes the
+   scrape.
+4. **Guard every step that reads `body` beside another slot** with
+   `condition: { "op": "slotPresent", "slot": "body" }` — model steps included, not only writes. A
+   step runs while any one input is present: a key-point `text.generate` that also reads `url` (to
+   cite it) runs on the URL alone when every read failed, and the model invents a page. Guard the
+   writes the same way on the slot they store, so such a run writes nothing instead of a half-empty
+   record.
+
+**With no vendor at all** — no Firecrawl key, or its credit spent — drop `scrape` and read
+`url.fetch` → `strip` as the body, and take the title from `url.metadata` on the same `url` (its
+`title`, from the page's `<title>` or `og:title`; also `onFailure: continue`). A page that builds
+its text in the browser comes back nearly empty this way; a `$assert` on the length turns that into
+a clear refusal (`kipory-build`'s `references/records-and-endpoints.md`, endpoint answers and
+refusals).
+
+## Reading an RSS or Atom feed
+
+No handler parses a feed. <!-- absent-handler: feed.* --> The working shape is a fetch, a regex
+cut and a fan-out; each branch looks its item up, then creates or updates it:
+
+```
+fetch    url.fetch          feedUrl → xml         "reuseResultsForMinutes": 0, or the polling period
+items    text.extract       xml → blocks          { "pattern": "<item[\\s\\S]*?</item>", "flags": ["i"] }
+each     flow.fan-out       blocks → one block per branch
+fields   value.transform    block → item          { title, link, published } — $match on each tag, below
+found    entity.list        item → found          { "recordType": "<type>", "fieldFilterSlots": { "link": "item.link" }, "limit": 1 }
+create   entity.create      item                  { "recordType": "<type>", "dataSlot": "item" } — when nothing was found
+update   entity.update      item, found           "recordIdSlot": "found.records[0].id", "dataSlot": "item" — when one was
+```
+
+- **`url.fetch` returns the feed as one string**, whatever content type the server names, so
+  `text.extract` reads the XML as text. Leave `responseAs` unset: `json` on XML fails the step.
+- **Two size limits.** A body over the step's `maxBytes` (5,000,000 by default) fails the step. A
+  body under it but over the slot cap (500,000 characters unless the deployment set another) is
+  cut to fit and ends in `[TRUNCATED]`, with only a `slot-truncated` warning on the run — so a
+  large feed loses its last items, and the cut can land inside one.
+- **A feed server that wants its own `Accept`.** `url.fetch` asks for JSON, XML and text, which a
+  feed server accepts. For one that wants a different value, set the step's `headers` to
+  `{ "Accept": "…" }`; a header the step names replaces the default.
+- **Set the fetch step's own cache.** `url.fetch` reuses an answer for 24 hours by default, so a
+  poll that leaves `reuseResultsForMinutes` alone reads the same XML all day.
+- **The cut is by tag.** RSS wraps an item in `<item>`, Atom in `<entry>` — use
+  `<entry[\\s\\S]*?</entry>` there. `text.extract` returns every match as a list of strings.
+- **Read a field with `$match`.** In the `fields` step, `$match(block, /<title>([\s\S]*?)<\/title>/)[0].groups[0]`
+  is the title; the link is `<link>…</link>` in RSS and the `href` attribute of `<link …/>` in
+  Atom. Wrap a value in `$trim`, and strip `<![CDATA[` … `]]>` where the feed uses it.
+- **Look the link up before you write.** There is no upsert step, and a `key` use does not turn
+  a create into an update. What `entity.create` alone does with an item an earlier poll wrote:
+  - **Unchanged item, project-wide type**: the record's id comes from its data, so
+    `entity.create` lands on the record that is already there and adds nothing.
+  - **Changed item** (an edited title, a new date): with no `key` use it becomes a second
+    record; with a `key` use on the link it is different data under a held key, the create is
+    refused `RECORD_NATURAL_KEY_TAKEN`, and the whole poll writes nothing.
+  - So match on the link first. Give the link field a `filter` use (`kipory-model`) so `found`
+    can filter on it, and guard the two writes on what it returned:
+    `create` with `{ "op": "listEmpty", "slot": "found", "path": "records" }`, `update` with
+    that condition inside `{ "op": "not", "inner": … }`.
+    `entity.update` merges the new fields over the stored ones. `listEmpty` also holds when
+    `found` is absent, and `found` is skipped for an item with no link — so if the feed can
+    omit one, add `{ "op": "slotPresent", "slot": "item", "path": "link" }` to the `create`
+    guard under an `and`.
+  - Leave `inputStreams` out of all three steps and the save derives them from each step's
+    config: `update` reads `item` and `found`, `found` reads `item` and, like every
+    `entity.list`, `userInfo`, and `create` reads `item` alone. `create`'s condition names
+    `found`, and that alone runs it after the lookup; listing `found` among `create`'s inputs
+    is refused `FREE_FORM_INPUT_STREAMS_MISMATCH`.
+  - A `key` use beside the `filter` use (`"uses": ["key", "filter"]`) is a backstop that
+    refuses a second record under one link; it is never the update.
+  - Store the items in a project-wide type. A scheduled poll has no end user, so a per-user
+    type refuses there; and inside a fan-out a per-user record gets a new id on every run.
+  - Match on the link, not on the feed's `<guid>`, which is not always stable between fetches.
+
+  `kipory-build`'s `references/records-and-endpoints.md` (§8, natural-key collisions) has the
+  refusal's details.
+
+- **A feed is untrusted text** like any fetched page: `text.sanitize` it before a model reads it.
 
 ## Reading a source's failure
 
@@ -74,6 +187,8 @@ Three separate charges stack on one source step:
 3. **Everything downstream** — a scrape that feeds chunking, embedding and a model call has bought
    the model call too.
 
-The cache is what makes this bearable. A re-run inside the window pays none of the three, which is
-why the windows are long for slow-moving facts and short for fast-moving ones. Read `kipory-operate`
-for what a project actually spent, rather than estimating from this page.
+The cache is what makes this bearable. A re-run inside the window makes no vendor call and pays no
+vendor price; the step still pays its one-second compute minimum, and whatever runs downstream of
+it is charged on its own terms. That is why the windows are long for slow-moving facts and short
+for fast-moving ones. `kipory-operate` owns the billing detail and the read of what a project
+actually spent — use it rather than estimating from this page.

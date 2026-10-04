@@ -12,22 +12,20 @@ List the channels behind a region's trending YouTube videos.
 - **Suggested input streams:** `regionCode`
 - **External dependency:** YouTube Data API — Reads the trending chart from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube handler. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 60 per 60000ms in bucket `youtube` — shared with `youtube.channel`, `youtube.video`
-- **Queue:** 2 attempts, exponential from 2000ms; waits up to 60000ms; cache 21600000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 60 per min in bucket `youtube` — shared with `youtube.channel`, `youtube.video`
+- **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 6 hours — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `includeChannelDetails` | boolean | no | — | Also look up each channel to add its declared country and subscriber count. Off by default. ⚠️ Costs two extra quota units per 50 channels. The country is self-declared and often missing — absent means unknown, never 'not from this region', and nothing here filters on it. |
-| `maxResults` | integer | no | `50` | How many trending videos to read in total before reducing them to channels. A page holds 50. ⚠️ Each page past the first costs another quota unit. The chart stops when it runs out, so a high value permits a big read rather than guaranteeing one. |
-| `videoCategoryIds` | string[] | no | — | Read only these video categories — for example news, or news and sport. Leave it empty for the whole chart. ⚠️ Each category is a separate call costing one quota unit. An unfiltered chart is mostly whatever is popular that day, so name the categories you want. Ids are region-specific. |
+| `maxResults` | integer, 1 to 200 | no | `50` | How many trending videos to read in total before reducing them to channels. A page holds 50. ⚠️ Each page past the first costs another quota unit. The chart stops when it runs out, so a high value permits a big read rather than guaranteeing one. |
+| `videoCategoryIds` | string[], at least 1 item | no | — | Read only these video categories — for example news, or news and sport. Leave it empty for the whole chart. ⚠️ Each category is a separate call costing one quota unit. An unfiltered chart is mostly whatever is popular that day, so name the categories you want. Ids are region-specific. |
 
 ## Worked example
 
 Reads a region's trending chart and returns the distinct channels behind it.
-
-Reads: region. Emits: trending channels.
 
 #### Israel
 

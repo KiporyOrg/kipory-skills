@@ -10,24 +10,22 @@ Save one page of a PDF as an image.
 - **Reads:** One PDF file. Anything else fails, so route non-PDFs elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the rendered page. A retry on the same item reuses the previous render. An empty input gives an empty file back.
 - **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 180000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 1 attempt, no backoff; waits up to 3 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `format` | `png` \| `jpeg` | no | `"png"` | Output image format. PNG is lossless; JPEG re-encodes and accepts a quality knob. |
-| `jpegQuality` | integer | no | `85` | JPEG quality (1-100). Only used when format is jpeg; ignored for png. |
-| `maxInputBytes` | integer | no | `50000000` | Hard cap on the input PDF size. Larger PDFs fail the handler rather than render at unbounded memory cost. |
-| `maxOutputBytes` | integer | no | `10000000` | Hard cap on the persisted image size. Larger outputs fail rather than silently truncate. |
-| `page` | integer | no | `1` | 1-indexed page number to rasterize. Inputs with fewer pages fail the handler with a clear error. |
-| `viewportScale` | number | no | `2` | Render resolution multiplier (1.0 ≈ 72 DPI; 2.0 ≈ 144 DPI). Higher = sharper + larger bytes. Capped at 4 to keep memory bounded. |
+| `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality (1-100). Only used when format is jpeg; ignored for png. |
+| `maxInputBytes` | integer, more than 0 | no | `50000000` | Hard cap on the input PDF size. Larger PDFs fail the handler rather than render at unbounded memory cost. |
+| `maxOutputBytes` | integer, more than 0 | no | `10000000` | Hard cap on the persisted image size. Larger outputs fail rather than silently truncate. |
+| `page` | integer, more than 0 | no | `1` | 1-indexed page number to rasterize. Inputs with fewer pages fail the handler with a clear error. |
+| `viewportScale` | number, 0.25 to 4 | no | `2` | Render resolution multiplier (1.0 ≈ 72 DPI; 2.0 ≈ 144 DPI). Higher = sharper + larger bytes. Capped at 4 to keep memory bounded. |
 
 ## Worked example
 
 Renders one page of a PDF as an image file.
-
-Reads: a PDF. Emits: an image file.
 
 #### An invoice
 

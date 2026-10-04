@@ -4,7 +4,7 @@
 
 Bytes attached to records. Upload is a two-step handshake — ask for an upload URL, put the bytes there, confirm — and download is a signed URL, never the bytes through the API.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -57,6 +57,21 @@ A project's file library — every file it holds, uploaded or produced by a flow
 | `paging` | `object` | yes | Where this page sits in the whole result — the questions a cursor cannot answer. Always present on this route: it is an index-only count, unlike `totals`. Its `total` counts THIS query, search and scope included, which `fileCount` deliberately does not. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+
+Each item of `files`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The file's id — what the download and detach routes take. |
+| `fileName` | `string` | yes | The name the file arrived under. Not unique, and not its address: two files in a project may share one. |
+| `fileSize` | `integer \| null` | yes | Bytes, measured — NULL while `state` is `awaiting-upload`, which is not the same as zero. The size a client declares when it asks for an upload URL is a hint; only the confirm reconciles it against the object that actually landed. |
+| `fileMimeType` | `string` | yes | What the file says it is. Reconciled against the stored object on confirm, so it is the type a download will actually serve. |
+| `kind` | `"image" \| "pdf" \| "audio" \| "video" \| "text" \| "other"` | yes | The coarse class of `fileMimeType`, and the value the `kind` query parameter matches. Rendered where the raw mime would be unreadable. |
+| `previewable` | `boolean` | yes | Whether the platform will serve these bytes `inline`, so a client may render them in place. A prediction from the stored type, not a guarantee — see the note on `fileMimeType`. Always false while `state` is `awaiting-upload`: there are no bytes to serve, which is a second reason for false that the type alone does not explain. |
+| `state` | `"stored" \| "awaiting-upload"` | yes | `stored` means the bytes exist. `awaiting-upload` means a URL was signed and nothing ever arrived — there is nothing to download, and the platform clears these within a day. |
+| `source` | `object` | yes | Where the file came from. Three shapes, because only one of the three is a person: a flow's output names its skill, and channel media names nobody. |
+| `record` | `object \| null` | yes | The record carrying this file, or null when nothing has claimed it. Null is ordinary: media can arrive ahead of the record that will claim it. There is no title here — a record's readable name lives in its own `data`, whose shape is the project's, not the platform's. |
+| `createdAt` | `string` | yes | When the file was first recorded. The list is ordered by it. |
 
 ### `DELETE /v1/files/{id}`
 

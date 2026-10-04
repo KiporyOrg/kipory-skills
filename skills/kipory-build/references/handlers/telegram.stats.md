@@ -19,8 +19,6 @@ _No operator-tunable config._
 
 Reads the member count last captured for a Telegram channel this project subscribes to.
 
-Reads: look up channel. Emits: channel stats.
-
 #### A followed channel
 
 The mtproto watcher has pushed a participant count for this channel — the handler reads the freshest stamp.

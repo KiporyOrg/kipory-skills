@@ -22,8 +22,8 @@ registry (capability pack `events` — `GET /v1/capability-packs/events`): its `
 project-scoped. The namespace is the source's alone — an event type you create there is a 409.
 Those rows are permanent once seeded: the delete refuses them outright, whatever
 else is true — deleting every source of that provider does not release them, and neither does
-never having created one. A type of your own already holding one of the provider's keys (one
-written before the namespace was fenced) is a 409 rather than adopted.
+never having created one. A type of your own already holding one of the provider's keys is a 409
+rather than adopted.
 
 ## When you need it — and when you don't
 
@@ -31,6 +31,12 @@ You need a source when something **outside** your flows should start one: a mess
 a request to a URL, a row in someone's database. You do not need one to react to your own flows'
 events — a trigger on a `post/created` your flow emits has no source at all — and you do not need
 one for the clock: a schedule (capability pack `schedules` — `GET /v1/capability-packs/schedules`) fires its flow directly.
+
+**A source only reads.** Nothing here sends a message into a channel. The one built-in way a flow
+reaches a person is email; a service with an HTTP API is reached with a `url.send` step — see
+limits (capability pack `limits` — `GET /v1/capability-packs/limits`). And a source is for a standing subscription — to look a
+channel up once inside a flow, use the `telegram.resolve-channel` or `telegram.search-channels`
+handler instead.
 
 ## The sequence
 
@@ -44,8 +50,7 @@ DELETE /v1/sources/{id}[?validateOnly=true]                   409 SOURCE_HAS_LIS
 GET    /v1/project-events?project={nodeId}&sourceId={id}      the events this source wrote, newest first, cursor-paged
 ```
 
-⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+⚠️ `validateOnly` is the delete's only query parameter; anything else in the query is refused.
 
 Then a trigger: `POST /v1/triggers` with `sourceId`, `categoryKey: "telegram"`, `eventKey: "message"`,
 the flow and its inputs. The trigger hears that source's events and no other's — the match is
@@ -156,9 +161,10 @@ save"; anything else is exactly what lands.
 ## What will bite you
 
 - **A source nothing listens to still costs its connection** and, for Telegram, a media copy per
-  message. The list shows `listening: 0`; the app shows "nothing listens".
+  message. The list shows `listening: 0`.
 - **`enabled: true` with health `unknown` means no watcher shard owns the channel.** The platform's
-  own Telegram accounts are what read channels; nothing on your row provisions them.
+  own Telegram accounts are what read channels; nothing on your row provisions them, and no call of
+  yours changes it. Tell the human the deployment's operator has to assign the channel to a watcher.
 - **A disabled source writes nothing, and switching it back on later does not catch up.** The events that
   arrived in between were never recorded; there is nothing to replay.
 - **`version` is required on every write** — every patch, switching `enabled` included. A stale one is a 409;

@@ -12,21 +12,19 @@ List a country's most visited websites, in order.
 - **Suggested input streams:** `country`
 - **External dependency:** Apify — Runs Apify's `top-websites` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.search`, `web.traffic`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 2592000000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.search`, `web.traffic`, `x.posts`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 30 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `category` | string | no | `"all"` | Narrow the ranking to one vertical, like news or finance. ⚠️ Filter here rather than on the category label each site comes back with — that label is unreliable, and national news often arrives as something else entirely. |
-| `limit` | integer | no | `100` | How many ranked sites to return. 100 is both the floor and the default. ⚠️ The upstream refuses anything below 100, so a smaller sample is not available at any price. Cost rises with the number you ask for. |
+| `limit` | integer, at least 100 | no | `100` | How many ranked sites to return. 100 is both the floor and the default. ⚠️ The upstream refuses anything below 100, so a smaller sample is not available at any price. Cost rises with the number you ask for. |
 
 ## Worked example
 
 Lists a country's most-visited websites — ranked by where the traffic comes from, not where a site is published.
-
-Reads: rank country. Emits: ranked sites.
 
 #### Sites in Israel
 

@@ -21,8 +21,6 @@ Save a value for later steps in this run, or add to one.
 
 Accumulates a value into a run-state cell that a later step can read.
 
-Reads: the value. Emits: a marker.
-
 #### Keep unique values
 
 The value joins the cell without repeating what is already there, because the mode is union.

@@ -4,7 +4,7 @@
 
 Run a flow every time a matching durable event is recorded. A trigger binds a selector, an optional filter, a flow and its fixed inputs; every decision it takes is a ledger row, any decision can be replayed, and the log itself is readable per project.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -45,6 +45,16 @@ The project's durable event log — every recorded emission a trigger can react 
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 
+Each item of `events`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `event` | `object` | yes | The envelope a trigger's flow receives in its `event` slot, with the project's node id named `project` where the slot names it `projectId`. |
+| `source` | `"run" \| "schedule" \| "telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Who wrote the row. `run` is a flow run's own emit (`sourceId` null). A trigger provider (any provider `GET /v1/sources/providers` lists) is that source's ingress or worker, with `sourceId` set — a provider writes rows only once `GET /v1/sources/providers` lists it `available`. `schedule` is reserved for the schedule's emit action and has no writer yet. |
+| `causationDepth` | `integer` | yes | 0 for an event nothing triggered; one more than the event whose trigger started the emitting run otherwise. Triggers stop firing at the platform's depth cap. |
+| `recordedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `dispatchedAt` | `string \| null` | yes | When every enabled trigger had decided this event, or null while it is still waiting to be dispatched. |
+
 ### `GET /v1/triggers`
 
 List one project's triggers (`?project=<nodeId>`), each with the `version` its PATCH takes. `expand=lastRun` adds how the newest event went, `expand=drift` the flow inputs no longer supplied, `expand=flowLabel` the bound flow's name. The same rows, as authored, ride `GET /v1/bootstrap` and the `surfaces.triggers` section of `GET /v1/projects/{nodeId}/document`; the last fire and last error are only here.
@@ -61,6 +71,33 @@ List one project's triggers (`?project=<nodeId>`), each with the `version` its P
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `triggers` | `object[]` | yes | The project's triggers, unpaginated. |
+
+Each item of `triggers`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Unique id of the trigger — what `{id}` routes address. |
+| `project` | `string` | yes | Node id of the owning project. |
+| `key` | `string` | yes | Your identifier for this trigger within the project. Permanent — a patch cannot change it. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this trigger. |
+| `categoryKey` | `string` | yes | Key of the event category this trigger listens to, in the project's event registry. |
+| `eventKey` | `string` | yes | Key of the event type within that category. The type it names must be durable and not run-scoped. |
+| `sourceId` | `string \| null` | yes | The source this trigger listens to (see `/v1/sources`), or null for a trigger on an event the project's own flows emit. A sourced trigger hears that source's events and no other's — the match is structural, not a filter clause. Permanent. |
+| `filter` | `object \| null` | yes | A condition over the recorded event, or null to react to every one. Evaluated over two slots: `event` (the envelope's own fields) and `data` (its payload). An event the filter rejects is recorded as `filtered` in the runs, never silently dropped. A stored filter that is no longer a valid condition is returned as stored and matches no event. |
+| `flowId` | `string` | yes | The flow this trigger runs. |
+| `inputs` | `object` | yes | Fixed inputs merged into the flow's root slots on every fire, around the two reserved slots `event` (the envelope) and `trigger` (delivery context). |
+| `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an event is recorded while this trigger's previous run is still in flight: `skip` records the event as skipped, `allow` fires regardless. |
+| `enabled` | `boolean` | yes | Whether the trigger reacts to new events. Switch it with `PATCH /v1/triggers/{id}` `{enabled, version}`. A trigger switched on later does not catch up on events recorded while it was off, and `POST /v1/triggers/{id}/replay` cannot recover them either — it re-runs only an event this trigger already decided. |
+| `createdByUserId` | `string \| null` | yes | Who set the trigger up. History only — a trigger is owned by its project and fires as its project, so nothing at fire time reads this. Null for a trigger created by a token, or once that account is gone. |
+| `lastFiredAt` | `string \| null` | yes | When it last started a run, or null if it never has. |
+| `lastError` | `string \| null` | yes | The most recent fire-time refusal, in plain words, or null once a later fire succeeded. The trigger carries its failure; the flow never does. |
+| `lastErrorAt` | `string \| null` | yes | When `lastError` was recorded, or null. |
+| `version` | `integer` | yes | Increments on every write. Send it back on a patch — switching `enabled` included — to be refused with 409 if someone changed the trigger in the meantime. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
+| `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
+| `lastRunStatus` | `"running" \| "succeeded" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 
 ### `POST /v1/triggers`
 
@@ -90,6 +127,15 @@ Create a trigger: a flow run on every recorded event of one type (`categoryKey`/
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
 **Response `201`**
 
@@ -216,6 +262,15 @@ Change a trigger — the event it listens to, its filter, flow and inputs, name,
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
 ### `DELETE /v1/triggers/{id}`
 
 Delete one trigger and its decision history; it stops reacting at once. Nothing refuses it. With `?validateOnly=true` it answers the verdict, writing nothing. To stop it but keep it: `PATCH /v1/triggers/{id}` with `enabled: false`. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
@@ -241,6 +296,15 @@ Delete one trigger and its decision history; it stops reacting at once. Nothing 
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
 ### `POST /v1/triggers/{id}/replay`
 
@@ -291,6 +355,19 @@ One trigger's decisions, newest first, walked on `after`/`before` — fired, ski
 | `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+
+Each item of `runs`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Unique id of this decision. |
+| `eventId` | `string` | yes | The recorded event this row decided — the `id` of a row in `GET /v1/project-events`. |
+| `attempt` | `integer` | yes | 0 for the live decision; a replay takes the next number. Together with the event this is what makes a decision happen exactly once. |
+| `outcome` | `"fired" \| "skipped" \| "blocked" \| "filtered"` | yes | What happened — it fired, or it was filtered, skipped or blocked without firing. |
+| `reason` | `string \| null` | yes | Why it did not fire, or null when it did. This is where a filtered or blocked event explains itself. |
+| `replayOf` | `string \| null` | yes | The earlier decision this one re-ran, or null for a live decision. The earlier row is untouched. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `invocation` | `object \| null` | yes | The run this decision started, or null when it did not fire. |
 
 ### `GET /v1/triggers/{id}/sample`
 

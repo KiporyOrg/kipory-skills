@@ -7,7 +7,7 @@
 
 ## What it is
 
-A credential vault scoped to an `OrgNode`. One secret is identified by three things — the node it
+A credential vault scoped to a node — an organisation or a project. One secret is identified by three things — the node it
 hangs on, a catalog **type**, and a **purpose** you choose — and that triple is unique. The purpose
 is what lets one node hold several credentials of the same type: it is the vendor's own name for a
 provider key, or a name you invent for a free-form value.
@@ -30,6 +30,10 @@ A handler that calls a paid vendor resolves its key in three tiers, in order:
 directly, and the platform does not also pass its own vendor charge through for a call you have
 already paid for. On the third you are spending the platform's key at the platform's price.
 
+A request credential (`http_credential`, below) has only the first two tiers: the platform holds
+none, so with none stored and switched on a read fails `api-key-missing` and a `url.send` request
+is not delivered.
+
 ⚠️ **This removes the vendor pass-through, not the whole cost of the run.** The flat per-run
 compute fee is charged either way — one charge per handler invocation, metered in whole seconds of
 its runtime, so bringing your own key changes who the vendor invoices and does not make the run
@@ -40,20 +44,34 @@ deliberately not a zero-priced line, so it is invisible in a spend breakdown eit
 So adding your own key is a billing decision as much as an isolation one, and it is the single
 most common reason to touch this surface at all.
 
-⛔ **Model calls are outside this surface entirely, and that is where most of a project's vendor
-money goes.** Generation, embedding, transcription and reranking run through the platform's AI
-chokepoint, which has no access to this vault at all — it cannot read a stored credential even in
-principle. Storing an AI vendor's key here changes nothing about who that vendor bills, no matter
-how plausible a catalog example value makes it look.
+⛔ **Most model calls are outside this surface, and that is where most of a project's vendor
+money goes.** Generation, embedding and transcription run through the platform's own model
+configuration, which has no access to this vault at all — it cannot read a stored credential even
+in principle.
+Storing a key for one of those vendors here changes nothing about who that vendor bills, no matter
+how plausible a catalog example value makes it look. Two model handlers with one fixed vendor are
+the exception and do resolve a key here: `text.rerank` (purpose `cohere`) and `text.decide`
+(purpose `typesafe`).
 
 Which vendor a given handler needs is part of that handler's own description — confirm it against
-`GET /v1/handlers`, never against a pack. The provider keys that resolve this way today are the
-external web-fetch vendors, stored under a purpose matching the vendor's name: `firecrawl`,
-`apify`, `twitterapi`, `youtube`, `supadata`, and `scrapecreators` — the last for every
-social-platform read (`tiktok.*`, `instagram.*`, `linkedin.*`, `reddit.*`, `threads.*`,
-`facebook.*`, `google.*`, `x.profile`, `x.transcript`, `youtube.posts`, `youtube.comments`,
-`youtube.search`) and for `x.posts` and `youtube.transcript` on a step that chose it. Each is a
-credential of the catalog's plain bearer-key type.
+`GET /v1/handlers`, never against a pack. The provider keys that resolve this way today are stored
+under a purpose matching the vendor's name. The external web-fetch vendors: `firecrawl`, `apify`,
+`twitterapi`, `youtube`, `supadata`, and `scrapecreators` — the last for every social-platform
+read (`tiktok.*`, `instagram.*`, `linkedin.*`, `reddit.*`, `threads.*`, `facebook.*`, `google.*`,
+`x.profile`, `x.transcript`, `youtube.posts`, `youtube.comments`, `youtube.search`) and for
+`x.posts` and `youtube.transcript` on a step that chose it. The two model vendors: `cohere` and
+`typesafe`. Each is a credential of the catalog's plain bearer-key type.
+
+**A secret is used only where the platform looks it up: a handler that names its purpose, a step
+that names it in `secret`, or sign-in.** A vendor with no handler of its own is reached with a
+request credential on `url.fetch`, `url.fetch-as-file` or `url.send` — see the request credential
+below.
+
+⚠️ **A step that can reach two vendors resolves each vendor's key separately.** `x.posts` and
+`youtube.transcript` fall back to another vendor when the chosen one fails, and the fallback is
+billed by the vendor that answered — so your own key for one vendor does not stop the platform's
+key being spent for the next. Store a key for each vendor the step can reach, or set
+`fallback: false` on the step.
 
 **Read the handler's `credential` field, not its `requiredApiKey`.** A handler that resolves a
 tenant key carries `credential` — the catalog `type` and the `purpose` to store it under, plus the
@@ -63,7 +81,7 @@ person** ("a Firecrawl API key"), not an address; deriving a purpose from it is 
 reason to keep working.
 
 ⚠️ **A handler with neither `credential` nor `stepCredential` cannot use a key you store, at any
-price.** Model calls are
+price.** Most model calls are
 the population that matters: text generation, embedding and transcription reach their provider
 through the platform's own configuration and never consult the vault, so a credential stored for
 one of those is a row nothing will ever read. Absence of both fields is the whole signal — there is
@@ -82,13 +100,34 @@ it in the config field `stepCredential.configPath` names (`secret`).
 
 The stored value says where it goes in a request, so the step never does:
 
-| Field       | Required | What it is                                                                  |
-| ----------- | -------- | --------------------------------------------------------------------------- |
-| `value`     | yes      | The key or token, with no line break. Encrypted, never returned.            |
-| `placement` | yes      | `header` sends it as a request header. `query` puts it in the address.      |
-| `name`      | yes      | The header or query-parameter name, e.g. `X-Api-Key` or `Authorization`.    |
-| `scheme`    | no       | One word sent before a header's value with a space, e.g. `Bearer`.          |
-| `hosts`     | no       | Host names that may receive it, separated by commas. Exact names, no ports. |
+| Field       | Required | What it is                                                                                                    |
+| ----------- | -------- | ------------------------------------------------------------------------------------------------------------- |
+| `value`     | yes      | The key or token, with no line break. Encrypted, never returned.                                              |
+| `placement` | yes      | `header` sends it as a request header. `query` puts it in the address.                                        |
+| `name`      | yes      | The header or query-parameter name, e.g. `X-Api-Key` or `Authorization`.                                      |
+| `scheme`    | no       | One word sent before a header's value with a space, e.g. `Bearer`. With `placement: "header"` only.           |
+| `hosts`     | no       | Host names that may receive it, separated by commas. Up to 32 exact names: no scheme, port, path or wildcard. |
+
+The store call, for a key sent as `Authorization: Bearer <the key>` to one host:
+
+```
+POST /v1/secrets
+{ "node": "<project id>", "type": "http_credential", "purpose": "crm",
+  "value": { "value": "<the key>", "placement": "header", "name": "Authorization",
+             "scheme": "Bearer", "hosts": "api.crm.example" } }
+```
+
+- **Every field is a string.** `hosts` is one string of names separated by commas or spaces, not a
+  list; an array is a 422.
+- `value` is at least 8 characters, with no line break and no space at either end.
+- `name` is up to 128 letters, digits and `-` `_` `.`. As a header it cannot be one the platform
+  sets itself (`Host`, `Content-Length`, `Transfer-Encoding`, `Connection`, `User-Agent`,
+  `Idempotency-Key`, `Accept-Encoding`).
+- `scheme` with `placement: "query"` is a 422.
+- `purpose` is up to 128 characters with no space at either end.
+
+The step then sets `"secret": "crm"`. The request carries `Authorization: Bearer <the key>`; with
+`placement: "query"` the address gains `name=<the key>` instead.
 
 ⚠️ **Leave `hosts` empty and the secret goes to whatever address a step reads.** Anyone who can edit
 a flow in a project the secret reaches can then send it to a server of their own, and read it. List
@@ -97,14 +136,20 @@ the service's hosts unless you have a reason not to.
 How it behaves:
 
 - A step addressed to a host the secret does not list fails before any request is made.
-- It is sent over `https` on the default port only, and never to a redirect target the secret does
-  not list.
+- It is sent over `https` on the default port only. On a redirect it travels only to a host the
+  secret lists; a secret with no host list is sent on the first request alone, and no redirect
+  carries it.
 - An answer that comes back compressed fails the step: it could not be checked for the value.
-- It resolves from the project's node and the organisations above it. Kipory holds none.
+- It resolves from the project's node and the organisations above it. Kipory holds none, so
+  there is no platform fallback: with none stored and switched on, a read fails `api-key-missing`
+  and a `url.send` request is not delivered. A flow whose step names a purpose no node holds
+  carries a `STEP_SECRET_NOT_HELD` warning when it is saved.
+- `GET /v1/secrets/resolution` does not list it: its purpose is whatever a step names. Check it
+  on the node list (`GET /v1/secrets`).
 - Replacing the secret replaces every field: enter the hosts again, or they are gone.
 - The value never appears in a step's output, a warning, an error or a log line.
 - `url.send` reads it when the request is delivered, after the run. A secret removed or narrowed by
-  then fails that delivery, and the run has already finished.
+  then fails that delivery, the run has already finished, and no read reports it.
 
 ## Address by node, not by project
 
@@ -124,13 +169,19 @@ A project's id is its node id — the `id` its create answered — so for a proj
   disabling a project's override hands the job to the organisation's default. If you meant "this
   project must not use this vendor at all," disabling the project's row does not achieve it, and
   the run will keep succeeding on somebody else's credential.
-- **An inactive branch resolves nothing.** Effective status is the most restrictive over the node
-  and every ancestor, so a suspended organisation anywhere up the chain admits no secret at all.
-  The handler then reports a missing key — the failure names the absence, not the suspension, so
-  check the branch before you go looking for a deleted credential.
-- **It fails closed.** If the applicable record exists but cannot be decrypted, resolution yields
-  nothing at all. It never falls through to a different node's credential and never returns a
-  value that is merely plausible.
+- **An inactive branch resolves nothing, and runs nothing live.** Effective status is the most
+  restrictive over the node and every ancestor, so a suspended or archived organisation anywhere
+  up the chain admits no secret at all. While it is not active, every live run — an endpoint
+  call, a record's processing, a schedule or trigger run — is refused `403 WORKLOAD_SUSPENDED`
+  before any step; a design-time preview is not behind that gate. `GET /v1/secrets/resolution`
+  reports `branch-inactive`. Check the branch before you go looking
+  for a deleted credential.
+- **A secret that cannot be used is skipped, not substituted from an ancestor.** If the applicable
+  record exists but cannot be decrypted, it yields nothing of yours: the lookup does not move on to
+  a different node's credential and never returns a value that is merely plausible. A vendor call
+  then runs on the platform's key at its price, while the resolution read still says `present`. A
+  Google sign-in client in that state refuses the sign-in; an Apple sign-in key in that state
+  still signs people in, and only the later revocation of the Apple grant is lost.
 
 ## Ask what resolves — do not reconstruct it
 
@@ -140,25 +191,27 @@ credential the platform looks up — each vendor key a handler resolves and each
 `not-found`, `branch-inactive`), the node holding the record that state is about, `ownStatus` for
 the row stored on the node itself (`null` when the node stores none), and, for a vendor key,
 `billedBy` — `vendor-to-holder` when the vendor invoices the holder, `kipory` when the call runs on
-the platform's key at the platform's price, `null` on a key that is never billed (any `fallback`
-but `platform-key`). It is the same walk
+the platform's key at the platform's price, `null` on a key that is never billed (a sign-in
+credential). It is the same walk
 resolution performs, effective-status gate included, and nothing in it is decrypted.
 
 Each key also says what happens when nothing of yours resolves, as `fallback`: `platform-key` — the
-call runs on the platform's key and the platform bills it (every vendor key today); `fails-closed` —
-nothing takes over and the operation is refused (a sign-in credential: one project's users are never
-signed in through another's client); `platform-only` — never a tenant's key at all; `not-looked-up`
-— nothing on this deployment resolves that name, so storing one changes nothing. The list of keys
-here is also the list of what is actually read: a purpose that appears nowhere in it is stored and
-never used.
+call runs on the platform's key and the platform bills it (every vendor key); `fails-closed` —
+nothing takes over: the platform's own credential is never substituted (a sign-in credential: one
+project's users are never signed in through another's client). Google sign-in is then refused;
+Apple still signs people in and loses only the later revocation of the grant.
+
+The list of keys here is the list of vendor and sign-in purposes actually read: one of those
+stored under a purpose that appears nowhere in it is never used. A request credential
+(`http_credential`) is not listed — a step reads it by the name in its `secret`.
 
 ⛔ **Do not rebuild this by listing every ancestor and taking the first active row.** That
 reconstruction cannot see the effective-status gate, so it reports a suspended organisation's key
 as the one in use when resolution admits nothing at all.
 
 ⚠️ **`present` is not proof the value works.** A record that fails to decrypt, or whose value is
-not the shape its handler expects, still yields nothing at run time; a metadata read cannot see
-either. And a holder above your own reach is withheld — its node and name come back null beside a
+not the shape its handler expects, still yields nothing of yours at run time — the call runs on the
+platform's key instead — and a metadata read cannot see either. And a holder above your own reach is withheld — its node and name come back null beside a
 `present` state — because whether a credential resolves for your node is yours to know and who
 holds it above you is not.
 
@@ -184,7 +237,7 @@ The `api_key` type's value is `{ "apiKey": "…" }`. A value that does not fit i
 names every failing field key, and whose `details.issues` carries each with its `path` under
 `value`. A type's `purposePlaceholder` is an example word for a form
 (`firecrawl` on `api_key`, a purpose the scrape handlers read), not a list of vendors that read the
-vault — model calls never use a stored key.
+vault — generation, embedding and transcription never use a stored key.
 
 The catalog is built to grow — a deployment may support a type this pack has never heard of — so
 read it rather than assuming a shape. A type absent from the catalog on your deployment is absent
@@ -196,13 +249,12 @@ Listing is a viewer-floor call on the node. Every write — create, rotate, swit
 — requires admin on that node, which is stricter than the design-mutation floor elsewhere because
 whose key pays a vendor is a billing decision.
 
-⛔ **There is no call that reports what your own credential holds.** Nothing echoes a grant back to
-its bearer, so a build sheet cannot check first and then assume: attempt the write and read the
-refusal, where a `403` means the grant is below admin or does not reach that node.
-`GET /v1/nodes/{nodeId}/effective-role` does **not** answer this — it requires a `userId` naming
-**another user** whose membership you are asking about, it resolves a person's membership rather
-than a key's grant, and it is itself floored at admin on that node, so the caller who most needs
-the check is exactly the one it refuses.
+**Read `GET /v1/grant` before the first write.** It answers what your key holds: `role` must be
+`admin` or `owner`, and `node` must be the secret's node or an ancestor of it. A `403` means the
+grant is below admin or does not reach that node, and the `grant` inside its `details` repeats what the key
+holds. `GET /v1/nodes/{nodeId}/effective-role` does **not** answer this — it requires a `userId`
+naming **another user** whose membership you are asking about, and it resolves a person's
+membership rather than a key's grant.
 
 ## The calls
 
@@ -236,7 +288,7 @@ re-save leaves `status` alone, so a record someone disabled stays disabled.)
 
 ## Related
 
-- Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`) — finding the `OrgNode` id this surface is
+- Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`) — finding the node id this surface is
   addressed by.
 - Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`) — the tunable, readable sibling, and the line between them.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the handlers that consume a credential, and where a

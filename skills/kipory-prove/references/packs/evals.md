@@ -69,6 +69,11 @@ A contract suite is a suite with no scorer flows. Every case carries assertions,
 whether each still holds. It costs no grading calls — only the subject runs, which a preview would
 bill anyway — and with `wait: true` (below) it is one call from "run it" to "did it hold".
 
+⚠️ **A flow delete uses a narrower meaning.** `DELETE /v1/flows/{id}` deletes the suite keyed
+`<flowKey>-contract` over that flow, cases and runs included, and answers
+`deletedContractSuiteCount`. Every other suite over the flow stays, and its runs are refused until
+it names a flow that exists. Re-key or re-point a suite you want to keep before deleting the flow.
+
 ### The assertions
 
 Six kinds, a closed set — unknown fields are refused, and a case carries up to 50:
@@ -147,8 +152,7 @@ whether any number under it means anything.
 
 ⛔ **`lastRun` is `null` for a suite that has never run, and that is not a zero.** A suite authored
 this morning and a suite whose last run scored nothing are different findings — the second is a
-result and the first is the absence of one. Rendering the null as `0/0 scored` invents a
-measurement nobody took, which is the failure this whole resource exists to make visible.
+result and the first is the absence of one.
 
 ⚠️ **`credits` is `null` when the cost is unknown.** Not free — unknown. A run whose cost events
 were never recorded and a run that genuinely cost nothing are different, and only one of them is
@@ -157,8 +161,7 @@ safe to add up.
 ⭐ **`lastRun` also carries the run's TRIGGER and its VERDICT** — `triggeredBy`, `regressed`,
 `regressionReason` and `worsenedMetrics`, with the same meanings they have on the run itself. So a
 list can say which suites got worse without a call per suite. ⛔ `regressed` is `null` when no
-verdict was computed, which is not `false`; rendering null as "fine" reports a suite nobody judged
-as one that passed.
+verdict was computed, which is not `false`.
 
 ⚠️ **A bracketed suite's control arm is never reported here.** It measures the previous
 configuration on purpose, so reading it as the newest run would show you last week's numbers as
@@ -171,8 +174,7 @@ it never actually had.
 ⭐ **Every suite read says whether a run is in flight — `runInFlight`.** It is `true` exactly when
 `POST /v1/eval-suites/{id}/run` would answer 409, and that includes a run that is queued and not yet
 picked up. ⛔ Do not read it off `lastRun.status === "running"`: the run row is written only when
-the worker starts, so for the whole wait the newest run is still the previous, settled one — and a
-Run control drawn from it is offered exactly when it is refused. It is also `true` while a run row
+the worker starts, so for the whole wait the newest run is still the previous, settled one. It is also `true` while a run row
 still holds the suite's lock after its worker died — the platform honours that lock for twelve
 minutes and refuses a POST on it. `runInFlight` is `null` only when the platform could not read its
 queue AND no such lock is held; that says nothing either way.
@@ -218,7 +220,7 @@ invalid or were cut by the deadline; the rest were scored), `error` (it could no
 ran, and coverage says the numbers are not evidence). Poll until it is not `running`.
 
 ⚠️ **A suite can also run itself.** With `runOnConfigChange: true` — off by default for a new
-suite; a suite created before 2026-10-01 keeps what it stored — a sweep about every ten minutes
+suite; read it on a suite you did not create — a sweep about every ten minutes
 queues a paid run when either (1) the subject flow's configuration differs from the one the
 suite's last run measured, once the flow has sat unedited for ten minutes — an enabled suite that
 has never run counts as differing — and the run says `triggeredBy: config-change`; or (2) the
@@ -231,11 +233,6 @@ suite that is gone (404), a subject flow that no longer resolves, a `runAsUserId
 the project, an unknown case key (422), and a suite that already has a run going (409). What cannot be
 refused up front is SPEND — the run meters as it goes, so a run accepted here can still stop part
 way when the balance runs out, and that shows on the run.
-
-⛔ **This paragraph was one refusal ahead of the platform until 2026-09-20.** The subject flow was
-NOT checked when a run was queued — only when the worker came to execute it, where a 404 is a log
-line and the run simply never appears. Read it as current now; the check is where the sentence
-always said it was.
 
 ### What the run WILL measure: `validateOnly`
 
@@ -270,16 +267,14 @@ caller — the same row a sweep would have written, with a different provenance.
 ### A run says what asked for it
 
 Every run carries `triggeredBy`: `config-change` (the sweep saw the flow under test move),
-`code-change` (the flow was untouched and the platform under it moved), or `manual` (someone
-pressed Run).
+`code-change` (the flow was untouched and the platform under it moved), or `manual` (a caller
+asked for it).
 
 ⭐ **The first two are kept apart because they point at different culprits.** When a regression
 turns up, "the flow was edited" and "nobody touched the flow" are the two answers worth telling
 apart, and they lead to different people looking at different things.
 
-⛔ **`null` means the trigger was NOT RECORDED — it does not mean `manual`.** Runs from before this
-was kept carry `null`. Reading absence as a hand-started run would invent a person for every
-historical sweep fire, which is precisely the distinction the field exists to draw.
+⛔ **`null` means the trigger was NOT RECORDED — it does not mean `manual`.**
 
 ### A run carries the verdict it reached
 
@@ -291,7 +286,7 @@ notification, and a bus that rejects the envelope after the handover is logged, 
 There are three ways to regress and they fail differently. A quality or timing metric moved the
 wrong way _in its own direction_ and past the noise floor — `latency.subject` rising is worse, not
 better. The suite **stopped producing measurable results at all**: that is not a low score, it is a
-suite that has stopped answering, and it is the state a real flow sat in unnoticed for two days. Or
+suite that has stopped answering. Or
 a case that held broke its contract (the run's `flipped` cases, below). A run whose deadline cut
 every case, with nothing errored, is `error`: it regresses only when its baseline ran under the same
 budget (`measurementConditions.budgetMs`: 180 s for a `wait` run, 600 s for a queued one) and
@@ -311,9 +306,8 @@ regresses unless a case flipped — a contract flip's reason then takes the plac
 `false` beside a null `reason` and no `delta.suppressedReason` means "compared, and nothing got
 worse".
 
-⛔ **`regression` is `null` when no verdict was computed, which is not `regressed: false`.** Runs
-predate the field, and so does every run ever started by hand before detection moved into the run
-itself. "We did not look" and "we looked and it was fine" are different findings.
+⛔ **`regression` is `null` when no verdict was computed, which is not `regressed: false`.** An
+older run can carry none. "We did not look" and "we looked and it was fine" are different findings.
 
 ⚠️ **A suppressed delta answers `regressed: false`, not `null`.** When the delta is withheld because
 the configuration or the cases moved, no metric is compared, so the verdict is `false` — unless the
@@ -326,16 +320,11 @@ judgement is made against a baseline under the thresholds then in force — dele
 against, retune a floor, add a metric, and a recomputed answer differs from the one that actually
 fired the event. Read it as a record of the past.
 
-⭐ **To mark the series a verdict named, read `worsened` on the pooled aggregates** — do not match
-`worsenedMetrics` against names yourself. Those are display names (`latency.skill (rerankSet)`),
-and two series can spell the same one. The platform joins its own recorded verdict back to each
-series: `true` names this series, `false` does not, and `null` means no verdict was computed, the
-series is in a per-label group (a verdict judges the pooled comparison only), or the verdict's name
-fits more than one series.
-
 ⚠️ **A run carries what it cost — `credits` — summed from its own `cost.credits` scores**, the same
 sum a suite's `lastRun.credits` reports. `null` is unknown, never free. Do not rebuild it from an
-aggregate's mean and sample size.
+aggregate's mean and sample size. `GET /v1/eval-runs/{id}/spend` breaks the cost down by step,
+subject and scorer steps alike, with `uncharged` counting the operations the platform paid for. It
+can read higher than `credits`: a case the run's deadline cut is charged there and not scored here.
 
 ⚠️ **A case's `latencyMs` is `null` when no duration was recorded** — a case the run never started,
 or a run from before per-case outcomes were stored. A `0` is a measured zero.
@@ -413,7 +402,8 @@ flows. The run read carries the same mark on each case result, `results[].platfo
 ⛔ **A suite runs through the preview engine, and a preview APPLIES its writes.** `apply` defaults to
 true and the eval runner does not pass `apply: false`, so a suite over a flow that creates or
 updates records **mutates the very corpus it is measuring** — which also moves the case fingerprint
-and makes the next delta incomparable. Files land in a sandbox prefix, mail is refused, and an
+and makes the next delta incomparable. Files land in a sandbox prefix, a send is refused — an `email.send` or `url.send` step
+fails rather than sending — and an
 emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
 published, so no trigger starts. Records and terms are not isolated, and neither is a processing
 handoff: an `entity.enqueue-process` step runs the record's processing flow live once the case
@@ -453,30 +443,7 @@ Every score carries a `source` saying what produced it, and the set is closed at
 `scorer-flow` (a grading flow), `assertion` (a deterministic check), and `system` (the platform's
 own reading of latency, tokens or cost — a measurement with no judgement in it). Branch on it
 when you aggregate: folding a stopwatch reading in with a model's opinion averages two things
-that are not the same kind of number.
-
-⭐ **The aggregates carry it too.** Every numeric and categorical aggregate — on a run, and on every
-trend point — has a `source`, so telling a suite's own answers from the platform's instrumentation
-never needs a list of system metric names, which would go stale the day the platform adds one.
-⚠️ It is `null` when one series pools scores from more than one producer: a scorer is free to name
-its score `cost.credits`, and that series then holds both.
-Both trend reads also answer `numericSeries` — one `{ name, skillKey, source }` per numeric series
-across the whole window, its `source` merged over every run by the same rule. Order or filter a
-chart's series by it rather than folding the points' sources yourself.
-
-When `numericSeries` is empty, `emptyReason` says why — decided from what the runs MEASURED, never
-from their statuses: `never-run` (no settled run in the window), `categorical-only` (the runs
-produced verdicts and no number — a suite working as authored), or `nothing-measured` (no score of
-either kind — a coverage failure to look into). It is `null` whenever there is a line to draw.
-The three reasons are a field of the trend response, not a named schema of their own: read them off
-`emptyReason`, which is unchanged.
-⚠️ Do not infer it from `status`: a categorical suite with one `partial` run is still categorical.
-
-⚠️ **Two more sources were published here until 2026-08-19 and never existed** — one naming a
-human reviewer, one naming end-user feedback. Both were declared alongside the others in
-anticipation of a review surface and a feedback surface, neither of which was built, so no score
-could ever carry them. If you wrote a branch for either, it was unreachable. There is no
-human-annotation or end-user-feedback path today; when one ships it brings its own source back.
+that are not the same kind of number. There is no human-annotation or end-user-feedback source.
 
 ## What you can know before you spend: `GET /v1/eval-suites/{id}/readiness`
 
@@ -536,6 +503,63 @@ The trend read carries a comparability verdict on **each point**, for the same r
 drawn through an edited judge implies a continuity the numbers do not have, and a flat list of
 scores has nowhere to put that caveat.
 
+### Editing a suite or a case
+
+Both PATCHes REQUIRE the `version` you last read, and a stale one is a 409. That matters more here
+than on most design resources: a suite is the thing two people tune at once, and an edit that
+silently overwrites a scorer binding rebaselines every score measured after it — a change that
+looks like a result rather than an edit. Re-read and reconcile on a refusal.
+
+Every suite and case write takes `validateOnly` — in the body on `POST` and `PATCH`, as
+`?validateOnly=true` on `DELETE` — and then writes nothing and answers `200` with the verdict the
+write would reach: a subject or scorer flow the project does not hold, a case with no inputs, a key
+already taken, each as a finding. It is the write's own check, so it never says `ok: true` where
+the write refuses — except for a stale `version`, which only the write sees. It is not the run's
+dry run: `POST /v1/eval-suites/{id}/run` with `validateOnly: true` answers what a run would
+measure, and the design writes answer whether a row would be saved.
+
+⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
+facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+
+## Authoring order
+
+1. Get the flow previewing cleanly.
+2. Create the suite and bind the subject — no scorer flows yet, so it is a contract suite.
+3. Add cases — inputs, an expected value where there is ground truth, labels for per-label
+   breakdowns, and assertions for everything checkable for free.
+4. Run it with `wait: true` and read the `contract` on its `run`; that run is the baseline.
+5. Add scorer flows only for what assertions genuinely cannot express.
+
+An expected value is optional throughout. Reference-free scorers — a faithfulness judge, a
+coverage assertion — need no ground truth, and requiring one would exclude exactly the scorers
+that also work against production traffic.
+
+## Building a screen over these reads
+
+For a client that draws suites, runs and trends. None of it changes what a run measures.
+
+⭐ **To mark the series a verdict named, read `worsened` on the pooled aggregates** — do not match
+`worsenedMetrics` against names yourself. Those are display names (`latency.skill (rerankSet)`),
+and two series can spell the same one. The platform joins its own recorded verdict back to each
+series: `true` names this series, `false` does not, and `null` means no verdict was computed, the
+series is in a per-label group (a verdict judges the pooled comparison only), or the verdict's name
+fits more than one series.
+
+⭐ **The aggregates carry it too.** Every numeric and categorical aggregate — on a run, and on every
+trend point — has a `source`, so telling a suite's own answers from the platform's instrumentation
+never needs a list of system metric names, which would go stale the day the platform adds one.
+⚠️ It is `null` when one series pools scores from more than one producer: a scorer is free to name
+its score `cost.credits`, and that series then holds both.
+Both trend reads also answer `numericSeries` — one `{ name, skillKey, source }` per numeric series
+across the whole window, its `source` merged over every run by the same rule. Order or filter a
+chart's series by it rather than folding the points' sources yourself.
+
+When `numericSeries` is empty, `emptyReason` says why — decided from what the runs MEASURED, never
+from their statuses: `never-run` (no settled run in the window), `categorical-only` (the runs
+produced verdicts and no number — a suite working as authored), or `nothing-measured` (no score of
+either kind — a coverage failure to look into). It is `null` whenever there is a line to draw.
+⚠️ Do not infer it from `status`: a categorical suite with one `partial` run is still categorical.
+
 ### Drawing every suite at once: `GET /v1/eval-suites/trend`
 
 ⛔ **Do not call `/{id}/trend` once per suite.** It reads one aggregate per run, so a loop over six
@@ -571,37 +595,6 @@ it too, and a client that infers from the count then warns about history that do
 earlier run to compare against"_ either way; only `truncated` distinguishes "this suite has run
 twice" from "you asked for the last twenty". Plot the first point accordingly — a series that
 begins mid-history is not a baseline.
-
-### Editing a suite or a case
-
-Both PATCHes REQUIRE the `version` you last read, and a stale one is a 409. That matters more here
-than on most design resources: a suite is the thing two people tune at once, and an edit that
-silently overwrites a scorer binding rebaselines every score measured after it — a change that
-looks like a result rather than an edit. Re-read and reconcile on a refusal.
-
-Every suite and case write takes `validateOnly` — in the body on `POST` and `PATCH`, as
-`?validateOnly=true` on `DELETE` — and then writes nothing and answers `200` with the verdict the
-write would reach: a subject or scorer flow the project does not hold, a case with no inputs, a key
-already taken, each as a finding. It is the write's own check, so it never says `ok: true` where
-the write refuses — except for a stale `version`, which only the write sees. It is not the run's
-dry run: `POST /v1/eval-suites/{id}/run` with `validateOnly: true` answers what a run would
-measure, and the design writes answer whether a row would be saved.
-
-⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
-
-## Authoring order
-
-1. Get the flow previewing cleanly.
-2. Create the suite and bind the subject — no scorer flows yet, so it is a contract suite.
-3. Add cases — inputs, an expected value where there is ground truth, labels for per-label
-   breakdowns, and assertions for everything checkable for free.
-4. Run it with `wait: true` and read the `contract` on its `run`; that run is the baseline.
-5. Add scorer flows only for what assertions genuinely cannot express.
-
-An expected value is optional throughout. Reference-free scorers — a faithfulness judge, a
-coverage assertion — need no ground truth, and requiring one would exclude exactly the scorers
-that also work against production traffic.
 
 ## Related
 

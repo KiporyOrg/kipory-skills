@@ -16,14 +16,12 @@ Read a record's links, grouped by kind.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `includeExpired` | boolean | no | `false` | Include edges that have been retracted. An edge is retracted by expiry rather than deletion, so history is readable — but never by accident. |
-| `kind` | string | no | — | Return only links of this one kind. Leave it unset for every kind the project declares. ⚠️ A kind the project marks hidden is never returned, whether or not you name it, and a link whose far end this run may not read is left out rather than blanked. |
-| `limit` | integer | no | `100` | Maximum edges returned across the whole read, applied after a deterministic ordering (most recently valid first). |
+| `kind` | string | no | — | Return only links of this one kind. Leave it unset for every kind the project declares. ⚠️ A link whose far end this run may not read is left out rather than blanked. |
+| `limit` | integer, more than 0 | no | `100` | Maximum edges returned across the whole read, applied after a deterministic ordering (most recently valid first). |
 
 ## Worked example
 
 Reads the links a record carries, with what is on the other end of each.
-
-Reads: the record id. Emits: RecordLink[].
 
 #### Two links
 

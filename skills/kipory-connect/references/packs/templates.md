@@ -30,23 +30,9 @@ slug grammar would refuse included; there is no `422` on this read.
 
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
-answers YAML. The document is in the current format, `kipory: 2`, and reads exactly as the
-project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) pack describes — elements by `key` and `label`, a
-relation kind's pairings by `fromRecordTypeKey`/`toRecordTypeKey`, a `skill-outcome` assertion
-by `skillKey`, a facet's worked examples by term `key` and `label` (a facet states no `binding` —
-a term attaches to the whole record), a record type's
-`ownerScope` as `user` or `project`, a relation kind's required `producer` and its `cardinality` in kebab
-(`join-record`, `many-to-one`), an eval suite's `coverageMode` as `strict` or `report-only`, its
-`scoreRules` directions in kebab (bounded as on the suite write) and its cases (each with an optional `label`) under
-`evals.<suite>.cases` — a flow carries no `tests` of its own, and a template that does is refused
-with `DOCUMENT_FLOW_TESTS_MOVED` — an event type keyed
-`<categoryKey>/<key>` in the document's `events` section with a boolean `durable` (it has no
-categories map — an event's namespace is its key prefix) — a
-template whose example key is not a valid term key (lowercase segments joined by `-`) is refused
-like any document, and whose steps may leave out what a document step may (their derived inputs
-and input types, an unread prompt, task or output slot, a description, condition, `enabled`, and
-an `outputSchema` its handler emits) and spell a step's `onFailure` as a
-document does (`fail-run` or `continue`).
+answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
+`kipory: 2`, and every rule of that pack holds for it: what a row may state, how each reference is
+spelled, and what is refused. A template that breaks one is refused like any other document.
 
 ## Create a project from one
 
@@ -58,13 +44,10 @@ That should never happen with a shipped template (each one is created and export
 platform's own CI), so treat it as a platform defect to report, not something to retry around.
 An unknown slug is refused before anything is made (`details.reason: "TEMPLATE_UNKNOWN"`).
 The same call takes a `document` instead — a whole project document of your own, applied the same
-way; the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) says how a refusal reads there. A template's
-record types speak the same `uses` vocabulary as that document (a join type names its relation kind
-as `uses.join.kindKey`) — there is no `file` use any more,
-no `derived` field family and no projection stages, on a type or as a profile default, so a
-template naming any of them is refused like any other document would be.
+way; the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) says how a refusal reads there. `template` and
+`document` together are refused before anything is made.
 
-Three things to know about the result:
+Four things to know about the result:
 
 - The create call's `name` wins. The `name` and `description` in a template's own `project`
   section are ignored; the rest of its `project` section (config namespaces, enabled routes) applies.
@@ -79,13 +62,17 @@ Three things to know about the result:
 ## A template on a project that already exists
 
 There is no "apply a template" call, and none is needed: a template's `document` is an ordinary
-project document, with the document's own rules — a facet that omits `resolver` takes the
-platform's default binding on the deployment it lands on, and one that states `resolver: null`
-lands unbound everywhere. A relation kind that states `properties: null` lands with no
-properties type, and one that omits the field keeps what the project already holds. Read it with `GET /v1/templates/{slug}`, plan it against your project to see
-what it would add or change, and apply it like any other document. Rows your project already has
-under the same keys are UPDATED to the template's, which is rarely what you want for a whole
-template — plan first, and send the sections you mean.
+project document, with the document's own rules. Two of them decide what lands:
+
+- A facet that omits `resolver` takes the platform's default binding on the deployment it lands
+  on; one that states `resolver: null` lands unbound everywhere.
+- A relation kind that states `properties: null` lands with no properties type; one that omits the
+  field keeps what the project already holds.
+
+Read it with `GET /v1/templates/{slug}`, plan it against your project to see what it would add or
+change, and apply it like any other document. Rows your project already has under the same keys
+are UPDATED to the template's, which is rarely what you want for a whole template — plan first,
+and send the sections you mean.
 
 ## When not to use one
 

@@ -15,14 +15,12 @@ Remove a link this flow made earlier.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `actor` | string | yes | — | A label naming what stated the links, e.g. `citation-extractor`. This node reaches only links recorded under it. ⚠️ It decides what can be taken back: a retract node reaches ONLY links stated under the same label, and never one a person made by hand. |
+| `actor` | string, at most 64 characters | yes | — | A label naming what stated the links, e.g. `citation-extractor`. This node reaches only links recorded under it. ⚠️ It decides what can be taken back: a retract node reaches ONLY links stated under the same label, and never one a person made by hand. |
 | `kind` | string | yes | — | The link kind's KEY — the stable identifier chosen when the link was created, not its name. ⚠️ Only a kind whose links are stated by hand works here. One backed by an entity field or a join entity is refused exactly as an unknown kind is, so a refusal reveals nothing. |
 
 ## Worked example
 
 Takes back one link this node's own label stated, and says whether there was one to take back.
-
-Reads: the two record ids. Emits: RelationRetraction.
 
 #### Link removed
 

@@ -12,8 +12,8 @@ Answer typed questions about a value: yes/no, pick one, or score.
 - **Suggested input streams:** `state`
 - **External dependency:** TypeSafe AI — Answers through TypeSafe's decision model, Jev. Uses a TypeSafe AI API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `typesafe` (vendor: TypeSafe AI); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 600 per 60000ms in bucket `typesafe`
-- **Queue:** 2 attempts, exponential from 1000ms; waits up to 60000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 600 per min in bucket `typesafe`
+- **Queue:** 2 attempts, exponential from 1 s; waits up to 1 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -29,11 +29,90 @@ Answer typed questions about a value: yes/no, pick one, or score.
 | `slot` | string | yes | — | The slot the extra value is written to. A later step reads it by this name. |
 | `schema` | union | yes | — | The type of the value in that slot, as a schema reference. |
 
+`schema` — one of:
+
+**`schema` › `kind: ref`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `ref` | yes | — | A named shape, defined once in the project's schema entries and reused by id. |
+| `entryId` | string | yes | — | Id of the schema entry this points at. It has to already exist, and one that something still points at cannot be deleted. |
+
+**`schema` › `kind: list`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `list` | yes | — | An array of values. |
+| `element` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+
+**`schema` › `kind: optional`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `optional` | yes | — | A value that may be absent altogether. |
+| `inner` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+
+**`schema` › `kind: union`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `union` | yes | — | One of several alternative shapes. A step may READ a union; what it writes has to be one concrete shape. |
+| `members` | a list of `schema` alternatives, at least 2 items | yes | — | The alternatives — at least two, since a single-member union is just that member. |
+
+**`schema` › `kind: record`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `record` | yes | — | A map from string keys to values. Only the values are typed; the keys are always strings and are not constrained. |
+| `valueType` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+
+**`schema` › `kind: recordRef`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
+| `recordType` | string | yes | — | Which record type the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+
 ## Worked example
 
 A support message goes in; the step's output type asks three questions of it, and each field comes back answered.
 
-Reads: read the message. Emits: answer each field.
+The output type `TicketTriage`, whose definition decides what the step does:
+
+```json
+{
+  "type": "object",
+  "properties": {
+    "team": {
+      "enum": [
+        "billing",
+        "tech",
+        "sales"
+      ],
+      "description": "Which team should answer this message?"
+    },
+    "refund": {
+      "$ref": "#/$defs/<probability entry id>",
+      "description": "Is the customer asking for money back?",
+      "x-criteria": {
+        "true": "They ask for a refund or to reverse a charge.",
+        "false": "They ask about anything else."
+      }
+    },
+    "urgency": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 2,
+      "x-levels": [
+        "can wait",
+        "today",
+        "now"
+      ],
+      "description": "How urgent is it?"
+    }
+  }
+}
+```
 
 #### ticket triage
 
@@ -72,7 +151,7 @@ Step settings (`handlerConfig`):
       "slot": "sureness",
       "schema": {
         "kind": "ref",
-        "entryId": "DecisionConfidence"
+        "entryId": "<DecisionConfidence entry id>"
       }
     }
   ]
@@ -92,5 +171,16 @@ Output:
   "team": "billing",
   "refund": 0.41,
   "urgency": 0.87
+}
+
+and, in the slot "sureness":
+
+{
+  "lowest": 0.41,
+  "answers": [
+    { "question": "team", "type": "choice", "confidence": 0.41, "probabilities": { "billing": 0.41, "tech": 0.33, "sales": 0.26 } },
+    { "question": "refund", "type": "noul", "confidence": 0.59, "probabilities": { "true": 0.41, "false": 0.59 } },
+    { "question": "urgency", "type": "score", "confidence": 0.42, "probabilities": { "0": 0.42, "1": 0.29, "2": 0.29 } }
+  ]
 }
 ```

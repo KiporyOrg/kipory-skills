@@ -4,16 +4,85 @@ Two halves that meet only at the collection. The write half indexes; the read ha
 
 ## Write half — a record becomes points
 
-For a record type's own search there is nothing to build: declare `search` in the type's `uses`
-(`kipory-model`) and the platform chunks, embeds and writes each record into the collection
-derived from the embedding profile, with the payload `record` mode reads back. Collections have no
-create route — `GET /v1/vector-collections?project={nodeId}` lists the ones that exist.
+There is nothing to build: declare `search` in the type's `uses` (`kipory-model`) and the platform
+chunks, embeds and writes each record into the collection derived from the embedding profile, with
+the payload `record` mode reads back. Collections have no create route —
+`GET /v1/vector-collections?project={nodeId}` lists the ones that exist. Indexing is asynchronous,
+so a record can be `ready` before it is searchable.
+<!-- absent: POST /v1/vector-collections -->
 
-The hand-built chain below writes extra points into a collection that already exists;
-`vector.upsert` cannot create one. Every collection is derived, and a search on one lets the
-collection embed the query (`queryTextSlot` or `queryRecordIdSlot`): a `queryVectorSlot` search is
-refused at save (`VECTOR_SEARCH_QUERY_NOT_DERIVED`). Such a search returns a hand-written point
-only if its payload carries a `recordId` and a `recordType` the search's `includeRecordTypes` names.
+## Read half — which records?
+
+One step. `entity.query` with a `semantic` clause returns the records, ranked, with their fields:
+
+| #   | Handler           | Reads                         | Emits                                  | Why it is here                             |
+| --- | ----------------- | ----------------------------- | -------------------------------------- | ------------------------------------------ |
+| 1   | `entity.query`    | the question (`textSlot`)     | `records`, `bounded`, `explanation`    | rank by meaning, narrowed by exact clauses |
+| 2   | `value.transform` | `records`                     | `{ id, text }[]`                       | pick the field the model should read       |
+| 3   | `text.sanitize`   | `itemsSlot`: `{ id, text }[]` | `{ id, sanitizedText }[]`, or a string | retrieved text is untrusted input          |
+| 4   | `text.generate`   | question + wrapped sources    | the answer                             | the answer                                 |
+
+Steps 2–4 are only for an answer a model writes. A list of matching records is step 1 alone.
+The step's `limit` (1–100, default 50) cuts the ranking after `topK`, so raise both together.
+
+## Read half — similar records and matched chunks
+
+For a similar-to-this-record search, a similarity threshold, several record types at once, or to
+learn which chunk of a record matched. No step returns a chunk's text — the text is the record's,
+read in step 2. Steps 3 and 4 are optional; the rest are not, if the answer is meant to be
+trustworthy.
+
+| #   | Handler           | Reads                                                                    | Emits                                  | Why it is here                                 |
+| --- | ----------------- | ------------------------------------------------------------------------ | -------------------------------------- | ---------------------------------------------- |
+| 1   | `vector.search`   | the question, or a record id                                             | hits — ids and scores, no text         | find candidates                                |
+| 2   | `entity.read`     | `recordType` + `idsSlot: "hits[].recordId"` (one step per type searched) | the hit records, with their fields     | a hit carries no text                          |
+| 3   | `text.rerank`     | question + `{ id, text }[]`                                              | `{ id, relevance }[]` — no text        | precision the vector score alone does not give |
+| 4   | `value.transform` | rerank hits + the texts                                                  | `{ id, text }[]` in rerank order       | rerank drops the text; sanitize needs it back  |
+| 5   | `text.sanitize`   | `itemsSlot`: `{ id, text }[]`                                            | `{ id, sanitizedText }[]`, or a string | retrieved text is untrusted input              |
+| 6   | `text.generate`   | question + wrapped sources                                               | the answer                             | the answer                                     |
+
+- **Step 1** takes the question as text (`queryTextSlot`) — the search embeds it with the
+  collection's own model, a model call billed inside the step — or a record id
+  (`queryRecordIdSlot`), which embeds nothing. A vector embedded upstream is refused at save
+  (`VECTOR_SEARCH_QUERY_NOT_DERIVED`). Its `collection` is the full `collectionName`
+  (`{slug}.{name}`) from `GET /v1/vector-collections?project={nodeId}`, not the short `name` the
+  collection routes take.
+- **Step 2** reads one record type: `recordType` is required, and ids of any other type are
+  dropped without an error. A search over several `includeRecordTypes` needs one `entity.read`
+  per type, each on the same `hits[].recordId`.
+- **Between 2 and 3** a `value.transform` shapes the rows `entity.read` returned into
+  `{ id, text }` — before step 3, or before step 5 when you skip re-ranking.
+- **`expand: "record"`** fills a hit's `text` only for a record that matched more than
+  `expandMergeThreshold` chunks; a one-chunk match never merges. Reading the records is the way
+  that always works.
+- **Step 5** reads `idField` and `textField` (defaults `id`, `text`) from each item; handed rerank
+  hits directly it wraps every source as an empty `<doc>`. It cuts each body at `maxCharsPerItem`
+  (4 000 characters by default), so raise it for whole documents. `outputShape: "joined"` emits the
+  blocks as one string, ready for a prompt. The skill's main page has the whole contract, the nonce
+  included.
+
+## Tuning, in the order that pays
+
+1. **Chunk size.** Too large and the match is diluted; too small and the answer loses context. It
+   is set on the embedding profile's `defaultChunking`, or the type's `uses.search.chunking`
+   (`kipory-model`); changing it re-embeds the type's records.
+2. **Hybrid on or off.** Turn it on when exact tokens matter — names, codes, identifiers. The
+   hit's `score` becomes rank-derived; `scoreThreshold` still cuts only the dense matches, on the
+   cosine scale. It needs a profile with a sparse slot.
+3. **`topK` and `chunksPerRecord`.** Widen the net before you sharpen it.
+4. **Re-rank.** Fixes ordering, not recall: it can only re-order what search already returned.
+5. **Expansion.** `expand: record` saves the `entity.read` step for records that matched several
+   chunks; it does not change what the model can see.
+
+Pin the quality first with an eval suite (`kipory-prove`), or every one of these is a guess whose
+effect nobody measured.
+
+## The hand-built write chain
+
+For extra points the declaration does not write, and only in a flow a signed-in end user calls:
+`vector.upsert` fails on a run with no signed-in user, which is every run a key or a schedule
+starts and the processing run of a project-scoped record. It writes into a collection that already
+exists — it cannot create one.
 
 | #   | Handler             | Reads                       | Emits           | Why it is here                                 |
 | --- | ------------------- | --------------------------- | --------------- | ---------------------------------------------- |
@@ -21,67 +90,28 @@ only if its payload carries a `recordId` and a `recordType` the search's `includ
 | 2   | `flow.fan-out`      | the chunk list              | one branch each | every chunk is embedded and written separately |
 | 3   | `text.embed`        | one chunk                   | `Vector`        | meaning                                        |
 | 4   | `text.embed-sparse` | the same chunk              | `SparseVector`  | the exact words, for hybrid search             |
-| 5   | `vector.point-id`   | the record id               | `string`        | a stable id, so a re-run overwrites            |
+| 5   | `vector.point-id`   | a value distinct per point  | `string`        | a stable id, so a re-run overwrites            |
 | 6   | `vector.upsert`     | id + both vectors + payload | nothing         | the write                                      |
 | 7   | `flow.merge`        | the branches                | a list          | closes the fan-out                             |
 
-`vector.point-id` hashes **whatever value the slot holds** into the store's id format. Feed it a
-record id and one record maps to one point — which means every chunk of that record would land on
-the same point and overwrite the last. A chunk-level index therefore needs a value that is distinct
-per chunk (the record id combined with the chunk's index, composed upstream of step 5); a
-record-level index keeps one point per record and carries the chunks in the payload instead.
-`GET /v1/vector-collections/{name}?project={nodeId}` says which vector names the collection
-reserves room for.
-
-`vector.upsert` writes nothing for a vector slot that arrived empty, so a chunk that failed to
-embed leaves a point that exists and is half-searchable rather than one that is absent.
-
-## Read half — a question becomes an answer
-
-Usually the flow behind an endpoint. Steps 2 and 3 are optional; the rest are not, if the answer
-is meant to be trustworthy.
-
-| #   | Handler           | Reads                         | Emits                                  | Why it is here                                 |
-| --- | ----------------- | ----------------------------- | -------------------------------------- | ---------------------------------------------- |
-| 1   | `vector.search`   | the question                  | hits                                   | find candidates                                |
-| 2   | `text.rerank`     | question + `{ id, text }[]`   | `{ id, relevance }[]` — no text        | precision the vector score alone does not give |
-| 3   | `value.transform` | rerank hits + the texts       | `{ id, text }[]` in rerank order       | rerank drops the text; sanitize needs it back  |
-| 4   | `text.sanitize`   | `itemsSlot`: `{ id, text }[]` | `{ id, sanitizedText }[]`, or a string | retrieved text is untrusted input              |
-| 5   | `text.generate`   | question + wrapped sources    | the answer                             | the answer                                     |
-
-Search hits carry no text at all in `record` mode — each chunk's payload is ids and filter fields,
-and `text` is filled only when `expand: "record"` merged the record (more than
-`expandMergeThreshold` matched chunks). Put an `entity.read` with `idsSlot: "hits[].recordId"`
-after step 1 to fetch the records, then a `value.transform` that shapes those rows into
-`{ id, text }` before step 2 (or before step 4 when you skip re-ranking). Step 4 reads `idField` and `textField` (defaults `id`,
-`text`) from each item; handed rerank hits directly it wraps every source as an empty `<doc>`.
-`outputShape: "joined"` emits the blocks as one string, ready for a prompt.
-
-Step 1's `collection` is the full `collectionName` (`{slug}.{name}`) from
-`GET /v1/vector-collections?project={nodeId}`, not the short `name` the collection routes take.
-Step 1 can take the question as text — `vector.search` embeds it with the collection's own model —
-or as a vector you embedded yourself. Text costs a model call inside the search step; a vector
-costs nothing there because you already paid for it.
-
-## Where the ids come from
-
-In `record` mode every hit is a record and carries `recordId`; `idPayloadField` is refused there at
-save. In `candidate` mode a hit's id is the vector store's own UUID unless `idPayloadField`
-names the payload key holding the record id — `recordId`, which the platform stamps — so set it.
-`term` and `generic` hits keep the point id. Everything downstream — a `entity.read` that
-fetches the record, a link back into the product — needs the record id, and a
-UUID that resolves to nothing fails silently at the far end of the flow rather than at the search.
-
-## Tuning, in the order that pays
-
-1. **Chunk size.** Too large and the match is diluted; too small and the answer loses context.
-   `overlapTokens` is what stops a boundary from destroying a sentence.
-2. **Hybrid on or off.** Turn it on when exact tokens matter — names, codes, identifiers. Remember
-   it re-scales the score.
-3. **`topK` and `chunksPerRecord`.** Widen the net before you sharpen it.
-4. **Re-rank.** Fixes ordering, not recall: it can only re-order what search already returned.
-5. **Expansion.** `record` expansion is the difference between a model seeing three fragments and
-   seeing the document.
-
-Pin the quality first with an eval suite (`kipory-prove`), or every one of these is a guess whose
-effect nobody measured.
+- **`text.chunk`** cuts on token boundaries with `overlapTokens` shared between neighbours.
+  `overlapTokens` must be strictly below `chunkTokens` — the handler throws at run time rather than
+  at save. `maxChunks` defaults to 30 and **drops the tail** when a document runs past it, warning
+  as it goes.
+- **`text.embed`** must use the profile's own model, or the scores mean nothing. An empty input
+  embeds to an empty vector, makes no model call, and `vector.upsert` leaves that vector unwritten
+  — so a point can exist with its dense vector present and its sparse one missing, and a hybrid
+  search will quietly under-serve it.
+- **`vector.point-id`** hashes **whatever value the slot holds** into the store's id format, so a
+  re-run overwrites the same point. Feed it a record id and every chunk of that record lands on one
+  point and overwrites the last; a point per chunk needs a value distinct per chunk (the record id
+  joined with the chunk's index, composed upstream). Feed the same derived id to `vector.fetch` to
+  read the stored vectors back.
+- **`vector.upsert`** takes either `payloadSlots` (a map of key to slot) or `payloadObjectSlot`
+  (one already-shaped object) — never both. A payload key may use only letters, digits and
+  underscores; a dotted key is refused at save. A vector name cannot be dense in one map and sparse
+  in the other; saving is refused. The vector names must be ones the collection reserves
+  (`GET /v1/vector-collections/{name}?project={nodeId}`).
+- **A record-mode search returns such a point only if its payload carries** `recordId`, a
+  `recordType` the search's `includeRecordTypes` names, and — on a per-user collection — the
+  `scopeKey` the search filters on.

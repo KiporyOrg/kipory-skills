@@ -1,6 +1,6 @@
 ---
 name: kipory-plan
-description: Turn a product idea into a Kipory build sheet — every record type, shape, flow, step, endpoint, facet, relation, schedule, event, secret and test that will exist, each marked buildable-as-configuration or needs-software-written — stop for the human to reject it cheaply, and when it is accepted write it as one project document and plan that before anything is applied. Use before authoring anything, when the user describes what they want to build rather than which endpoint to call, or when an existing project is about to grow a new capability. Not for building (that is every other skill) and not for a single endpoint the user has already specified.
+description: Turn a product idea into a Kipory build sheet before anything is authored — every record type, shape, flow, step, endpoint, facet, relation, schedule, trigger, source, event, secret and eval that will exist, each marked buildable-as-configuration or needs-software-written — and stop for the human to reject it cheaply. Use when the user describes what they want to build rather than which call to make, asks whether Kipory can do something, or wants an existing project to grow a new capability (plan it here, then read kipory-evolve before changing what is live). Then kipory-build writes the accepted sheet as one project document and plans it. Not for a single endpoint or flow the user has already specified (kipory-build, kipory-expose).
 license: MIT
 ---
 
@@ -10,7 +10,7 @@ license: MIT
 
 ## Before the first call
 
-- `kipory-connect` has run: you hold the base URL, a live key and the project's node id, and you know whether the project exists.
+- `kipory-connect` has run: you hold the base URL, a live key and the project's id (from `GET /v1/grant`), and you know whether the project exists.
 - Read `kipory-connect`'s `references/packs/limits.md` **before decomposing anything**. It is short, and it is the difference between a plan that can be built and one that dead-ends after three days of work.
 
 ## The sequence
@@ -19,18 +19,15 @@ license: MIT
 2. **If the project exists, read what it already has**: `GET /v1/bootstrap?project={nodeId}`. A plan that re-authors an existing record type is wrong before it starts.
 3. **Read the whole handler catalog** — `kipory-build`'s `references/handlers/README.md`, or `GET /v1/handlers` — before step 3 of the walk, not a filtered view. A keyword search encodes what you already believe. The first recorded run of this protocol searched for the words it expected, missed a handler entirely, and turned what should have been a `seed` row into a `code` row.
 4. **Fetch the pack each step points at, when you reach that step** — not all of them up front.
-5. **Confirm every fact live** — handler keys from `GET /v1/handlers`, routes and shapes from `GET /v1/openapi.json`, on this deployment. This is Rule 0 and it is not optional.
+5. **Confirm every fact live** — handler keys from `GET /v1/handlers`, routes and shapes from `GET /v1/openapi.json`, on this deployment. This is Rule 0 and it is not optional. Models are facts too: `GET /v1/nodes/{nodeId}/task-models` at the project's id lists the task each model step will inherit its model through, and a row with `callable: false` fails every step on that task. Put a binding row in the sheet for each such task the plan uses (`kipory-build`'s `references/models.md`).
 6. **Emit the build sheet, then stop.**
-7. **When it is accepted, write the document** — `GET /v1/project-document/example` shows one
-   whole, `GET /v1/project-document/schema` is its format, and `references/packs/project-document.md`
-   (served by `kipory-build`) is the judgment: keys not ids, a partial document leaves the rest
-   untouched, absence never deletes. **Plan it, show the plan, and stop again.** A plan writes
-   nothing, so it is as cheap to reject as the sheet was.
-8. **Apply it** — `POST /v1/projects/{nodeId}/document` with the `version` the export or the
-   plan answered — only after the plan was read. One transaction, one history entry, however many
-   rows. For a project that does not exist yet, `POST /v1/projects` takes the `document` itself
-   (in place of a `template` slug) and applies it in the transaction that creates the project: a
-   refused document is a `422` with the plan, and no project exists afterwards.
+7. **When it is accepted, write the document and plan it** — `kipory-build` owns how (its
+   `references/packs/project-document.md`: keys not ids, a partial document leaves the rest
+   untouched, absence never deletes). **Show the plan, and stop again.** A plan writes nothing,
+   so it is as cheap to reject as the sheet was.
+8. **Apply it only after the plan was read** — one transaction, however many rows. A project
+   that does not exist yet can be created from the document in one call (`POST /v1/projects`
+   with `document`): a refused document leaves no project behind.
 
 ## Three the protocol states that an agent most often skims past
 
@@ -38,7 +35,7 @@ license: MIT
 
 **An empty step is a decision.** An omitted step and a forgotten one look identical to the reader, and the reader is the person who needs to catch your mistake. Write "none, because…".
 
-**The four primitives easy to leave out and expensive to discover later**: a record type declared searchable needs an **embedding profile** to name; a flow calling a paid web vendor may need a **secret**; a threshold you will want to tune belongs in a **project-config namespace**, not baked into a flow; and the **eval cases** in step 8 are the only part of a plan that survives a later rewrite.
+**The four primitives easy to leave out and expensive to discover later**: a record type declared searchable needs an **embedding profile** to name; a flow calling a paid web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**; a threshold you will want to tune belongs in a **project-config namespace**, not baked into a flow; and the **eval cases** in step 8 are the only part of a plan that survives a later rewrite.
 
 ## What will bite you
 
@@ -46,10 +43,11 @@ license: MIT
 - **No one to stop for.** When you were told to build end to end and no person will answer, the stops become records instead of waits. Put the sheet, and later the plan's `diagnostics` and `consequences`, into your report or log. Write down each question you would have asked, with the answer you chose. Then read the plan yourself against the sheet before you apply it. Stop only for something you cannot undo, such as a document that deletes rows.
 - **Writing the document with ids.** A document carries names; an id in it is matched only when this project holds a row with it, and otherwise ignored (`ignoredIds`). A document written from another project's export plans cleanly here — its ids are noise, its names are the content.
 - **Skipping step 8 because the project is small.**
+- **Writing "model" on the sheet instead of the handler.** A judgement — is it, which one, how much — is a `text.decide` step, which costs a small fraction of a prompt. Only a step that must write words is `text.generate`. Deciding this on the sheet is what keeps a per-record flow cheap (`kipory-build`'s `references/models.md`).
 - **A per-user record type in a plan a key will execute.** A key's runs are project-owned; a type whose records belong to individual end users cannot be written by a flow it runs (a key can only hand-write one such record at a time, naming the owner). If the product has end users who own their data, the sheet needs an endpoint they call signed in (`kipory-expose`), and the plan should say so.
 - **Planning a record write as a coded route.** A product's record writes belong in a flow step reached through an endpoint, a schedule or processing; the sheet's exposure step is where the write lives. `POST /v1/records` exists, but it is an operator's one-record correction path (EDITOR, `kipory-data`), not a product's write.
 - **A top-level vocabulary whose terms overlap.** A facet another facet nests under holds one value per record (`kipory-model`'s `references/packs/facets.md`), and neither that nor a term's key can be changed later. Put the term list in the sheet and check each pair for "can one item be both?" before it is seeded; state how a new value is admitted (`mint`), because supervised minting needs a person reading candidates.
-- **Forgetting the two hosts.** Every endpoint row in the sheet is served on the project's host; everything else the sheet authors is on the api host.
+- **Forgetting the two hosts.** Every endpoint row in the sheet is served on the project's host — its `baseUrl`, read from `GET /v1/grant` — and everything else the sheet authors is on the api host (`kipory-connect`'s `references/conventions.md`).
 
 ## References
 
@@ -61,6 +59,17 @@ license: MIT
 ## Then
 
 `kipory-build` for the document itself — export, plan, apply — and for step 3 when a flow needs
-hand-wiring after the apply. `kipory-model` for steps 2 and 5, `kipory-expose` for step 4,
-`kipory-operate` for steps 6 and 7, `kipory-prove` for step 8, `kipory-secrets` and
-`kipory-channels` when a row calls for them.
+hand-wiring after the apply. By step of the walk:
+
+| Step                                    | Skill                                                                                                                                                      |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 2 records, 5 classification and linking | `kipory-model`                                                                                                                                             |
+| 3 processing — what a step can do       | `kipory-gather` (reading from and sending to outside services), `kipory-extract` (files), `kipory-retrieve` (search and answer over the project's records) |
+| 4 exposure                              | `kipory-expose`                                                                                                                                            |
+| 6 time and reaction, 7 signals          | `kipory-operate`; `kipory-channels` for a Telegram source and for mail                                                                                     |
+| 8 correctness                           | `kipory-prove`                                                                                                                                             |
+| a row that needs a stored credential    | `kipory-secrets`                                                                                                                                           |
+| seeding or importing the first records  | `kipory-data`                                                                                                                                              |
+
+When the project already holds records or serves callers, read `kipory-evolve` before applying
+anything that changes an existing row.

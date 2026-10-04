@@ -33,7 +33,7 @@ git clone https://github.com/KiporyOrg/kipory-skills
 cp -R kipory-skills/skills/* .claude/skills/
 ```
 
-Each skill is self-contained: its `references/` and `scripts/` live inside it, so installing one skill alone works. Then tell your agent what you want to build. Start with `kipory-connect` — it is turn zero, and it hands off to everything else.
+Install them together. Each skill's `references/` and `scripts/` live inside it and its links never leave it, but the skills lean on each other by name: the handler catalog and the worked flow patterns ship inside `kipory-build`, and the conventions every route shares inside `kipory-connect`. Then tell your agent what you want to build. Start with `kipory-connect` — it is turn zero, and it hands off to everything else.
 
 ## What is here
 
@@ -49,37 +49,38 @@ Every generated file opens with a stamp naming its source, and the content hashe
 
 ## The skills
 
-| Skill             | For                                                                                                                      |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `kipory-connect`  | **Start here.** Prove the deployment and the key, read the project in one call, learn the conventions every route shares |
-| `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                           |
-| `kipory-model`    | Record types and shapes, facets and terms, relation kinds, the embedding profile that makes records searchable           |
-| `kipory-build`    | Build and edit flows over the handler catalog: steps, slots, output binding, health, preview, checkpoints                |
-| `kipory-data`     | The records, files and edges a project already holds; the processing stream; what ingest fetched                         |
-| `kipory-gather`   | Bring data in from outside: fetch and scrape pages, web search, YouTube, X, Telegram discovery, geocoding                |
-| `kipory-extract`  | Turn a file into something a flow can use: PDF text, page renders, transcripts, image data, signed links                 |
-| `kipory-retrieve` | Search the project's own records and answer over them: chunk, embed, search, re-rank, and sanitize                       |
-| `kipory-expose`   | Put a flow on HTTP as the product's own endpoint — sync, async or streaming — and sign its users in                      |
-| `kipory-prove`    | Pin what "working" means: eval suites — assertions for pass/fail, scorer flows for quality, the run-to-run delta         |
-| `kipory-operate`  | Schedules, the event registry, runtime config, and what it all spent                                                     |
-| `kipory-channels` | Send mail from the project's own address; subscribe to Telegram channels                                                 |
-| `kipory-secrets`  | Store a vendor credential a flow needs — and decide whose key pays the vendor                                            |
-| `kipory-diagnose` | Find a run, read its step log, its writes and its trace, and see which step moved                                        |
-| `kipory-evolve`   | Change a project that is already live: rehearse a change, read a refusal, roll a flow back                               |
+| Skill             | For                                                                                                                                                                               |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `kipory-connect`  | **Start here.** Prove the deployment and the key, read the project in one call, learn the conventions every route shares                                                          |
+| `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                                                                                    |
+| `kipory-model`    | Record types and shapes, facets and terms, relation kinds, the embedding profile that makes records searchable                                                                    |
+| `kipory-build`    | Build and edit flows over the handler catalog: steps, slots, output binding, health, preview, checkpoints                                                                         |
+| `kipory-data`     | Read and write records, files and edges by hand: import, correct, reprocess, delete; the processing stream                                                                        |
+| `kipory-gather`   | Reach outside the project: fetch and scrape pages, call an API with or without a stored key, send a request to an outside system, web search, social platforms, places, geocoding |
+| `kipory-extract`  | Turn a file into something a flow can use: PDF text, page renders, transcripts, image data, signed links                                                                          |
+| `kipory-retrieve` | Search the project's own records and answer over them: chunk, embed, search, re-rank, and sanitize                                                                                |
+| `kipory-expose`   | Put a flow on HTTP as the product's own endpoint — sync, async or streaming — and sign its users in                                                                               |
+| `kipory-prove`    | Pin what "working" means: eval suites — assertions for pass/fail, scorer flows for quality, the run-to-run delta                                                                  |
+| `kipory-operate`  | Schedules, triggers, the event registry, runtime config, and what it all spent                                                                                                    |
+| `kipory-channels` | Send mail from the project's own address; subscribe to Telegram channels                                                                                                          |
+| `kipory-secrets`  | Store a credential a flow needs — a vendor key, or the key a step sends to an outside API — and decide whose key pays the vendor                                                  |
+| `kipory-diagnose` | Find a run, read its step log, its writes and its trace, and see which step moved                                                                                                 |
+| `kipory-evolve`   | Change a project that already holds records or serves callers: rehearse a change, read a refusal, roll a flow back                                                                |
 
 ## Before you start
 
-You need three things, and **an agent cannot discover any of them** — they come from you:
+You need two things, and **an agent cannot discover either of them** — they come from you:
 
 1. **The base URL** of your Kipory deployment's api host.
-2. **An API key.** Only a signed-in human can mint one: a key cannot mint another key, so that a leaked key cannot manufacture siblings that outlive revoking the original. Mint it with the role the work needs — a key is `viewer` unless you ask, and anything that runs a flow is `admin`.
-3. **The node id your key was granted at**, or the project's node id. `kipory-connect` explains how a key reads its own grant back once it is connected.
+2. **An API key.** Only a signed-in human can mint one: a key cannot mint another key, so that a leaked key cannot manufacture siblings that outlive revoking the original. Mint it with the role the work needs — a key is `viewer` unless you ask, and previewing or testing a flow needs `admin`.
+
+The project's id is not one of them. The key reads its own grant — its node, its role and the projects it reaches — from `GET /v1/grant`, which `kipory-connect` does at turn zero.
 
 ## Contributing
 
 These files are **mirrored from a private monorepo** on every merge to its main branch, so an edit made here is overwritten by the next sync. **Please open an issue rather than a pull request.** The most useful report is _"this skill told me to do X and the platform refused"_ — that is the failure these files exist to prevent and the one that is hardest to catch from the inside.
 
-What stands behind them: on every build of the monorepo, each skill's frontmatter is checked against the Agent Skills spec; every endpoint citation is resolved against the route manifest, with the parameter names the API uses; every route a customer's key can never call is refused from prose that would prescribe it — a curated table, complete for the gates it has learned to see; every cited capability pack is one the deployment actually serves; links stay inside the skill that ships them; the generated references are compared byte for byte with their generators; and the mirror is measured against this repository daily. What none of that can see is **prose** — a sentence about what the platform re-checks, caches or refuses resolves no route and names no id. That is the class of error most worth reporting.
+What stands behind them: on every build of the monorepo, each skill's frontmatter is checked against the Agent Skills spec; every endpoint citation is resolved against the route manifest, with the parameter names the API uses; every route a customer's key can never call is refused from prose that would prescribe it — a curated table, complete for the gates it has learned to see; every cited capability pack is one the deployment actually serves; links stay inside the skill that ships them; every route and handler the generated references document is named somewhere in the hand-written text, or excused with a reason; an `expand` value is checked against the route it is written beside; a sentence saying a route does not exist is checked for the day it does; the generated references are compared byte for byte with their generators; and the mirror is measured against this repository daily. What none of that can see is **prose** — a sentence about what the platform re-checks, caches or refuses resolves no route and names no id. That is the class of error most worth reporting.
 
 ## Versions
 

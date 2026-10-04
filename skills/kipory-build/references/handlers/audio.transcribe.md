@@ -10,23 +10,21 @@ Turn speech in an audio file into text.
 - **Reads:** One audio file. A non-audio mime fails, and a file over the size cap is refused before anything is sent. _(shape hint: `file`)_
 - **Emits:** The spoken words as plain text. Empty when there is no file. The same file, model and language reuse the previous transcript.
 - **Suggested input streams:** `currentFile`
-- **External dependency:** a model provider — Whichever provider hosts the transcription model this step is set to. `whisper-1` is the seed, not the contract — the call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
-- **Rate limit:** 50 per 60000ms in bucket `audio.transcribe`
-- **Queue:** 2 attempts, exponential from 2000ms; waits up to 600000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **External dependency:** a model provider — Whichever provider hosts the transcription model this step is set to. `whisper-1` is only the default: the key is resolved per model.
+- **Rate limit:** 50 per min in bucket `audio.transcribe`
+- **Queue:** 2 attempts, exponential from 2 s; waits up to 10 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string | no | — | ISO 639-1 language hint (e.g. 'en', 'es'). Auto-detect when omitted; setting explicitly improves accuracy on short clips. |
-| `maxBytes` | integer | no | `25000000` | Reject files larger than this before calling the provider. Default 25 MB matches OpenAI's hard cap on Whisper requests; tune down for cost ceilings. |
+| `language` | string, at least 2 characters, at most 5 characters | no | — | ISO 639-1 language hint (e.g. 'en', 'es'). Auto-detect when omitted; setting explicitly improves accuracy on short clips. |
+| `maxBytes` | integer, more than 0 | no | `25000000` | Reject files larger than this before calling the provider. Default 25 MB matches OpenAI's hard cap on Whisper requests; tune down for cost ceilings. |
 | `model` | string | no | `""` | Which model transcribes, by its catalog id (creator/slug, as GET /v1/ai-models lists it — e.g. openai/whisper-1). Leave it empty to use the project's transcription setting. |
 
 ## Worked example
 
 Audio in, text out. Video has to be converted first. A missing file or a non-audio one gives an empty result.
-
-Reads: read the file. Emits: transcribe.
 
 #### A voice memo
 

@@ -10,20 +10,18 @@ Read an image's size and the camera details stored in it.
 - **Reads:** One image file. The type is not checked — anything that is not a readable image comes back with only its `byteSize`. _(shape hint: `file`)_
 - **Emits:** A `FileMetadata`, every field optional. A corrupt image never fails — it comes back as `{ byteSize }` alone; one without EXIF still has its dimensions and format.
 - **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `includeRawDebug` | boolean | no | `true` | Include a small curated raw debug object for fields that help troubleshoot parser output without storing everything the parser returned. |
-| `segments` | string[] | no | `["tiff","exif","gps","iptc","xmp"]` | Metadata segment families to parse with the metadata parser. Default: TIFF + EXIF + GPS + IPTC + XMP. |
+| `segments` | string[], at least 1 item | no | `["tiff","exif","gps","iptc","xmp"]` | Metadata segment families to parse with the metadata parser. Default: TIFF + EXIF + GPS + IPTC + XMP. |
 
 ## Worked example
 
 Whatever metadata an image carries, read and mapped. The variants show a phone photo, a screenshot, and a file with none.
-
-Reads: exifr.parse. Emits: project to FileMetadata.
 
 #### A phone photo
 

@@ -42,8 +42,10 @@ gets one that can never grow — and if nothing was seeded it reads `blocked`, n
 - **`none`** drops the value and reports it unresolved.
 - **`candidate`** coins a term that stays attached to the record that proposed it and OUT of the
   vocabulary until you activate it. The facet's own later proposals reuse it; nothing else matches
-  against a candidate. Activating one is a status change on the term. A record read says which of its `terms` are candidates: each entry
-  carries `status`.
+  against a candidate. Activating one is a status change on the term (`PATCH /v1/terms/{id}`). A
+  record read says which of its `terms` are candidates: each entry carries `status`. A `term=`
+  condition on the records list and a query's `term` clause match **active** terms only, so a
+  record filed under a candidate is not found by them until the term is admitted.
 
 A value that is a word for nothing — `null`, `none`, `n/a`, or one with no letters or digits — is
 never coined, whatever `mint` says. It still matches a term the vocabulary really holds under that
@@ -81,7 +83,7 @@ vocabulary and then found it would not recognise an obvious synonym.
 
 ⚠️ **Where "closest" stops is two numbers.** The default resolver's `resolutionParams` are
 `lowThreshold: 0.72` and `highThreshold: 0.92`. A value whose best match scores at or above the
-high one reuses that term; one below the low one is NEW — coined, proposed or dropped as `mint`
+high one reuses that term; one at or below the low one is NEW — coined, proposed or dropped as `mint`
 says; the band between goes to a model to settle. A short value — one or two words — embeds less
 distinctively than the term it means and often scores under 0.72, so under `none` it is dropped
 and under `active` it becomes a near-duplicate term. Tune it with `PATCH /v1/facets/{id}`
@@ -201,6 +203,15 @@ a parent minted in the same batch. ⚠️ **A resolver SUBFLOW is the exception*
 another flow legitimately hands persistence off to its caller by binding the bundle to an ordinary
 flow output, and adding a `term.upsert` there is not required.
 
+⚠️ **`term.upsert` adds an assignment; it never replaces one.** A run that resolves a `one` facet
+to a different term than the record already carries fails when its writes apply: the record goes
+`failed`, every write of the run is dropped, and `GET /v1/runs/{runId}/change-set` reads `rejected`
+with `rejection.cause.kind: "unique-violation"` — while the step log shows every step applied. On
+a `many` facet the new terms land beside the old ones. So re-classify a record only on a clean
+run — `POST /v1/records/{id}/reprocess`, or `entity.enqueue-process` with `replay: clean`, both of
+which strip the record's terms first — or replace one facet's terms by hand with
+`PUT /v1/records/{id}/facets/{facetKey}`.
+
 **A resolve flow with no sink at all resolves nothing** — the values simply never land, because
 resolving itself succeeded and nothing failed. It is not silent at save, though: it warns there like
 the others.
@@ -236,15 +247,21 @@ precisely why something has to say so out loud.
 <!-- field-ok: facetFields — a `text.generate` HANDLER CONFIG key, not a wire field; it reaches the
      API inside the opaque `handlerConfig` blob, so no wire contract declares it by name. -->
 
-**And one more, on the extraction side:** a `text.generate` node's `facetFields` is a SNAPSHOT of the
-`$facet` markers on the type it answers with, taken when you last pressed Adopt — the runtime reads
-the config, never the markers. Editing the type afterwards moves the source and leaves the snapshot
-behind: a marker you added is never extracted, a marker you removed is still extracted into a field
-the type no longer declares. The run succeeds either way. Saving warns, and Adopt re-derives.
+**And one more, on the extraction side:** a `text.generate` step's `facetFields` — the list of
+`{ facet, field }` pairs in its `handlerConfig` — is what the run reads. The `$facet` markers on
+the type the step answers with are never read at run time, and no write re-derives the list from
+them. Editing the type afterwards leaves the list behind: a marker you added is never extracted, a
+marker you removed is still extracted into a field the type no longer declares. The run succeeds
+either way. The flow's health warns `LLM_GENERATE_FACET_FIELDS_DRIFTED`, naming the facets the type added and
+the ones the step still carries; the fix is to send the step's `handlerConfig` again
+(`PATCH /v1/steps/{id}`) with `facetFields` matching the type's markers. Two save errors guard that
+write. Each pair's `field` must equal its `facet` key (`LLM_GENERATE_FACET_FIELD_MISMATCH`
+otherwise). And `outputs` must hold exactly one entry while `facetFields` is non-empty — the slot
+the facet values are written to, named differently from the step's own output slot — and none when
+it is empty (`LLM_GENERATE_FACET_OUTPUTS_MISMATCH`).
 
 All four are warnings rather than refusals for the same reason: each names a state that is ordinary
-while a project is still being assembled, and each is fixed in a different surface than the flow
-editor you are standing in.
+while a project is still being assembled.
 
 ## What the platform refuses
 
@@ -265,11 +282,8 @@ editor you are standing in.
   arises any other way (a flow output of that name, say) is not refused; the record type's
   diagnostics report it. Pick a key no surfacing type uses as a field name (`cuisineTag`).
   <!-- field-ok: cuisineTag — an example facet key a project would author, not a platform field -->
-- **An empty label is refused** with `FACET_LABEL_EMPTY`, on the create and the rename alike. It
-  used to answer `FACET_KEY_INVALID` on the create — one rule with two codes depending on which
-  verb ran it — so a client branching on the code for `POST /v1/facets` saw the key's failure over
-  a label. ⭐ Every one of these refusals now carries the field it is about on `details.issues`,
-  so a form marks the box rather than showing a sentence.
+- **An empty label is refused** with `FACET_LABEL_EMPTY`, on the create and the rename alike.
+  ⭐ Every one of these refusals carries the field it is about on `details.issues`.
 - **A parent facet is cardinality `one`** (`FACET_PARENT_CARDINALITY` on the child's create): a
   child term hangs under exactly one parent term, so the record must carry exactly one. This is
   a product decision, not a detail — every record gets ONE top-level value, and `cardinality`
@@ -281,18 +295,14 @@ editor you are standing in.
 - **A facet cannot nest under itself** (`FACET_PARENT_SELF`). The hierarchy is a chain of FACETS,
   not a tree of terms inside one: each level is its own facet with its own admission, resolver and
   record-type links, which is the whole reason it is a separate facet.
-- **A stale `version` on update is refused**, and the field is REQUIRED — omitting it used to
-  mean last-writer-wins, which is a documented way to lose somebody else's edit.
+- **A stale `version` on update is refused**, and the field is REQUIRED.
 - **A parent term sent for a TOP-LEVEL facet is refused**, on both write paths — creating one term
   and bulk-seeding a batch. If you sent a parent, you meant something by it, so neither path
   drops it and lands the term at the top level.
 - **An unknown key inside `proposal` is refused.** The bag is closed: guidance prose, a list of
   worked examples (each a term `key` and its `label`; the key must be one a term could hold —
   lowercase segments joined by `-`, at most 128 characters — or the write is a 422), and a flag permitting an empty answer — the exact shape the live schema
-  declares, and nothing beside it. It used to accept any object, so a misspelled key persisted,
-  returned 201, and left the facet behaving as though the setting had never been made. A typo is
-  the only failure this field has, so it is now a 422 at the moment you write it. Reads are
-  unaffected — a row stored before the rule still serializes.
+  declares, and nothing beside it. A misspelled key is a 422 at the moment you write it.
 
 ## Is this facet actually doing anything?
 
@@ -396,7 +406,7 @@ write:
 }
 ```
 
-⭐ **`derived.terms` answers the two things a paste preview used to guess**: the
+⭐ **`derived.terms` answers two things before you seed**: the
 permanent name each row would get, and which rows a term already holds. The
 second is a read of the moment — another seed landing first turns a `created`
 into an `existed`, which is a normal success either way, because this route is
@@ -484,8 +494,6 @@ different claims, and only one of them is true.
   ⚠️ Send the SAME query you intend to delete with. A destructive delete is refused without
   `confirm=true`, and a facet with assigned terms also needs an `assignedTerms` disposition, so a
   dry run that omits either answers the refusal you would have got — which is the point of asking.
-  ⭐ This replaced a sibling preflight route, which took neither of those two and could therefore
-  report the size of a delete but never whether it would succeed.
 - **`facet.resolve` runs inline, not queued.** It dispatches sub-flows bound to the live run:
   depth and cycle guards, the provider cache, the tenant scope, billing. That is precisely why it
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.

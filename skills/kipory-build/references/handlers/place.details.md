@@ -12,21 +12,19 @@ Read a place's map listing: address, hours, rating, and contact.
 - **Suggested input streams:** `place`
 - **External dependency:** Apify — Runs an Apify actor that reads the map listing. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 7 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string | no | `"en"` | Language for the place's name, hours and descriptions, as a code like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run fetches every place again. |
-| `maxImages` | integer | no | `0` | How many photo links to include, up to 20. 0 includes none. |
+| `language` | string, at least 2 characters | no | `"en"` | Language for the place's name, hours and descriptions, as a code like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run fetches every place again. |
+| `maxImages` | integer, 0 to 20 | no | `0` | How many photo links to include, up to 20. 0 includes none. |
 
 ## Worked example
 
 Reads one place's listing — where it is, when it is open, and how it is rated.
-
-Reads: place. Emits: place card.
 
 #### A restaurant by name
 

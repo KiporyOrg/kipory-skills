@@ -4,10 +4,10 @@
 <!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: isDesign — one project's example field name, not a platform field -->
-<!-- field-ok: isTech — one project's example field name, not a platform field -->
 
-Six shapes cover most flows, plus the one a record type runs on its own records. Each names the control handlers involved and the one rule each has that is not obvious from its config table. Field names are the handler's own config keys — see `handlers/<key>.md` for the full table and a worked example.
+Six control shapes cover how most flows are wired. Each names the control handlers involved and the one rule each has that is not obvious from its config table. Field names are the handler's own config keys — see `handlers/<key>.md` for the full table and a worked example.
+
+The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7 (a record's processing flow), §8 (what an endpoint answers: 404, 422, optional filters), §9 (`entity.query` and a per-user feed) and §10 (roll-ups); `models.md` holds which model handler to use, `text.decide` questions, model bindings and prices.
 
 ## The three grammars, once
 
@@ -33,10 +33,11 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
 
 - Ingest-phase handlers run in the async worker and carry a **queue**: retries, a wait ceiling, and a cache keyed on their input. Inline and control handlers have neither retry nor cache.
 - `text.generate`'s config `temperature` and `reasoningEffort` are part of the cache key: changing either discards every cached answer for the same prompt. Higher reasoning effort dominates both time and the token bill.
-- Two steps write a record. `entity.update` (above) patches the record the run is processing — `recordIdSlot`, then `dataSlot` and/or `derivedSlot`. `entity.create` makes a new one — `recordType`, `dataSlot` and an optional `fileIdsSlot`; a per-user record type refuses a key-driven run. Lifecycle is decided by the type: no processing flow → READY; a flow → PENDING until the flow runs `entity.enqueue-process`.
+- Two steps write a record. `entity.update` (above) patches the record the run is processing — `recordIdSlot`, then `dataSlot` and/or `derivedSlot`. `entity.create` makes a new one — `recordType`, `dataSlot` and an optional `fileIdsSlot`; a per-user record type refuses a key-driven run. Lifecycle is decided by the type: with no processing flow the new record is `READY`; with one it is `PENDING` until that flow has processed it, and a record a flow created is queued for it only by an `entity.enqueue-process` step (`records-and-endpoints.md` §7).
 - Bind the last slot. A flow whose required output is unbound is refused `422 FLOW_OUTPUT_MISSING` on every live call, and preview names the slot in `missingRequiredOutput`.
 - **A step runs when any one of its inputs is present**, so a writer downstream of a step that produced nothing still runs on its other inputs. A provider slot counts when present: `projectInfo` and `runInfo` always are, and `userInfo` is on a signed-in run, so a step reading one beside a real slot runs without waiting for it — only an absent `userInfo` (a key, a schedule, a trigger) leaves the step waiting on its other inputs. "Present" means non-empty: `""`, `[]`, `{}` and an empty file count as absent, both here and for a `slotPresent` condition. A source that fails softly (a vendor out of credit answers a warning and an empty page) then leads to a record written with a hole in it. Guard the write: `"condition": { "op": "slotPresent", "slot": "summary" }` on the writer.
-- A fallback for a page: run `url.scrape` and `url.fetch` side by side on the same URL, strip the fetched HTML to text in a `value.transform`, then `value.first-non-empty` with `inputs` `["page.content", "plain"]` — scrape first, the first non-empty wins, `valueKind: "string"`, `outputSchema` `string`. Coalesce text with text: the scrape emits a `ScrapedPage` object and the fetch a raw HTML string, so the bare pair mixes types. `kipory-gather` has the strip expression and a no-vendor variant (`url.fetch` plus `url.metadata` for the title). Guard **every** step that reads the result beside another slot with `slotPresent` on the result — a model step reading the page and the `url` otherwise runs on the URL alone and invents the page. Set `"onFailure": "continue"` on the fetch: it fails the step on a 4xx or an unresolvable host, and **one failed step fails the run** (502, its writes discarded) even when its sibling succeeded. `continue` is allowed only on a step that writes nothing and does not itself write a slot the flow returns.
+- **One failed step fails the run** (502, its writes discarded) even when a sibling succeeded, unless the step carries `"onFailure": "continue"`. `continue` is refused on a control step, on a step whose handler may write, and on a step that writes a slot a required flow output is bound to.
+- A fallback for a page is `url.scrape` and `url.fetch` side by side into `value.first-non-empty`, with `"onFailure": "continue"` on the fetch (it fails the step on a 4xx or an unresolvable host) and a `slotPresent` guard on **every** step that reads the result beside another slot — a model step reading the page and the `url` otherwise runs on the URL alone and invents the page. `kipory-gather` owns the recipe: the strip expression, the types to coalesce and a no-vendor variant.
 
 ## 2. Fan-out and merge
 
@@ -61,7 +62,7 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
 - The sub-flow returns only the output slots it binds. `subFlowSlot` in an `outputs[]` row names one of them; a slot a sub-flow step wrote and the sub-flow did not bind never reaches the parent.
 - The validator refuses a cycle, a depth over the limit, a cross-project target, and duplicate input or output rows.
 - **You never state `derivedShape`.** The platform types each `outputs[]` row from the sub-flow step that writes `subFlowSlot` — on a single step save and in a document alike, including for a sub-flow the same document creates. A document that rewrites a sub-flow's steps re-types every step calling it, restated or not; a single step save of the sub-flow does not, so save the calling step again — until then health says `FLOW_INVOKE_DERIVED_SHAPES_STALE`. A mapped slot no sub-flow step writes has no shape.
-- **Leave `inputStreams`, `inputSchemas` and `outputSlot` to the platform.** A step save — single or document — derives the inputs from the `kind: "slot"` input rows (each row's `parentSlot` in row order, its `path` beside it), types them from the flow it calls, and mirrors the first output's `parentSlot` into `outputSlot`. A document writes a list you DO state as stated, and nothing compares it with the rows, so state one only to match them exactly. Other step fields as in `first-flow.md` §8:
+- **Leave `inputStreams`, `inputSchemas` and `outputSlot` to the platform.** A step save — single or document — derives the inputs from the `kind: "slot"` input rows (each row's `parentSlot` in row order, its `path` beside it), types them from the flow it calls, and mirrors the first output's `parentSlot` into `outputSlot`. A list you state is replaced by the derived one, in a document as on a single save, so there is nothing to keep in step. Other step fields as in `first-flow.md` §8:
 
 ```json
 "brief": {
@@ -76,11 +77,7 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
       { "subFlowSlot": "brief", "parentSlot": "draft" }
     ]
   },
-  "condition": { "op": "slotPresent", "slot": "allPoints" },
-  "inputStreams": ["allPoints"],
-  "inputSchemas": [{ "kind": "list", "element": { "kind": "ref", "ref": "string" } }],
-  "outputSlot": "draft",
-  "outputSchema": null
+  "condition": { "op": "slotPresent", "slot": "allPoints" }
 }
 ```
 
@@ -128,210 +125,47 @@ running list across branches that otherwise never meet.
   deduplicated set. `state.read` reads the same key back.
 - **A cell is scoped to one run.** It is not project state, it does not persist, and a second run
   starts empty. For state that outlives a run, write a record (`entity.update`).
-- `state.read` reads no slots at all, which means **nothing orders it against the writes**.
-  `state.write` emits a marker for exactly this reason: wire that marker into the read to put the
-  read after the write. Skip that and you will read a cell before the branch that filled it ran.
+- `state.read` reads no slots of its own, which means **nothing orders it against the writes**
+  until you give it an input. Skip that and you will read a cell before the branch that filled it
+  ran.
+  - **Writes inside a fan-out, read after it:** the read must list a slot the `flow.merge` writes
+    in its `inputStreams`, which places it after every branch. A `state.write`'s marker is a branch
+    slot, so a read wired straight to it belongs to the branch body and runs once per branch.
+  - **Write and read on the trunk:** wire the write's marker — the slot `state.write` emits — into
+    the read. Left at the same stage, health reports `STATE_READ_WRITE_SAME_STAGE` on the read.
 - The shape depends on the op: `set` and `add` cells read back as a string, `append` and `union` as
-  a list.
+  a list (`union` sorted). `state.read`'s output type defaults to `string`, so for an `append` or
+  `union` cell set the read's `outputSchema` to a list of `string`, or health warns
+  `STATE_READ_SHAPE_MISMATCH`.
+- **Cells hold text.** An object is stored as its JSON text, and `add` needs a number or a numeric
+  string.
+- The other save-time findings: `STATE_KEY_OP_CONFLICT` (two writes to one key with different
+  ops), `STATE_DANGLING_READ` (a read of a key nothing writes, a warning), `STATE_SET_CONFLICT`
+  (two `set` writes of one key at the same stage) and `STATE_WRITE_VALUE_SOURCE_MISSING` (a
+  `state.write` with no input wired to the value it writes).
 - Under `flow.fan-out` the ordering rules still apply — with `maxParallelBranches` unset, branches
   may run in parallel, and only `1` makes a branch reliably see what an earlier one wrote. `add`
   and `union` are the ops that are safe regardless of order; `set` is the one that is not.
 
-## 7. Process a record on ingest
-
-**Shape:** a record type bound to a **processing flow**; each record the type receives runs it once, and the flow's outputs become the record's `derived` fields.
-
-The contract the flow is held to:
-
-- **Its inputs are named after the record.** Each input slot reads the submitted field of the same name. Three more names come from the record row itself: `recordId` (string), `createdAt` (ISO timestamp) and `files` — the files attached to the record, as a list of files (declare `{ "slot": "files", "typeName": "file", "isList": true }`). Binding the flow refuses a required input that is none of those three and not a required field of the type's shape; a field the shape leaves optional is an input with `"required": false`.
-- **It declares at least one output**, or binding it is refused with `RECORD_TYPE_OUTPUT_EMPTY`. A flow that only files terms or writes elsewhere still needs one — bind a small computed value.
-- **A value a handler's config names by slot must be produced by a step.** Some config slots (`facet.resolve`'s `deterministicSlots`, for one) refuse a flow input directly with `…_UNRESOLVED "has no producing node"`; put a `value.transform` in between.
-- **Records wait for it.** A type with a processing flow creates records `PENDING`. A record created through the records API is queued for processing on its own; a record a flow creates with `entity.create` is not — that flow must run `entity.enqueue-process` after it.
-
-In a document:
-
-```json
-{
-  "kipory": 2,
-  "schema": {
-    "Note": {
-      "definition": {
-        "type": "object",
-        "properties": {
-          "title": { "type": "string" },
-          "body": { "type": "string" }
-        },
-        "required": ["title", "body"]
-      }
-    }
-  },
-  "flows": {
-    "summarise-note": {
-      "label": "Summarise note",
-      "inputTypeNames": [{ "slot": "body", "typeName": "string" }],
-      "outputTypeNames": [
-        { "slot": "summary", "typeName": "string", "required": true }
-      ],
-      "outputBinding": { "summary": { "fromSlot": "summary" } },
-      "skills": {
-        "write-summary": {
-          "description": null,
-          "handlerKey": "text.generate",
-          "handlerConfig": {},
-          "condition": null,
-          "inputStreams": ["body"],
-          "inputSchemas": [{ "kind": "ref", "ref": "string" }],
-          "outputSlot": "summary",
-          "outputSchema": { "kind": "ref", "ref": "string" },
-          "promptTemplate": "Summarise this note in one sentence.\n\n{{body}}",
-          "taskKey": "summarization",
-          "enabled": true
-        }
-      }
-    }
-  },
-  "records": {
-    "note": {
-      "shape": "Note",
-      "ownerScope": "project",
-      "flow": "summarise-note"
-    }
-  }
-}
-```
-
-Plan it first (`kipory-build`'s SKILL.md): the plan checks the flow's health as it will stand. A record created with `POST /v1/records { project, recordType: "note", data: { title, body } }` goes `pending`, then `ready` with `derived.summary`. Preview the flow on a stored record with `input: { kind: "record", recordId }`.
-
-**File in, searchable text out.** The most common processing flow: the record carries one uploaded file, a PDF or a text file, and the flow produces one `body` to index (`uses` `{ "source": { "family": "processed", "field": "body" }, "uses": [{ "kind": "search" }] }` on the type). Inputs `files` (`isList: true`) and output `body` (required). `files` is a list, so the dispatch takes the first item with an `inputPaths` entry; the two readers each run only on their branch, and the last step keeps whichever wrote. Each step also states `description: null`, `condition: null`, `promptTemplate: ""`, `taskKey: "extraction"` and `enabled: true`, left out here:
-
-```json
-"skills": {
-  "route-file": {
-    "handlerKey": "flow.dispatch",
-    "handlerConfig": {
-      "matchOn": { "field": "mime" },
-      "rules": [{ "pattern": "^application/pdf$", "outputSlot": "pdfFile" }],
-      "default": { "outputSlot": "textFile" }
-    },
-    "inputStreams": ["files"],
-    "inputPaths": [{ "segments": [{ "kind": "first" }] }],
-    "inputSchemas": [{ "kind": "ref", "ref": "file" }],
-    "outputSlot": "routed",
-    "outputSchema": { "kind": "ref", "ref": "file" }
-  },
-  "parse-pdf": {
-    "handlerKey": "pdf.parse", "handlerConfig": {},
-    "inputStreams": ["pdfFile"], "inputSchemas": [{ "kind": "ref", "ref": "file" }],
-    "outputSlot": "pdfDoc", "outputSchema": { "kind": "ref", "ref": "PdfDocument" }
-  },
-  "read-text": {
-    "handlerKey": "file.read-text", "handlerConfig": {},
-    "inputStreams": ["textFile"], "inputSchemas": [{ "kind": "ref", "ref": "file" }],
-    "outputSlot": "plainText", "outputSchema": { "kind": "ref", "ref": "string" }
-  },
-  "pick-body": {
-    "handlerKey": "value.transform",
-    "handlerConfig": { "expression": "$exists(pdfDoc) ? pdfDoc.text : plainText" },
-    "inputStreams": ["pdfDoc", "plainText"],
-    "inputSchemas": [{ "kind": "ref", "ref": "PdfDocument" }, { "kind": "ref", "ref": "string" }],
-    "outputSlot": "body", "outputSchema": { "kind": "ref", "ref": "string" }
-  }
-}
-```
-
-A **scanned** PDF has no text layer: `pdf.parse` answers empty `text` with a `pageCount`, so `body` comes out empty and the record has no text to index. Where scans arrive, branch on the empty text into `pdf.screenshot` and a vision-model `text.generate` before `pick-body` — `kipory-extract` has that branch and its cost.
-
-`inputPaths` is positional with `inputStreams`; a step that projects nothing omits it (or holds `null` in that position). A key reaches this flow on a project-wide type by creating the record from its own flow — `entity.create` with `fileIdsSlot` holding the `fileId`s the upload handshake confirmed, then `entity.enqueue-process` — since the records API takes no files.
-
-**A file as a flow input.** A flow input of type `file` (not a processing flow's `files`) takes a file reference `{ "key", "name", "mime" }` — never a `fileId`, which is refused `Expected object`. `key` is the one `POST /v1/files/upload-url` (with `project`) returned; `name` and `mime` are the `fileName` and `contentType` you sent it (`kipory-data` has the handshake). The same object goes in a preview's `inputs` and in an endpoint's request body: `{ "csv": { "key": "<key>", "name": "products.csv", "mime": "text/csv" } }`.
-
-## 8. Answer, refuse or miss from an endpoint
-
-What a flow endpoint can answer besides its bound output — and nothing else reaches the caller:
-
-- **Rows.** `entity.list` (under `records`) and `entity.read` give each row as the record's submitted **and processed** fields at the top level — `derived.body` is `$r.body` — beside `id`, `status`, `createdAt` and `updatedAt`, which a content field of the same name never overwrites. The example fields on the handler pages are one project's shape. A facet the type surfaces sits on the row under the facet's key as `{ id, slug, label, parentSlug }` (a list of them for a `many` facet) — not the records API's `{ facetKey, key, label, status }` entries; `slug` is the term's key, and `id` is the field to compare on.
-- **404** comes from one place: `entity.read` with `failIfEmpty: true`, when nothing resolves — an empty id list included. For a lookup by a field rather than an id, chain `entity.list` (filtered on the field) into `entity.read` with `idsSlot` on the page's rows (`"page.records"` — objects carrying `id` are read as ids) and `failIfEmpty`. An `entity.list` alone answers `200` with an empty page.
-- **422 with your message**: `$assert(condition, "message")` in a `value.transform` fails the step as invalid input, and the caller gets `422 VALIDATION_FAILED` carrying the message. This is how to refuse a request a guard would otherwise skip in silence: put the `$assert` in a transform that reads the value that decides, where the guard would have been (`$assert($length(text) >= 200, "The page has too little text to summarise.")`). `$assert` itself returns nothing, so that transform writes the empty `{}`; to check a value and pass it on in one step, return it after the assert — `($assert($length(text) >= 200, "The page has too little text to summarise."); text)` with `outputSchema` `string` — and read that slot downstream. When the deciding value may itself be absent — a merge that collected `[]`, a lookup that found nothing — a transform reading only it is skipped and never asserts. Read an always-present slot beside it and return that: `($assert($count(allPoints) > 0, "None of the URLs could be read."); topic)` with `inputStreams: ["topic", "allPoints"]` — both names, because the expression reads both.
-- **422 without a message of your own**: a required output a skipped step never produced is refused `422 FLOW_OUTPUT_MISSING`, `details.missing` naming the output, and the run's writes are discarded. Nothing is filled in. So a guard that skips a write already refuses the call; use `$assert` when the caller should read why. A flow whose honest answer can be "nothing" produces that value (a transform emitting `0` or `[]`) or declares the output optional. There is no fail step and no configurable error status; `successStatus` takes only a 2xx.
-- **Optional query filters.** A filter value named by a slot (`fieldFilterSlots`, `dataEqualsSlot`, `dataContainsSlot`, an `edgeFilters` peer, an `entity.query` `valueSlot`) must be there when the step runs: if it is missing the step is **skipped**, never run without the filter — a missing value does not widen the answer. So `?category=` being optional is two steps, not one: a `flow.dispatch` on whether the value arrived, routing to a list WITH the filter or a list WITHOUT it, and a `flow.merge` of the two results into the slot the endpoint returns. Three details make it work:
-  - **The step types the optional input as optional.** A flow input with `"required": false` arrives as `{ "kind": "optional", "inner": <ref> }`, and a step that reads it must list that same form in `inputSchemas` — `{ "kind": "optional", "inner": { "kind": "ref", "ref": "string" } }` in a document. A plain `ref string` is refused by the plan with `OPTIONAL_NARROWING` and `FLOW_INPUT_TYPE_MISMATCH` on the step, as health reports them.
-  - **An empty query value is absent.** `?category=` reaches the flow as no `category` at all, so the dispatch takes the unfiltered branch; a required parameter sent empty is refused `422` as missing.
-  - **An empty LIST is not absent.** A slot holding `[]` runs the step and matches nothing — an empty page, a count of zero — which is what "the caller follows nobody" should answer.
-- **Filtering on one element of a list field** (`?tag=design` over a record's `tags`). A `filter` use is refused on a list (`USES_ILLEGAL_FOR_SHAPE` "… is a list. A filterable field holds one value per record."), and `fieldFilterSlots` reads a list in the _slot_ as "any of these values" against a one-value field, not "the record's list holds this". `dataContainsPath` + `dataContainsSlot` matches only an **object** element (`{ "source": "<id>" }` in a list of objects); a string in the slot fails the step. Three ways that work:
-  - **Post-filter one page.** `entity.list` (up to 100 rows, newest first) → `value.transform` `$filter(page.records, function($r){ tag in $r.tags })`. Simple and exact, but it sees one page only, so it suits a list that fits in one.
-  - **Project the value into fields.** For a small closed vocabulary, store one boolean field per value (`isDesign`, `isTech`) with a `filter` use — for at most four values: a type may declare 4 boolean fields as queryable (32 text, 8 number, 8 datetime), and a fifth is refused `RECORD_TYPE_QUERYABLE_INVALID`. Past four, file the values as facet terms (next bullet). Map every one in `fieldFilterSlots` (`{ "isDesign": "filters.isDesign", … }`) and set every one in the transform, `{"isDesign": tag = "design", "isTech": tag = "tech"}` — each filter needs a value, so this suits "exactly this tag"; for "this tag, whatever the others" use one list step per value behind a `flow.dispatch`.
-  - **File the values as facet terms** (`kipory-model`). `entity.list`'s `facetFilter` takes fixed `{ facet, slug }` pairs in config, not a slot, so a parameter needs one list step per term behind a `flow.dispatch`; the records API's `term=facet:key` is the operator's side of the same filter.
-- **Natural-key collisions fail the whole run.** A flow's `entity.create` on a project-wide type is keyed by its content, so writing identical data again converges on the same record. Writing _different_ data under a `key` field another record already holds is a `409 RECORD_NATURAL_KEY_TAKEN` naming the refused write's `seq`, the step that staged it, the record type, `details.refusedRecordId` — the refused write's own id (for a create, the id it would have had, which exists nowhere) — and, for a create or an update, `details.holderRecordId`, the record that holds the key and the one to update (never the key's value), and the run is all-or-nothing: no other row it wrote is kept. There is no upsert handler. For an importer: look the key up first (`entity.list` filtered on it), then split with `value.transform` into an existing id — `entity.update` with `recordIdSlot` — or new data — `entity.create` — each guarded with `slotPresent`.
-
-## 9. Read what one user follows
-
-"Show me what is new from the things I follow" is three steps and no loop. The follows are a per-user record type; the feed is one `entity.query` whose values come from the run.
-
-```
-entity.list (my follows → follows)  →  value.transform (follows.records → { ids })  →  entity.query (→ page)
-```
-
-```json
-{
-  "recordType": "collection",
-  "clauses": [
-    {
-      "kind": "edge",
-      "relation": "in-collection",
-      "direction": "incoming",
-      "peer": [
-        {
-          "kind": "field",
-          "field": "authorId",
-          "op": "in",
-          "valueSlot": "followed.ids"
-        }
-      ]
-    }
-  ],
-  "order": { "by": "field", "field": "lastItemAt", "direction": "desc" },
-  "limit": 20,
-  "cursorSlot": "request.cursor"
-}
-```
-
-- **Query the thing the user sees, not the thing they follow.** The clause above asks for collections linked to an item by a followed author, so each collection comes back once however many of its items match. Paging the items and collapsing them afterwards repeats a collection across pages.
-- **Following nobody is an answer.** A slot holding `[]` runs the step and returns no records. A slot that is absent skips the step, so produce the list in a step that always runs.
-- **`in` takes at most 1,000 values.** Past that the step fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
-- **Order by a date the record carries.** `order` takes `created`, or one of the type's own date fields with a `filter` use; a record with no value there is left out. To order by something a linked record holds (the newest item's date), keep it on the record — the next pattern.
-- **"Due now" is the same shape.** `{ "kind": "field", "field": "nextRunAt", "op": "lte", "valueSlot": "runInfo.now" }` reads only the due records; listing them all and filtering in a transform reads the whole type.
-
-## 10. Keep a value rolled up from linked records
-
-A parent that shows its children's count, latest date or common language stores those values itself.
-
-- **Write them with `entity.update`, in the parent's flow.** A field that is the OUTPUT of the type's processing flow cannot carry a `filter` use (`RECORD_TYPE_QUERYABLE_INVALID`): a filterable field is stamped from the record's own data, and nothing stamps a flow output. Declare the roll-up as an optional field of the shape, compute it in the flow (`entity.list` the children → `value.transform`), and write it back with `entity.update`. It can then be filtered and ordered by.
-- **Re-run the parent when a child joins.** The child's flow sets the parent back to `PENDING` and enqueues it (`entity.enqueue-process` with `replay: "rerun"`); the parent's flow recomputes from all its children, so the value never drifts from a running total.
-- **Take the majority, not the first.** For a value the children can disagree on (a language, a category), count them and take the commonest, ignoring an unknown while any child has a known value. Copying the first child's value lets one early odd record decide for the rest.
-- **Do not store the children as a list on the parent.** They are the incoming edges of the link; a list in the record grows without bound and cannot be filtered on.
-
 ## Utilities you will reach for
 
 - `value.first-non-empty` — an ordered `inputs` list of slots or paths; emits the first non-empty **preserving its runtime shape**, which is what lets it coalesce a URL string and a file. `valueKind` narrows to `string` or `file`. `inputStreams` must list the root slot of every entry in `inputs`, no more and no fewer.
-- `value.transform` — one JSONata `expression`; top-level identifiers are slot names, which the save reads into `inputStreams` when you leave it out (a list you send must be exactly those — the save refuses a difference with `FREE_FORM_INPUT_STREAMS_MISMATCH`). A bare name at the start of any path counts, including one inside a projection — `docs.{"id": id}` reads a slot `id` — so reach into list items with `$map(docs, function($d){ {"id": $d.id} })`. The result is checked at run time against the step's `outputSchema`; left at the default `object`, it must be text, an object — whose fields may nest lists and objects — or a list of text or of objects, and a bare number, boolean or `null`, a mixed list or a list of lists fails the step. Five functions are refused, at save and at run time, with `JSONATA_FORBIDDEN_FUNCTION`: `$now`, `$millis`, `$random` and `$shuffle` (they break caching) and `$eval` (a sandbox escape — there is no parsing a JSON string back into an object). **To emit nothing**, so a `slotPresent` guard downstream holds, write a conditional with no else — `$count(words) > 50 ? {"text": body}` — whose empty result the step writes as `{}`, which counts as absent. Only that empty result skips the `outputSchema` check: a literal `{}` the expression returns is a value like any other, checked against `outputSchema` (and refused by a shape with required fields). **A result that should be a list must be built as one.** JSONata returns a one-item sequence as the bare item, so a path, `$filter` or `$map` that matches exactly one element yields an object, and a step whose `outputSchema` is a list then fails at run time — a 502 on a sync call, after a plan and health that were clean, because nothing checks an expression's result before a run. Wrap the expression in `[ … ]`: `[$filter(hits, function($h){ $h.score > 0.5 })]` is a list for none, one or many. **Do not bind a flow output straight to a slot that can hold the empty `{}`.** The marker is absent to a step and to `slotPresent`, but an output bound to it carries `{}`: a preview shows it and reports nothing, and the live call answers `502 INTERNAL` "The flow did not produce a valid response." for a string or list output, optional or not. Have the expression return a real value on every path, or bind the output through a `path` into a slot that always holds one. Preview both branches of any conditional before trusting it: these result shapes are judged only when a run produces them. JSONata has no `undefined` literal: `undefined` is read as a slot name, and the save refuses it as a missing input. Use it for computation; for prose with holes use `text.interpolate`.
-- `text.interpolate` — a prompt template and nothing else; makes no model call and cannot emit a list.
-- `entity.read` — `idsSlot` must hold a **list** of ids (or of objects carrying `id`, as search hits do; `hits[].recordId` is a path to one). A single id string — or a path that resolves to one, such as `created.recordId` — reads nothing, and with `failIfEmpty` that is a 404: wrap it first — `value.transform` with `[id]`.
+- `text.interpolate` — a prompt template and nothing else; makes no model call and cannot emit a list. Use it for prose with holes, and `value.transform` for computation.
+- `entity.read` — `idsSlot` must hold a **list** of ids, or of objects carrying `id` (a `RecordPage`'s rows: `"page.records"`). A record search's hits carry `recordId`, not `id`: name `hits[].recordId`. A single id string — or a path that resolves to one, such as `created.recordId` — reads nothing, and with `failIfEmpty` that is a 404: wrap it first — `value.transform` with `[id]`.
 - `list.concat` — an ordered `inputs` list of slots; flattens lists, lifts scalars to one-element lists, and joins them in the order given. `strategy` is `concat` or `dedup-concat`. It collects contributions from parallel sources **without needing a fan-out and merge pair**, which is the cheaper answer whenever the branches were never really a fan-out.
+- `entity.query` — the one handler that joins: records matching several clauses at once (a field, a term, a link to a matching peer, a phrase by meaning), with values read from slots. `records-and-endpoints.md` §9 has the clause grammar.
 
-## Model choice
+### `value.transform`
 
-**Which model handler asks the question.** Three handlers put a question to a model, and the cheap one is the one the question's shape allows:
+One JSONata `expression`; nothing else in a flow computes.
 
-| The question                                                                         | Handler         | What you write                                                                                                                                                                        |
-| ------------------------------------------------------------------------------------ | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Yes or no, pick one of a closed list, or a score on named levels                     | `text.decide`   | no prompt: the step's output type IS the questions — a probability field, an enum field (up to 255 options), or a number with its levels, each field's description being the question |
-| Which term of a facet does this belong to, in a vocabulary that is searched or grows | `facet.resolve` | the facet's own settings; it proposes with a model, then matches and mints by the facet's rules                                                                                       |
-| Anything that needs written words back — a summary, a title, an extraction           | `text.generate` | a prompt and a typed output                                                                                                                                                           |
-
-- A closed pick written as a `text.generate` prompt, or as a `facet.resolve` over a facet that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` and assign the term from the answer.
-- "Is this the same thing as that?" is a probability, not prose: one `text.decide` field, compared against a threshold where you branch.
-- **A choice always answers; an `unknown` option is not an abstention.** The model picks one option for every question, whatever the input, so junk text still comes back with a language and a category, and an `unknown` member is one more option it may or may not pick. To get "unsure" instead of a guess, declare the confidence slot in the step's `handlerConfig` — `"outputs": [{ "slot": "sureness", "schema": { "kind": "ref", "ref": "DecisionConfidence" } }]` in a document (`entryId` on the row API) — and branch on its `lowest`, the confidence of the least sure answer (0–1). The step that uses the answers carries `"condition": { "op": "slotGte", "slot": "sureness", "path": "lowest", "value": 0.7 }`; the step that handles the unsure case (write `unknown`, send it to a person) carries the same clause with `"op": "slotLt"`. A failed condition is a skip, not a failure. To gate one question rather than all, compute it in a `value.transform` from `sureness.answers` (each row has `question` and `confidence`). Pick the threshold from previews of real inputs, good and junk.
-- `text.decide` runs on a decision model, not a chat model. It needs one in the deployment's catalog: `GET /v1/ai-models?type=decision` empty means the step cannot run there, and a step save refuses it (`HANDLER_MODEL_UNUSABLE`).
-- `GET /v1/nodes/{nodeId}/model-prices` quotes each model you can bind, in credits, with a `tiers` rating. A price there is per unit; what a design costs is measured: run it once with `apply: false` and read `GET /v1/runs/{runId}/spend`.
-
-A step's model resolves in this order: `text.generate`'s `modelSlot` at run time → the step's `modelId` → the binding for the step's `taskKey` on the nearest node that has one (the project, or an ancestor) → the environment → the code default. Omitting `modelId` inherits, and inheriting is a real answer. `GET /v1/ai-models` lists what a project may bind (a non-null `deprecatedAt` means still runnable, retiring on that date; prices are on `GET /v1/nodes/{nodeId}/model-prices`, which lists the same models); `GET /v1/nodes/{nodeId}/task-models` (at the project's id) shows each task's current model and its `source` — `node` (a binding on this project or an ancestor; `decidedAt` names which), `environment`, `code-default` — whether it is `assignableToStep`, and whether it is `callable` on this deployment. `callable: false` on a task you inherit means the binding above names a model this deployment holds no account for: every step on that task fails until you bind the task at your project. Where you did bind it, `inherited` shows what your binding overrides, so you can see the default without clearing yours. Only five task kinds are writable on a step: `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`.
+- **Top-level identifiers are slot names**, which the save reads into `inputStreams` when you leave it out. A list you send must be exactly those names — the save refuses a difference with `FREE_FORM_INPUT_STREAMS_MISMATCH` (`step-fields.md`, inputs the platform derives).
+- **A bare name at the start of any path is a slot**, including one inside a projection: `docs.{"id": id}` reads a slot `id`. Reach into list items through a bound variable — `$map(docs, function($d){ {"id": $d.id} })`.
+- **JSONata has no `undefined` literal.** `undefined` is read as a slot name, and the save refuses it as a missing input.
+- **Five functions are refused**, at save and at run time, with `JSONATA_FORBIDDEN_FUNCTION`: `$now`, `$millis`, `$random` and `$shuffle` (they break caching) and `$eval` (a sandbox escape — there is no parsing a JSON string back into an object).
+- **The result is checked at run time against the step's `outputSchema`.** Left at the default `object`, it must be text, an object — whose fields may nest lists and objects — or a list of text or of objects; a bare number, boolean or `null`, a mixed list or a list of lists fails the step.
+- **To emit nothing**, so a `slotPresent` guard downstream holds, write a conditional with no else — `$count(words) > 50 ? {"text": body}`. The step writes its empty result as `{}`, which counts as absent. Only that empty result skips the `outputSchema` check: a literal `{}` the expression returns is a value like any other, checked against `outputSchema` (and refused by a shape with required fields).
+- **A result that should be a list must be built as one.** JSONata returns a one-item sequence as the bare item, so a path, `$filter` or `$map` that matches exactly one element yields an object, and a step whose `outputSchema` is a list then fails at run time — a 502 on a sync call, after a plan and health that were clean, because nothing checks an expression's result before a run. Wrap the expression in `[ … ]`: `[$filter(hits, function($h){ $h.score > 0.5 })]` is a list for none, one or many.
+- **Do not bind a flow output straight to a slot that can hold the empty `{}`.** The marker is absent to a step and to `slotPresent`, but an output bound to it carries `{}`: a preview shows it and reports nothing, and the live call answers `502 INTERNAL` "The flow did not produce a valid response." for a string or list output, optional or not. Have the expression return a real value on every path, or bind the output through a `path` into a slot that always holds one.
+- **Preview both branches of any conditional before trusting it**: these result shapes are judged only when a run produces them.
+- **`$assert(condition, "message")` refuses the call with your words** — a `422 VALIDATION_FAILED` (`records-and-endpoints.md` §8).

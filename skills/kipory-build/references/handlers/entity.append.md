@@ -24,8 +24,6 @@ Add one or more events to a record's history.
 
 Appends time-stamped events to a record's stream field and says whether anything new landed.
 
-Reads: the record id and the events. Emits: appended?.
-
 #### New events
 
 Each event becomes one row under the record, keyed by its time. The record itself is untouched.

@@ -17,14 +17,12 @@ Pull every piece of text that matches a pattern.
 | --- | --- | --- | --- | --- |
 | `dedupe` | boolean | no | `true` | When true (default), repeat matches are dropped while preserving the first-occurrence order. |
 | `flags` | string[] | no | `["i"]` | Regex flags: `i` ignores case, `m` makes `^`/`$` match per line, `s` lets `.` match newlines, `u` enables Unicode. Every match is returned. |
-| `group` | integer | no | `0` | Which capturing group to take from each match. 0 takes the whole match. A match missing that group is skipped. |
+| `group` | integer, at least 0 | no | `0` | Which capturing group to take from each match. 0 takes the whole match. A match missing that group is skipped. |
 | `pattern` | string | no | `"[\\s\\S]+"` | JavaScript regex source applied to the concatenated input text. Every match is extracted, not only the first. |
 
 ## Worked example
 
 Every match of the pattern is pulled out of the input, deduped, in the order first seen. Here it picks hex colours out of prose.
-
-Reads: regex match. Emits: dedup · preserve order.
 
 #### Example
 

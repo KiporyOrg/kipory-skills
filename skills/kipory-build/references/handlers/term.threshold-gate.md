@@ -27,8 +27,6 @@ Decide whether a proposed term matches one you have, is new, or needs review.
 
 Compare the top candidate's score against the facet thresholds: reuse, coin, or defer.
 
-Reads: score vs thresholds. Emits: resolved · or tiebreak.
-
 #### Clear match
 
 The top candidate is reused as a match on the `type` facet — no LLM call.

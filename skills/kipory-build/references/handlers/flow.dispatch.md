@@ -6,7 +6,7 @@ Send a value down the first branch whose rule it matches.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `string | file | object` → `string`
+- **I/O:** `string | file | object` → `the input, unchanged`
 - **Reads:** One slot. What gets matched is decided by `matchOn`; the match is the routing decision, not the payload. _(shape hint: `string | file | object`)_
 - **Emits:** The original input, forwarded to exactly one branch — the first rule that matches, or the default. With no default, an unmatched input is skipped.
 - **Suggested input streams:** `inputValue`
@@ -19,7 +19,7 @@ Send a value down the first branch whose rule it matches.
 | `flags` | string[] | no | `["i"]` | Regex flags for every rule: `i` ignores case, `m` makes `^`/`$` match per line, `s` lets `.` match newlines, `u` enables Unicode. ⚠️ Glob patterns ignore these flags and always ignore case. |
 | `matchOn` | union | no | `"value"` | What the rules are tested against: the value itself, the host of a URL, or a named field of an object. ⚠️ The ORIGINAL input is forwarded, whatever is matched — a file in stays a file out. The branch slots take the step's output type, text unless you set it. |
 | `patternSyntax` | `regex` \| `glob` | no | `"regex"` | How the rule patterns are written. `regex` is full JavaScript regex; `glob` allows `*` and treats the rest literally. |
-| `rules` | object[] | no | `[]` | Ordered list of pattern → output-slot routing rules. Evaluated in declared order; first match wins. |
+| `rules` | object[] | no | `[]` | Ordered pattern → output-slot rules; the first match wins. Leave it empty only beside a `default`: with neither, every input is skipped. |
 
 ### `default`
 
@@ -32,7 +32,7 @@ Send a value down the first branch whose rule it matches.
 - the value `value`
 - the value `url-host`
 
-**Alternative 3**
+**An object with `field`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
@@ -48,8 +48,6 @@ Send a value down the first branch whose rule it matches.
 ## Worked example
 
 One input goes down one branch — the first rule that matches wins. The variants show each rule firing, and the no-match case.
-
-Reads: test rules in order. Emits: first match · forward input.
 
 #### Video link
 

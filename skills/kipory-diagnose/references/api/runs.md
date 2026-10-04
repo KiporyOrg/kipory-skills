@@ -4,7 +4,7 @@
 
 One id space for every run — an endpoint invocation, a record-processing attempt, a bare request. The step log is never sampled; the change set is what the run wrote.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -73,6 +73,24 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `since` | `string \| null` | yes | The lower bound the list was read from — the instant `window` resolved to, or the `since` sent — or `null` when neither was asked, so a reader states the range the list was read over rather than re-deriving it from a label and a clock that may differ. |
 | `until` | `string \| null` | yes | The `until` sent, or `null` for up to now. |
 
+Each item of `runs`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `runId` | `string` | yes | Heterogeneous by construction — a record-processing attempt id, a flow run's request id, or an endpoint invocation id, depending on which surface ran the flow. The same id space every other `/v1/runs/{runId}/…` route takes. |
+| `seq` | `string` | yes | The opening frame's sequence, and this row's paging cursor. A STRING because it is a 64-bit key and JSON numbers are not. |
+| `startedAt` | `string` | yes | When the opening frame was WRITTEN. ⚠️ Not exactly when the run started: the step-log writer buffers, so insertion order and start order differ by up to one batch. The list is ordered by `seq` because it is the only column monotonic with insertion — sorting these timestamps client-side would reorder runs against the cursor that pages them. |
+| `attempt` | `integer` | yes | Which attempt within the run. A streaming runner retries the whole flow under ONE run id and owns the counter. |
+| `flowId` | `string \| null` | yes | The root flow, where named. |
+| `flow` | `object \| null` | yes | The named flow as it stands NOW — a live read, not what the run saw. ⚠️ A flow relabelled since the run reports its NEW label here; `GET /v1/runs/{runId}/flow-snapshots` is the surface that answers what the graph looked like when it ran. ⛔ `null` means the flow is GONE, never that the run named none — `flowId` beside it is what separates the two, and a run outliving its flow is ordinary on any project that has been edited. |
+| `trigger` | `object \| null` | yes | What caused a run, in the stored vocabulary. |
+| `source` | `object` | yes | What started a run, translated from the stored `trigger`. |
+| `mode` | `string \| null` | yes | `full` \| `from_cache`, where the surface distinguishes them. |
+| `declaredSteps` | `integer \| null` | yes | How many ENABLED skills the root flow declared — the `y` of a run's `x / y`. ⛔ A FLOOR, NOT A TOTAL: a fan-out runs one step PER BRANCH and sub-flows are not counted, so `stepsStarted` can exceed it and a reader must degrade to a bare count where it does. `null` on every run that started before the field existed. |
+| `stepsStarted` | `integer` | yes | The `x`: how many steps this run has been observed to START. Counted from the log, so it is what HAPPENED — never a plan. |
+| `lifecycle` | `"in-flight" \| "settled" \| "unknown"` | yes | Whether the run is still going. ⛔ NOT from the step log, which cannot answer it — a run with no closing frame is three facts at once (in flight, dead with its buffer, reaped). It comes from whichever row the run id belongs to: an endpoint run's INVOCATION status, or a record-processing ATTEMPT's terminal marker. ⭐ ON THE ROW rather than on the single-run response, because BOTH screens draw it: while it lived on only one, the listing said `no end recorded` about a run the run page called `running`. ⚠️ `unknown` is ordinary rather than an error — a run started on the synchronous path has no row in either table, and a lifecycle state the platform has grown but this reader has not been taught resolves to it as well. It means `no outcome recorded`, never `finished`. |
+| `closing` | `object \| null` | yes | How a run ended, where that has been observed. |
+
 ### `GET /v1/runs/{runId}`
 
 Which run this is — the flow it ran, how it was triggered, how it closed, and its retry attempts. Each sibling answers one aspect: `…/steps` (what executed, no values), `…/trace` (the values, when sampled), `…/change-set` (what it wrote), `…/flow-snapshots` (the flow as it ran), `…/spend` (what it cost). 404 for an id you cannot see.
@@ -111,6 +129,17 @@ What a run CHANGED — every write it staged and how each resolved (applied, rej
 | `rejection` | `object` | no | Present only when the change set was rejected. |
 | `createdAt` | `string` | yes | When the set was resolved. |
 
+Each item of `effects`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `seq` | `integer` | yes | Position within the change set, and the apply order. NOT an array index — a discarded fan-out branch leaves gaps. |
+| `kind` | `string` | yes | What the effect does — `record.update`, `record.terms.set`, `event.publish`, and so on. |
+| `tier` | `string` | yes | `transactional` for effects Postgres can roll back, `post-commit` for the ones it cannot (vectors, queue jobs, published events). |
+| `target` | `object` | yes | What the effect acts on. Identifiers and configuration keys ONLY — never record contents. |
+| `skillId` | `string` | yes | The step that produced the effect. |
+| `branchId` | `string \| null` | yes | The fan-out branch, or null at the trunk. |
+
 ### `GET /v1/runs/{runId}/flow-snapshots`
 
 What the flows a run executed LOOKED LIKE when it ran them — each step's handler, configuration and prompt, by content digest — even after the flow was edited. The current flow is `GET /v1/flows/{id}`.
@@ -128,6 +157,17 @@ What the flows a run executed LOOKED LIKE when it ran them — each step's handl
 | `runId` | `string` | yes | The run these snapshots belong to. The same heterogeneous id space `GET /v1/runs/{runId}/steps` and `/change-set` take — a record attempt id, a flow run's request id, or an endpoint invocation id. |
 | `snapshots` | `object[]` | yes | One entry per flow the run loaded and stored, ordered by `flowId`. ⚠️ May be SHORTER than the run's `flowVersions` map, and the gap is meaningful: a system flow contributes a digest and no body, and a snapshot reaped past its window leaves the same shape. `missing` reports the difference rather than leaving it to be inferred. At most 200 flows are resolved per response; a larger map is cut there, and the rest are neither here nor in `missing`. |
 | `missing` | `string[]` | yes | Flow ids the run loaded that this response carries no body for: a platform-owned flow (its body is never stored here), a snapshot reaped past its window, a best-effort snapshot write that was dropped, or a stored body that no longer parses. Every run path's log names only the flows the run loaded — a sub-flow behind a step that did not fire is in neither list. One exception, until it ages out of run history: an older record run's log named every flow its steps could invoke, so it can list here a sub-flow it never executed. ⛔ NOT an error and NOT an empty graph: a reader that silently drew only `snapshots` would report a run as having executed fewer flows than it did. |
+
+Each item of `snapshots`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow this snapshot is of. A SOFT reference: a snapshot outlives the flow it describes, which is the point of provenance, so this id may name a row that no longer exists. |
+| `digest` | `string` | yes | The content address — a digest over each skill's `(id, version, enabled)` and the flow's own signature (`inputSlots`, `outputSlots`, `outputBinding`). A skill's `version` moves on every write, so an edit to any of them is a new digest. Opaque: compare it, never parse it. ⭐ The same value `run-started.flowVersions` and `run-finished.flowVersions` publish, so a reader can tell WHICH entry in that map this row answers without matching on anything else. |
+| `capturedAt` | `string` | yes | When this graph version was FIRST captured — NOT when the run being read executed it. ⚠️ A snapshot is shared by every run that used the same graph, so this is usually older than the run, and a reader must not present it as the run's own timestamp. |
+| `label` | `string` | yes | The flow's display text as it was at capture. |
+| `key` | `string` | yes | The flow's key as it was at capture. |
+| `skills` | `object[]` | yes | Every skill in the flow, by value, in capture order. ⛔ This is the CONFIGURATION that ran — handler keys, handler config, prompts, schema refs — and never anything the run PROCESSED. A caller wanting values reads the flow trace, where they live behind their own sampling and TTL. |
 
 ### `POST /v1/runs/{runId}/retries`
 
@@ -174,6 +214,22 @@ A run's execution record — one row per run and step event (`run-started`, `ste
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the page LATER in the run. NULL means this was the last page. The value is a `seq`, which is unique and monotonic, so a resume needs no tiebreaker and can neither skip nor repeat a row. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page EARLIER in the run. NULL means this is the first page — measured against the log, so it is still right on a page reached by a `page` jump, where nothing about the request says where the reader came from. |
 
+Each item of `steps`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `seq` | `string` | yes | Total order within the run, as a STRING — the column is a 64-bit sequence and JSON numbers lose precision above 2^53. Sort on it; do not do arithmetic with it. |
+| `kind` | `"run-started" \| "run-finished" \| "run-aborted" \| "step-started" \| "step-applied" \| "step-no-op" \| "step-skipped" \| "step-not-reached" \| "step-failed" \| "step-warned" \| "cache-hit" \| "cache-miss" \| "log-truncated"` | yes | What this row records. Run-level: `run-started` (opens before the first step, so a run that crashes immediately still has a row), `run-finished`, `run-aborted` (ended from OUTSIDE — a deadline, a disconnected client, the worker shutting down under it, the stuck-records watchdog, or recovery from a crashed worker — which is NOT a failure of the flow). Step-level: `step-started`, then one of `step-applied`, `step-no-op`, `step-skipped` (a gate or projection miss stopped it, or a record retry skipped a step an earlier attempt applied), `step-not-reached` (its enclosing branch never materialized) or `step-failed`. `step-warned` carries a non-fatal warning. `cache-hit` / `cache-miss` distinguish a replayed step from a fast one, which `durationMs` alone cannot. `log-truncated` means the run exceeded the per-run step cap and rows after it were dropped — read it as an incomplete timeline, never as a short one. |
+| `at` | `string` | yes | When the event was emitted. NOT the order key — two events can share a millisecond, which is why `seq` exists. |
+| `attempt` | `integer` | yes | Which attempt within this run. ⚠️ This means different things on different surfaces: a streaming run retries the whole flow under ONE run id, so its retries are attempts 2, 3…; a record retry allocates a new run id entirely and is always attempt 1. Do not aggregate across surfaces without knowing which produced the run. |
+| `flowId` | `string \| null` | yes | The flow this step belongs to. A `flow.invoke` runs a sub-flow's steps under the PARENT's run id, so without this a nested run reads as one flat list from flows a reader cannot tell apart. |
+| `skillId` | `string \| null` | yes | The step, for step-level rows. Null on run-level rows. |
+| `skillName` | `string \| null` | yes | The step's name AS IT WAS when the run happened. Carried beside the id because a skill can be DELETED, after which the id alone is a dangling reference and this is what keeps the timeline readable. |
+| `branchId` | `string \| null` | yes | The fan-out branch, or null at the trunk. |
+| `branchPathIds` | `object[] \| null` | yes | Fan-out / loop ancestry. `branchId` alone cannot express NESTING — a fan-out inside a fan-out yields two unrelated ids. |
+| `durationMs` | `integer \| null` | yes | Engine-measured wall clock for the step. ⚠️ INCLUDES any time spent queuing for a rate-limit token — see `rateLimitWaitMs` in `detail`, which is a COMPONENT of this number and not a sibling of it. Null where the outcome carries no duration (a skipped step). |
+| `detail` | `object \| null` | yes | Kind-specific extras: identifiers, configuration keys, counts and closed enums, never a slot bag or branch value. A `step-failed` row names its `phase` and carries the step's error `message`, cut to 500 characters — handler text that can quote what the step was processing. |
+
 ### `GET /v1/runs/{runId}/steps/stream`
 
 Server-Sent Events. Emits `steps` with whatever the caller missed (empty when it is already current, which is also how it learns the run exists), then `steps` again as rows are appended, then `close` with a reason. `close { terminal }` means the run finished or was aborted. Resume with `?after=<the last frame's through>`. The same rows, paged, are `GET /v1/runs/{runId}/steps`; step kinds are kebab-case (`step-failed`).
@@ -202,6 +258,22 @@ Server-Sent Events. Emits `steps` with whatever the caller missed (empty when it
 | `truncated` | `boolean` | yes | True once the RUN has outrun the writer's per-run cap, so events occurred that were never recorded at all. ⛔ It does NOT end the stream and it is not a paging flag — the run continues and still finishes. Read it as: this timeline is INCOMPLETE rather than short. |
 | `type` | `"close"` | yes | Always `close`. The server is ending the stream deliberately — this is an orderly goodbye, not a fault. |
 | `reason` | `"lifetime" \| "transport-unavailable" \| "revoked" \| "terminal" \| "too-slow"` | yes | Why the stream is ending. ⚠️ If you do not recognise the value, treat it as `lifetime` and reconnect with jitter — that is the only default safe in both directions, since it neither abandons a live subject nor hammers a dead one. |
+
+Each item of `steps`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `seq` | `string` | yes | Total order within the run, as a STRING — the column is a 64-bit sequence and JSON numbers lose precision above 2^53. Sort on it; do not do arithmetic with it. |
+| `kind` | `"run-started" \| "run-finished" \| "run-aborted" \| "step-started" \| "step-applied" \| "step-no-op" \| "step-skipped" \| "step-not-reached" \| "step-failed" \| "step-warned" \| "cache-hit" \| "cache-miss" \| "log-truncated"` | yes | What this row records. Run-level: `run-started` (opens before the first step, so a run that crashes immediately still has a row), `run-finished`, `run-aborted` (ended from OUTSIDE — a deadline, a disconnected client, the worker shutting down under it, the stuck-records watchdog, or recovery from a crashed worker — which is NOT a failure of the flow). Step-level: `step-started`, then one of `step-applied`, `step-no-op`, `step-skipped` (a gate or projection miss stopped it, or a record retry skipped a step an earlier attempt applied), `step-not-reached` (its enclosing branch never materialized) or `step-failed`. `step-warned` carries a non-fatal warning. `cache-hit` / `cache-miss` distinguish a replayed step from a fast one, which `durationMs` alone cannot. `log-truncated` means the run exceeded the per-run step cap and rows after it were dropped — read it as an incomplete timeline, never as a short one. |
+| `at` | `string` | yes | When the event was emitted. NOT the order key — two events can share a millisecond, which is why `seq` exists. |
+| `attempt` | `integer` | yes | Which attempt within this run. ⚠️ This means different things on different surfaces: a streaming run retries the whole flow under ONE run id, so its retries are attempts 2, 3…; a record retry allocates a new run id entirely and is always attempt 1. Do not aggregate across surfaces without knowing which produced the run. |
+| `flowId` | `string \| null` | yes | The flow this step belongs to. A `flow.invoke` runs a sub-flow's steps under the PARENT's run id, so without this a nested run reads as one flat list from flows a reader cannot tell apart. |
+| `skillId` | `string \| null` | yes | The step, for step-level rows. Null on run-level rows. |
+| `skillName` | `string \| null` | yes | The step's name AS IT WAS when the run happened. Carried beside the id because a skill can be DELETED, after which the id alone is a dangling reference and this is what keeps the timeline readable. |
+| `branchId` | `string \| null` | yes | The fan-out branch, or null at the trunk. |
+| `branchPathIds` | `object[] \| null` | yes | Fan-out / loop ancestry. `branchId` alone cannot express NESTING — a fan-out inside a fan-out yields two unrelated ids. |
+| `durationMs` | `integer \| null` | yes | Engine-measured wall clock for the step. ⚠️ INCLUDES any time spent queuing for a rate-limit token — see `rateLimitWaitMs` in `detail`, which is a COMPONENT of this number and not a sibling of it. Null where the outcome carries no duration (a skipped step). |
+| `detail` | `object \| null` | yes | Kind-specific extras: identifiers, configuration keys, counts and closed enums, never a slot bag or branch value. A `step-failed` row names its `phase` and carries the step's error `message`, cut to 500 characters — handler text that can quote what the step was processing. |
 
 ### `GET /v1/runs/{runId}/trace`
 

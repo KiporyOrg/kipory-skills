@@ -12,8 +12,8 @@ Read a web page and return its main text and details.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 10 per 60000ms in bucket `firecrawl` — shared with `url.screenshot`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 10 per min in bucket `firecrawl` — shared with `url.screenshot`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -21,15 +21,13 @@ Read a web page and return its main text and details.
 | --- | --- | --- | --- | --- |
 | `excludeTags` | string[] | no | `[]` | CSS selectors to strip from the page before the text is extracted. ⚠️ Use it for chrome the main-content pass keeps — a consent or accessibility widget sitting above the article is the common case, and the extractor can mistake it for the article. |
 | `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. Narrower than excludeTags; leave empty unless the article container is known and stable. |
-| `mainContentFallbackMinChars` | integer | no | `0` | When the main-content pass returns fewer characters than this, scrape the whole page too and keep the longer result. 0 turns the retry off. ⚠️ A non-zero value bills a second scrape on every page that trips it. |
+| `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | When the main-content pass returns fewer characters than this, scrape the whole page too and keep the longer result. 0 turns the retry off. ⚠️ A non-zero value bills a second scrape on every page that trips it. |
 | `onlyMainContent` | boolean | no | `true` | Strip navigation, footers, and ads — request article body only. |
-| `timeoutMs` | integer | no | `30000` | How long to wait for the provider, in milliseconds. |
+| `timeoutMs` | integer, more than 0 | no | `30000` | How long to wait for the provider, in milliseconds. ⚠️ Shares its name with the step's own `timeoutMs` run setting and is not it: this one, inside `handlerConfig`, bounds the one page read. |
 
 ## Worked example
 
 Renders any web page to clean markdown and returns the body alongside the page's metadata.
-
-Reads: fetch + render. Emits: content + meta.
 
 #### An article
 

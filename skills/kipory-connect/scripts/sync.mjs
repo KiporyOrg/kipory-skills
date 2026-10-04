@@ -24,9 +24,12 @@
 // source — under a layer that differs, one line per item: `changed` (both
 // sides have it, with different content), `added` (the deployment has it, the
 // bundle does not) or `removed` (the bundle has it, the deployment does not),
-// with the bundled page that documents it — then what to do. Exit 0: every layer was compared and nothing
-// bundled differs from the deployment. Exit 1: something differs — the lines
-// say which layer to read live instead. Exit 2: something could not be
+// with the bundled page that documents it, as a path from the directory that
+// holds these skills — then what to do. Exit 0: every layer was compared and
+// nothing bundled differs from the deployment. Exit 1: something differs — the
+// lines say which layer to read live instead; a layer that could not be
+// compared is still listed as `not compared`, so exit 1 does not mean the
+// other layers matched. Exit 2: nothing differs and something could not be
 // compared — the deployment was unreachable, a layer could not be read (a
 // refused key, a timeout), or the bundled versions are missing; the lines say
 // which. It never writes anything.
@@ -53,17 +56,19 @@ if (!baseUrl) {
 }
 
 // versions.md is a generated table: one row per source, the hash in a code
-// span. Its shape is the generator's contract with this script
-// (scripts/generate-customer-skills-references.ts, `renderVersionsPage`).
+// span. Its shape is fixed by the generator that writes it.
 const referencesDir = resolve(
   dirname(fileURLToPath(import.meta.url)),
   "..",
   "references",
 );
 const versionsFile = resolve(referencesDir, "versions.md");
-// manifest.json is the per-item companion, from the same generator
-// (`renderManifest`): { packs | handlers | api: { <name>: { hash, page? } } }.
+// manifest.json is the per-item companion:
+// { packs | handlers | api: { <name>: { hash, page? } } }.
 const manifestFile = resolve(referencesDir, "manifest.json");
+// The directory the skills are installed in: the page paths manifest.json
+// records (`kipory-build/references/handlers/…`) start there.
+const skillsDir = resolve(referencesDir, "..", "..");
 // One row per layer: where the deployment serves its version, and what to do
 // when it differs from the bundled one.
 const LAYERS = [
@@ -268,6 +273,9 @@ const uncompared = [];
 // label → how many items were named under a layer that differs; absent when
 // the items could not be compared.
 const itemised = new Map();
+// Whether any item line named a bundled page: an `added` item has none, and
+// neither has a route no page documents.
+let pagePrinted = false;
 const INDENT = " ".repeat(12);
 const reportItems = (label, result) => {
   const bundledLayer = bundledItems(label);
@@ -280,8 +288,11 @@ const reportItems = (label, result) => {
     return;
   }
   const { changed, added, removed } = diffItems(bundledLayer, result.items);
-  const page = (name) =>
-    bundledLayer[name]?.page ? `   ${bundledLayer[name].page}` : "";
+  const page = (name) => {
+    if (!bundledLayer[name]?.page) return "";
+    pagePrinted = true;
+    return `   ${bundledLayer[name].page}`;
+  };
   for (const name of changed) {
     console.log(`${INDENT}changed   ${name}${page(name)}`);
   }
@@ -382,6 +393,16 @@ for (const layer of LAYERS) {
 for (const label of uncompared) {
   const layer = LAYERS.find((l) => l.label === label);
   console.log(`  ${label.padEnd(9)} not compared — ${layer.advice}`);
+}
+if (pagePrinted) {
+  console.log(
+    `  ${"pages".padEnd(9)} the page paths above start at ${skillsDir}`,
+  );
+}
+if (differs.length > 0 && uncompared.length > 0) {
+  console.log(
+    `  ${"note".padEnd(9)} exit 1 reports the difference only — ${uncompared.join(", ")} could not be compared and may differ too`,
+  );
 }
 if (differs.length === 0 && uncompared.length === 0) {
   console.log("  nothing   every layer is current");

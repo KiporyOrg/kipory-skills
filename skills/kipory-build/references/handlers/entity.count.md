@@ -16,42 +16,42 @@ Count the records that match, without reading them.
 | --- | --- | --- | --- | --- |
 | `createdAfter` | string | no | — | Count only rows created at or after this moment. A fixed date, written in ISO-8601. ⚠️ This bounds when the row was stored, not what your data means by a date. For that, put a range in `fieldFilters` on a declared timestamp. |
 | `createdBefore` | string | no | — | Optional inclusive upper bound on `createdAt` (ISO-8601). Same caveat as `createdAfter`: this is the row's insert time. |
-| `edgeFilters` | object[] | no | — | Count only rows that carry a link. Each entry names a link kind and, optionally, a slot naming the record on the other end. ⚠️ The only filter that reads the link graph, not the row. If an entry's slot is missing the step is skipped, never widened to every link of that kind. |
-| `facetFilter` | object[] | no | — | Count only rows tagged with all of these facet–term pairs. The pairs are fixed in config, never read from a slot. ⚠️ In a facet with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
+| `edgeFilters` | object[], at least 1 item | no | — | Count only rows that carry a link. Each entry names a link kind and, optionally, a slot naming the record on the other end. ⚠️ The only filter that reads the link graph, not the row. If an entry's slot is missing the step is skipped, never widened to every link of that kind. |
+| `facetFilter` | object[], at least 1 item | no | — | Count only rows tagged with all of these facet–term pairs. The pairs are fixed in config, never read from a slot. ⚠️ In a facet with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
 | `fieldFilterSlots` | object | no | — | A map of queryable field to the slot carrying its value. One value matches exactly, a list matches any of them. ⚠️ If any slot is missing the step is skipped, never run without that filter; an empty list counts zero. Ranges belong in `fieldFilters`. |
-| `fieldFilters` | object[] | no | — | Filters on fields the record type declared queryable. These are what make a count cheap, and the only ones that support ranges. ⚠️ A field the record type never declared queryable is refused when the step runs. Counting over a declared one reads its index and never touches the record. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on fields the record type declared queryable. These are what make a count cheap, and the only ones that support ranges. ⚠️ A field the record type never declared queryable is refused when the step runs. Counting over a declared one reads its index and never touches the record. |
 | `recordType` | string | yes | — | The record type to count. Required: a declared field belongs to one type, so a filter has nothing to resolve against without it. |
-| `statuses` | string[] | no | — | Count only rows with one of these statuses. Leave it empty to count them all. A catalog total usually keeps just `READY`. |
+| `statuses` | string[], at least 1 item | no | — | Count only rows with one of these statuses. Leave it empty to count them all. A catalog total usually keeps just `READY`. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Only record types owned by a user are filtered by it; a project-wide type ignores it. ⚠️ A count discloses how many records exist outside the caller's scope without naming one, so nothing downstream looks wrong. The owner pin matters here at least as much as on a list. |
 
 ### `edgeFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | string | yes | — |  |
-| `peerRecordIdSlot` | string | no | — |  |
+| `kind` | string | yes | — | The relation kind a row must have a link of, by key. |
+| `peerRecordIdSlot` | string | no | — | The slot holding the id of the record at the other end. Leave it out to keep rows with any link of the kind. |
 
 ### `facetFilter` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `facet` | string | yes | — |  |
-| `slug` | string | yes | — |  |
-| `parentSlug` | string | no | — |  |
+| `facet` | string | yes | — | The facet, by key. |
+| `slug` | string | yes | — | The term a row must carry, by slug. |
+| `parentSlug` | string | no | — | The parent term's slug, to narrow a nested term to one branch. |
 
 ### `fieldFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `field` | string | yes | — |  |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — |  |
-| `value` | union | yes | — |  |
+| `field` | string | yes | — | A field the record type declares queryable. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison. `in` takes a list; every other one takes one value. |
+| `value` | union | yes | — | The value to compare with, or the list for `in`. |
+
+`value` — one of: `string`; `number`; `boolean`; `(string | number)[]`, at least 1 item.
 
 ## Worked example
 
 Counts every record matching its filters, so a step can answer a total without reading the rows.
-
-Reads: read userId. Emits: number.
 
 #### Everything
 

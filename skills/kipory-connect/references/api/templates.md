@@ -4,7 +4,7 @@
 
 The project documents a new project can be created from, shipped with the platform. Both reads are public; `POST /v1/projects` and a first project's `POST /v1/me/projects` take the slug as `template` and apply it inside the transaction that creates the project. Naming none creates an empty project; `starter` marks the one to suggest to somebody new.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -25,6 +25,16 @@ Public: no credential needed.
 | --- | --- | --- | --- |
 | `version` | `string` | yes | Content hash of the shipped templates — moves when, and only when, a template file changed. |
 | `templates` | `object[]` | yes | The templates, ordered by slug. |
+
+Each item of `templates`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `slug` | `string` | yes | The template's slug, as `GET /v1/templates` lists it: lowercase words joined by hyphens. |
+| `name` | `string` | yes | The template's name, for a person. |
+| `description` | `string` | yes | What a project made from it is. |
+| `starter` | `boolean` | yes | True on exactly one template: the STARTER, the one to suggest to somebody new. Nothing applies it on its own — every creation, `POST /v1/projects` and a first project's `POST /v1/me/projects` alike, starts from the template it names, a document, or nothing. |
+| `requires` | `object` | yes |  |
 
 ### `GET /v1/templates/{slug}`
 

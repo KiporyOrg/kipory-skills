@@ -4,7 +4,7 @@
 
 In the API a skill is one step of a flow: a handler key, its config, what it reads and the slot it writes. Skill writes return 2xx with `outstandingIssues`; only a skill-level error refuses a save.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -37,6 +37,43 @@ The steps of one flow (`?flowId=`), each with what the graph adds to the row: th
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `skills` | `object[]` | yes | Skills in the flow, enabled or not. |
+
+Each item of `skills`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Skill id — the address for every skill verb. |
+| `flowId` | `string` | yes | Id of the flow this skill belongs to. |
+| `key` | `string` | yes | The skill's key, e.g. `common.summarize`. Other skills and the flow's wiring refer to it by this key. |
+| `description` | `string \| null` | yes | Free-text note about what this skill does. Not executed. |
+| `handlerKey` | `string` | yes | Which system handler runs this skill (see `GET /v1/handlers`). It determines what `handlerConfig` may contain. |
+| `handlerConfig` | `unknown` | no | Handler-specific settings. The accepted shape is defined by `handlerKey`. |
+| `condition` | `unknown` | no | Guard evaluated before the skill runs. When it is not satisfied the skill is skipped rather than executed. |
+| `inputStreams` | `string[]` | yes | Output slots of earlier skills that feed this one. These edges order the flow — a skill runs once its inputs are available. |
+| `outputSlot` | `string` | yes | Slot this skill writes its result to. Downstream skills name it in their `inputStreams`. |
+| `producedSlots` | `object` | yes | The slots this skill writes, read off its handler and its config the way the platform's validator and runner read them. |
+| `promptTemplate` | `string` | yes | Prompt body for model-backed handlers, with inputs interpolated. Ignored by handlers that do not call a model. |
+| `systemPrompt` | `string \| null` | yes | System-role instruction sent alongside `promptTemplate`. |
+| `taskKey` | `string` | yes | Task this skill bills and resolves its model under, so a project can point a whole class of skills at one model. |
+| `outputSchema` | `unknown` | no | Expected shape of this skill's output. A result that does not conform fails rather than being written to the slot. |
+| `inputSchemas` | `unknown` | no | Expected shapes of this skill's inputs, checked before it runs. |
+| `inputPaths` | `unknown` | no | Per-input path expressions selecting a leaf out of a composite input, so a skill can consume one field of an upstream slot rather than the whole value. |
+| `inputProjectionNames` | `unknown` | no | Names the projected inputs are exposed under inside the prompt, when they should differ from the source slot names. |
+| `enabled` | `boolean` | yes | Whether this skill executes. A disabled skill stays in the flow and is reported as skipped. |
+| `modelId` | `string \| null` | yes | Model this skill is pinned to, or null to use the one its `taskKey` resolves to. |
+| `tries` | `integer \| null` | yes | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
+| `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
+| `onFailure` | `"fail-run" \| "continue"` | yes | What this step's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `continue` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
+| `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
+| `timeoutMs` | `integer \| null` | yes | Per-skill time limit in milliseconds, or null for none of its own. What it bounds depends on the handler: each AI call for an AI generation step; the wait on the queued job for a fetch or file step, covering every try; and how long the run waits for a step that runs in the flow itself, whose work may still finish. Control steps ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
+| `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `level` | `integer \| null` | yes | How many producer-to-consumer steps stand between this skill and the flow's own inputs: 0 for a skill that reads only what the caller or the platform supplies, one more than its latest producer otherwise. A condition's slots count as reads, and a slot nothing writes counts as supplied, as the runner treats it. Skills on one level have no edge between them. Null for every skill of a flow whose skills wait on each other in a circle, which the platform refuses to run. |
+| `canFire` | `boolean` | yes | False when the flow's wiring alone keeps this skill from ever running: its condition cannot hold, none of its inputs can arrive, an input it reads a field of never arrives and the skill cannot go without it, or it sits inside a fan-out that can never run — because the slots involved are never written by anything that can itself run. True is not a promise — a condition over a value that may arrive, or a list that may be empty, can still skip it on a given run. Every skill is judged as though enabled. |
+| `blockedBy` | `string \| null` | yes | When `canFire` is false, the slot whose absence decides it — the first slot the condition names that never arrives, the first input that never does, the input whose field it reads that never arrives, or, for a skill inside a fan-out that can never run, the slot that stops the fan-out. Null when `canFire` is true. |
+| `deleteRefusal` | `object \| null` | yes | Why `DELETE /v1/steps/{id}` would refuse this skill right now, in the delete's own words — or null when no other skill in the flow reads what it writes. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired. A skill saved between this read and the delete still refuses it. |
+| `effectiveTimeLimit` | `object \| null` | yes | What this skill's time limit comes to on a run and which layer decided it — the precedence the engine applies, with the deployment's current limits. Null when the skill's handler is not registered, so nothing can say how it runs. |
 
 ### `POST /v1/steps`
 
@@ -81,6 +118,35 @@ Create one step in a flow. Leave out what the platform works out: the inputs a h
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
 | `derived` | `object` | no | What the create WOULD have computed. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+Each item of `leavesBehind`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
+
 **Response `201`**
 
 | Field | Type | Required | Meaning |
@@ -88,6 +154,14 @@ Create one step in a flow. Leave out what the platform works out: the inputs a h
 | `skill` | `object` | yes | The skill as saved. |
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
 | `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
+
+Each item of `outstandingIssues`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable code identifying the kind of problem. |
+| `message` | `string` | yes | What is wrong, in prose. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
 
 ### `GET /v1/steps/{id}`
 
@@ -185,6 +259,43 @@ Change one step; `version` is the one you last read, and a moved row answers 409
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
 | `derived` | `object` | no | What the write WOULD have computed. |
 
+Each item of `outstandingIssues`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable code identifying the kind of problem. |
+| `message` | `string` | yes | What is wrong, in prose. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+Each item of `leavesBehind`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
+
 ### `DELETE /v1/steps/{id}`
 
 Delete one step. Refused (409) while another step reads a slot it writes — the list publishes that refusal per step as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. Several at once: the `deletes` of `POST /v1/steps/batch`.
@@ -214,6 +325,35 @@ Delete one step. Refused (409) while another step reads a slot it writes — the
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+Each item of `leavesBehind`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
+
 ### `POST /v1/steps/{id}/duplicate`
 
 Copy a step into its own flow, under a key and an output slot nothing else in the flow uses. To copy a step into another flow, create it there with `POST /v1/steps`.
@@ -231,6 +371,14 @@ Copy a step into its own flow, under a key and an output slot nothing else in th
 | `skill` | `object` | yes | The skill as saved. |
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
 | `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
+
+Each item of `outstandingIssues`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable code identifying the kind of problem. |
+| `message` | `string` | yes | What is wrong, in prose. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
 
 ### `POST /v1/steps/batch`
 
@@ -254,6 +402,78 @@ Create, change and delete several steps of ONE flow in one transaction, validate
 | `deletedIds` | `string[]` | yes | Ids of the skills removed. |
 | `outstandingIssues` | `object[]` | yes | Warnings about the resulting graph. The batch applied — anything blocking would have rolled the whole transaction back instead. |
 
+Each item of `created`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Skill id — the address for every skill verb. |
+| `flowId` | `string` | yes | Id of the flow this skill belongs to. |
+| `key` | `string` | yes | The skill's key, e.g. `common.summarize`. Other skills and the flow's wiring refer to it by this key. |
+| `description` | `string \| null` | yes | Free-text note about what this skill does. Not executed. |
+| `handlerKey` | `string` | yes | Which system handler runs this skill (see `GET /v1/handlers`). It determines what `handlerConfig` may contain. |
+| `handlerConfig` | `unknown` | no | Handler-specific settings. The accepted shape is defined by `handlerKey`. |
+| `condition` | `unknown` | no | Guard evaluated before the skill runs. When it is not satisfied the skill is skipped rather than executed. |
+| `inputStreams` | `string[]` | yes | Output slots of earlier skills that feed this one. These edges order the flow — a skill runs once its inputs are available. |
+| `outputSlot` | `string` | yes | Slot this skill writes its result to. Downstream skills name it in their `inputStreams`. |
+| `producedSlots` | `object` | yes | The slots this skill writes, read off its handler and its config the way the platform's validator and runner read them. |
+| `promptTemplate` | `string` | yes | Prompt body for model-backed handlers, with inputs interpolated. Ignored by handlers that do not call a model. |
+| `systemPrompt` | `string \| null` | yes | System-role instruction sent alongside `promptTemplate`. |
+| `taskKey` | `string` | yes | Task this skill bills and resolves its model under, so a project can point a whole class of skills at one model. |
+| `outputSchema` | `unknown` | no | Expected shape of this skill's output. A result that does not conform fails rather than being written to the slot. |
+| `inputSchemas` | `unknown` | no | Expected shapes of this skill's inputs, checked before it runs. |
+| `inputPaths` | `unknown` | no | Per-input path expressions selecting a leaf out of a composite input, so a skill can consume one field of an upstream slot rather than the whole value. |
+| `inputProjectionNames` | `unknown` | no | Names the projected inputs are exposed under inside the prompt, when they should differ from the source slot names. |
+| `enabled` | `boolean` | yes | Whether this skill executes. A disabled skill stays in the flow and is reported as skipped. |
+| `modelId` | `string \| null` | yes | Model this skill is pinned to, or null to use the one its `taskKey` resolves to. |
+| `tries` | `integer \| null` | yes | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
+| `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
+| `onFailure` | `"fail-run" \| "continue"` | yes | What this step's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `continue` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
+| `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
+| `timeoutMs` | `integer \| null` | yes | Per-skill time limit in milliseconds, or null for none of its own. What it bounds depends on the handler: each AI call for an AI generation step; the wait on the queued job for a fetch or file step, covering every try; and how long the run waits for a step that runs in the flow itself, whose work may still finish. Control steps ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
+| `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+
+Each item of `updated`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Skill id — the address for every skill verb. |
+| `flowId` | `string` | yes | Id of the flow this skill belongs to. |
+| `key` | `string` | yes | The skill's key, e.g. `common.summarize`. Other skills and the flow's wiring refer to it by this key. |
+| `description` | `string \| null` | yes | Free-text note about what this skill does. Not executed. |
+| `handlerKey` | `string` | yes | Which system handler runs this skill (see `GET /v1/handlers`). It determines what `handlerConfig` may contain. |
+| `handlerConfig` | `unknown` | no | Handler-specific settings. The accepted shape is defined by `handlerKey`. |
+| `condition` | `unknown` | no | Guard evaluated before the skill runs. When it is not satisfied the skill is skipped rather than executed. |
+| `inputStreams` | `string[]` | yes | Output slots of earlier skills that feed this one. These edges order the flow — a skill runs once its inputs are available. |
+| `outputSlot` | `string` | yes | Slot this skill writes its result to. Downstream skills name it in their `inputStreams`. |
+| `producedSlots` | `object` | yes | The slots this skill writes, read off its handler and its config the way the platform's validator and runner read them. |
+| `promptTemplate` | `string` | yes | Prompt body for model-backed handlers, with inputs interpolated. Ignored by handlers that do not call a model. |
+| `systemPrompt` | `string \| null` | yes | System-role instruction sent alongside `promptTemplate`. |
+| `taskKey` | `string` | yes | Task this skill bills and resolves its model under, so a project can point a whole class of skills at one model. |
+| `outputSchema` | `unknown` | no | Expected shape of this skill's output. A result that does not conform fails rather than being written to the slot. |
+| `inputSchemas` | `unknown` | no | Expected shapes of this skill's inputs, checked before it runs. |
+| `inputPaths` | `unknown` | no | Per-input path expressions selecting a leaf out of a composite input, so a skill can consume one field of an upstream slot rather than the whole value. |
+| `inputProjectionNames` | `unknown` | no | Names the projected inputs are exposed under inside the prompt, when they should differ from the source slot names. |
+| `enabled` | `boolean` | yes | Whether this skill executes. A disabled skill stays in the flow and is reported as skipped. |
+| `modelId` | `string \| null` | yes | Model this skill is pinned to, or null to use the one its `taskKey` resolves to. |
+| `tries` | `integer \| null` | yes | How many times the step is tried in all, the first try included, 1–5. Null uses the handler's own number, which a step's number replaces rather than adds to. Only fetch and file steps take it; a step that runs in the flow itself is tried once. |
+| `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the handler's own backoff. |
+| `onFailure` | `"fail-run" \| "continue"` | yes | What this step's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; steps that do not depend on this one still run. `continue` — the run carries on without this step's output and reports the failure as a warning. Offered only on steps that write nothing. |
+| `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this step saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the handler's own period; 0 always runs fresh and saves nothing. |
+| `timeoutMs` | `integer \| null` | yes | Per-skill time limit in milliseconds, or null for none of its own. What it bounds depends on the handler: each AI call for an AI generation step; the wait on the queued job for a fetch or file step, covering every try; and how long the run waits for a step that runs in the flow itself, whose work may still finish. Control steps ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
+| `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+
+Each item of `outstandingIssues`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable code identifying the kind of problem. |
+| `message` | `string` | yes | What is wrong, in prose. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
+
 ### `GET /v1/steps/condition-operators`
 
 Which condition operator can test which kind of value — the table a step's `condition` is checked against at save and evaluated by at run time. The same for every caller of a deployment.
@@ -263,6 +483,14 @@ Which condition operator can test which kind of value — the table a step's `co
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `operators` | `object[]` | yes | Every condition leaf operator this deployment evaluates. |
+
+Each item of `operators`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `op` | `string` | yes | The operator, as a condition leaf's `op` spells it. Treat the list as open: a newer deployment may add one. |
+| `wholeSlot` | `object` | yes | Its verdict when the leaf tests a WHOLE slot (no `path`). An operator the condition schema accepts only with a `path` is listed here too; the save refuses it without one first. |
+| `field` | `object` | yes | Its verdict when the leaf tests a field inside the slot (a `path`). |
 
 ### `GET /v1/steps/input-options`
 
@@ -286,6 +514,26 @@ Every slot a step could read in a flow, each checked against what its handler ta
 | `bounds` | `object[]` | yes | What each input must hold. With a `count`, one entry per position, in order. Without one, a single entry every position shares. |
 | `stepScopedTo` | `object \| null` | yes | The fan-out or loop the step runs inside, as it is saved. Null when it runs outside both, or is not saved yet. |
 | `candidates` | `object[]` | yes | Every slot the step could read: earlier steps' outputs, then the flow's inputs, then the platform's. |
+
+Each item of `bounds`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `rule` | `"contract" \| "file" \| "list" \| "none" \| "unresolved"` | yes | `contract` — the handler declares the shape. `list` — a fan-out's one input, a list of any item type; `words` says what else it must be. `file` — something the step ATTACHES (see `attaches`): a slot holding a file or a list of files, or a field inside one that does. `none` — the handler declares nothing. `unresolved` — it declares a shape that could not be read, so no slot was checked against it. |
+| `wants` | `object` | yes | The declared shape, for a `contract`; otherwise null. |
+| `words` | `string \| null` | yes | What the input must hold, in words, when no declared shape says it — `a list that is always there` for a fan-out. Null otherwise. |
+
+Each item of `candidates`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `slot` | `string` | yes | The slot's name. Store it as this position's `inputStreams` entry. |
+| `source` | `object` | yes | Where the value comes from: an earlier step, the flow's own inputs, or the platform. |
+| `shape` | `object` | yes | What the slot holds, or null when nothing declares it. |
+| `suggested` | `boolean` | yes | The handler suggests a slot of this name. |
+| `scopedTo` | `object \| null` | yes | The fan-out or loop this slot exists inside — it has a value only within that step's branch or body. Null outside both. |
+| `unreachable` | `object \| null` | yes | Why wiring this slot would leave the flow broken, whatever its shape — it would make steps wait for each other in a circle, or mix a fan-out's or loop's values with values from outside it. The save does not refuse such wiring: it keeps it and reports it as an outstanding issue, and the flow's health reports an error until it is resolved; the flow still runs, wrongly. Null when nothing stands in the way. Judged as if the slot were the step's only input — beside the ones its settings already name, for `attaches: positional`. |
+| `verdicts` | `object[]` | yes | Whether the slot fits each entry of `bounds`, in the same order. For an `unreachable` slot only the slot itself is judged: the fields inside it are not walked, so `reach-in` never appears there. |
 
 ### `POST /v1/steps/interpolate`
 

@@ -9,26 +9,26 @@ Send your prompt to an AI model and return its answer.
 - **I/O:** `any+` → `the step's outputSchema`
 - **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_
 - **Emits:** The model's answer — text, or a structured value when the step declares an output shape.
-- **External dependency:** a model provider — Whichever provider hosts the model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
-- **Rate limit:** 60 per 60000ms in bucket `text.generate`
-- **Queue:** 2 attempts, exponential from 1000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **External dependency:** a model provider — Whichever provider hosts the model this step is set to. The key is resolved per model.
+- **Rate limit:** 60 per min in bucket `text.generate`
+- **Queue:** 2 attempts, exponential from 1 s; waits up to 2 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `facetFields` | object[] | no | — | Which fields of the answer are facet values, so they can be resolved into terms. Press Adopt to re-read them from the type. |
+| `facetFields` | object[] | no | — | Which fields of the answer are facet values, so they can be resolved into terms. |
 | `modelSlot` | string | no | — | Names a slot holding the model to use, picked while the flow runs. Leave it empty to use the model set on this step. ⚠️ The model named while the flow runs has to be one that is enabled and can generate text. An unknown or disabled one fails the run — nothing falls back to the step's own model. |
-| `outputs` | object[] | no | — | Extra slots this step writes besides its main answer. Set from the fields above; you do not fill it in by hand. |
+| `outputs` | object[] | no | — | Extra slots this step writes besides its main answer: exactly one entry, for the facet values, when `facetFields` is set, and none otherwise. |
 | `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How hard the model thinks first. Costs time and tokens. ⚠️ Also part of the cache key, and higher settings are what dominate both the time and the token bill on models that reason. |
-| `temperature` | number | no | — | How much the answer may vary. Empty means the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
+| `temperature` | number, 0 to 2 | no | — | How much the answer may vary. Empty means the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
 
 ### `facetFields` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `field` | string | yes | — |  |
-| `facet` | string | yes | — |  |
+| `field` | string | yes | — | The field of the answer that holds the facet's value. |
+| `facet` | string | yes | — | The facet, by key. |
 
 ### `outputs` — each item
 
@@ -37,11 +37,53 @@ Send your prompt to an AI model and return its answer.
 | `slot` | string | yes | — | The slot the extra value is written to. A later step reads it by this name. |
 | `schema` | union | yes | — | The type of the value in that slot, as a schema reference. |
 
+`schema` — one of:
+
+**`schema` › `kind: ref`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `ref` | yes | — | A named shape, defined once in the project's schema entries and reused by id. |
+| `entryId` | string | yes | — | Id of the schema entry this points at. It has to already exist, and one that something still points at cannot be deleted. |
+
+**`schema` › `kind: list`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `list` | yes | — | An array of values. |
+| `element` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+
+**`schema` › `kind: optional`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `optional` | yes | — | A value that may be absent altogether. |
+| `inner` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+
+**`schema` › `kind: union`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `union` | yes | — | One of several alternative shapes. A step may READ a union; what it writes has to be one concrete shape. |
+| `members` | a list of `schema` alternatives, at least 2 items | yes | — | The alternatives — at least two, since a single-member union is just that member. |
+
+**`schema` › `kind: record`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `record` | yes | — | A map from string keys to values. Only the values are typed; the keys are always strings and are not constrained. |
+| `valueType` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+
+**`schema` › `kind: recordRef`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
+| `recordType` | string | yes | — | Which record type the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+
 ## Worked example
 
 A prompt goes out, an answer comes back. The variants show prose, a declared output shape, and a file attached to the prompt.
-
-Reads: interpolate prompt. Emits: decode response.
 
 #### Summary
 

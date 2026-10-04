@@ -5,13 +5,14 @@ Three shapes. Each starts from a file reference and ends with something a record
 ## A PDF becomes searchable text
 
 ```
-file → pdf.parse ─┬─ text present ──→ text.chunk (reads `text`) → (kipory-retrieve)
-                  └─ text empty ────→ pdf.screenshot → text.generate (vision) → …
+file → pdf.parse ─┬─ text present ──→ the flow's `body` output (the platform chunks and indexes it)
+                  └─ text empty ────→ pdf.screenshot → text.generate (vision) → the same output
 ```
 
 `pdf.parse` emits a `PdfDocument` object: `text`, `pageCount`, the file's own `pdf*` properties,
-and `isEncrypted`. `text.chunk` reads one string, so wire the step's input to the `text` field
-(an `inputPaths` projection, `kipory-build`) rather than to the whole object. Empty `text` is a
+and `isEncrypted`. The flow's output is one string, so pick `text` out of the object in a
+`value.transform` (`kipory-build`'s `references/records-and-endpoints.md` has the step) rather
+than handing on the whole object. Empty `text` is a
 **result**, not a failure: `isEncrypted: true` means the file was locked; empty `text` with no
 flag means the pages carry no text layer — a scan. Branch with `flow.dispatch`.
 
@@ -22,12 +23,10 @@ page, and a page past the end **fails the handler** rather than returning empty,
 `pageCount` before adding steps you cannot be sure the file has. Each page is a vision model call,
 so cost scales with pages rather than documents.
 
-Sanitize before the text reaches a prompt, not before chunking. `text.sanitize` reads
-`itemsSlot` as a **list** of `{ id, text }` objects and returns `[]` without an error when handed
-anything else — a bare string included. Its default output is a list of `{ id, sanitizedText }`
-(`outputShape: "joined"` gives one string instead), which `text.chunk` cannot read. So shape the
-chunks or the vision output into `{ id, text }` items with `value.transform` and sanitize those
-where the prompt is assembled.
+Sanitize where a prompt is assembled, not where the text is stored: the `body` a record keeps is
+the plain text. `text.sanitize` takes a list of `{ id, text }` items — shape the extracted text
+into one with `value.transform` — and cuts each at 4 000 characters unless `maxCharsPerItem` is
+raised. `kipory-retrieve` has the full contract.
 
 ## An image becomes data
 
@@ -56,33 +55,38 @@ Read the metadata first when the duration decides anything. `audio.transcribe` w
 minutes and cannot go behind a synchronous endpoint; `kipory-expose` covers the asynchronous and
 streaming shapes, and `kipory-operate` covers running it on a schedule instead.
 
-The transcript is cached on the file, the model and the language together, so a re-run is free and
-a changed language hint is a fresh bill.
+The transcript is cached on the file, the model and the language together, so a re-run makes no
+model call — the step still pays its compute fee — and a changed language hint is a fresh bill.
 
 ## Where these attach
 
 The extracted text is only useful if something keeps it. The usual route needs no write step at
 all: make the extraction the record type's **processing flow**. Its declared output (`body`, say)
 becomes the record's processed field, and a `search` use on `{ "family": "processed", "field":
-"body" }` has the platform chunk, embed and index it — `kipory-build`'s `references/patterns.md` §7
-has the whole document, file in and searchable text out.
+"body" }` has the platform chunk, embed and index it — `kipory-build`'s
+`references/records-and-endpoints.md` has the whole document, file in and searchable text out.
+File-producing steps (`pdf.screenshot`, `image.resize`) work in a project-scoped type's processing
+flow; the files they produce are project files.
 
 Reach past that only when the route does not fit:
 
 - **`entity.update`** writes the text onto a record the flow did not get as its input.
 - **The hand-built chain** (`text.chunk` → `text.embed` → `vector.upsert`) writes points the
-  declaration does not — `kipory-retrieve` covers it, and its limits.
+  declaration does not, and only on a run with a signed-in end user — `kipory-retrieve` covers it,
+  and its limits.
 
 ## Costs worth knowing before you build
 
-| Step                                    | What it costs                                               |
-| --------------------------------------- | ----------------------------------------------------------- |
-| `pdf.parse`, `*.metadata`, `file.stats` | compute only — no model, no vendor                          |
-| `file.stats`                            | plus a full read of the object, because it hashes the bytes |
-| `pdf.screenshot`, `image.resize`        | compute, then whatever the model that reads the image costs |
-| `audio.transcribe`                      | a model call sized by the recording's length                |
-| `text.extract`, `text.detect-language`  | deterministic — no model call at all                        |
+| Step                                    | What it costs                                                    |
+| --------------------------------------- | ---------------------------------------------------------------- |
+| every step that runs                    | its compute fee: run time, one second minimum (`kipory-operate`) |
+| `pdf.parse`, `*.metadata`, `file.stats` | compute only — no model, no vendor                               |
+| `file.stats`                            | plus a full read of the object, because it hashes the bytes      |
+| `pdf.screenshot`, `image.resize`        | compute, then whatever the model that reads the image costs      |
+| `audio.transcribe`                      | a model call sized by the recording's length                     |
+| `text.extract`, `text.detect-language`  | deterministic — no model call at all                             |
 
-The deterministic handlers are the ones to reach for first. A regex that finds invoice numbers is
-free, repeatable and never hallucinates; asking a model the same question costs money on every run
-and has to be evaluated (`kipory-prove`) to be trusted.
+The deterministic handlers are the ones to reach for first. A regex that finds invoice numbers
+costs only its step fee — no model, no vendor — and is repeatable and never hallucinates; asking a
+model the same question pays for the model on every run and has to be evaluated (`kipory-prove`)
+to be trusted.

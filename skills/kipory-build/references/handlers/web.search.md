@@ -8,12 +8,12 @@ Search the web and return the results.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `WebSearchResults`
 - **Reads:** One search query. A single page of results is one billable call, whatever `maxResults` says. _(shape hint: `string`)_
-- **Emits:** A `WebSearchResults`. One SERP page of organic results; paid ads and other SERP furniture are dropped at the handler boundary. A bare `{}` when the search returns nothing.
+- **Emits:** A `WebSearchResults`. One page of organic results; paid ads and the other blocks on a results page are left out. A bare `{}` when the search returns nothing.
 - **Suggested input streams:** `query`
 - **External dependency:** Apify — Runs Apify's `google-search-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.traffic`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.traffic`, `x.posts`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -21,13 +21,11 @@ Search the web and return the results.
 | --- | --- | --- | --- | --- |
 | `countryCode` | string | no | — | Optional 2-letter country domain (e.g. 'us', 'de', 'il'). Omit for the actor's default (US). |
 | `languageCode` | string | no | — | Optional interface-language code (`hl` parameter, e.g. 'en', 'he'). Omit for the actor's default. |
-| `maxResults` | integer | no | `10` | How many results to return, up to 100 — one page. It also sets the page size, so cost does not change. |
+| `maxResults` | integer, more than 0, at most 100 | no | `10` | How many results to return, up to 100 — one page. It also sets the page size, so cost does not change. |
 
 ## Worked example
 
 Runs one search and returns the organic results. Ads and related-question blocks are dropped.
-
-Reads: run query. Emits: organic results.
 
 #### A topic search
 

@@ -10,21 +10,19 @@ Turn a map point into a place: city, region, and country.
 - **Reads:** One `Location` — a latitude and a longitude, and nothing else. Coordinates it cannot use come back empty without a call. _(shape hint: `object`)_
 - **Emits:** A `Place`, with every field optional because coverage varies. Empty when the provider found nothing. A provider failure throws instead, so the step fails rather than reporting a blank.
 - **External dependency:** OpenStreetMap — Reverse-geocodes through Nominatim, the public OpenStreetMap endpoint. Free, unkeyed and rate-limited by courtesy — answers are cached per coordinate so repeats cost nothing.
-- **Rate limit:** 60 per 60000ms in bucket `location.resolve`
-- **Queue:** 2 attempts, exponential from 5000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 60 per min in bucket `location.resolve`
+- **Queue:** 2 attempts, exponential from 5 s; waits up to 1 min; cache 7 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string | no | `"en"` | Preferred language for place names. A single tag like `en`, or a priority list. `en` by default. ⚠️ The provider falls back to the local name when it has no translation. Changing this changes the cache key, so the next run re-fetches everything. |
+| `language` | string, at least 2 characters | no | `"en"` | Preferred language for place names. A single tag like `en`, or a priority list. `en` by default. ⚠️ The provider falls back to the local name when it has no translation. Changing this changes the cache key, so the next run re-fetches everything. |
 | `provider` | `osm` \| `mapbox` \| `google` | no | `"osm"` | Reverse-geocoding provider. Only "osm" is implemented in v1; "mapbox" and "google" are reserved enum slots that throw when selected. |
 
 ## Worked example
 
 Turns one pair of coordinates into a place. Repeated coordinates are answered from cache.
-
-Reads: round to 4dp · cache key. Emits: provider lookup.
 
 #### A city
 

@@ -1,6 +1,6 @@
 ---
 name: kipory-gather
-description: Bring data into a Kipory project from outside it — fetch and scrape web pages, run a web search, read YouTube videos, channels, comments and transcripts, pull X posts and profiles, read TikTok, Instagram, LinkedIn, Reddit and Threads profiles, posts and comments, search the Facebook, Google, TikTok and LinkedIn ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, and turn coordinates into a place. Use when a flow needs something the project does not already hold, when a source handler is slow, refused or rate-limited, when a vendor bill is larger than expected, or when deciding whether the project's own key or the platform's should pay for a source.
+description: Bring data into a Kipory project from outside it, in a flow step — fetch or scrape a web page, poll a feed, call an API with or without a stored key, send a request to an outside system (`url.send`), run a web search, read YouTube, X, TikTok, Instagram, LinkedIn, Reddit and Threads profiles, posts, comments and transcripts, search the Facebook, Google, TikTok and LinkedIn ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, turn coordinates into a place. Use when a flow needs something the project does not hold, when choosing which source handler fits, when a source step is slow, empty, refused, rate-limited or returns an old answer (its cache), or when a vendor bill is larger than expected. Not for storing a vendor key or deciding whose key pays (kipory-secrets), not for subscribing to a Telegram channel (kipory-channels), not for opening a downloaded file (kipory-extract).
 license: MIT
 ---
 
@@ -12,9 +12,10 @@ none of those: it is queued, retried, cached, rate-limited against a **shared** 
 by somebody who is not this platform.
 
 **The fact most people get wrong: the rate limits are shared across handlers, not per handler.**
-Five different sources draw on one Apify budget of 30 calls a minute. A flow that searches the web
-and reads X posts in the same fan-out competes with itself, and the ceiling arrives at a number
-neither handler's own page mentions.
+Every Apify-backed source draws on one budget of 30 calls a minute, and every social-platform read
+on one ScrapeCreators budget of 120. A flow that searches the web and reads X posts in the same
+fan-out competes with itself, and the ceiling arrives at a number neither handler's own page
+mentions.
 
 ## Before the first call
 
@@ -24,36 +25,40 @@ neither handler's own page mentions.
 - **Every one of these runs in the ingest phase**, which means a queue, retries and a cache. Inline
   and control handlers have none of those. Whether a step is queued is a property of the handler,
   not something you configure.
+- **A service with no handler of its own is reached with a keyed request.** `url.fetch` reads it and
+  `url.send` writes to it, each with a stored key named in `secret`. `kipory-connect`'s
+  `references/packs/limits.md` (What a flow can reach) says what such a request cannot do.
 
 ## The sources
 
-| Handler                                                     | Brings back                                                                                 | Vendor         | Bucket             | Cached |
-| ----------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------- | ------------------ | ------ |
-| `url.fetch`                                                 | raw text or JSON, nothing rendered                                                          | the site       | `outbound-request` | 24h    |
-| `url.fetch-as-file`                                         | the bytes, saved as a file                                                                  | the site       | `outbound-request` | 24h    |
-| `url.metadata`                                              | title, description, icon, social preview                                                    | the site       | `url.metadata`     | 24h    |
-| `url.scrape`                                                | the rendered page as clean markdown                                                         | Firecrawl      | `firecrawl`        | 24h    |
-| `url.screenshot`                                            | a full-page image file                                                                      | Firecrawl      | `firecrawl`        | 24h    |
-| `web.search`                                                | one page of organic search results                                                          | Apify          | `apify`            | 24h    |
-| `web.rankings`                                              | a country's most-visited sites, ranked                                                      | Apify          | `apify`            | 30d    |
-| `web.traffic`                                               | one site's visits, ranking and audience                                                     | Apify          | `apify`            | 7d     |
-| `x.posts`                                                   | a tweet, profile or search URL as posts                                                     | Apify ¹        | `apify` ¹          | 24h    |
-| `telegram.search-channels`                                  | public channels matching search terms                                                       | Apify          | `apify`            | 7d     |
-| `place.details`                                             | one place's map listing: address, hours, rating                                             | Apify          | `apify`            | 7d     |
-| `place.reviews`                                             | what people wrote about one place                                                           | Apify          | `apify`            | 24h    |
-| `youtube.video`                                             | a video's metadata and stats                                                                | YouTube        | `youtube`          | 7d     |
-| `youtube.channel`                                           | a channel's metadata and stats                                                              | YouTube        | `youtube`          | 7d     |
-| `youtube.trending`                                          | the channels behind a region's trending videos                                              | YouTube        | `youtube`          | 6h     |
-| `youtube.transcript`                                        | a video's captions as text                                                                  | Supadata ²     | `supadata` ²       | 24h    |
-| `youtube.posts` · `youtube.comments` · `youtube.search`     | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`   | 24h    |
-| `x.profile` · `x.transcript`                                | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`   | 24h    |
-| `tiktok.*` (11)                                             | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`   | 24h    |
-| `instagram.*` (5)                                           | profile, posts, post, transcript, comments                                                  | ScrapeCreators | `scrapecreators`   | 24h    |
-| `linkedin.*` (6)                                            | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`   | 24h    |
-| `reddit.*` (4)                                              | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`   | 24h    |
-| `threads.*` (4)                                             | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`   | 24h    |
-| `facebook.ads` · `facebook.ad` · `google.ads` · `google.ad` | ads from a platform's public ad library                                                     | ScrapeCreators | `scrapecreators`   | 24h    |
-| `location.resolve`                                          | a place from latitude and longitude                                                         | OpenStreetMap  | `location.resolve` | 7d     |
+| Handler                                                        | Brings back                                                                                 | Vendor         | Bucket             | Cached |
+| -------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------- | ------------------ | ------ |
+| `url.fetch`                                                    | raw text or JSON, nothing rendered                                                          | the site       | `outbound-request` | 24h    |
+| `url.fetch-as-file`                                            | the bytes, saved as a file                                                                  | the site       | `outbound-request` | 24h    |
+| `url.metadata`                                                 | title, description, icon, social preview                                                    | the site       | `url.metadata`     | 24h    |
+| `url.scrape`                                                   | the rendered page as clean markdown                                                         | Firecrawl      | `firecrawl`        | 24h    |
+| `url.screenshot`                                               | a full-page image file                                                                      | Firecrawl      | `firecrawl`        | 24h    |
+| `web.search`                                                   | one page of organic search results                                                          | Apify          | `apify`            | 24h    |
+| `web.rankings`                                                 | a country's most-visited sites, ranked                                                      | Apify          | `apify`            | 30d    |
+| `web.traffic`                                                  | one site's visits, ranking and audience                                                     | Apify          | `apify`            | 7d     |
+| `x.posts`                                                      | a tweet, profile or search URL as posts                                                     | Apify ¹        | `apify` ¹          | 24h    |
+| `telegram.search-channels`                                     | public channels matching search terms                                                       | Apify          | `apify`            | 7d     |
+| `telegram.resolve-channel`                                     | one public channel by handle: name, members, description, picture                           | the platform   | none               | 6h     |
+| `place.details`                                                | one place's map listing: address, hours, rating                                             | Apify          | `apify`            | 7d     |
+| `place.reviews`                                                | what people wrote about one place                                                           | Apify          | `apify`            | 24h    |
+| `youtube.video`                                                | a video's metadata and stats                                                                | YouTube        | `youtube`          | 7d     |
+| `youtube.channel`                                              | a channel's metadata and stats                                                              | YouTube        | `youtube`          | 7d     |
+| `youtube.trending`                                             | the channels behind a region's trending videos                                              | YouTube        | `youtube`          | 6h     |
+| `youtube.transcript`                                           | a video's captions as text                                                                  | Supadata ²     | `supadata` ²       | 24h    |
+| `youtube.posts` · `youtube.comments` · `youtube.search`        | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`   | 24h    |
+| `x.profile` · `x.transcript`                                   | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`   | 24h    |
+| `tiktok.*` (11 <!-- count: handlers-in-family-tiktok -->)      | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`   | 24h    |
+| `instagram.*` (5 <!-- count: handlers-in-family-instagram -->) | profile, posts, post, transcript, comments                                                  | ScrapeCreators | `scrapecreators`   | 24h    |
+| `linkedin.*` (6 <!-- count: handlers-in-family-linkedin -->)   | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`   | 24h    |
+| `reddit.*` (4 <!-- count: handlers-in-family-reddit -->)       | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`   | 24h    |
+| `threads.*` (4 <!-- count: handlers-in-family-threads -->)     | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`   | 24h    |
+| `facebook.ads` · `facebook.ad` · `google.ads` · `google.ad`    | ads from a platform's public ad library                                                     | ScrapeCreators | `scrapecreators`   | 24h    |
+| `location.resolve`                                             | a place from latitude and longitude                                                         | OpenStreetMap  | `location.resolve` | 7d     |
 
 ¹ `x.posts` runs on Apify by default; a step may choose twitterapi.io
 (`provider: "twitterapi"`, key purpose `twitterapi`) or ScrapeCreators
@@ -61,13 +66,17 @@ neither handler's own page mentions.
 and its profile read is about a hundred of the account's most popular posts, not
 its latest. With `fallback` on — the default — a failed vendor hands the URL to
 the next, and each post's `provider` says which one answered. A key the
-chosen vendor refuses fails the step instead.
+chosen vendor refuses fails the step instead. A fallback is billed by the vendor
+that answered: with your own key for one vendor only, a failure there spends the
+platform's key for the next. Store a key for each vendor, or set `fallback: false`.
 
 ² `youtube.transcript` runs on Supadata by default; a step may choose
 ScrapeCreators (`provider: "scrapecreators"`). With `fallback` on — the default —
 a vendor that fails hands the video to the other; a key the chosen vendor refuses
 fails the step instead. A video with no captions is an
-answer, and is not retried on the second vendor.
+answer, and is not retried on the second vendor. The fallback is billed as in ¹:
+your own Supadata key does not stop the platform's ScrapeCreators key being spent
+unless you store both or set `fallback: false`.
 
 The social-platform reads return shared shapes — `SocialProfile`, `SocialPost`,
 `SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
@@ -78,7 +87,7 @@ path over a shared field carries across platforms, a path over an added one does
 not. The transcript reads return text. Every list read takes a `maxItems`
 bound; on a read that pages, each page is one paid request.
 
-Seven handlers share `apify` at 30 a minute. Three share `youtube` at 60 a minute **and a single
+The Apify handlers share `apify` at 30 a minute. Three <!-- count: handlers-in-bucket-youtube --> share `youtube` at 60 a minute **and a single
 daily quota measured in units, not calls** — a heavy day of channel reads can exhaust what a later
 video read needed. `url.scrape` and `url.screenshot` share `firecrawl` at **10 a minute**, the
 tightest budget here by a wide margin, and both are the slow kind of step: they render a page in a
@@ -86,25 +95,13 @@ real browser.
 
 ## Choosing between the four ways to read a page
 
-- **`url.fetch`** when the URL returns data — an API, a JSON feed, a text file. It renders nothing
+- **`url.fetch`** when the URL returns data — an API, a JSON or RSS feed, a text file. It renders nothing
   and re-encodes nothing. No vendor. A plain GET needs no config; an API that needs more takes
   `query`, `headers`, a POST `bodySlot` and a stored key named in `secret` (the `kipory-secrets`
   skill says how to store one). Set `responseAs` to `json` to address an object's fields, or to `json-list` for an API that returns
   a list of objects, which a fan-out can then walk. It is a
   read: it may be sent several times and is cached, so a POST here must change nothing.
   <!-- field-ok: bodySlot — a `url.fetch` config field, listed on the handler's reference page -->
-- **`url.send`** is not a read. It tells an outside system something — a POST, PUT, PATCH or DELETE
-  — and it is listed here only so nobody reaches for `url.fetch` to do it. The request is sent once,
-  after the run has saved everything else: a run that fails sends nothing, a preview sends nothing,
-  and the flow never sees the answer. A new run of the same input sends again; name an
-  `idempotencyKeySlot` so the receiving system can recognise the repeat.
-  <!-- field-ok: idempotencyKeySlot — a `url.send` config field, listed on the handler's reference page -->
-
-`url.fetch`, `url.fetch-as-file` and `url.send` share one budget, `outbound-request`: 60 requests a
-minute **per project and per host**. Two projects never share it, and two hosts are two budgets. A
-fan-out wider than that over one host is delayed, not failed; the service's own limit is its 429,
-which a read waits out once when the wait is short.
-
 - **`url.metadata`** when you only need the head: title, description, icon. It reads the page's head
   over plain HTTP with no JS render, so it is cheap and it is wrong about pages that build their
   own title in the browser.
@@ -113,47 +110,56 @@ which a read waits out once when the wait is short.
 - **`url.fetch-as-file`** when you want the bytes rather than the text — a PDF, an image, an
   archive. It stores them and emits a file reference for `kipory-extract` to open.
 
-**A page read that must not come back empty: scrape with a plain-fetch fallback.** Run the two
-side by side off the same `url` slot and keep whichever filled:
+`url.send` is not a fifth way to read: it writes to an outside system, and has its own section
+below.
 
-```
-scrape   url.scrape                  url → page            (page.content: rendered markdown, or "")
-fetch    url.fetch                   url → raw             (the raw HTML/text, no vendor)
-strip    value.transform             raw → plain           (tags stripped, below)
-body     value.first-non-empty       { "inputs": ["page.content", "plain"], "valueKind": "string" } → body
-```
+**A page read that must not come back empty** runs `url.scrape` and `url.fetch` side by side off
+the same `url` slot and keeps whichever filled, with `value.first-non-empty`. Three things make it
+work, and `references/sources.md` (Scrape with a plain-fetch fallback) has the steps, the
+tag-stripping expression and the no-vendor variant:
 
-The two sources emit different types — `url.scrape` a `ScrapedPage` object, `url.fetch` the raw
-body as one string — so coalesce text with text: `page.content` (the scraped markdown) against
-`plain`, never the bare `page` against `raw`. The `body` step lists every root it reads in
-`inputStreams` (`page`, `plain`), types them `ScrapedPage` and `string` in `inputSchemas`, and
-states `outputSchema` `string`. The `strip` expression (in a JSON document every `\` doubles):
-
-```
-$trim($replace($replace($replace(raw, /<(script|style)[\s\S]*?<\/(script|style)>/i, " "), /<[^>]+>/, " "), /\s+/, " "))
-```
-
-**No vendor at all** — no Firecrawl key, or its credit spent: drop `scrape` and read `url.fetch` →
-`strip` as the body, and take the title from `url.metadata` on the same `url` (its `title`, from
-the page's `<title>` or `og:title`; also `onFailure: continue`). A page that builds its text in the
-browser comes back nearly empty this way; `$assert` on the length (`kipory-build`'s
-`patterns.md` §8) turns that into a clear refusal. ⚠️ **Set `"onFailure": "continue"` on the `fetch` step.** The two sources fail differently:
-`url.scrape` turns a vendor refusal into a warning and an empty page, but `url.fetch` fails the
-step on a 4xx page, on an address that does not resolve and on a refused one — and one failed
-step fails the whole run, even when the scrape beside it worked: a sync endpoint answers `502`
-(`details.phase: "handler-error"`), or `400` "blocked network request" for a lookup failure or a
-private address. Only a 5xx from the site comes back as an empty value with a `FETCH_FAILED`
-warning. With `continue` a failed fetch is a warning, its readers skip, and `body` takes the scrape.
-Then guard **every step that reads `body` beside another slot** — `condition: { "op":
-"slotPresent", "slot": "body" }` — model steps included, not only writes. A step runs while any
-one input is present: a key-point `text.generate` that also reads `url` (to cite it) runs on the
-URL alone when every read failed, and the model invents a page. Guard the writes the same way on
-the slot they store, so such a run writes nothing instead of a half-empty record.
+- coalesce text with text — `page.content` against the stripped fetch, never the bare objects;
+- set `"onFailure": "continue"` on the `fetch` step, because `url.fetch` fails the step on a 4xx
+  or an unresolvable address and one failed step fails the run;
+- guard every step that reads the body beside another slot with a `slotPresent` condition, model
+  steps included — a step runs while any one input is present.
 
 `url.fetch`, `url.fetch-as-file` and `url.metadata` go through an SSRF guard: they reach the open
 web, not the deployment's own network. A host name that does not resolve is refused by the same
 guard, so a typo in a URL reaches the caller as `400 BAD_REQUEST` "The flow attempted a blocked
 network request.", not as a network error.
+
+## Telling an outside system something: `url.send`
+
+`url.send` is not a read. It sends a POST, PUT, PATCH or DELETE to an outside system; never reach
+for `url.fetch` to do that, because a read is cached and may be sent several times.
+
+- **Staged once per run, delivered after the run has saved everything else.** A run that fails
+  sends nothing, and the flow never sees the answer.
+- **The receiver may see a request twice.** A transient failure — no answer, a 5xx, a 429 — is
+  retried for about ten minutes, every attempt with the same `Idempotency-Key` header. A 3xx or
+  4xx is final: a redirect is not followed. A new run of the same input stages a new request;
+  name an `idempotencyKeySlot` so the receiving system can recognise that repeat too.
+  <!-- field-ok: idempotencyKeySlot — a `url.send` config field, listed on the handler's reference page -->
+- **In a preview or an eval run the step fails rather than sending.** To preview the rest of the
+  flow, guard the step with a condition over a slot the preview's inputs leave empty;
+  `"onFailure": "continue"` is refused on it (`RUN_CONTINUE_NOT_ALLOWED`), as on any step that may
+  write. Prove the send with one live run.
+- **Nothing reports the delivery.** The step's `true` means staged. No run read, step log or
+  spend read says whether the request left or what it was answered: a wrong host, a private
+  address, a credential that does not list the host, a credential removed since and a 4xx all
+  look like success in the run. Confirm on the receiving system, with one live run, before
+  relying on it.
+- **With a `secret`, the address must be `https` on the default port**, or the step fails before
+  anything is staged (`kipory-secrets` has the credential's own rules).
+
+`url.fetch`, `url.fetch-as-file` and `url.send` share one budget, `outbound-request`: 60 requests a
+minute **per project and per host**. Two projects never share it, and two hosts are two budgets. A
+read in a fan-out wider than that over one host is delayed, but only up to the handler's wait
+ceiling — a minute for `url.fetch`, a minute and a half for `url.fetch-as-file`; a call still
+waiting then fails its step, so bound the fan-out or set `maxParallelBranches`. A `url.send`
+delivery over the budget is put back and sent later. The service's own limit is its 429, which a
+read waits out once when the wait is short.
 
 ## What will bite you
 
@@ -165,21 +171,28 @@ network request.", not as a network error.
   page skips, but a transform or `entity.create` that also reads the URL still runs and can write a
   record with the summary missing. Read `warnings` on the preview, use the fallback above, and put
   `slotPresent` conditions on writes. A refused scrape is **not charged** — the handler bills only a
-  page it got. A preview's `ingestSpend` totals are what the preview was actually charged for vendor
-  fetches so far, read from your charges; `calls[]` counts every call, cache hits and refusals
-  included, so a refused call shows there at no cost. A call that timed out waiting keeps running
+  page it got. A preview's `ingestSpend` carries two totals, `totalFirecrawlUsd` and `totalSupadataUsd` —
+  what the preview was charged for those two vendors so far, read from your charges — and
+  `calls[]`, which counts every ingest handler's calls, cache hits and refusals included, so a
+  refused call shows there at no cost. Apify, ScrapeCreators and YouTube spend is not totalled
+  there; read the run's spend (`kipory-operate`). A call that timed out waiting keeps running
   and can be charged after the preview returns, so its cost may be missing from that preview's
   totals. A fetch on your own vendor key is never charged, and a platform-paid preview reports $0.
-- **The cache is the design, not an optimisation.** A repeated call inside the cache window costs
-  nothing and returns the same answer, so a flow that re-runs is cheap — and a source that changed
-  inside the window is one your flow cannot see. The windows differ by an order of magnitude across
+- **The cache is the design, not an optimisation.** A repeated call inside the cache window makes
+  no vendor call, pays no vendor price and returns the same answer — the step still pays its
+  one-second compute minimum (`kipory-operate` has the billing detail). So a flow that re-runs is
+  cheap, and a source that changed inside the window is one your flow cannot see. The windows differ by an order of magnitude across
   this table: rankings hold for a month, trending for six hours.
 - **Polling a source needs the step's own period.** The windows in the table are each handler's
   default, not a fixed property: a step sets `reuseResultsForMinutes` — `0` runs fresh every time
   and saves nothing, a number is the step's own window. A flow that polls a feed, a channel or a
   profile for what is new sets it on the fetch step, or it reads yesterday's answer for a day.
-  `kipory-build`'s `references/packs/flows-and-skills.md` (run settings) has the rule for steps
+  `kipory-build`'s `references/packs/flows-and-skills.md` (How a step runs) has the rule for steps
   that share one fetch.
+- **There is no feed reader, and no upsert.** An RSS or Atom feed is `url.fetch` with its own
+  period, a regex cut into items and a fan-out that looks each item up by its link, then creates
+  or updates it — a `key` use on the link does not make a re-poll update the item, it makes a
+  changed item fail the run. `references/sources.md` (Reading an RSS or Atom feed) has the steps.
 - **A vendor bills you even though the platform queued the call.** Apify actor runs are billed and
   queued by Apify. The platform's own per-invocation compute fee is charged on top, and bringing
   your own key removes the vendor pass-through but not that fee.
@@ -203,20 +216,21 @@ network request.", not as a network error.
   and twenty branches each making an Apify call is most of a minute's budget in one run. Set
   `maxParallelBranches` deliberately when the branch body reaches a shared bucket.
 - **Retries are already configured and they are not free.** They differ per handler — each handler
-  page's **Queue** line in `kipory-build` has the numbers. The seven Apify handlers and `url.scrape`
+  page's **Queue** line in `kipory-build` has the numbers. The Apify handlers and `url.scrape`
   make three attempts with exponential backoff and wait up to five minutes; `url.screenshot` waits
   up to two minutes; `url.fetch` and `url.fetch-as-file` make three attempts within one and
-  one-and-a-half minutes; `url.metadata`, `youtube.video`, `youtube.channel`, `youtube.trending` and
-  `youtube.transcript` make two, waiting up to a minute (two for `youtube.transcript`); the
-  social-platform reads make three, waiting up to five minutes; `location.resolve` makes two within a minute. A step that
+  one-and-a-half minutes; `url.metadata` makes two within thirty seconds; `youtube.video`,
+  `youtube.channel` and `youtube.trending` make two, waiting up to a minute; `youtube.transcript`
+  makes two, waiting up to two minutes; the social-platform reads make three, waiting up to five
+  minutes; `location.resolve` makes two within a minute. A step that
   looks hung is usually a source that is slow, and the wait ceiling is the handler's, not something
   the flow overrides.
 
 ## References
 
-| File                    | What it answers                                                    |
-| ----------------------- | ------------------------------------------------------------------ |
-| `references/sources.md` | picking a source per question, and what each one costs in practice |
+| File                    | What it answers                                                                                           |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| `references/sources.md` | a source per question, the shared budgets, the scrape-with-fallback and feed recipes, what a source costs |
 
 Per-handler config tables live with the handler catalog in `kipory-build`.
 

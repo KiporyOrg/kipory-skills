@@ -6,7 +6,7 @@ Join several values or lists into one list.
 
 - **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `list+` → `nothing`
+- **I/O:** `list+` → `a list of the first input's element type`
 - **Reads:** Reads any number of root slots — useful for collecting parallel-source contributions (tag-source merges, classification-resolution collection) without requiring a fan-out/merge pair. _(shape hint: `list+`)_
 - **Emits:** One flat list aggregated from N sibling slots, with scalar inputs lifted to length-1 list elements and list inputs flattened in declared order.
 
@@ -14,14 +14,12 @@ Join several values or lists into one list.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | string[] | yes | — | The slots to join, in order. Each is a slot name or a path into an object slot. Lists are flattened in. |
+| `inputs` | string[], at least 1 item | yes | — | The slots to join, in order. Each is a slot name or a path into an object slot. Lists are flattened in. |
 | `strategy` | `concat` \| `dedup-concat` | no | `"concat"` | `concat` keeps everything in the order given. `dedup-concat` drops repeats, keeping the first time each value appeared. |
 
 ## Worked example
 
 Flatten N sibling list slots into one list, optionally deduping. Scalar contributions become length-1 list elements.
-
-Reads: read sibling slots. Emits: flatten + dedup.
 
 #### Keep repeats
 

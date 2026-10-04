@@ -4,7 +4,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Agent skill vs. skill.** These files are _agent skills_ — instructions for a coding agent. In the API, a **skill** is one step of a flow: a row bound to a handler key with its config, the slots it reads and the slot it writes (`/v1/steps`). Nothing in the API knows about agent skills.
 
-**Handler vs. skill.** A **handler** is platform code from a registry of about seventy entries (`GET /v1/handlers`): `url.scrape`, `text.generate`, `entity.create`. A **skill** is your configured _use_ of one inside a flow. Handlers have a catalog; skills have a flow.
+**Handler vs. skill.** A **handler** is platform code from a registry (`GET /v1/handlers`): `url.scrape`, `text.generate`, `entity.create`. A **skill** is your configured _use_ of one inside a flow. Handlers have a catalog; skills have a flow.
 
 **Flow.** A named group of skills with its own typed signature — input slots, output slots, and a binding that says which skill's output feeds each output slot. Execution order is derived from slot edges; there is no position field.
 
@@ -28,7 +28,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Dynamic endpoint vs. coded route.** A **coded route** is a `/v1/...` path the platform itself serves (`GET /v1/coded-routes`, with a key, lists them). A **dynamic endpoint** is one you author for your product, served on the project's host and backed by a flow. A coded route always wins a path collision, and its first path word is reserved whole: an endpoint under it is served only as far as that route group is (`kipory-expose`).
 
-**Plane.** The design plane is where you author (api host). The dynamic, or project, plane is where your product's users are served (project host). The credit balance is a project-plane read.
+**Plane.** The design plane is where you author (api host). The dynamic, or project, plane is where your product's users are served (project host). The credit balance is a project-plane read. Each project's address on that plane is its `baseUrl` (`references/conventions.md`).
 
 **Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of one unrelated read-only call: `POST /v1/steps/preview` — one model call against a prompt template, not a flow run.
 
@@ -38,8 +38,8 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Contract suite vs. scorer.** A flow's stored checks are **eval suites**. A suite with no scorer flows is a **contract suite** and asks "does this still work" — stored inputs and pass/fail assertions, and every run says whether its `contract` held. **Scorer flows** on a suite ask "is this any good" — each case scored by a flow, a billed model call. There is no separate test-case resource.
 
-**Secret.** A vendor credential in the node-scoped vault, resolved nearest-wins up the ancestor chain, never read back. Model calls do not use it.
+**Secret.** A credential in the node-scoped vault, resolved nearest-wins up the ancestor chain, never read back: a vendor key a handler reads, a request credential (`http_credential`) that a `url.fetch`, `url.fetch-as-file` or `url.send` step names in `secret`, or a sign-in client. Generation, embedding and transcription never use it; reranking (`text.rerank`) and `text.decide` do (`kipory-secrets`).
 
 **Managed email address.** A sending identity attached to a node that the outbound mail step sends _as_. Not a mailbox the platform creates.
 
-**Version.** Usually the optimistic-lock counter a PATCH must echo. On an embedding profile it is the lock too — the geometry number is `generation`. On a record it is a database-owned counter with no PATCH. On the bootstrap it is a decimal string to compare as a big integer. On the handler catalog and the capability packs it is a content hash.
+**Version.** Usually the optimistic-lock counter a PATCH must echo. On an embedding profile it is the lock too — the geometry number is `generation`. On a record it is the lock `PATCH /v1/records/{id}` presents; a run's write moves it too. On a document apply it is the project's. On the bootstrap it is a decimal string to compare as a big integer. On the handler catalog and the capability packs it is a content hash.

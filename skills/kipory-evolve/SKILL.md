@@ -1,6 +1,6 @@
 ---
 name: kipory-evolve
-description: Change a Kipory project that is already live — rename or re-shape a record type that holds records, remove a flow, facet, term or relation kind something else depends on, rehearse a many-row change as one planned document, and roll an edit back when it goes wrong. Use whenever the project is not empty: before any delete, before changing a type's shape or its `uses` (what it indexes for search), when a delete is refused and the message names dependents, when an edit has to be undone, or when a change has to be rehearsed before it is committed.
+description: Change a Kipory project that already holds records or serves callers, without breaking it — rename or re-shape a record type, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, facet, term, relation kind or record type that something depends on, and undo a change. Use before any delete, rename or shape change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary step edit (kipory-build, kipory-model).
 license: MIT
 ---
 
@@ -39,27 +39,20 @@ reach for when the change touches more than a handful of rows.
 
 ## Rehearse first
 
-| Route                                                     | Answers                                                                                                                                                             |
-| --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /v1/bootstrap?project={nodeId}`                      | what the project holds, before you touch any of it — then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                                  |
-| `GET /v1/projects/{nodeId}/connections`                   | what starts each element, what it writes, reads, tags, calls and announces, and what points at it — computed from the configuration, so current after every write   |
-| `DELETE /v1/projects/{nodeId}` + `validateOnly`           | what retiring the whole project would take with it                                                                                                                  |
-| `DELETE /v1/facets/{id}` + `validateOnly`                 | whether a facet delete would be allowed, and what it reaches                                                                                                        |
-| `DELETE /v1/record-types/{id}` + `validateOnly`           | whether a record-type delete would be allowed, and `derived.dependents`: the records that refuse it, the relation kinds and joins it would change                   |
-| `DELETE /v1/relation-kinds/{id}` + `validateOnly`         | the edges the delete would take, as `edges-deleted` under `consequences`                                                                                            |
-| `PATCH /v1/relation-kinds/{id}` + `validateOnly`          | whether a link edit would stand — the link rules over every declaration of the kind                                                                                 |
-| `DELETE /v1/relation-kind-pairings/{id}` + `validateOnly` | whether removing one pair would be refused — live links on it, the kind's last pair, a declaration it would break                                                   |
-| `DELETE /v1/flows/{id}` + `validateOnly`                  | whether a flow delete would be refused, and `derived.dependents`: everything that holds the flow — endpoints, schedules, triggers, record types, resolvers, callers |
-| `DELETE /v1/api-endpoints/{id}` + `validateOnly`          | the verdict on removing an endpoint — nothing refuses it, and its path stops answering at once                                                                      |
-| `DELETE /v1/schedules/{id}` + `validateOnly`              | the verdict on removing a schedule and its run history — to stop it but keep it, disable it                                                                         |
-| `PATCH /v1/schema-entries/{id}` + `validateOnly`          | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                       |
-| `PATCH /v1/record-types/{id}` + `validateOnly`            | what a `uses`, shape (`dataEntryId`, own `definition`), binding or key change derives to — `derived.contract`, `derived.naturalKey`, reindex, restamp               |
-| `PATCH /v1/steps/{id}` + `validateOnly`                   | a slot rename's `derived.rename`, the patched config's `derived.draft`, and — with `enabled: false` — `derived.switchOff`: the steps that would stop with it        |
-| `POST /v1/steps` + `validateOnly`                         | whether an unsaved step is valid — it executes nothing                                                                                                              |
-| `GET /v1/flows/{id}/health`                               | whether the flow is whole after the edit                                                                                                                            |
-| `POST /v1/flow-checkpoints/{id}/restore` + `validateOnly` | what restoring would change back — the restore rehearsed: its own refusals, and `derived.restore` with both step lists and the signature changes                    |
-| `GET /v1/eval-suites/{id}/readiness`                      | whether the suite can still judge the thing you changed                                                                                                             |
-| `POST /v1/projects/{nodeId}/document/plan`                | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing               |
+Every rehearsal, route by route, with what each answers, is the first table of
+`references/change-order.md`. The short form:
+
+| To learn                                  | Ask                                                                                                                                                                |
+| ----------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| what the project holds                    | `GET /v1/bootstrap?project={nodeId}`, then `GET /v1/record-types/{id}` for each type's `hasRecords` / `recordCount`                                                |
+| what points at an element                 | `GET /v1/projects/{nodeId}/connections` — computed from the configuration, so current after every write                                                            |
+| whether a delete would be refused         | the same `DELETE` with `?validateOnly=true` — every design-row delete has one, and its reference lists it; a record, file, edge or secret delete has none          |
+| what a patch would derive, break or queue | the same `PATCH` with `validateOnly: true` — flows, steps, schema entries, record types, relation kinds, and every other design row whose reference lists the flag |
+| what a checkpoint restore would undo      | `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`                                                                                                 |
+| what a whole change would do              | `POST /v1/projects/{nodeId}/document/plan` — every refusal, every cascade, and what it does to stored records, without writing                                     |
+
+After the edit, `GET /v1/flows/{id}/health` says whether the flow is whole and
+`GET /v1/eval-suites/{id}/readiness` whether a suite can still judge it.
 
 ⚠️ **`POST /v1/flows/{id}/preview` is not one of these.** It runs the flow for real and **applies
 its writes** unless you pass `apply: false`, it bills the payer, and it needs ADMIN. It is a test
@@ -69,7 +62,8 @@ run, not a rehearsal. `kipory-build` covers it.
 
 Export the project (`GET /v1/projects/{nodeId}/document`), edit the file, plan it (the body is the
 document itself), apply it as `{ version, document }` with the version the export or the plan
-answered — the project's current one. The plan is the apply rolled back, so it answers the same refusals a
+answered — the project's current one. `kipory-build` owns that loop and the document's format. What
+matters here is that the plan is the apply rolled back, so it answers the same refusals a
 row-by-row change would meet, in one read, and three things a row write never tells you:
 
 - **`consequences`** — how many stored records the change re-stamps or re-indexes, and
@@ -88,137 +82,46 @@ row-by-row change would meet, in one read, and three things a row write never te
   the rows before the refused one either. A document that changes nothing answers `applied: true`
   and moves no version.
 
-A cascade is reported whether or not your document names the row: delete a record type inside a
-full export that still states the relation kind pairing it, and that kind is in `changes` on its
-own path as a `delete` with `because: "cascade"`, not as `unchanged`. A delete row holds `delete`
-and optionally `id`, nothing else — turning an exported row into a delete by adding `delete: true`
-is refused `DOCUMENT_DELETE_WITH_FIELDS` on that row, and the plan stops at that finding with
-nothing else judged, so replace the whole row. A plan's `changes` are not the apply's
-write order, and the ids a plan shows for creates are from its rolled-back attempt; the apply mints
-its own. A flow row whose only change is its `outputBinding` has been reported `unchanged` beside an
-`update` on its step row, while the apply did change the binding — read the apply's returned
-`document`, not the row kind, to confirm a binding moved.
-
 Removal is explicit (`delete: true`, or `prune: true` on a map) and needs ADMIN; absence never
-deletes. The record-type pins still hold inside a document: a type with records, or one a step's
-configuration names, refuses a rename (a change of its `key`),
-a re-pointed shape and an ownership change exactly as its own PATCH does, and the finding lands
-on the row's path in your document. `kipory-build` has the loop; the pack it points to has the
-rest.
+deletes. How to write a delete row, and what a plan's `changes` do and do not promise, is
+`references/change-order.md`, "Removing through a document".
 
 ## The order of operations
 
-Work outside-in when adding, inside-out when removing.
+Work outside-in when adding, inside-out when removing, and classify the change before either:
+the class decides the sequence, and every sequence is written out once, in
+`references/change-order.md`.
 
-**Adding** — the dependency has to exist before the thing that names it: schema entry → flow →
-record type (it names its processing flow in `flowId`) → endpoint → schedule. Anything else is a
-save refused for naming something absent — or bind the type's flow later with a PATCH.
-
-**Removing** — reverse it. A flow delete is refused (`409 FLOW_HAS_DEPENDENTS`) while anything
-names it: an endpoint, a schedule — **disabled ones too; delete it or re-point it with
-`PATCH /v1/schedules/{id} { flowId, version }`** — a trigger, a record type bound to it (`flowId`), a facet
-resolver, or another flow's `flow.invoke`. So: unbind the record type (`flowId: null`) or delete it,
-delete the endpoints and triggers, delete or re-point the schedules, re-point resolvers and
-invoking flows, then delete the flow.
-Delete the leaf, then what it hung from.
-
-**Changing a shape under live records** is neither. Where the shape is edited depends on who owns
-it:
-
-- **A shape the type owns** — stated inline when the type was made, as a document's
-  `records.<key>.shape` does — is edited on the type: `PATCH /v1/record-types/{id}` with
-  `definition`, or the same inline `shape` in a document. `PATCH /v1/schema-entries/{id}` refuses it
-  `SCHEMA_ENTRY_OWNED`.
-- **A shared schema entry** — one the type points at with `dataEntryId` — is edited on
-  `PATCH /v1/schema-entries/{id}`, or under `schema` in a document. The record-type PATCH refuses a
-  `definition` for it `RECORD_TYPE_SHAPE_SHARED`.
-
-While a flow that reads the shape is frozen into a published contract — an endpoint in front of it,
-or a record type whose processing flow (`flowId`) it is — the edit answers `409
-SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, its message naming those holders (`details` only counts
-them by kind), unless it carries `adoptSnapshots: true`. The schema-entry PATCH and a document take
-that flag; **the record-type PATCH does not** — it is an unrecognised key there, whatever the 409's
-message says. So an owned shape behind an endpoint or a processing flow is edited, and rehearsed,
-through a document, with the flag inside the inline shape:
-`"records": { "contact": { "shape": { "definition": { … }, "adoptSnapshots": true } } }`.
-Schedules and triggers freeze nothing, so the 409 neither names nor waits for them. The
-edit's `validateOnly` rehearsal judges their stored `inputs` against the new shape (see step 3): a
-value its slot's type now refuses is `SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED` in
-`leavesBehind`. The PATCH itself does not refuse on them; a schedule or trigger write that sends
-such a value is refused with the same code. Removing a field is refused once
-the type has records. It is three steps, in this order:
-
-1. **Rehearse.** The record-type PATCH with `validateOnly: true` and the drafted `definition` (a
-   shape the type owns) or the proposed `dataEntryId` answers `derived.contract`, the vocabulary it
-   would give the type; for a shared entry, the schema-entry PATCH with `validateOnly: true` (and
-   `adoptSnapshots: true`) for whether the edit is allowed and what it does to stored data — it
-   rehearses the edit and answers `records-invalid` under `consequences`, and the flows, schedules
-   and triggers it would break under `leavesBehind`, as a document plan does. For an owned shape
-   behind a published contract the document plan is that rehearsal.
-2. **Widen, never narrow, in the first write.** Add the new field as optional. Existing records stay
-   valid, and nothing has to be backfilled before the change lands.
-3. **Backfill, patch the fixed inputs, then narrow.** Populate the field on existing records
-   (`references/change-order.md` has the loop), add it to the `inputs` of every schedule and
-   trigger that feeds the shape, and only then make it required. The narrowing write's rehearsal
-   (or plan) names each one still left unable to fire (`SCHEDULE_INPUT_MISTYPED` /
-   `TRIGGER_INPUT_MISTYPED`) and answers `ok: false` while any remains.
-
-Narrowing first is what turns a change into an outage: every record that lacks the field becomes
-invalid at once, and there is no partial state to recover from.
+| The change                                                   | The rule                                                                                                                                             |
+| ------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Adding**                                                   | the dependency exists before the thing that names it: schema entry → flow → record type → endpoint → schedule                                        |
+| **Removing**                                                 | the reverse: delete the leaf, then what it hung from. A flow delete is `409 FLOW_HAS_DEPENDENTS` while anything names it, a disabled schedule too    |
+| **Changing a shape under live records**                      | four steps: widen (add the field as optional), backfill, patch the fixed inputs of schedules and triggers, then narrow. Narrowing first is an outage |
+| **Editing the processing flow of a type that holds records** | the edit saves and stored records keep what the old steps wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing      |
+| **Renaming a step's output slot**                            | rehearse, then one document carrying the step, its readers and the flow's `outputBinding`                                                            |
+| **Changing a flow's own input or output slots**              | a change to the product's API: `409` until `adoptSnapshots: true`                                                                                    |
 
 ## What refuses, and what cascades instead
 
 Some destructive changes are refused outright:
 
-- **A record type with records cannot be deleted.** The refusal names the count. Delete the records
-  first, or leave the type alone. The rule is `RECORD_TYPE_PINNED_BY_RECORDS` everywhere: the
-  finding's `code` on the `validateOnly` verdict and in a plan, and `details.reason` on the real
-  409 (whose `code` stays `CONFLICT`). Any refusal that names a rule does the same.
-- **Reserved and seeded record types cannot be deleted**, whatever they hold.
-- **A flow something still references cannot be deleted** — the refusal counts what references it, by kind (`details` on the 409, `derived.dependents.kinds` on the dry run), without naming the rows; `GET /v1/projects/{nodeId}/connections` names them.
-- **A step whose output later steps read cannot be deleted** — the refusal counts the dependents and
-  names the slots they read.
-- **A seeded vocabulary is repaired, not rewritten.** A term's key never changes. Two terms that mean the same: merge the one you do not want into the other (below) — its records move and it stays as an alias, so the old word still resolves. A term that should not exist: archive it, and nothing new is assigned to it. Candidates a supervised facet coined are the same rows with `status: candidate`: admit one with `status: active`, merge its twins into it, archive the rest. A merge has no undo.
-- **A term assigned to records cannot be deleted** (`TERM_DELETE_HAS_ASSIGNMENTS`) — archive it
-  instead (`PATCH /v1/terms/{id}` with `status: archived` and the term's `version`). Nor can a term that is the parent of
-  others or the canonical of aliases. `POST /v1/terms/{id}/merge` is the way to retire a term
-  records carry: it moves every assignment onto the target in the same write and leaves the source
-  an alias (`aliasOfId`) carrying none, which a delete then accepts. It refuses a merge into the term itself, a target in another facet, an
-  archived target, a target that is already an alias, a source that other terms alias, and a
-  source and target under different parents.
-- **A facet delete needs `confirm=true`**, and `assignedTerms=delete|archive` once any of its
-  terms is assigned; without them it is a 409. Ask it with `validateOnly=true` first.
-- **Built-in event types cannot be deleted**, and a document never writes one: a type in a source provider's namespace (`telegram/…`) plans as `derived`.
-- **A relation kind cannot be left with no pairings**, so the last one cannot be deleted.
+- deleting a record type that holds records (`RECORD_TYPE_PINNED_BY_RECORDS`), or renaming it, or
+  removing a field from its shape; deleting a reserved or seeded type, whatever it holds;
+- deleting a flow something still references, or a step whose output later steps read;
+- deleting a term that is assigned, is a parent, or is the canonical of aliases;
+- deleting a facet without `confirm=true`, or while another facet nests under it;
+- deleting a built-in event type, or a relation kind's last pairing.
 
 Others do not refuse. They cascade, and the response tells you what else moved:
 
-- **Deleting a record type** reports `deletedRelationKinds` — links that applied only to that pair —
-  and `invalidatedJoins`, the other types whose join declarations this voided. You asked to remove
-  one thing and something else changed.
-- **Changing what a type indexes for search** — the `search` uses in its `uses`, from which
-  `searchable` is derived — queues a reindex, and when what the search indexes moved, a re-embed
-  of every stored record, which bills. A plan's `consequences` tell the two apart: `reindex`
-  (may redo nothing, or rewrite payloads only) versus `reembed`.
-- **Saving the facet list queues a rewrite of every existing record of the type.**
-- **A slot rename cascades only when you confirm it — and never into the flow's outputs.**
-  `PATCH /v1/steps/{id}` with `confirmedOutputSlotRenames: [{ flowId, oldSlotName, newSlotName }]`
-  rewrites every sibling step that reads the old name, in the same transaction; without it the
-  readers are left dangling. The flow's `outputBinding` is NOT rewritten and `derived.rename` does
-  not list it: the save lands with `OUTPUT_BINDING_DANGLING_SLOT` as an error in its
-  `outstandingIssues`. The `validateOnly` rehearsal says so beforehand by answering `ok: false`: an
-  error the edit introduces — this one, or `INPUT_STREAM_DANGLING_SLOT` for a reader left on the old
-  name — is in `diagnostics` and in `leavesBehind` with `introduced: true`. That verdict is the
-  expected one when the binding is re-pointed in a following write. The endpoint in front then refuses every call:
-  a required output left unproduced answers `422 FLOW_OUTPUT_MISSING`, and the run's writes are
-  discarded. Health names the dangling binding before any call does. On a
-  live endpoint, do the rename as **one document apply** that carries the step's new
-  `outputSlot`, every reader rewritten to the new name and the flow's re-pointed `outputBinding`:
-  one transaction, no window where the endpoint is refused. A document does not cascade a rename —
-  it writes each step as stated — so take the readers from the step PATCH's `validateOnly`
-  `derived.rename` and restate each one (its prompt, config or `inputStreams`). Row by row it is two writes — the confirmed skill PATCH, then
-  `PATCH /v1/flows/{id}` with the new `fromSlot` — then health. A record type is different: once
-  it has records, a rename is refused outright.
+- deleting a record type takes relation kinds and voids other types' joins;
+- changing a type's `search` uses queues a reindex or a billed re-embed, and its `filter` uses a
+  rewrite of every record's filter columns;
+- a slot rename rewrites its readers only when you confirm it, and never the flow's outputs;
+- editing a processing flow re-runs nothing.
+
+What each refusal carries, the way round where one exists, and what each cascade reports are in
+`references/change-order.md`, "Reading a refusal" and "Reading a cascade".
 
 The pattern is worth internalising: a refusal protects you, a cascade informs you, and the second
 one is the one that costs money while you are not looking.
@@ -285,17 +188,17 @@ at all:
   the same transaction: every client of that endpoint sees the new response keys at once. Treat it
   as an API change to the product's callers, not an internal edit (`kipory-expose`). A change to
   `outputBinding` alone is not a signature change.
-- **Never send `validateOnly` to a delete whose route reference does not list it.** The current
-  platform refuses the flag on such a delete — query or body — with a `422`; an older deployment
-  ignored a body flag and deleted. A delete route either names its rehearsal or has none.
+- **Never send `validateOnly` to a delete whose route reference does not list it.** Such a delete
+  has no rehearsal: the flag — query or body — answers `422`, and a deployment older than these
+  files may ignore it and delete. A delete route either names its rehearsal or has none.
 - **A flow PATCH carries the flow's `version`.** `PATCH /v1/flows/{id}` without it is a `422`, and
   a stale one a `409 VERSION_CONFLICT` — a checkpoint restore and a document apply move it too (a
   restore names the flow's new `version` in its `touched`), so re-read the flow after either. A signature PATCH may state one side alone; the other is kept.
 - **A `502` from a sync endpoint wrote nothing; a `200` with an empty output did.** A failed step
   discards every write the run staged, so a retry on a 5xx does not write twice (it is charged
-  again). A `200` applied its writes even when its output came back empty (see the slot rename
-  above), and a client that retries it writes twice unless the write is idempotent — send an
-  `Idempotency-Key`, or give the type a natural key.
+  again). A `200` applied its writes even when its output came back empty, and a client that
+  retries it writes twice unless the write is idempotent — give the type a natural key, or send an
+  `Idempotency-Key` (`kipory-expose`'s `references/consumer.md` says what it guarantees).
 - **An `entity.create` pointed at the wrong type is caught only when a declared field misfits.**
   Switching its `recordType` saves. Health and a document plan warn `ENTITY_CREATE_DATA_MISMATCH`,
   and the run fails the step naming each field — the check `POST /v1/records` makes — when the
@@ -311,19 +214,33 @@ at all:
   that failure is correct. Re-baseline them on purpose (`kipory-prove`) rather than deleting the ones
   that went red — a suite deleted because it was inconvenient is the one that would have caught the
   next change.
-- **Deleting a project is rehearsable and then final.** Ask `DELETE /v1/projects/{nodeId}?validateOnly=true`
-  first; a retire can be restored until `purgeAfter`, but there is no checkpoint for it.
+- **A project's retire is rehearsable and undoable; a purge is final.** Ask
+  `DELETE /v1/projects/{nodeId}?validateOnly=true` first; the real call carries `{ confirmSlug }`,
+  the project's slug. A retire holds every key granted at the project: they answer `401` from that
+  moment, so a key granted at the project cannot undo its own retire. A person, or a key granted at
+  the organisation, restores it until `purgeAfter` with `POST /v1/projects/{nodeId}/restore` — its
+  keys, schedules and sources come back as they were — and
+  `POST /v1/projects/{nodeId}/purge { confirmSlug, confirmForce }` destroys it before then. All
+  three are ADMIN. There is no checkpoint for a project.
+- **Moving a project's address moves every client.** `PUT /v1/projects/{nodeId}/address { subdomain }`
+  (ADMIN) changes `baseUrl` and every endpoint's `invokeUrl`. The old address does not redirect: it
+  stops answering within a few minutes, and for those minutes nobody else can claim it. Ask `GET /v1/projects/address-availability?candidate=&project=` first. The slug never
+  changes.
+- **What was applied is a read, not a way back.** `GET /v1/projects/{nodeId}/history` lists the applied
+  changes to the configuration, newest first, one action per entry, and
+  `GET /v1/projects/{nodeId}/history/{structureVersion}` is one action with every row it changed. To
+  keep a flow as it is and restore it later, take a checkpoint first.
 
 ## References
 
-| File                         | What it answers                                                      |
-| ---------------------------- | -------------------------------------------------------------------- |
-| `references/change-order.md` | a change request → the order to work in, the rehearsal, what refuses |
+| File                         | What it answers                                                                                                                                                                                                                                                                                                                                                                       |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/change-order.md` | every rehearsal route and what it answers; a change request → its class, then the full sequence for each: additive, narrowing a shape (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, renaming a slot, retiring a term, removing through a document; what each refusal carries and the way round it; what each cascade reports |
 
 ## Then
 
-`kipory-model` for the record type, facet, term or relation kind itself, and for what each delete
-reports. `kipory-build` for checkpoints, flow health and the step-level dependents report.
+`kipory-model` for the record type, facet, term or relation kind itself; what each delete reports
+is on that skill's `references/api/` pages. `kipory-build` for checkpoints, flow health and the step-level dependents report.
 `kipory-expose` when the change reaches an endpoint's contract. `kipory-prove` to re-baseline what a
-deliberate change made red. `kipory-data` for the backfill, and for deleting records before a type
-can go. `kipory-diagnose` when the change landed and something downstream started answering wrongly.
+deliberate change made red. `kipory-data` for the backfill, for reprocessing stored records after
+their flow changed, and for deleting records before a type can go. `kipory-diagnose` when the change landed and something downstream started answering wrongly.

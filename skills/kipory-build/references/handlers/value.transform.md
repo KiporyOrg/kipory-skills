@@ -20,8 +20,6 @@ Reshape or combine values with a short expression.
 
 A JSONata expression runs against the slots. The variants zip two lists, build an object from several slots, and add fields to an existing one.
 
-Reads: read referenced slots. Emits: evaluate expression.
-
 #### Pair up lists
 
 Reads `mixed` → emits `object` · 1 in → 1 out

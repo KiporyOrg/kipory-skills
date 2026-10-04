@@ -11,12 +11,18 @@
 ## Read this first
 
 Every design row is addressed by its `key` within its project, and a reference names what it holds
-by its suffix — `<kind>Key` for a key, `<kind>Id` for a row id. Two kinds of reference carry an **id**: a **flow** (an
-endpoint's action, a trigger's or schedule's target, a facet's resolver, an eval suite's subject and
-scorers, and the target of a `flow.invoke` step) and a **schema entry** (a record type's shape, an
-event type's payload, a relation kind's properties, a config namespace's shape, and a schema
-reference inside a step). An id exists only after its row is created, so those two are the
-references that force an order.
+by its suffix — `<kind>Key` for a key, `<kind>Id` for a row id. Five kinds of reference carry an
+**id**:
+
+- a **flow** — an endpoint's action, a trigger's or schedule's target, a facet's resolver, an eval
+  suite's subject and scorers, the target of a `flow.invoke` step, a record type's processing flow;
+- a **schema entry** — a record type's shape, an event type's payload, a relation kind's
+  properties, a config namespace's shape, a schema reference inside a step;
+- a **source** — a trigger's `sourceId`;
+- an **eval suite** — a case's `suiteId`;
+- an **embedding profile** — a record type's `search` use, as `profileId`.
+
+An id exists only after its row is created, so those are the references that force an order.
 
 Two more facts shape the order and are easy to miss:
 
@@ -36,6 +42,7 @@ Two more facts shape the order and are easy to miss:
 | a record type                     | its shape: a schema entry (`POST /v1/schema-entries`)                             | the create takes `dataEntryId`; a shape cannot be declared inline on the row API         |
 | a record type with `uses.facets`  | every facet it names (`POST /v1/facets`)                                          | refused with `USES_FACET_UNKNOWN`                                                        |
 | a record type with a `link` use   | the relation kind it names — see the cycle below                                  | refused with `USES_RELATION_UNKNOWN`                                                     |
+| a record type with a `search` use | its embedding profile (`POST /v1/embedding-profiles`)                             | the use carries `profileId`                                                              |
 | a record type bound to a flow     | the flow (`POST /v1/flows`)                                                       | the binding carries `flowId`                                                             |
 | a relation kind                   | every record type its `pairings` name (`POST /v1/record-types`)                   | the pairings are seeded in the create's transaction; a type they name must exist         |
 | a relation kind with `properties` | the schema entry for edge properties                                              | the create takes `propertiesEntryId`; refused with `SCHEMA_ENTRY_NOT_FOUND`              |

@@ -20,8 +20,6 @@ Delete one or more records.
 
 Deletes records by id and says whether anything went.
 
-Reads: record ids. Emits: removed anything?.
-
 #### Someone else's record
 
 One id belongs to another user, so two records go and the third is untouched.

@@ -50,8 +50,8 @@ Why it is written this way:
 - **`valid` and `rejected` are wrapped in `[ … ]`.** JSONata returns a one-item sequence as the bare
   item; without the brackets a file with exactly one valid row yields an object, and a list-typed
   `outputSchema` fails the step at run time.
-- **It nests iteration two deep and no deeper** — the limit an expression is allowed. Adding a loop
-  inside `$why`'s `$filter` is refused at save.
+- **It nests iteration two deep and no deeper** — the limit an expression is allowed. A third level —
+  a loop inside the per-cell `$map` — is refused at save.
 - **`$split` on a comma does not understand quoting.** A cell holding a comma inside quotes is cut
   in two. For such files, change the delimiter the export uses, or pre-process the file before
   upload; there is no CSV-aware function.
@@ -76,7 +76,7 @@ row shape only when the items are a named entry — an inline `items` object is 
   discarded, the first row with it. Reject the repeat in the parse, as `$why` does.
 - **A changed row on re-import.** The same file again converges on the same records. A row whose
   key a record already holds but whose data differs is that same 409. To update on re-import, look
-  the key up first and branch (`kipory-build`'s `patterns.md` §8), or send the rows as
+  the key up first and branch (`kipory-build`'s `references/records-and-endpoints.md`), or send the rows as
   `POST /v1/records/bulk` with `onKeyTaken: "update"`.
 - **More rows than the fan-out takes.** `maxItems` defaults to 20 and its ceiling is 100 unless the
   deployment raised it. Rows past it start no branch (a preview names the cut in `fanOutCaps`);

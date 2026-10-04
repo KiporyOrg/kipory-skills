@@ -17,13 +17,11 @@ Read the stored meaning numbers for an item.
 | `collection` | string | yes | — | Target collection to read the point from. The collection must exist; a missing one surfaces as VECTOR_FETCH_QDRANT_ERROR. |
 | `pointIdSlot` | string | yes | — | The slot holding the point id to read. Usually the output of a step that derives it from a record id. |
 | `requiredVectorNames` | string[] | no | `[]` | Which of the names above must be there. A missing one fails the step instead of returning a half-empty result. |
-| `vectorNames` | string[] | yes | — | Which stored vectors to read back. A name the point does not carry is simply left out of the result. |
+| `vectorNames` | string[], at least 1 item | yes | — | Which stored vectors to read back. A name the point does not carry is simply left out of the result. |
 
 ## Worked example
 
 Reads the stored vectors for one point back out of the vector store.
-
-Reads: the point id. Emits: vectors by name.
 
 #### Both found
 

@@ -11,20 +11,18 @@ Read a text file and return what it says.
 - **Emits:** The file's contents as text. A file over the size cap fails before decoding — nothing is ever silently cut short. Empty when there is no file.
 - **Suggested input streams:** `currentFile`
 - **External dependency:** S3 / MinIO — Downloads the object's bytes from the store. S3-compatible rather than S3: the deployment runs MinIO on its own box.
-- **Rate limit:** 240 per 60000ms in bucket `file.read-text`
-- **Queue:** 3 attempts, exponential from 500ms; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 240 per min in bucket `file.read-text`
+- **Queue:** 3 attempts, exponential from 500 ms; waits up to 1 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxBytes` | integer | no | `5000000` | How large a file may be. A bigger one fails rather than being cut short. |
+| `maxBytes` | integer, more than 0 | no | `5000000` | How large a file may be. A bigger one fails rather than being cut short. |
 
 ## Worked example
 
 A text file's bytes come back as text. The type is checked first, so a binary file fails instead of decoding into nonsense.
-
-Reads: download from S3. Emits: UTF-8 decode.
 
 #### A CSV file
 

@@ -9,7 +9,7 @@ Two ways to author it, same result:
 
 ## Hosts and roles
 
-Everything except the last call goes to the **api host** (the base URL you were given) with `Authorization: Bearer <key>`. The product call goes to the **project host**, whose URL the endpoint read hands you as `invokeUrl`.
+Everything except the last call goes to the **api host** (the base URL you were given) with `Authorization: Bearer <key>`. The product call goes to the **project host**: the endpoint read hands you the full URL as `invokeUrl`, and before any endpoint exists the project's `baseUrl` names the host (`kipory-connect`'s `references/conventions.md`).
 
 | Step | Call                                       | Host    | Role                                           |
 | ---- | ------------------------------------------ | ------- | ---------------------------------------------- |
@@ -23,7 +23,7 @@ Everything except the last call goes to the **api host** (the base URL you were 
 | 8    | `POST /v1/projects/{nodeId}/document/plan` | api     | VIEWER                                         |
 | 8    | `POST /v1/projects/{nodeId}/document`      | api     | EDITOR (ADMIN if it removes anything)          |
 
-`<nodeId>` is the project's id — the one `POST /v1/projects` answered (`kipory-connect`).
+`<nodeId>` is the project's id — the one `GET /v1/grant` lists for your key, or `POST /v1/projects` answered (`kipory-connect`).
 
 ## 1. Create the flow with its signature
 
@@ -136,7 +136,7 @@ The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlo
 }
 ```
 
-The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`kipory-build`'s SKILL.md lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search handlers type their own output: leave `outputSchema` out and the new step takes that type, or state the same type yourself. On `POST /v1/steps` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `entity.create` → `RecordCreate` (with `recordId`), `entity.read` → a list of `RecordRead`, `entity.list` → `RecordPage`, `vector.search` → a list of the hit its `hitShape` names (`RecordHit` for `record`). `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
+The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`step-fields.md` §2 lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search handlers type their own output: leave `outputSchema` out and the new step takes that type, or state the same type yourself. On `POST /v1/steps` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `entity.create` → `RecordCreate` (with `recordId`), `entity.read` → a list of `RecordRead`, `entity.list` → `RecordPage`, `vector.search` → a list of the hit its `hitShape` names (`RecordHit` for `record`). `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
 
 ## 4. Check the whole flow
 
@@ -189,8 +189,8 @@ POST /v1/flows/{id}/preview
 - `input.kind: "slots"` supplies values keyed by the flow's input slot names; an unknown key or a missing required slot is refused before the run. The other arm, `kind: "record"` with `recordId`, seeds from a stored record of a type this flow processes.
 - `apply` defaults to `true`. This flow writes nothing, so `false` changes nothing here — send it anyway; it is the habit that saves you on a flow that does write.
 - `flowOutput` is the declared outputs exactly as the run produced them, with nothing filled in. `missingRequiredOutput` non-null means the flow never produced that slot; a live call is then refused `422 FLOW_OUTPUT_MISSING` and writes nothing, and this preview discarded its writes too, reporting it as an `errors` entry with `skillId: "__runner__"` and `phase: "output-missing"`. That entry is the refusal, not its cause. Read the other `errors` first: a step that failed — a model provider out of quota, a refused config — leaves the output unfed just as a missing binding does, and `errors[].message` says which. Only when that entry is the only one is step 3 the cause.
-- **A provider out of quota** reads `… provider account exhausted (quota/billing)` in `errors[].message`. It is the provider's account, not your flow: bind the task to a model from another creator and preview again — `GET /v1/ai-models?type=chat` for one — every row listed is served (a disabled model is absent, not flagged); take one whose `status` is `active` rather than `deprecated`, whose `modelId` prefix (the creator) differs, and whose `offers[].provider` is not the exhausted account — then `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` with `{task}` = `summarization` (ADMIN, on the project node). `GET /v1/nodes/{nodeId}/task-models` (at the project's id) then shows `boundHere: true` for that task. `source: node` alone does not say that: it is also what a binding on an ancestor — the organization — reads before you bind anything. `kipory-build`'s SKILL.md says why this beats pinning `modelId`, and what the routing policy's `failover` does and does not do.
-- The preview's own response is its whole record. `previewSessionId` reads the change set (`GET /v1/runs/{runId}/change-set`) and nothing else: an inline preview writes no step log and no trace.
+- **A provider out of quota** reads `… provider account exhausted (quota/billing)` in `errors[].message`. It is the provider's account, not your flow: bind the task (`summarization` here) to a model from another creator and preview again. `models.md` §5 has the three calls, why that beats pinning `modelId`, and what a routing policy's `failover` does and does not do.
+- The synchronous preview's response is its whole record. `transcript` carries each step's outcome and timing, not what it wrote; `previewSessionId` reads the change set (`GET /v1/runs/{runId}/change-set`) and nothing else, because an inline preview writes no step log and no trace. To see every slot's value, queue the same body with `POST /v1/flows/{id}/preview-runs` (`202 { runId }`) and read `GET /v1/runs/{runId}/trace` (`checking.md` §3).
 
 ## 6. Put it on HTTP
 
@@ -232,7 +232,7 @@ POST /v1/api-endpoints
 - `flow` is `{ id }` only. The server fills the flow's `key` and the signature snapshot; sending either is a 422.
 - `inputs.text.from: "body"` means the request-body field named `text` — the slot's name, no rename. Every required input slot must be bound. `execution` has no default.
 - `access` is derived, never set. A sync `flow.invoke` on a flow whose steps only read, like this one, comes back `viewers: true`, so a VIEWER key may call it.
-- `invokeUrl` is `null` only on a deployment with no derivable public host — an api served on a bare `localhost`, for one; a local stack at `api.<name>.localhost` gets a real one. The rule reads the deployment's own configured address, not the base URL you were handed: an api you reach at `http://localhost:<port>` can still answer a working `invokeUrl`. Read the field; never infer it from the URL you call. Use it whenever it is set and never hardcode a host; when it is `null`, call the api's own port with the header `x-kipory-project-slug: <project slug>`.
+- Call the endpoint at `invokeUrl` as answered: read the field, never build the address from the URL you call. What a `null` there means is in `kipory-connect`'s `references/conventions.md`.
 
 ## 7. Call it from the product
 
@@ -331,6 +331,6 @@ POST /v1/projects/{nodeId}/document   { version, document }
 
 `200` with `applied: true`, `appliedVersion` (present it on your next apply) and `document` — the project as it now stands with every `id` filled in. `document.flows.summarise.id` is the flow id for health and preview (step 5 — preview — is still yours; step 4's health checks the plan already ran for every flow it touched, so `/health` after an apply confirms what the plan said); `document.surfaces.endpoints.summarise.id` is the endpoint to read `invokeUrl` from with `GET /v1/api-endpoints/{id}`. A refused apply answers `422` with the plan as its body; a stale `version` answers `409` with the current document under `details`. The rest of the format is `packs/project-document.md`.
 
-## How this page was checked
+## What this page does not fix
 
-Sections 1–7 were run as written, with an ADMIN key on a fresh project: every status, the step-2 warning, the health answer, the preview output, the endpoint's `access`, and the product call's body and headers. Of section 8, the document was planned against that project and a second project was created from it in one call (`POST /v1/projects` with `document`); the separate apply route was not exercised. Section 8's note on what a plan checks, and section 6's reserved-word line, were changed on 2026-09-29 to follow the platform and have not been re-run. What depends on your deployment — the model a task binds to, the project host, prices — is read from the responses, not from this page.
+What depends on your deployment — the model a task binds to, the project host, prices — is read from the responses, not from this page.

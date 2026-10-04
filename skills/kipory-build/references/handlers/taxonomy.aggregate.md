@@ -15,15 +15,13 @@ Count a user's records by term, as a list or a browsable tree.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `facets` | string[] | no | — | Which facets to include. Leave it empty for every facet the user has terms in. Any project facet is accepted. ⚠️ Under `shape: tree` this is not a filter but the ordered list of levels, outermost first. |
-| `maxEntriesPerFacet` | integer | no | `200` | Most entries per facet group, or per tree level. 200 by default, between 1 and 1000. ⚠️ Entries are sorted by count first, so when a group runs past the cap the highest-count terms are the ones that survive. |
+| `maxEntriesPerFacet` | integer, 1 to 1000 | no | `200` | Most entries per facet group, or per tree level. 200 by default, between 1 and 1000. ⚠️ Entries are sorted by count first, so when a group runs past the cap the highest-count terms are the ones that survive. |
 | `shape` | `aggregate` \| `tree` | no | `"aggregate"` | Which shape comes out: `aggregate` (the default) for a flat catalog per facet, or `tree` for a nested browse tree. ⚠️ Under `tree` the per-facet cap becomes a per-level cap — categories, then a category's types, then a type's subtypes. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Every count is scoped to that user; another user's records never contribute. ⚠️ This value is mandatory: an empty one fails the step rather than counting across users. |
 
 ## Worked example
 
 Groups a user's terms per facet and counts their records, so a step can answer what they have without reading it.
-
-Reads: read userId. Emits: term catalog or tree.
 
 #### Every facet
 

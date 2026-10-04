@@ -4,7 +4,7 @@
 
 A project's whole configuration as one name-addressed document: export it, edit it, plan it (the apply, rolled back — writes nothing, and answers every finding and every consequence for stored data), then apply it with the version the export gave you. One transaction, one version, one history entry. The format and a complete example are public reads.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -106,6 +106,44 @@ Apply a project document: every row it names is created, changed or removed thro
 | `appliedVersion` | `string` | yes | The project's structure version after the apply: one higher than `version` when anything moved, equal to it when nothing did. Present it on your next apply. |
 | `document` | `object` | yes | The project as it now stands, with every id filled in. |
 
+Each item of `changes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | Where the row stands in the document, e.g. `records.Member` or `flows.intake.skills.classify`. |
+| `kind` | `"create" \| "update" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
+| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "schema-entries" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "skills" \| "facets" \| "terms" \| "record-types" \| "relation-kinds" \| "relation-kind-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `key` | `string` | yes | The row's key. |
+| `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
+| `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `ignoredIds`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The row that carried the id. |
+| `id` | `string` | yes | The id that belongs to no row here. |
+
 ### `POST /v1/projects/{nodeId}/document/plan`
 
 What applying this document would change, row by row, and whether the result would be healthy — nothing is written. Apply it with `POST /v1/projects/{nodeId}/document`. To change one row, its own write is simpler (`PATCH /v1/flows/{id}`, `POST /v1/steps`, …), and each takes `validateOnly` for the same kind of dry run on that one row; pick this when several rows must change together and be judged as one.
@@ -131,3 +169,41 @@ _No fields._
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
+
+Each item of `changes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | Where the row stands in the document, e.g. `records.Member` or `flows.intake.skills.classify`. |
+| `kind` | `"create" \| "update" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
+| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "schema-entries" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "skills" \| "facets" \| "terms" \| "record-types" \| "relation-kinds" \| "relation-kind-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `key` | `string` | yes | The row's key. |
+| `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
+| `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `ignoredIds`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The row that carried the id. |
+| `id` | `string` | yes | The id that belongs to no row here. |

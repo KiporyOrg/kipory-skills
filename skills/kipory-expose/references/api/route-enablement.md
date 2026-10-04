@@ -4,7 +4,7 @@
 
 Per-project on/off for the platform's coded route groups — not for your own endpoints, which have no switch (delete one to stop it). A coded route in a disabled group answers 404 on the project host, while still winning the match over an endpoint that shares its path.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 

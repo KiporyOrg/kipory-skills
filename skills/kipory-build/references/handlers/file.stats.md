@@ -11,7 +11,7 @@ Read a file's size, fingerprint, and last change date.
 - **Emits:** A `FileStats` — the byte size, a content hash, and a last-modified time when the store reports one. An empty object when there was no file.
 - **Suggested input streams:** `currentFile`
 - **External dependency:** S3 / MinIO — Heads and downloads the object to size and hash it. S3-compatible rather than S3: the deployment runs MinIO on its own box.
-- **Queue:** 1 attempt, no backoff; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -20,8 +20,6 @@ _No operator-tunable config._
 ## Worked example
 
 The file is read once for its size and hash. It runs before any per-type branching, so every branch sees the same numbers.
-
-Reads: download + hash. Emits: project to FileStats.
 
 #### A photo
 

@@ -15,14 +15,12 @@ Link one record to another.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `actor` | string | yes | — | A label naming what is doing the stating, e.g. `citation-extractor`. It is recorded on every link this node writes. ⚠️ It decides what can be taken back: a retract node reaches ONLY links stated under the same label, and never one a person made by hand. |
+| `actor` | string, at most 64 characters | yes | — | A label naming what is doing the stating, e.g. `citation-extractor`. It is recorded on every link this node writes. ⚠️ It decides what can be taken back: a retract node reaches ONLY links stated under the same label, and never one a person made by hand. |
 | `kind` | string | yes | — | The link kind's KEY — the stable identifier chosen when the link was created, not its name. ⚠️ Only a kind whose links are stated by hand works here. One backed by an entity field or a join entity is refused exactly as an unknown kind is, so a refusal reveals nothing. |
 
 ## Worked example
 
 States one link between two records and reports what came of it — it stands, or it was refused.
-
-Reads: the two record ids. Emits: RelationAssertion.
 
 #### Linked
 

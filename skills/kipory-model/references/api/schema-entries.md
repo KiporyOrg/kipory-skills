@@ -4,7 +4,7 @@
 
 Reusable typed shapes a record type or a flow output refers to. Builtin and library shapes are synthesized on read and have no rows; the seed call materialises the flow-provider entries and is idempotent.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -38,6 +38,33 @@ Read a project's type registry: the platform's builtin and library types and the
 | `entries` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
 | `graph` | `object` | no | The project's type-relation graph. Present only with `expand=graph`, because building it costs the whole graph. |
 
+Each item of `entries`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `owned` | `object \| null` | yes | Set when this entry is a record type's OWN shape — declared inline under it in a project document. It is edited only through that type (a PATCH here is refused with SCHEMA_ENTRY_OWNED) and no other consumer may use it until it is promoted (POST /v1/schema-entries/{id}/promote). NULL is a shared entry, which is every entry created through this registry. Catalog entries are never owned. |
+| `id` | `string` | yes | Entry id — the stable handle references resolve by. |
+| `project` | `string` | yes | Node id of the owning project. |
+| `key` | `string` | yes | The type's key. |
+| `provenance` | `"builtin" \| "library" \| "infrastructure" \| "operator"` | yes | Which tier this type comes from. Only `operator` entries are yours to edit or delete; the rest are supplied by the platform and appear here so references resolve. |
+| `version` | `integer \| null` | yes | Optimistic-lock version, REQUIRED on a PATCH. Null on the `builtin` and `library` tiers, which are synthesized from the platform catalog and have no row — and which no PATCH accepts anyway. |
+| `definition` | `unknown` | no | The type itself, as a JSON Schema document. |
+| `description` | `string \| null` | yes | The note recorded against this type, or null. |
+| `declaredBy` | `string \| null` | yes | For a library type, the handler that declares it — e.g. `audio.metadata`. Null on every other tier: nothing else here is declared by a handler. |
+| `profileEligible` | `boolean` | yes | Whether this type can be used as the project's end-user profile. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
+| `recordTypeEligible` | `boolean` | yes | Whether this type can be used as a record type's data shape. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
+| `facetExtractable` | `boolean` | yes | Whether a `$facet` marker on one of this type's fields would be read: true when a `text.generate` step in this project answers with exactly this type, so its markers become that step's facet extraction. False when no such step does — a marker there saves and extracts nothing — and always false for tiers you did not author. Decided by the server; do not re-derive it. |
+| `usedAsProfile` | `boolean` | yes | Whether this project uses this type as its end-user profile. |
+| `usedByRecordTypes` | `string[]` | yes | Record types whose data shape is this type. |
+| `usedByEventTypes` | `string[]` | yes | Event types whose payload is this type, RETIRED ones included — deletion blocks on those too, so a list that skipped them would disagree with what delete actually does. |
+| `usedByConfigNamespaces` | `string[]` | yes | Project-config namespaces declared with this type. |
+| `usedByRelationKinds` | `string[]` | yes | Relation kinds whose edge properties this type describes. Deletion blocks on these, so a list that omitted them would disagree with what delete actually does. |
+| `usedByGraph` | `integer` | no | How many flows, steps, handlers or sibling types reference this one. ⚠️ Present ONLY with `expand=graph`; ABSENT MEANS NOT ASKED, never zero — do not read a missing count as safe to delete. Sum this with the four lists above and you have exactly what deletion refuses on. |
+| `keywordVerdicts` | `object[]` | no | What each keyword in `definition` does — one row per keyword per fragment, keyed by `pointer`. The keywords that are the definition's structure (`type`, `$ref`, `properties`, `required`, `items`, `additionalProperties`, `x-field-order`) and its labels (`title`, `description`) carry no row. A `$ref` target's keywords are that type's own rows. ⚠️ Present ONLY with `expand=keywords`; absent means not asked. |
+| `usedByGraphRefs` | `object[]` | no | What `usedByGraph` counts, one reference each — its length equals that count. DIRECT references only: a flow taking a type that `$ref`s this one is listed under that type, and that type is listed here. ⚠️ Present ONLY with `expand=graph`, like `usedByGraph`; absent means not asked, never none. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+
 ### `POST /v1/schema-entries`
 
 Create a shared type — a JSON Schema document other rows (record types, event types, config namespaces, relation kinds, flow slots) may reference. With `validateOnly: true` it answers whether the create would be refused, writing nothing, and what each keyword of the definition would do (`derived.keywordVerdicts`). A record type's OWN shape is created with it in a project document (`records.<name>.shape`, `POST /v1/projects/{nodeId}/document`), which also creates several types at once.
@@ -62,6 +89,35 @@ Create a shared type — a JSON Schema document other rows (record types, event 
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
 | `derived` | `object` | no | What the write would compute. Present whenever the dry run could read the definition, refused or not. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+Each item of `leavesBehind`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
 
 **Response `201`**
 
@@ -143,6 +199,43 @@ Update one shared type's key, description or definition. An edit that re-shapes 
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, edges a delete takes along, …). Absent when the dry run did not rehearse. |
 | `derived` | `object` | no | What the write would compute. Present whenever the dry run could read the definition, refused or not. |
 
+Each item of `touched`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `record-types`, `schema-entries`, `relation-kinds`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `id` | `string` | yes | The row's id. |
+| `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+Each item of `leavesBehind`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
+
 ### `DELETE /v1/schema-entries/{id}`
 
 Delete one shared type. Refused (409) while anything references it — a record type's shape, an event type's payload, a config namespace, a relation kind, the end-user profile, or a flow, step or type in the project's type-relation graph. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with the count of each kind of reference (`derived`). Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
@@ -170,6 +263,15 @@ Delete one shared type. Refused (409) while anything references it — a record 
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | Everything that points at this entry, counted from the same read the refusal was decided from. Every one of these at zero (and `boundAsProfile` false) is exactly when the delete is allowed. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
 ### `POST /v1/schema-entries/{id}/promote`
 
@@ -218,3 +320,30 @@ Store the platform-provided types a project's flows need (idempotent), then answ
 | --- | --- | --- | --- |
 | `entries` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
 | `graph` | `object` | no | The project's type-relation graph. Present only with `expand=graph`, because building it costs the whole graph. |
+
+Each item of `entries`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `owned` | `object \| null` | yes | Set when this entry is a record type's OWN shape — declared inline under it in a project document. It is edited only through that type (a PATCH here is refused with SCHEMA_ENTRY_OWNED) and no other consumer may use it until it is promoted (POST /v1/schema-entries/{id}/promote). NULL is a shared entry, which is every entry created through this registry. Catalog entries are never owned. |
+| `id` | `string` | yes | Entry id — the stable handle references resolve by. |
+| `project` | `string` | yes | Node id of the owning project. |
+| `key` | `string` | yes | The type's key. |
+| `provenance` | `"builtin" \| "library" \| "infrastructure" \| "operator"` | yes | Which tier this type comes from. Only `operator` entries are yours to edit or delete; the rest are supplied by the platform and appear here so references resolve. |
+| `version` | `integer \| null` | yes | Optimistic-lock version, REQUIRED on a PATCH. Null on the `builtin` and `library` tiers, which are synthesized from the platform catalog and have no row — and which no PATCH accepts anyway. |
+| `definition` | `unknown` | no | The type itself, as a JSON Schema document. |
+| `description` | `string \| null` | yes | The note recorded against this type, or null. |
+| `declaredBy` | `string \| null` | yes | For a library type, the handler that declares it — e.g. `audio.metadata`. Null on every other tier: nothing else here is declared by a handler. |
+| `profileEligible` | `boolean` | yes | Whether this type can be used as the project's end-user profile. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
+| `recordTypeEligible` | `boolean` | yes | Whether this type can be used as a record type's data shape. Decided by the server — do not re-derive it. Always false for tiers you did not author. |
+| `facetExtractable` | `boolean` | yes | Whether a `$facet` marker on one of this type's fields would be read: true when a `text.generate` step in this project answers with exactly this type, so its markers become that step's facet extraction. False when no such step does — a marker there saves and extracts nothing — and always false for tiers you did not author. Decided by the server; do not re-derive it. |
+| `usedAsProfile` | `boolean` | yes | Whether this project uses this type as its end-user profile. |
+| `usedByRecordTypes` | `string[]` | yes | Record types whose data shape is this type. |
+| `usedByEventTypes` | `string[]` | yes | Event types whose payload is this type, RETIRED ones included — deletion blocks on those too, so a list that skipped them would disagree with what delete actually does. |
+| `usedByConfigNamespaces` | `string[]` | yes | Project-config namespaces declared with this type. |
+| `usedByRelationKinds` | `string[]` | yes | Relation kinds whose edge properties this type describes. Deletion blocks on these, so a list that omitted them would disagree with what delete actually does. |
+| `usedByGraph` | `integer` | no | How many flows, steps, handlers or sibling types reference this one. ⚠️ Present ONLY with `expand=graph`; ABSENT MEANS NOT ASKED, never zero — do not read a missing count as safe to delete. Sum this with the four lists above and you have exactly what deletion refuses on. |
+| `keywordVerdicts` | `object[]` | no | What each keyword in `definition` does — one row per keyword per fragment, keyed by `pointer`. The keywords that are the definition's structure (`type`, `$ref`, `properties`, `required`, `items`, `additionalProperties`, `x-field-order`) and its labels (`title`, `description`) carry no row. A `$ref` target's keywords are that type's own rows. ⚠️ Present ONLY with `expand=keywords`; absent means not asked. |
+| `usedByGraphRefs` | `object[]` | no | What `usedByGraph` counts, one reference each — its length equals that count. DIRECT references only: a flow taking a type that `$ref`s this one is listed under that type, and that type is listed here. ⚠️ Present ONLY with `expand=graph`, like `usedByGraph`; absent means not asked, never none. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |

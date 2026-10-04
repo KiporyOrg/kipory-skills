@@ -12,24 +12,22 @@ Take a picture of a web page.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** Firecrawl — Renders the page in a headless browser and captures a full-page screenshot via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 10 per 60000ms in bucket `firecrawl` — shared with `url.scrape`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 120000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 10 per min in bucket `firecrawl` — shared with `url.scrape`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 2 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `format` | `png` \| `jpeg` | no | `"png"` | Output image format. PNG is lossless; JPEG is smaller and accepts a quality knob. |
-| `jpegQuality` | integer | no | `85` | JPEG quality (1-100). Only used when format is jpeg; ignored for png. 85 is a sensible default for screenshots. |
-| `maxBytes` | integer | no | `10000000` | Hard cap on the persisted image size. Larger responses fail the handler rather than silently truncate. |
-| `timeoutMs` | integer | no | `60000` | How long to wait for the provider, in milliseconds. |
-| `viewportWidth` | integer | no | `1280` | Viewport width in CSS pixels. Height is implicit — the handler always renders a full-page capture. |
+| `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality (1-100). Only used when format is jpeg; ignored for png. 85 is a sensible default for screenshots. |
+| `maxBytes` | integer, more than 0 | no | `10000000` | Hard cap on the persisted image size. Larger responses fail the handler rather than silently truncate. |
+| `timeoutMs` | integer, more than 0 | no | `60000` | How long to wait for the provider, in milliseconds. ⚠️ Shares its name with the step's own `timeoutMs` run setting and is not it: this one, inside `handlerConfig`, bounds the one page read. |
+| `viewportWidth` | integer, more than 0 | no | `1280` | Viewport width in CSS pixels. Height is implicit — the handler always renders a full-page capture. |
 
 ## Worked example
 
 Loads the page in a headless browser and captures the whole thing as an image file.
-
-Reads: render + capture. Emits: attachFile → FileRef.
 
 #### As a PNG
 

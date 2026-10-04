@@ -9,14 +9,14 @@ Store an item's search data so it can be found by meaning or keywords.
 - **I/O:** `any+` → `nothing`
 - **Reads:** The slots named in this step's config: one for the point id, one per named vector, and whichever hold the payload. An empty one leaves that vector unwritten. _(shape hint: `any+`)_
 - **Emits:** Nothing — it writes and returns. Re-running with the same point id overwrites that point. The owning tenant is always stamped on the payload so the point stays reachable.
-- **Rate limit:** 600 per 60000ms in bucket `vector.upsert`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 30000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 600 per min in bucket `vector.upsert`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 30 s; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `collection` | string | yes | — | Which collection to write into. It must already exist, with room for the vector names configured below. |
+| `collection` | string | yes | — | Which collection to write into. It must already exist, with room for the vector names configured below. ⚠️ The write needs a signed-in user. A run a key or a schedule starts, and a project-scoped record's processing run, fail on this step. |
 | `payloadObjectSlot` | string | no | — | A slot holding an object whose keys become the payload. Use it when an earlier step has already shaped that object. ⚠️ Mutually exclusive with the per-field map — pick one. A key the store will not accept is skipped with a warning; a non-object value writes no payload at all. |
 | `payloadSlots` | object | no | — | A map of payload key to the slot holding its value. Use plain identifiers for the keys. ⚠️ Mutually exclusive with the bulk object slot — pick one. A key containing a dot breaks the filter syntax that reads it later. |
 | `pointIdSlot` | string | yes | — | The slot holding the point id. Usually a record id, or another id stable across re-runs. |
@@ -26,8 +26,6 @@ Store an item's search data so it can be found by meaning or keywords.
 ## Worked example
 
 Several slots go in and one point is written; nothing comes back. The variants show a full point, a partial one, and payload only.
-
-Reads: read N slots. Emits: upsert point.
 
 #### Everything stored
 

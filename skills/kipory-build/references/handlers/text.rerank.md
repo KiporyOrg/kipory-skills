@@ -6,31 +6,29 @@ Sort documents by how well they answer a question.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `slot map` → `RerankHit[]`
-- **Reads:** Two slots you name: the text to match against, and the documents to score. Each document carries its own id. _(shape hint: `slot map`)_
+- **I/O:** `a question + documents` → `RerankHit[]`
+- **Reads:** Two slots you name: the text to match against, and the documents to score. Each document carries its own id. _(shape hint: `a question + documents`)_
 - **Emits:** A `list<RerankHit>`, best first and capped at `topN`. Empty when either slot was empty; when the scorer cannot answer, the candidates come back in the order they arrived.
 - **Suggested input streams:** `query`, `documents`
 - **External dependency:** Cohere — Re-scores candidates through Cohere's rerank API. Uses a Cohere API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `cohere` (vendor: Cohere); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 600 per 60000ms in bucket `cohere`
-- **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (default-input-slot-hash) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 600 per min in bucket `cohere`
+- **Queue:** 2 attempts, exponential from 1 s 500 ms; waits up to 1 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `documentItemsSlot` | string | yes | — | The slot holding the documents to score. Each one carries its own id, which comes back on the result. |
-| `maxDocumentChars` | integer | no | `50000` | How long a single document may be. A longer one is rejected rather than quietly cut short. |
-| `maxDocuments` | integer | no | `100` | How many documents to score at most. Anything past this is dropped before scoring, with a warning. ⚠️ Cost is billed per hundred documents scored, so raising this past the default multiplies what every call costs. |
+| `maxDocumentChars` | integer, 100 to 500000 | no | `50000` | How long a single document may be. A longer one is rejected rather than quietly cut short. |
+| `maxDocuments` | integer, 1 to 1000 | no | `100` | How many documents to score at most. Anything past this is dropped before scoring, with a warning. ⚠️ Cost is billed per hundred documents scored, so raising this past the default multiplies what every call costs. |
 | `model` | string | no | `"cohere/rerank-v3.5"` | Which re-ranking model to score with, by its catalog id (creator/slug, as GET /v1/ai-models lists it). The default is the stable multilingual one. |
 | `queryStreams` | string | yes | — | The slot holding the text to match against. |
-| `topN` | integer | no | `10` | How many results to return, best first. It cannot be higher than the number of documents scored. ⚠️ Saving is refused when this is higher than the number of documents scored — otherwise the extra rows would silently never arrive. |
+| `topN` | integer, 1 to 100 | no | `10` | How many results to return, best first. It cannot be higher than the number of documents scored. ⚠️ Saving is refused when this is higher than the number of documents scored — otherwise the extra rows would silently never arrive. |
 
 ## Worked example
 
 A query and five candidates go in; the same five come back ordered by how well each one answers it.
-
-Reads: read query + documents. Emits: score against the query.
 
 #### Search results
 

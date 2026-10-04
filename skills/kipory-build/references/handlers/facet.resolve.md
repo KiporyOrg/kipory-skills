@@ -19,13 +19,11 @@ Pick the right terms for a record in each facet you choose.
 | `extractedFacetsSlots` | string[] | no | — | Which slots hold facet values an earlier step already extracted. No proposal runs for these — the values are read straight out. |
 | `facetKeys` | string[] | no | — | Which facets this step proposes values for. Every key has to be one the project declares. ⚠️ A key the project does not declare is refused when the step runs. |
 | `maxValues` | object | no | — | How many values each multi-value facet may resolve. Leave a facet out for no cap. ⚠️ Only applies to facets that accept many values. One that accepts a single value is capped at one already. |
-| `model` | string | no | — | The model for the batched proposal call, by catalog id (creator/slug). One per node; defaults to the extraction model. |
+| `model` | string | no | — | The model for the batched proposal call, by catalog id (creator/slug). One per step; defaults to the extraction model. |
 
 ## Worked example
 
 Proposes facet values for a record and resolves each into a term, ready to be saved.
-
-Reads: the record context. Emits: TermResolution[].
 
 #### Two facets
 

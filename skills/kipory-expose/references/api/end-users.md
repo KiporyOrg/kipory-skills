@@ -4,7 +4,7 @@
 
 Who calls a project's endpoints: sign-in providers, the domain the project's app is served from and the DNS proof that it owns it, the profile shape end users carry, the operator's view over them, and their standing and credits at the project node.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -121,6 +121,15 @@ How the project's end users sign in: which providers are on, the redirect allowl
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it — sign-in keeps working, which is exactly why the change goes unnoticed. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
 
+Each item of `providerStatus`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `provider` | `string` | yes | The provider's id, as it is keyed in `providers`. |
+| `credential` | `object` | yes | How this provider's own credential resolves for this project, by the same walk sign-in uses. Metadata only; nothing is decrypted. |
+| `signIn` | `"shared-app" \| "own-app" \| "refused"` | yes | What a sign-in through this provider does right now. `shared-app`: it goes through Kipory's application. `own-app`: through yours. `refused`: every one is turned away — the provider is off, Apple has no bundle id, or Google is set to your own application and no active credential resolves for it (it never falls back to Kipory's). Apple set to your own application still signs people in without its key; the key is what lets Kipory capture and later revoke the Apple grant. |
+| `refusal` | `"provider-off" \| "no-bundle-id" \| "no-credential"` | yes | Why `signIn` is `refused`; null whenever it is not. `provider-off`: the provider is switched off for this project. `no-bundle-id`: Apple has no bundle id to verify an identity token against. `no-credential`: the provider is set to your own application and no active credential for it resolves. |
+
 ### `PUT /v1/projects/{nodeId}/auth-config`
 
 Replace the project's end-user auth configuration; `null` clears it to the platform's default. Answers what `GET` on this path answers. Provider credentials are secrets, stored with the secrets routes, not here.
@@ -150,6 +159,24 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write WOULD have computed. Present whenever the document was accepted; absent when it was refused, and absent when the body clears the config. |
+
+Each item of `providerStatus`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `provider` | `string` | yes | The provider's id, as it is keyed in `providers`. |
+| `credential` | `object` | yes | How this provider's own credential resolves for this project, by the same walk sign-in uses. Metadata only; nothing is decrypted. |
+| `signIn` | `"shared-app" \| "own-app" \| "refused"` | yes | What a sign-in through this provider does right now. `shared-app`: it goes through Kipory's application. `own-app`: through yours. `refused`: every one is turned away — the provider is off, Apple has no bundle id, or Google is set to your own application and no active credential resolves for it (it never falls back to Kipory's). Apple set to your own application still signs people in without its key; the key is what lets Kipory capture and later revoke the Apple grant. |
+| `refusal` | `"provider-off" \| "no-bundle-id" \| "no-credential"` | yes | Why `signIn` is `refused`; null whenever it is not. `provider-off`: the provider is switched off for this project. `no-bundle-id`: Apple has no bundle id to verify an identity token against. `no-credential`: the provider is set to your own application and no active credential for it resolves. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
 ### `GET /v1/projects/{nodeId}/members`
 
@@ -186,6 +213,21 @@ One page of the people who use the project — its end users — with their stan
 | `order` | `"asc" \| "desc"` | yes | Which way it ran — the `order` sent, or `desc`. |
 | `atCeiling` | `integer \| null` | yes | Seats across the WHOLE roster, every standing, whose spend in the current window has reached the project's per-person ceiling — the members the spend gate is refusing now. Null when the project sets no ceiling, which is not the same as nobody at it. |
 | `standingCounts` | `object` | yes | How many seats each standing holds, across the WHOLE roster rather than this page — the filter chips' counts. They sum to the unfiltered total; a chip whose count came from the filtered page would report the narrowing it is offering to apply. |
+
+Each item of `members`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `user` | `object` | yes | The person on the seat. |
+| `role` | `"viewer" \| "editor" \| "admin" \| "owner"` | yes | The seat's role. ⚠️ Effectively a constant on a project node: every end-user seat is `editor` by O-001, so a roster that draws this as a column draws one value. |
+| `billing` | `"node" \| "self"` | yes | The seat's billing flag. `node` is the default. Every member's usage settles to the project's payer whatever this says: no member has a wallet of their own. |
+| `standing` | `"active" \| "suspended"` | yes | What this member's SEAT is doing. Their account's own status is `user.status`. |
+| `joinedAt` | `string` | yes | When the seat was created. The list's default ordering key. |
+| `spend` | `object` | yes | What this member has spent against the project's per-person ceiling, and the window it was measured over. While the project gives its members wallets the ceiling is not applied and reads null; the figure spent is still measured. |
+| `wallet` | `object \| null` | yes | The member's own wallet in this project. Null when the project has member wallets off, and for a member whose wallet is not open yet (a suspended seat that never had one). |
+| `records` | `integer` | yes | Records in this project owned by this member. Removing their seat does not remove these. |
+| `files` | `integer` | yes | Files in this project this member HOLDS — the ones stored under their own owner prefix, which is the population account deletion erases and the one `GET …/files?owner=<userId>` lists. ⚠️ NOT the files they UPLOADED (`uploadedByUserId` is written only by the presign route and is null on every handler-produced file) and NOT the files that landed on their records. The three come apart routinely. |
+| `profileVersion` | `integer \| null` | yes | The schema version this member's profile was written against, or null when they hold no profile. Drift from the current shape is reported, never enforced. |
 
 ### `POST /v1/projects/{nodeId}/members/{userId}/credits`
 
@@ -241,6 +283,22 @@ One member's wallet in this project: its balance and its history, newest first, 
 | `paging` | `null` | yes | Always null: the walk is on the cursors, which are exact and measured. |
 | `nextCursor` | `string \| null` | yes | Pass as `after` for the next older page; null at the end. |
 | `prevCursor` | `string \| null` | yes | Pass as `before` for the next newer page; null at the start. |
+
+Each item of `entries`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"movement"` | yes | Credits moved: a charge, a grant, an adjustment or a transfer. |
+| `at` | `string` | yes | When the credits moved. |
+| `id` | `string` | yes | The entry's id: the charge's id for a `usage-debit`, the ledger row's id for a grant or an adjustment. |
+| `amount` | `integer` | yes | Signed credits: negative for a debit, positive for a grant or an adjustment that returned credits. |
+| `type` | `"usage-debit" \| "grant" \| "adjustment" \| "transfer"` | yes | `usage-debit` is metered work; `grant` and `adjustment` are operator movements; `transfer` is credits moved to or from another wallet — a grant to a member's wallet, or what came back from one. |
+| `causeRef` | `string` | yes | What caused the movement — the charge's id for a `usage-debit`, or an operator movement's own reference. |
+| `counterparty` | `object \| null` | yes | The other wallet of a `transfer`: where the credits went (a negative amount) or came from (a positive one). Null on every other movement. |
+| `actor` | `string` | yes | Who changed it — `user:<id>`, an operator email, or `system:<slug>`. |
+| `actorPerson` | `object \| null` | yes | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator, since operators are who change a wallet. Shown to the organization's admins on the terms the member roster already names platform staff to them. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
+| `before` | `object \| null` | yes | The fields before the change, as strings. `null` on creation. |
+| `after` | `object` | yes | The fields after the change, as strings. |
 
 ### `GET /v1/projects/{nodeId}/profile-schema`
 
@@ -339,7 +397,7 @@ Create a new profile type from the platform's starter shape under the name you g
 
 A project's end users (`?project=`) — the people who have signed in to its app — as `id`, `name` and `email`, for pickers. Requires **VIEWER**.
 
-Not its operators: the people who can change the project are `GET /v1/projects/{nodeId}/members` (its roster) and `GET /v1/nodes/{nodeId}/members` (seats at any node).
+Not its operators: seats at a node are `GET /v1/nodes/{nodeId}/members`. The same end users with their standing, spend and wallets are `GET /v1/projects/{nodeId}/members`.
 
 **Query**
 
@@ -352,6 +410,14 @@ Not its operators: the people who can change the project are `GET /v1/projects/{
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `users` | `object[]` | yes | The project's END USERS — the people who use what you built, not your team. |
+
+Each item of `users`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The end user's id. |
+| `name` | `string \| null` | yes | Their name, or null if unset. |
+| `email` | `string` | yes | Their email address. |
 
 ### `GET /v1/users/{userId}/profile`
 
@@ -381,6 +447,17 @@ One end user's profile in a project (`?project=`), with the shape it is validate
 | `drift` | `object \| null` | yes | Present when the stored profile was written against a different schema version than the one in force — usually an older one, but a restored or rolled-back schema can leave a row AHEAD. Compare the two versions rather than assuming a direction. The data is still returned; this says it was written against another shape, not that it is unusable. |
 | `shape` | `object[] \| null` | yes | The fields to render. Null when unconfigured. |
 | `hasRow` | `boolean` | yes | Whether this user has ever saved a profile. FALSE with a non-null `data` is the ordinary case for someone who has not filled it in — the values you are seeing are defaults, not their answers. |
+
+Each item of `shape`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The field's key, as it appears in `data`. |
+| `type` | `"string" \| "number" \| "boolean" \| "enum" \| "object" \| "array" \| "unknown"` | yes | What kind of value this field holds, so a client can pick a control. `unknown` means the shape could not be reduced to one of the others — render the raw value rather than treating it as absent. |
+| `enumValues` | `string[]` | no | For an `enum` field, the values it accepts. |
+| `default` | `unknown` | no | The value this field takes when the user has not set one. Compare it with the value in `data` to tell a real answer from a default. |
+| `fields` | `object[]` | no |  |
+| `items` | `object` | no |  |
 
 ### `PATCH /v1/users/{userId}/profile`
 

@@ -12,16 +12,16 @@ Read what people wrote about a place on the map.
 - **Suggested input streams:** `place`
 - **External dependency:** Apify — Runs an Apify actor that reads the place's reviews. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.details`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `includeReviewerDetails` | boolean | no | `false` | Include each reviewer's name, profile link and photo, and the review's own link. ⚠️ A reviewer's name, profile and photo are personal data. Turn this on only when the project has a lawful reason to hold them. |
-| `language` | string | no | `"en"` | Language for translated review text, as a code like `en` or `de`. |
-| `maxReviews` | integer | no | `100` | How many reviews to return, up to 1000. Each one is charged. ⚠️ Every review returned is charged, and a larger pull takes longer. Ask for what the flow will read. |
+| `language` | string, at least 2 characters | no | `"en"` | Language for translated review text, as a code like `en` or `de`. |
+| `maxReviews` | integer, 1 to 1000 | no | `100` | How many reviews to return, up to 1000. Each one is charged. ⚠️ Every review returned is charged, and a larger pull takes longer. Ask for what the flow will read. |
 | `origin` | `all` \| `google` | no | `"all"` | `all` includes reviews the map shows from other review sites; `google` keeps only its own. |
 | `since` | string | no | — | Return only reviews published on or after this date, like `2026-09-01`. |
 | `sort` | `newest` \| `most-relevant` \| `highest` \| `lowest` | no | `"newest"` | Which reviews come first: the newest, the most relevant, or the highest or lowest rated. |
@@ -29,8 +29,6 @@ Read what people wrote about a place on the map.
 ## Worked example
 
 Reads the latest reviews of one place, without saying who wrote them.
-
-Reads: place. Emits: reviews.
 
 #### The 20 newest reviews
 

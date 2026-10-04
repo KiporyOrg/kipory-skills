@@ -24,20 +24,22 @@ route a project answers is one you authored.
 
 ## Two planes, and this is the thing that costs people the most time
 
-- **The design plane** is where you _create and edit_ endpoints. It is the platform's own host,
-  and it authenticates as an operator.
-- **The dynamic plane** is where the endpoint is _called_. It is the project's own host, and it
-  authenticates with a project-scoped key.
+- **The design plane** is where you _create and edit_ endpoints: the api host, with your API key.
+- **The dynamic plane** is where the endpoint is _called_: the project's own host (`baseUrl`), by a
+  signed-in end user's session (cookie or Bearer) or by an API key whose grant reaches the project.
 
 They are different hosts. Creating an endpoint on one and calling it on the other is the normal
 flow, and confusing them produces a 404 that looks like the endpoint was never made.
 
-⭐ **Never reconstruct the call URL by hand.** Every endpoint read carries a computed, read-only
-`invokeUrl` — the absolute dynamic-plane URL. Use it. ⚠️ It is `null` on a deployment with no
-derivable public host (an api on a bare `localhost`; a local api at `api.<name>.localhost` has
-one — the rule follows the deployment's configured address, not the base URL a caller was
-handed, so read the field and never infer it), so handle that arm rather than sending the literal: there,
-call the api's own base URL with the endpoint's path and the header `x-kipory-project-slug: <slug>`.
+⭐ **Never reconstruct the call URL by hand.** `baseUrl` is the project's own origin — read it from
+`GET /v1/projects/{nodeId}` or from the project's entry in `GET /v1/grant` — and every endpoint
+read carries a computed, read-only `invokeUrl`: `baseUrl` plus the endpoint's path. Use them. ⚠️
+`invokeUrl` is `null` on a deployment with no derivable public host (an api on a bare `localhost`;
+a local api at `api.<name>.localhost` has one — the rule follows the deployment's configured
+address, not the base URL a caller was handed, so read the field and never infer it), so handle
+that arm rather than sending the literal: there, call the api's own base URL with the endpoint's
+path and the header `x-kipory-project-slug: <slug>`. The header is read on a local or development
+stack only — a production deployment never reads it.
 
 Every read also carries a computed, read-only `access`: whether a VIEWER-level caller may make the
 call, whether the method or the bound flow decided that, and which handlers in the flow write. It
@@ -72,7 +74,7 @@ first character a letter or a digit
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
 event types and their namespaces, relation kinds and embedding profiles), a facet's is camelCase, a record
-type's is a type name and a skill's a dotted kebab step name. Address keys are none of those, and
+type's is a type name and a step's a dotted kebab name. Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is
 refused, never re-cased for you.
@@ -118,7 +120,7 @@ platform's decision, not a declaration: an asynchronous invoke and a DELETE are 
 GET is a read; anything else is a write exactly when the bound flow — sub-flows included — reaches a
 step that changes data: a handler that writes, an event emitted beyond the run (it can start
 triggers), or a facet resolution. An asynchronous invoke cannot be saved on GET. So a
-POST search whose flow only reads is open to viewers without declaring anything — and a contract that still carries the old read-only key is refused like any unknown key.
+POST search whose flow only reads is open to viewers without declaring anything.
 
 ## The action
 
@@ -131,6 +133,17 @@ Three kinds:
   output whose text field carries the same name as that slot; any other flow streams `stage`
   frames and then its `result`, with no deltas at all.
 - **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
+
+**An endpoint answers JSON or server-sent events, and nothing else.** A buffered invoke answers
+JSON; a stream and a subscription answer `text/event-stream`. There is no HTML response, no
+redirect and no file download — hand a file out as a link from a `file.download-url` step —
+see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
+
+**A retry is made safe with an `Idempotency-Key` header.** On an asynchronous invoke a second call
+with the same key gets the first call's acknowledgement and starts no second run. On a synchronous
+invoke or a stream the flow runs again, and what converges is what it writes: a per-user record a
+create step writes takes the same id as the first call's, and a charge already recorded for the
+same step is not taken twice.
 
 A stream may also **retry on its own output** (`retry`): after each attempt the flow's terminal
 output is checked, and when the named output slot (at an optional `path`) equals `retryWhen.value`
@@ -147,16 +160,9 @@ non-provider slot must be bound. **Provider slots cannot be bound from HTTP at a
 what stops a caller claiming to be a different user.
 
 **An action declares no output mapping, and this is deliberate.** Its response shape comes from one
-place — the flow signature snapshot (below) — so there is nothing to configure on the way out. An
-earlier generation of endpoints worked the other way: you listed `outputFields`
-
-<!-- field-ok: outputFields — RETIRED with the record-projection endpoint kind; named here only to explain what replaced it -->, each binding a
-
-response key to a per-record _source family_ (the stored record, its submitted data, an ingest
-flow's produced slots, attached files, facet terms). That mechanism is **retired**. Records are read
-today through the `entity.read` / `entity.list` handlers inside a flow, so a record-shaped response
-is just a flow output slot like any other, and the action view no longer advertises which source
-families a kind can emit — every kind emitted none.
+place — the flow signature snapshot (below) — so there is nothing to configure on the way out.
+Records are read through the `entity.read` / `entity.list` handlers inside a flow, so a
+record-shaped response is a flow output slot like any other.
 
 The practical consequence for an architect: **to change what an endpoint returns, change the flow
 and re-save the endpoint.** There is no response mapping to edit, and no way for the published
@@ -173,7 +179,7 @@ that travels beside its result.
 publishing and validating the shape it captured, and the flow's new output is rejected by the
 endpoint's own contract.
 
-**Two guards, and they are now symmetric.** Both edits that could invalidate a captured shape are
+**Two guards, and they are symmetric.** Both edits that could invalidate a captured shape are
 refused by default with a `409` that names the holders, and both take the same opt-in to commit the
 edit and re-snapshot every holder in one transaction:
 
@@ -187,15 +193,16 @@ think one side is unguarded: that leaves a live `/v1` route unbound in the middl
 expect on the opt-in itself: an incomplete adopt, and a SYSTEM flow whose holders live in other
 projects, which cannot be adopted at all.
 
-`expand=drift` on the endpoint read still answers "did this endpoint fall behind" for anything that
-drifted before the guards, but it is no longer the only way to find out — the write now tells you.
+`expand=drift` on the endpoint read answers "did this endpoint's snapshot fall behind its flow" for
+an endpoint you did not just write.
 
 ## The life of a request
 
 1. **Host resolves to a project.** An unknown project-shaped host is a 404 — it never falls
    through to another project.
-2. **Bearer auth.** Missing, malformed, revoked or expired is a 401. A key whose grant does not
-   **reach** this project is a 403 — reach is plain descent from the granted node, and it is
+2. **Credentials.** A Bearer — an API key or a signed-in user's session token — or, with no
+   `Authorization` header, the session cookie. Missing, malformed, revoked or expired is a 401. A
+   key whose grant does not **reach** this project is a 403 — reach is plain descent from the granted node, and it is
    resolved per request rather than trusted from mint time.
 
    ⚠️ **A key has no owner whose status could refuse it**, and looking for one costs real debugging
@@ -212,7 +219,8 @@ drifted before the guards, but it is no longer the only way to find out — the 
    re-deriving the order.
 4. **Write gate.** A write requires write permission. A GET is a read; a DELETE or an asynchronous
    invoke is a write; anything else is a write when its bound flow — sub-flows included — reaches a
-   handler that writes, or a step the platform cannot resolve. It is checked _after_ matching, so a
+   step that changes data (the contract section above lists which), or a step the platform cannot
+   resolve. It is checked _after_ matching, so a
    bogus path still 404s rather than revealing itself as a 403.
 5. **Compile the contract** — from the _snapshot_, not the live flow. The same fragments back the
    published schema, so the wire and the docs cannot disagree.
@@ -223,14 +231,17 @@ drifted before the guards, but it is no longer the only way to find out — the 
 
 ## The errors, and what each really means
 
-| Status  | Trigger                                                                                                                                                                       |
-| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **401** | No, malformed, unknown, revoked or expired token                                                                                                                              |
-| **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated |
-| **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                    |
-| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**                                                                                    |
-| **502** | Skill failure; response fails validation (a required output the run did not produce is the 422 below)                                                                         |
-| **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                        |
+<!-- key-unreachable-ok: PATCH /v1/nodes/{nodeId}/status — named ONLY to say who reactivates an archived organisation: a signed-in admin, never a key -->
+
+| Status  | Trigger                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **401** | No, malformed, unknown, revoked or expired token                                                                                                                                                                                                                                                                                                                                                |
+| **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated                                                                                                                                                                                                                   |
+| **403** | `WORKLOAD_SUSPENDED`: the project, or an organisation above it, is suspended or archived, so every call that runs a flow is refused before its first step. A `suspended` hold is lifted only by the deployment's operator. An `archived` organisation is reactivated by one of its admins, signed in: `PATCH /v1/nodes/{nodeId}/status` with `{ "status": "active" }`, which refuses an API key |
+| **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                                                                                                                                                                                                                                      |
+| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**                                                                                                                                                                                                                                                                                                      |
+| **502** | A step failed; response fails validation (a required output the run did not produce is the 422 below)                                                                                                                                                                                                                                                                                           |
+| **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                                                                                                                                                                                                                                          |
 
 ⭐ **How long a synchronous invoke waits is on the endpoint you read**: `syncWaitMs` is the wait the
 dispatcher applies — your `syncTimeoutMs` clamped to the ceiling, or the platform default when you
@@ -250,12 +261,14 @@ lands. Either way, the fix is upstream: the flow's output binding, or whatever s
 that feeds it from running at all.
 
 ⛔ **The error names the LAST link, and the break is often at the first.** A common cause is not the
-binding but a skill upstream that was SKIPPED, because the pipeline reads an absent
+binding but a step upstream that was SKIPPED, because the pipeline reads an absent
 input as "nothing to do here" and the skip cascades to the terminal step. Preview shows you which
-steps ran — **but only under the same principal.** A flow triggered by a **schedule** resolves no
-end user, so `userInfo` is absent and any skill reading only it is skipped; preview run as
-yourself resolves you, skips nothing, and reports the flow healthy. Preview a scheduled flow with
-`"principal": "no-end-user"` or you are testing a different run. See the preview section of
+steps ran — **but only under the same principal.** A flow fired by a **schedule** or a **trigger**
+resolves no end user, so `userInfo` is absent: a step that reads only provider slots still runs,
+with no user behind it, and one that needs a person — a per-user record type — refuses, while a
+step that reads `userInfo` beside another slot waits on that other slot. A preview run as yourself
+resolves you and reports the flow healthy. Preview such a flow with `"principal": "no-end-user"`
+or you are testing a different run. See the preview section of
 flows-and-skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`).
 
 **Nothing is filled in.** A required output a clean run never produced is not replaced by
@@ -370,7 +383,7 @@ it is a warning, not an error, so `ok` stays true.
 ⛔ **The findings name the field you sent.** A config rule reports `source.categoryKey` or
 `source.eventKeys[0]` because the action config is the document it reads — the verdict rewrites
 those to `actionConfig.source.categoryKey`, the path in your request body; an unknown one is
-`SUBSCRIBE_EVENT_UNKNOWN`. The same is now true of a refused SAVE: a real POST that fails
+`SUBSCRIBE_EVENT_UNKNOWN`. The same is true of a refused SAVE: a real POST that fails
 carries the same findings on `details.issues`, so a form does not need two readers.
 
 ⭐ **Both ways an address can be taken come back the same way.** A `CONFLICT` finding on `key`
@@ -396,8 +409,7 @@ verdict and removes nothing. Nothing refuses an endpoint delete — an endpoint 
 flow it binds stays — so it answers `ok: true` for any endpoint you can address; the flag exists so
 every write asks the same way.
 
-⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+⚠️ `validateOnly` is the delete's only query parameter; anything else in the query is refused.
 
 ⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added
 tomorrow arrives with a code your build has never heard of and a severity it has. A severity is one of three: `error` (the body will not save as it stands), `warning` (advisory, blocks nothing) and `info` (a note about something the platform left alone — a whole-project plan reports the ids it ignored this way; a row-level verdict rarely carries one).

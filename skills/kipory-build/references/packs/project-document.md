@@ -23,12 +23,13 @@ know it: state the whole project by key, and the platform resolves the order.
 ## Read a project as one document
 
 `GET /v1/projects/{nodeId}/document` answers the project as a document, with the `version` the
-project stands at — the lock an apply presents later. It is the same read the operator UI's
-bootstrap performs, in the same transaction, so it carries the same `ETag`: send it back as
-`If-None-Match` and an unchanged project answers `304`.
+project stands at — the lock an apply presents later. It is the same read as `GET /v1/bootstrap`,
+in the same transaction, so it carries the same `ETag`: send it back as `If-None-Match` and an
+unchanged project answers `304`.
 
-- `?section=schema,flows` narrows to those sections, each complete. A partial read carries no
-  `ETag` — a validator claims you hold the whole thing.
+- `?section=schema,flows` narrows to those sections, each complete (`section`, singular — the
+  bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
+  `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
   `kipory: 2`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
@@ -106,11 +107,9 @@ Editing an owned shape and its owner's `uses` in the same row is ONE change: whe
 together, so removing a field along with the uses that name it plans clean. With `uses` left out,
 the stored declarations are judged against the new shape, and a field they still name cannot be
 removed. A record type's `uses` names each field's use as the record-type API does — `filter`,
-`key`, `search`, `link`, `stream`; there is no `file` use (retired 2026-09-24), and a document
-naming one is refused. A field reference's `family` is `submission`, `processed` or `system`, and
+`key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or `system`, and
 `uses.search` carries no `stages`: a search slot reads exactly one field the record stores, and a
-profile under `vectors` defaults only `defaultChunking`. A document naming a `derived` family or projection stages — on a type or as a profile
-default — is refused.
+profile under `vectors` defaults only `defaultChunking`.
 
 ## Plan a document before applying it
 
@@ -328,14 +327,9 @@ added since stays unless the document says `prune`. A deleted record type's inli
 deleted with it — it stays as a shared entry of the same key — and the export's inline shape
 takes that entry back, so the type returns owning the same shape, id and all. It is matched by
 the `id` the export's inline shape carries — keep it — never by key: an inline shape without that
-`id` whose key an existing entry holds is refused `SCHEMA_KEY_DUPLICATE`, as it always was. It is
+`id` whose key an existing entry holds is refused `SCHEMA_KEY_DUPLICATE`. It is
 taken back only while nothing else holds it: stated under `schema` in the same document, or the
 shape of another record type, it stays shared, and the inline shape is refused the same way.
-
-⚠️ **A step's `onFailure` is `fail-run` or `continue`, lower-case.** An export taken before
-2026-09-29 spells it `FAIL_RUN` / `CONTINUE`, and applying it as it is refuses that field on the
-step's own path: change the two values before you apply it. Checkpoints and run snapshots the
-platform holds were rewritten in place and need nothing.
 
 ## Make a project equal a document
 
@@ -355,6 +349,20 @@ count, no health, no run, no record, no member, no credential. A vector collecti
 from a profile and a record type's search use, so it appears under `vectors` for reading and is
 never applied. A term that is an alias or archived is not configuration and is not exported.
 Tenancy — who may open the project — is not in the document by decision.
+
+## A document written for an older format
+
+A document you kept from an earlier export, or wrote from an older example, can state things the
+current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
+
+- **A format version other than `kipory: 2`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
+- **A step's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
+  lower-case. Change the two values.
+- **A `file` use, a `derived` field family, or projection `stages`** on a record type or as a
+  profile default — none exists. Remove them; a search slot reads one stored field.
+- **A facet `binding`** — a term attaches to the whole record. Remove the field.
+- **A flow's own `tests`** — `DOCUMENT_FLOW_TESTS_MOVED`. A flow's cases live under
+  `evals.<suite>.cases`.
 
 ## Related
 

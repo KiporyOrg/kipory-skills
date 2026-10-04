@@ -4,7 +4,7 @@
 
 Sending identities attached to a node, which the outbound mail handler sends from.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -32,6 +32,20 @@ A sending address is a platform-wide claim on a name, distinct from a stored cre
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `addresses` | `object[]` | yes | The node's own addresses, ordered by domain then local part. |
+
+Each item of `addresses`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Opaque identifier for this address. |
+| `orgNodeId` | `string` | yes | The node that owns this address. Ownership reaches DOWNWARD: this node and every node beneath it may send as the address. |
+| `localPart` | `string` | yes | The part before the `@`, stored lowercased and trimmed. Excludes `+`, which the platform's return-path scheme uses as a separator. |
+| `domain` | `string` | yes | The part after the `@`, stored lowercased. |
+| `address` | `string` | yes | The full address, composed from the two parts above. |
+| `grade` | `"relay" \| "mailbox"` | yes | Whether a real mailbox exists behind this address. `relay` has no account: it can send, replies fall to the catch-all, and it costs nothing. `mailbox` is backed by a provisioned user account that can be signed into — and to which the delivery service's per-user daily send cap applies, which is the difference that matters in code. This platform RECORDS the grade; it cannot create or verify the mailbox. |
+| `displayName` | `string \| null` | yes | The human name a recipient sees beside the address. Quoted in the header only when the format requires it. |
+| `replyTo` | `string \| null` | yes | Where replies go, when that is not the address itself. Null means replies reach whatever the address's inbound arrangement is — for a relay-grade address, the catch-all. |
+| `status` | `"active" \| "disabled"` | yes | Whether this address may send. Disabling keeps the row and its claim on the global namespace, so it is reversible in a way removing is not — removing releases the name for any other node to take. |
 
 ### `POST /v1/managed-email-addresses`
 

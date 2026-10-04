@@ -6,8 +6,8 @@ End a loop: stop when the condition holds, or go round again.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `body outputs` → `nothing`
-- **Reads:** The slots the stop condition looks at, and the ones fed back as the next pass's carry. _(shape hint: `body outputs`)_
+- **I/O:** `the loop's own slots` → `nothing`
+- **Reads:** The slots the stop condition looks at, and the ones fed back as the next pass's carry. _(shape hint: `the loop's own slots`)_
 - **Emits:** The loop's result, plus anything named as escaping it. Everything else inside the loop is discarded when the region closes.
 
 ## Config
@@ -25,168 +25,186 @@ End a loop: stop when the condition holds, or go round again.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotEquals` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
-| `value` | string \| number \| boolean | yes | — |  |
+| `op` | `slotEquals` | yes | — | Holds when the value equals `value`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `value` | string \| number \| boolean | yes | — | The value to equal. |
 
 **`op: slotIn`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotIn` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
-| `values` | (string \| number \| boolean)[] | yes | — |  |
+| `op` | `slotIn` | yes | — | Holds when the value equals one of `values`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `values` | (string \| number \| boolean)[], at least 1 item | yes | — | The accepted values, at least one. |
 
 **`op: slotPresent`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotPresent` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
+| `op` | `slotPresent` | yes | — | Holds when the slot, or the field at `path`, has a value. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
 
 **`op: slotMatches`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotMatches` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
-| `pattern` | string | yes | — |  |
+| `op` | `slotMatches` | yes | — | Holds when the text matches the regular expression. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `pattern` | string | yes | — | A JavaScript regular expression. |
 
 **`op: slotStartsWith`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotStartsWith` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
-| `prefix` | string | yes | — |  |
+| `op` | `slotStartsWith` | yes | — | Holds when the text starts with `prefix`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `prefix` | string | yes | — | The text the value must start with. |
 
 **`op: slotContains`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotContains` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
-| `text` | string | yes | — |  |
+| `op` | `slotContains` | yes | — | Holds when the text contains `text`, case-sensitive. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `text` | string | yes | — | The text the value must contain. |
 
 **`op: listEmpty`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `listEmpty` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
+| `op` | `listEmpty` | yes | — | Holds when the list has no items. A missing value counts as empty. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
 
 **`op: slotGt`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotGt` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | yes | — |  |
-| `value` | number | yes | — |  |
+| `op` | `slotGt` | yes | — | Holds when the field is greater than `value`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotLt`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotLt` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | yes | — |  |
-| `value` | number | yes | — |  |
+| `op` | `slotLt` | yes | — | Holds when the field is less than `value`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotGte`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotGte` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | yes | — |  |
-| `value` | number | yes | — |  |
+| `op` | `slotGte` | yes | — | Holds when the field is greater than or equal to `value`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotLte`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotLte` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | yes | — |  |
-| `value` | number | yes | — |  |
+| `op` | `slotLte` | yes | — | Holds when the field is less than or equal to `value`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotAfter`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotAfter` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
-| `value` | string | yes | — |  |
+| `op` | `slotAfter` | yes | — | Holds when the value is an instant later than `value`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `value` | string | yes | — | A date and time with an offset, such as `2026-09-07T12:00:00Z`. |
 
 **`op: slotBefore`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotBefore` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | no | — |  |
-| `value` | string | yes | — |  |
+| `op` | `slotBefore` | yes | — | Holds when the value is an instant earlier than `value`. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `value` | string | yes | — | A date and time with an offset, such as `2026-09-07T12:00:00Z`. |
 
 **`op: slotIsTruthy`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotIsTruthy` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | yes | — |  |
+| `op` | `slotIsTruthy` | yes | — | Holds when the field is truthy: not empty, zero, false or null. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
 
 **`op: slotIsFalsy`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `slotIsFalsy` | yes | — |  |
-| `slot` | string | yes | — |  |
-| `path` | string | yes | — |  |
+| `op` | `slotIsFalsy` | yes | — | Holds when the field is falsy: empty, zero, false, null or missing. |
+| `slot` | string | yes | — | The slot whose value is tested. |
+| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
 
 **`op: not`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `not` | yes | — |  |
-| `inner` | object | yes | — |  |
+| `op` | `not` | yes | — | Holds when `inner` does not. |
+| `inner` | any `until` alternative | yes | — | The condition to negate. |
 
 **`op: and`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `and` | yes | — |  |
-| `all` | any[] | yes | — |  |
+| `op` | `and` | yes | — | Holds when every condition in `all` does. |
+| `all` | a list of `until` alternatives, at least 1 item | yes | — | The conditions that must all hold, at least one. |
 
 **`op: or`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `or` | yes | — |  |
-| `any` | any[] | yes | — |  |
+| `op` | `or` | yes | — | Holds when any condition in `any` does. |
+| `any` | a list of `until` alternatives, at least 1 item | yes | — | The conditions of which one must hold, at least one. |
 
 ## Worked example
 
 Closes the loop. After each pass it checks the stop condition, and otherwise feeds the outputs back in and goes again.
 
-Reads: body outputs. Emits: loop result.
-
 #### Example
 
 Reads `carry` → emits `carry` · one pass
 
+Step settings (`handlerConfig`):
+
+```json
+{
+  "until": {
+    "op": "slotGte",
+    "slot": "review",
+    "path": "score",
+    "value": 8
+  },
+  "carryMap": {
+    "revised": "draft"
+  },
+  "escapeSlots": {
+    "review": "lastReview"
+  },
+  "outputSlot": "finalDraft"
+}
+```
+
 Input:
 
-- body outputs — read at the top of every pass
+- the slots this pass wrote — read on every pass
 
 Each pass:
 
-- loop result
+- the loop's result

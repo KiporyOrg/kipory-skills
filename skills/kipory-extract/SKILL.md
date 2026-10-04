@@ -1,6 +1,6 @@
 ---
 name: kipory-extract
-description: Turn a file a Kipory project holds into something a flow can use — PDF text, a rendered page image for a vision step, image dimensions and EXIF, a decoded QR code, an audio transcript, a text file's contents, a signed download link, or size and hash. Also the text-shaping handlers that clean, cut and inspect what comes out. Use when a flow receives a document, image or recording rather than text, when a PDF yields no text, when a transcript is slow or empty, or when extracted text has to be made safe for a prompt.
+description: Turn a file a Kipory project holds into something a flow can use — PDF text, a rendered page image a vision step reads (OCR for a scanned document), image dimensions and EXIF, a decoded QR code, an audio transcript (speech to text), a text file's contents, a signed download link, or size and hash. Also detecting a text's language and pulling regex matches out of it. Use when a flow receives a document, image or recording rather than text, when a scanned PDF yields no text, when a transcript is slow or empty, or when extracted text has to be made safe for a prompt. Not for uploading or attaching the file (kipory-data), downloading one (kipory-gather), or chunking and indexing the text (kipory-model, kipory-retrieve).
 license: MIT
 ---
 
@@ -21,11 +21,15 @@ vision model read it — which is the whole reason `pdf.screenshot` exists.
 - **A file reference comes from somewhere.** Upload and attachment live in `kipory-data`; downloading
   from the web is `url.fetch-as-file` in `kipory-gather`.
 - **Confirm each handler's config live** with `GET /v1/handlers/{key}`.
-- **The file handlers run in the ingest phase** — queued, retried, cached on the input — with
-  `file.download-url` the exception, which is inline because signing a link calls nothing. Their
-  caches have **no expiry**: the same file and settings return the previous result indefinitely,
-  which is what makes re-running a document pipeline cheap. The text handlers further down are
-  inline, so they have neither a queue nor a cache.
+- **The file handlers run in the ingest phase** — queued and cached on the input — with
+  `file.download-url` the exception, which is inline because signing a link calls nothing. How
+  many attempts each makes is on its handler page (the PDF, metadata and stats handlers make one).
+  The cache has **no expiry by default**: the same file and settings return the previous result
+  indefinitely, with no model or vendor call — the step still pays its compute fee
+  (`kipory-operate`). Set the step's `reuseResultsForMinutes` to bound it; `0` always runs fresh.
+  An eval run of a suite with `subjectUncached: true` (the default) looks nothing up and still
+  stores its result (`kipory-prove`).
+  The text handlers further down are inline, so they have neither a queue nor a cache.
 
 ## What each one is for
 
@@ -47,9 +51,12 @@ vision model read it — which is the whole reason `pdf.screenshot` exists.
 The decision is one question — **is the text in the file, or in the picture?**
 
 ```
-pdf.parse → text?  ── yes ──→ text.chunk → …            (a generated PDF)
-                 └─ no  ──→ pdf.screenshot → text.generate with a vision model → …
+pdf.parse → text?  ── yes ──→ the flow's `body` output            (a generated PDF)
+                 └─ no  ──→ pdf.screenshot → text.generate with a vision model → the same output
 ```
+
+The platform chunks and indexes that output itself once the record type gives it a `search` use
+(`kipory-model`); the flow has no chunking or embedding step.
 
 `pdf.parse` tells you which case you are in rather than erroring. `text` empty with `pageCount`
 set is a scan; `text` empty with `isEncrypted: true` is a locked file; `text` empty with neither
@@ -58,13 +65,13 @@ is not cached, so a later run reads the file again. The warning does not fail th
 processing flow the record still goes `ready`, with an empty body and no `statusError`, and the only
 trace is a `step-warned` row in that run's step log (`GET /v1/runs/{runId}/steps`). To fail the
 record with a reason instead, `$assert` on the extracted text in the step that picks the body
-(`kipory-build`'s `patterns.md` §8). Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
+(`kipory-build`'s `references/records-and-endpoints.md`). Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
 `pdf.screenshot` renders **one page**, and that page is the static config field `page` — no slot
 sets it, so fanning out over page numbers renders the same page in every branch. A multi-page scan
 needs one `pdf.screenshot` step per page you want, each a separate vision call with a separate bill.
 
-Both PDF handlers make a single attempt with no backoff and wait up to three minutes. They do not
-retry, because a PDF that failed to parse will fail again identically.
+Both PDF handlers make a single attempt and wait up to three minutes. They do not retry, because a
+PDF that failed to parse will fail again identically.
 
 ## Shaping what comes out
 
@@ -73,23 +80,28 @@ Three text handlers matter more than their size suggests:
 - **`text.sanitize`** wraps each body in a `<doc>` block carrying a nonce, so a prompt can tell the
   model that everything inside is data and not instruction. **Extracted text is untrusted** — a PDF
   someone uploaded can contain a paragraph addressed to your model. Run it through this before it
-  reaches a prompt. It reads `itemsSlot` as a list of `{ id, text }` objects and returns `[]`
-  silently for anything else, a bare string included. `kipory-retrieve` does the same for every
-  retrieved body.
+  reaches a prompt. It takes a **list** of `{ id, text }` items, not a string, and cuts each body
+  at 4 000 characters unless `maxCharsPerItem` is raised — `kipory-retrieve` owns the contract,
+  the nonce included.
 - **`text.extract`** pulls regex matches out of the concatenation of every wired text stream,
   ordered and optionally deduped. It is the cheap, deterministic alternative to asking a model for
   the invoice numbers.
 - **`text.detect-language`** returns an ISO 639-1 code with no model call at all, or an empty string
-  when it cannot tell. Store the empty string honestly rather than defaulting to English.
+  when it cannot tell — under 12 letters, or when no language leads the next clearly (`minLetters`,
+  `minAccuracy`). Store the empty string honestly rather than defaulting to English. It emits no
+  score, and a short, name-heavy headline can come back confidently wrong: where a wrong language
+  is costly, ask a `text.decide` enum field the same question and keep the detector's answer only
+  when both agree.
 
-`text.chunk` belongs to the retrieval chain and is documented in `kipory-retrieve`.
+`text.chunk` cuts a long text into pieces for a step that handles one at a time; indexing needs
+none — the platform chunks a `search` field itself (`kipory-model`).
 
 ## What will bite you
 
 - **`file.download-url` signs a link that does not expire by default.** It grants read access to the
   object's bytes for as long as it lives, and nothing is called to create it — the link is signed
-  locally, so it exists the moment the step runs. Bind its lifetime deliberately whenever the link
-  leaves your own system.
+  locally, so it exists the moment the step runs. Bind its lifetime — `neverExpires: false`, and
+  `ttlSeconds` (5 minutes when unset, 7 days at most) — whenever the link leaves your own system.
 - **`file.read-text` fails on a file over the size cap rather than truncating it.** That is the
   intended behaviour: a silently shortened document is a wrong answer with no symptom. Check the
   size with `file.stats` first if the input is unbounded.
@@ -122,7 +134,8 @@ Per-handler config tables live with the handler catalog in `kipory-build`.
 ## Then
 
 `kipory-data` for how a file got here — uploading, attaching to a record, and what the project
-already holds. `kipory-gather` when the file has to be downloaded first. `kipory-retrieve` to chunk,
-embed and index the text you extracted. `kipory-build` for the flow, and for the branch that decides
-which extraction path a file takes. `kipory-diagnose` when a step produced empty output and you need
+already holds. `kipory-gather` when the file has to be downloaded first. `kipory-model` to make the
+extracted text searchable (a `search` use on the processed field), then `kipory-retrieve` to answer
+from it. `kipory-build` for the flow, and for the branch that decides which extraction path a file
+takes. `kipory-operate` for what a vision or transcription step cost. `kipory-diagnose` when a step produced empty output and you need
 to see what it actually emitted.

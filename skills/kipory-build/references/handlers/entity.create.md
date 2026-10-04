@@ -22,8 +22,6 @@ Create a new record of the type you choose.
 
 Creates one record of a chosen type and hands back its id, so the next step can process or read it.
 
-Reads: the new record's fields. Emits: RecordCreate.
-
 #### A new record
 
 The record is created and its id comes back. A type with no processing flow is ready at once.

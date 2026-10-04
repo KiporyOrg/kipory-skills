@@ -2,23 +2,13 @@
 
 # Capability pack — Limits
 
-> **Source of truth for facts:** every other pack asserts that something exists, and the live
-> system can confirm it. This pack asserts that something does **not** exist, which nothing can
-> confirm by fetching. So each limit below is **inverse-checked** against the platform: the check
-> fails the day a limit stops holding, which forces this pack to be rewritten rather than left to
-> quietly become false. Limits that no mechanical check can express are marked `unprobed` with a
-> review date, so the unguarded set is visible instead of assumed empty.
+> **Source of truth for facts:** the handler catalog (`GET /v1/handlers`) and the live
+> `GET /v1/openapi.json`. This pack states what is absent from them.
 
 ## What it is
 
 The negative space. Every other pack tells you what you can build; this one tells you what you
 cannot, so a plan routes around it early instead of discovering it three steps in.
-
-Absence is the one claim that rots without a symptom. When a capability is added, the pack
-describing it changes and its facts get checked. When a capability is **missing**, nothing anywhere
-fails on the day someone builds it — the sentence just becomes a lie, and every plan written
-against it inherits a constraint that no longer exists. That asymmetry is why this pack is
-verified backwards.
 
 ## When you need it
 
@@ -43,13 +33,13 @@ someone that assumption first.
 
 **What is absent.** There is no tool-calling or agentic-loop capability. Nothing hands a model a
 set of tools and lets it call them until it decides to stop. The platform's model verbs generate
-an object, generate text, stream an object, embed, transcribe, and rerank — and none of them
-accepts a tool set.
+an object, generate text, stream an object, embed, transcribe, rerank, and decide (a typed pick
+or a probability) — and none of them accepts a tool set.
 
 **Why this is structural rather than a gap nobody filled.** Every model call in the platform goes
-through a single chokepoint, enforced three separate ways. A tool loop therefore cannot be added
-_around_ the platform by any project; it could only ever be added _inside_ that chokepoint, as a
-new capability of the platform itself.
+through a single chokepoint that no project code can reach around. A tool loop therefore cannot
+be added _around_ the platform by any project; it could only ever be added as a new capability of
+the platform itself.
 
 **What this means for your design.** Every branch in a flow is authored by you, in advance. A flow
 cannot decide its own next step at runtime. When an idea's shape is "the AI works out what to do",
@@ -57,8 +47,8 @@ it decomposes one of two ways:
 
 1. **A fixed pipeline** — the steps were always knowable, and the AI's judgment is needed inside a
    step rather than between steps.
-2. **A classification step feeding a pre-authored branch** — the model chooses a _label_, and your
-   flow chooses what to run for that label. The model's judgment is real; the control flow is
+2. **A classification step feeding a pre-authored branch** — the model chooses a _label_ (a
+   `text.decide` step is built for this), and your flow chooses what to run for that label. The model's judgment is real; the control flow is
    still yours.
 
 Almost every "agentic" idea is the second shape once it is written down, and the second shape is
@@ -84,40 +74,69 @@ as an input (`runInfo` in a step's inputs) and compute with it in the expression
 meaningful: run the same input twice and the wiring contributes the same answer both times, so any
 difference you see came from the part you were actually testing.
 
----
+### What a flow can reach
 
-## Unprobed limits
+A flow reaches the outside world only through handlers, and the catalog is the whole list. Check
+these before a plan promises an integration.
 
-Limits that are real but that no mechanical check expresses. They carry review dates and are
-counted on every clean run, so this section cannot quietly grow.
+**A vendor with its own handler, or any service with an HTTP API.** The catalog
+(`GET /v1/handlers`) has a handler for the vendors the platform reads on your behalf. A service
+without one is reached by a keyed request: `url.fetch` and `url.fetch-as-file` read, and
+`url.send` writes — each takes query parameters, headers, a body and a stored credential named in
+the step's `secret`: the key is stored as an `http_credential` secret and the step names its
+purpose. So "call our CRM" or "post to a chat tool" is configuration when the service has an HTTP
+API and a key you can store.
 
-_None currently._
+**What a keyed request cannot do.** A read may be sent more than once and is answered from a
+cache, so a POST through `url.fetch` must change nothing. `url.send` is staged once per run and
+delivered after the run has saved everything else. A transient failure (no answer, a 5xx, a 429)
+is retried for about ten minutes with the same `Idempotency-Key` header, so the receiving system
+may see a request twice; a 3xx or 4xx is final. The flow never sees the answer and no read
+reports whether the delivery happened — so a write whose result the flow needs is out of reach.
+So is a request the platform would have to sign, or exchange a token for. An address that
+resolves to a private network is refused. In a preview or an eval run a `url.send` step fails
+rather than sending.
+
+<!-- absent: email-is-the-only-outbound-handler -->
+
+**Email is the only built-in channel.** `email.send` is the one handler that delivers a message to
+a person. There is no SMS, push-notification or chat handler; a service that sends those through
+an HTTP API is reached with `url.send` and a stored key. A client that must be told something
+subscribes to the project's events through an endpoint, or polls one.
+
+**An endpoint answers JSON or server-sent events — never a page.** A flow cannot serve HTML, an
+image or a file at a URL of the project. A file a flow produced is handed out as a signed
+download link that the caller then fetches: `file.download-url` in a flow (its link does not
+expire unless the step sets `neverExpires: false`; it then lasts `ttlSeconds`, 5 minutes by
+default and 7 days at most), or
+`GET /v1/files/{id}/download-url` over the API (15 minutes for a project's file read with a key).
+Anything a browser should render is the client's to build from the JSON.
+
+<!-- absent: no-feed-handler -->
+
+**There is no feed reader.** No handler parses RSS or Atom. The route is two steps: `url.fetch`
+returns the feed as text, and a `text.extract` step pulls the items out with a regular expression
+(a `value.transform` expression with `$match` does the same). Identify each item by its link
+rather than by the feed's own item id, which is not always stable between fetches. A `key` use on
+the link field does not make a re-poll update the item: an item whose data changed under a held
+key is refused `RECORD_NATURAL_KEY_TAKEN` and the whole run writes nothing. There is no upsert
+step — look the link up first, then create or update.
 
 ---
 
 ## What is NOT a limit
 
-Things believed absent that are present. Each is kept because it was acted on at least once
-before anyone checked.
+Things believed absent that are present.
 
 <!-- present: keyed-outbound-request-exists -->
 
-- **Reaching a vendor that has no handler.** `url.fetch`, `url.fetch-as-file` and `url.send` send
-  query parameters, headers, a body and a stored request credential, so an API that needs a key is
-  reachable by configuration. Store the key as an `http_credential` secret and name its purpose in
-  the step's `secret`. This entry once said the opposite, and it was true: until October 2026
-  `url.fetch` was a key-less GET and nothing read a secret a customer named. What is still out of
-  reach: a request the platform must sign or exchange a token for, a write whose answer the flow
-  needs (`url.send` sends after the run and returns nothing), and a `custom` secret, which no
-  handler reads.
+- **Reaching a vendor that has no handler.** A keyed request does it — `url.fetch`,
+  `url.fetch-as-file` or `url.send` with a stored credential: see What a flow can reach, above.
 
 <!-- present: facet-delete-has-an-affordance -->
 
-- **Deleting a facet.** `DELETE /v1/facets/{id}` exists, and so does the operator UI for it — a
-  preflight-driven delete dialog. This entry once said the button was missing; that was true when
-  it was written and stopped being true without anything failing, which is the whole hazard this
-  section is about. It is now checked in the other direction: if the affordance is ever removed,
-  the check fails and this entry has to move up into the limits above.
+- **Deleting a facet.** `DELETE /v1/facets/{id}` exists; ask it with `?validateOnly=true` first
+  for what the delete would take with it.
 
 ## Related
 

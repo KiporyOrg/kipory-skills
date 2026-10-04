@@ -18,8 +18,8 @@ the call that brings the scope into existence.
 ## When you need it
 
 At step 1 of the planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`), and nowhere else. If the project
-already exists, all you need is its id — the `id` its create answered, which is also the node an
-API key granted at the project was minted for — and you can move on.
+already exists, all you need is its id — the `id` its create answered, which an API key reads back
+from `GET /v1/grant` — and you can move on.
 
 ## The sequence
 
@@ -41,9 +41,13 @@ on a list, as `project` in a create body. There is no second id to resolve.
 
 ⚠️ **Do not reach for the project list to find an id.** `GET /v1/projects` enumerates every project
 on the installation, so it is floored at platform staff and refuses an API key categorically —
-whatever node that key is granted at. A key already holds its project's id: the node it was granted
-at. A signed-in person's own projects, with their ids, are `GET /v1/me/projects` — a per-person
-read no key can call.
+whatever node that key is granted at. A signed-in person's own projects, with their ids, are
+`GET /v1/me/projects` — a per-person read no key can call.
+
+**A key reads its own project with `GET /v1/grant`.** It takes no id and answers the node the key
+was granted at, its role, and every project it reaches: the project's id is the `id` of `node` when
+that node's `kind` is `project`, and otherwise one of `projects`. Each project there carries its id,
+slug, name and `baseUrl`.
 
 An id the design plane cannot resolve — a typo, or a project your grant does not reach — answers
 **403**, deliberately the same as an insufficient role, so the surface is never an existence oracle.
@@ -56,15 +60,21 @@ attached to it: the node comes first because the link column cannot be null, and
 trailing step that joins them. The subdomain starts equal to the slug, so the project is addressable
 immediately.
 
+**The address as a URL is `baseUrl`**, on `GET /v1/projects/{nodeId}` and on each project in
+`GET /v1/grant`. The create answer does not carry it — read the project once after creating it.
+Never build the URL from the `subdomain` label or the project slug: both are labels, and the host they sit under is
+the deployment's. `baseUrl` is `null` on a deployment that publishes no public host.
+
 **With a template, the same transaction also applies it.** `POST /v1/projects` takes an optional
 `template` — a slug from `GET /v1/templates` — and the template's configuration is written before
 the commit, so "atomic" covers it too: a template the platform refuses leaves no project, no node,
 and the address free. A new account's first project — created by a signed-in person, on a route an
-API key cannot call <!-- key-unreachable-ok: POST /v1/me/projects --> — always starts from
-the platform's starter template, the same way: a starter that cannot be applied refuses the whole
-registration rather than seating someone in an empty project. Both answers carry `requires` — the
-secrets the template's project needs and could not carry. Without `template`, a project starts
-empty. See Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`).
+API key cannot call <!-- key-unreachable-ok: POST /v1/me/projects --> — is seeded the same way,
+from whatever that person chose: a template, their own document, or nothing. A seed the platform
+refuses refuses the whole registration rather than seating someone in a half-built project. Both
+answers carry `requires` when a template was applied — the secrets its project needs and could not
+carry. Without `template` or `document`, a project starts empty. See
+Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`) and the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`).
 
 ⚠️ **Nothing seeds your builtin shapes, and nothing needs to.** The builtin and library tiers are
 virtual — synthesized from the platform's own catalog on read, with no rows in your project — so do
@@ -108,9 +118,10 @@ Omit `project` when you are creating. Pass it (the project's id) when you are re
 project, which also makes the project's own current address come back available — you may always
 keep the name you already have.
 
-**The slug is the project's public address**, since it is also the initial subdomain. That makes
-it worth one deliberate question during planning rather than a generated default. Renaming later
-is a separate operation on the subdomain, not a slug edit.
+**The slug is the project's first public address**, since it is also the initial subdomain — the
+first label of the host in `baseUrl`. That makes it worth one deliberate question during planning
+rather than a generated default. Renaming later is a separate operation on the subdomain, not a
+slug edit.
 
 ## Renaming the address
 
@@ -121,7 +132,8 @@ PUT /v1/projects/{nodeId}/address   { "subdomain": "orchard" }
 
 This moves the **subdomain** and never touches the slug. The slug is immutable identity — external
 store keys and the teardown confirmation read it — so after a rename a project's slug and its
-address simply differ, which is the normal state of any project that has ever been renamed.
+address simply differ, which is the normal state of any project that has ever been renamed. Read
+`baseUrl` again after a rename: it follows the subdomain, and so does every endpoint's `invokeUrl`.
 
 Node-addressed, unlike the availability check beside it, and **ADMIN** on that node: the address is
 the tenant's public one, so this is a structural change rather than an editorial one.
@@ -130,8 +142,8 @@ Two answers to read carefully.
 
 `previousSubdomain` is **null when nothing moved**. Sending the address the project already holds
 succeeds and is deliberately a no-op — you may always keep the name you have, and doing so does not
-put that name into the cooldown described below. A screen that announces "your old address stops
-working shortly" on every success says it after calls that freed nothing.
+put that name into the cooldown described below. So tell callers the old address is going away
+only when `previousSubdomain` is not null.
 
 When the rename is real, the old address is **reserved for a few minutes** and keeps resolving for
 at most that long while routing caches expire. Both halves matter: the cutover is quick but not
@@ -165,7 +177,10 @@ correct request at the wrong moment.
 ## What will bite you
 
 - **`GET /v1/projects` is not how you find your projects.** It is platform-staff-only and refuses
-  every API key. Keep the create's `id`; a key's project is the node it was granted at.
+  every API key. Keep the create's `id`; a key reads the projects it reaches from `GET /v1/grant`.
+- **The create answer has no URL.** `baseUrl` is on `GET /v1/projects/{nodeId}` and on
+  `GET /v1/grant`; a host assembled from the slug is right only until the first rename, and wrong
+  from the start on a deployment whose host you guessed.
 - **Flow-provider seeding is best-effort**, so a 201 does not prove it ran.
 - **Deletion is not the inverse of creation.** `DELETE /v1/projects/{nodeId}` retires the project
   and a daily sweep destroys it after `purgeAfter`, unless it is restored first. Ask with

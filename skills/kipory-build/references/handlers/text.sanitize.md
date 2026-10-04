@@ -16,7 +16,7 @@ Make retrieved text safe to put into an AI prompt.
 | --- | --- | --- | --- | --- |
 | `idField` | string | no | `"id"` | Which field on each item carries its id. It is escaped when written into the block's attribute. |
 | `itemsSlot` | string | yes | — | The slot holding the items to sanitize. Each must be an object carrying the id and text fields named below. |
-| `maxCharsPerItem` | integer | no | `4000` | How long one item's body may be, 4000 characters by default. Anything longer is cut and the marker below appended. ⚠️ The cap is what bounds how much one poisoned item can say in the prompt. Lowering it tightens that at the cost of losing real evidence. |
+| `maxCharsPerItem` | integer, 100 to 50000 | no | `4000` | How long one item's body may be, 4000 characters by default. Anything longer is cut and the marker below appended. ⚠️ The cap is what bounds how much one poisoned item can say in the prompt. Lowering it tightens that at the cost of losing real evidence. |
 | `nonceSlot` | string | no | — | A slot holding the nonce to stamp on every block. Leave it unset and the step makes its own. ⚠️ Point it at the run's own nonce so every call in one run shares it — that is what lets the system prompt name the nonce literally. |
 | `outputShape` | `list` \| `joined` | no | `"list"` | `list` emits one entry per item; `joined` emits a single string. Pick `joined` when the next step expects flat text. |
 | `textField` | string | no | `"text"` | Which field on each item carries the body. A missing or non-text value leaves the block empty rather than dropping the item. |
@@ -25,8 +25,6 @@ Make retrieved text safe to put into an AI prompt.
 ## Worked example
 
 Each item is stripped of control tokens, capped, and wrapped in a nonce-stamped block. The variants show a clean item and a poisoned one.
-
-Reads: items + nonce. Emits: wrapped <doc> blocks.
 
 #### Clean item
 

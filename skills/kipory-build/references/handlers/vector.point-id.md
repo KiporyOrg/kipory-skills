@@ -20,8 +20,6 @@ Make the stable id a record's search data is stored under.
 
 Derives the stable point id a record's vectors are stored under.
 
-Reads: a record id. Emits: the point id.
-
 #### Always the same
 
 The id is a function of the value, so re-running writes over the same point instead of a second one.

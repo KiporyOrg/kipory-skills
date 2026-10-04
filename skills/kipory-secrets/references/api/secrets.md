@@ -4,7 +4,7 @@
 
 The node-scoped credential vault. Every write is ADMIN; nothing reads a value back; a repeat store on the same node, type and purpose replaces the value and answers 201.
 
-Fields are listed one level deep with the text the API itself carries. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
+Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
 ## Routes
 
@@ -34,6 +34,18 @@ The credentials a node stores itself (`?node=`) — metadata only, never a value
 | --- | --- | --- | --- |
 | `secrets` | `object[]` | yes | The node's secrets — metadata only, never any stored value. |
 
+Each item of `secrets`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The secret's id — what you rotate or delete by. |
+| `node` | `string` | yes | The node this secret is attached to. |
+| `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a handler reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: a step names its purpose, and that read does not list it. Unique within a node and type. |
+| `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
+| `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
+| `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
+
 ### `POST /v1/secrets`
 
 Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is encrypted and never read back. ⚠️ A second one with the same type and purpose on the same node REPLACES the stored value (an upsert, 201) and the old value is unrecoverable — list the node first. Requires **ADMIN**. Rotate it later with `PUT /v1/secrets/{id}`.
@@ -54,7 +66,7 @@ Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is 
 | `id` | `string` | yes | The secret's id — what you rotate or delete by. |
 | `node` | `string` | yes | The node this secret is attached to. |
 | `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
-| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a handler reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. Unique within a node and type. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a handler reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: a step names its purpose, and that read does not list it. Unique within a node and type. |
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
@@ -82,7 +94,7 @@ Rotate a stored credential: replace its value in full. It never re-enables a swi
 | `id` | `string` | yes | The secret's id — what you rotate or delete by. |
 | `node` | `string` | yes | The node this secret is attached to. |
 | `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
-| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a handler reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. Unique within a node and type. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a handler reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: a step names its purpose, and that read does not list it. Unique within a node and type. |
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
@@ -139,6 +151,16 @@ The credential types this deployment can store, and the fields each takes. Any s
 | --- | --- | --- | --- |
 | `types` | `object[]` | yes | Every kind of secret this platform can store, and its fields. |
 
+Each item of `types`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The type id you pass as `type` when creating one. |
+| `label` | `string` | yes | A human-readable name for the type. |
+| `purposeLabel` | `string` | yes | What this type calls its purpose, for a form label. |
+| `purposePlaceholder` | `string` | no | An example purpose for this type. |
+| `fields` | `object[]` | yes | The fields a secret of this type carries; one marked `optional` may be left out. |
+
 ### `GET /v1/secrets/resolution`
 
 How every credential key the platform looks up resolves at one node (`?node=`): whose credential a call would use, what happens when none resolves (`fallback`) and who pays (`billedBy`). Requires **VIEWER**.
@@ -157,3 +179,18 @@ The credentials a node stores itself are `GET /v1/secrets?node=`.
 | --- | --- | --- | --- |
 | `node` | `string` | yes | The node these resolutions are for. |
 | `keys` | `object[]` | yes | Every key a tenant credential can answer — each vendor key a handler looks up and each sign-in credential — in the platform's own roster order, which is not a contract term. Keys the platform only ever reads from its own root are not listed. |
+
+Each item of `keys`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `string` | yes | The catalog type, e.g. "api_key" — half of the lookup. |
+| `purpose` | `string` | yes | The purpose, e.g. "firecrawl" — the other half. |
+| `fallback` | `"platform-key" \| "fails-closed" \| "platform-only" \| "not-looked-up"` | yes | What happens when no credential resolves for this key: `platform-key` means the call falls through to Kipory's own key and Kipory is billed; `fails-closed` means nothing takes over and the operation is refused. This read answers only those two: it lists no key the other two values describe. |
+| `state` | `"present" \| "disabled" \| "not-found" \| "branch-inactive"` | yes | Whether a credential resolves for this key at this node. `present`: an active one does — on this node or the nearest ancestor holding one — and it is what a call will use. `disabled`: the nearest one is switched off and nothing active sits above it, so none resolves. `not-found`: no node on the chain holds one. `branch-inactive`: this node or an ancestor is suspended or archived, and a branch that is not active resolves no credential at all, whatever is stored. |
+| `holderNodeId` | `string \| null` | yes | The node holding the record `state` is about: the active one for `present`, the nearest switched-off one for `disabled`. Null for `not-found` and `branch-inactive`, and null when that node is an ancestor you hold no role on. |
+| `holderName` | `string \| null` | yes | That node's name. Null exactly when `holderNodeId` is null. |
+| `status` | `"active" \| "disabled"` | yes | The status of that record — `active` for `present`, `disabled` for `disabled`. Null when there is no such record. |
+| `updatedAt` | `string \| null` | yes | When that record last changed, a status flip included. Null exactly when `holderNodeId` is null. |
+| `ownStatus` | `"active" \| "disabled"` | yes | The status of the record stored on the requested node ITSELF, whether or not it is the one that resolves. Null when the node stores none. A `disabled` here beside a `present` held elsewhere is a key you switched off that an ancestor's is now standing in for. |
+| `billedBy` | `"vendor-to-holder" \| "kipory"` | yes | Who pays for a call on this key. Null when `fallback` is not `platform-key`: a sign-in credential is never billed. |

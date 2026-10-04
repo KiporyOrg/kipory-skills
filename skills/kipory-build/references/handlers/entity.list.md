@@ -21,74 +21,74 @@ List a user's records, newest first, one page at a time.
 | `dataContainsSlot` | string | no | — | The slot carrying the object to look for in that list — for example `{ source: <recordId> }`. ⚠️ If the slot is missing the step is skipped, never run unfiltered. A value that is not an object fails the step. |
 | `dataEqualsPath` | string | no | — | Keep only rows whose value at this path inside `data` equals what `dataEqualsSlot` carries. Set both or neither. ⚠️ No index can serve a filter on a path inside `data`, so this one reads every row of the record type before narrowing. |
 | `dataEqualsSlot` | string | no | — | The slot carrying the value to compare — text, a number, or true/false. Pairs with `dataEqualsPath`. ⚠️ If the slot is missing the step is skipped, never run unfiltered. A value that is not text, a number or true/false fails the step. |
-| `dataNullChecks` | object[] | no | — | Keep rows by whether a path inside `data` is empty or filled — for example, to hide rows whose `deletedAt` is set. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. And no index can serve a `data` path, so this reads every row. |
-| `edgeFilters` | object[] | no | — | Keep only rows that carry a link. Each entry names a link kind and, optionally, a slot naming the record on the other end. ⚠️ The only filter that reads the link graph, not the row. If an entry's slot is missing the step is skipped, never widened to every link of that kind. |
-| `facetFilter` | object[] | no | — | Keep rows tagged with all these facet–term pairs. Fixed in config, never read from a slot: per-request terms need `flow.dispatch` into one list step each. ⚠️ In a facet with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled — for example, to hide rows whose `deletedAt` is set. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. And no index can serve a `data` path, so this reads every row. |
+| `edgeFilters` | object[], at least 1 item | no | — | Keep only rows that carry a link. Each entry names a link kind and, optionally, a slot naming the record on the other end. ⚠️ The only filter that reads the link graph, not the row. If an entry's slot is missing the step is skipped, never widened to every link of that kind. |
+| `facetFilter` | object[], at least 1 item | no | — | Keep rows tagged with all these facet–term pairs. Fixed in config, never read from a slot: per-request terms need `flow.dispatch` into one list step each. ⚠️ In a facet with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
 | `fieldFilterSlots` | object | no | — | A map of queryable field to the slot carrying its value. One value matches exactly, a list matches any of them. ⚠️ If any slot is missing the step is skipped, never run without that filter; an empty list matches no rows. Ranges belong in `fieldFilters`. |
-| `fieldFilters` | object[] | no | — | Filters on fields the record type declared queryable. These are the fast ones, and the only ones that support ranges like `gte` and `lt`. ⚠️ A field the record type never declared queryable is refused when the step runs. A date window on a domain date belongs here, not in `createdAfter`, which bounds insert time. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on fields the record type declared queryable. These are the fast ones, and the only ones that support ranges like `gte` and `lt`. ⚠️ A field the record type never declared queryable is refused when the step runs. A date window on a domain date belongs here, not in `createdAfter`, which bounds insert time. |
 | `fields` | string[] | no | `[]` | Which of the record type's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A whole page has one size budget, and an over-budget page collapses to nothing — page and cursor both. Narrow this to a summary slice when the type has long text columns. |
 | `include` | object | no | `{}` | Extra dimensions per row. Terms come back by default; files, relations and cost are opt-in. None appears in the step's output type. ⚠️ Turning on files signs a download URL for every file on every row, so keep the page small when you do. |
-| `limit` | integer | no | `50` | Page size: how many rows come back. 1..100, 50 by default. `limitSlot` overrides it while the flow runs. |
+| `limit` | integer, 1 to 100 | no | `50` | Page size: how many rows come back. 1..100, 50 by default. `limitSlot` overrides it while the flow runs. |
 | `limitSlot` | string | no | — | A slot that sets the page size while the flow runs, the way an API's `?limit=` would. It overrides the `limit` setting. ⚠️ A value outside 1 to 100, or one that is not a whole number, is ignored — the `limit` setting applies instead, and nothing reports that it was dropped. |
 | `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest-first) or `asc`. Applies to both the sort field and the `id` tiebreaker so pagination stays stable. |
 | `recordType` | string | yes | — | The record type to list. Required: the page only ever returns rows of this one type. |
 | `scalars` | object | no | `{}` | Opt-in scalar fields. `statusError` adds the failure summary (string\|null); `fileCount` adds the attached-file count. |
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order the page by when a row was created or when it was last changed. Created is the default. |
 | `sortField` | string | no | — | Order the page by one of the record type's own queryable fields instead. It replaces `sort`; the direction still comes from `order`. ⚠️ Rows with no value for the field are left out of the page entirely, and the field has to be a date — any other kind is refused when the step runs. |
-| `statuses` | string[] | no | — | Keep only rows with one of these statuses. Leave it empty to allow every status. A catalog summary usually keeps just `READY`. |
+| `statuses` | string[], at least 1 item | no | — | Keep only rows with one of these statuses. Leave it empty to allow every status. A catalog summary usually keeps just `READY`. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Only user-owned types filter by it, yet its slot is an input on every type. ⚠️ On a user-owned type an empty value fails the step. Key, schedule and trigger runs have none, so a step also reading an absent filter or cursor slot is skipped, not unfiltered. |
 
 ### `dataNullChecks` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `path` | string | yes | — |  |
-| `op` | `isNull` \| `isNotNull` | yes | — |  |
+| `path` | string | yes | — | A dotted path inside the record's `data`. |
+| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows where the path is null; `isNotNull` keeps rows where it holds a value. |
 
 ### `edgeFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | string | yes | — |  |
-| `peerRecordIdSlot` | string | no | — |  |
+| `kind` | string | yes | — | The relation kind a row must have a link of, by key. |
+| `peerRecordIdSlot` | string | no | — | The slot holding the id of the record at the other end. Leave it out to keep rows with any link of the kind. |
 
 ### `facetFilter` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `facet` | string | yes | — |  |
-| `slug` | string | yes | — |  |
-| `parentSlug` | string | no | — |  |
+| `facet` | string | yes | — | The facet, by key. |
+| `slug` | string | yes | — | The term a row must carry, by slug. |
+| `parentSlug` | string | no | — | The parent term's slug, to narrow a nested term to one branch. |
 
 ### `fieldFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `field` | string | yes | — |  |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — |  |
-| `value` | union | yes | — |  |
+| `field` | string | yes | — | A field the record type declares queryable. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison. `in` takes a list; every other one takes one value. |
+| `value` | union | yes | — | The value to compare with, or the list for `in`. |
+
+`value` — one of: `string`; `number`; `boolean`; `(string | number)[]`, at least 1 item.
 
 ### `include`
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `facets` | boolean | no | `true` |  |
-| `relations` | boolean | no | `false` |  |
-| `files` | boolean | no | `false` |  |
-| `cost` | boolean | no | `false` |  |
+| `facets` | boolean | no | `true` | Add the terms each row is filed under. |
+| `relations` | boolean | no | `false` | Add each row's links. |
+| `files` | boolean | no | `false` | Add each row's attached files. |
+| `cost` | boolean | no | `false` | Add what each row's processing cost. |
 
 ### `scalars`
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `statusError` | boolean | no | `false` |  |
-| `fileCount` | boolean | no | `false` |  |
+| `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
+| `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
 
 ## Worked example
 
 Reads the catalog one page at a time, so a later step can summarize or count everything the user has.
-
-Reads: read userId + cursor. Emits: RecordPage.
 
 #### First page
 

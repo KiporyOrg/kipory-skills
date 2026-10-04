@@ -120,22 +120,22 @@ the user you mean as data.
   a seeded row's delete each come back as a finding. It cannot see a stale `version` (the write's
   lock).
 
-⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+⚠️ `validateOnly` is the delete's only query parameter; anything else in the query is refused.
 
 ## What will bite you
 
-- ⛔ **A durable event is delivered AT LEAST ONCE, so make every trigger's flow idempotent.** A
-  durable emission is written to the project's event log before it is published, and a
-  trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) runs from that log; a lost dispatch is re-enqueued by a periodic sweep, so a
-  duplicate is the **designed** outcome rather than a fault. The bus itself is at-most-once to
+- **A durable event fires each trigger once.** A durable emission is written to the project's
+  event log before it is published, and a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) runs from that log; a lost
+  dispatch is re-enqueued by a periodic sweep, and each trigger records one decision per event, so
+  a redelivery cannot fire it twice. A second run for the same event is a replay somebody asked
+  for — the flow's `trigger` slot says `replay: true` there. The bus itself is at-most-once to
   whoever is connected: a streaming subscriber that was not listening misses the event.
 - ⚠️ **A bus event from a run that FAILS is never published at all.** Because the emit is
   transactional, the change set is discarded on failure and the event goes with it. So a bus event
   is not a progress signal for a run in flight: only `scope: "run"` is live during execution. The
   per-type `durable` flag is read on that path — a durable emission is written to the project's
   event log before the publish, and that row is what a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) consumes. It changes
-  nothing for a streaming subscriber: the bus is still at-most-once to whoever is connected.
+  nothing for a streaming subscriber.
 - ⚠️ **A preview or an eval run never publishes a bus event.** Its `event.emit` resolves
   and the payload is checked, then the event is dropped: no event-log row, no publish, no trigger.
   So a preview or an eval case cannot prove the emit → trigger half of a chain; the trigger → flow
@@ -146,8 +146,8 @@ facet's (which also carries `confirm` and `assignedTerms`); anything else in the
   it. It is not the optimistic-lock version, and it counts per event type, so two types sharing a
   shape can sit at different versions.
 - ⚠️ **A type's lifecycle status does not gate emitting.** A `retired` type emits exactly like an
-  active one — the status is management metadata, read by the operator surface and dropped before
-  the emit path sees it. Retiring a type is how you say "stop authoring against this"; it is not
+  active one — the status is management metadata the emit path never reads; what it gates is
+  whether a trigger may listen (`listenable`). Retiring a type is how you say "stop authoring against this"; it is not
   how you stop it firing. Remove the `event.emit` node for that.
 
 ## Related

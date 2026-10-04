@@ -198,7 +198,7 @@ inside the kind's own transaction. **Three** arms, and which one is legal follow
 ```
 
 A field reference's `family` is one of `submission`, `processed` or `system` — the fields the
-record stores. There is no `derived` family (removed 2026-09-27); a reference naming it is refused.
+record stores. There is no `derived` family; a reference naming it is refused.
 
 ⭐ **`generate` is the link bringing its own field.** The other `produces` arm names a property that
 already exists, which made one link two jobs: model a reference field on the entity, then come back
@@ -241,12 +241,8 @@ element shape, or your edges are silently absent.
 order to go and change it. ⚠️ It is not a lock — nothing refuses a later hand-edit of the property,
 and a field-level permission is not built.
 
-⛔ **A `readOnly: true` was written beside it and no longer is.** It was carried as the spec
-annotation "any schema-aware editor already understands", which is a fact about the spec rather than
-about anything on this platform reading it — and the type registry now refuses a keyword that names
-no reader. Emitting it made the record type's own schema entry refuse its next edit. If you relied
-on it to grey the field out, read `x-owned-by-link` instead: its presence is the same signal and it
-is a fact the platform actually keeps.
+⛔ **No `readOnly: true` is written beside it**, and the type registry refuses a keyword that names
+no reader. To tell that a link owns a field, read `x-owned-by-link`.
 
 ⛔ **`generate` requires exactly ONE pairing, and the holder must be that pair's `fromRecordTypeKey`.** The
 annotation `x-record-ref` holds a single string and every reader of it checks presence rather than
@@ -316,8 +312,8 @@ and carries none of the peer's fields: read the peers in one call with
 Three behaviours worth knowing before you debug an empty answer:
 
 - **`limit` is yours to set, within a platform ceiling.** It defaults to **50** and is capped at
-  **500**; asking for more is a 400, and the resolver clamps regardless of which route calls it.
-  How many edges a read returns is a property of the question, not of the kind.
+  **500** per page; asking for more is a 422. A record with more edges than one page pages: pass
+  the answer's `nextCursor` back as `after`.
 - ⚠️ **An unknown kind answers 200 with no edges, not 404.** **So an empty list is not evidence
   the record has no edges** — check the kind exists before concluding anything.
 - **The 404 that does exist is for the record**, and it fires before any edge is read — so an
@@ -365,8 +361,9 @@ on.
   stamped for; clauses are resolved against `stampedEdgeFilters` until it clears. A property present
   in `edgeFilters` and absent from `stampedEdgeFilters` is one you cannot filter on yet.
 - **Not here: a clause into the peer record's own fields, and OR across clauses.** A `where` names a
-  property of the EDGE. "Peers whose own field is X" is a second call, and two `where` clauses are
-  always AND.
+  property of the EDGE. "Peers whose own field is X" is a query with an `edge` clause and `peer`
+  (Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`)), not this read, and two
+  `where` clauses are always AND.
 
 ## The clause everything else rests on
 
@@ -437,7 +434,7 @@ of rules, so a check that passes and a save that refuses cannot come apart.
   no default, and ⚠️ it can **never** change (`RELATION_PRODUCER_IMMUTABLE`) — not "once
   edges exist": a kind created a second ago with no edges at all refuses just the same, because the
   value is denormalised onto every edge and the guard consults no count. A PATCH restating the
-  current value is fine (the editor patches the whole object back); any other value is refused.
+  current value is fine; any other value is refused.
   Delete the kind and declare a new one.
 - **A declaration may only point at a field-producer kind** (`RELATION_PRODUCER_MISMATCH`), and
   only at a kind the project has (`RELATION_KIND_NOT_FOUND`; from a `link` use, `USES_RELATION_UNKNOWN`
@@ -544,12 +541,9 @@ well-typed.
   suggests.
 - **The minimum-confidence value is inert.** No producer emits confidence, so nothing reads it.
   <!-- absent: relations-min-confidence-inert -->
-- ⛔ **There is no way to hide a kind, and no way to pause one.** There was an `exposed` flag; it
-  gated READS only — both producers wrote through it, the reconciler ran through it, and storage
-  grew through it — so it could never stop the thing worth stopping, while the empty answer it
-  produced was indistinguishable from "no such kind". It has been removed. To stop a kind
-  producing, drop the `link` use that feeds it from the type's `uses`; to remove it and its edges,
-  delete the kind.
+- ⛔ **There is no way to hide a kind, and no way to pause one.** Every kind the project has is
+  readable. To stop a kind producing, drop the `link` use that feeds it from the type's `uses`; to
+  remove it and its edges, delete the kind.
 - **Edge properties are declared from `uses`, and the budget is the KIND's.** A `link` on a list of
   objects names the element's `ref` and, in `element.filters`, the sibling properties to carry and
   filter on. Fourteen columns per kind — 8 text, 2 number, 2 date-time, 2 boolean — are shared by
@@ -640,8 +634,8 @@ Do not promise these:
   edge expires rather than vanishing.
 - **No peer clause on the edge read.** A `where` here names a property stamped on the EDGE; it
   cannot reach into the peer record's own declared fields. That question is a query: the `edge`
-  clause of a query takes a `peer` list of `field` and `term` clauses on the record at the far end,
-  one hop — see the query section of
+  clause of a query takes a `peer` list of `field`, `term` and at most one `semantic` clause on the
+  record at the far end, one hop — see the query section of
   Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`). OR across clauses is not
   built anywhere.
 

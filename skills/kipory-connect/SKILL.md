@@ -21,7 +21,7 @@ A trailing slash on the base URL is harmless: the api reads `//health` as `/heal
 
 The third thing, the **project's id**, the key tells you itself — step 2. A project has **one id**: the `id` its create call returns, which is its node in the ownership tree. Every route takes it — `{nodeId}` in a `/v1/projects/…` path, `?project=` on a list, `project` in a create body.
 
-**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (viewer unless they pick one; anything that previews or runs a flow needs admin) and an expiry. The plaintext is shown once, with the project's id beside it. The id is also on the project's **Settings** page; a human who reads it there must be on _this_ project's settings.
+**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (viewer unless they pick one; previewing or testing a flow needs admin) and an expiry. The plaintext is shown once, with the project's id beside it. The id is also on the project's **Settings** page; a human who reads it there must be on _this_ project's settings.
 
 > Never ask the human to paste the key into a file you will write, a commit, or a log line. Read it from the environment.
 
@@ -34,7 +34,23 @@ GET /health                 → 200; `sha` is the build's commit, or null
 GET /v1/capability-packs    → 200, the pack index and a `version`
 ```
 
-`/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error. Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare handlers) in the environment: it compares the versions of the packs, the handler catalog and the API pages bundled with these skills against what this deployment serves. Exit 0 means every layer is current; exit 1 means one differs, and under that layer it prints one line per pack, handler or route that differs — `changed`, `added` (the deployment has it, these files do not) or `removed` (these files have it, the deployment does not) — with the bundled page that documents it. Read those live; the rest of the layer is what the deployment serves. A deployment too old to serve per-item hashes gets `which items differ: not known`, and then the whole layer is read live. Exit 2 means something could not be compared — the deployment was unreachable, or a layer could not be read (without `KIPORY_API_KEY` the handler catalog cannot be), and it says which. A difference does not say which side is newer — a deployment older than these files is ordinary — and either way **the deployment wins**.
+`/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error.
+
+Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare handlers) in the environment. It compares three layers bundled with these skills — the packs, the handler catalog and the API pages — against what this deployment serves, and writes nothing.
+
+| Exit | Means                                                                                                                                    |
+| ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | every layer was compared and is current                                                                                                  |
+| `1`  | at least one layer differs. It does not mean the others matched: a layer marked `not compared` can sit beside it, so read every line     |
+| `2`  | nothing differs, and something could not be compared — the deployment was unreachable, or a layer could not be read; the line says which |
+
+Without `KIPORY_API_KEY` the handler catalog cannot be read, so the best outcome is exit 2. Under a layer that differs it prints one line per pack, handler or route:
+
+- `changed` — both sides have it, with different content;
+- `added` — the deployment has it, these files do not;
+- `removed` — these files have it, the deployment does not.
+
+Each `changed` or `removed` line names the bundled page that documents the item, when it has one, as a path from the directory that holds these skills (`kipory-build/references/handlers/…`); an `added` item has no page. Read those items live; the rest of the layer is what the deployment serves. A deployment too old to serve per-item hashes gets `which items differ: not known`, and then the whole layer is read live. A difference does not say which side is newer — a deployment older than these files is ordinary — and either way **the deployment wins**.
 
 Keep the `sha` you read. A deployment is rolled while you work — several times a day on a busy one — and a roll can change the handler catalog, the model catalog and the task bindings your steps inherit. When something that worked starts failing with no edit of yours, read `/health` again first: a different `sha` means re-run `scripts/sync.mjs`, update these skills from their source if it reports a difference, and re-read the page for whatever failed before changing your own work.
 
@@ -62,7 +78,9 @@ GET /v1/bootstrap?project={nodeId}                → the whole authored configu
 GET /v1/bootstrap?project={nodeId}&sections=tenancy   → your grant: the nodes you reach, with your role on each
 ```
 
-The bootstrap read returns nine sections — project, schema, relations, events, flows, surfaces, vectors, evals, tenancy — each the resource's own envelope, with a `structureVersion` to cache against and a `sections` map that says which moved. The `tenancy` section is the same grant as step 2, drawn as a tree: the shallowest node in `nodes[]` is the grant node and `role` on every node is the grant's role. Do not probe ids to discover reach.
+The bootstrap read returns nine sections <!-- count: bootstrap-sections --> — project, schema, relations, events, flows, surfaces, vectors, evals, tenancy — each the resource's own envelope, with a `structureVersion` to cache against and a `sections` map that says which moved. The `tenancy` section is the same grant as step 2, drawn as a tree: the shallowest node in `nodes[]` is the grant node and `role` on every node is the grant's role. Do not probe ids to discover reach.
+
+The platform also writes a plain-language description of each element of a project. `GET /v1/descriptions?project={nodeId}` reads the newest of each, with `describer` saying whether it is switched on, how far it has described and how its last run ended. `GET /v1/descriptions/history?project={nodeId}&element=<elementRef>` pages one element's earlier ones (`elementRef` is on each row of the first read). `POST /v1/descriptions/describe { project }` (EDITOR) asks for a run now, at no charge; it answers 202 either way, and `enqueued: false` with a `reason` means none started. An element's own authored `description` is on the element's route, not here. The three routes are on `references/api/projects.md`.
 
 **If you must create the project** you need `owner` at the parent organisation node:
 
@@ -70,23 +88,29 @@ The bootstrap read returns nine sections — project, schema, relations, events,
 POST /v1/projects  { name, slug, parentNodeId }       → 201 { id, slug, name }   — `id` is the project's id everywhere
 ```
 
+⚠️ Pass `parentNodeId` explicitly. It defaults to the platform organisation, which your grant almost certainly does not reach, so omitting it turns a correct request into a 403 that looks like a broken key.
+
 The create also takes a `template` slug (`GET /v1/templates` lists them) or a whole `document`
 (`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
 transaction — a refused one leaves no project behind.
 
-⚠️ Pass `parentNodeId` explicitly. It defaults to the platform organisation, which your grant almost certainly does not reach, so omitting it turns a correct request into a 403 that looks like a broken key.
+`GET /v1/projects/address-availability?candidate=` says whether a slug is free before you send it. A
+project's address — its subdomain — can move later and its slug never does; moving it is `kipory-evolve`.
 
 **4. Confirm facts live, never from memory.** Handler keys come from `GET /v1/handlers`, request shapes from `GET /v1/openapi.json`, the platform's own paths from `GET /v1/coded-routes` — all on _this_ deployment. The bundled `references/` are a snapshot of the same sources with the hash they were taken at; step 1 told you whether it is current.
 
+Models the same way. `GET /v1/nodes/{nodeId}/task-models`, at the project's id, lists each task a step inherits its model through. A row with `callable: false` fails every step on that task until the task is bound at the project (`kipory-build`'s `references/models.md`). Read it before the first run and again after a `sha` change: a roll can move a binding above the project that the project never chose.
+
 ## Reading a refusal
 
-| Code  | Means                                                                                                                                                                                            | Do                                                                  |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------- |
-| `401` | The credential is missing, malformed, revoked or expired                                                                                                                                         | Re-check the header, then ask the human for a live key              |
-| `403` | The credential is fine; the grant does not authorise this                                                                                                                                        | Read `details`: `requiredRole` against `grant` — below              |
-| `404` | On the api host: the node resolved and hosts no project, or the route is served on the other host — or, on an item route, an id you cannot see (missing, or in a project your key doesn't reach) | You are holding an organisation's id — or you are on the wrong host |
+| Code  | Means                                                                                                                                                                                            | Do                                                                                                                                                       |
+| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `401` | The credential is missing, malformed, revoked or expired — or it was granted at a project that has been retired                                                                                  | Re-check the header, then ask the human for a live key                                                                                                   |
+| `403` | The credential is fine; the grant does not authorise this                                                                                                                                        | Read `details`: `requiredRole` against `grant` — below                                                                                                   |
+| `404` | On the api host: the node resolved and hosts no project, or the route is served on the other host — or, on an item route, an id you cannot see (missing, or in a project your key doesn't reach) | Check the path first — a mistyped design route gets the same answer. Then the host. Then whether the id is an organisation's, or one your key cannot see |
+| `402` | Something that pays is out of credits or at a ceiling — one of four codes <!-- count: api-402-codes -->, each with a different remedy                                                            | Branch on `code`: `references/conventions.md`, Refusals; the gates themselves are `kipory-operate`                                                       |
 
-A role-floor `403` carries `details: { reason: "insufficient_project_role", requiredRole, grant: { nodeId, role } }` — what the route needs, and what your key holds. Compare the two roles: if `grant.role` is below `requiredRole`, ask the human for a key with that role. If it is at or above it, the role was never the problem: the node you addressed is not `grant.nodeId` or beneath it — you were given another project's id, or one that does not exist. The body cannot say which of those two, deliberately: an unresolvable node, a project never created and an insufficient role all refuse identically, so a `403` is not an existence oracle. A key holds **one node and one role**. Reach is plain descent — a grant at an organisation reaches every project beneath it; a grant at one project reaches that project only. The role is uniform over the whole reach and cumulative: read → `viewer`, design mutation → `editor`, destructive, structural or spending → `admin`; creating a project needs `owner` at the parent. **A key is minted at `viewer` unless a role was asked for**, so if every write refuses while reads succeed, suspect the role first. Anything that runs a flow — preview, tests, eval runs, vector search — is `admin`, because it spends.
+A role-floor `403` carries `details: { reason: "insufficient_project_role", requiredRole, grant: { nodeId, role } }` — what the route needs, and what your key holds. Compare the two roles: if `grant.role` is below `requiredRole`, ask the human for a key with that role. If it is at or above it, the role was never the problem: the node you addressed is not `grant.nodeId` or beneath it — you were given another project's id, or one that does not exist. The body cannot say which of those two, deliberately: an unresolvable node, a project never created and an insufficient role all refuse identically, so a `403` is not an existence oracle. A key holds **one node and one role**. Reach is plain descent — a grant at an organisation reaches every project beneath it; a grant at one project reaches that project only. The role is uniform over the whole reach and cumulative: read → `viewer`, design mutation → `editor`, destructive or structural → `admin`; creating a project needs `owner` at the parent. **A key is minted at `viewer` unless a role was asked for**, so if every write refuses while reads succeed, suspect the role first. Previewing or testing a flow — preview, eval runs, vector search — is `admin`. A record write that queues processing, a reprocess and a trigger replay are `editor`, and are charged like any live run.
 
 ## What the platform refuses a key, always
 
@@ -105,7 +129,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 - **Silence about the node id.** Nothing at mint time tells the key its grant. Read `GET /v1/grant` at turn zero, not at the first 403.
 - **`parentNodeId` omitted on create** — defaults to the platform organisation, refuses, and reads like an auth failure.
 - **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider shapes are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/schema-entries/seed`.
-- **A retired project freezes writes.** Every POST, PUT, PATCH and DELETE naming it answers 409 while reads pass.
+- **A retired project stops its own keys.** A key granted at the project answers `401` to every call, reads included, until the project is restored. A key granted at the organisation above still reads it, and a write naming it answers 409 — except the restore and the purge, switching off a schedule, trigger or source, and deleting a secret.
 - **A declared query string is strict.** On a route whose reference lists query parameters, an unlisted key or value — `expand` on a resource that has none, an `expand` value that resource does not offer, a typo — is a 422. A route whose reference lists no query parameters ignores any you send, so a misspelled flag there is silent — except a DELETE, which refuses any query key it does not list (422) and deletes nothing.
 - **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.
 
@@ -115,7 +139,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `references/conventions.md`                  | the rules every design resource shares: hosts, ids, roles, `expand=`, `version`, readiness, errors, paging, streams, preview |
 | `references/glossary.md`                     | the words that collide — skill, handler, record, term, event, preview — and which meaning the API uses                       |
-| `references/api/projects.md`                 | create, lifecycle, address, settings, history                                                                                |
+| `references/api/projects.md`                 | create, lifecycle, address, settings, history, the generated descriptions                                                    |
 | `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                |
 | `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                    |
 | `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                               |
@@ -133,4 +157,4 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 
 ## Then
 
-`kipory-plan` if the human described a product rather than an endpoint — it turns an idea into a build sheet before anything is authored. If a plan exists, go to the step it calls for: `kipory-model` for the data, `kipory-build` for flows, `kipory-data` for the records and files a project already holds, `kipory-expose` to put a flow on HTTP, `kipory-channels` for mail and Telegram, `kipory-prove` to pin what working means, `kipory-secrets` when a handler needs a vendor credential, `kipory-operate` for schedules, events, config and spend, and `kipory-diagnose` when something ran and came back wrong. For what a flow's steps actually do: `kipory-gather` to bring data in from outside the project, `kipory-extract` to turn a file into text or data, and `kipory-retrieve` to search the project's own records and answer over them. `kipory-evolve` the moment the project is no longer empty — changing something that already holds records is a different discipline from authoring it.
+`kipory-plan` if the human described a product rather than an endpoint — it turns an idea into a build sheet before anything is authored. If a plan exists, go to the step it calls for: `kipory-model` for the data, `kipory-build` for flows, `kipory-data` for the records and files a project already holds, `kipory-expose` to put a flow on HTTP, `kipory-channels` for mail and Telegram, `kipory-prove` to pin what working means, `kipory-secrets` when a handler needs a vendor credential or a step calls an outside API with a stored key, `kipory-operate` for schedules, triggers, events, config, and what the project spent or may still spend (the balance, a `402`), and `kipory-diagnose` when something ran and came back wrong. For what a flow's steps actually do: `kipory-gather` to bring data in from outside the project, `kipory-extract` to turn a file into text or data, and `kipory-retrieve` to search the project's own records and answer over them. `kipory-evolve` the moment the project is no longer empty — changing something that already holds records is a different discipline from authoring it.

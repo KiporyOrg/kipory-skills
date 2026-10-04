@@ -10,10 +10,11 @@
 The two reads that answer "what am I spending, and am I about to be cut off": a balance and a
 statement of charges. One credit is one micro-USD, and every amount on this surface is an integer count of them.
 
-This is the whole of the billing surface a customer can read. The platform's price list is not part
-of it — pricing is a global catalog with one active row for the entire installation, so it is an
-operator surface and an API key is refused there. What you can see is your own consumption, which
-is the question you actually have.
+These two reads are your own consumption. Prices are read elsewhere: `GET
+/v1/nodes/{nodeId}/model-prices` (at the project's id) quotes each model in credits per million
+tokens, minute or search. The per-second compute rate and the held-storage rates are not listed
+anywhere a key can read: derive the compute rate from any `handler-run` charge on
+`GET /v1/runs/{runId}/spend` (`credits ÷ units`).
 
 ## Two gates exist, only one of them is `status` — and only one of them binds a key
 
@@ -24,15 +25,27 @@ wrong precisely when a customer most needs it to be right.
   far the payer may dip below zero before requests are refused: `softCapCredits` is headroom below
   zero, so a NEGATIVE `creditsRemaining` beside `status: "active"` is ordinary — the payer is
   spending the headroom. Requests are refused with `402 BALANCE_BELOW_SOFT_CAP` (`status` reads
-  `over-soft-cap`) only once the balance passes that floor.
+  `over-soft-cap`) only once the balance passes that floor. ⚠️ `status` has a third value,
+  `suspended`: the account is stopped for a reason other than balance. It is refused with the same
+  code — the `reason` inside `details` reads `payer_suspended` instead of `balance_below_soft_cap` — and
+  added credit does not reopen it: only the deployment's operator lifts it.
 - **The per-user ceiling** — `perUserSpendCap` with `perUserSpendConsumed` against it. It is not a
   second balance; it caps how much of that wallet **one person** may consume.
 
 ⛔ **Which of the two binds you depends on what you are holding, and this is the distinction to get
 right before building anything here.** The per-user ceiling measures a _person_, and an API key is a
 machine principal with no person behind it — so **the ceiling does not bind key-authenticated
-traffic at all**. For an API key there is exactly one gate that can refuse a call, and it is the
-wallet, which `status` summarises. For an end-user session token both gates apply.
+traffic at all**. For an API key's **product calls** there is exactly one gate that can refuse a
+call, and it is the wallet, which `status` summarises. For an end-user session token both gates
+apply.
+
+⚠️ **A key's design-time calls meet a different second gate.** Flow previews,
+`POST /v1/steps/preview`, eval runs and `POST /v1/vector-collections/{name}/search` are bounded
+by the project's design-time ceiling (`402 DESIGN_SPEND_CAP_EXCEEDED`), which the balance does not
+show: read `designSpend` on `GET /v1/projects/{nodeId}/settings` for what the current window has
+consumed, and `designSpendCapCredits` and `designSpendCapPeriod` beside it for the ceiling. A
+record that an `entity.enqueue-process` step of a preview or an eval run hands to its processing
+flow counts toward the same ceiling.
 
 ⚠️ **The wallet may not be the project's.** A project without a wallet of its own draws on the
 nearest wallet above it, so a new project can open with a balance that is not zero, shared with
@@ -55,7 +68,8 @@ cap is `null` — so "no cap configured" is never confused with "no data".
 ## A project can give each member their own wallet
 
 A project has one more setting on `PATCH /v1/projects/{nodeId}/settings`: `memberWallets`. With it
-on, each member of the project holds a wallet **in that project**, and `GET /v1/credits/balance`
+on, each **member** — an end user who has joined the project, the people
+`GET /v1/projects/{nodeId}/members` lists — holds a wallet **in that project**, and `GET /v1/credits/balance`
 called by a member's session answers that wallet: `wallet` reads `member`, where every other
 caller reads `node`.
 
@@ -64,7 +78,9 @@ caller reads `node`.
   `memberPeriodicGrantCredits` every `memberGrantPeriod` (`day`, `week` or `month`), and whatever
   an ADMIN grants one member with `POST /v1/projects/{nodeId}/members/{userId}/credits`. A grant
   the paying wallet cannot cover is refused with `422 PAYING_WALLET_CANNOT_COVER`; an automatic
-  one is skipped and made on a later day.
+  one is skipped and made on a later day. ⚠️ A member who joined before wallets were turned on
+  gets no joining grant: set a periodic grant, or grant each one by hand, before switching it
+  on — otherwise their next billable call is a `402`.
 - **Zero refuses, and nothing else pays.** A member's wallet has no headroom below zero. At zero
   or below their billable calls answer `402 MEMBER_WALLET_EMPTY`, with `balance` and
   `nextGrantAt` in `details`. The project's wallet is not charged in their place.
@@ -77,7 +93,7 @@ caller reads `node`.
   joining grant or from an ADMIN's grant stay. When a member leaves, or the project turns member
   wallets off, the whole balance returns.
 - ⚠️ **A key is never a member.** A request made with an API key is charged to the project's
-  wallet whatever user it acts for, so `wallet` reads `node` for every key. Only a signed-in
+  wallet, whatever user a record it writes names, so `wallet` reads `node` for every key. Only a signed-in
   member's own session spends a member wallet.
 
 `nextGrantAt` is when the next periodic grant is due, and `null` when the project makes none or
@@ -107,8 +123,11 @@ Both routes are deliberately exempt from the admission gate that refuses ordinar
 payer is over its cap.
 
 That exemption is the point. The one call a suspended or over-cap customer needs is the one telling
-them so — gating it would lock them out of the explanation and the prompt to top up. So a `402`
-elsewhere and a `200` here is the expected pairing, not a contradiction.
+them so — gating it would lock them out of the explanation. So a `402` elsewhere and a `200` here
+is the expected pairing, not a contradiction.
+
+No call adds credits. When the wallet refuses, tell the human which wallet needs credit —
+the `name` and `nodeId` of `payer` on the balance — from the deployment's operator.
 
 <!-- key-unreachable-ok: GET /v1/credits/events — this pack documents WHY a key is refused there and routes machine callers elsewhere; it is never prescribed to a key holder -->
 
@@ -184,26 +203,14 @@ deliberate about which credential the question is being asked with.
 | Attribute a machine-driven charge to what caused it | `GET /v1/runs/{runId}/spend`                           |
 | Total one schedule occurrence's billed charges      | the occurrence's `creditCost` on the schedule's `runs` |
 
-`/runs/{runId}/spend` holds every charge the run made, by step — a model call a `text.generate` step
-makes on a worker included. Each step's `charges` says what it was charged for, by kind:
-`handler-run` is the compute fee, with `units` in whole seconds billed; `llm-call` is the model,
-once per `direction`, with `units` in tokens; `embedding` and `vendor-fetch` likewise. Compute is
-billed for the time a step ran, each run rounded up to a whole second: a step that runs as a queued
-job is not charged for the time its job waited for a worker, a rate-limit allowance or a retry, so
-the seconds billed can be far fewer than the step's `durationMs` on `/runs/{runId}/steps`. A
-`facet.resolve` step that runs a resolver flow is charged for its own work only: that flow's steps
-are charged as their own steps, and the time spent in them is not charged to the parent again. ⚠️ **Not for a run from before 2026-09-28.** Until then a worker-side
-charge carried no run, so an older run reads only its in-process fees. Its occurrence's `creditCost`
-never depended on the run and is complete.
+`/runs/{runId}/spend` holds every charge the run made, by step — a model call a step makes on a
+worker included. Each step's `charges` says what it was charged for, by kind (`handler-run` is the
+compute fee, `llm-call` the model), and its `uncharged` counts the operations the platform paid
+for: ⚠️ `credits: 0` is a price only when `uncharged` is 0. `GET /v1/eval-runs/{id}/spend` answers
+the same for an eval run.
 
-Each step, and the run, carries `uncharged`: how many of its `events` the platform paid for and
-charged to nobody. ⚠️ **`credits: 0` is a price only when `uncharged` is 0.** `credits: 0,
-events: 6, uncharged: 6` is work nobody was charged for, and the same step in a charged run costs
-credits; a cache hit is `credits: 0` with `uncharged: 0`.
-
-A record's first processing and its reprocess (`POST /v1/records/{id}/reprocess`) are both charged.
-A reprocess reuses nothing from the cache, so it costs about what the first processing did, and
-every run it queues through `entity.enqueue-process` is charged the same way.
+How compute is billed — per second run, waiting not billed, what a cache hit, a preview, an eval
+run and a reprocess cost — is stated once, in the `kipory-operate` skill's `references/spend.md`.
 
 ## Mistakes already made
 
@@ -214,16 +221,20 @@ every run it queues through `entity.enqueue-process` is charged the same way.
 - **Sending an API key at `GET /v1/credits/events`** and reading the `401` as a broken credential.
   The key is fine; the route needs a person.
 - **Recomputing the window** from the period instead of reading the boundary that was returned.
-- **Treating `402 MEMBER_WALLET_EMPTY` like the wallet refusal.** Topping up the project's wallet
+- **Asking for credit on a suspended wallet.** `402 BALANCE_BELOW_SOFT_CAP` with
+  `status: "suspended"` is a stopped account, not a low balance; only the deployment's operator
+  lifts it.
+- **Treating `402 MEMBER_WALLET_EMPTY` like the wallet refusal.** Credit to the project's wallet
   does not help: the remedy is the member's next grant, or one an ADMIN gives them.
 - **Expecting a key to spend a member's wallet.** It never does; the project pays for key traffic.
 - **Reading `perUserSpendCap` with a falsy check**, which erases a zero ceiling into "unlimited".
 - **Expecting the tenant's charges.** This is one caller's own; breadth of grant does not widen it.
-- **Looking for prices here.** What things cost is an operator surface; what you spent is this one.
+- **Looking for the compute rate here.** Model prices are `GET /v1/nodes/{nodeId}/model-prices`;
+  the per-second rate is read off a `handler-run` charge.
 
 ## Related
 
-- Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — the caps and ceilings the platform enforces regardless of balance.
+- Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — what the platform cannot do at all.
 - Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`) — where a project's own tunables live.
 - Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`) — bring your own vendor key and the vendor bills you instead, which is the
   other half of controlling spend.

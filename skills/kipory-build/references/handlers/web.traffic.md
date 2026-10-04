@@ -12,8 +12,8 @@ Look up a website's visits, ranking, and audience by country.
 - **Suggested input streams:** `source`
 - **External dependency:** Apify — Runs Apify's `similarweb-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 30 per 60000ms in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2000ms; waits up to 300000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `x.posts`
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 7 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -22,8 +22,6 @@ _No operator-tunable config._
 ## Worked example
 
 Reads one domain's traffic profile. Any URL on a site reduces to the same domain and the same cached row.
-
-Reads: look up domain. Emits: traffic metrics.
 
 #### A news site
 

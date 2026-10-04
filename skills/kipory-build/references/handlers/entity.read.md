@@ -14,7 +14,7 @@ Read records so later steps can use their text, files, and details.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `dataNullChecks` | object[] | no | — | Keep rows by whether a path inside `data` is empty or filled. With `failIfEmpty`, this is how a soft-deleted record reads as missing. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. With `failIfEmpty`, this is how a soft-deleted record reads as missing. ⚠️ A row missing the key matches neither choice, so the record type has to always write it. |
 | `failIfEmpty` | boolean | no | `false` | Fail the step when nothing resolves, instead of returning an empty list. Turn it on for a read that should answer not-found. ⚠️ Off by default, because a list read treats missing ids as ordinary. Leaving it off on a single-id read turns a missing record into a confusing downstream failure instead of a clean one. |
 | `fields` | string[] | no | `[]` | Which of the record type's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A name the record type does not declare is ignored, and a list of only unknown names falls back to emitting every field rather than blanking the row. |
 | `idsSlot` | string | yes | — | The slot holding a list of ids — plain ids, a vector search's candidate objects, or a path into either (`hits[].recordId`). ⚠️ It must hold a list: a lone id, or a path to one (`created.recordId`), reads nothing — wrap it as `[recordId]` in a `value.transform`. A bare field off a list reads nothing too. |
@@ -27,30 +27,28 @@ Read records so later steps can use their text, files, and details.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `path` | string | yes | — |  |
-| `op` | `isNull` \| `isNotNull` | yes | — |  |
+| `path` | string | yes | — | A dotted path inside the record's `data`. |
+| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows where the path is null; `isNotNull` keeps rows where it holds a value. |
 
 ### `include`
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `facets` | boolean | no | `true` |  |
-| `relations` | boolean | no | `false` |  |
-| `files` | boolean | no | `false` |  |
-| `cost` | boolean | no | `false` |  |
+| `facets` | boolean | no | `true` | Add the terms each row is filed under. |
+| `relations` | boolean | no | `false` | Add each row's links. |
+| `files` | boolean | no | `false` | Add each row's attached files. |
+| `cost` | boolean | no | `false` | Add what each row's processing cost. |
 
 ### `scalars`
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `statusError` | boolean | no | `false` |  |
-| `fileCount` | boolean | no | `false` |  |
+| `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
+| `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
 
 ## Worked example
 
 Reads the full record behind each id a search returned, so a later step can work with the real text instead of ids.
-
-Reads: read ids + userId. Emits: RecordRead rows.
 
 #### From a search
 

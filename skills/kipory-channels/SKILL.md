@@ -1,18 +1,19 @@
 ---
 name: kipory-channels
-description: Connect a Kipory project to the outside world — claim a managed email address a flow can send from, and watch a Telegram channel as a source whose messages a trigger turns into flow runs. Use when the user wants a flow to send mail from their own address, asks why an email step was refused, wants to ingest a Telegram channel, or asks why a source reports enabled but nothing arrives. Not for storing vendor API keys (that is secrets), not for the trigger itself (that is kipory-operate) and not for the outbound step (that is a flow).
+description: Send email from a Kipory flow and subscribe a project to a Telegram channel — claim the managed address an `email.send` step sends from, and create the source whose messages a trigger turns into flow runs. Email is the only built-in outbound channel (no SMS, push or chat handler; a service with an HTTP API is reached with `url.send`, kipory-gather) and Telegram the only source provider today. Use when the user wants a flow to send mail (a notification, a digest, a welcome message), asks why an email step was refused or a message never arrived, wants every new message in a Telegram channel to start a flow, or asks why a source reads enabled but nothing arrives. Not for searching Telegram or reading a channel once inside a flow (kipory-gather), not for the trigger's own settings (kipory-operate), not for vendor API keys (kipory-secrets).
 license: MIT
 ---
 
 # Email addresses and sources
 
-Two resources at the edge of a project. A **managed email address** is a sending identity the outbound mail step sends _as_; a **source** is something outside your flows that writes events into the project's log — a Telegram channel the platform watches today, a webhook, a Postgres table and an Apify actor next. A source never runs a flow: a **trigger** pointing at it does (`kipory-operate`). The fact most people get wrong about addresses: they are checked when the run happens, not when you save — a flow referencing an address nobody minted saves cleanly and its mail step fails on every run with one indistinguishable refusal.
+Two resources at the edge of a project. A **managed email address** is a sending identity the outbound mail step sends _as_; a **source** is something outside your flows that writes events into the project's log — a Telegram channel the platform watches today, a webhook, a Postgres table and an Apify actor next. A source never runs a flow: a **trigger** pointing at it does (`kipory-operate`). Email is the only built-in way a flow reaches a person: there is no SMS, push or chat-send handler — a service that sends those through an HTTP API is reached with `url.send` (`kipory-gather`) — and a Telegram source only reads (`kipory-connect`'s `references/packs/limits.md`, What a flow can reach). <!-- absent-handler: sms.* --> <!-- absent-handler: push.* --> <!-- absent-handler: chat.* --> The fact most people get wrong about addresses: they are checked when the run happens, not when you save — a flow referencing an address nobody minted saves cleanly and its mail step fails on every run with one indistinguishable refusal.
 
 ## Before the first call
 
 - Both hubs answer on the api host with your key. Addresses attach to a **node** and are inherited downward; sources attach to a **project**.
 - Every write on an address is **ADMIN**; on a source, create and edit are EDITOR and delete is ADMIN.
 - Read `references/api/managed-email-addresses.md` and `references/api/sources.md` for the fields.
+- Fetch `references/packs/sources.md` before creating a source: the providers, what a source writes, what the platform guarantees about it, and what `validateOnly` answers.
 
 ## The sequence
 
@@ -31,6 +32,7 @@ Then, in the flow, an `email.send` step names the address in its **config** (`ad
 **A channel to watch.**
 
 ```
+GET    /v1/sources/providers                                the provider registry — availability says which can be created today
 GET    /v1/sources?project={nodeId}[&provider=telegram]     every source, with health, how many triggers listen and deleteRefusal
 POST   /v1/sources                { project, provider: "telegram", config: { channel }, key?, label? } → 201
 GET    /v1/sources/{id}
@@ -54,7 +56,7 @@ A channel the project does not watch yet is one write, not two: `POST /v1/trigge
 - **Mail goes to any address, under the project's own daily cap.** The recipient need not be a member of the project, and a project with no members can send. Each project may send a fixed number of messages per UTC day (200 by default, set by the deployment); past it the mail step fails with `project-mail-cap-reached` (a synchronous caller's `502` carries it as `details.reason`; an async run names it in `statusError` and in its run's `failure.reason`), and other projects are unaffected. The cap is counted when the step queues a message, so a message a later failure discards still counts.
 - **The mail step's `true` means queued, not delivered** — not even accepted. Delivery is handed off after the run's writes commit; a step that fails afterwards, a discarded fan-out branch, or a failed precondition means it never goes. And the step is **not** convergent across branches: two fan-out branches reaching it send two messages, and a re-run schedule sends again.
 - **One recipient per step.** A list in the recipient slot does not fan out.
-- **A source that reports `enabled: true` with health `unknown` is not being read.** The platform's own Telegram accounts are what watch channels; `health.health` is `live` or `stale` only when a watcher shard owns the channel. Nothing on your row provisions those accounts.
+- **A source that reports `enabled: true` with health `unknown` is not being read.** The platform's own Telegram accounts are what watch channels. `health.health` reads `live` (a watcher owns the channel and reported recently) or `stale` (it owns it and has gone quiet) only when a watcher is assigned; `failed` (the last attempt to read the channel failed) and `blocked` (the project could not be admitted) come first, with a line in `health.detail`; `unknown` means no watcher has the channel. No call of yours assigns one: tell the human the deployment's operator has to assign the channel to a watcher.
 - **A source nothing listens to still costs its connection** and a media copy per message. `listening: 0` is the tell.
 - **A blocked payer still gets the event.** The event is written with `mediaSkipped`
   <!-- field-ok: mediaSkipped — a key the Telegram ingress writes INTO the event payload, not a
@@ -63,17 +65,24 @@ A channel the project does not watch yet is one write, not two: `POST /v1/trigge
 - **`version` is required on every source write** — every patch, switching `enabled` included. A stale one is a 409; re-read and retry. A provider's own report (member counts, health) never bumps it. An address has no version and no lock.
 - **`createdByUserId` is always null for a key**, and it is provenance only — the flow never runs as that person.
 - **Disabling a source stops future events.** It removes nothing already recorded, and enabling it later does not catch up.
-- **Only `telegram` can be created today.** `webhook`, `postgres` and `apify` are in the provider registry and refused at create with 422 until their writers land.
+- **Only `telegram` can be created today.** `webhook`, `postgres` and `apify` are in the provider registry and refused at create with 422 until their writers land. Do not remember the list: `GET /v1/sources/providers` returns each provider's `availability` — `available` can be created, `soon` is refused — from the same rule the create applies.
 
 ## References
 
-| File                                        | What it answers                                                     |
-| ------------------------------------------- | ------------------------------------------------------------------- |
-| `references/api/managed-email-addresses.md` | the mint body, grades, refusal codes, the release response          |
-| `references/api/sources.md`                 | the provider configs, health, the listening count, the version lock |
+| File                                        | What it answers                                                                            |
+| ------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `references/packs/sources.md`               | the judgment: providers, health, what a source writes and guarantees, when nothing listens |
+| `references/api/managed-email-addresses.md` | the mint body, grades, refusal codes, the release response                                 |
+| `references/api/sources.md`                 | the provider configs, health, the listening count, the version lock                        |
 
-The sending step is `email.send`; the handlers that read Telegram channels are `telegram.stats`, `telegram.resolve-channel` and `telegram.search-channels`. Their config and examples are under `kipory-build`'s `references/handlers/`.
+The sending step is `email.send`. Three <!-- count: handlers-in-family-telegram --> handlers read Telegram inside a flow, without a source:
+
+- `telegram.stats` — the member count last captured for a channel this project already watches; it makes no outside call and is empty for a channel the project has no source for.
+- `telegram.resolve-channel` — one public channel by handle or `t.me` link: name, members, description, picture (`kipory-gather`).
+- `telegram.search-channels` — public channels matching search terms (`kipory-gather`).
+
+Their config and examples are under `kipory-build`'s `references/handlers/`.
 
 ## Then
 
-`kipory-operate` to bind a trigger to the source. `kipory-build` to author the flow that sends the mail or processes the messages. `kipory-secrets` if a handler wanted a vendor credential rather than a sending identity. `kipory-diagnose` when a message should have gone and the run's step log says otherwise.
+`kipory-operate` to bind a trigger to the source. `kipory-gather` to find or look up a Telegram channel inside a flow rather than subscribe to it. `kipory-build` to author the flow that sends the mail or processes the messages. `kipory-secrets` if a handler wanted a vendor credential rather than a sending identity. `kipory-diagnose` when a message should have gone and the run's step log says otherwise.

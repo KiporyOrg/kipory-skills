@@ -10,7 +10,7 @@ Look up a public Telegram channel: its name, members, description, and picture.
 - **Reads:** One handle — `@name`, `name`, or a `t.me` link. An invite link is not a handle and cannot be resolved. _(shape hint: `string`)_
 - **Emits:** A `TelegramChannelResolution`. The channel is present exactly when the lookup succeeded, so gate on it; otherwise the reason comes back in its place.
 - **Suggested input streams:** `handle`
-- **Queue:** 2 attempts, fixed from 2000ms; waits up to 30000ms; cache 21600000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 2 attempts, fixed from 2 s; waits up to 30 s; cache 6 hours — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -23,8 +23,6 @@ Look up a public Telegram channel: its name, members, description, and picture.
 ## Worked example
 
 Resolves a public Telegram channel from its handle, or says why it could not.
-
-Reads: resolve handle. Emits: resolved channel.
 
 #### A public channel
 

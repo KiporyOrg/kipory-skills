@@ -10,9 +10,9 @@ Turn text into numbers that capture its meaning, for search by meaning.
 - **Reads:** One string. Empty or missing returns an empty vector without calling the model; anything that is not a string is a shape error. _(shape hint: `string`)_
 - **Emits:** A `Vector`. Empty when the input was empty, which is how a later write leaves that vector alone. The same text and model hit the cache.
 - **Suggested input streams:** `inputText`
-- **External dependency:** a model provider — Whichever provider hosts the embedding model this step is set to. The call goes through the `@kipory/ai-provider` chokepoint and the key is resolved per model.
-- **Rate limit:** 300 per 60000ms in bucket `ai-embed` — shared with `vector.search`
-- **Queue:** 2 attempts, exponential from 1500ms; waits up to 60000ms; cache no expiry (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **External dependency:** a model provider — Whichever provider hosts the embedding model this step is set to. The key is resolved per model.
+- **Rate limit:** 300 per min in bucket `ai-embed` — shared with `vector.search`
+- **Queue:** 2 attempts, exponential from 1 s 500 ms; waits up to 1 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -23,8 +23,6 @@ Turn text into numbers that capture its meaning, for search by meaning.
 ## Worked example
 
 One string in, one vector out. The variants show two phrasings of the same thing embedded separately, and an empty input, which costs nothing.
-
-Reads: read string slot. Emits: embed via model.
 
 #### A description
 

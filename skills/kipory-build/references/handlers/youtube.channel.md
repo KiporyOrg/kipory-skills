@@ -12,22 +12,20 @@ Look up a YouTube channel's details and numbers.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** YouTube Data API — Reads channel metadata and statistics from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube handler. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 60 per 60000ms in bucket `youtube` — shared with `youtube.trending`, `youtube.video`
-- **Queue:** 2 attempts, exponential from 2000ms; waits up to 60000ms; cache 604800000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 60 per min in bucket `youtube` — shared with `youtube.trending`, `youtube.video`
+- **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 7 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `listUploads` | boolean | no | `false` | Also list the channel's most recent uploads. ⚠️ Costs one extra quota unit, because it takes a second call to the uploads playlist. |
-| `parts` | string[] | no | `["snippet","statistics"]` | Which parts of the channel to fetch. Snippet and statistics by default. ⚠️ Each part costs one quota unit per call, against a daily pool. Branding and localizations are rarely read and make the cached row much bigger. |
-| `uploadsLimit` | integer | no | `20` | How many recent uploads to list (1–50, single playlistItems page). Only used when listUploads is on. |
+| `parts` | string[], at least 1 item | no | `["snippet","statistics"]` | Which parts of the channel to fetch. Snippet and statistics by default. ⚠️ Each part costs one quota unit per call, against a daily pool. Branding and localizations are rarely read and make the cached row much bigger. |
+| `uploadsLimit` | integer, 1 to 50 | no | `20` | How many recent uploads to list (1–50, single playlistItems page). Only used when listUploads is on. |
 
 ## Worked example
 
 Turns a channel URL, handle, or id into the channel's metadata and stats.
-
-Reads: parse + lookup. Emits: map fields.
 
 #### From a link
 

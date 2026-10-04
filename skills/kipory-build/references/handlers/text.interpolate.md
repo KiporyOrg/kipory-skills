@@ -18,8 +18,6 @@ _No operator-tunable config._
 
 Every `{{slot}}` in the template is replaced with its value. No model, no network — the same slots always give the same string.
 
-Reads: read slot bag. Emits: interpolate template.
-
 #### One value
 
 One slot, no surrounding prose. Use it to rename or repackage an upstream value.

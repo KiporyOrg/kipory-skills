@@ -62,8 +62,7 @@ person can say no, and a better-informed one: it lists every row that would be c
 and removed, every refusal on the path that caused it, and what the change does to stored data.
 Nothing has been written when they read it.
 
-The reason the old rule gave still holds, and it is why this one is safe: **there is no privileged
-path.** Applying a document is ordinary design semantics — every row goes through the same write a
+What makes that safe: **there is no privileged path.** Applying a document is ordinary design semantics — every row goes through the same write a
 person makes by hand, with the same refusals — composed into one transaction. Nothing a document
 can do is something the row API cannot, and nothing runs a plan that a person has not seen.
 
@@ -87,8 +86,8 @@ catch your mistake.
 ### 1 — Project
 
 Does the project exist? If not, that is turn zero. If it does, record its **id** — the `id` the
-create answered; for an API key granted at the project, the node it was granted at. Every route
-takes that one id.
+create answered. An API key reads it from `GET /v1/grant`: the `id` of `node` when the key was granted at
+the project, otherwise one of `projects`. Every route takes that one id.
 
 → Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)
 
@@ -111,6 +110,12 @@ The decisive question is whether every step maps to a handler that already exist
 live, per Rule 0. A step with no handler is not automatically impossible, but it is the moment to
 read Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) before going further.
 
+Calling an outside service that has no handler of its own is still configuration when it has an
+HTTP API and a static key: a `url.fetch` step reads from it, a `url.send` step tells it something
+(staged once per run, delivered after the run has saved, its answer never seen by the flow), and
+the key is a **secret** row of type `http_credential` that the step names. A request the platform
+would have to sign, or a write whose answer the flow needs, is a `code` row.
+
 → Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) · Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)
 
 ### 4 — Exposure
@@ -128,11 +133,21 @@ say so explicitly.
 
 → Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) · Relations (capability pack `relations` — `GET /v1/capability-packs/relations`)
 
-### 6 — Time
+### 6 — Time and reaction
 
-Does anything run on a clock? Each becomes a **schedule** bound to a flow.
+What starts a flow when nobody calls it? Three answers, and each is a row:
 
-→ Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)
+- on a clock — a **schedule** bound to a flow;
+- when an event is recorded in the project — a **trigger** on that event;
+- when something arrives from outside — a **source**, which writes events, and a trigger on them.
+  `GET /v1/sources/providers` says which providers this deployment accepts
+  (`availability: available`); today that is a watched Telegram channel. An inbound webhook is not
+  a source yet: receive it on an endpoint (step 4), which works only if the sender can send
+  `Authorization: Bearer <a project key>` and a body of exactly the fields the flow declares. A
+  sender that signs its requests instead, or posts fields you cannot declare, needs a `code` row:
+  a small relay of your own.
+
+→ Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) · Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) · Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)
 
 ### 7 — Signals
 
@@ -164,11 +179,16 @@ One row per object to be built:
 
 - **Step** — which of the eight produced it.
 - **Primitive** — record type, schema entry, embedding profile, flow, skill, endpoint, schedule,
-  facet, relation kind, event, project-config namespace, secret, eval suite, eval case.
-  ⚠️ The last four of those are easy to leave out of a sheet and expensive to discover later: a
+  trigger, source, facet, relation kind, event, project-config namespace, secret, task-model
+  binding, eval suite, eval case.
+  ⚠️ Four of those are easy to leave out of a sheet and expensive to discover later: a
   record type declared searchable needs an **embedding profile** to name, a flow calling a paid
-  web vendor may need a **secret**, and a threshold you will want to tune belongs in a
-  **project-config namespace** rather than baked into a flow.
+  web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**, a threshold you will want to tune belongs in a
+  **project-config namespace** rather than baked into a flow, and the **eval cases** of step 8 are
+  the only part of a plan that survives a later rewrite. A fifth is a fact to read rather than a
+  row to invent: a model step inherits its model through a task, and
+  `GET /v1/nodes/{nodeId}/task-models` says, per task, whether that model is `callable` on this
+  deployment — a task that is not needs a **task-model binding** row.
 - **Name** — what it will be called.
 - **Disposition** — **`seed`** (design-API configuration, you can build it now) or **`code`**
   (software has to be written: either a platform capability Kipory does not have, or a service of

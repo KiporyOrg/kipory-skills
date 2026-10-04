@@ -23,8 +23,6 @@ Send an event, with its data, to anything listening.
 
 Publishes an event other flows can listen for. Nothing comes back.
 
-Reads: the payload. Emits: nothing.
-
 #### Event sent
 
 The payload is published under the configured event name. The step writes no slot.

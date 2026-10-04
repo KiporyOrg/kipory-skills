@@ -11,23 +11,21 @@ Read a web page's title, description, icon, and preview image.
 - **Emits:** A `UrlMeta`; a meta tag the page lacks stays unset, and an unreadable page comes back empty. Only `&amp;` `&lt;` `&gt;` `&quot;` `&#39;` `&apos;` are decoded; others stay as written.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
-- **Rate limit:** 120 per 60000ms in bucket `url.metadata`
-- **Queue:** 2 attempts, exponential from 1000ms; waits up to 30000ms; cache 86400000ms (custom-derive-source) — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Rate limit:** 120 per min in bucket `url.metadata`
+- **Queue:** 2 attempts, exponential from 1 s; waits up to 30 s; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `failureMode` | `hard` \| `soft` | no | `"hard"` | What happens when the site cannot be reached. `hard` fails the step; `soft` returns an empty result and lets the flow carry on. ⚠️ Only covers an unreachable site. HTTP 403 or 404 returns what it can either way; an unresolvable or private-address host stays hard. To continue past those, set the step's `onFailure` to `continue`. |
-| `maxBytes` | integer | no | `65536` | Cap on bytes parsed for `<head>` meta. The handler asks for a Range and truncates anyway; this is the second-line guard. |
-| `maxRedirects` | integer | no | `5` | Maximum HTTP redirect hops to follow before giving up. |
-| `timeoutMs` | integer | no | `10000` | Request timeout in milliseconds. Probe is meant to be fast. |
+| `maxBytes` | integer, more than 0 | no | `65536` | Cap on bytes parsed for `<head>` meta. The handler asks for a Range and truncates anyway; this is the second-line guard. |
+| `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow before giving up. |
+| `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. Probe is meant to be fast. ⚠️ Shares its name with the step's own `timeoutMs` run setting and is not it: this one, inside `handlerConfig`, bounds the one request. |
 
 ## Worked example
 
 Reads only the head of a page, so a step can decide whether the URL is worth scraping in full.
-
-Reads: fetch + parse head. Emits: structured meta.
 
 #### An article
 

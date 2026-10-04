@@ -17,13 +17,11 @@ Make a link anyone can use to download a file.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `neverExpires` | boolean | no | `true` | When on (default), the URL never expires — possession alone grants read access indefinitely. Turn off to bound the lifetime via ttlSeconds. |
-| `ttlSeconds` | integer | no | `300` | Lifetime of the signed capability URL in seconds when neverExpires is off. Default 5 min; capped at 7 days. Ignored while neverExpires is on. |
+| `ttlSeconds` | integer, more than 0, at most 604800 | no | `300` | Lifetime of the signed capability URL in seconds when neverExpires is off. Default 5 min; capped at 7 days. Ignored while neverExpires is on. |
 
 ## Worked example
 
 A link is signed locally — nothing is fetched. The variants show different file types; the step never looks at the bytes.
-
-Reads: FileRef. Emits: presign (HMAC).
 
 #### A PDF
 

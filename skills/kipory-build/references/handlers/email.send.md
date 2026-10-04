@@ -25,8 +25,6 @@ Send one email to one person.
 
 Sends one message that earlier steps put together. It goes out after the run saves everything else, so a flow that fails later sends nothing.
 
-Reads: read message. Emits: queued.
-
 #### Run succeeds
 
 `true` means the run now owes this message. It leaves once the run finishes and its changes are saved.

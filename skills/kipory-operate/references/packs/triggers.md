@@ -18,6 +18,14 @@ The fire is attributed to the **project**, not to a person, and billed to the pr
 exactly as a schedule's is. Every decision the trigger takes about an event — fired, filtered,
 skipped, blocked — is written down in its runs, and any decision can be replayed.
 
+<!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field a caller sends -->
+
+**A fire has no end user.** `userInfo` is absent from the run. A step that reads only provider
+slots still runs, with no user behind it — so a per-user record type refuses there, a project-wide
+one reads normally, and a `user`-scoped emit is dropped. A step that reads `userInfo` beside
+another slot waits on that other slot. Carry the person you mean as data in the event's payload,
+and preview the flow with `"principal": "no-end-user"`, which is the run a fire makes.
+
 ## What "recorded" means, and why it is the word that matters
 
 An event reaches a trigger only if it was written to the project's **event log**, and that happens
@@ -154,9 +162,7 @@ re-judge it, so the rest of the trigger can still be edited.
   to change. Switching `enabled` on re-asks the same question, so a trigger whose type was retired
   in the meantime is refused rather than enabled and quietly ignored.
 - **Every declared input slot the two reserved slots do not cover must have a value** — present,
-  and not blank (`""`, `null` or `[]`; 422 `FLOW_INPUT_BLANK`, one issue per slot). A trigger stored
-  with a blank before this rule still fires; the next write that sends its inputs (or moves its
-  flow) must fill it.
+  and not blank (`""`, `null` or `[]`; 422 `FLOW_INPUT_BLANK`, one issue per slot).
 - **A filter nested deeper than 16 levels**, or one that is not a condition at all, is a 422 on
   `filter`.
 - **`sourceId` and `newSource` together** — a trigger listens to one source.
@@ -189,9 +195,8 @@ did not already have.
 
 A delete asks the same way: `DELETE /v1/triggers/{id}?validateOnly=true` answers whether it would go
 through, writing nothing. Nothing refuses a trigger's delete, so the verdict is `ok` for any trigger
-the id addresses. The flag is the delete's only query parameter, the same one every design delete
-takes except a facet's (which also carries `confirm` and `assignedTerms`); anything else in the
-query is refused.
+the id addresses. The flag is the delete's only query parameter; anything else in the query is
+refused.
 
 ## What the platform guarantees
 
@@ -228,13 +233,12 @@ query is refused.
 `GET /v1/triggers/{id}/runs` is the debugging surface. Each row carries the `eventId`, the
 `attempt` (0 live, higher on replays), the `outcome`, a plain-words `reason` for anything that did
 not fire, and — for a fire — the invocation with its live `status` and, on a step failure, a
-`failure` naming the skill and phase, and a `reason` when it is one a caller may read (a mail
-refusal, `project-mail-cap-reached`). `replayOf` points a replayed row at the decision it re-ran.
+`failure` naming the step (`skillName`) and phase, and a `reason` when it is one a caller may read
+(a mail refusal, `project-mail-cap-reached`). `replayOf` points a replayed row at the decision it re-ran.
 
 The log itself, `GET /v1/project-events`, is where you find an `eventId` to replay. Its `source`
 column says who wrote the row: `run` for a flow's own emission, or the provider for a source's —
-`telegram` today, the other three once they have writers; `sourceId=` narrows it to one source.
-`schedule` is reserved for the emit action on the roadmap and has no writer yet. Both tables are
+`telegram` today; `sourceId=` narrows it to one source. Both tables are
 kept for **30 days**, and both are cursor-paged: walk `after=<nextCursor>` until it is `null`.
 Each logged `event` names its project `project`, the node id every `?project=` takes; the flow's
 `event` slot carries the same envelope with the same node id under the name `projectId`.
