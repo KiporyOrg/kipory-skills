@@ -808,6 +808,38 @@ and a type you give is kept for that input wherever the platform places it.
   guard reads as absent. `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused with
   `JSONATA_FORBIDDEN_FUNCTION`.
 
+### What a step's output type follows
+
+Leave `outputSchema` out of a create and the step takes the type its handler emits. A stored type
+then follows the handler on every write that sends no `outputSchema` for the step —
+`PATCH /v1/steps/{id}`, a `POST /v1/steps/batch` update, and a project document entry for a step the
+flow already holds:
+
+- **A `handlerKey` change stores the new handler's type** — also when the patch names the handler
+  alone. So does a settings change on a handler whose type depends on a setting. A change that
+  leaves the handler's type where it was leaves the stored one alone, a type you refined included.
+- **A swap to a handler with no type of its own clears it.** `text.generate` and `text.decide` emit
+  what you tell them to, so the step is left as a create leaves it: `outputSchema: null`, no
+  constraint until you state one. The old handler's type is not kept as the shape to fill, and
+  neither is a type refined on the old step. Between two such handlers the type you stated stays.
+- **An `outputSchema` you send wins**, on any of these.
+
+⭐ **The readers move with it.** Every step reading a slot whose type moved has its `inputSchemas`
+re-derived through its own path, and its `version` goes up by one — on a single PATCH, on a batch
+whether or not it names the reader, and in a document for a reader whose entry states no
+`inputSchemas`. Read a reader's `version` again before you write it.
+A reader whose own batch item sends `inputSchemas` is judged on what it sent. On a PATCH or a batch,
+a read the new type cannot satisfy refuses the whole save with a 422 that names the reader; in a
+document that reader is not retyped — it keeps the type it had, and the apply's own validation
+judges the read.
+
+⚠️ **A cleared type leaves its readers as they were**: there is nothing to type them from. The save
+goes through carrying `PRODUCER_OUTPUT_UNTYPED` as a warning — the reader takes the value as an
+object and nothing checks what it reads from it. State the step's type, or re-point the reader.
+
+A type travels back the way a read showed it: send `outputSchema` and `inputSchemas` with the ids
+the step read answered. They are stored as the project's own.
+
 ## Which condition operator fits which value
 
 ```

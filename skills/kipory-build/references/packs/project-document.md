@@ -302,7 +302,10 @@ what feeds it, a step of the same document included, and typed again when what f
 each keeps its value; a new step starts on `""`, `extraction`, no slot, no description, no
 condition, enabled, and the type its handler emits (`entity.create` → `RecordCreate`,
 `value.transform` → `object`), worked out once what feeds it is typed. An `outputSchema` of `null`
-is stated: no constraint. A list the step does state is written as stated. A step field the write
+is stated: no constraint. A step the flow already holds keeps its
+`outputSchema` when the entry leaves it out — unless the entry moves what its handler emits: a new
+`handlerKey`, or a setting the handler's type depends on, stores the new type, and a move to a
+handler with no type of its own (`text.generate`) stores none, as a step PATCH does. A list the step does state is written as stated. A step field the write
 refuses is named on the step's own path (`flows.<flow>.skills.<step>.outputSchema`), never the
 flow's.
 
