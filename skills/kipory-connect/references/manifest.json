@@ -26,7 +26,7 @@
       "page": "kipory-operate/references/packs/events.md"
     },
     "facets": {
-      "hash": "54b8bccf1bf5",
+      "hash": "cf7abbf064a5",
       "page": "kipory-model/references/packs/facets.md"
     },
     "flow-checkpoints": {
@@ -336,7 +336,7 @@
       "page": "kipory-build/references/handlers/telegram.stats.md"
     },
     "term.threshold-gate": {
-      "hash": "e08409fa57aa",
+      "hash": "0e85e32f0dfc",
       "page": "kipory-build/references/handlers/term.threshold-gate.md"
     },
     "term.upsert": {

@@ -56,10 +56,10 @@ both, the model call is paid for only by the values that genuinely needed arbitr
 
 The thresholds come from the facet's own `resolutionParams`, fed to the gate through the resolver
 flow's `params` input rather than configured on the step. A facet with no explicit resolver is bound
-to a platform default at creation and carries `lowThreshold: 0.72`, `highThreshold: 0.92`: at or
+to a platform default at creation and carries `lowThreshold: 0.3`, `highThreshold: 0.8`: at or
 above the high one the match is reused, at or below the low one the value is new (`mint` decides
-what that means), between them the model decides. Short values score low against the terms they mean; the
-`facets` pack has the tuning.
+what that means), between them the model decides. The band is wide because the score finds
+candidates and does not decide; the `facets` pack has the tuning.
 
 `parentTermIdSlot` carries the resolved parent for a hierarchical facet, so a term created in the
 create-new case lands in the right place in the tree rather than at the root.

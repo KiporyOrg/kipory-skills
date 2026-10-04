@@ -2,6 +2,16 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261004.111135 — 2026-10-04
+
+Synced from the Kipory monorepo at `8485918df`.
+
+- changed: `skills/kipory-build/references/handlers/term.threshold-gate.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/references/classification-runtime.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+
 ## 1.20261004.103306 — 2026-10-04
 
 Synced from the Kipory monorepo at `5d8fbfeb2`.

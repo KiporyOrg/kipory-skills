@@ -60,7 +60,7 @@ Output:
 
 #### Too close
 
-Neither reuse nor coin is safe, so the LLM tiebreak decides.
+Neither reuse nor coin is safe, so the tiebreak step decides.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
