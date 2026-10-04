@@ -804,8 +804,8 @@ and a type you give is kept for that input wherever the platform places it.
   `docs.{"id": id}` reads a slot called `id`. Reach into items through a bound variable:
   `$map(docs, function($d){ {"id": $d.id} })`. The same rule makes `undefined` a slot, since
   JSONata has no such literal: to emit nothing, write a conditional with no else
-  (`$count(text) > 0 ? {"text": text}`). The step writes an empty value, which a `slotPresent`
-  guard reads as absent. `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused with
+  (`$count(text) > 0 ? {"text": text}`). The step then stores no slot: a `slotPresent` guard reads
+  it as absent and another expression sees the name unbound. `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused with
   `JSONATA_FORBIDDEN_FUNCTION`.
 
 ### What a step's output type follows
