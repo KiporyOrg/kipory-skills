@@ -27,7 +27,7 @@ The expression is evaluated over one object:
 | `totalTokensIn` · `totalTokensOut` | the run's token totals                                                         |
 | `latencyMs`                        | the run's wall time                                                            |
 
-⚠️ The root is `output`, not `flowOutput` — the preview response's name for the same value. `flowOutput.x = true` reads nothing and fails, its reason ending `— got null`. Examples: `output.urgent = true`, `$count(output.items) >= 3`, `output.category in ["billing", "bug"]`, `$count(errors) = 0`, `output.category = expected.category`.
+⚠️ The root is `output`, not `flowOutput` — the preview response's name for the same value. `flowOutput.x = true` reads nothing and fails, its reason ending `— got {"left":"(nothing)","right":true}`. A failed comparison's reason ends with the two values it compared, `left` and `right`; through `and` they are those of the first part that was false. An expression that compares nothing (a bare function call) gives no values. Examples: `output.urgent = true`, `$count(output.items) >= 3`, `output.category in ["billing", "bug"]`, `$count(errors) = 0`, `output.category = expected.category`.
 
 ## What is deliberately absent
 

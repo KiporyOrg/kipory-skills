@@ -50,6 +50,7 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
 - `flow.merge` is **multi-lane**: `lanes[]` of `{ sourceSlots, outputSlot, strategy }` with strategy `concat`, `list-union` or `dedup-concat`. The output is always a list. The row's `inputStreams` is the dedup of every lane's sources and its `outputSlot` mirrors the first lane.
 - **`onBranchFailure` is a whole-merge policy**: `proceed` (default) merges what succeeded; `fail` writes no lane at all. Under `proceed` a merge where every branch failed writes `[]`. That counts as absent — a `slotPresent` guard on the merged slot holds and a step reading only it skips — but a step that also reads another present slot (the topic, say) still runs, on an empty list. Guard it on the merged slot.
 - A merge must pair with an enclosing fan-out, and the pairing is derived from slot lineage, not creation order. A lane naming a slot no step in the branch writes always merges nothing — the validator says so.
+- A fan-out inside another fan-out's branch multiplies: the plan warns `NESTED_FANOUT` with the worst case, the product of their `maxItems`. A fan-out that reads what an earlier one's merge gathered runs after it, not inside it, and draws no warning.
 - Preview runs at most 5 branches per fan-out by default. `fanOutCap` on the preview body sets that preview-only cap — a number or `"uncapped"` — but never lifts a step's own `maxItems`, the ceiling a live run also has. It reports each truncation in `fanOutCaps` with what capped it.
 
 ## 3. Sub-flow
@@ -57,10 +58,11 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
 **Shape:** `flow.invoke` with `targetFlowId` (in a document: `target`, the flow's key, or `system:<key>`), an ordered `inputs[]` and an `outputs[]`.
 
 - Each input row is `{ kind: "slot", parentSlot, subFlowSlot, path? }` — a parent slot piped in, projected before it crosses — or `{ kind: "literal", subFlowSlot, value }`. **Only mapped slots cross the boundary.**
+- **One parent slot may feed several inputs.** To unpack an object, write one row per field: the same `parentSlot`, a different `path` and `subFlowSlot` on each. Each sub-flow input is filled by one row only.
 - `parentSlot` is parent scope and follows a slot rename; `subFlowSlot` is the sub-flow's and never does.
 - Empty `outputs` means side effects only. `flow.invoke` writes no primary output slot; its outputs are the config's `parentSlot` names.
 - The sub-flow returns only the output slots it binds. `subFlowSlot` in an `outputs[]` row names one of them; a slot a sub-flow step wrote and the sub-flow did not bind never reaches the parent.
-- The validator refuses a cycle, a depth over the limit, a cross-project target, and duplicate input or output rows.
+- The validator refuses a cycle, a depth over the limit, a cross-project target, two input rows that fill the same `subFlowSlot` (`FLOW_INVOKE_DUPLICATE_INPUT`), and two output rows that read the same `subFlowSlot` (`FLOW_INVOKE_DUPLICATE_OUTPUT`). Two input rows reading the same `parentSlot` are not duplicates.
 - **You never state `derivedShape`.** The platform types each `outputs[]` row from the sub-flow step that writes `subFlowSlot` — on a single step save and in a document alike, including for a sub-flow the same document creates. A document that rewrites a sub-flow's steps re-types every step calling it, restated or not; a single step save of the sub-flow does not, so save the calling step again — until then health says `FLOW_INVOKE_DERIVED_SHAPES_STALE`. A mapped slot no sub-flow step writes has no shape.
 - **Leave `inputStreams`, `inputSchemas` and `outputSlot` to the platform.** A step save — single or document — derives the inputs from the `kind: "slot"` input rows (each row's `parentSlot` in row order, its `path` beside it), types them from the flow it calls, and mirrors the first output's `parentSlot` into `outputSlot`. A list you state is replaced by the derived one, in a document as on a single save, so there is nothing to keep in step. Other step fields as in `first-flow.md` §8:
 
