@@ -20,6 +20,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/nodes/{nodeId}/task-models`](#get-v1-nodes-nodeid-task-models) |  |
 | `PUT` | [`/v1/nodes/{nodeId}/task-models/{task}`](#put-v1-nodes-nodeid-task-models-task) |  |
 | `DELETE` | [`/v1/nodes/{nodeId}/task-models/{task}`](#delete-v1-nodes-nodeid-task-models-task) |  |
+| `GET` | [`/v1/nodes/{nodeId}/vendor-prices`](#get-v1-nodes-nodeid-vendor-prices) |  |
 
 ### `GET /v1/ai-models`
 
@@ -233,7 +234,7 @@ Each item of `configOutputSlots`:
 
 ### `GET /v1/nodes/{nodeId}/model-prices`
 
-What each model in the catalog costs at this node — the price a call made here is charged. The models themselves, with no price, are `GET /v1/ai-models`; which model each task runs on here is `GET /v1/nodes/{nodeId}/task-models`.
+What each model in the catalog costs at this node — the price a call made here is charged. The models themselves, with no price, are `GET /v1/ai-models`; which model each task runs on here is `GET /v1/nodes/{nodeId}/task-models`; what a paid fetch — a scrape, a search, a profile read — costs here is `GET /v1/nodes/{nodeId}/vendor-prices`.
 
 **Path parameters**
 
@@ -463,3 +464,32 @@ Stop binding a task at this node. The task then falls to the nearest binding abo
 | `id` | `string` | yes | The task whose binding at this node was cleared — a binding is keyed by its task under the node. |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `bindings` | `object` | yes | The node's bindings after the clear — what `GET /v1/nodes/{nodeId}/task-models` now answers, including what the cleared task falls to. |
+
+### `GET /v1/nodes/{nodeId}/vendor-prices`
+
+What each paid fetch costs at this node — the price a source handler's vendor call is charged, per call or per item, with any included units and floor. These are the platform's prices for a call on the platform's vendor key: a step that spends a vendor key stored on the project or an organisation above it makes no `vendor-fetch` charge, the vendor bills the key's holder. Which operations a handler is charged under is on its reference page. Model prices are `GET /v1/nodes/{nodeId}/model-prices`; what a run was actually charged is `GET /v1/runs/{runId}/spend`, and a project's total `GET /v1/projects/{nodeId}/usage`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The OrgNode to price the catalog for. Prices come from the platform's price rules, which are platform-wide today; the node is the address so a tenant's own price needs no route change. A project's id is its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The node these prices were resolved for. |
+| `prices` | `object[]` | yes | Every vendor operation a handler can be charged under, priced or not. Ordered by `provider`, then `operation`. Bounded by the platform's declared operations, so it is not paged. |
+
+Each item of `prices`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `provider` | `string` | yes | The vendor the operation is fetched from — the value a handler's `provider` config field names where a step may choose one. |
+| `operation` | `string` | yes | The billable operation at that vendor. A handler's reference page lists the `provider/operation` pairs a step on it is charged under. |
+| `unit` | `"call" \| "item"` | yes | What `credits` is the price OF: one call to the vendor, or one item it returns or counts (a post, a place, a review, a credit of the vendor's own). The handler's page says which. |
+| `billing` | `"metered" \| "quota-free"` | yes | `metered` is charged per `unit`. `quota-free` is not charged at all: the vendor bills a daily quota rather than per call. |
+| `credits` | `number \| null` | yes | The charged price in credits (1 credit = 1 µUSD) for ONE `unit`, exact and never negative. A step's `vendor-fetch` charge is this times the units billed, after `includedUnits` and `minimumUnits`, rounded down. Null beside `quota-free` means no charge; null beside `metered` means no price is set for the operation here, so none can be quoted — it is not a statement that the call is free. `0` is a price somebody chose. |
+| `includedUnits` | `integer \| null` | yes | Units that are free per charge event before `credits` applies. A charge event is one request or one job at the vendor: a read that pages makes one per page, a search run as a single job makes one. Counted afresh on each event, not per run or per day. Null when the price includes none. |
+| `minimumUnits` | `integer \| null` | yes | The fewest units one charge event bills, however few the vendor returned — an empty answer still costs this many. Per charge event, as `includedUnits`: a read of five pages owes five floors. Null when the price has no floor. |

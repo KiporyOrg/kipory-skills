@@ -212,12 +212,16 @@ read waits out once when the wait is short.
   quiet source the listing is the whole cost of the poll, and the polling period decides the bill
   far more than the work done per new item. Poll no more often than the source changes, keep
   `maxItems` at what one period can produce, and store each source's own period as data rather
-  than polling every source on one schedule. Measure one poll with the run's spend
-  (`kipory-operate`) before choosing the period: no read quotes a vendor call's price in advance.
+  than polling every source on one schedule. Price one poll before choosing the period: the
+  handler's page names the operations it is charged under (**Charged as**) and
+  `GET /v1/nodes/{nodeId}/vendor-prices` gives each one's credits, included units and floor
+  (`kipory-operate`'s `references/spend.md` reads the row). Then confirm it on one run's spend.
 - **`x.posts` on its default vendor charges a flat fee per call, large beside a small profile.**
   The default vendor bills each call a fixed amount that already covers a few dozen posts, then
   each post beyond them. `provider: "twitterapi"` bills per post returned plus a small account
-  lookup, so for a profile read of a few posts it costs far less. Set `provider` on the step, and
+  lookup, so for a profile read of a few posts it costs far less. The figures are the
+  deployment's: read them from `GET /v1/nodes/{nodeId}/vendor-prices` and compare the vendors for
+  the number of posts one poll returns. Set `provider` on the step, and
   `fallback: false` if a failure there should not be answered — and billed — by the default
   vendor (footnote ¹).
 - **A screenshot is the full page, and a long page is a very large image.** `url.screenshot`

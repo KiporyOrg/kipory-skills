@@ -137,7 +137,7 @@ A machine caller has no statement of its own: `GET /v1/credits/events` scopes to
 - **Config `version` is required when the namespace exists and ignored on create.** A stale one is a 409; re-read and reconcile. Two replacements, at two levels: the POST's `data` replaces the namespace's whole override map, and inside it an override replaces its whole top-level field, never merging into the default.
 - **`usage` defaults to seven days and excludes platform-paid work**; `window=custom` takes `from` and `to` as RFC 3339 instants, `to` exclusive (`references/spend.md`).
 - **Previews and eval runs start no trigger of their own — a processing handoff still does.** An `event.emit` during a preview or an eval run is checked and dropped: it is never recorded in `GET /v1/project-events` and starts nothing. To test the trigger half, feed `GET /v1/triggers/{id}/sample` to a preview of the triggered flow. But an `entity.enqueue-process` step hands the record to its processing flow, which runs live once the write applies, and that flow's events publish and start every matching trigger like any live run's (`kipory-prove`).
-- **Model prices are a read; the compute rate, vendor prices and the held-storage rates are not** — measure those from the charges on `/spend` (`references/spend.md`).
+- **Model prices and vendor prices are reads; the compute rate and the held-storage rates are not.** `GET /v1/nodes/{nodeId}/model-prices` and `GET /v1/nodes/{nodeId}/vendor-prices` quote in credits before anything is spent; measure the other two from the charges on `/spend` (`references/spend.md`).
 
 ## References
 

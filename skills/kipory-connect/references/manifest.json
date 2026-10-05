@@ -10,7 +10,7 @@
       "page": "kipory-build/references/packs/authoring-order.md"
     },
     "credits": {
-      "hash": "151e790ce602",
+      "hash": "4c41597e8868",
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embedding-profiles": {
@@ -946,7 +946,7 @@
       "hash": "ec71b78b3d35"
     },
     "GET /v1/nodes/{nodeId}/model-prices": {
-      "hash": "75f6318ca2e2",
+      "hash": "ebe1bcc03e99",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/nodes/{nodeId}/routing": {
@@ -955,6 +955,10 @@
     },
     "GET /v1/nodes/{nodeId}/task-models": {
       "hash": "48b3c5d9b01a",
+      "page": "kipory-build/references/api/handlers-and-models.md"
+    },
+    "GET /v1/nodes/{nodeId}/vendor-prices": {
+      "hash": "6d5e73d374d7",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/organizations/{nodeId}/ledger": {

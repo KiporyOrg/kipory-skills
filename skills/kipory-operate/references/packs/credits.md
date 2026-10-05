@@ -12,7 +12,9 @@ statement of charges. One credit is one micro-USD, and every amount on this surf
 
 These two reads are your own consumption. Prices are read elsewhere: `GET
 /v1/nodes/{nodeId}/model-prices` (at the project's id) quotes each model in credits per million
-tokens, minute or search. The per-second compute rate and the held-storage rates are not listed
+tokens, minute or search, and `GET /v1/nodes/{nodeId}/vendor-prices` quotes each paid fetch — a
+scrape, a search, a profile read — in credits per call or per item, with the units a charge
+includes and the fewest it bills. The per-second compute rate and the held-storage rates are not listed
 anywhere a key can read: derive the compute rate from any `handler-run` charge on
 `GET /v1/runs/{runId}/spend` (`credits ÷ units`).
 
@@ -229,8 +231,13 @@ run and a reprocess cost — is stated once, in the `kipory-operate` skill's `re
 - **Expecting a key to spend a member's wallet.** It never does; the project pays for key traffic.
 - **Reading `perUserSpendCap` with a falsy check**, which erases a zero ceiling into "unlimited".
 - **Expecting the tenant's charges.** This is one caller's own; breadth of grant does not widen it.
-- **Looking for the compute rate here.** Model prices are `GET /v1/nodes/{nodeId}/model-prices`;
-  the per-second rate is read off a `handler-run` charge.
+- **Looking for the compute rate here.** Model prices are `GET /v1/nodes/{nodeId}/model-prices`
+  and vendor prices `GET /v1/nodes/{nodeId}/vendor-prices`; the per-second rate is read off a
+  `handler-run` charge.
+- **Paying for a vendor call to learn its price.** Two vendors of one handler can differ several
+  times over for the same read; `vendor-prices` says so before the first call. A row with
+  `includedUnits` or `minimumUnits` is not a flat per-item price: work the charge out per vendor
+  call.
 
 ## Related
 

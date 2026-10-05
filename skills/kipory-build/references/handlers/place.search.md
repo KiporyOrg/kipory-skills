@@ -12,6 +12,7 @@ Find the places a map lists for a query, like a category in a town.
 - **Suggested input streams:** `query`
 - **External dependency:** Apify — Runs an Apify actor that searches the map. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
+- **Charged as:** `apify/maps-search-place` per item — a place the search returned. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; a step spending a stored vendor key is not charged it.
 - **Rate limit:** 30 per min in bucket `apify` — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 

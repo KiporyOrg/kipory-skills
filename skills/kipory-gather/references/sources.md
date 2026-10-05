@@ -195,6 +195,12 @@ not per item, and the page size is the source's: most return twenty or so, `face
 returns three. Read the handler page's `maxItems` line before raising it. The map reads are
 priced the other way, per place and per review.
 
+What each of these costs is a read, not a measurement: a handler's page lists the operations a
+step is charged under, per vendor, in its **Charged as** line, and
+`GET /v1/nodes/{nodeId}/vendor-prices` prices every one in credits per call or per item, with the
+units a call includes and the fewest it bills. Where a handler offers more than one vendor,
+compare them there before the first run; the default is not always the cheapest for a small read.
+
 The cache is what makes this bearable. A re-run inside the window makes no vendor call and pays no
 vendor price; the step still pays its one-second compute minimum, and whatever runs downstream of
 it is charged on its own terms. That is why the windows are long for slow-moving facts and short

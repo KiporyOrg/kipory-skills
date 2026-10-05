@@ -12,6 +12,7 @@ Look up a YouTube video's details, numbers, and thumbnail.
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** YouTube Data API — Reads video metadata and statistics from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube handler. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
+- **Charged as:** `youtube/video` (not charged). A step makes no vendor charge; it is charged its compute only.
 - **Rate limit:** 60 per min in bucket `youtube` — shared with `youtube.channel`, `youtube.trending`
 - **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 7 days — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
