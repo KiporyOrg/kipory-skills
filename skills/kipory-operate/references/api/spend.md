@@ -420,6 +420,7 @@ What one project spent over a window, by kind of billable work — split by kind
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 | `by` | `"kind" \| "skill" \| "model" \| "handler" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work, which is the split the other spend pages cannot show. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
+| `flows` | `"1"` | no | Pass `1` to also split the window's credits by the flow whose runs spent them, as `flows`. Under the same scope and narrowing as every other figure here. `flows` is null without it. |
 
 **Response `200`**
 
@@ -438,6 +439,7 @@ What one project spent over a window, by kind of billable work — split by kind
 | `caps` | `object` | yes | The project's spend ceilings and how close each is. Measured on the ceilings' own windows, not the page's. |
 | `payer` | `object \| null` | yes | The wallet this project's work settles to. `null` when no wallet resolves anywhere above it, in which case the work is served unbilled and the platform records the fact elsewhere. |
 | `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but handler runs, which are most of the events and charge nothing. Only cells with events are listed. |
+| `flows` | `object \| null` | yes | The window's credits by the flow whose runs spent them, when `flows=1` was sent. `null` when it was not sent, or when the window holds too many runs to split — never an empty split for a window that was not counted. |
 
 Each item of `buckets`:
 
