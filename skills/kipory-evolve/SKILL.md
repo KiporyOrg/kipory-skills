@@ -142,9 +142,8 @@ you exported before a change. Planning it and applying it — with the project's
 (export again, or take it from the plan), not the old export's, which answers `409` — puts its rows back — a row deleted
 since returns as a new row with a new id, and a row added since stays unless the document says
 `prune` — under the same refusals as any other apply. It covers configuration only: no records,
-no vectors, no secret values. A deleted record type's inline shape outlives it as a shared schema
-entry, and the rollback's inline shape takes that entry back by the `id` it carries, so the type
-returns owning the same shape — keep the `id` on the inline shape. A schedule's or trigger's `enabled` travels: one the rollback re-creates comes back in the
+no vectors, no secret values. Deleting a record type leaves the schema entry it took its shape
+from, so the rollback re-creates the type on that same entry. A schedule's or trigger's `enabled` travels: one the rollback re-creates comes back in the
 state the export recorded. What it does not restore as you left them:
 
 - **A field added since the export cannot be rolled back off a type with records.** Re-applying the

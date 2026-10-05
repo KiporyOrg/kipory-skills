@@ -39,11 +39,11 @@ Each item of `recordTypes`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Record type id — the address for every type verb. |
-| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference, not ownership — the entry is edited on its own surface and renaming it does not break this link. |
+| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference — other types, events and links may use the same entry, and renaming it does not break this link. |
 | `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The record type's key. |
-| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. A shape the type owns is edited with `definition` on `PATCH /v1/record-types/{id}`; a shared one on its schema entry. |
+| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. Edited with `definition` on `PATCH /v1/record-types/{id}` or on the schema entry itself: the same entry either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
@@ -75,7 +75,7 @@ Each item of `recordTypes`:
 
 ### `POST /v1/record-types`
 
-Create a record type that takes its data shape from an existing schema entry. With `validateOnly: true` it answers whether the create would be refused, writing nothing. A type with a shape of its OWN, several types at once, or a type together with the flow that processes it is one call to `POST /v1/projects/{nodeId}/document` (check it first with its `/plan`).
+Create a record type that takes its data shape from an existing schema entry. With `validateOnly: true` it answers whether the create would be refused, writing nothing. A type together with a new schema entry, several types at once, or a type together with the flow that processes it is one call to `POST /v1/projects/{nodeId}/document` (check it first with its `/plan`).
 
 **Request body**
 
@@ -83,7 +83,7 @@ Create a record type that takes its data shape from an existing schema entry. Wi
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the type. |
 | `key` | `string` | yes | The record type's key. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
-| `dataEntryId` | `string` | yes | Existing schema entry in the same project that defines the type's data shape. On this route a shape is always an entry that already exists. To declare a type together with a shape of its OWN, state it inline in a project document (`records.<name>.shape`); an entry another record type owns is refused here with SCHEMA_ENTRY_OWNED. |
+| `dataEntryId` | `string` | yes | Existing schema entry in the same project that defines the type's data shape. A shape is always an entry that already exists; a project document creates the entry and the type in one apply. |
 | `description` | `string \| null` | no | This type's own description, separate from the entry's. |
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this type: `user` for one person's own records, `project` for the project's shared content pool. Required — it is immutable once the type has records, so there is no safe default. |
@@ -135,11 +135,11 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Record type id — the address for every type verb. |
-| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference, not ownership — the entry is edited on its own surface and renaming it does not break this link. |
+| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference — other types, events and links may use the same entry, and renaming it does not break this link. |
 | `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The record type's key. |
-| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. A shape the type owns is edited with `definition` on `PATCH /v1/record-types/{id}`; a shared one on its schema entry. |
+| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. Edited with `definition` on `PATCH /v1/record-types/{id}` or on the schema entry itself: the same entry either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
@@ -251,11 +251,11 @@ Read one record type by id, with any `expand` sections — the derived contract,
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Record type id — the address for every type verb. |
-| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference, not ownership — the entry is edited on its own surface and renaming it does not break this link. |
+| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference — other types, events and links may use the same entry, and renaming it does not break this link. |
 | `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The record type's key. |
-| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. A shape the type owns is edited with `definition` on `PATCH /v1/record-types/{id}`; a shared one on its schema entry. |
+| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. Edited with `definition` on `PATCH /v1/record-types/{id}` or on the schema entry itself: the same entry either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
@@ -339,7 +339,7 @@ Each item of `processingGaps`:
 
 ### `PATCH /v1/record-types/{id}`
 
-Update one record type: its key, description, shape (`dataEntryId` to point at another entry, or `definition` to rewrite the shape the type owns), flow, owner scope or `uses`. With `validateOnly: true` it writes nothing and answers the save's own verdict, plus what the save would compute: the columns and projections it writes, whether it reindexes, restamps or re-embeds, the contract a shape or flow move leaves (`derived.contract`), the verification of a natural key `uses` declares (`derived.naturalKey`), and what each keyword of a sent `definition` would do (`derived.keywordVerdicts`). A shared shape is edited with `PATCH /v1/schema-entries/{id}`; several rows at once go through `POST /v1/projects/{nodeId}/document`.
+Update one record type: its key, description, shape (`dataEntryId` to point at another entry, or `definition` to rewrite that entry's shape), flow, owner scope or `uses`. With `validateOnly: true` it writes nothing and answers the save's own verdict, plus what the save would compute: the columns and projections it writes, whether it reindexes, restamps or re-embeds, the contract a shape or flow move leaves (`derived.contract`), the verification of a natural key `uses` declares (`derived.naturalKey`), and what each keyword of a sent `definition` would do (`derived.keywordVerdicts`). `definition` rewrites the entry for every type, event and link that uses it; the same edit is `PATCH /v1/schema-entries/{id}`. Several rows at once go through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -353,7 +353,7 @@ Update one record type: its key, description, shape (`dataEntryId` to point at a
 | --- | --- | --- | --- |
 | `key` | `string` | no | The record type's new key. Refused once the type has records, or while a flow step names it. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
 | `dataEntryId` | `string` | no | Point the type at a different schema entry. Refused once the type has records. Omit to keep the current one. |
-| `definition` | `object` | no | Replace the type's OWN shape — the JSON Schema of the entry this type owns (its inline `shape` in a project document) — wholesale, with the rules a document's inline shape meets: field names, an object schema, keywords something reads, a removed field no stored record still holds, the bound flow's binding, and every captured signature it re-shapes (refused 409 `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`; restate the shape in a project document with `adoptSnapshots` for that). Saved with the type in one transaction, and the entry is named in `touched`. Refused 422 for a type whose shape is a shared entry (edit it with `PATCH /v1/schema-entries/{id}`), and together with `dataEntryId`. |
+| `definition` | `object` | no | Replace the type's shape — the JSON Schema of the entry this type points at — wholesale, with the rules `PATCH /v1/schema-entries/{id}` meets: field names, an object schema, keywords something reads, a removed field no stored record still holds, every other row that uses the entry, the bound flow's binding, and every captured signature it re-shapes (refused 409 `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`; restate the shape in a project document with `adoptSnapshots` for that). Saved with the type in one transaction, and the entry is named in `touched`. Refused 422 together with `dataEntryId`. |
 | `description` | `string \| null` | no | This type's own description, separate from the entry's. |
 | `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
 | `ownerScope` | `"user" \| "project"` | no | Change who owns records of this type. Refused once the type has records. Omit to keep. |
@@ -366,11 +366,11 @@ Update one record type: its key, description, shape (`dataEntryId` to point at a
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Record type id — the address for every type verb. |
-| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference, not ownership — the entry is edited on its own surface and renaming it does not break this link. |
+| `dataEntryId` | `string` | yes | Schema entry this type takes its data shape from. A reference — other types, events and links may use the same entry, and renaming it does not break this link. |
 | `dataEntryKey` | `string` | yes | Current key of that schema entry, for display. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The record type's key. |
-| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. A shape the type owns is edited with `definition` on `PATCH /v1/record-types/{id}`; a shared one on its schema entry. |
+| `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the entry this type references. Edited with `definition` on `PATCH /v1/record-types/{id}` or on the schema entry itself: the same entry either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This type's own description, separate from the schema entry's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this type. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
@@ -488,7 +488,7 @@ Each item of `consequences`:
 
 ### `DELETE /v1/record-types/{id}`
 
-Delete one record type. Refused (409) while records of it exist, and for a seeded or reserved type. Relation kinds paired only with it go with it, and other types' `joins` it voids are cleared — both reported. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with `derived.dependents`: the records that refuse it and the relation kinds and joins it would take along. The type's own shape outlives it as a shared schema entry. Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+Delete one record type. Refused (409) while records of it exist, and for a seeded or reserved type. Relation kinds paired only with it go with it, and other types' `joins` it voids are cleared — both reported. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with `derived.dependents`: the records that refuse it and the relation kinds and joins it would take along. The schema entry it took its shape from stays. Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 

@@ -28,7 +28,7 @@ Public: no credential needed.
 | --- | --- | --- | --- |
 | `kipory` | `2` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
-| `schema` | `object` | no | Shared shapes, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `schema` | `object` | no | Shapes, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `records` | `object` | no | Record types, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `relations` | `object` | no | Relation kinds, with their pairings, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `facets` | `object` | no | Facets, with their terms, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
@@ -100,6 +100,8 @@ Apply a project document: every row it names is created, changed or removed thro
 | `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
+| `contracts` | `object` | no | On a plan: the contract each record type the document CREATES would have, by the record type's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/record-types/{id}` with `validateOnly`, for a type that has no row to ask yet. Absent when the document creates no record type, and on an apply. |
+| `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a record type that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
 | `applied` | `true` | yes | The document is now the project's configuration. Also true when it changed nothing — nothing was written, and the project already says what the document says. |
@@ -167,6 +169,8 @@ _No fields._
 | `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
+| `contracts` | `object` | no | On a plan: the contract each record type the document CREATES would have, by the record type's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/record-types/{id}` with `validateOnly`, for a type that has no row to ask yet. Absent when the document creates no record type, and on an apply. |
+| `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a record type that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
 

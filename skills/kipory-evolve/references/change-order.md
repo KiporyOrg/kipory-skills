@@ -89,12 +89,9 @@ invalidates every record that lacks it. So it is four steps, never one, in this 
 4  make it required                     → now nothing is invalidated
 ```
 
-**Where the shape is edited depends on who owns it.**
-
-| The shape is                                                                                                                                                       | Edit it with                                                                         | The other route refuses it |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------ | -------------------------- |
-| owned by the type — stated inline as `records.<key>.shape` in the document that made it (a type made with `POST /v1/record-types` always points at a shared entry) | `PATCH /v1/record-types/{id}` with `definition`, or the inline `shape` in a document | `SCHEMA_ENTRY_OWNED`       |
-| a shared schema entry — one the type points at with `dataEntryId`                                                                                                  | `PATCH /v1/schema-entries/{id}`, or under `schema` in a document                     | `RECORD_TYPE_SHAPE_SHARED` |
+**Two routes edit a shape.** `PATCH /v1/schema-entries/{id}` (or the entry under `schema` in a
+document) edits it alone. `PATCH /v1/record-types/{id}` with `definition` edits it together with a
+record type shaped by it, in one save. Both judge every row that uses the entry.
 
 **A published contract freezes the shape.** While a flow that reads the shape is frozen into a
 published contract — an endpoint in front of it, or a record type whose processing flow (`flowId`)
@@ -103,18 +100,19 @@ holders (`details` only counts them by kind), unless it carries `adoptSnapshots:
 
 - The schema-entry PATCH and a document take that flag.
 - The record-type PATCH does not — it is an unrecognised key there, whatever the 409's message
-  says. So an owned shape behind an endpoint or a processing flow is edited, and rehearsed, through
-  a document, with the flag inside the inline shape:
-  `"records": { "contact": { "shape": { "definition": { … }, "adoptSnapshots": true } } }`.
+  says. So a shape behind an endpoint or a processing flow is edited, and rehearsed, through the
+  schema-entry PATCH or a document, with the flag on the shape:
+  `"schema": { "Contact": { "definition": { … }, "adoptSnapshots": true } }`.
 - Schedules and triggers freeze nothing, so the 409 neither names nor waits for them.
 
 **Rehearse steps 1 and 4 before sending them.**
 
-- A shape the type owns: the record-type PATCH with `validateOnly: true` and the drafted
-  `definition` (or the proposed `dataEntryId`) answers `derived.contract`, the vocabulary it would
-  give the type. Behind a published contract, the document plan is the rehearsal.
-- A shared entry: the schema-entry PATCH with `validateOnly: true` (and `adoptSnapshots: true`)
-  answers whether the edit is allowed and what it does to stored data.
+- Through the type: the record-type PATCH with `validateOnly: true` and the drafted `definition`
+  (or the proposed `dataEntryId`) answers `derived.contract`, the vocabulary it would give the
+  type. Behind a published contract, the document plan is the rehearsal.
+- Through the entry: the schema-entry PATCH with `validateOnly: true` (and `adoptSnapshots: true`)
+  answers whether the edit is allowed and what it does to stored data. It is the same entry
+  either way, and an edit reaches every type, event and link that uses it.
 - Either way the answer carries `records-invalid` under `consequences`, and the flows, schedules
   and triggers the edit would break — the PATCH lists them under `leavesBehind`, the plan among its
   findings, each with `introduced`.
@@ -348,8 +346,7 @@ Keep the response. It is the only record of what a change reached.
 **Before.** Take a checkpoint if a flow is involved — it is the only rollback the platform offers.
 Export the document (`GET /v1/projects/{nodeId}/document`) and keep it — and, if a relation kind
 may go, its edges (`GET /v1/relations?project=<node>&link=<kind>`), which no export carries.
-Re-applied later, that export is the rollback: a type it re-creates takes back the inline shape its
-delete left behind, and a schedule or trigger it re-creates keeps the `enabled` it recorded.
+Re-applied later, that export is the rollback: a schedule or trigger it re-creates keeps the `enabled` it recorded.
 Read `GET /v1/bootstrap` so you know what the project holds, then `GET /v1/record-types/{id}` for
 each type you touch — its `hasRecords` and `recordCount` (the bootstrap rows omit them) say which
 changes are migrations — and note the `structureVersion` you are starting from. (`GET

@@ -95,7 +95,7 @@ The loop is **export → edit → plan → read → apply**. A plan is not a sim
 - **Plan a large document as it grows**: shapes and facets, then record types, then flows, then endpoints. Apply once, when the whole plans clean.
 - **An `ok` plan has already run health** on every flow the document can move, so `/health` after the apply is a confirmation.
 
-`references/document.md` has every rule — what is permanent, inline shapes, how steps keep their ids, what a document derives for a step, the size limits. `references/packs/project-document.md` carries the reference forms, and `references/packs/authoring-order.md` says what must exist before what if you author row by row anyway.
+`references/document.md` has every rule — what is permanent, how a shape is stated, how steps keep their ids, what a document derives for a step, the size limits. `references/packs/project-document.md` carries the reference forms, and `references/packs/authoring-order.md` says what must exist before what if you author row by row anyway.
 
 ## If a facet sent you here
 

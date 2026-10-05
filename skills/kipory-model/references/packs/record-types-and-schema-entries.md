@@ -49,27 +49,18 @@ PATCH /v1/record-types/{id}   bind a flowId to make it flow-backed; replace `use
 POST /v1/schema-entries/seed
 ```
 
-### A shape of the type's own
+### A type and its shape together
 
-A shape only one record type will ever use does not have to be a shared registry entry. In a
-project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`), state the shape INLINE under the type —
-`records.<key>.shape` as the shape itself rather than an entry's key — and one apply creates the
-entry, the record type and the ownership together. Such an entry is OWNED:
-
-- it is edited only through its record type's `shape`; a registry PATCH answers
-  `SCHEMA_ENTRY_OWNED`, naming the type. A registry PATCH that lands answers the row and its
-  `touched` list — every event type and record type whose version moved with it — as the record
-  type and flow PATCHes do;
-- no other record type, event payload, relation kind, config namespace or profile may use it —
-  same code, same naming. A flow's slots and a step's schema references MAY name it: the type's
-  own processing flow has to;
-- the registry read marks it `owned: { recordType }`, and the document exports it nested under
-  its owner and not under `schema`.
-
-`POST /v1/schema-entries/{id}/promote` with the entry's `version` makes it an ordinary shared
-entry. It is one way — by then other rows may depend on it — and it changes no shape and re-points
-nothing. Deleting the owning record type — or re-pointing it at another shape — releases the shape
-the same way rather than deleting it or stranding it.
+A record type always points at a schema entry, and an entry is nobody's: any record type, event
+payload, relation kind, config namespace, profile or flow slot may use it. To make an entry and
+the record type shaped by it in one step, state both in a
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the entry under `schema`, the type under `records`
+with `shape` naming the entry's key. To edit a type's shape together with the type (its `uses`,
+its flow), send `definition` on `PATCH /v1/record-types/{id}`, or state the entry and the type in
+one document. Either way every other row that uses the entry is judged by the edit, as on
+`PATCH /v1/schema-entries/{id}`. A registry PATCH that lands answers the row and its `touched`
+list — every event type and record type whose version moved with it — as the record type and
+flow PATCHes do.
 
 Both are scoped by `project`. Reads take useful expansions: the synthesised derived output shape,
 a **drift** verdict, and the type-relation graph.
@@ -158,7 +149,7 @@ For a type you have **not created yet**, send the create body to
 `POST /v1/schema-entries` with `validateOnly: true`: the same
 `derived.keywordVerdicts`, for a type nothing binds — which is what a new type is
 until something does — beside the create's own verdict. It needs EDITOR on the
-project node. A record type's OWN shape is asked through its type:
+project node. A record type's shape can also be asked through the type:
 `PATCH /v1/record-types/{id}` with `definition` and `validateOnly: true` answers
 the same `derived.keywordVerdicts`.
 
@@ -997,7 +988,7 @@ proposes it with `validateOnly: true`:
 ```
 PATCH /v1/record-types/{id}
 { "dataEntryId": "<entry>", "version": 7, "validateOnly": true }   // another shape
-{ "definition": { /* the type's own shape, drafted */ }, "version": 7, "validateOnly": true }
+{ "definition": { /* the type's shape, drafted */ }, "version": 7, "validateOnly": true }
 { "flowId": "<flowId>" | null, "version": 7, "validateOnly": true }
 ```
 
@@ -1031,15 +1022,14 @@ beside the refusal. A refusal raised before that (an ineligible entry, a flow in
 carries none.
 
 `definition` is a real write, not only a question: **`PATCH /v1/record-types/{id}` with
-`definition` replaces the type's OWN shape** — the entry it owns, its inline `shape` in a project
-document — with the rules a document's inline shape meets, in one transaction with the type; the
-entry comes back in `touched`. It is refused 422 for a type whose shape is a shared entry
-(`RECORD_TYPE_SHAPE_SHARED` — edit that entry with `PATCH /v1/schema-entries/{id}`) and together
+`definition` replaces the shape of the entry the type points at** — with the rules
+`PATCH /v1/schema-entries/{id}` meets, every other row that uses the entry included — in one
+transaction with the type; the entry comes back in `touched`. It is refused 422 together
 with `dataEntryId` (`RECORD_TYPE_DEFINITION_WITH_DATA_ENTRY`). An edit that re-shapes a signature
 an endpoint or this type froze is refused 409 `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`; re-send it
 through a project document with `adoptSnapshots` on the shape. Its dry run also answers
-`derived.keywordVerdicts` for the drafted document — on a refused draft too, but not on the two
-refusals above, where the draft is not the type's own shape to judge. Send `flowId` beside
+`derived.keywordVerdicts` for the drafted document — on a refused draft too, but not on the
+refusal above, where no draft is judged. Send `flowId` beside
 `definition` to re-bind in the same save: the new flow is judged against the new shape, and the
 flow being replaced no longer is.
 

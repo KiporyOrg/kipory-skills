@@ -54,7 +54,7 @@ GET  /v1/record-types/{id}?expand=uses         where each use landed, and which 
 PATCH /v1/record-types/{id} validateOnly:true  what your PATCH body would do — derived declarations, reindex, restamp, the contract a
                                                shape or flow move leaves (`derived.contract`), the verdict a `key` use gets
                                                (`derived.naturalKey`) — writing nothing
-PATCH /v1/record-types/{id} definition         rewrite the shape the type OWNS (its inline `shape`); a shared one is edited on its entry
+PATCH /v1/record-types/{id} definition         rewrite the shape of the entry the type points at — for every type, event and link that uses it
 ```
 
 **A type and its processing flow name each other, so one of them goes first.** The flow's steps name the type by key and its input uses the type's shape; the type names the flow by id. Create the type without `flowId`, build the flow (`kipory-build`), then `PATCH /v1/record-types/{id} { flowId, version }` — or state the shape, the type and the flow in one project document, which orders them for you. Add a `processed` field to `uses` only after the flow is bound: until then the type has no such field to name.

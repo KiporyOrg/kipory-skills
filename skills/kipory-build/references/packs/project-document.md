@@ -11,7 +11,7 @@
 A project's whole configuration — its shapes, record types, relations, facets, events, flows,
 entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
 ownership: a flow's steps sit under the flow, a facet's terms under the facet, a suite's cases under
-the suite, a record type's own shape under the record type. Ids are optional; the platform fills
+the suite. Ids are optional; the platform fills
 them in on export and matches by them on apply. The document you write is the document the
 platform hands back.
 
@@ -99,16 +99,15 @@ re-applies as unbound rather than picking up a resolver on the way back in. A re
 state `properties: null` and the kind carries none. An export leaves the field out when there is
 none, so it re-applies without touching what a project already holds. A facet states no
 `binding`: a term attaches to the whole record, an export carries no such field, and a document
-that states one breaks the schema on that facet's path. A shape may be stated
-inline under the record type that uses it,
-in which case that record type OWNS it: the shape is edited only through the type, and every
-other consumer is refused until it is promoted to a shared entry.
+that states one breaks the schema on that facet's path. A shape is always stated under
+`schema`, and a record type names it by key.
 
-Editing an owned shape and its owner's `uses` in the same row is ONE change: when the row states
-`uses`, the owner's search and link declarations are judged against those uses and the new shape
-together, so removing a field along with the uses that name it plans clean. With `uses` left out,
-the stored declarations are judged against the new shape, and a field they still name cannot be
-removed. A record type's `uses` names each field's use as the record-type API does — `filter`,
+Editing a shape and the `uses` of a record type shaped by it in the same document is ONE change:
+when the type's row states `uses`, its search and link declarations are judged against those uses
+and the new shape together, so removing a field along with the uses that name it plans clean. With
+`uses` left out, the stored declarations are judged against the new shape, and a field they still
+name cannot be removed. Every other record type shaped by the same entry is judged on its stored
+declarations either way. A record type's `uses` names each field's use as the record-type API does — `filter`,
 `key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or `system`, and
 `uses.search` carries no `stages`: a search slot reads exactly one field the record stores, and a
 profile under `vectors` defaults only `defaultChunking`.
@@ -193,6 +192,13 @@ The answer holds the `version` the project was read at — the lock an apply pre
 - `ok` — true exactly when no `error` the document introduces remains; an error carrying
   `introduced: false` was already in the project and does not gate. An apply of the same document
   commits exactly when this is true.
+
+A plan that CREATES a record type also answers that type's contract under `contracts`, by the
+type's key: its fields, each with the index type a filter on it would get, and what the bound flow
+would add. It is what `derived.contract` answers on `PATCH /v1/record-types/{id}` with
+`validateOnly`, for a type that has no row to ask yet — read it to decide a new type's `uses`
+before the apply. `supportedUses` rides beside it: the use kinds this deployment reads, so offer a
+new type no other. A type the document only restates is not listed, and an apply carries neither.
 
 A row is `skipped` when something it names was refused; `because` holds the path of the refused
 row. Fix that row and plan again — the skipped rows were never judged, so they may still hold
@@ -328,13 +334,8 @@ its ids are ignored and its keys are the content.
 
 Keep the export you took before a change: applying it again, with the project's CURRENT
 `version`, puts its rows back. A row deleted since returns as a new row with a new id, and a row
-added since stays unless the document says `prune`. A deleted record type's inline shape is not
-deleted with it — it stays as a shared entry of the same key — and the export's inline shape
-takes that entry back, so the type returns owning the same shape, id and all. It is matched by
-the `id` the export's inline shape carries — keep it — never by key: an inline shape without that
-`id` whose key an existing entry holds is refused `SCHEMA_KEY_DUPLICATE`. It is
-taken back only while nothing else holds it: stated under `schema` in the same document, or the
-shape of another record type, it stays shared, and the inline shape is refused the same way.
+added since stays unless the document says `prune`. Deleting a record type does not delete
+the schema entry it took its shape from.
 
 ## Make a project equal a document
 

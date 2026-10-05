@@ -15,7 +15,6 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/schema-entries/{id}`](#get-v1-schema-entries-id) |  |
 | `PATCH` | [`/v1/schema-entries/{id}`](#patch-v1-schema-entries-id) |  |
 | `DELETE` | [`/v1/schema-entries/{id}`](#delete-v1-schema-entries-id) |  |
-| `POST` | [`/v1/schema-entries/{id}/promote`](#post-v1-schema-entries-id-promote) |  |
 | `POST` | [`/v1/schema-entries/seed`](#post-v1-schema-entries-seed) |  |
 
 ### `GET /v1/schema-entries`
@@ -42,7 +41,6 @@ Each item of `entries`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `owned` | `object \| null` | yes | Set when this entry is a record type's OWN shape — declared inline under it in a project document. It is edited only through that type (a PATCH here is refused with SCHEMA_ENTRY_OWNED) and no other consumer may use it until it is promoted (POST /v1/schema-entries/{id}/promote). NULL is a shared entry, which is every entry created through this registry. Catalog entries are never owned. |
 | `id` | `string` | yes | Entry id — the stable handle references resolve by. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The type's key. |
@@ -67,7 +65,7 @@ Each item of `entries`:
 
 ### `POST /v1/schema-entries`
 
-Create a shared type — a JSON Schema document other rows (record types, event types, config namespaces, relation kinds, flow slots) may reference. With `validateOnly: true` it answers whether the create would be refused, writing nothing, and what each keyword of the definition would do (`derived.keywordVerdicts`). A record type's OWN shape is created with it in a project document (`records.<name>.shape`, `POST /v1/projects/{nodeId}/document`), which also creates several types at once.
+Create a type — a JSON Schema document other rows (record types, event types, config namespaces, relation kinds, flow slots) may reference. With `validateOnly: true` it answers whether the create would be refused, writing nothing, and what each keyword of the definition would do (`derived.keywordVerdicts`). A type together with the record type shaped by it, or several types at once, is one call to `POST /v1/projects/{nodeId}/document`.
 
 **Request body**
 
@@ -159,7 +157,7 @@ Read one of a project's own types by id. What references it, whether it can be a
 
 ### `PATCH /v1/schema-entries/{id}`
 
-Update one shared type's key, description or definition. An edit that re-shapes a flow signature a row has captured is refused (409) unless `adoptSnapshots` is set. With `validateOnly: true` it rehearses the edit and answers the verdict, what it would leave broken and which stored records would stop fitting, and what each keyword of the definition would do (`derived.keywordVerdicts`), writing nothing. A record type's own shape is edited with `PATCH /v1/record-types/{id}` (`definition`); several rows at once go through `POST /v1/projects/{nodeId}/document`.
+Update one type's key, description or definition. An edit that re-shapes a flow signature a row has captured is refused (409) unless `adoptSnapshots` is set. With `validateOnly: true` it rehearses the edit and answers the verdict, what it would leave broken and which stored records would stop fitting, and what each keyword of the definition would do (`derived.keywordVerdicts`), writing nothing. A record type's shape can also be edited together with the type, with `PATCH /v1/record-types/{id}` (`definition`); several rows at once go through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -238,7 +236,7 @@ Each item of `consequences`:
 
 ### `DELETE /v1/schema-entries/{id}`
 
-Delete one shared type. Refused (409) while anything references it — a record type's shape, an event type's payload, a config namespace, a relation kind, the end-user profile, or a flow, step or type in the project's type-relation graph. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with the count of each kind of reference (`derived`). Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+Delete one type. Refused (409) while anything references it — a record type's shape, an event type's payload, a config namespace, a relation kind, the end-user profile, or a flow, step or type in the project's type-relation graph. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with the count of each kind of reference (`derived`). Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 
@@ -273,36 +271,6 @@ Each item of `diagnostics`:
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
-### `POST /v1/schema-entries/{id}/promote`
-
-Make a record type's own shape a shared type, so other rows may reference it and `PATCH /v1/schema-entries/{id}` may edit it. One way: nothing makes a shared type owned again. Its shape is unchanged; until promoted it is edited through its owner, `PATCH /v1/record-types/{id}` with `definition`.
-
-**Path parameters**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | The type's id, as returned when it was created or listed. |
-
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `version` | `integer` | yes | The entry's `version` as you last read it. Required. Refused with 409 VERSION_CONFLICT when the entry moved since — or was promoted by someone else in the meantime. |
-
-**Response `200`**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `id` | `string` | yes | Entry id — the address for read, patch, delete, and the stable handle other schemas reference. `key` is editable; this is not. |
-| `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | The type's key, as you see it in the editor. Editable — references resolve by id, so renaming breaks nothing. |
-| `provenance` | `"operator"` | yes | Always `operator` here: this route only writes types you authored. The read endpoint returns platform-supplied tiers too. |
-| `definition` | `unknown` | no | The type itself, as a JSON Schema document with an object at the top. |
-| `description` | `string \| null` | yes | Your note about what this type is for. Null when unset. |
-| `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
-| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-
 ### `POST /v1/schema-entries/seed`
 
 Store the platform-provided types a project's flows need (idempotent), then answer the registry read `GET /v1/schema-entries` would give. A repair for a project whose seeded types are missing or out of date; a project is seeded when it is created.
@@ -325,7 +293,6 @@ Each item of `entries`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `owned` | `object \| null` | yes | Set when this entry is a record type's OWN shape — declared inline under it in a project document. It is edited only through that type (a PATCH here is refused with SCHEMA_ENTRY_OWNED) and no other consumer may use it until it is promoted (POST /v1/schema-entries/{id}/promote). NULL is a shared entry, which is every entry created through this registry. Catalog entries are never owned. |
 | `id` | `string` | yes | Entry id — the stable handle references resolve by. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The type's key. |

@@ -32,7 +32,8 @@ Read the document before you choose. It is exactly what the new project will hol
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
 `kipory: 2`, and every rule of that pack holds for it: what a row may state, how each reference is
-spelled, and what is refused. A template that breaks one is refused like any other document. Check
+spelled, and what is refused. A template that breaks one is refused like any other document. A
+record type there names its shape by key — the entry stated under `schema` — never inline. Check
 each `evals` suite's `applyWrites` before you run it: `true` means a run saves the records the
 flow writes into your new project.
 

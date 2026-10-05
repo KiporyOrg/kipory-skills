@@ -50,7 +50,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "92288a7deb6e",
+      "hash": "694276fa72a9",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -62,7 +62,7 @@
       "page": "kipory-connect/references/packs/readme.md"
     },
     "record-types-and-schema-entries": {
-      "hash": "a83a31245fb0",
+      "hash": "b18d95e197c0",
       "page": "kipory-model/references/packs/record-types-and-schema-entries.md"
     },
     "relations": {
@@ -82,7 +82,7 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "templates": {
-      "hash": "e2d8ff8306b2",
+      "hash": "f3c6099a38a2",
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
@@ -635,7 +635,7 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "DELETE /v1/record-types/{id}": {
-      "hash": "6f6c249fb5c9",
+      "hash": "1daa5c28ab0a",
       "page": "kipory-model/references/api/record-types.md"
     },
     "DELETE /v1/records/{id}": {
@@ -659,7 +659,7 @@
       "page": "kipory-operate/references/api/schedules.md"
     },
     "DELETE /v1/schema-entries/{id}": {
-      "hash": "9f8398d4e75e",
+      "hash": "195865cceb65",
       "page": "kipory-model/references/api/schema-entries.md"
     },
     "DELETE /v1/secrets/{id}": {
@@ -966,7 +966,7 @@
       "page": "kipory-operate/references/api/project-config.md"
     },
     "GET /v1/project-document/example": {
-      "hash": "9e24b95ece1f",
+      "hash": "e2b8bc6666f4",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/project-document/schema": {
@@ -1042,11 +1042,11 @@
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/record-types/": {
-      "hash": "90b265f157fa",
+      "hash": "7ffa840a0fd7",
       "page": "kipory-model/references/api/record-types.md"
     },
     "GET /v1/record-types/{id}": {
-      "hash": "42f302544152",
+      "hash": "74f1a27e8be6",
       "page": "kipory-model/references/api/record-types.md"
     },
     "GET /v1/records/": {
@@ -1142,7 +1142,7 @@
       "page": "kipory-operate/references/api/schedules.md"
     },
     "GET /v1/schema-entries/": {
-      "hash": "3ab6748ea1ab",
+      "hash": "55a57fe342e3",
       "page": "kipory-model/references/api/schema-entries.md"
     },
     "GET /v1/schema-entries/{id}": {
@@ -1300,7 +1300,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "PATCH /v1/record-types/{id}": {
-      "hash": "5dbdcd1237ab",
+      "hash": "382d015aac9e",
       "page": "kipory-model/references/api/record-types.md"
     },
     "PATCH /v1/records/{id}": {
@@ -1316,7 +1316,7 @@
       "page": "kipory-operate/references/api/schedules.md"
     },
     "PATCH /v1/schema-entries/{id}": {
-      "hash": "8c663add6d8a",
+      "hash": "731641d6e3ea",
       "page": "kipory-model/references/api/schema-entries.md"
     },
     "PATCH /v1/secrets/{id}": {
@@ -1466,11 +1466,11 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/projects/{nodeId}/document": {
-      "hash": "61715fff541b",
+      "hash": "612863ebe569",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/document/plan": {
-      "hash": "cadfd7c7ef43",
+      "hash": "bb9301628094",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/ingest/cache/bust": {
@@ -1497,7 +1497,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/record-types/": {
-      "hash": "9b7f9556c225",
+      "hash": "5645a8c42f85",
       "page": "kipory-model/references/api/record-types.md"
     },
     "POST /v1/records/": {
@@ -1541,15 +1541,11 @@
       "page": "kipory-operate/references/api/schedules.md"
     },
     "POST /v1/schema-entries/": {
-      "hash": "d0716609d88f",
+      "hash": "248a3b08a5e8",
       "page": "kipory-model/references/api/schema-entries.md"
     },
     "POST /v1/schema-entries/seed": {
-      "hash": "40be111be273",
-      "page": "kipory-model/references/api/schema-entries.md"
-    },
-    "POST /v1/schema-entries/{id}/promote": {
-      "hash": "88b2af47d929",
+      "hash": "96931b0de499",
       "page": "kipory-model/references/api/schema-entries.md"
     },
     "POST /v1/secrets/": {
