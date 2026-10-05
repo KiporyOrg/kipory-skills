@@ -19,7 +19,7 @@ Look up a YouTube channel's details and numbers.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `listUploads` | boolean | no | `false` | Also list the channel's most recent uploads. ⚠️ Costs one extra quota unit, because it takes a second call to the uploads playlist. |
+| `listUploads` | boolean | no | `false` | Also list the channel's most recent uploads, and set lastPostAt to the newest. ⚠️ Costs one extra quota unit, because it takes a second call to the uploads playlist. |
 | `parts` | string[], at least 1 item | no | `["snippet","statistics"]` | Which parts of the channel to fetch. Snippet and statistics by default. ⚠️ Each part costs one quota unit per call, against a daily pool. Branding and localizations are rarely read and make the cached row much bigger. |
 | `uploadsLimit` | integer, 1 to 50 | no | `20` | How many recent uploads to list (1–50, single playlistItems page). Only used when listUploads is on. |
 
@@ -85,7 +85,7 @@ Output:
 
 #### With recent uploads
 
-A second call fills `uploads[]` with the channel's most recent videos.
+A second call fills `uploads[]` with the channel's most recent videos, and `lastPostAt` with the newest one's time.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
@@ -111,6 +111,7 @@ Output:
   "id": "UCBJycsmduvYEL83R_U4JriQ",
   "name": "Marques Brownlee",
   "uploadsPlaylistId": "UUBJycsmduvYEL83R_U4JriQ",
+  "lastPostAt": "2026-07-18T14:00:07.000Z",
   ...
   "uploads": [
     {

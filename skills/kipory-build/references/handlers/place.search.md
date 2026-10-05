@@ -19,7 +19,7 @@ Find the places a map lists for a query, like a category in a town.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `detail` | `summary` \| `full` | no | `"summary"` | How much of each listing to read. `full` adds usual busyness and the rest of what one place's own read returns, and is slower. |
+| `detail` | `summary` \| `full` | no | `"summary"` | How much of each listing to read. `full` adds usual busyness, whether the listing is claimed and the rest of one place's read. Slower. |
 | `includeClosed` | boolean | no | `true` | Keep places the map marks temporarily or permanently closed. Off leaves them out. ⚠️ A place left out was still read and is still charged, and changing this searches again. A closed place appears only while the map lists it. |
 | `language` | string, at least 2 characters | no | `"en"` | Language for names, addresses and hours, as a code like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run searches again. |
 | `locationSlot` | string, at most 512 characters | no | — | A slot holding `{ lat, lng, radiusMeters }` that bounds the search to a circle. Unset, the query text says where. ⚠️ Places read outside the circle are left out and still charged: the map searches a wider rectangle than the radius. |

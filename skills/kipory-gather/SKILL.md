@@ -58,6 +58,7 @@ mentions.
 | `linkedin.*` (6 <!-- count: handlers-in-family-linkedin -->)   | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`   | 24h    |
 | `reddit.*` (4 <!-- count: handlers-in-family-reddit -->)       | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`   | 24h    |
 | `threads.*` (4 <!-- count: handlers-in-family-threads -->)     | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`   | 24h    |
+| `facebook.page` · `facebook.posts`                             | a public Facebook page; its recent posts, three to a paid request                           | ScrapeCreators | `scrapecreators`   | 24h    |
 | `facebook.ads` · `facebook.ad` · `google.ads` · `google.ad`    | ads from a platform's public ad library                                                     | ScrapeCreators | `scrapecreators`   | 24h    |
 | `location.resolve`                                             | a place from latitude and longitude                                                         | OpenStreetMap  | `location.resolve` | 7d     |
 
@@ -82,8 +83,9 @@ unless you store both or set `fallback: false`.
 The social-platform reads return shared shapes — `SocialProfile`, `SocialPost`,
 `SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
 a flow built for one platform is re-pointed at another by changing the step's
-handler. `x.posts`, `youtube.video` and `youtube.channel` return those shapes with
-typed fields of their own added (`XPost`, `YoutubeVideo`, `YoutubeChannel`): a
+handler. `x.posts`, `youtube.video`, `youtube.channel` and `facebook.page` return those
+shapes with typed fields of their own added (`XPost`, `YoutubeVideo`, `YoutubeChannel`,
+`FacebookPage`): a
 path over a shared field carries across platforms, a path over an added one does
 not. The transcript reads return text. Every list read takes a `maxItems`
 bound; on a read that pages, each page is one paid request.

@@ -2,17 +2,17 @@
 
 # `facebook.ads` — Fetch Facebook ads
 
-List the ads a company runs, or ads that match a keyword, from the Facebook ad library.
+List the ads a company or one page runs, or ads that match a keyword, from the Facebook ad library.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`
-- **Reads:** One company name, or one keyword when the step searches by keyword. Results are cached for a day. _(shape hint: `string`)_
+- **Reads:** One company name; or one keyword, or one page's ad library id, when the step is set to it. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialAd`. Empty when the library has no matching ads.
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads the Facebook ad library through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 120 per min in bucket `scrapecreators` — shared with `facebook.ad`, `google.ad`, `google.ads`, `instagram.comments`, `instagram.post`, `instagram.posts`, `instagram.profile`, `instagram.transcript`, `linkedin.ad`, `linkedin.ads`, `linkedin.company`, `linkedin.post`, `linkedin.posts`, `linkedin.profile`, `reddit.comments`, `reddit.post`, `reddit.posts`, `reddit.search`, `threads.post`, `threads.posts`, `threads.profile`, `threads.search`, `tiktok.ad`, `tiktok.ads`, `tiktok.audience`, `tiktok.comments`, `tiktok.followers`, `tiktok.following`, `tiktok.post`, `tiktok.posts`, `tiktok.profile`, `tiktok.search`, `tiktok.transcript`, `x.posts`, `x.profile`, `x.transcript`, `youtube.comments`, `youtube.posts`, `youtube.search`, `youtube.transcript`
+- **Rate limit:** 120 per min in bucket `scrapecreators` — shared with `facebook.ad`, `facebook.page`, `facebook.posts`, `google.ad`, `google.ads`, `instagram.comments`, `instagram.post`, `instagram.posts`, `instagram.profile`, `instagram.transcript`, `linkedin.ad`, `linkedin.ads`, `linkedin.company`, `linkedin.post`, `linkedin.posts`, `linkedin.profile`, `reddit.comments`, `reddit.post`, `reddit.posts`, `reddit.search`, `threads.post`, `threads.posts`, `threads.profile`, `threads.search`, `tiktok.ad`, `tiktok.ads`, `tiktok.audience`, `tiktok.comments`, `tiktok.followers`, `tiktok.following`, `tiktok.post`, `tiktok.posts`, `tiktok.profile`, `tiktok.search`, `tiktok.transcript`, `x.posts`, `x.profile`, `x.transcript`, `youtube.comments`, `youtube.posts`, `youtube.search`, `youtube.transcript`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
@@ -20,13 +20,13 @@ List the ads a company runs, or ads that match a keyword, from the Facebook ad l
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `activeOnly` | boolean | no | `false` | Return only ads that are still running. Off returns ended ads too. |
-| `by` | `company` \| `keyword` | no | `"company"` | Whether the input is a company whose ads to list, or a keyword to search ad copy for. |
+| `by` | `company` \| `keyword` \| `page` | no | `"company"` | What the input is: a company name, a keyword to search ad copy for, or a page's ad library id. ⚠️ A company name matches every advertiser that shares it. A page's ad library id, which a facebook.page step returns as adLibraryId, lists that page's ads only. |
 | `country` | string | no | — | Two-letter country code to limit the ads to, like US or DE. Unset reads all countries. |
 | `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 
-Lists the ads a company runs on Facebook and Instagram.
+Lists the ads a company or one page runs on Facebook and Instagram.
 
 #### A company name
 
