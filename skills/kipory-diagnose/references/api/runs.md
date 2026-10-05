@@ -59,6 +59,7 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `since` | `string` | no | Only runs STARTED at or after this instant — the explicit form of `window`, for a range no preset names. Ranges on the opener's `at`, like `window`, and filters without changing the cursor. |
 | `until` | `string` | no | Only runs started STRICTLY BEFORE this instant. Omit it for up to now. Refused (400) at or before `since`: that range is empty by construction. |
 | `tally` | `"hour" \| "day"` | no | Also answer how many runs STARTED in each hour or day of the range, as `started`. ⛔ NEEDS A LOWER BOUND (`window` or `since`): refused (400) without one, since an unbounded range has no first slice. Counted on the same instant and under the same `flowKey` as the list, so the slices sum to `total`. Not moved by the cursor. |
+| `starters` | `"1"` | no | Also answer how many runs each starter began in the range, as `starters`: one row per schedule, trigger and endpoint, and one for all records together, each with its runs, how many failed and when it last began one. It is how one endpoint's calls are counted. ⛔ NEEDS A LOWER BOUND (`window` or `since`), as `tally` does. Counted under the same range and `flowKey` as the list. Not moved by the cursor. |
 | `order` | `"desc" \| "asc"` | no | Which way the list runs by start (insertion `seq`): `desc` (the default) is newest first, `asc` oldest first. |
 
 **Response `200`**
@@ -74,6 +75,7 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `since` | `string \| null` | yes | The lower bound the list was read from — the instant `window` resolved to, or the `since` sent — or `null` when neither was asked, so a reader states the range the list was read over rather than re-deriving it from a label and a clock that may differ. |
 | `until` | `string \| null` | yes | The `until` sent, or `null` for up to now. |
 | `started` | `object[] \| null` | yes | Runs started per slice of the range, oldest first, when `tally` was sent. Every slice is PRESENT, a quiet one with zero, so the shape is not compressed. `null` when `tally` was not sent, or when the range holds too many runs to tally — never an empty list for a range that was not counted. |
+| `starters` | `object[] \| null` | yes | Runs by what started them over the range, most runs first, when `starters=1` was sent. A call to an endpoint is `request` (it answered in the same request), `endpoint` (it answers later) or `public` (no credential), each with the endpoint's key as `targetId`: sum the three for one endpoint's calls. Runs that processed a record are ONE row, `record` with `targetId: null`: which record is on the list's own rows. A starter that began no run in the range has NO row. `null` when `starters` was not sent, or when the range holds too many runs to count. |
 
 Each item of `runs`:
 
@@ -99,6 +101,15 @@ Each item of `started`:
 | --- | --- | --- | --- |
 | `at` | `string` | yes | The slice's first instant: the top of a UTC hour, or 00:00 UTC. |
 | `runs` | `integer` | yes | Runs that started in this slice. |
+
+Each item of `starters`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `source` | `object` | yes | What started a run, translated from the stored `trigger`. |
+| `runs` | `integer` | yes | Runs this starter began in the range. A run retried under one run id is one run. |
+| `failedRuns` | `integer` | yes | Of those, the runs that finished and failed. A run still going or aborted is in `runs` and not here. |
+| `lastStartedAt` | `string` | yes | When its newest run in the range began. |
 
 ### `GET /v1/runs/{runId}`
 
