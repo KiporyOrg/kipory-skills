@@ -230,7 +230,9 @@ read waits out once when the wait is short.
   and a long page can run the model call into its time limit. Make the capture smaller — a
   narrower `viewportWidth`, `format: "jpeg"` with a lower `jpegQuality` — give the model step
   `"timeoutMs": 120000` (the most a step takes) and `"tries": 2`, and screenshot only the pages
-  whose look is the question. `maxBytes` does not trim: a capture over it fails the step.
+  whose look is the question. `maxBytes` does not trim: a capture over it fails the step. Outside a
+  record's processing flow the image is a working file, removed when the run ends
+  (`kipory-extract`, "What will bite you").
 - **There is no feed reader, and no upsert.** An RSS or Atom feed is `url.fetch` with its own
   period, a regex cut into items and a fan-out that looks each item up by its link, then creates
   or updates it — a `key` use on the link does not make a re-poll update the item, it makes a

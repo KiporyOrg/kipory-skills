@@ -8,7 +8,7 @@ Make a link anyone can use to download a file.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
 - **Reads:** One file. Any kind — nothing is opened, inspected or transformed; only a link to it is signed. _(shape hint: `file`)_
-- **Emits:** A signed link, non-expiring by default. Bind its lifetime with the fields below. An empty string when there is no file.
+- **Emits:** A signed link, non-expiring by default; it works for as long as the file exists. Bind its lifetime with the fields below. An empty string when there is no file.
 - **Suggested input streams:** `currentFile`
 - **External dependency:** S3 / MinIO — Nothing is called — the link is signed locally and grants read access to the object's bytes for as long as it lives. S3-compatible rather than S3: the deployment runs MinIO on its own box.
 
@@ -16,7 +16,7 @@ Make a link anyone can use to download a file.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `neverExpires` | boolean | no | `true` | When on (default), the URL never expires — possession alone grants read access indefinitely. Turn off to bound the lifetime via ttlSeconds. |
+| `neverExpires` | boolean | no | `true` | When on (default), the URL never expires — possession alone grants read access indefinitely. Turn off to bound the lifetime via ttlSeconds. ⚠️ A link works only while its file exists. A file produced in an endpoint, schedule or trigger run is removed at least 7 days after it was produced; give that link 7 days or less. |
 | `ttlSeconds` | integer, more than 0, at most 604800 | no | `300` | Lifetime of the signed capability URL in seconds when neverExpires is off. Default 5 min; capped at 7 days. Ignored while neverExpires is on. |
 
 ## Worked example

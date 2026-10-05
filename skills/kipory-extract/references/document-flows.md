@@ -66,7 +66,9 @@ becomes the record's processed field, and a `search` use on `{ "family": "proces
 "body" }` has the platform chunk, embed and index it — `kipory-build`'s
 `references/records-and-endpoints.md` has the whole document, file in and searchable text out.
 File-producing steps (`pdf.screenshot`, `image.resize`) work in a project-scoped type's processing
-flow; the files they produce are project files.
+flow; the files they produce are project files and stay with the record. In a run with no record —
+an endpoint call, a schedule, a trigger — the same steps work, and their files last only as long as
+the run unless a `file.download-url` step makes a link to them (`SKILL.md`, "What will bite you").
 
 Reach past that only when the route does not fit:
 

@@ -103,6 +103,20 @@ none — the platform chunks a `search` field itself (`kipory-model`).
   object's bytes for as long as it lives, and nothing is called to create it — the link is signed
   locally, so it exists the moment the step runs. Bind its lifetime — `neverExpires: false`, and
   `ttlSeconds` (5 minutes when unset, 7 days at most) — whenever the link leaves your own system.
+- **A file a step produces outside a record's processing flow is a working file.** In a run an
+  endpoint, a schedule or a trigger started, `url.screenshot`, `url.fetch-as-file`, `pdf.screenshot`
+  and `image.resize` hand their file to the steps after them, and the file is removed when the run
+  ends. The step that produced it then carries a `step-warned` row in the run's step log
+  (`detail.kind: "file-not-kept"`); it is a statement, not a failure. The one way to take the file
+  out of the run is a `file.download-url` step in the same run: a file a link was made to stays for
+  at least 7 days from the moment it was produced and is then removed on a daily pass, whatever the
+  link's own lifetime. The step's default link never expires, so on such a file the default link is
+  the one that breaks: set `neverExpires: false` and a `ttlSeconds` of 7 days or less. To remove the
+  file sooner, find its id in `GET /v1/files?project=<node>` and `DELETE /v1/files/{id}`. A record
+  write (`fileIdsSlot`) does not take it: it is a flow's output, not an input. The file belongs to the signed-in person the run acts for, and to
+  the project when there is none (an API key, a public endpoint, a schedule, a trigger). A failed
+  run keeps none of its files. To keep a file for good, produce it in a record type's processing
+  flow: it stays with the record. A preview's files live 7 days.
 - **`file.read-text` fails on a file over the size cap rather than truncating it.** That is the
   intended behaviour: a silently shortened document is a wrong answer with no symptom. Check the
   size with `file.stats` first if the input is unbounded.

@@ -180,7 +180,7 @@
       "page": "kipory-build/references/handlers/facet.resolve.md"
     },
     "file.download-url": {
-      "hash": "4922592cc51d",
+      "hash": "8d5044b401ef",
       "page": "kipory-build/references/handlers/file.download-url.md"
     },
     "file.read-text": {
@@ -582,7 +582,7 @@
       "page": "kipory-model/references/api/facets-and-terms.md"
     },
     "DELETE /v1/files/{id}": {
-      "hash": "ef84811741cd",
+      "hash": "665498eedc73",
       "page": "kipory-data/references/api/files.md"
     },
     "DELETE /v1/flow-checkpoints/{id}": {

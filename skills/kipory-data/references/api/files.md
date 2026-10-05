@@ -75,7 +75,7 @@ Each item of `files`:
 
 ### `DELETE /v1/files/{id}`
 
-Delete a file: the row, and its bytes when no other file row still names them. Your own file: while it is attached to no project, or from its project's host. A file a project holds: ADMIN on the project, from the api host. Refuses (409) a file a flow produced. To keep the bytes and only release the file from its record, `POST /v1/files/{id}/detach`.
+Delete a file: the row, and its bytes when no other file row still names them. Your own file: while it is attached to no project, or from its project's host. A file a project holds: ADMIN on the project, from the api host. Refuses (409) a file a flow produced for a record; one a run with no record produced, kept because a link was made to it, can be deleted. To keep the bytes and only release the file from its record, `POST /v1/files/{id}/detach`.
 
 **Path parameters**
 
