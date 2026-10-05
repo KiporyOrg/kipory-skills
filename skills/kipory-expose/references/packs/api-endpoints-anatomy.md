@@ -133,6 +133,50 @@ step that changes data: a handler that writes, an event emitted beyond the run (
 triggers), or a facet resolution. An asynchronous invoke cannot be saved on GET. So a
 POST search whose flow only reads is open to viewers without declaring anything.
 
+### A public endpoint: `auth: "none"`
+
+Every endpoint needs a key or a session unless its contract says otherwise. `contractConfig.auth`
+is `"required"` (the default, and what every endpoint saved without it is) or `"none"`. An endpoint
+saved `auth: "none"` is **public**: anyone can call it, with nothing in `Authorization` and no
+cookie. Use it for what a signed-out visitor needs — a list a landing page shows, a sign-up form, a
+public search box — instead of running a server of your own that holds a key and relays the call.
+
+What that changes:
+
+- **No credential is read.** A key or a cookie sent with the call is ignored, not checked — a revoked
+  key and a stranger's cookie change nothing. The run has **no user**, whoever called: a step that
+  reads the calling user finds none, as on a key's run. To answer a signed-in caller differently,
+  save a second endpoint that requires a credential.
+- **The `Idempotency-Key` header is ignored.** Every public run belongs to the project, so two
+  strangers sending the same key would otherwise share one write.
+- **The project pays.** Each call is charged to the project's wallet, GETs included. The most public
+  calls may spend per UTC day is `publicSpendCapCredits` in the project's settings
+  (`PATCH /v1/projects/{nodeId}/settings`). It must be set **before** an endpoint can be saved
+  public, and it cannot be cleared while one is; `0` is a real ceiling that refuses every public
+  call, which makes it the switch for all of them at once.
+- **A page on any site can call it.** The response allows any origin and never credentials — for
+  the project's own app too. A browser call sent with credentials (`credentials: "include"`) is
+  rejected by the browser, so call a public endpoint without them.
+- **It has its own limits.** `contractConfig.publicRpm` is the requests per minute the endpoint takes
+  from all callers together (1–600; saved as 60 when you leave it out). Each caller's address has an
+  allowance per project, the project's public endpoints share a per-minute total and a ceiling on
+  requests running at once (of which one address may hold only a share), and a request body may be
+  at most 256 KB. None of this is shared with
+  credentialed traffic: a flood of anonymous calls never refuses a key or a signed-in user.
+
+Only a **synchronous invoke** can be public. A stream, a subscription and an asynchronous invoke
+stay behind a credential, and so does a flow whose signature takes the calling user (`userInfo`).
+The flow may write: that is what a sign-up form is. `validateOnly` warns `PUBLIC_ENDPOINT_WRITES`
+when it does, and always warns `PUBLIC_ENDPOINT_SPENDS`, naming the model and vendor steps the flow
+reaches — the same list an endpoint read carries as `spends` inside its `access`, beside `public`.
+
+Going back to `auth: "required"` takes effect on the next request. Going public can take up to 30
+seconds to be served.
+
+⚠️ **A public endpoint is not a webhook receiver.** The contract takes path and query parameters
+and a JSON body; it does not carry headers or the raw body, so a third party's signature cannot be
+verified in the flow. It also answers JSON only, so it is not a link someone clicks.
+
 ## The action
 
 Three kinds:
@@ -259,6 +303,22 @@ an endpoint you did not just write.
 dispatcher applies — your `syncTimeoutMs` clamped to the ceiling, or the platform default when you
 set none — and `null` for an asynchronous invoke, a stream or a subscription. Compare a step's time
 limit against it rather than against a default you remember.
+
+**A public endpoint's refusals are its own.** It never answers 403, and 401 only for a request
+that arrived in the instant the endpoint stopped being public: it reads no credential and judges
+no role. A caller with no credential still gets **401** from every other path on the
+host — a private endpoint and a path nothing serves alike — so what exists is not leaked. What a
+public endpoint answers instead:
+
+| Status  | Code                           | Meaning                                                                                                                                                                                                                                                                                                                                    |
+| ------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **402** | `PUBLIC_ENDPOINT_UNAVAILABLE`  | The project's wallet or its public spend cap refused the call, or the project cannot serve it (it is suspended, or the flow reaches a step that needs a signed-in user). No `details`: the caller is nobody the project knows. The project's rejected-requests log names the money gate in `gate`; no `gate` means money did not refuse it |
+| **413** | `PAYLOAD_TOO_LARGE`            | The body is over 256 KB                                                                                                                                                                                                                                                                                                                    |
+| **429** | `RATE_LIMITED`                 | `scope` in its details says whose ceiling: `caller` (this address), `endpoint` (its `publicRpm`, over all callers), `project` (the project's public endpoints together)                                                                                                                                                                    |
+| **429** | `PROJECT_CONCURRENCY_EXCEEDED` | `details.kind: "public"` — too many public requests are running at once                                                                                                                                                                                                                                                                    |
+
+A run a public call started shows in `GET /v1/runs` with `source.kind: "public"` and the endpoint's
+key as `targetId`, and its charges count in the usage scope `public`.
 
 ⚠️ **The undeclared query key is the notorious one.** The query schema forbids extra properties,
 so an unexpected `?foo=bar` is a 422 rather than being ignored. Callers who add a tracking

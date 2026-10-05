@@ -18,7 +18,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/api-endpoints`
 
-List one project's endpoints (`?project=<nodeId>`) — the routes your product serves, each binding a method and path to a flow (`flow.invoke`, `flow.stream`) or to an event subscription — each with the `version` its PATCH takes. A stored row that no longer parses is listed in `unreadable` rather than failing the read. `expand=drift` flags an endpoint whose bound flow's signature moved since it was saved, `expand=flowLabel` names the bound flow, `expand=shadowed` the platform route that has grown over its path. The same rows, as authored, ride `GET /v1/bootstrap` (`surfaces.apiEndpoints`) and the `surfaces.endpoints` section of `GET /v1/projects/{nodeId}/document`. The flows they bind: `GET /v1/flows?project=`.
+List one project's endpoints (`?project=<nodeId>`) — the routes your product serves, each binding a method and path to a flow (`flow.invoke`, `flow.stream`) or to an event subscription — each with the `version` its PATCH takes and, in `access`, whether it is public (callable with no credential) and which model or vendor steps its flow reaches. A stored row that no longer parses is listed in `unreadable` rather than failing the read. `expand=drift` flags an endpoint whose bound flow's signature moved since it was saved, `expand=flowLabel` names the bound flow, `expand=shadowed` the platform route that has grown over its path. The same rows, as authored, ride `GET /v1/bootstrap` (`surfaces.apiEndpoints`) and the `surfaces.endpoints` section of `GET /v1/projects/{nodeId}/document`. The flows they bind: `GET /v1/flows?project=`.
 
 **Query**
 
@@ -68,7 +68,7 @@ Each item of `unreadable`:
 
 ### `POST /v1/api-endpoints`
 
-Create one endpoint: a method and path under the project's host, bound to a flow of this project (`flow.invoke`, or `flow.stream` for a live answer) or to an event subscription. The bound flow's signature is snapshotted, so a later change to the flow shows as drift on the endpoint rather than as a silent break; the flow itself is authored at `/v1/flows`. With `validateOnly: true` it answers whether the create would be refused, who could call the draft and where it would sit in the match order (`derived`), writing nothing. Several endpoints at once, beside the flows they bind: the `surfaces.endpoints` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create one endpoint: a method and path under the project's host, bound to a flow of this project (`flow.invoke`, or `flow.stream` for a live answer) or to an event subscription. The bound flow's signature is snapshotted, so a later change to the flow shows as drift on the endpoint rather than as a silent break; the flow itself is authored at `/v1/flows`. `contractConfig.auth: "none"` makes it PUBLIC — callable with no key and no session, paid from the project's wallet up to its public spend cap; it is accepted only for a synchronous `flow.invoke` whose flow declares no `userInfo` input (a step inside it that reads the calling user is not caught at save and fails when called), and only once the project has set `publicSpendCapCredits` (`PATCH /v1/projects/{nodeId}/settings`), else 422 with the issue code `PUBLIC_ENDPOINT_KIND_UNSUPPORTED`, `PUBLIC_ENDPOINT_NEEDS_USER` or `PUBLIC_SPEND_CAP_REQUIRED`. With `validateOnly: true` it answers whether the create would be refused, who could call the draft and where it would sit in the match order (`derived`), and for a public draft the warnings `PUBLIC_ENDPOINT_SPENDS` and `PUBLIC_ENDPOINT_WRITES`, writing nothing. Several endpoints at once, beside the flows they bind: the `surfaces.endpoints` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -174,7 +174,7 @@ Each item of `partiallyShadowedBy`:
 
 ### `PATCH /v1/api-endpoints/{id}`
 
-Change one endpoint: its contract (method, path, parameters) and its action, both replaced whole; the key is permanent. Saving re-snapshots the bound flow's signature, which is how drift is cleared. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused and what it would publish (`derived`), writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change one endpoint: its contract (method, path, parameters) and its action, both replaced whole; the key is permanent. Saving re-snapshots the bound flow's signature, which is how drift is cleared. Setting `contractConfig.auth` to `"none"` makes it public under the rules `POST /v1/api-endpoints` states; setting it back to `"required"` takes effect on the next request. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused and what it would publish (`derived`), writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 

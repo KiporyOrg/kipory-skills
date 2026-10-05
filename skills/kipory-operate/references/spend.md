@@ -104,7 +104,7 @@ The reads count different things, so they disagree by design. Pick the one that 
 **`usage`.**
 
 - It defaults to seven days. `window=custom` takes `from` and `to` as RFC 3339 instants, `to` exclusive.
-- `scope` chooses whose work is counted: `all` (the default) is `users` + `design` + `holding`, the three that charge. `design` is previews and eval runs. `system` is platform-paid work, outside `all`, and read on `events` — its credits are zero by construction.
+- `scope` chooses whose work is counted: `all` (the default) is `users` + `public` + `design` + `holding`, the four that charge. `public` is calls to public endpoints. `design` is previews and eval runs. `system` is platform-paid work, outside `all`, and read on `events` — its credits are zero by construction.
 - Breakdowns name their kind in lowercase kebab (`llm-call`, `handler-run`, …).
 - `by=key` names a key only on the product calls that key made. A key's previews and eval runs are design-time charges, and schedule and trigger runs have no caller, so all of those land under `key: null`.
 
@@ -147,6 +147,10 @@ A 402 is not a flow problem. Branch on the error `code`; the remedies do not sub
 | `USER_SPEND_CAP_EXCEEDED`   | one signed-in person reached their own ceiling on a healthy wallet                                                                                             | `{ reason, consumed, cap, period, windowStart }`                                                                     | raise `perUserSpendCapCredits`, or wait for `perUserSpendCapPeriod` to roll (`lifetime`, the default, never does)                                                                                                                     |
 | `DESIGN_SPEND_CAP_EXCEEDED` | the project's design-time work reached `designSpendCapCredits`                                                                                                 | `{ reason, consumed, cap, period, windowStart }`                                                                     | raise the ceiling, or wait for `designSpendCapPeriod` to roll (`day` by default). `GET /v1/projects/{nodeId}/settings` answers `designSpend.consumed` and `windowStart`                                                               |
 | `MEMBER_WALLET_EMPTY`       | a signed-in member's own wallet in this project is at zero                                                                                                     | `{ reason, balance, nextGrantAt }`                                                                                   | credit to the project's wallet does nothing: wait for `details.nextGrantAt`, or grant with `POST /v1/projects/{nodeId}/members/{userId}/credits`                                                                                      |
+
+A fifth code is answered only by a **public endpoint** — one saved `auth: "none"`, called with no credential — and it is the one a caller cannot branch further on:
+
+- `PUBLIC_ENDPOINT_UNAVAILABLE` carries **no `details`**. Either the wallet refused, or public calls have spent the project's `publicSpendCapCredits` for the UTC day (or the cap is not set). The caller is nobody the project knows, so the body is the same for both. Which it was is on the project's own log: `GET /v1/rejected-requests?project={nodeId}` has the row with `gate: "wallet"` or `gate: "public-spend-cap"`. A row with this code and no `gate` was not refused for money: the project is suspended, or the endpoint's flow reaches a step that needs a signed-in user, which a public call never has. The remedy follows the gate: credit for the wallet; for the cap, raise `publicSpendCapCredits` on `PATCH /v1/projects/{nodeId}/settings` or wait for 00:00 UTC. Today's public spend is `publicSpend.consumed` on the settings read, and the usage scope `public`.
 
 Amounts inside `details` are decimal strings, not numbers — unlike the integers on every read.
 

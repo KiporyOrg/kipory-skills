@@ -86,6 +86,14 @@ are ids on the row API and keys in the document — flows, shapes, sources, and 
 | `targetFlowId`            | `target`              | a `flow.invoke` step's target, by key                           |
 | `entryId` in a schema ref | `ref`                 | a step's schema reference, by entry key                         |
 
+An endpoint's `contractConfig` is the row API's, whole: who may call it is stated there too.
+`auth: "none"` makes the endpoint public — callable with no key and no session — and `publicRpm`
+sets its requests per minute; see api-endpoints-anatomy (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`). The project's
+public spend cap is a project **setting**, not part of the document, and a public endpoint needs it
+first: an apply that makes an endpoint public in a project with no cap is refused
+(`PUBLIC_SPEND_CAP_REQUIRED`). Set `publicSpendCapCredits` with
+`PATCH /v1/projects/{nodeId}/settings`, then apply.
+
 Not every nested reference is re-spelled: a record type's `uses.join` names its relation kind as
 `kindKey`, exactly as the record-type API does, because the document passes that object to the same
 create body unchanged.

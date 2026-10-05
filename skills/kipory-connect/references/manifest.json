@@ -2,7 +2,7 @@
   "$note": "Generated: one content hash per item the reference pages were built from, and the page that documents it. The deployment serves the same hashes live; scripts/sync.mjs in this skill compares them and names the items that differ. Regenerated on every publish, so an edit here is overwritten.",
   "packs": {
     "api-endpoints-anatomy": {
-      "hash": "44ef5150e2d1",
+      "hash": "f7c846014821",
       "page": "kipory-expose/references/packs/api-endpoints-anatomy.md"
     },
     "authoring-order": {
@@ -50,7 +50,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "1d107702c8b7",
+      "hash": "3b6d9fff3760",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -82,7 +82,7 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "templates": {
-      "hash": "f3c6099a38a2",
+      "hash": "afa2051cfdf3",
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
@@ -703,7 +703,7 @@
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/api-endpoints/": {
-      "hash": "bcdd4455652b",
+      "hash": "439f55608d9e",
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "GET /v1/api-endpoints/{id}": {
@@ -958,7 +958,7 @@
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/organizations/{nodeId}/usage": {
-      "hash": "c32cc6adae51",
+      "hash": "abff106a8795",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/project-config/": {
@@ -1026,19 +1026,19 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "GET /v1/projects/{nodeId}/settings": {
-      "hash": "86a70ad7a21f",
+      "hash": "caaf7fe1fc93",
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/usage": {
-      "hash": "dfe7c6856b8e",
+      "hash": "a3cce686cd49",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/projects/{nodeId}/usage/events": {
-      "hash": "9caeb0074538",
+      "hash": "b574ab0a99b3",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/projects/{nodeId}/usage/events.csv": {
-      "hash": "a3d680c69854",
+      "hash": "d166d9850f90",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/record-types/": {
@@ -1070,7 +1070,7 @@
       "page": "kipory-data/references/api/records.md"
     },
     "GET /v1/rejected-requests/": {
-      "hash": "9d79938bfa2f",
+      "hash": "a7092c365835",
       "page": "kipory-diagnose/references/api/rejected-requests.md"
     },
     "GET /v1/relation-kind-pairings/": {
@@ -1238,7 +1238,7 @@
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "PATCH /v1/api-endpoints/{id}": {
-      "hash": "df97a7e59703",
+      "hash": "214319e33550",
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "PATCH /v1/embedding-profiles/{id}": {
@@ -1296,7 +1296,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "PATCH /v1/projects/{nodeId}/settings": {
-      "hash": "338a6ff969e8",
+      "hash": "84d639f7ee16",
       "page": "kipory-connect/references/api/projects.md"
     },
     "PATCH /v1/record-types/{id}": {
@@ -1344,7 +1344,7 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/api-endpoints/": {
-      "hash": "3bc99cc3a5c9",
+      "hash": "0fe16dbbf48c",
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "POST /v1/auth/handoff/exchange": {

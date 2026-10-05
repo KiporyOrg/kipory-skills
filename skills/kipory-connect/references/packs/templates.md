@@ -35,7 +35,10 @@ answers YAML. It is an ordinary project document (capability pack `project-docum
 spelled, and what is refused. A template that breaks one is refused like any other document. A
 record type there names its shape by key — the entry stated under `schema` — never inline. Check
 each `evals` suite's `applyWrites` before you run it: `true` means a run saves the records the
-flow writes into your new project.
+flow writes into your new project. Check each endpoint's `contractConfig.auth` too: `"none"` would
+make it public, callable with no credential. No shipped template declares one — a new project has
+no public spend cap, and a public endpoint cannot be saved without it — so every endpoint a template
+gives you needs a key or a session until you decide otherwise.
 
 ## Create a project from one
 
