@@ -27,8 +27,10 @@ A handler that calls a paid vendor resolves its key in three tiers, in order:
 3. the platform's shared key.
 
 **The tier that answers decides who pays the vendor.** On the first two the vendor bills you
-directly, and the platform does not also pass its own vendor charge through for a call you have
-already paid for. On the third you are spending the platform's key at the platform's price.
+directly. For a web-fetch vendor the platform then does not also pass its own vendor charge through
+for a call you have already paid for. For the two model vendors (`cohere`, `typesafe`) it still
+charges its model price — see below. On the third you are spending the platform's key at the
+platform's price.
 
 A request credential (`http_credential`, below) has only the first two tiers: the platform holds
 none, so with none stored and switched on a read fails `api-key-missing` and a `url.send` request
@@ -52,6 +54,11 @@ Storing a key for one of those vendors here changes nothing about who that vendo
 how plausible a catalog example value makes it look. Two model handlers with one fixed vendor are
 the exception and do resolve a key here: `text.rerank` (purpose `cohere`) and `text.decide`
 (purpose `typesafe`).
+
+⛔ **Your own `cohere` or `typesafe` key does not lower what the platform charges.** The call runs
+on your account, so that vendor invoices you, and the platform still charges its own model price
+for the same re-ranking or decision call, as well as the compute fee. Store one of these keys to
+use your own account's limits or terms, not to save money: you pay for the call twice.
 
 Which vendor a given handler needs is part of that handler's own description — confirm it against
 `GET /v1/handlers`, never against a pack. The provider keys that resolve this way today are stored
@@ -190,9 +197,10 @@ credential the platform looks up — each vendor key a handler resolves and each
 — which record a call there would use. Each key reports a `state` (`present`, `disabled`,
 `not-found`, `branch-inactive`), the node holding the record that state is about, `ownStatus` for
 the row stored on the node itself (`null` when the node stores none), and, for a vendor key,
-`billedBy` — `vendor-to-holder` when the vendor invoices the holder, `kipory` when the call runs on
-the platform's key at the platform's price, `null` on a key that is never billed (a sign-in
-credential). It is the same walk
+`billedBy` — `vendor-to-holder` when the vendor invoices the holder and the platform charges compute
+only, `vendor-and-kipory` when the vendor invoices the holder and the platform also charges its
+model price (the `cohere` and `typesafe` keys), `kipory` when the call runs on the platform's key
+at the platform's price, `null` on a key that is never billed (a sign-in credential). It is the same walk
 resolution performs, effective-status gate included, and nothing in it is decrypted.
 
 Each key also says what happens when nothing of yours resolves, as `fallback`: `platform-key` — the

@@ -193,4 +193,4 @@ Each item of `keys`:
 | `status` | `"active" \| "disabled"` | yes | The status of that record — `active` for `present`, `disabled` for `disabled`. Null when there is no such record. |
 | `updatedAt` | `string \| null` | yes | When that record last changed, a status flip included. Null exactly when `holderNodeId` is null. |
 | `ownStatus` | `"active" \| "disabled"` | yes | The status of the record stored on the requested node ITSELF, whether or not it is the one that resolves. Null when the node stores none. A `disabled` here beside a `present` held elsewhere is a key you switched off that an ancestor's is now standing in for. |
-| `billedBy` | `"vendor-to-holder" \| "kipory"` | yes | Who pays for a call on this key. Null when `fallback` is not `platform-key`: a sign-in credential is never billed. |
+| `billedBy` | `"vendor-to-holder" \| "vendor-and-kipory" \| "kipory"` | yes | Who pays for a call on this key. Null when `fallback` is not `platform-key`: a sign-in credential is never billed. |

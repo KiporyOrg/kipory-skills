@@ -74,7 +74,7 @@
       "page": "kipory-operate/references/packs/schedules.md"
     },
     "secrets": {
-      "hash": "b4401c81942c",
+      "hash": "f13e37b67dee",
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
@@ -1166,7 +1166,7 @@
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "GET /v1/secrets/resolution": {
-      "hash": "653e408faacd",
+      "hash": "fa1b16bd028e",
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "GET /v1/sources/": {
