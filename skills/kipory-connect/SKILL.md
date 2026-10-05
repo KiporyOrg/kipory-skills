@@ -122,7 +122,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 - **A key cannot mint a key.** Key management accepts a signed-in session only. The human mints it, on the api host; `GET /v1/grant` tells you the node, the role and the expiry.
 - **A key is never platform staff.** `GET /v1/projects` — every project on the installation — answers 403 to every customer key. `GET /v1/grant` lists the ones your key reaches.
 - **A key has no `me`.** Every `/v1/me*` route and the charges statement `GET /v1/credits/events` answer 401 from inside the handler. Reading a node's members, or the node itself through `/v1/nodes`, is a human's surface too; `GET /v1/grant` and the bootstrap's `tenancy` section are yours.
-- **A key cannot act as an end user.** A flow that writes person-owned records, or an events subscription scoped to a user or a record, refuses a key with 403; a key's runs are project-owned.
+- **A key cannot act as an end user.** A flow that reads or writes person-owned records, or an events subscription scoped to a user or a record, refuses a key with 403; a key's runs are project-owned.
 
 ## What will bite you
 

@@ -224,7 +224,13 @@ POST /v1/api-endpoints
 {
   "id": "<endpointId>",
   "invokeUrl": "https://<project-host>/v1/summarise",
-  "access": { "viewers": true, "decidedBy": "flow", "writes": [] }
+  "access": {
+    "viewers": true,
+    "decidedBy": "flow",
+    "writes": [],
+    "requiresUser": false,
+    "requiresUserBy": []
+  }
 }
 ```
 

@@ -167,4 +167,4 @@ A key cannot sign a user in, mint a session, or call any `/v1/me` route. To test
 - A human signs in once per test user and hands you the `session`; send it as a Bearer to the project host.
 - Inside an eval suite, `runAsUserId` runs the flow as one user without a session (`kipory-prove`). Plan a two-user proof as two suites.
 
-A key calling a product endpoint has no `userInfo` at all, and what that does depends on the step: anything that needs a person fails closed — a per-user record type refuses, and an endpoint whose flow writes person-owned records answers 403 — while a step that reads a project-wide type runs without one.
+A key calling a product endpoint has no `userInfo` at all, and what that does depends on the step: anything that needs a person fails closed — a per-user record type refuses, and an endpoint whose flow reads or writes person-owned records answers 403 before the flow runs (`access.requiresUser` says so beforehand) — while a step that reads a project-wide type runs without one.

@@ -44,6 +44,17 @@ stack only — a production deployment never reads it.
 Every read also carries a computed, read-only `access`: whether a VIEWER-level caller may make the
 call, whether the method or the bound flow decided that, and which handlers in the flow write. It
 is derived on each read from the same rule the write gate applies — never stored, never writable.
+It also says which credential the endpoint takes: `requiresUser` is true when the bound flow —
+sub-flows included — reads or writes records owned by a user, and `requiresUserBy` names the
+handlers. A key acts as the project and has no user, so its call to such an endpoint is refused
+`403` before the flow runs. A step counts wherever it sits in the flow, a branch a key's call
+would not take included; a disabled step, and one whose failure the run continues past, do not. A
+subscription to a `user`-scoped channel is `requiresUser: true` as well: a key has no such channel.
+
+`contractConfig.responseBody` names one required output of the bound flow to send as the whole
+response body. Absent, the body is an object of every output keyed by its name
+(`{ "result": { … } }`); set to `result`, the body is that output's value alone, and the published
+OpenAPI response is that output's schema. Only a synchronous `flow.invoke` takes it.
 
 ## The one write-shape rule people get wrong
 
@@ -238,8 +249,9 @@ an endpoint you did not just write.
 | **401** | No, malformed, unknown, revoked or expired token                                                                                                                                                                                                                                                                                                                                                |
 | **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated                                                                                                                                                                                                                   |
 | **403** | `WORKLOAD_SUSPENDED`: the project, or an organisation above it, is suspended or archived, so every call that runs a flow is refused before its first step. A `suspended` hold is lifted only by the deployment's operator. An `archived` organisation is reactivated by one of its admins, signed in: `PATCH /v1/nodes/{nodeId}/status` with `{ "status": "active" }`, which refuses an API key |
+| **403** | A step reads or writes a record type owned by its users, and the call was made with a key: a key acts as the project and has no signed-in user. The flow is not at fault and no retry with the key succeeds                                                                                                                                                                                     |
 | **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                                                                                                                                                                                                                                      |
-| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**                                                                                                                                                                                                                                                                                                      |
+| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**; or a step refusing what the caller sent — a `value.transform` `$assert` (with your message), a `cursor` no previous page answered                                                                                                                                                                   |
 | **502** | A step failed; response fails validation (a required output the run did not produce is the 422 below)                                                                                                                                                                                                                                                                                           |
 | **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                                                                                                                                                                                                                                          |
 
@@ -361,7 +373,9 @@ verdict:
     "access": {
       "viewers": false,
       "decidedBy": "flow",
-      "writes": ["records.create"]
+      "writes": ["records.create"],
+      "requiresUser": false,
+      "requiresUserBy": []
     },
     "resolutionRank": 2
   }
