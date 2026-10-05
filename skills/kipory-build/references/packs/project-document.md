@@ -356,7 +356,9 @@ No secret value — a secret is always a reference by purpose. No `version`, no 
 count, no health, no run, no record, no member, no credential. A vector collection is DERIVED
 from a profile and a record type's search use, so it appears under `vectors` for reading and is
 never applied. A term that is an alias or archived is not configuration and is not exported.
-Tenancy — who may open the project — is not in the document by decision.
+Tenancy — who may open the project — is not in the document by decision. An eval suite's
+`runAsUserId` is a person, not configuration: an export leaves it out, a document that states it is
+refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}`).
 
 ## A document written for an older format
 

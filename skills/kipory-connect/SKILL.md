@@ -38,6 +38,8 @@ GET /v1/capability-packs    → 200, the pack index and a `version`
 
 Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare handlers) in the environment. It compares three layers bundled with these skills — the packs, the handler catalog and the API pages — against what this deployment serves, and writes nothing.
 
+Its first line names the bundle that ran: `skills bundle <version> — <directory>`. Several versions of these skills can sit side by side on one machine (a plugin cache keeps old ones), and each copy of the script compares its own pages, so a run from an older copy reports every layer as differing. If the directory on that line is not the one this skill was loaded from, run the script from this skill's directory.
+
 | Exit | Means                                                                                                                                    |
 | ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
 | `0`  | every layer was compared and is current                                                                                                  |

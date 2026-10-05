@@ -15,6 +15,18 @@ The rules below hold across the whole design API. Each resource's own page under
 - A project has **one id**: the `id` its create returns — its node in the ownership tree, a bare cuid such as `cmukzzjhc0001hlq36d38bun1`. Treat every id as opaque: never check a prefix (only a few platform nodes carry a readable id such as `orgnode_kipory`). Every route takes it: `?project=` on a list, `project` in a body, `{nodeId}` in a `/v1/projects/…` path; `node` where any node — organization or project — is accepted.
 - A resource with a parent design object scopes by **that**: skills by `?flowId=`, checkpoints by `?flowId=`, eval suites by `?project=` and optionally `&flowId=`, eval cases and runs by `?suiteId=`; a list filter that holds a key says so (`?facetKey=` on terms, `?recordTypeKey=` on relation-kind pairings, `?categoryKey=`/`?eventKey=` on the project event log).
 - Every project element has a **`key`** — its identifier within the project (or its parent), unique and yours to choose — and, where it has display text, a **`label`**. A field that names another element says what it holds by its suffix: `<kind>Id` holds the row id (`flowId`, `suiteId`), `<kind>Key` holds the key (`facetKey`, `categoryKey`, `eventKey`, `profileKey`). Keys of schema entries, record types, skills, eval suites and eval cases can be renamed; every other key is permanent.
+- **What a key may contain depends on what it names.** There are five grammars, each checked on write; a key outside its grammar is refused with the rule in the message. A key is at most 64 characters (a term's, 128).
+
+  | The key of                                                                                | Grammar                                                               | Example                        |
+  | ----------------------------------------------------------------------------------------- | --------------------------------------------------------------------- | ------------------------------ |
+  | a flow, a term, an event category, an event type, a relation kind, an embedding profile   | lower-case letters and digits in words joined by single dashes        | `enrich-business`              |
+  | a step                                                                                    | the same lower-case dashed words, optionally grouped by dots          | `summarize`, `extract.species` |
+  | a record type                                                                             | a letter, then letters and digits only — no dash, dot or underscore   | `Observation`                  |
+  | a facet                                                                                   | a lower-case letter, then letters and digits (camelCase)              | `cuisine`                      |
+  | a schema entry, an endpoint, a trigger, a schedule, a source, an eval suite, an eval case | a letter or digit, then letters, digits, dots, dashes and underscores | `TicketTriage`, `get-feed`     |
+
+  A slot name is not a key and has its own rule: letters and digits starting with a letter, no dash and no underscore (`kipory-build`).
+
 - Item routes address a row by its **id**, which is a cuid — never by its key. A relation kind's traversal (`/v1/records/{id}/relations/{kind}`) is the exception: `{kind}` is the kind's key.
 - A key is a **machine principal**: one node, one role, no user. It never has a `me`.
 

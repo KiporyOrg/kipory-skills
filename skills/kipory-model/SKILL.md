@@ -63,7 +63,7 @@ A field reference inside `uses` (a `search` field's `source`, a template) names 
 
 `uses` is one object, `{ "fields": [...], "search"?, "facets"? }`, and each `fields` entry pairs a source with what it is for. A use is a word or an object: a natural key that is also filterable is `{ "source": { "family": "submission", "field": "sku" }, "uses": ["key", "filter"] }`; a searched field is `{ "kind": "search" }`, a relation's producing field `{ "kind": "link", "relation": "<kind key>" }`. The `record-types-and-schema-entries` pack has the whole statement.
 
-The natural key is the `key` use on a field in `uses`: the save verifies every existing record first and refuses the whole PATCH with `409 RECORD_TYPE_NATURAL_KEY_UNSATISFIED` if two share a value or any record cannot supply the field. A `uses` refusal is `422 RECORD_TYPE_USES_INVALID` with every issue and its remedy in `details.issues`.
+The natural key is the `key` use on a field in `uses`: the save verifies every existing record first and refuses the whole PATCH with `409 RECORD_TYPE_NATURAL_KEY_UNSATISFIED` if two share a value or any record cannot supply the field. **A key is unique per project and per type — and, on a type owned by its users, per owner**: two users may each hold a record with the same key, and one user's record never collides with another's. So "each user follows a source once" is a `key` use on the source field of a per-user type, with no user id in the key. A `uses` refusal is `422 RECORD_TYPE_USES_INVALID` with every issue and its remedy in `details.issues`.
 
 The builtin and library shapes are **synthesized on read**: they have no rows and nothing creates them. There is no `?seed=` flag on the read; the seed is the POST.
 

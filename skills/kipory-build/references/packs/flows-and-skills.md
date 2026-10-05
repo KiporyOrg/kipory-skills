@@ -453,7 +453,8 @@ step that sets none behaves as it always has.
   writes nothing and answers `derived.switchOff.stops` — the steps that would stop with it, worked
   out through the run's own gates (condition, inputs, fan-out body), as `[{ id, key }]`, or `null`
   when it cannot be worked out.
-- **`timeoutMs`** — what it bounds depends on the handler, and the handler catalog says which:
+- **`timeoutMs`** — at most 120,000 (two minutes); a larger value is refused at the save. What it
+  bounds depends on the handler, and the handler catalog says which:
   `run.timeLimit` is `ai-call` (each AI call), `queue-wait` (the wait on the queued job, covering
   every try — the job may still finish), `in-flow` (how long the run waits for a step that runs in
   the flow itself, whose work may still finish) or `ignored` (control steps). Do not work out what an

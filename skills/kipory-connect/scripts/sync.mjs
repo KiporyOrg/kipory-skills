@@ -20,7 +20,10 @@
 // Usage (from any directory — it finds versions.md beside itself):
 //   KIPORY_BASE_URL=https://api.example.com [KIPORY_API_KEY=…] node <this skill>/scripts/sync.mjs
 //
-// Zero dependencies; Node 18 or newer (global fetch). Prints one line per
+// Zero dependencies; Node 18 or newer (global fetch). The first line names the
+// bundle that is running — its version and the directory it sits in — because
+// several versions of these skills can sit side by side on one machine and
+// each one's script compares its own pages. Then it prints one line per
 // source — under a layer that differs, one line per item: `changed` (both
 // sides have it, with different content), `added` (the deployment has it, the
 // bundle does not) or `removed` (the bundle has it, the deployment does not),
@@ -39,6 +42,31 @@ import { readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+// versions.md is a generated table: one row per source, the hash in a code
+// span. Its shape is fixed by the generator that writes it.
+const referencesDir = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "..",
+  "references",
+);
+// The directory the skills are installed in: the page paths manifest.json
+// records (`kipory-build/references/handlers/…`) start there.
+const skillsDir = resolve(referencesDir, "..", "..");
+// Which bundle this is, before anything can fail: a run from the wrong copy
+// reports a stale bundle as a stale deployment. VERSION is written at the
+// bundle's root on every publish; an install that copied one skill directory
+// has none.
+const bundleVersion = (() => {
+  try {
+    return readFileSync(resolve(skillsDir, "..", "VERSION"), "utf8").trim();
+  } catch {
+    return "";
+  }
+})();
+console.log(
+  `skills bundle ${bundleVersion || "(no VERSION file beside skills/)"} — ${skillsDir}`,
+);
+
 if (typeof fetch !== "function") {
   console.error(
     `node ${process.version} has no global fetch — run this with Node 18 or newer`,
@@ -55,20 +83,10 @@ if (!baseUrl) {
   process.exit(2);
 }
 
-// versions.md is a generated table: one row per source, the hash in a code
-// span. Its shape is fixed by the generator that writes it.
-const referencesDir = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "..",
-  "references",
-);
 const versionsFile = resolve(referencesDir, "versions.md");
 // manifest.json is the per-item companion:
 // { packs | handlers | api: { <name>: { hash, page? } } }.
 const manifestFile = resolve(referencesDir, "manifest.json");
-// The directory the skills are installed in: the page paths manifest.json
-// records (`kipory-build/references/handlers/…`) start there.
-const skillsDir = resolve(referencesDir, "..", "..");
 // One row per layer: where the deployment serves its version, and what to do
 // when it differs from the bundled one.
 const LAYERS = [

@@ -16,6 +16,17 @@ Three <!-- count: rows-of-next-table --> handlers put a question to a model. **`
 
 So: put every yes/no, closed pick and score a flow needs into `text.decide`, several to a step where they read the same input, and keep `text.generate` for the steps that must write words.
 
+**To judge every item of a list, fan out and decide per item.** A `text.decide` step reads one input and answers its questions once, so "which of these search hits are about this business" is not one call over the list. It is `flow.fan-out` over the list, a `text.decide` in the branch that asks the questions of one element, and a `flow.merge` that gathers the answers (`patterns.md` §2; set the fan-out's `maxItems` to the longest list you expect, default 20). Handing the whole list to one `text.generate` step and asking for a list of verdicts back is the expensive way to do the same thing: a chat model is paid for every line it reads and every verdict it writes, and the step waits while it writes them.
+
+Both shapes were measured on one deployment, on the same stored input:
+
+| Shape                                                                     | Model spend                                 | Time             |
+| ------------------------------------------------------------------------- | ------------------------------------------- | ---------------- |
+| fan-out → `text.decide`, three questions per item, 16 items → merge       | 755 credits for all 16, about 47 per branch | about 4 seconds  |
+| one `text.generate` reading the 16 to 20 items and writing a verdict each | about 3,200 to 3,900 credits for the call   | about 52 seconds |
+
+The two made the same accept and reject decisions. These are one deployment's measurements on one model binding, not a price list: a `text.generate` call costs what it reads and writes, so the 120–220 above is a short prompt with a short answer and the figures here are a long one. Measure your own flow as section 4 says.
+
 - A closed pick written as a `text.generate` prompt, or as a `facet.resolve` over a facet that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` and assign the term from the answer.
 - "Is this the same thing as that?" is a probability, not prose: one `text.decide` field, compared against a threshold where you branch.
 - `text.decide` runs on a decision model, not a chat model, named in `handlerConfig.model` (default `typesafe/jev-latest`). A step save refuses it (`HANDLER_MODEL_UNUSABLE`) when the catalog does not hold that model or it is not a decision model. Read `GET /v1/ai-models?type=decision` and name one it lists; an empty list means the step cannot run on this deployment.

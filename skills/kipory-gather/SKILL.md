@@ -205,6 +205,26 @@ read waits out once when the wait is short.
   profile for what is new sets it on the fetch step, or it reads yesterday's answer for a day.
   `kipory-build`'s `references/packs/flows-and-skills.md` (How a step runs) has the rule for steps
   that share one fetch.
+- **A listing is paid for on every poll, new items or not.** A profile, channel or search read
+  that reaches the vendor is charged in full when it returns the same items as last time, so on a
+  quiet source the listing is the whole cost of the poll, and the polling period decides the bill
+  far more than the work done per new item. Poll no more often than the source changes, keep
+  `maxItems` at what one period can produce, and store each source's own period as data rather
+  than polling every source on one schedule. Measure one poll with the run's spend
+  (`kipory-operate`) before choosing the period: no read quotes a vendor call's price in advance.
+- **`x.posts` on its default vendor charges a flat fee per call, large beside a small profile.**
+  The default vendor bills each call a fixed amount that already covers a few dozen posts, then
+  each post beyond them. `provider: "twitterapi"` bills per post returned plus a small account
+  lookup, so for a profile read of a few posts it costs far less. Set `provider` on the step, and
+  `fallback: false` if a failure there should not be answered — and billed — by the default
+  vendor (footnote ¹).
+- **A screenshot is the full page, and a long page is a very large image.** `url.screenshot`
+  always captures the whole page at the width you set; it has no height limit. A vision step
+  reading it (`text.generate` with the file attached) is slower and dearer the larger the image,
+  and a long page can run the model call into its time limit. Make the capture smaller — a
+  narrower `viewportWidth`, `format: "jpeg"` with a lower `jpegQuality` — give the model step
+  `"timeoutMs": 120000` (the most a step takes) and `"tries": 2`, and screenshot only the pages
+  whose look is the question. `maxBytes` does not trim: a capture over it fails the step.
 - **There is no feed reader, and no upsert.** An RSS or Atom feed is `url.fetch` with its own
   period, a regex cut into items and a fan-out that looks each item up by its link, then creates
   or updates it — a `key` use on the link does not make a re-poll update the item, it makes a
