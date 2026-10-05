@@ -2,6 +2,12 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261005.190800 — 2026-10-05
+
+Synced from the Kipory monorepo at `6cfe6fcaf`.
+
+- changed: `README.md`
+
 ## 1.20261005.172212 — 2026-10-05
 
 Synced from the Kipory monorepo at `d9a82dd0c`.

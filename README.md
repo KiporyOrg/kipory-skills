@@ -4,6 +4,24 @@ Skills that teach a coding agent how to build a product on **Kipory**, over its 
 
 Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code — its flows, record types, HTTP endpoints, triggers, schedules, facets and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a product's whole backend without writing an application, which is what these skills are for. The frontends people use are clients of what the project exposes.
 
+## Words on the site and in the API
+
+Kipory's site and its app name some things with different words than the API does. These skills use the API's words, because those are the ones in the routes, the fields and the handler keys an agent reads and writes. When you describe what you want in the site's words, this is what your agent will call it:
+
+| On the site and in the app | In the API and in these skills     | Where an agent meets it                                 |
+| -------------------------- | ---------------------------------- | ------------------------------------------------------- |
+| Type                       | schema entry                       | `/v1/schema-entries`                                    |
+| Table                      | record type                        | `/v1/record-types`, the field `recordType`              |
+| Record                     | record, and entity in handler keys | `/v1/records`; handlers such as `entity.read`           |
+| Relation                   | relation kind                      | `/v1/relation-kinds`                                    |
+| Link                       | edge                               | `/v1/relations`; the handler `entity.links`             |
+| Vocabulary                 | facet                              | `/v1/facets`; the handler `taxonomy.aggregate`          |
+| Term                       | term                               | `/v1/terms`                                             |
+| Function                   | handler                            | `/v1/handlers`, the field `handlerKey`                  |
+| Action                     | step, stored as a skill            | `/v1/steps`; the fields `skill`, `skills` and `skillId` |
+
+A "skill" in that last row is one step of a flow. It is not one of the agent skills in this repository.
+
 ## Install
 
 **Claude Code** — as a plugin, which keeps it updatable:
