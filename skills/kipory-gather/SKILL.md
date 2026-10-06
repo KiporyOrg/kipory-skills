@@ -216,6 +216,12 @@ read waits out once when the wait is short.
   handler's page names the operations it is charged under (**Charged as**) and
   `GET /v1/nodes/{nodeId}/vendor-prices` gives each one's credits, included units and floor
   (`kipory-operate`'s `references/spend.md` reads the row). Then confirm it on one run's spend.
+- **A read billed in the vendor's own credits states how many a request takes.** Most take one;
+  a few reads, and a few options on others, take many times that, and a list pays the
+  per-request figure once per page it reads. The handler's **Charged as** line gives the count, the option that raises it and
+  the most requests a step makes, and `GET /v1/handlers/{key}` carries the same as
+  `charges.vendorCredits`. Multiply by the `scrapecreators/credit` row of
+  `GET /v1/nodes/{nodeId}/vendor-prices` for the most one step can be charged.
 - **`x.posts` on its default vendor charges a flat fee per call, large beside a small profile.**
   The default vendor bills each call a fixed amount that already covers a few dozen posts, then
   each post beyond them. `provider: "twitterapi"` bills per post returned plus a small account
