@@ -137,14 +137,14 @@ Bind a task with `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creat
 
 ## 5. When the provider fails, or the call is slow
 
-**A model call can fail on the provider, not on you.** Preview's `errors[].message` (or a run's step log) reads `… provider account exhausted (quota/billing)`. Move the task, not the step:
+**A model call can fail on the provider, not on you.** Preview's `errors[].message` (or a run's step log) reads `… provider account exhausted (quota/billing)`. Model calls run on the platform's own provider accounts, so this is the platform's account out of credit: a fault of the deployment, which only whoever runs it can top up — tell them. `GET /v1/nodes/{nodeId}/task-models` goes on reading `callable: true` meanwhile; that field says an account is configured, not that it has credit. The failed step is still charged its compute second; no model charge is made for a call the provider refused. To keep working until the account is topped up, move the task, not the step:
 
 1. Read `GET /v1/nodes/{nodeId}/task-models` (at the project's id) for the task's current model and `source`.
 2. Pick a chat model from another creator in `GET /v1/ai-models?type=chat`: prefer `status: "active"` over `deprecated`, a `modelId` prefix (the creator) that differs, and an `offers[].provider` other than the exhausted account.
 3. Bind it at the project node with the `PUT` above, then preview again.
 
 - Pinning `modelId` on one step does the same for that step only, and stops it following the next change.
-- The provider's message says "non-retryable" even where the step log shows `tries: 2`; sending the call again does not help until the task is moved.
+- The call is made once: an exhausted account refuses the same call the same way, so the step fails at the first refusal and is not tried again. Running it again does not help until the task is moved or the account is topped up.
 - **Routing is not an alternative model.** `PUT /v1/nodes/{nodeId}/routing/{modelId} { providerOrder, failover: "on-exhaustion" }` (ADMIN) retries the SAME model through the next account listed in `providerOrder`, and only those. Naming an account that does not offer the model is refused with `PROVIDER_HAS_NO_OFFER`, and a one-account order is accepted but cannot fail over.
 - **This recipe moves chat tasks only.** Term writes and a semantic facet's resolution embed on the platform's shared term model, which a project cannot rebind (`kipory-model`).
 

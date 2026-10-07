@@ -101,7 +101,7 @@ project's address — its subdomain — can move later and its slug never does; 
 
 **4. Confirm facts live, never from memory.** Handler keys come from `GET /v1/handlers`, request shapes from `GET /v1/openapi.json`, the platform's own paths from `GET /v1/coded-routes` — all on _this_ deployment. The bundled `references/` are a snapshot of the same sources with the hash they were taken at; step 1 told you whether it is current.
 
-Models the same way. `GET /v1/nodes/{nodeId}/task-models`, at the project's id, lists each task a step inherits its model through. A row with `callable: false` fails every step on that task until the task is bound at the project (`kipory-build`'s `references/models.md`). Read it before the first run and again after a `sha` change: a roll can move a binding above the project that the project never chose.
+Models the same way. `GET /v1/nodes/{nodeId}/task-models`, at the project's id, lists each task a step inherits its model through. A row with `callable: false` fails every step on that task until the task is bound at the project (`kipory-build`'s `references/models.md`). Read it before the first run and again after a `sha` change: a roll can move a binding above the project that the project never chose. `callable: true` says the deployment holds an account for the model and it is switched on — not that the account has credit. Model calls run on the platform's own provider accounts; when one runs out, every call on it fails with `… provider account exhausted (quota/billing)` while the row still reads `callable: true`. That is a fault of the deployment, not of the flow: tell whoever runs it, and see `references/models.md` in `kipory-build` for moving a task meanwhile.
 
 ## Reading a refusal
 

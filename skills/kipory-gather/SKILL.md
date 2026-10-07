@@ -188,7 +188,12 @@ read waits out once when the wait is short.
   absent — it runs while **any one** is present — so a `text.generate` reading only the empty
   page skips, but a transform or `entity.create` that also reads the URL still runs and can write a
   record with the summary missing. Read `warnings` on the preview, use the fallback above, and put
-  `slotPresent` conditions on writes. A refused scrape is **not charged** — the handler bills only a
+  `slotPresent` conditions on writes. "Out of credit" there is about the account the call ran on:
+  with no key of your own stored it is the **platform's** account, which a flow cannot fix — tell
+  whoever runs the deployment, or store your own key under the vendor's name as purpose and the
+  step runs on your account from the next call (`kipory-secrets`). The social reads say it
+  differently: on the platform's key a refused or empty account **fails the step** with "This is
+  a platform fault, not a fault in the flow". A refused scrape is **not charged** — the handler bills only a
   page it got. A preview's `ingestSpend` carries two totals, `totalFirecrawlUsd` and `totalSupadataUsd` —
   what the preview was charged for those two vendors so far, read from your charges — and
   `calls[]`, which counts every ingest handler's calls, cache hits and refusals included, so a
