@@ -516,7 +516,7 @@
       "page": "kipory-build/references/handlers/web.traffic.md"
     },
     "x.posts": {
-      "hash": "d79929ec1aa0",
+      "hash": "5217be56c8d1",
       "page": "kipory-build/references/handlers/x.posts.md"
     },
     "x.profile": {
@@ -544,7 +544,7 @@
       "page": "kipory-build/references/handlers/youtube.search.md"
     },
     "youtube.transcript": {
-      "hash": "8ab72dd23b64",
+      "hash": "c36ac37464f7",
       "page": "kipory-build/references/handlers/youtube.transcript.md"
     },
     "youtube.trending": {
@@ -954,7 +954,7 @@
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/nodes/{nodeId}/task-models": {
-      "hash": "48b3c5d9b01a",
+      "hash": "5d8a35ec47df",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/nodes/{nodeId}/vendor-prices": {
@@ -972,6 +972,10 @@
     "GET /v1/organizations/{nodeId}/usage": {
       "hash": "abff106a8795",
       "page": "kipory-operate/references/api/spend.md"
+    },
+    "GET /v1/platform-status/": {
+      "hash": "676575f1ea88",
+      "page": "kipory-diagnose/references/api/platform-status.md"
     },
     "GET /v1/project-config/": {
       "hash": "d8c4955cb4ef",
@@ -1609,7 +1613,7 @@
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "PUT /v1/nodes/{nodeId}/task-models/{task}": {
-      "hash": "72d4603001bd",
+      "hash": "f345988fcb03",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "PUT /v1/projects/{nodeId}/address": {

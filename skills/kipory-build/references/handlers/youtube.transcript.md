@@ -23,7 +23,7 @@ Takes a bare 11-character video id, usually the `id` field of `youtube.video`. R
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `fallback` | boolean | no | `true` | If the chosen vendor errors, is rate-limited or has no key, try the others in turn. An empty answer does not fall back. ⚠️ A fallback is billed by the vendor that answered — a step whose chosen vendor runs on your own key can be charged for the other vendor on the platform's. |
+| `fallback` | boolean | no | `true` | If the chosen vendor errors, is rate-limited, has no key or refuses the platform's key, try the others. Empty answers do not fall back. ⚠️ A fallback is billed by the vendor that answered, which may be the platform's when yours failed. Your own key refused by the chosen vendor does not fall back: the step fails. |
 | `includeTimestamps` | boolean | no | `false` | When true, prefix each line with its start timestamp; otherwise return prose. |
 | `lang` | string | no | — | ISO language code (e.g. 'en', 'es'). Unset = the provider picks the default track. |
 | `provider` | `supadata` \| `scrapecreators` | no | `"supadata"` | Which vendor does the work: supadata or scrapecreators. Each spends its own key and bills at its own rate. "supadata" when left unset. |

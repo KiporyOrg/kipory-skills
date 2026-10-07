@@ -2,6 +2,23 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261007.195135 — 2026-10-07
+
+Synced from the Kipory monorepo at `61bdfc98f`.
+
+Routes added: `GET /v1/platform-status/`.
+
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-build/references/handlers/x.posts.md`
+- changed: `skills/kipory-build/references/handlers/youtube.transcript.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- added: `skills/kipory-diagnose/references/api/platform-status.md`
+- changed: `skills/kipory-gather/SKILL.md`
+
 ## 1.20261007.183030 — 2026-10-07
 
 Synced from the Kipory monorepo at `caebe7716`.

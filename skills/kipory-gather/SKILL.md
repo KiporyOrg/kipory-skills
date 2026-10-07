@@ -206,9 +206,16 @@ read waits out once when the wait is short.
   failure, the failed step is **not charged**, and an endpoint over the flow answers `503
 PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes it; to keep
   working meanwhile, store your own key under the vendor's name as purpose and the step runs on
-  your account from the next call. A function with a second vendor and `fallback` on
-  (`x.posts`, `youtube.transcript`) fails this way only on the vendor it **chose**; a fallback
-  vendor that refuses is one more miss and the next is tried. The YouTube Data API reads
+  your account from the next call. `GET /v1/platform-status` lists every platform account as
+  `ok`, `refusing` or `unknown` with `since`: read it before spending a run to find out, and
+  again to see the account come back. While an account is `refusing`, a step on it fails at
+  once without calling the vendor. A function with a second vendor and `fallback` on
+  (`x.posts`, `youtube.transcript`) does not fail on the platform's refused key: the next
+  vendor answers, at its own price, and the result carries a `PROVIDER_FALLBACK` warning whose
+  message says the platform's key was refused — the step fails `platform-fault` only when
+  `fallback` is off or no vendor answers. A key of your **own** that the chosen vendor refuses
+  still fails the step, fallback or not; a fallback vendor that refuses is one more miss and
+  the next is tried. The YouTube Data API reads
   (`youtube.video`, `youtube.channel`, `youtube.search`, `youtube.trending`) are the exception:
   their daily quota wall fails `quota-exhausted` whoever's key it was.
   A refused scrape is **not charged** — the handler bills only a

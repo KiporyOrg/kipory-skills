@@ -23,7 +23,7 @@ Reads one X URL — a post, a profile, or a search — into a list of posts, eac
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `fallback` | boolean | no | `true` | If the chosen vendor errors, is rate-limited or has no key, try the others in turn. An empty answer does not fall back. ⚠️ A fallback is billed by the vendor that answered — a step whose chosen vendor runs on your own key can be charged for the other vendor on the platform's. |
+| `fallback` | boolean | no | `true` | If the chosen vendor errors, is rate-limited, has no key or refuses the platform's key, try the others. Empty answers do not fall back. ⚠️ A fallback is billed by the vendor that answered, which may be the platform's when yours failed. Your own key refused by the chosen vendor does not fall back: the step fails. |
 | `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to pull for a profile or search URL, up to 100. A single-post URL returns one regardless. ⚠️ This bound is required, not a nicety — without it a single pasted link would pull everything the source will give, up to hundreds of posts. |
 | `provider` | `apify` \| `twitterapi` \| `scrapecreators` | no | `"apify"` | Which vendor does the work: apify or twitterapi or scrapecreators. Each spends its own key and bills at its own rate. "apify" when left unset. |
 | `sort` | `Latest` \| `Top` \| `Latest + Top` | no | `"Latest"` | Result ordering for profile/search scrapes. 'Top' surfaces high-engagement posts; 'Latest' the most recent. |
