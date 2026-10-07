@@ -188,19 +188,30 @@ read waits out once when the wait is short.
 
 ## What will bite you
 
-- **A vendor failure is a warning, not an error, and the flow keeps going.** When Firecrawl
-  refuses — out of credit (402), a site error — `url.scrape` emits an empty page with a soft
-  `SCRAPE_FAILED` warning (`RATE_LIMITED` for a 429, retried in-handler first); the run does not
-  fail and the empty result is not cached. A step skips only when **every** input it reads is
-  absent — it runs while **any one** is present — so a `text.generate` reading only the empty
-  page skips, but a transform or `entity.create` that also reads the URL still runs and can write a
-  record with the summary missing. Read `warnings` on the preview, use the fallback above, and put
-  `slotPresent` conditions on writes. "Out of credit" there is about the account the call ran on:
-  with no key of your own stored it is the **platform's** account, which a flow cannot fix — tell
-  whoever runs the deployment, or store your own key under the vendor's name as purpose and the
-  step runs on your account from the next call (`kipory-secrets`). The social reads say it
-  differently: on the platform's key a refused or empty account **fails the step** with "This is
-  a platform fault, not a fault in the flow". A refused scrape is **not charged** — the handler bills only a
+- **A vendor failure about the page is a warning, and the flow keeps going; a refused key fails
+  the step.** When the vendor cannot read what was asked for — a site error, a block, a timeout —
+  `url.scrape` emits an empty page with a soft `SCRAPE_FAILED` warning (`RATE_LIMITED` for a 429,
+  retried in-handler first); the run does not fail and the empty result is not cached. A step
+  skips only when **every** input it reads is absent — it runs while **any one** is present — so a
+  `text.generate` reading only the empty page skips, but a transform or `entity.create` that also
+  reads the URL still runs and can write a record with the summary missing. Read `warnings` on the
+  preview, use the fallback above, and put `slotPresent` conditions on writes.
+- **A refused key or an account out of credit is not about the page, and it fails the step** —
+  on every fetch-from-a-vendor function (`url.scrape`, `url.screenshot`, the search, place,
+  traffic and social reads). Whose key decides what you read. With a key of your own stored
+  (`kipory-secrets`) the step fails `api-key-missing` (refused) or `quota-exhausted` (your
+  account is empty), and it is yours to fix. With none, the call ran on the **platform's**
+  account and the step fails with `detail.phase: "platform-fault"` and a message ending "This is
+  a platform fault, not a fault in the flow": the deployment's operator is alerted by the same
+  failure, the failed step is **not charged**, and an endpoint over the flow answers `503
+PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes it; to keep
+  working meanwhile, store your own key under the vendor's name as purpose and the step runs on
+  your account from the next call. A function with a second vendor and `fallback` on
+  (`x.posts`, `youtube.transcript`) fails this way only on the vendor it **chose**; a fallback
+  vendor that refuses is one more miss and the next is tried. The YouTube Data API reads
+  (`youtube.video`, `youtube.channel`, `youtube.search`, `youtube.trending`) are the exception:
+  their daily quota wall fails `quota-exhausted` whoever's key it was.
+  A refused scrape is **not charged** — the handler bills only a
   page it got. A preview's `ingestSpend` carries two totals, `totalFirecrawlUsd` and `totalSupadataUsd` —
   what the preview was charged for those two vendors so far, read from your charges — and
   `calls[]`, which counts every ingest handler's calls, cache hits and refusals included, so a

@@ -23,7 +23,7 @@ So a step that cost 46 reads as 10 for one second of compute and 36 for the mode
 
 ### Compute
 
-- **Per second the step ran, in whole seconds rounded up, one second at least.** At 10 credits a second the same step costs 10 in one run and 20 in the next when it took 0.9 s and then 1.2 s.
+- **Per second the step ran, in whole seconds rounded up, one second at least** — except a step that failed on a platform fault, which is charged nothing (below). At 10 credits a second the same step costs 10 in one run and 20 in the next when it took 0.9 s and then 1.2 s.
 - **The rate is the deployment's and no route lists it.** <!-- absent: GET /v1/nodes/{nodeId}/compute-rate --> Read it off any `handler-run` charge: `credits ÷ units`.
 - **A run with no model call is not free.** Each step that runs bills its second.
 - **Waiting is not billed.** A step that runs as a queued job — a model step, a fetch, `term.upsert` and the other ingest-phase steps — is charged for the time its job ran, summed over its tries. The model or vendor call itself is charged once across the handler's own tries, and once per try when the step sets `tries`. The wait for a free worker, for a rate-limit allowance and between tries is not charged. A busy worker makes such a step slower, not dearer, and its `durationMs` on `GET /v1/runs/{runId}/steps` can be many seconds longer than the seconds it was charged.
@@ -57,6 +57,7 @@ Each step, and the run, carries `uncharged`: how many of its `events` the platfo
 
 - `credits: 0, events: 6, uncharged: 6` is work nobody was charged for. The same step in a charged run has a price, so do not budget from it.
 - `credits: 0` with `uncharged: 0` is a real zero.
+- A step that failed on a platform fault — `detail.phase: "platform-fault"` in the step log, one of the platform's own vendor or model accounts refusing the call — is one of these: its compute is waived, so it reads `credits: 0` with its event counted in `uncharged`. Any other failed step is charged its compute as usual.
 - `GET /v1/eval-runs/{id}/spend` carries the same field.
 
 ## What each kind of run costs, and where to read it
