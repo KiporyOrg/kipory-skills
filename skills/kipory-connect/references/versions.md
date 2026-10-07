@@ -6,8 +6,8 @@ Every page under `references/api/`, `references/handlers/` and `references/packs
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `82f15f57b540` | `version` on `GET /v1/capability-packs` |
-| handlers | `8358c0dab516916d4f9b387e3fef40026d04fbb2e37ccb06da61b023e54bedb8` | `version` on `GET /v1/handlers` |
+| packs | `25a886010a31` | `version` on `GET /v1/capability-packs` |
+| handlers | `2d412960c68742b52aeb2d92dedc3941b7b8db07b7342b82b174715135419c0f` | `version` on `GET /v1/handlers` |
 | api | `a2ead209c027` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 
 Handler pages: 116 customer handlers, key set `3b68bb7053ae`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.

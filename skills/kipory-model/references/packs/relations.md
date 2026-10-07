@@ -104,7 +104,10 @@ a refusal cannot tell a caller whether the far record exists.
 ⭐ **A flow states one under a label you choose.** The two steps are
 `entity.link-assert` and `entity.link-retract`; each reads two positional slots — the record the
 link runs FROM, then the one it runs TO — so the order between them decides which way a directed
-link points. Assert answers `stated` or `refused`; retract answers `retracted` or `not-found`, and
+link points. Each slot takes a record ID: after an `entity.create`, read `recordId` off its receipt,
+since a whole receipt wired there is refused when the step is saved. Assert answers `stated` or
+`refused`, and a refusal also leaves a `LINK_REFUSED` warning on the step in the run, since the step
+itself still finishes; retract answers `retracted` or `not-found`, and
 finding nothing to take back is an ordinary answer rather than a failure. Give the stating step a
 label and
 the step that takes edges back the SAME label, and the second reaches exactly what the first wrote —
