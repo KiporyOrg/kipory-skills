@@ -1,7 +1,7 @@
 # A CSV file into records: the parse step
 
 The "one file, many records" import in this skill's main page is four steps: `file.read-text` →
-`value.transform` (parse) → `flow.fan-out` over the valid rows, with `entity.create` in the branch →
+`value.transform` (parse) → `flow.fan-out` over the valid rows, with `record.create` in the branch →
 `flow.merge`. The parse is the step with no handler of its own. This page is one worked expression
 for it and the four things that go wrong around it.
 
@@ -61,7 +61,7 @@ Why it is written this way:
 Give the parse step an `outputSchema` naming a shape with `total`, `valid` and `rejected`, and make
 `valid`'s `items` a reference to a row shape of its own (`kipory-model` has the `$ref` form). The
 fan-out reads `valid` through an `inputPaths` `field` segment, and its branch slot is typed as that
-row shape only when the items are a named entry — an inline `items` object is the anonymous
+row shape only when the items are a named type — an inline `items` object is the anonymous
 `object`, and a `field` path into the branch slot is then refused.
 
 ## What goes wrong around it

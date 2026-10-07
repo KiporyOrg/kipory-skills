@@ -156,4 +156,4 @@ the user you mean as data.
   consumes bus-scoped events.
 - Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — running a flow because a durable event was recorded.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — where the emit node lives.
-- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — authoring a payload shape.
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring a payload shape.

@@ -7,7 +7,7 @@
 
 Six control shapes cover how most flows are wired. Each names the control handlers involved and the one rule each has that is not obvious from its config table. Field names are the handler's own config keys — see `handlers/<key>.md` for the full table and a worked example.
 
-The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7 (a record's processing flow), §8 (what an endpoint answers: 404, 422, optional filters), §9 (`entity.query` and a per-user feed) and §10 (roll-ups); `models.md` holds which model handler to use, `text.decide` questions, model bindings and prices.
+The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7 (a record's processing flow), §8 (what an endpoint answers: 404, 422, optional filters), §9 (`record.query` and a per-user feed) and §10 (roll-ups); `models.md` holds which model handler to use, `text.decide` questions, model bindings and prices.
 
 ## The three grammars, once
 
@@ -28,12 +28,12 @@ A list slot in a prompt: a bare `{{points}}` holding a list of text renders as o
 **Shape:** a source handler → text handlers → a writer, with the terminal slot bound in the flow's `outputBinding`.
 
 ```
-url.scrape (pageUrl → page) → text.generate (page → summary) → entity.update (summary → …)
+url.scrape (pageUrl → page) → text.generate (page → summary) → record.update (summary → …)
 ```
 
 - Ingest-phase handlers run in the async worker and carry a **queue**: retries, a wait ceiling, and a cache keyed on their input. Inline and control handlers have neither retry nor cache.
 - `text.generate`'s config `temperature` and `reasoningEffort` are part of the cache key: changing either discards every cached answer for the same prompt. Higher reasoning effort dominates both time and the token bill.
-- Two steps write a record. `entity.update` (above) patches the record the run is processing — `recordIdSlot`, then `dataSlot` and/or `derivedSlot`. `entity.create` makes a new one — `recordType`, `dataSlot` and an optional `fileIdsSlot`; a per-user record type refuses a key-driven run. Lifecycle is decided by the type: with no processing flow the new record is `READY`; with one it is `PENDING` until that flow has processed it, and a record a flow created is queued for it only by an `entity.enqueue-process` step (`records-and-endpoints.md` §7).
+- Two steps write a record. `record.update` (above) patches the record the run is processing — `recordIdSlot`, then `dataSlot` and/or `derivedSlot`. `record.create` makes a new one — `tableKey`, `dataSlot` and an optional `fileIdsSlot`; a per-user table refuses a key-driven run. Lifecycle is decided by the table: with no processing flow the new record is `READY`; with one it is `PENDING` until that flow has processed it, and a record a flow created is queued for it only by an `record.enqueue-process` step (`records-and-endpoints.md` §7).
 - Bind the last slot. A flow whose required output is unbound is refused `422 FLOW_OUTPUT_MISSING` on every live call, and preview names the slot in `missingRequiredOutput`.
 - **A step runs when any one of its inputs is present**, so a writer downstream of a step that produced nothing still runs on its other inputs. A provider slot counts when present: `projectInfo` and `runInfo` always are, and `userInfo` is on a signed-in run, so a step reading one beside a real slot runs without waiting for it — only an absent `userInfo` (a key, a schedule, a trigger) leaves the step waiting on its other inputs. "Present" means non-empty: `""` and `[]` count as absent, both here and for a `slotPresent` condition, and a step that produced `{}` or an empty file stored no slot at all. A source that fails softly (a vendor out of credit answers a warning and an empty page) then leads to a record written with a hole in it. Guard the write: `"condition": { "op": "slotPresent", "slot": "summary" }` on the writer.
 - **To run a step only when a slot is absent, negate the guard on that step**: `"condition": { "op": "not", "inner": { "op": "slotPresent", "slot": "found" } }`. A condition is judged before the step's inputs and may name a slot the step does not read, so the step keeps its own inputs and no helper step is needed (`step-fields.md` §5).
@@ -45,7 +45,7 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → entity.up
 **Shape:** a list slot → `flow.fan-out` → the body → `flow.merge`.
 
 - `flow.fan-out` reads one **list-shaped** slot and emits the element schema, one branch per element.
-- Any list fans out — text, files, objects, numbers or booleans — and each branch carries its element as it is, so a list of rows needs no flattening: the branch slot is typed as the list's element, and a body step reads a field of it like any object slot. That needs the element to be a named shape: a list whose `items` are written inline in its parent's definition has the anonymous `object` as its element, so the branch is an `object`, a `field` path into it is refused, and stating a named `outputSchema` on the fan-out is a `NOMINAL_MISMATCH`. Give the row its own schema entry and reference it from `items` (`kipory-model` has the form). `flow.merge` folds every one of those kinds back into a list of the same kind. Config: `dedupe` (default true: text compared exactly, a file by its key, an object by its value, so two identical rows run once), `maxItems` (default 20), `maxParallelBranches`, `branchTargetsAreDisjoint` (default false).
+- Any list fans out — text, files, objects, numbers or booleans — and each branch carries its element as it is, so a list of rows needs no flattening: the branch slot is typed as the list's element, and a body step reads a field of it like any object slot. That needs the element to be a named shape: a list whose `items` are written inline in its parent's definition has the anonymous `object` as its element, so the branch is an `object`, a `field` path into it is refused, and stating a named `outputSchema` on the fan-out is a `NOMINAL_MISMATCH`. Give the row its own type and reference it from `items` (`kipory-model` has the form). `flow.merge` folds every one of those kinds back into a list of the same kind. Config: `dedupe` (default true: text compared exactly, a file by its key, an object by its value, so two identical rows run once), `maxItems` (default 20), `maxParallelBranches`, `branchTargetsAreDisjoint` (default false).
 - **`maxItems` has a system ceiling, 100** unless the deployment changed it (`GET /v1/handlers` → the fan-out's `config` → `maximum`). A value above it is refused with `INVALID_HANDLER_CONFIG`, whose message names the setting and the bound ("`maxItems` must be at most 100"), and a document plan's finding points at `….handlerConfig.maxItems`. So one importer run takes at most 100 rows: split a larger file, or run the import once per chunk.
 - **Items past `maxItems` are not processed, and the run still succeeds.** A fan-out handed 30 items with `maxItems: 20` runs the first 20. The only sign is a `step-warned` row on the fan-out step — `detail.kind` `fan-out-capped`, with `requested`, `branches` and `cappedBy` (`config` for the step's own `maxItems`, `system` for the ceiling). Where every item must be handled, size `maxItems` to the largest list the step can be handed, or make the producer page so that no list is longer than the limit. A preview's own five-branch cap is not warned about; the preview reports it in `fanOutCaps`.
 - **Absent `maxParallelBranches` means "decide from the graph"**: parallel when no step in the branch can reach a sibling, sequential otherwise. `1` is the only setting where a branch reliably sees what earlier ones wrote. `branchTargetsAreDisjoint` is a promise about the data, not a bigger number — it waives only the same-record check, and if two branches do hit one record, the last write wins.
@@ -128,7 +128,7 @@ running list across branches that otherwise never meet.
   time — and an `op`: `set` overwrites, `add` sums, `append` builds a list, `union` builds a
   deduplicated set. `state.read` reads the same key back.
 - **A cell is scoped to one run.** It is not project state, it does not persist, and a second run
-  starts empty. For state that outlives a run, write a record (`entity.update`).
+  starts empty. For state that outlives a run, write a record (`record.update`).
 - `state.read` reads no slots of its own, which means **nothing orders it against the writes**
   until you give it an input. Skip that and you will read a cell before the branch that filled it
   ran.
@@ -155,9 +155,9 @@ running list across branches that otherwise never meet.
 
 - `value.first-non-empty` — an ordered `inputs` list of slots or paths; emits the first non-empty **preserving its runtime shape**, which is what lets it coalesce a URL string and a file. `valueKind` narrows to `string` or `file`. `inputStreams` must list the root slot of every entry in `inputs`, no more and no fewer.
 - `text.interpolate` — a prompt template and nothing else; makes no model call and cannot emit a list. Use it for prose with holes, and `value.transform` for computation.
-- `entity.read` — `idsSlot` must hold a **list** of ids, or of objects carrying `id` (a `RecordPage`'s rows: `"page.records"`). A record search's hits carry `recordId`, not `id`: name `hits[].recordId`. A single id string — or a path that resolves to one, such as `created.recordId` — reads nothing, and with `failIfEmpty` that is a 404: wrap it first — `value.transform` with `[id]`.
+- `record.read` — `idsSlot` must hold a **list** of ids, or of objects carrying `id` (a `RecordPage`'s rows: `"page.records"`). A record search's hits carry `recordId`, not `id`: name `hits[].recordId`. A single id string — or a path that resolves to one, such as `created.recordId` — reads nothing, and with `failIfEmpty` that is a 404: wrap it first — `value.transform` with `[id]`.
 - `list.concat` — an ordered `inputs` list of slots; flattens lists, lifts scalars to one-element lists, and joins them in the order given. `strategy` is `concat` or `dedup-concat`. It collects contributions from parallel sources **without needing a fan-out and merge pair**, which is the cheaper answer whenever the branches were never really a fan-out.
-- `entity.query` — the one handler that joins: records matching several clauses at once (a field, a term, a link to a matching peer, a phrase by meaning), with values read from slots. `records-and-endpoints.md` §9 has the clause grammar.
+- `record.query` — the one handler that joins: records matching several clauses at once (a field, a term, a link to a matching peer, a phrase by meaning), with values read from slots. `records-and-endpoints.md` §9 has the clause grammar.
 
 ### `value.transform`
 

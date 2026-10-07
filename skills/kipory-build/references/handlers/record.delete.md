@@ -1,12 +1,12 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.delete` — Delete records
+# `record.delete` — Delete records
 
 Delete one or more records.
 
 Deletes records by id: the signed-in user's own and the project's pool records, only the pool when the run has no user, never another user's. A record still processing is marked and goes on its own; the rest go at once. Deleting twice is harmless.
 
-- **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id list` → `boolean`
 - **Reads:** A list of record ids, from the slot `idsSlot` names. A single delete passes a one-element list. _(shape hint: `record id list`)_

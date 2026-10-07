@@ -409,7 +409,7 @@ fingerprint and makes the next delta incomparable.
 
 ⭐ **`applyWrites: false` makes every case a dry run.** Every step runs — every model call, the
 same credits — and the records and terms the flow would have written are discarded when the case
-ends, on both arms of a bracketed run. An `entity.enqueue-process` handoff is discarded with the
+ends, on both arms of a bracketed run. An `record.enqueue-process` handoff is discarded with the
 writes, so the record's processing flow does not run. Scorer flows are not covered: a scorer that
 writes still applies. Each run keeps the answer it started under as
 `measurementConditions.writesApplied` (`null` on a run recorded before it was kept), so a later edit of
@@ -429,7 +429,7 @@ Whatever `applyWrites` says: files land in a sandbox prefix, a send is refused �
 fails rather than sending — and an
 emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
 published, so no trigger starts. In an applying suite, records and terms are not isolated, and
-neither is a processing handoff: an `entity.enqueue-process` step runs the record's processing flow
+neither is a processing handoff: an `record.enqueue-process` step runs the record's processing flow
 live once the case applies, and that flow's events publish and its mail is sent. An eval run's model calls are
 `origin: test` in the AI-call list; the run's own `credits` is the per-suite figure. Re-running an applying suite over a mutating flow is not a safe idempotent act:
 set `applyWrites: false`, measure a flow that does not write, or accept that each run changes the
@@ -473,34 +473,34 @@ that are not the same kind of number. There is no human-annotation or end-user-f
 
 One failure mode costs more than every other in this pack put together, and it is decided by
 configuration alone: **a suite with no `runAsUserId` runs as a sentinel, which owns no records.**
-If the flow under test reads a record type whose rows belong to individual users, every case
+If the flow under test reads a table whose rows belong to individual users, every case
 searches an empty corpus — and the run reports `success` with a column of real zeroes. Nothing
 downstream can tell that from a flow that genuinely retrieves nothing.
 
 The suite carries half the answer. This read carries the other half: it walks the subject flow's
-transitive `flow.invoke` closure and reports every record type the enabled skills name, together
+transitive `flow.invoke` closure and reports every table the enabled skills name, together
 with its `ownerScope`.
 
 - `ownerScope: "user"` — rows belong to one end user. Paired with a suite that names no user,
   this is the failure above, and you can fix it before spending anything.
 - `ownerScope: "project"` — a shared pool every user of the project reads. A sentinel run reads
   it normally.
-- `ownerScope: null` — **this project declares no type by that name.** The skill names something
+- `ownerScope: null` — **this project declares no table by that name.** The skill names something
   that does not exist, which fails the run rather than emptying it. It is deliberately not folded
   into the `project` arm: that is the safe-looking one, and this is not a safe state.
 
-⛔ **An empty `recordTypeReads` is NOT an all-clear, and the response says so out loud.** The walk
-reads each handler's own declaration of which configuration field names a record type. That
+⛔ **An empty `tableReads` is NOT an all-clear, and the response says so out loud.** The walk
+reads each handler's own declaration of which configuration field names a table. That
 declaration is not enforcement, and it covers top-level configuration fields only — so a handler
-can name a record type without the walk being able to see which. Six handlers in the catalog reach
-record or vector data while naming no type; `taxonomy.aggregate` is the one that reads per-user
+can name a table without the walk being able to see which. Six handlers in the catalog reach
+record or vector data while naming no table; `vocabulary.aggregate` is the one that reads per-user
 data. Any of them present in the closure is reported in `unattributedHandlerKeys`, which is the
 measured size of the blind spot rather than a silence. The list is always empty for a project that
-declares no user-owned record type: there is then no person's row for such a handler to miss.
+declares no user-owned table: there is then no person's row for such a handler to miss.
 
 ⛔ **`scope: null` means the graph could not be walked** — the suite's flow is not in the project's
 flow library. It never means "walked and found
-nothing"; that answer is a present `scope` with an empty `recordTypeReads`. Exactly one of `scope`
+nothing"; that answer is a present `scope` with an empty `tableReads`. Exactly one of `scope`
 and `unavailableReason` is ever set.
 
 ## What the platform will not let you conclude
@@ -548,7 +548,8 @@ dry run: `POST /v1/eval-suites/{id}/run` with `validateOnly: true` answers what 
 measure, and the design writes answer whether a row would be saved.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
+refused.
 
 ## Authoring order
 

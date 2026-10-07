@@ -41,7 +41,7 @@ What a step body carries, how a type is referenced, how an output is bound, and 
 
 A flow's `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName, slot?, isList?, required? }`, not bare names.
 
-**A signature change states the side it changes.** A `PATCH /v1/flows/{id}` carrying only `outputTypeNames` changes the outputs and keeps the inputs as stored (and the reverse). The stored binding is carried, pruned to the outputs that remain, unless you send `outputBinding`. While an endpoint or a flow-backed record type holds a snapshot of the old signature the PATCH is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an `ok: false` verdict with that code) unless it adds `adoptSnapshots: true`, which re-publishes those endpoints' contracts to their callers — read `kipory-evolve` first.
+**A signature change states the side it changes.** A `PATCH /v1/flows/{id}` carrying only `outputTypeNames` changes the outputs and keeps the inputs as stored (and the reverse). The stored binding is carried, pruned to the outputs that remain, unless you send `outputBinding`. While an endpoint or a flow-backed table holds a snapshot of the old signature the PATCH is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an `ok: false` verdict with that code) unless it adds `adoptSnapshots: true`, which re-publishes those endpoints' contracts to their callers — read `kipory-evolve` first.
 
 ## 2. Output binding and path objects
 
@@ -76,27 +76,27 @@ A flow's `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName,
 | `{ "kind": "pluck", "name": … }`  | that property from every item (a list) |
 | `{ "kind": "wrap" }`              | one value lifted into a one-item list  |
 
-Segments apply in order. **A `field` segment needs a typed source**: the step's `outputSchema` must be a shape that declares that field. A step typed as the builtin `object` (or a list) refuses a field path with a type mismatch — give the step a schema entry and bind into it.
+Segments apply in order. **A `field` segment needs a typed source**: the step's `outputSchema` must be a shape that declares that field. A step typed as the builtin `object` (or a list) refuses a field path with a type mismatch — give the step a type and bind into it.
 
 A step's `condition` uses a different notation on the same row: its `path` is a plain dot-string.
 
 ## 3. Schema references
 
-What `inputSchemas[]` and `outputSchema` hold. On the row API a named shape is `{ "kind": "ref", "entryId": "<id>" }`; inside a document it is `{ "kind": "ref", "ref": "<entry key>" }`. Named shapes match by entry, never by structure: two entries with identical fields are different types, and wiring one where the other is expected is a `NOMINAL_MISMATCH`. Reuse one entry. The other forms wrap one of those:
+What `inputSchemas[]` and `outputSchema` hold. On the row API a named shape is `{ "kind": "ref", "dataTypeId": "<id>" }`; inside a document it is `{ "kind": "ref", "ref": "<type key>" }`. Named shapes match by type, never by structure: two types with identical fields are still two types, and wiring one where the other is expected is a `NOMINAL_MISMATCH`. Reuse one type. The other forms wrap one of those:
 
-| Form                                              | Means                                                                                                                           |
-| ------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
-| `{ "kind": "list", "element": <ref> }`            | a list — `RecordRead[]` is `list` of `ref RecordRead`                                                                           |
-| `{ "kind": "optional", "inner": <ref> }`          | may be absent — an optional flow input arrives this way, and a step reading one must type it so (`records-and-endpoints.md` §8) |
-| `{ "kind": "union", "members": [<ref>, <ref>] }`  | one of several — on an input only, never an output                                                                              |
-| `{ "kind": "record", "valueType": <ref> }`        | a string-keyed map                                                                                                              |
-| `{ "kind": "recordRef", "recordType": "<type>" }` | one stored record's id                                                                                                          |
+| Form                                             | Means                                                                                                                           |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `{ "kind": "list", "element": <ref> }`           | a list — `RecordRead[]` is `list` of `ref RecordRead`                                                                           |
+| `{ "kind": "optional", "inner": <ref> }`         | may be absent — an optional flow input arrives this way, and a step reading one must type it so (`records-and-endpoints.md` §8) |
+| `{ "kind": "union", "members": [<ref>, <ref>] }` | one of several — on an input only, never an output                                                                              |
+| `{ "kind": "record", "valueType": <ref> }`       | a string-keyed map                                                                                                              |
+| `{ "kind": "recordRef", "tableKey": "<type>" }`  | one stored record's id                                                                                                          |
 
-The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own shapes (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) are entries like yours: in a document name them by key; on the row API read the id with `GET /v1/schema-entries?project={nodeId}&key=<Key>`. `GET /v1/flows/{id}/scope` lists every slot a step may read, already typed.
+The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own shapes (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) are types like yours: in a document name them by key; on the row API read the id with `GET /v1/types?project={nodeId}&key=<Key>`. `GET /v1/flows/{id}/scope` lists every slot a step may read, already typed.
 
 ## 4. Inputs the platform derives
 
-**A step whose settings or prompt name its inputs gets them from the platform** — `value.transform`, `value.first-non-empty`, `entity.list`, `entity.read`, `text.generate` and the other config- or template-driven handlers.
+**A step whose settings or prompt name its inputs gets them from the platform** — `value.transform`, `value.first-non-empty`, `record.list`, `record.read`, `text.generate` and the other config- or template-driven handlers.
 
 - Omit `inputStreams` (or send `[]`) and the save stores the names the settings or prompt read, each typed from what feeds it.
 - A PATCH that changes the settings or prompt without `inputStreams` re-derives them.
@@ -105,18 +105,18 @@ The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the pla
 
 Two things catch people:
 
-- **Provider slots count.** `entity.list` and `entity.read` default `userIdSlot` to `userInfo.userId`, so the save adds `userInfo` to their inputs itself, even on a project-wide type a key calls — leave `inputStreams` out, or include it in a list you send. A prompt reading `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo` (schema `ProjectInfo`).
+- **Provider slots count.** `record.list` and `record.read` default `userIdSlot` to `userInfo.userId`, so the save adds `userInfo` to their inputs itself, even on a project-wide table a key calls — leave `inputStreams` out, or include it in a list you send. A prompt reading `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo` (schema `ProjectInfo`).
 - **In JSONata, every bare name that starts a path is read as a slot**, including a field name inside a projection and the word `undefined`. `patterns.md` ("`value.transform`") has the rule, the way round it and the five refused functions.
 
 ## 5. When a step runs
 
 - **A step runs while any one of its inputs is present** (`patterns.md` §1). "Present" means non-empty.
 - **A run with no signed-in user has no `userInfo` at all** — a key's call, a schedule, a trigger.
-  - A step whose only inputs are provider slots still runs: a project-wide read ignores the missing user, and a per-user record type refuses.
+  - A step whose only inputs are provider slots still runs: a project-wide read ignores the missing user, and a per-user table refuses.
   - A step reading `userInfo` beside a real slot (a cursor, an optional query filter) waits for that slot, and is skipped when it never arrives — the optional-filter recipe is in `records-and-endpoints.md` §8.
   - Preview with `principal: "no-end-user"` to see the run a key or a schedule gets (`checking.md`).
 - **A condition is judged before the inputs, and it may name any slot of the flow.** The slot does not have to be one of the step's inputs, and the step is ordered after whatever writes it. A step whose condition fails is skipped whatever its inputs hold.
-- **"Run only when a slot is absent" is `not` around `slotPresent`, on the step itself**: `"condition": { "op": "not", "inner": { "op": "slotPresent", "slot": "found" } }`. There is no separate operator for absence — `not` wraps any clause (`inner`), and `and` and `or` take a list (`all`, `any`). Put it on the step that should run — the `entity.create` reading its data slot — and name the slot that decides in the condition only. A helper step that turns "absent" into a marker is not needed, and would not work: a transform reading only the absent slot is skipped with it.
+- **"Run only when a slot is absent" is `not` around `slotPresent`, on the step itself**: `"condition": { "op": "not", "inner": { "op": "slotPresent", "slot": "found" } }`. There is no separate operator for absence — `not` wraps any clause (`inner`), and `and` and `or` take a list (`all`, `any`). Put it on the step that should run — the `record.create` reading its data slot — and name the slot that decides in the condition only. A helper step that turns "absent" into a marker is not needed, and would not work: a transform reading only the absent slot is skipped with it.
 - **A condition that fails is a skip, not a failure**, and so is a condition that throws.
 - **Which operator tests which kind of value** is `GET /v1/steps/condition-operators` — the table a `condition` is checked against at save and evaluated by at run time.
 - **`flow.dispatch` with no `default` silently skips an unmatched input**, and so does every step below the unwritten branch slot whose inputs all trace back to it. A step that also reads another present slot still runs, so guard a branch step on its branch slot with `slotPresent`.

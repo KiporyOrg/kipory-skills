@@ -41,7 +41,7 @@ Each item of `records`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `recordId` | `string` | yes | The record's id. |
-| `recordType` | `string` | yes | The record's own type — which, for a flow bound to several types, says which binding the run came through. |
+| `tableKey` | `string` | yes | The record's own type — which, for a flow bound to several types, says which binding the run came through. |
 | `identity` | `object` | yes | What to call the record — its natural key, or a fragment of its content when it has none. The same identity every records surface draws. |
 | `lastRanAt` | `string` | yes | When this flow last ran on the record — its latest trace or run opener, whichever is newer. ⚠️ A floor, not a fact about every run: traces are sampled and expire, and the run log is scanned over a bounded recent window. |
 

@@ -15,7 +15,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/bootstrap`
 
-A project's whole configuration addressed by id — flows, steps, record types, endpoints, schedules, triggers and the rest — plus the caller's slice of the tenancy tree, as one snapshot. Each section carries the structure version it last changed at; narrow the answer with `sections`, or with `since` to get only what changed after a version you hold. A full answer carries an ETag, and `If-None-Match` returns 304 while it still holds.
+A project's whole configuration addressed by id — flows, steps, tables, endpoints, schedules, triggers and the rest — plus the caller's slice of the tenancy tree, as one snapshot. Each section carries the structure version it last changed at; narrow the answer with `sections`, or with `since` to get only what changed after a version you hold. A full answer carries an ETag, and `If-None-Match` returns 304 while it still holds.
 To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/document` instead: the same configuration addressed by key, in the format that `POST /v1/projects/{nodeId}/document/plan` and `POST /v1/projects/{nodeId}/document` take. To hear when this snapshot changes, hold `GET /v1/bootstrap/stream` open. For one row, its own read is simpler (`GET /v1/flows/{id}`, …).
 **VIEWER** on the project.
 
@@ -36,8 +36,8 @@ To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/docu
 | `capturedAt` | `string` | yes | When this snapshot was taken (ISO-8601). |
 | `sections` | `object` | yes | The current version of every section, including ones this response did not return. That is what lets a client asking for a subset still discover that something else moved. |
 | `project` | `object` | no | Project-level settings, route enablement and model bindings. Absent when unchanged since `?since=` or not requested. |
-| `schema` | `object` | no | Record types, schema entries and facet definitions. Absent when unchanged or not requested. |
-| `relations` | `object` | no | Relation kinds and the record-type pairs each may connect. Absent when unchanged or not requested. |
+| `schema` | `object` | no | Tables, types and vocabulary definitions. Absent when unchanged or not requested. |
+| `relations` | `object` | no | Relations and the table pairs each may connect. Absent when unchanged or not requested. |
 | `events` | `object` | no | Event types, each carrying its namespace (`categoryKey`). Absent when unchanged or not requested. |
 | `flows` | `object` | no | Flows and their skills — the highest-churn section, which is why it stands alone. Absent when unchanged or not requested. |
 | `surfaces` | `object` | no | Dynamic API endpoints and schedules — the things that expose or drive the project. Absent when unchanged or not requested. |

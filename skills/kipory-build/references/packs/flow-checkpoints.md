@@ -50,7 +50,8 @@ Renaming a checkpoint or changing its note is `PATCH /v1/flow-checkpoints/{id}` 
 writing nothing.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
+refused.
 
 **Reads never return the payload.** List and metadata give you counts, whether it was automatic,
 who made it and when — but not the snapshot itself. If you want to know what a restore would do,

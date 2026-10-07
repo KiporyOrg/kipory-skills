@@ -43,7 +43,7 @@ Each item of `eventTypes`:
 | `key` | `string` | yes | The event type's key, unique within its namespace. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
-| `payloadEntryId` | `string \| null` | yes | Schema entry describing the payload an event of this type carries, or null when it carries none. |
+| `payloadDataTypeId` | `string \| null` | yes | Type describing the payload an event of this event type carries, or null when it carries none. |
 | `payloadVersion` | `integer` | yes | Which version of that payload shape this type currently declares. Unrelated to `version` below, which is the concurrency guard. |
 | `durable` | `boolean` | yes | Whether events of this type are stored in the project's event log, where a trigger can react to them. False: published live and forgotten. Never true for a run-scoped type. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
@@ -56,7 +56,7 @@ Each item of `eventTypes`:
 
 ### `POST /v1/event-types`
 
-Create an event type in a project: the namespace it lives in (`categoryKey` — a new one needs nothing created first), what a flow's `event.emit` step raises, who it is about by default (`defaultScope`), its payload shape (`payloadEntryId`, a schema entry) and whether its events are stored in the event log (`durable`, default false). A trigger can select it once it is stored and not run-scoped. Its namespace and key are permanent. A reserved platform channel name is refused (422), and so is a source provider's namespace (409 — only that provider's source writes there). With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several at once: the `events` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create an event type in a project: the namespace it lives in (`categoryKey` — a new one needs nothing created first), what a flow's `event.emit` step raises, who it is about by default (`defaultScope`), its payload shape (`payloadDataTypeId`, a type) and whether its events are stored in the event log (`durable`, default false). A trigger can select it once it is stored and not run-scoped. Its namespace and key are permanent. A reserved platform channel name is refused (422), and so is a source provider's namespace (409 — only that provider's source writes there). With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several at once: the `events` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -67,7 +67,7 @@ Create an event type in a project: the namespace it lives in (`categoryKey` — 
 | `key` | `string` | yes | The event type's key, unique within its namespace. Permanent once created. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
-| `payloadEntryId` | `string \| null` | no | Schema entry describing the payload events carry. Omit or pass null for an event with no payload. |
+| `payloadDataTypeId` | `string \| null` | no | Type describing the payload events carry. Omit or pass null for an event with no payload. |
 | `durable` | `boolean` | no | Whether events of this type are stored in the event log, where a trigger can react to them. Omit for false (published live only). Refused as true on a run-scoped type. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
@@ -98,7 +98,7 @@ Each item of `diagnostics`:
 | `key` | `string` | yes | The event type's key, unique within its namespace. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
-| `payloadEntryId` | `string \| null` | yes | Schema entry describing the payload an event of this type carries, or null when it carries none. |
+| `payloadDataTypeId` | `string \| null` | yes | Type describing the payload an event of this event type carries, or null when it carries none. |
 | `payloadVersion` | `integer` | yes | Which version of that payload shape this type currently declares. Unrelated to `version` below, which is the concurrency guard. |
 | `durable` | `boolean` | yes | Whether events of this type are stored in the project's event log, where a trigger can react to them. False: published live and forgotten. Never true for a run-scoped type. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
@@ -129,7 +129,7 @@ Read one event type. Every type of its project: `GET /v1/event-types?project=` (
 | `key` | `string` | yes | The event type's key, unique within its namespace. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
-| `payloadEntryId` | `string \| null` | yes | Schema entry describing the payload an event of this type carries, or null when it carries none. |
+| `payloadDataTypeId` | `string \| null` | yes | Type describing the payload an event of this event type carries, or null when it carries none. |
 | `payloadVersion` | `integer` | yes | Which version of that payload shape this type currently declares. Unrelated to `version` below, which is the concurrency guard. |
 | `durable` | `boolean` | yes | Whether events of this type are stored in the project's event log, where a trigger can react to them. False: published live and forgotten. Never true for a run-scoped type. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
@@ -156,7 +156,7 @@ Change an event type — name, default scope, payload shape, storage, status; it
 | --- | --- | --- | --- |
 | `label` | `string` | no | New name. Omit to leave it alone. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | no | Change who events of this type are about. Events already recorded keep the scope they were emitted with. |
-| `payloadEntryId` | `string \| null` | no | Point at a different payload schema, or null for no payload. |
+| `payloadDataTypeId` | `string \| null` | no | Point at a different payload schema, or null for no payload. |
 | `durable` | `boolean` | no | Change whether events are stored in the event log. Refused as true on a run-scoped type. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | no | Retire the type or bring it back. ⚠️ This is MANAGEMENT METADATA and does not gate emitting: the emit path drops `status`, so a retired type still fires exactly like an active one. Retiring says 'stop authoring against this'; removing the `event.emit` node is how you stop it firing. |
 | `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
@@ -172,7 +172,7 @@ Change an event type — name, default scope, payload shape, storage, status; it
 | `key` | `string` | yes | The event type's key, unique within its namespace. |
 | `label` | `string` | yes | Human-readable name. |
 | `defaultScope` | `"run" \| "record" \| "user" \| "project"` | yes | Who an event of this type is about by default — one run, one record, one user, or the project. |
-| `payloadEntryId` | `string \| null` | yes | Schema entry describing the payload an event of this type carries, or null when it carries none. |
+| `payloadDataTypeId` | `string \| null` | yes | Type describing the payload an event of this event type carries, or null when it carries none. |
 | `payloadVersion` | `integer` | yes | Which version of that payload shape this type currently declares. Unrelated to `version` below, which is the concurrency guard. |
 | `durable` | `boolean` | yes | Whether events of this type are stored in the project's event log, where a trigger can react to them. False: published live and forgotten. Never true for a run-scoped type. |
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |

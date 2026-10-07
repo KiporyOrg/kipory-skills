@@ -10,12 +10,12 @@ before it is searchable.
 
 ## Read half — which records, and how close?
 
-One step. `entity.query` with a `semantic` clause returns the records, ranked, with their fields
+One step. `record.query` with a `semantic` clause returns the records, ranked, with their fields
 and a score for each:
 
 | #   | Handler           | Reads                                  | Emits                                         | Why it is here                             |
 | --- | ----------------- | -------------------------------------- | --------------------------------------------- | ------------------------------------------ |
-| 1   | `entity.query`    | the question (`textSlot`), or a record | `records`, `scores`, `bounded`, `explanation` | rank by meaning, narrowed by exact clauses |
+| 1   | `record.query`    | the question (`textSlot`), or a record | `records`, `scores`, `bounded`, `explanation` | rank by meaning, narrowed by exact clauses |
 | 2   | `text.rerank`     | question + `{ id, text }[]`            | `{ id, relevance }[]` — no text               | precision the score alone does not give    |
 | 3   | `value.transform` | records, or rerank hits + the texts    | `{ id, text }[]`                              | pick the text the model should read        |
 | 4   | `text.sanitize`   | `itemsSlot`: `{ id, text }[]`          | `{ id, sanitizedText }[]`, or a string        | retrieved text is untrusted input          |
@@ -46,7 +46,7 @@ bands:
 
 | #   | Handler           | Reads                                                  | Emits                                      |
 | --- | ----------------- | ------------------------------------------------------ | ------------------------------------------ |
-| 1   | `entity.query`    | the new item's text                                    | the closest records, with `scores`         |
+| 1   | `record.query`    | the new item's text                                    | the closest records, with `scores`         |
 | 2   | `value.transform` | `records`, `scores`, your marks                        | `{ band: "same" \| "ask" \| "new", best }` |
 | 3   | `text.decide`     | the candidate and the new item, on `band = "ask"` only | a yes/no with its probability              |
 

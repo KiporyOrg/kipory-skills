@@ -1,39 +1,41 @@
 <!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# Capability pack — Facets
+# Capability pack — Vocabularies
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`
-> (design plane); the `facet.resolve` handler config → live `GET /v1/handlers`. This pack carries
+> (design plane); the `vocabulary.resolve` handler config → live `GET /v1/handlers`. This pack carries
 > judgment, not the field lists.
 
 ## What it is
 
 A named, resolvable dimension you hang off records — a claim type, a category, a role, a tag.
 
-A facet does not hold a value. It declares **how a value is resolved** from a record's content,
-and the resolved values land as terms linked to that record. One facet per project and key.
+A vocabulary does not hold a value. It declares **how a value is resolved** from a record's content,
+and the resolved values land as terms linked to that record. One vocabulary per project and key.
 
-The difference matters: a field stores what someone wrote; a facet resolves what they meant
-against a shared vocabulary, so two records that say the same thing differently end up pointing at
+The difference matters: a field stores what someone wrote; a vocabulary resolves what they meant
+against a shared set of terms, so two records that say the same thing differently end up pointing at
 the same term.
 
 ## When you need it — and when you don't
 
 - **Against a plain field on the shape.** Use a field when a caller or a single step just
-  _writes_ the value. Use a facet when the value should be resolved against a shared vocabulary —
-  deduplicated, reused across records, and able to nest. A field gives you a flat literal; a facet
-  gives you a vocabulary with reuse.
-- **Against a relation.** A facet classifies a record against a vocabulary of _terms_. A relation
-  links a record to _another record_. If the thing on the other end is itself first-class — with
-  its own fields and its own lifecycle — it is a relation (capability pack `relations` — `GET /v1/capability-packs/relations`), not a facet.
+  _writes_ the value. Use a vocabulary when the value should be resolved against shared terms —
+  deduplicated, reused across records, and able to nest. A field gives you a flat literal; a
+  vocabulary gives you terms with reuse.
+- **Against a relation.** A vocabulary classifies a record against its _terms_. A link
+  joins a record to _another record_. If the thing on the other end is itself first-class — with
+  its own fields and its own lifecycle — it is a relation (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`), not a
+  vocabulary.
 
 ### Two questions, not one — decide both
 
-A facet's admission is two settings — "may this grow?" and "how does it find what it already has?"
+A vocabulary's admission is two settings — "may this grow?" and "how does it find what it already
+has?"
 
 ⛔ **They are independent only on the `semantic` arm.** Under `matching: "exact"` the resolve path
 returns before the mint filter is ever consulted, so **`mint` is inert**: nothing is ever coined,
-whatever you set. An `exact` facet configured `active` in the expectation of a growing vocabulary
+whatever you set. An `exact` vocabulary configured `active` in the expectation of growing
 gets one that can never grow — and if nothing was seeded it reads `blocked`, not `ready`.
 
 **`mint` — what a value it has never seen may become.**
@@ -41,11 +43,12 @@ gets one that can never grow — and if nothing was seeded it reads `blocked`, n
 - **`active`** coins a live term you can match against immediately.
 - **`none`** drops the value and reports it unresolved.
 - **`candidate`** coins a term that stays attached to the record that proposed it and OUT of the
-  vocabulary until you activate it. The facet's own later proposals reuse it; nothing else matches
-  against a candidate. Activating one is a status change on the term (`PATCH /v1/terms/{id}`). A
-  record read says which of its `terms` are candidates: each entry carries `status`. A `term=`
-  condition on the records list and a query's `term` clause match **active** terms only, so a
-  record filed under a candidate is not found by them until the term is admitted.
+  vocabulary until you activate it. The vocabulary's own later proposals reuse it; nothing else
+  matches against a candidate. Activating one is a status change on the term
+  (`PATCH /v1/terms/{id}`). A record read says which of its `terms` are candidates: each entry
+  carries `status`. A `term=` condition on the records list and a query's `term` clause match
+  **active** terms only, so a record filed under a candidate is not found by them until the term is
+  admitted.
 
 A value that is a word for nothing — `null`, `none`, `n/a`, or one with no letters or digits — is
 never coined, whatever `mint` says. It still matches a term the vocabulary really holds under that
@@ -54,16 +57,16 @@ key; otherwise it is reported unresolved.
 **`matching` — how a value it already has is found.**
 
 - **`exact`** matches the slugified value and nothing else, in code.
-- **`semantic`** dispatches to the facet's resolver flow — embed, search, gate — so `ML` can reach
-  `machine-learning`. It needs a resolver bound.
+- **`semantic`** dispatches to the vocabulary's resolver flow — embed, search, gate — so `ML` can
+  reach `machine-learning`. It needs a resolver bound.
 
-**A candidate is reused, so its records are a count.** A `candidate` facet looks for a value among
-its active terms and its own candidates, the same way it would look among active terms alone: the
-identical key always matches, and under `semantic` so does a value the resolver scores at or above
-the facet's high threshold (or the tiebreak accepts). A second record about the same thing lands on
-the candidate the first one coined, and that candidate stays a candidate. How many records a
-candidate carries is the evidence for admitting it — read it from the terms list — and admitting,
-merging or archiving is still your step: nothing activates a candidate on its own.
+**A candidate is reused, so its records are a count.** A `candidate` vocabulary looks for a value
+among its active terms and its own candidates, the same way it would look among active terms alone:
+the identical key always matches, and under `semantic` so does a value the resolver scores at or
+above the vocabulary's high threshold (or the tiebreak accepts). A second record about the same
+thing lands on the candidate the first one coined, and that candidate stays a candidate. How many
+records a candidate carries is the evidence for admitting it — read it from the terms list — and
+admitting, merging or archiving is still your step: nothing activates a candidate on its own.
 
 ⚠️ Reuse is as good as the match. Short or differently worded values (`tv`, then `television`)
 score low against each other and can still coin two candidates; merge them when you review. A
@@ -87,13 +90,13 @@ high one reuses that term; one at or below the low one is NEW — coined, propos
 says; the band between goes to a decision model, which is shown the five nearest terms and picks
 one or none. The band is wide on purpose: the score finds candidates and does not decide — a value
 that means an existing term often scores near 0.5 against it, and so does a distinct neighbour.
-Tune it with `PATCH /v1/facets/{id}` `{ version, resolutionParams }`.
+Tune it with `PATCH /v1/vocabularies/{id}` `{ version, resolutionParams }`.
 
 ## Finding a resolver to bind
 
-`GET /v1/facets/resolvers?project=<nodeId>` lists every flow this project may bind as a facet's
-resolver — **your own flows and the platform's, in one call** — filtered to those whose typed
-signature actually matches the resolver contract. Each row carries the flow's id, its display
+`GET /v1/vocabularies/resolvers?project=<nodeId>` lists every flow this project may bind as a
+vocabulary's resolver — **your own flows and the platform's, in one call** — filtered to those whose
+typed signature actually matches the resolver contract. Each row carries the flow's id, its display
 `label`, its `key`, its scope (`project` or `system`), its `paramsSchema`, its
 `paramsDefaults`, `platformDefault` and `paramsKind`.
 
@@ -140,40 +143,41 @@ the platform binds for that kind of decision.
 ## The sequence
 
 ```
-GET   /v1/facets/resolvers what this project may bind
-POST  /v1/facets           create the facet (identity, cardinality)
+GET   /v1/vocabularies/resolvers what this project may bind
+POST  /v1/vocabularies           create the facet (identity, cardinality)
   … or build your own resolver flow …
-PATCH /v1/facets/{id}      bind resolverFlowId (and mint, matching, params, proposal)
+PATCH /v1/vocabularies/{id}      bind resolverFlowId (and mint, matching, params, proposal)
   … then author the ingest flow that resolves it …
 ```
 
-⭐ **You can skip the binding entirely.** Omit `resolverFlowId` on create and a `semantic` facet is
-bound to the platform's default resolver with its default parameters. Send an id to bind a specific
-one; `resolutionParams` is **ignored unless you named a resolver explicitly**. Sending an explicit
-`null` for `resolverFlowId` creates the facet UNBOUND, which fails at its first ingest.
+⭐ **You can skip the binding entirely.** Omit `resolverFlowId` on create and a `semantic` vocabulary
+is bound to the platform's default resolver with its default parameters. Send an id to bind a
+specific one; `resolutionParams` is **ignored unless you named a resolver explicitly**. Sending an
+explicit `null` for `resolverFlowId` creates the vocabulary UNBOUND, which fails at its first
+ingest.
 
 ⚠️ **Two things decide whether that default actually happens.** The create defaults are
 `mint: active` and `matching: semantic`, and the auto-binding is keyed on **`matching`** — so a
-facet you left at the defaults gets a resolver, and an `exact` one never does because it needs
+vocabulary you left at the defaults gets a resolver, and an `exact` one never does because it needs
 none. And the platform binds a default only when a **compatible** resolver exists for that
-parameter shape; where none does, an omitted `resolverFlowId` still leaves the facet unbound. Read
-the facet back and check rather than assuming.
+parameter shape; where none does, an omitted `resolverFlowId` still leaves the vocabulary unbound.
+Read the vocabulary back and check rather than assuming.
 
 ⭐ **Naming a resolver and omitting its parameters takes that resolver's own defaults** — the same
-bag `GET /v1/facets/resolvers` reports as `paramsDefaults`, so what a form prefills is what the
+bag `GET /v1/vocabularies/resolvers` reports as `paramsDefaults`, so what a form prefills is what the
 create would have stored. An explicit `null` for `resolutionParams` still means none, and the two
 are distinguishable on purpose: one is "you choose", the other is "I want it bare". A resolver
 declaring a parameter shape the platform has no default for stores nothing either way, and you must
 supply the values.
 
-Scoped by the project's `OrgNode` id. Create takes the facet key (camelCase, and it is the
-identity), a label, a `cardinality` of `one` or `many`, and optionally a parent facet key. A term
-attaches to the whole record: model a part inside a record as its own record type with a relation.
+Scoped by the project's `OrgNode` id. Create takes the vocabulary key (camelCase, and it is the
+identity), a label, a `cardinality` of `one` or `many`, and optionally a parent vocabulary key. A
+term attaches to the whole record: model a part inside a record as its own table with a relation.
 
-**The label is editable; nothing else about a facet's shape is.** Renaming touches only the display
-string — the key is the identity, so no term, no link and no stored resolution moves. There is no
-merge: folding two facets into one would destroy an identity, and that is a different verb with
-different costs.
+**The label is editable; nothing else about a vocabulary's shape is.** Renaming touches only the
+display string — the key is the identity, so no term, no link and no stored resolution moves. There
+is no merge: folding two vocabularies into one would destroy an identity, and that is a different
+verb with different costs.
 
 Resolver wiring is folded in by a later update, where **an omitted field preserves** — the
 distinction to hold when patching, because "leave it alone" and "remove it" look nearly identical in
@@ -181,7 +185,7 @@ a payload. ⚠️ An explicit null clears only `proposal`, `resolverFlowId` and 
 `mint` and `matching` a null is a **no-op, not a clear**, because neither column is ever empty. And
 ⛔ **an OMITTED `resolutionParams` does not survive a binding change** — repoint `resolverFlowId` at
 a different resolver and the params are replaced with that resolver's defaults. Send them explicitly
-if you meant to keep yours. `version` is required on every facet patch. A patch takes
+if you meant to keep yours. `version` is required on every vocabulary patch. A patch takes
 **`validateOnly: true`** too: it answers a 200 verdict (narrow on `ok`) saying whether the patch
 would be accepted, and writes nothing. The dry run does not judge the lock; the save answers a
 stale `version` with 409 `VERSION_CONFLICT`.
@@ -190,7 +194,7 @@ stale `version` with 409 `VERSION_CONFLICT`.
 
 This is the part that is most often got wrong.
 
-**`facet.resolve` writes nothing.** It computes resolutions and emits them. Under `semantic`
+**`vocabulary.resolve` writes nothing.** It computes resolutions and emits them. Under `semantic`
 matching it tries the same exact key lookup FIRST and dispatches only what did not match to the
 resolver flow — so a value that slugs to an existing term never reaches the resolver at all, and
 cost estimates counting "every value" are too high. Under `exact` it matches directly and stops.
@@ -203,14 +207,14 @@ a parent minted in the same batch. ⚠️ **A resolver SUBFLOW is the exception*
 another flow legitimately hands persistence off to its caller by binding the bundle to an ordinary
 flow output, and adding a `term.upsert` there is not required.
 
-⚠️ **`term.upsert` adds an assignment; it never replaces one.** A run that resolves a `one` facet
-to a different term than the record already carries fails when its writes apply: the record goes
-`failed`, every write of the run is dropped, and `GET /v1/runs/{runId}/change-set` reads `rejected`
-with `rejection.cause.kind: "unique-violation"` — while the step log shows every step applied. On
-a `many` facet the new terms land beside the old ones. So re-classify a record only on a clean
-run — `POST /v1/records/{id}/reprocess`, or `entity.enqueue-process` with `replay: clean`, both of
-which strip the record's terms first — or replace one facet's terms by hand with
-`PUT /v1/records/{id}/facets/{facetKey}`.
+⚠️ **`term.upsert` adds an assignment; it never replaces one.** A run that resolves a `one`
+vocabulary to a different term than the record already carries fails when its writes apply: the
+record goes `failed`, every write of the run is dropped, and `GET /v1/runs/{runId}/change-set` reads
+`rejected` with `rejection.cause.kind: "unique-violation"` — while the step log shows every step
+applied. On a `many` vocabulary the new terms land beside the old ones. So re-classify a record only
+on a clean run — `POST /v1/records/{id}/reprocess`, or `record.enqueue-process` with
+`replay: clean`, both of which strip the record's terms first — or replace one vocabulary's terms by
+hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
 
 **A resolve flow with no sink at all resolves nothing** — the values simply never land, because
 resolving itself succeeded and nothing failed. It is not silent at save, though: it warns there like
@@ -218,157 +222,160 @@ the others.
 
 ### Three more ways it lands nowhere, and every one of them warns at save
 
-**The node can only write from a flow a record type reaches.** `term.upsert` persists under a
-committing run, and a run only commits when its flow was resolved FROM a record type — live ingest
-works that way, and nothing else does — flow preview never commits. A flow no record type
+**The node can only write from a flow a table reaches.** `term.upsert` persists under a
+committing run, and a run only commits when its flow was resolved FROM a table — live ingest
+works that way, and nothing else does — flow preview never commits. A flow no table
 reaches, directly or through any depth of `flow.invoke`, runs its `term.upsert` and discards
 everything, on every run. Saving one warns, because a resolver sub-flow legitimately exists before
 the parent that invokes it.
 
-**And a facet the record type does not LIST is written but never read.** Resolution succeeds, the
+**And a vocabulary the table does not LIST is written but never read.** Resolution succeeds, the
 assignment row lands, and every read of that record omits the value — a read returns exactly the
-facets named in its record type's `uses.facets`, in that order (the
-record types pack (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) has the shape). Saving warns; adding the
-facet to the list afterwards surfaces every assignment already written, so nothing is lost by
+vocabularies named in its table's `uses.vocabularies`, in that order (the
+tables pack (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) has the shape). Saving warns; adding the
+vocabulary to the list afterwards surfaces every assignment already written, so nothing is lost by
 saving first.
 
-**And a facet that cannot coin, with nothing seeded, resolves nothing — quietly.** The trigger is
-`mint: none` **OR** `matching: exact`, whichever the other setting says: either one means no new
+**And a vocabulary that cannot coin, with nothing seeded, resolves nothing — quietly.** The trigger
+is `mint: none` **OR** `matching: exact`, whichever the other setting says: either one means no new
 term can be produced, so an empty vocabulary can never produce anything at all. An exact lookup
-finds no row, a semantic search runs over an empty collection, and the facet is dropped from the
-LLM's proposal schema entirely because there are no term keys to build its enum from. Saving warns.
-⚠️ Note the `exact` + `active` case in particular: it looks configured to grow and cannot.
+finds no row, a semantic search runs over an empty collection, and the vocabulary is dropped from
+the LLM's proposal schema entirely because there are no term keys to build its enum from. Saving
+warns. ⚠️ Note the `exact` + `active` case in particular: it looks configured to grow and cannot.
 
-That last one is worth separating from its neighbour. A `semantic` facet with no resolver bound is
-**refused**, because it throws at ingest and blocking the save turns an outage into a 422. An empty
-vocabulary never fails at all: every ingest succeeds and the facet simply resolves nothing, which is
-precisely why something has to say so out loud.
+That last one is worth separating from its neighbour. A `semantic` vocabulary with no resolver bound
+is **refused**, because it throws at ingest and blocking the save turns an outage into a 422. An
+empty vocabulary never fails at all: every ingest succeeds and the vocabulary simply resolves
+nothing, which is precisely why something has to say so out loud.
 
-<!-- field-ok: facetFields — a `text.generate` HANDLER CONFIG key, not a wire field; it reaches the
+<!-- field-ok: vocabularyFields — a `text.generate` HANDLER CONFIG key, not a wire field; it reaches the
      API inside the opaque `handlerConfig` blob, so no wire contract declares it by name. -->
 
-**And one more, on the extraction side:** a `text.generate` step's `facetFields` — the list of
-`{ facet, field }` pairs in its `handlerConfig` — is what the run reads. The `$facet` markers on
-the type the step answers with are never read at run time, and no write re-derives the list from
-them. Editing the type afterwards leaves the list behind: a marker you added is never extracted, a
-marker you removed is still extracted into a field the type no longer declares. The run succeeds
-either way. The flow's health warns `LLM_GENERATE_FACET_FIELDS_DRIFTED`, naming the facets the type added and
-the ones the step still carries; the fix is to send the step's `handlerConfig` again
-(`PATCH /v1/steps/{id}`) with `facetFields` matching the type's markers. Two save errors guard that
-write. Each pair's `field` must equal its `facet` key (`LLM_GENERATE_FACET_FIELD_MISMATCH`
-otherwise). And `outputs` must hold exactly one entry while `facetFields` is non-empty — the slot
-the facet values are written to, named differently from the step's own output slot — and none when
-it is empty (`LLM_GENERATE_FACET_OUTPUTS_MISMATCH`).
+**And one more, on the extraction side:** a `text.generate` step's `vocabularyFields` — the list of
+`{ vocabularyKey, field }` pairs in its `handlerConfig` — is what the run reads. The
+`$vocabularyKey` markers on the type the step answers with are never read at run time, and no write
+re-derives the list from them. Editing the type afterwards leaves the list behind: a marker you
+added is never extracted, a marker you removed is still extracted into a field the type no longer
+declares. The run succeeds either way. The flow's health warns
+`LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED`, naming the vocabularies the type added and the ones the
+step still carries; the fix is to send the step's `handlerConfig` again (`PATCH /v1/steps/{id}`)
+with `vocabularyFields` matching the type's markers. Two save errors guard that write. Each pair's
+`field` must equal its `vocabularyKey` (`LLM_GENERATE_VOCABULARY_FIELD_MISMATCH` otherwise). And
+`outputs` must hold exactly one entry while `vocabularyFields` is non-empty — the slot the
+vocabulary values are written to, named differently from the step's own output slot — and none when
+it is empty (`LLM_GENERATE_VOCABULARY_OUTPUTS_MISMATCH`).
 
 All four are warnings rather than refusals for the same reason: each names a state that is ordinary
 while a project is still being assembled.
 
 ## What the platform refuses
 
-- **A `semantic` facet with no resolver bound blocks the flow save** with
-  `FACETS_RESOLVE_SEMANTIC_FACET_UNBOUND_RESOLVER`. This is deliberately an authoring-time refusal
-  rather than a runtime one. Hence the order above: resolver flow first, bind it, then author the
-  flow that uses it.
-- **Reserved keys are refused** with `FACET_KEY_INVALID` — the identity, content and metadata
-  names the record shape already owns, along with `facets`, `terms`, `recordType` and the
-  timestamps. A facet's `key` is a **field key** — camelCase, starting lower-case — because it
+- **A `semantic` vocabulary with no resolver bound blocks the flow save** with
+  `VOCABULARIES_RESOLVE_SEMANTIC_VOCABULARY_UNBOUND_RESOLVER`. This is deliberately an
+  authoring-time refusal rather than a runtime one. Hence the order above: resolver flow first, bind
+  it, then author the flow that uses it.
+- **Reserved keys are refused** with `VOCABULARY_KEY_INVALID` — the identity, content and metadata
+  names the record shape already owns, along with `vocabularies`, `terms`, `tableKey` and the
+  timestamps. A vocabulary's `key` is a **field key** — camelCase, starting lower-case — because it
   becomes a JSON property a model reads; it is permanent.
-- **Do not give a facet the key of a field of a type that surfaces it**, or a key every record
-  row already carries — its status, files and cost among them. A record read carries each facet as a
-  top-level key, so facet `cuisine` beside a submitted `cuisine` would answer every row with the
-  term in place of the value. The facet itself saves. The record type's `uses.facets` naming it is
-  refused with `USES_FACET_SHADOWS_FIELD`, and a schema-entry edit that adds the field to a type
-  already surfacing the facet is refused with `SCHEMA_ENTRY_UNSAFE_FOR_RECORD_TYPE`. A pair that
-  arises any other way (a flow output of that name, say) is not refused; the record type's
-  diagnostics report it. Pick a key no surfacing type uses as a field name (`cuisineTag`).
+- **Do not give a vocabulary the key of a field of a table that surfaces it**, or a key every record
+  row already carries — its status, files and cost among them. A record read carries each vocabulary
+  as a top-level key, so vocabulary `cuisine` beside a submitted `cuisine` would answer every row
+  with the term in place of the value. The vocabulary itself saves. The table's `uses.vocabularies`
+  naming it is refused with `USES_VOCABULARY_SHADOWS_FIELD`, and a type edit that adds the field to
+  a table already surfacing the vocabulary is refused with `TYPE_UNSAFE_FOR_TABLE`. A pair that
+  arises any other way (a flow output of that name, say) is not refused; the table's
+  diagnostics report it. Pick a key no surfacing table uses as a field name (`cuisineTag`).
   <!-- field-ok: cuisineTag — an example facet key a project would author, not a platform field -->
-- **An empty label is refused** with `FACET_LABEL_EMPTY`, on the create and the rename alike.
+- **An empty label is refused** with `VOCABULARY_LABEL_EMPTY`, on the create and the rename alike.
   ⭐ Every one of these refusals carries the field it is about on `details.issues`.
-- **A parent facet is cardinality `one`** (`FACET_PARENT_CARDINALITY` on the child's create): a
-  child term hangs under exactly one parent term, so the record must carry exactly one. This is
-  a product decision, not a detail — every record gets ONE top-level value, and `cardinality`
-  has no PATCH. Before seeding a parent facet, ask of every pair of its terms "can one record be
-  both?". Where the answer is yes (a term for a field and one for a part of that field, two
-  names for neighbouring ideas, a term whose meaning depends on the reader), fold the narrower
-  one into the child facet under the broader, or drop it. A term's key is permanent, so this is
-  cheapest before the first seed.
-- **A facet cannot nest under itself** (`FACET_PARENT_SELF`). The hierarchy is a chain of FACETS,
-  not a tree of terms inside one: each level is its own facet with its own admission, resolver and
-  record-type links, which is the whole reason it is a separate facet.
+- **A parent vocabulary is cardinality `one`** (`VOCABULARY_PARENT_CARDINALITY` on the child's
+  create): a child term hangs under exactly one parent term, so the record must carry exactly one.
+  This is a product decision, not a detail — every record gets ONE top-level value, and
+  `cardinality` has no PATCH. Before seeding a parent vocabulary, ask of every pair of its terms
+  "can one record be both?". Where the answer is yes (a term for a field and one for a part of that
+  field, two names for neighbouring ideas, a term whose meaning depends on the reader), fold the
+  narrower one into the child vocabulary under the broader, or drop it. A term's key is permanent,
+  so this is cheapest before the first seed.
+- **A vocabulary cannot nest under itself** (`VOCABULARY_PARENT_SELF`). The hierarchy is a chain of
+  VOCABULARIES, not a tree of terms inside one: each level is its own vocabulary with its own
+  admission, resolver and surfacing tables, which is the whole reason it is a separate vocabulary.
 - **A stale `version` on update is refused**, and the field is REQUIRED.
-- **A parent term sent for a TOP-LEVEL facet is refused**, on both write paths — creating one term
-  and bulk-seeding a batch. If you sent a parent, you meant something by it, so neither path
+- **A parent term sent for a TOP-LEVEL vocabulary is refused**, on both write paths — creating one
+  term and bulk-seeding a batch. If you sent a parent, you meant something by it, so neither path
   drops it and lands the term at the top level.
 - **An unknown key inside `proposal` is refused.** The bag is closed: guidance prose, a list of
   worked examples (each a term `key` and its `label`; the key must be one a term could hold —
   lowercase segments joined by `-`, at most 128 characters — or the write is a 422), and a flag permitting an empty answer — the exact shape the live schema
   declares, and nothing beside it. A misspelled key is a 422 at the moment you write it.
 
-## Is this facet actually doing anything?
+## Is this vocabulary actually doing anything?
 
-Ask the facets read for its readiness and it answers in one of four states,
+Ask the vocabularies read for its readiness and it answers in one of four states,
 worst first.
 
 **Blocked** means it cannot work. Either it needs a resolver flow and has none
-bound, in which case resolving it fails the run, or it cannot mint and its
-vocabulary is empty, in which case it can never produce a term. Both are
+bound, in which case resolving it fails the run, or it cannot mint and
+it holds no terms, in which case it can never produce a term. Both are
 configuration you can fix.
 
-**Inert** means it works and reaches nobody: no record type surfaces it, so its
+**Inert** means it works and reaches nobody: no table surfaces it, so its
 values are stored and never returned by any read. The terms are real, the
 labelling happened, and every response omits it.
 
 **Unproven** means nothing has flowed through it — either ever, or not for a
-long time. This is deliberately not an error. A facet authored an hour ago has
-resolved nothing and is fine; the same facet a year on is a question, and the
+long time. This is deliberately not an error. A vocabulary authored an hour ago has
+resolved nothing and is fine; the same vocabulary a year on is a question, and the
 state lets you tell which one you are looking at rather than deciding for you.
 
 **Ready** means configured, surfaced, and resolving.
 
-Every reason is reported, not only the one that set the state — a facet can be
+Every reason is reported, not only the one that set the state — a vocabulary can be
 both unbound and unsurfaced, and fixing only the one named leaves it broken in a
 way you were already told about. Each reason carries a stable code to branch on
 and a sentence to show a person.
 
 Readiness is a different question from whether the substrate is internally
 consistent. That check reads tables, indexes and constraints, and a project in
-which every facet is inert passes all of it. A green consistency badge has never
-meant the facets were doing their job, and now there is something that does.
+which every vocabulary is inert passes all of it. A green consistency badge has never
+meant the vocabularies were doing their job, and now there is something that does.
 
-Two timestamps back this. A facet records when a value for it was last written
+Two timestamps back this. A vocabulary records when a value for it was last written
 to a record, and a term records when it was last chosen rather than minted.
 Both start empty and fill from the first resolution after they began being
 recorded, so an empty one means nothing was observed, never that nothing
 happened. A preview run does not count — only values that actually landed.
 
-## Who feeds this facet?
+## Who feeds this vocabulary?
 
-Ask the facets read with `expand=wiring` and each facet lists the flow nodes that put values into
-it: the flow (`flowId`, `flowKey`, `flowLabel`) and node (`skillId`, `skillKey`), and how — `extracted` (a `text.generate` step lists it in `facetFields`),
-`proposed` (a `facet.resolve` step lists it with no slot feeding it, so its own model call proposes
-values) or `fed` (a `facet.resolve` step reads candidates from a slot, with no model call). It is
-the same scan the platform's own wiring view reads, so a node whose configuration does not parse
+Ask the vocabularies read with `expand=wiring` and each vocabulary lists the flow nodes that put
+values into it: the flow (`flowId`, `flowKey`, `flowLabel`) and node (`skillId`, `skillKey`), and
+how — `extracted` (a `text.generate` step lists it in `vocabularyFields`), `proposed` (a
+`vocabulary.resolve` step lists it with no slot feeding it, so its own model call proposes values)
+or `fed` (a `vocabulary.resolve` step reads candidates from a slot, with no model call). It is the
+same scan the platform's own wiring view reads, so a node whose configuration does not parse
 contributes nothing, exactly as it would contribute nothing to a run.
 
 ⚠️ **Two flags on an `extracted` row are about drift between a node and its type.** `drift` is a
-sentence, set when the node's stored `facetFields` no longer matches the `$facet` markers on its
-response type — the same sentence the save-time warning carries. `declaredOnly` marks a row that
-exists only because the TYPE marks the facet while the node has not captured it yet: nothing reaches
-the facet from that row until the node is re-derived from its type.
+sentence, set when the node's stored `vocabularyFields` no longer matches the `$vocabularyKey`
+markers on its response type — the same sentence the save-time warning carries. `declaredOnly` marks
+a row that exists only because the TYPE marks the vocabulary while the node has not captured it yet:
+nothing reaches the vocabulary from that row until the node is re-derived from its type.
 
 ⛔ **An empty list is weaker than "nothing fills it".** The scan reads configuration, and a
-`facet.resolve` step can pick a facet up from a slot it discovers at run time without naming it
-anywhere. Empty means no node's configuration names this facet.
+`vocabulary.resolve` step can pick a vocabulary up from a slot it discovers at run time without
+naming it anywhere. Empty means no node's configuration names this vocabulary.
 
-## Adding terms — one or many, under the facet
+## Adding terms — one or many, under the vocabulary
 
-⭐ **A term is created on its facet, and only there.** `POST /v1/facets/{id}/terms` takes one row or
-up to 500, each `{ key, label }`, under one `parentTermId` when the facet nests under another: the
-terms are operator-authored, embedded for search, and bound by the parent rules — a nested facet
-requires an active, canonical parent term of its parent facet, and a top-level facet refuses a
-parent (`TERM_PARENT_UNEXPECTED`) rather than dropping it. A key the facet already holds under that
-parent is reused and reported `existed` with the held term's id — not a conflict — so re-sending a
-grown list is safe. This route is the only way to create a term — one row is a list of one.
+⭐ **A term is created on its vocabulary, and only there.** `POST /v1/vocabularies/{id}/terms` takes
+one row or up to 500, each `{ key, label }`, under one `parentTermId` when the vocabulary nests
+under another: the terms are operator-authored, embedded for search, and bound by the parent rules —
+a nested vocabulary requires an active, canonical parent term of its parent vocabulary, and a
+top-level vocabulary refuses a parent (`TERM_PARENT_UNEXPECTED`) rather than dropping it. A key the
+vocabulary already holds under that parent is reused and reported `existed` with the held term's id
+— not a conflict — so re-sending a grown list is safe. This route is the only way to create a term —
+one row is a list of one.
 
 ⚠️ **An `existed` row reports the term as it IS, not as you sent it.** Its `label` and `status` are
 the stored ones: a seed never relabels a term and never revives an archived one. A `label` that
@@ -418,12 +425,12 @@ about one that was not seeded. Narrow on `ok`, which only the verdict declares.
 
 ⚠️ **`ok: true` does not embed.** The real seed — like a relabelling
 `PATCH /v1/terms/{id}` — embeds every term's text **before** it writes, on the platform's shared
-term model (the `substrate-embedding` task, read at the platform root; a project cannot rebind it, and
-binding it at a project node is refused with `TASK_READ_AT_ROOT_ONLY`). A provider refusal fails the whole write
-with nothing saved, **whatever the facet's `matching`** — an `exact` facet embeds its terms too.
-There is no project-side workaround; retry once the provider answers. `qdrantUpsertFailures` (and a
-single term's `reembedWarning`) is a different, later failure: the rows saved and the vector-store
-write after them did not.
+term model (the `substrate-embedding` task, read at the platform root; a project cannot rebind it,
+and binding it at a project node is refused with `TASK_READ_AT_ROOT_ONLY`). A provider refusal fails
+the whole write with nothing saved, **whatever the vocabulary's `matching`** — an `exact` vocabulary
+embeds its terms too. There is no project-side workaround; retry once the provider answers.
+`qdrantUpsertFailures` (and a single term's `reembedWarning`) is a different, later failure: the
+rows saved and the vector-store write after them did not.
 
 ⚠️ **`ok: true` does not check the parent's existence.** A parent term is
 resolved inside the write's own transaction; the dry run knows only whether one
@@ -433,12 +440,12 @@ from the write.
 ⚠️ **An invalid batch is not a failed request**, and `complete: false` means
 checking stopped early. Gate on `severity`, never on `code`.
 
-### Asking a facet first — `validateOnly` on the create
+### Asking a vocabulary first — `validateOnly` on the create
 
-`POST /v1/facets` takes **`validateOnly: true`** as well. It runs every rule the
+`POST /v1/vocabularies` takes **`validateOnly: true`** as well. It runs every rule the
 create runs — the key's charset, the reserved list, the project-wide uniqueness,
 the parent's existence and cardinality, the admission knobs — and answers 200
-with a verdict plus the state the facet would be BORN in:
+with a verdict plus the state the vocabulary would be BORN in:
 
 ```json
 {
@@ -459,20 +466,20 @@ with a verdict plus the state the facet would be BORN in:
 }
 ```
 
-⭐⭐ **`derived.readiness` is the combination warning, before the facet exists.**
-A new facet has no vocabulary and nothing surfacing it — those are FACTS about a
+⭐⭐ **`derived.readiness` is the combination warning, before the vocabulary exists.**
+A new vocabulary has no terms and nothing surfacing it — those are FACTS about a
 row that has not been written, not counts nobody loaded — so the state it will
 arrive in is fully knowable. The `exact` + empty case this pack warns about
-twice reads `blocked` HERE, rather than after you create the facet and read it
+twice reads `blocked` HERE, rather than after you create the vocabulary and read it
 back.
 
 ⛔ **`blocked` is not a refusal.** `ok: true` beside it means the create would
-succeed and the facet would arrive needing work. Gate on `ok`; read `readiness`
+succeed and the vocabulary would arrive needing work. Gate on `ok`; read `readiness`
 to know what work.
 
 ⭐ **`derived.resolverFlowId` is the resolver the create would bind** — the one
 part of the outcome you cannot compute, because whether the platform HAS a
-default for that parameter shape is a platform fact. `null` means the facet
+default for that parameter shape is a platform fact. `null` means the vocabulary
 would be born unbound, which for `semantic` matching is why `readiness` reads
 `blocked`.
 
@@ -486,25 +493,25 @@ different claims, and only one of them is true.
 
 ## What will bite you
 
-- **Deleting a facet cascades** — it unlinks the facet from every record type that used it, removes
-  its whole vocabulary, and can strip labels off records. ⛔ Ask the delete itself first, with
+- **Deleting a vocabulary cascades** — it unlinks the vocabulary from every table that used it,
+  removes all its terms, and can strip labels off records. ⛔ Ask the delete itself first, with
   `validateOnly=true` in the query: it answers a 200 verdict saying whether the delete would be
   allowed and, under `derived`, the blast radius it would reach — before anything is written. The
   real delete's response carries only COUNTS, not the list of what was hit.
   ⚠️ Send the SAME query you intend to delete with. A destructive delete is refused without
-  `confirm=true`, and a facet with assigned terms also needs an `assignedTerms` disposition, so a
-  dry run that omits either answers the refusal you would have got — which is the point of asking.
-- **`facet.resolve` runs inline, not queued.** It dispatches sub-flows bound to the live run:
+  `confirm=true`, and a vocabulary with assigned terms also needs an `assignedTerms` disposition, so
+  a dry run that omits either answers the refusal you would have got — which is the point of asking.
+- **`vocabulary.resolve` runs inline, not queued.** It dispatches sub-flows bound to the live run:
   depth and cycle guards, the provider cache, the tenant scope, billing. That is precisely why it
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.
-- **Terms are the vocabulary substrate; there is no separate taxonomy resource.** Facet
+- **Terms are the vocabulary substrate; there is no separate taxonomy resource.** Vocabulary
   statistics and samples are computed over terms.
 - **A term carries a `version`, and its writes are locked on it.** `GET /v1/terms` publishes it;
   `PATCH /v1/terms/{id}` (rename, archive, restore or admit — both a label and a status in one call
   is one write) and `POST /v1/terms/{id}/merge` (the absorbed term's) require it, and a stale one
   answers 409 `VERSION_CONFLICT`. Every author write to a term's label, status, parent or alias
-  moves it — a facet delete archiving a term included — but ingest never does: a record matching a
-  term, or its vector being re-synced, leaves your `version` current. The PATCH takes
+  moves it — a vocabulary delete archiving a term included — but ingest never does: a record
+  matching a term, or its vector being re-synced, leaves your `version` current. The PATCH takes
   `validateOnly: true` and answers the save's refusals (an unchanged label, restoring a merged
   alias) as a verdict, writing and embedding nothing.
 - **A term is deleted only when nothing points at it** — no record carries it, no term nests under
@@ -518,24 +525,25 @@ different claims, and only one of them is true.
 - **What is wrong with a vocabulary is a read, not something to recompute.** `GET /v1/terms`
   with `expand=findings` answers `findings`, most severe kind first: `dangling-alias` (a merged
   term whose canonical is gone), `orphan-parent` (a `parentId` naming a term the project does not
-  hold), `unattached` (a parentless term on a facet that nests) and `duplicate` (canonical terms of
-  one facet and one parent whose labels make the same key — one finding per colliding group). ⛔
-  The checks always run over the WHOLE project; `facetKey` narrows only which findings come back. ⚠️
-  Absent means you did not ask, and an empty list means the check ran and found nothing. Every
-  kind is certain — there is no fuzzy near-duplicate pass, because the remedy is a merge and a
-  merge has no undo.
-- **A facet that looks builtin is just a row.** Anything shipped as a default is an ordinary,
-  editable facet — but its resolver wiring may never have been bound. Verify a facet's live
-  binding before assuming it resolves anything.
+  hold), `unattached` (a parentless term on a vocabulary that nests) and `duplicate` (canonical
+  terms of one vocabulary and one parent whose labels make the same key — one finding per colliding
+  group). ⛔ The checks always run over the WHOLE project; `vocabularyKey` narrows only which
+  findings come back. ⚠️ Absent means you did not ask, and an empty list means the check ran and
+  found nothing. Every kind is certain — there is no fuzzy near-duplicate pass, because the remedy
+  is a merge and a merge has no undo.
+- **A vocabulary that looks builtin is just a row.** Anything shipped as a default is an ordinary,
+  editable vocabulary — but its resolver wiring may never have been bound. Verify a vocabulary's
+  live binding before assuming it resolves anything.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
+refused.
 
 ## Related
 
-- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — what a facet attaches to,
-  and the `uses.facets` list that says which types surface it.
-- Relations (capability pack `relations` — `GET /v1/capability-packs/relations`) — when the value is a record rather than a term.
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — what a vocabulary attaches to,
+  and the `uses.vocabularies` list that says which tables surface it.
+- Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — when the value is a record rather than a term.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — building the resolver, and the ingest flow that uses it.
-- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — a facet before the record type that uses it; a parent
-  facet and a parent term before their children.
+- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — a vocabulary before the table that uses it; a parent
+  vocabulary and a parent term before their children.

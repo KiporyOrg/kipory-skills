@@ -50,12 +50,15 @@ POST /v1/flows
   "id": "<flowId>",
   "key": "summarise",
   "inputSlots": [
-    { "slot": "text", "type": { "kind": "ref", "entryId": "<stringEntryId>" } }
+    {
+      "slot": "text",
+      "type": { "kind": "ref", "dataTypeId": "<stringTypeId>" }
+    }
   ],
   "outputSlots": [
     {
       "slot": "summary",
-      "type": { "kind": "ref", "entryId": "<stringEntryId>" },
+      "type": { "kind": "ref", "dataTypeId": "<stringTypeId>" },
       "required": true
     }
   ],
@@ -71,7 +74,7 @@ POST /v1/flows
 
 ## 2. Add the step
 
-A step's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "entryId": "<id>" }`, where the id is the built-in `string` entry's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/schema-entries?project={nodeId}&key=string` answers the same id as `entries[0].id`. It is per project; do not reuse one from another project's export by hand.
+A step's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "dataTypeId": "<id>" }`, where the id is the built-in `string` type's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/types?project={nodeId}&key=string` answers the same id as `entries[0].id`. It is per project; do not reuse one from another project's export by hand.
 
 ```
 POST /v1/steps
@@ -84,9 +87,9 @@ POST /v1/steps
   "handlerKey": "text.generate",
   "handlerConfig": {},
   "inputStreams": ["text"],
-  "inputSchemas": [{ "kind": "ref", "entryId": "<stringEntryId>" }],
+  "inputSchemas": [{ "kind": "ref", "dataTypeId": "<stringTypeId>" }],
   "outputSlot": "summary",
-  "outputSchema": { "kind": "ref", "entryId": "<stringEntryId>" },
+  "outputSchema": { "kind": "ref", "dataTypeId": "<stringTypeId>" },
   "promptTemplate": "Summarise the following text in two sentences.\n\n{{text}}",
   "taskKey": "summarization"
 }
@@ -99,7 +102,7 @@ POST /v1/steps
 - `outputSchema` set to the built-in `string` makes `text.generate` return plain text. Any other shape switches it to structured output parsed into that shape. `text.generate` derives no output shape of its own, so state it.
 - `handlerConfig` for `text.generate` is optional throughout (`temperature`, `reasoningEffort`, `modelSlot`, …); `{}` takes the defaults. See `handlers/text.generate.md`.
 - `taskKey` decides the model: this step runs on whatever model the project binds to `summarization` (`GET /v1/nodes/{nodeId}/task-models` at the project's id). It is one of `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`; omitted, a single create starts the step on `extraction`. Do not set `modelId` unless you mean to pin this one step.
-- A step whose handler sends no prompt — `value.transform`, `entity.create`, `url.fetch` — leaves `promptTemplate` out; it is stored as `""`.
+- A step whose handler sends no prompt — `value.transform`, `record.create`, `url.fetch` — leaves `promptTemplate` out; it is stored as `""`.
 - `key` is the step's name: lower-case kebab, dots allowed. `outputSlot` is a slot name — no hyphens, no underscores.
 - Add `"validateOnly": true` to ask for the verdict first; it runs every rule the write runs and writes nothing.
 
@@ -136,7 +139,7 @@ The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlo
 }
 ```
 
-The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`step-fields.md` §2 lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search handlers type their own output: leave `outputSchema` out and the new step takes that type, or state the same type yourself. On `POST /v1/steps` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `entity.create` → `RecordCreate` (with `recordId`), `entity.read` → a list of `RecordRead`, `entity.list` → `RecordPage`, `vector.search` → a list of the hit its `hitShape` names (`RecordHit` for `record`). `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
+The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`step-fields.md` §2 lists what each does). A `field` segment needs the step's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search handlers type their own output: leave `outputSchema` out and the new step takes that type, or state the same type yourself. On `POST /v1/steps` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `record.create` → `RecordCreate` (with `recordId`), `record.read` → a list of `RecordRead`, `record.list` → `RecordPage`, `vector.search` → a list of the hit its `hitShape` names (`RecordHit` for `record`). `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
 
 ## 4. Check the whole flow
 
@@ -186,7 +189,7 @@ POST /v1/flows/{id}/preview
 }
 ```
 
-- `input.kind: "slots"` supplies values keyed by the flow's input slot names; an unknown key or a missing required slot is refused before the run. The other arm, `kind: "record"` with `recordId`, seeds from a stored record of a type this flow processes.
+- `input.kind: "slots"` supplies values keyed by the flow's input slot names; an unknown key or a missing required slot is refused before the run. The other arm, `kind: "record"` with `recordId`, seeds from a stored record of a table this flow processes.
 - `apply` defaults to `true`. This flow writes nothing, so `false` changes nothing here — send it anyway; it is the habit that saves you on a flow that does write.
 - `flowOutput` is the declared outputs exactly as the run produced them, with nothing filled in. `missingRequiredOutput` non-null means the flow never produced that slot; a live call is then refused `422 FLOW_OUTPUT_MISSING` and writes nothing, and this preview discarded its writes too, reporting it as an `errors` entry with `skillId: "__runner__"` and `phase: "output-missing"`. That entry is the refusal, not its cause. Read the other `errors` first: a step that failed — a model provider out of quota, a refused config — leaves the output unfed just as a missing binding does, and `errors[].message` says which. Only when that entry is the only one is step 3 the cause.
 - **A provider out of quota** reads `… provider account exhausted (quota/billing)` in `errors[].message`. It is the provider's account, not your flow: bind the task (`summarization` here) to a model from another creator and preview again. `models.md` §5 has the three calls, why that beats pinning `modelId`, and what a routing policy's `failover` does and does not do.
@@ -255,7 +258,7 @@ curl -sS -X POST "$INVOKE_URL" \
 
 ## 8. The same project as one document
 
-State steps 1, 2, 3 and 6 as one document. Inside a document everything is addressed by **key**: a schema reference is `{ "kind": "ref", "ref": "string" }` instead of an entry id, a step is keyed by its key, and the endpoint's `flow` is the flow's key.
+State steps 1, 2, 3 and 6 as one document. Inside a document everything is addressed by **key**: a schema reference is `{ "kind": "ref", "ref": "string" }` instead of a type id, a step is keyed by its key, and the endpoint's `flow` is the flow's key.
 
 ```json
 {

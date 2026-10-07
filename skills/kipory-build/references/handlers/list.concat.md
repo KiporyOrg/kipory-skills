@@ -109,11 +109,11 @@ Input:
 
 ```
 {
-  "categoryResolution": { "outcome": "match", "facet": "category", "termId": "t_cat_video" },
-  "typeResolution":     { "outcome": "match", "facet": "type",     "termId": "t_type_tutorial" },
+  "categoryResolution": { "outcome": "match", "vocabularyKey": "category", "termId": "t_cat_video" },
+  "typeResolution":     { "outcome": "match", "vocabularyKey": "type",     "termId": "t_type_tutorial" },
   "tagResolutions": [
-    { "outcome": "match", "facet": "tag", "termId": "t_tag_react" },
-    { "outcome": "match", "facet": "tag", "termId": "t_tag_hooks" }
+    { "outcome": "match", "vocabularyKey": "tag", "termId": "t_tag_react" },
+    { "outcome": "match", "vocabularyKey": "tag", "termId": "t_tag_hooks" }
   ]
 }
 ```
@@ -122,9 +122,9 @@ Output:
 
 ```
 [
-  { "outcome": "match", "facet": "category", "termId": "t_cat_video" },
-  { "outcome": "match", "facet": "type",     "termId": "t_type_tutorial" },
-  { "outcome": "match", "facet": "tag",      "termId": "t_tag_react" },
-  { "outcome": "match", "facet": "tag",      "termId": "t_tag_hooks" }
+  { "outcome": "match", "vocabularyKey": "category", "termId": "t_cat_video" },
+  { "outcome": "match", "vocabularyKey": "type",     "termId": "t_type_tutorial" },
+  { "outcome": "match", "vocabularyKey": "tag",      "termId": "t_tag_react" },
+  { "outcome": "match", "vocabularyKey": "tag",      "termId": "t_tag_hooks" }
 ]
 ```

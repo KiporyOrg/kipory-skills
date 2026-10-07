@@ -6,10 +6,10 @@ Save resolved terms and link them to their records.
 
 Saves a bundle of resolved terms: matches the ones that already exist, creates the rest, links them to the record, and writes their vectors. A preview run writes nothing.
 
-- **Group:** entities · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
+- **Group:** records · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `TermResolution[]` → `nothing`
-- **Reads:** One slot, named by `resolutionsSlot`, holding the resolved terms to save — usually what `facet.resolve` emitted. An empty one saves nothing and succeeds. _(shape hint: `TermResolution[]`)_
+- **Reads:** One slot, named by `resolutionsSlot`, holding the resolved terms to save — usually what `vocabulary.resolve` emitted. An empty one saves nothing and succeeds. _(shape hint: `TermResolution[]`)_
 - **Emits:** Nothing a later step reads: it saves, leaving an empty marker in its slot. It still needs an `outputSlot`: any unused slot. A repeat with the same input changes nothing.
 - **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 30 s; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
@@ -18,7 +18,7 @@ Saves a bundle of resolved terms: matches the ones that already exist, creates t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `resolutionsSlot` | string | yes | — | The slot holding the resolved terms to save. Usually the output of a `facet.resolve` step. ⚠️ An empty or absent bundle saves nothing and still succeeds. Writes only happen on a committing run; a preview skips them all. |
+| `resolutionsSlot` | string | yes | — | The slot holding the resolved terms to save. Usually the output of a `vocabulary.resolve` step. ⚠️ An empty or absent bundle saves nothing and still succeeds. Writes only happen on a committing run; a preview skips them all. |
 
 ## Worked example
 
@@ -42,8 +42,8 @@ Input:
 
 ```
 [
-  { "outcome": "match", "facet": "category", "termId": "trm_7h2" },
-  { "outcome": "create-new", "facet": "type", "proposedSlug": "receipt",
+  { "outcome": "match", "vocabularyKey": "category", "termId": "trm_7h2" },
+  { "outcome": "create-new", "vocabularyKey": "type", "proposedSlug": "receipt",
     "proposedLabel": "Receipt", "parentTermId": null }
 ]
 ```

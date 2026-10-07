@@ -2,7 +2,7 @@
 
 Skills that teach a coding agent how to build a product on **Kipory**, over its HTTP API.
 
-Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code — its flows, record types, HTTP endpoints, triggers, schedules, facets and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a product's whole backend without writing an application, which is what these skills are for. The frontends people use are clients of what the project exposes.
+Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code — its flows, record types, HTTP endpoints, triggers, schedules, vocabularies and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a product's whole backend without writing an application, which is what these skills are for. The frontends people use are clients of what the project exposes.
 
 ## Words on the site and in the API
 
@@ -10,12 +10,12 @@ Kipory's site and its app name some things with different words than the API doe
 
 | On the site and in the app | In the API and in these skills     | Where an agent meets it                                 |
 | -------------------------- | ---------------------------------- | ------------------------------------------------------- |
-| Type                       | schema entry                       | `/v1/schema-entries`                                    |
-| Table                      | record type                        | `/v1/record-types`, the field `recordType`              |
-| Record                     | record, and entity in handler keys | `/v1/records`; handlers such as `entity.read`           |
-| Relation                   | relation kind                      | `/v1/relation-kinds`                                    |
-| Link                       | edge                               | `/v1/relations`; the handler `entity.links`             |
-| Vocabulary                 | facet                              | `/v1/facets`; the handler `taxonomy.aggregate`          |
+| Type                       | schema entry                       | `/v1/types`                                             |
+| Table                      | record type                        | `/v1/tables`, the field `recordType`                    |
+| Record                     | record, and entity in handler keys | `/v1/records`; handlers such as `record.read`           |
+| Relation                   | relation kind                      | `/v1/relations`                                         |
+| Link                       | edge                               | `/v1/links`; the handler `record.links`                 |
+| Vocabulary                 | facet                              | `/v1/vocabularies`; the handler `vocabulary.aggregate`  |
 | Term                       | term                               | `/v1/terms`                                             |
 | Function                   | handler                            | `/v1/handlers`, the field `handlerKey`                  |
 | Action                     | step, stored as a skill            | `/v1/steps`; the fields `skill`, `skills` and `skillId` |
@@ -71,7 +71,7 @@ Every generated file opens with a stamp naming its source, and the content hashe
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `kipory-connect`  | **Start here.** Prove the deployment and the key, read the project in one call, learn the conventions every route shares                                                          |
 | `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                                                                                    |
-| `kipory-model`    | Record types and shapes, facets and terms, relation kinds, the embedding profile that makes records searchable                                                                    |
+| `kipory-model`    | Record types and shapes, vocabularies and terms, relation kinds, the embedding profile that makes records searchable                                                              |
 | `kipory-build`    | Build and edit flows over the handler catalog: steps, slots, output binding, health, preview, checkpoints                                                                         |
 | `kipory-data`     | Read and write records, files and edges by hand: import, correct, reprocess, delete; the processing stream                                                                        |
 | `kipory-gather`   | Reach outside the project: fetch and scrape pages, call an API with or without a stored key, send a request to an outside system, web search, social platforms, places, geocoding |

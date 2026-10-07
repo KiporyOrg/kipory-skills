@@ -4,7 +4,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Agent skill vs. skill.** These files are _agent skills_ — instructions for a coding agent. In the API, a **skill** is one step of a flow: a row bound to a handler key with its config, the slots it reads and the slot it writes (`/v1/steps`). Nothing in the API knows about agent skills.
 
-**Handler vs. skill.** A **handler** is platform code from a registry (`GET /v1/handlers`): `url.scrape`, `text.generate`, `entity.create`. A **skill** is your configured _use_ of one inside a flow. Handlers have a catalog; skills have a flow.
+**Handler vs. skill.** A **handler** is platform code from a registry (`GET /v1/handlers`): `url.scrape`, `text.generate`, `record.create`. A **skill** is your configured _use_ of one inside a flow. Handlers have a catalog; skills have a flow.
 
 **Flow.** A named group of skills with its own typed signature — input slots, output slots, and a binding that says which skill's output feeds each output slot. Execution order is derived from slot edges; there is no position field.
 
@@ -14,15 +14,15 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Grant.** What an API key carries: one node and one role. Reach is descent from that node. A key never has a user, so it never has a `me`.
 
-**Record vs. record type.** A **record type** is a kind of record — its shape, owner scope, facets, natural key, processing flow (`/v1/record-types`). A **record** is one stored instance. Records are normally written by flows; the design API also writes one at a time (`POST /v1/records` and the item routes beside it) for an operator correcting what a flow produced.
+**Record vs. table.** A **table** is a kind of record — its shape, owner scope, vocabularies, natural key, processing flow (`/v1/tables`). A **record** is one stored instance. Records are normally written by flows; the design API also writes one at a time (`POST /v1/records` and the item routes beside it) for an operator correcting what a flow produced.
 
-**Schema entry.** A reusable typed shape a record type or flow output refers to. Builtin and library shapes are synthesized on read and have no rows.
+**Type.** A reusable typed shape a table or flow output refers to. Builtin and library shapes are synthesized on read and have no rows.
 
-**Owner scope.** Whether a record type's records belong to one end user each (per-user) or to the project's shared pool. A key's runs are project-owned and cannot write per-user records.
+**Owner scope.** Whether a table's records belong to one end user each (per-user) or to the project's shared pool. A key's runs are project-owned and cannot write per-user records.
 
-**Facet vs. term.** A **facet** is a classification kind — a vocabulary namespace. A **term** is one value in it. Terms are created through the facet (`POST /v1/facets/{id}/terms`, one or many) and renamed, archived, merged or deleted at `/v1/terms/{id}`.
+**Vocabulary vs. term.** A **vocabulary** is a classification kind — a namespace of terms. A **term** is one value in it. Terms are created through the vocabulary (`POST /v1/vocabularies/{id}/terms`, one or many) and renamed, archived, merged or deleted at `/v1/terms/{id}`.
 
-**Relation kind vs. pairing vs. edge.** A **relation kind** is the vocabulary entry for a typed link between records; a **pairing** is one (typeA, typeB) pair the kind admits; an **edge** is an actual link between two records. Edges are read one hop at a time.
+**Relation vs. pairing vs. link.** A **relation** is the declared definition of a typed link between records; a **pairing** is one (tableA, tableB) pair the relation admits; a **link** is an actual instance joining two records. Links are read one hop at a time.
 
 **Event.** In the design API, an **event type** is a declared, emittable signal in a **category**, with a scope of `run`, `record`, `user` or `project`. It is unrelated to the charges statement's "credit events", to the run step log's events, and to server-sent events on a stream.
 

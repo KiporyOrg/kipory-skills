@@ -8,15 +8,15 @@
 
 ## What it is
 
-A project's whole configuration — its shapes, record types, relations, facets, events, flows,
+A project's whole configuration — its shapes, tables, relations, vocabularies, events, flows,
 entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
-ownership: a flow's steps sit under the flow, a facet's terms under the facet, a suite's cases under
-the suite. Ids are optional; the platform fills
+ownership: a flow's steps sit under the flow, a vocabulary's terms under the vocabulary, a suite's
+cases under the suite. Ids are optional; the platform fills
 them in on export and matches by them on apply. The document you write is the document the
 platform hands back.
 
-Read it before authoring anything larger than one row. The row-by-row API has an order — a record
-type needs its shape first, a relation kind its record types, a trigger its flow — and the
+Read it before authoring anything larger than one row. The row-by-row API has an order — a
+table needs its shape first, a relation its tables, a trigger its flow — and the
 Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) page states it. The document exists so that you need not
 know it: state the whole project by key, and the platform resolves the order.
 
@@ -31,7 +31,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 2`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 3`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
@@ -47,14 +47,14 @@ public: documentation, byte-identical for every caller.
 
 The schema is COMPOSED from the design surfaces' own create bodies, never restated: each row is
 the surface's create body minus the addressing the document supplies by position (`project` and
-the element's `key`), the request-only `validateOnly` flag, and every field that holds an id of another
-row. So a field a surface grows appears in the document the same day, spelled the same way — an
-endpoint's `contractConfig.responseBody` (one flow output sent as the whole body) is written here
+the element's `key`), the request-only `validateOnly` flag, and every field that holds an id of
+another row. So a field a surface grows appears in the document the same day, spelled the same way —
+an endpoint's `contractConfig.responseBody` (one flow output sent as the whole body) is written here
 as on `POST /v1/api-endpoints`, a
-record type's `ownerScope` is `user` or `project` here as on `POST /v1/record-types` and on a
-record (the stored `USER` / `PROJECT` is refused, in a document as on the row), and a relation
-kind's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
-`POST /v1/relation-kinds` (the camelCase `joinRecord` / `manyToOne` is refused; `producer` is
+table's `ownerScope` is `user` or `project` here as on `POST /v1/tables` and on a
+record (the stored `USER` / `PROJECT` is refused, in a document as on the row), and a
+relation's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
+`POST /v1/relations` (the camelCase `joinRecord` / `manyToOne` is refused; `producer` is
 required on every relation row, as on the create), and an eval
 suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`, its `scoreRules`
 the same list under the same bounds, with `direction` in kebab (`higher-is-better`). A suite's
@@ -71,20 +71,20 @@ reports it as `derived` and never writes or prunes it, so an export from a proje
 applies cleanly to one without, whose own source then seeds it. A row's display text, where it has one, is `label`. A few references
 are ids on the row API and keys in the document — flows, shapes, sources, and a search profile:
 
-| The row API spells        | The document spells   | Meaning                                                         |
-| ------------------------- | --------------------- | --------------------------------------------------------------- |
-| `dataEntryId`             | `shape`               | a record type's shape, by entry key                             |
-| `payloadEntryId`          | `payload`             | an event type's payload, by entry key                           |
-| `propertiesEntryId`       | `properties`          | a relation kind's edge properties, by entry key                 |
-| `schemaEntryId`           | `shape`               | a config namespace's shape, by entry key                        |
-| `flowId`                  | `flow`                | a record type's, trigger's, schedule's or eval suite's flow     |
-| `sourceId`                | `source`              | a trigger's source, as `<provider>/<key>`                       |
-| `actionConfig.flow.id`    | `actionConfig.flow`   | an endpoint action's flow, by key                               |
-| `resolverFlowId`          | `resolver`            | a facet's resolving flow, by key                                |
-| `scorerFlowIds`           | `scorers`             | an eval suite's scorer flows, by key                            |
-| `uses.search.profileId`   | `uses.search.profile` | a record type's embedding profile, by key — its live generation |
-| `targetFlowId`            | `target`              | a `flow.invoke` step's target, by key                           |
-| `entryId` in a schema ref | `ref`                 | a step's schema reference, by entry key                         |
+| The row API spells           | The document spells   | Meaning                                                   |
+| ---------------------------- | --------------------- | --------------------------------------------------------- |
+| `dataTypeId`                 | `shape`               | a table's shape, by type key                              |
+| `payloadDataTypeId`          | `payload`             | an event type's payload, by type key                      |
+| `propertiesDataTypeId`       | `properties`          | a relation's link properties, by type key                 |
+| `dataTypeId`                 | `shape`               | a config namespace's shape, by type key                   |
+| `flowId`                     | `flow`                | a table's, trigger's, schedule's or eval suite's flow     |
+| `sourceId`                   | `source`              | a trigger's source, as `<provider>/<key>`                 |
+| `actionConfig.flow.id`       | `actionConfig.flow`   | an endpoint action's flow, by key                         |
+| `resolverFlowId`             | `resolver`            | a vocabulary's resolving flow, by key                     |
+| `scorerFlowIds`              | `scorers`             | an eval suite's scorer flows, by key                      |
+| `uses.search.profileId`      | `uses.search.profile` | a table's embedding profile, by key — its live generation |
+| `targetFlowId`               | `target`              | a `flow.invoke` step's target, by key                     |
+| `dataTypeId` in a schema ref | `ref`                 | a step's schema reference, by type key                    |
 
 An endpoint's `contractConfig` is the row API's, whole: who may call it is stated there too.
 `auth: "none"` makes the endpoint public — callable with no key and no session — and `publicRpm`
@@ -94,33 +94,33 @@ first: an apply that makes an endpoint public in a project with no cap is refuse
 (`PUBLIC_SPEND_CAP_REQUIRED`). Set `publicSpendCapCredits` with
 `PATCH /v1/projects/{nodeId}/settings`, then apply.
 
-Not every nested reference is re-spelled: a record type's `uses.join` names its relation kind as
-`kindKey`, exactly as the record-type API does, because the document passes that object to the same
+Not every nested reference is re-spelled: a table's `uses.join` names its relation as
+`relationKey`, exactly as the table API does, because the document passes that object to the same
 create body unchanged.
 
-A facet's proposal examples are worked examples, each a term `key` and its `label`; the key is
+A vocabulary's proposal examples are worked examples, each a term `key` and its `label`; the key is
 checked like a real term's (lowercase segments joined by `-`, at most 128 characters). A bare flow
 key always means this project's flow. A library or system flow — one that belongs to
-no project — is `system:<key>`. A facet's `resolver` is the one reference with a default: omit it
-on a new facet and the platform binds a semantic facet to its default resolver where it holds one,
-so "none" is stated as `resolver: null` — which is how an unbound facet exports, and why that export
-re-applies as unbound rather than picking up a resolver on the way back in. A relation kind's
-`properties` follows the same reading on an update: omit it and the kind keeps the entry it holds,
-state `properties: null` and the kind carries none. An export leaves the field out when there is
-none, so it re-applies without touching what a project already holds. A facet states no
-`binding`: a term attaches to the whole record, an export carries no such field, and a document
-that states one breaks the schema on that facet's path. A shape is always stated under
-`schema`, and a record type names it by key.
+no project — is `system:<key>`. A vocabulary's `resolver` is the one reference with a default: omit
+it on a new vocabulary and the platform binds a semantic vocabulary to its default resolver where it
+holds one, so "none" is stated as `resolver: null` — which is how an unbound vocabulary exports, and
+why that export re-applies as unbound rather than picking up a resolver on the way back in. A
+relation's `properties` follows the same reading on an update: omit it and the relation keeps the
+type it holds, state `properties: null` and the relation carries none. An export leaves the field
+out when there is none, so it re-applies without touching what a project already holds. A vocabulary
+states no `binding`: a term attaches to the whole record, an export carries no such field, and a
+document that states one breaks the schema on that vocabulary's path. A shape is always stated under
+`schema`, and a table names it by key.
 
-Editing a shape and the `uses` of a record type shaped by it in the same document is ONE change:
-when the type's row states `uses`, its search and link declarations are judged against those uses
+Editing a shape and the `uses` of a table shaped by it in the same document is ONE change:
+when the table's row states `uses`, its search and link declarations are judged against those uses
 and the new shape together, so removing a field along with the uses that name it plans clean. With
 `uses` left out, the stored declarations are judged against the new shape, and a field they still
-name cannot be removed. Every other record type shaped by the same entry is judged on its stored
-declarations either way. A record type's `uses` names each field's use as the record-type API does — `filter`,
-`key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or `system`, and
-`uses.search` carries no `stages`: a search slot reads exactly one field the record stores, and a
-profile under `vectors` defaults only `defaultChunking`.
+name cannot be removed. Every other table shaped by the same type is judged on its stored
+declarations either way. A table's `uses` names each field's use as the table API does — `filter`,
+`key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or
+`system`, and `uses.search` carries no `stages`: a search slot reads exactly one field the record
+stores, and a profile under `vectors` defaults only `defaultChunking`.
 
 ## Plan a document before applying it
 
@@ -142,22 +142,23 @@ document at a time.
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
 required here too (one row asks for more than its create: an `evals` suite must state `scorers`,
-`[]` for a contract suite) — but of its optional fields only the ones you state are compared and written;
-one you omit keeps its value. The simplest edit is the exported row with one field changed. A
-field the row's own PATCH does not take — a facet's `cardinality`, a profile's `modelId`, a
+`[]` for a contract suite) — but of its optional fields only the ones you state are compared and
+written; one you omit keeps its value. The simplest edit is the exported row with one field changed.
+A field the row's own PATCH does not take — a vocabulary's `cardinality`, a profile's `modelId`, a
 trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
 it is fine (an export states everything), stated CHANGED it is refused on its own path, never
 dropped. To change one, state the row under a new key without the `id` and remove the old one.
-The exception is the owned collections (a flow's `skills`, a suite's `cases`, a kind's `pairings`
-— each `{ fromRecordTypeKey, toRecordTypeKey }`, as the kind's create takes them — a
-facet's `terms`): each is stated whole, so when present it replaces the owner's collection — and a
-member the project holds that the collection no longer names is REMOVED, which makes that
+The exception is the owned collections (a flow's `skills`, a suite's `cases`, a relation's
+`pairings` — each `{ fromTableKey, toTableKey }`, as the relation's create takes them — a
+vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
+and a member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
-A shape or a flow may also carry `adoptSnapshots: true`. Endpoints, and record types through their
-processing flow, FREEZE the types they bind (schedules and triggers freeze nothing), so an edit that re-shapes one is refused by the row's own write,
-naming what it would leave behind, unless you grant this. A document does not get to assume it:
-adopting re-publishes an endpoint's request and response contract to whoever already calls that
-route. It is a statement about this apply, like `delete` — never part of the row, never exported.
+A shape or a flow may also carry `adoptSnapshots: true`. Endpoints, and tables through their
+processing flow, FREEZE the types they bind (schedules and triggers freeze nothing), so an edit that
+re-shapes one is refused by the row's own write, naming what it would leave behind, unless you grant
+this. A document does not get to assume it: adopting re-publishes an endpoint's request and response
+contract to whoever already calls that route. It is a statement about this apply, like `delete` —
+never part of the row, never exported.
 
 A schedule, a trigger and a source carry `enabled`, which their create bodies do not: the row API
 switches it with a `PATCH` (`{enabled, version}`), and the document writes it through that same
@@ -180,64 +181,64 @@ The answer holds the `version` the project was read at — the lock an apply pre
   plan comes from the attempt the plan rolls back, so it is not the id the apply will give the row:
   take ids from the apply's `document`.
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
-  (`records.member.shape`), never a path in some row's request body. Gate on `severity` and
+  (`tables.member.shape`), never a path in some row's request body. Gate on `severity` and
   `introduced`: a finding about the state the document leaves carries `introduced` — `false` when
   it was already in the project, which reports it without gating.
 - `consequences` — what the change does to stored data, with counts measured in the planning
-  transaction: records re-stamped, a vector reconcile queued, stream fields moved, edges
-  re-stamped, `edges-deleted` — every stored edge a relation-kind delete takes along, including a
-  kind a record-type delete removes with it — and `records-invalid` — stored records that do not fit a shape you changed. That last one is found by
-  reach, not by name: change a shape and every record type whose shape is it, or reaches it
-  through a reference, has its stored records checked, whether or not your document mentions the
-  type. The count is of records that do not fit, not only newly broken ones; past 5 000 records
-  of one type it is a floor and says so (`lowerBound: true`). A consequence is never a refusal — the platform tells
-  you, and lets you.
-  `reembed` is the one that costs money: this type's stored records are re-embedded for search,
+  transaction: records re-stamped, a vector reconcile queued, stream fields moved, links
+  re-stamped, `links-deleted` — every stored link a relation delete takes along, including a
+  relation a table delete removes with it — and `records-invalid` — stored records that do not fit a
+  shape you changed. That last one is found by reach, not by name: change a shape and every table
+  whose shape is it, or reaches it through a reference, has its stored records checked, whether or
+  not your document mentions the table. The count is of records that do not fit, not only newly
+  broken ones; past 5 000 records of one table it is a floor and says so (`lowerBound: true`). A
+  consequence is never a refusal — the platform tells you, and lets you.
+  `reembed` is the one that costs money: this table's stored records are re-embedded for search,
   which spends credits on embedding usage (billed by tokens, so it grows with the records and the
-  text each holds), because what its search indexes moved. It is per type, a plan reports it (an
+  text each holds), because what its search indexes moved. It is per table, a plan reports it (an
   apply's answer does not repeat it), and it is the one to ask a person about before applying.
   `reindex` is not that: it says a reconcile is queued, which may find nothing to redo. A `filter`
   use added, removed or moved reports `restamp` — every record's filter columns are rewritten — and
-  on a searchable type it also queues a `reindex` that embeds nothing.
+  on a searchable table it also queues a `reindex` that embeds nothing.
 - `ok` — true exactly when no `error` the document introduces remains; an error carrying
   `introduced: false` was already in the project and does not gate. An apply of the same document
   commits exactly when this is true.
 
-A plan that CREATES a record type also answers that type's contract under `contracts`, by the
-type's key: its fields, each with the index type a filter on it would get, and what the bound flow
-would add. It is what `derived.contract` answers on `PATCH /v1/record-types/{id}` with
-`validateOnly`, for a type that has no row to ask yet — read it to decide a new type's `uses`
+A plan that CREATES a table also answers that table's contract under `contracts`, by the
+table's key: its fields, each with the index type a filter on it would get, and what the bound flow
+would add. It is what `derived.contract` answers on `PATCH /v1/tables/{id}` with
+`validateOnly`, for a table that has no row to ask yet — read it to decide a new table's `uses`
 before the apply. `supportedUses` rides beside it: the use kinds this deployment reads, so offer a
-new type no other. A type the document only restates is not listed, and an apply carries neither.
+new table no other. A table the document only restates is not listed, and an apply carries neither.
 
 A row is `skipped` when something it names was refused; `because` holds the path of the refused
 row. Fix that row and plan again — the skipped rows were never judged, so they may still hold
 findings of their own.
 
-A removal can take along rows you never named: deleting a record type takes the relation kinds
-that pair it, deleting a facet takes its terms. That is the row's own delete working as
+A removal can take along rows you never named: deleting a table takes the relations
+that pair it, deleting a vocabulary takes its terms. That is the row's own delete working as
 designed, and the plan says so rather than leaving it to be discovered — each such row is in
-`changes` as a `delete` with `because: "cascade"`, is counted under `delete` in `counts`, and carries a
-`warning`, `DOCUMENT_DELETE_CASCADED`, on its own path. Read a plan's `delete` list before
-applying it; it is the true list, not only yours. A record-type delete also carries its reach on
+`changes` as a `delete` with `because: "cascade"`, is counted under `delete` in `counts`, and
+carries a `warning`, `DOCUMENT_DELETE_CASCADED`, on its own path. Read a plan's `delete` list before
+applying it; it is the true list, not only yours. A table delete also carries its reach on
 its own path, whether or not the delete goes through: a `DOCUMENT_DELETE_CASCADED` warning names
-the relation kinds and the joins it would take along, so a delete the plan refuses (a type its
+the relations and the joins it would take along, so a delete the plan refuses (a table its
 records pin) still says what it would have removed. A row your document still STATES is reported
-the same way: an edited full export that deletes a record type and still names the relation kind
-pairing it has that kind's change on `relations.<kind>` as the cascade, not as `unchanged` — the
+the same way: an edited full export that deletes a table and still names the relation
+pairing it has that relation's change on `relations.<kind>` as the cascade, not as `unchanged` — the
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a shape, a
-record type (while it holds no records and no step's config names it), a skill, an eval suite and
+table (while it holds no records and no step's config names it), a skill, an eval suite and
 an eval case, keeping the `id` under a new key is a RENAME — one update of the
 same row, and everything that named it follows; the row API renames exactly the same kinds. Every
-other key is permanent (a facet, a flow, an endpoint: other rows or stored data are linked to it
-by key), so the same move is refused on the row;
-state the new key without the `id` and remove the old one with `delete: true`. An `id` that belongs to no row here — the usual
-case when a document exported from one project is planned against another — is ignored, listed
-under `ignoredIds`, and the row is matched by its key instead. It is never a refusal. Two stated
-rows that resolve to one current row — one by its id, one by its key — are two statements about
-one thing, and are refused on both paths: state it once.
+other key is permanent (a vocabulary, a flow, an endpoint: other rows or stored data are linked to
+it by key), so the same move is refused on the row;
+state the new key without the `id` and remove the old one with `delete: true`. An `id` that belongs
+to no row here — the usual case when a document exported from one project is planned against another
+— is ignored, listed under `ignoredIds`, and the row is matched by its key instead. It is never a
+refusal. Two stated rows that resolve to one current row — one by its id, one by its key — are two
+statements about one thing, and are refused on both paths: state it once.
 
 A key that resolves to nothing is `DOCUMENT_KEY_UNRESOLVED` on the path that spelled it. When
 exactly one key of the same kind is within two edits, the message offers it; when two are equally
@@ -285,18 +286,18 @@ removes something, so `ok` is false. Every removal still goes through that row's
 protects the row there (a flow a schedule still binds, a source something still listens to)
 protects it here, and surfaces as a finding on the row's path.
 
-A facet's `terms` are stated whole, like every owned collection: an active term the document does
-not name is REMOVED, inside the apply, through the term's own delete. A term a record still
+A vocabulary's `terms` are stated whole, like every owned collection: an active term the document
+does not name is REMOVED, inside the apply, through the term's own delete. A term a record still
 carries — or one that is canonical for an alias — refuses that, and so refuses the apply, with a
-finding on `facets.<key>.terms` naming the term; state it to keep it. Aliases and archived terms
-are not configuration: they are never exported and never removed this way. The terms the document
-DOES name are checked with everything else and SEEDED AFTER the commit, because seeding embeds
-each term. The rest of the apply does not wait on it and is not undone by it. If that seed
+finding on `vocabularies.<key>.terms` naming the term; state it to keep it. Aliases and archived
+terms are not configuration: they are never exported and never removed this way. The terms the
+document DOES name are checked with everything else and SEEDED AFTER the commit, because seeding
+embeds each term. The rest of the apply does not wait on it and is not undone by it. If that seed
 — or any other work owed after the commit — fails, the apply still answers `200` and
 `applied: true`, with a `warning` diagnostic `DOCUMENT_EFFECT_FAILED` on the path that owed it
-(`facets.topic.terms`). Read the diagnostics of a successful apply, not only its status: apply the
-same document again to retry, and only what is still missing is attempted.
-An apply whose only change is a facet's terms is still a change: it moves the version, and its
+(`vocabularies.topic.terms`). Read the diagnostics of a successful apply, not only its status: apply
+the same document again to retry, and only what is still missing is attempted.
+An apply whose only change is a vocabulary's terms is still a change: it moves the version, and its
 seed runs after the commit like any other.
 
 A flow's `skills` are matched by `id`, then by key. A step's key is a step name, the one format
@@ -316,7 +317,7 @@ what feeds it, a step of the same document included, and typed again when what f
 `promptTemplate` and `taskKey`, `outputSlot` on a handler that writes no named result,
 `description`, `condition`, `enabled` and `outputSchema`. Left out of a step the flow already holds,
 each keeps its value; a new step starts on `""`, `extraction`, no slot, no description, no
-condition, enabled, and the type its handler emits (`entity.create` → `RecordCreate`,
+condition, enabled, and the type its handler emits (`record.create` → `RecordCreate`,
 `value.transform` → `object`), worked out once what feeds it is typed. An `outputSchema` of `null`
 is stated: no constraint. A step the flow already holds keeps its
 `outputSchema` when the entry leaves it out — unless the entry moves what its handler emits: a new
@@ -344,15 +345,15 @@ its ids are ignored and its keys are the content.
 
 Keep the export you took before a change: applying it again, with the project's CURRENT
 `version`, puts its rows back. A row deleted since returns as a new row with a new id, and a row
-added since stays unless the document says `prune`. Deleting a record type does not delete
-the schema entry it took its shape from.
+added since stays unless the document says `prune`. Deleting a table does not delete
+the type it took its shape from.
 
 ## Make a project equal a document
 
 Absence never deletes, so applying another project's export to this one adds and updates what it
 names and leaves every other row standing. To make the project EQUAL the document, state
-`prune: true` on every map of rows: the four top-level maps (`schema`, `records`, `relations`,
-`facets`), the one under `events` (types), the one under `vectors` (profiles), the
+`prune: true` on every map of rows: the four top-level maps (`schema`, `tables`, `relations`,
+`vocabularies`), the one under `events` (types), the one under `vectors` (profiles), the
 `flows` map, the four under `surfaces` (endpoints, sources, triggers, schedules) and `evals` —
 twelve in all, including the maps the document does not carry, since an absent section then
 means "none of these". Plan it first: the plan lists every delete, and an apply that removes
@@ -362,7 +363,7 @@ anything needs ADMIN.
 
 No secret value — a secret is always a reference by purpose. No `version`, no timestamp, no
 count, no health, no run, no record, no member, no credential. A vector collection is DERIVED
-from a profile and a record type's search use, so it appears under `vectors` for reading and is
+from a profile and a table's search use, so it appears under `vectors` for reading and is
 never applied. A term that is an alias or archived is not configuration and is not exported.
 Tenancy — who may open the project — is not in the document by decision. An eval suite's
 `runAsUserId` is a person, not configuration: an export leaves it out, a document that states it is
@@ -377,12 +378,12 @@ none, and an export leaves the key out for a step that names none.
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 2`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
+- **A format version other than `kipory: 3`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
 - **A step's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
   lower-case. Change the two values.
-- **A `file` use, a `derived` field family, or projection `stages`** on a record type or as a
+- **A `file` use, a `derived` field family, or projection `stages`** on a table or as a
   profile default — none exists. Remove them; a search slot reads one stored field.
-- **A facet `binding`** — a term attaches to the whole record. Remove the field.
+- **A vocabulary `binding`** — a term attaches to the whole record. Remove the field.
 - **A flow's own `tests`** — `DOCUMENT_FLOW_TESTS_MOVED`. A flow's cases live under
   `evals.<suite>.cases`.
 
@@ -390,5 +391,5 @@ current format refuses. Each is refused on its own path, so the plan names it; t
 
 - Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — what must exist before what, when you author row by row.
 - Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`) — the walk from idea to a document.
-- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — the shape a record type
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — the shape a table
   needs, and what owning one means.

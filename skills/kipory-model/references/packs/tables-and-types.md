@@ -1,65 +1,65 @@
 <!-- generated: kipory-skills references · source: the deployment's capability packs (`GET /v1/capability-packs`) · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# Capability pack — Record types & schema entries
+# Capability pack — Tables & types
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`.
 > The reserved field set is listed below. This pack carries judgment.
 
 ## What they are
 
-- A **schema entry** is a named shape in the project's registry — reusable, referenced by steps
-  and by record types.
-- A **record type** is a named kind of stored record. It does **not** inline a shape; it
-  _references_ an entry for its data shape, and optionally binds a flow whose output slots become
-  the type's derived fields.
+- A **type** is a named shape in the project's registry — reusable, referenced by steps
+  and by tables.
+- A **table** is a named kind of stored record. It does **not** inline a shape; it
+  _references_ a type for its data shape, and optionally binds a flow whose output slots become
+  the table's derived fields.
 
-Both are addressed by their `key`. A record type's key is a **type name** — letters and digits,
-starting with a letter — and it is the value its records carry as `recordType`; it is renameable
-only while the type holds no records and no step's configuration names it. A schema entry's key
+Both are addressed by their `key`. A table's key is a **table name** — letters and digits,
+starting with a letter — and it is the value its records carry as `tableKey`; it is renameable
+only while the table holds no records and no step's configuration names it. A type's key
 is an address key (below) and renameable at any time.
 
-They are separate resources on purpose: shapes are authored once and reused, while a record type
+They are separate resources on purpose: shapes are authored once and reused, while a table
 is a thin descriptor pointing at one.
 
 **One shape refers to another by id.** Inside a `definition`, the reference is JSON Schema's
-`$ref` in one form only: `{ "$ref": "#/$defs/<entryId>" }` — the referenced entry's **id**, on the
+`$ref` in one form only: `{ "$ref": "#/$defs/<dataTypeId>" }` — the referenced type's **id**, on the
 row API and inside a project document alike. A key there is refused
-`SCHEMA_DEFINITION_INVALID_JSON_SCHEMA`. A new entry has no id until it is written, so two new
+`SCHEMA_DEFINITION_INVALID_JSON_SCHEMA`. A new type has no id until it is written, so two new
 shapes where one refers to the other are two writes: the referenced shape first.
 
 ## When you need which
 
 - **A reusable shape** — a payload schema, a model's output schema, a nested object used in
-  several places — is a **schema entry**, referenced from steps.
-- **A kind of record people create and the system processes** is a **record type**, referencing an
-  entry for its data and optionally a flow that processes it.
+  several places — is a **type**, referenced from steps.
+- **A kind of record people create and the system processes** is a **table**, referencing a
+  type for its data and optionally a flow that processes it.
 - **Derived fields are not authored.** They are _captured_ from the bound flow's output slots. To
-  change a record type's output shape you edit the flow, never the record type.
+  change a table's output shape you edit the flow, never the table.
 
 ## The sequence
 
 ```
-POST /v1/schema-entries       author an operator shape
-POST /v1/record-types         create the type, referencing the entry — and say what its fields are FOR (`uses`)
-PATCH /v1/record-types/{id}   bind a flowId to make it flow-backed; replace `uses` whole
+POST /v1/types       author an operator shape
+POST /v1/tables         create the type, referencing the entry — and say what its fields are FOR (`uses`)
+PATCH /v1/tables/{id}   bind a flowId to make it flow-backed; replace `uses` whole
 
 # Not part of the sequence — the builtin and library shapes are synthesized on
 # read and have no rows, so nothing seeds them. This route re-materializes the
 # infrastructure-tier Flow-Provider entries only, and is idempotent:
-POST /v1/schema-entries/seed
+POST /v1/types/seed
 ```
 
-### A type and its shape together
+### A table and its shape together
 
-A record type always points at a schema entry, and an entry is nobody's: any record type, event
-payload, relation kind, config namespace, profile or flow slot may use it. To make an entry and
-the record type shaped by it in one step, state both in a
-project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the entry under `schema`, the type under `records`
-with `shape` naming the entry's key. To edit a type's shape together with the type (its `uses`,
-its flow), send `definition` on `PATCH /v1/record-types/{id}`, or state the entry and the type in
-one document. Either way every other row that uses the entry is judged by the edit, as on
-`PATCH /v1/schema-entries/{id}`. A registry PATCH that lands answers the row and its `touched`
-list — every event type and record type whose version moved with it — as the record type and
+A table always points at a type, and a type is nobody's: any table, event
+payload, relation, config namespace, profile or flow slot may use it. To make a type and
+the table shaped by it in one step, state both in a
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the type under `schema`, the table under `tables`
+with `shape` naming the type's key. To edit a table's shape together with the table (its `uses`,
+its flow), send `definition` on `PATCH /v1/tables/{id}`, or state the type and the table in
+one document. Either way every other row that uses the type is judged by the edit, as on
+`PATCH /v1/types/{id}`. A registry PATCH that lands answers the row and its `touched`
+list — every event type and table whose version moved with it — as the table and
 flow PATCHes do.
 
 Both are scoped by `project`. Reads take useful expansions: the synthesised derived output shape,
@@ -67,46 +67,46 @@ a **drift** verdict, and the type-relation graph.
 
 ## The model to hold
 
-1. **The data shape lives on the registry and is referenced softly.** A record type points at an
-   operator-authored object entry. What you see on the record type's wire shape is a **read-only
-   projection** of that entry — there is no inline definition to edit.
+1. **The data shape lives on the registry and is referenced softly.** A table points at an
+   operator-authored object type. What you see on the table's wire shape is a **read-only
+   projection** of that type — there is no inline definition to edit.
 2. **Flow-backedness is just a bound flow.** There is no separate flag and no named output type.
    Binding captures a snapshot of the flow's signature, and that snapshot's output slots become
-   the type's flat derived fields.
+   the table's flat derived fields.
 3. **Drift is a first-class read**, and it has **five** answers, not two: `ok`, `drift`,
    `flow-missing` (bound to a flow that no longer exists — nothing to re-capture from),
    `uncaptured` (bound, but no snapshot was ever taken), and `not-flow-backed`. ⚠️ Never read
    `uncaptured` or `flow-missing` as `ok` — neither means "matches"; both mean there is nothing to
    compare against, and `flow-missing` is the actionable one. Branch on those literals: `ok` and
    `drift` are the wire values, not "clean" and "drifted".
-4. **A type declares no source families.** Files attach to any record, a flow commits terms to
-   any record, and `entity.read` / `entity.list` honour their facets and files include-flags for
-   every type. Ask the flow binding what a type derives; ask the record what it holds.
+4. **A table declares no source families.** Files attach to any record, a flow commits terms to
+   any record, and `record.read` / `record.list` honour their vocabularies and files include-flags
+   for every table. Ask the flow binding what a table derives; ask the record what it holds.
 
 ## Which shapes may be a data shape — ask the server, do not guess
 
-A record type's data shape must be an **operator** entry, object-shaped, that
+A table's data shape must be an **operator** type, object-shaped, that
 **compiles** against the project registry, whose top-level field names are
 letter-led alphanumeric and collide with no reserved system field. Five gates,
 and the last three are the ones that surprise people: a shape with a field
 called `id` or `createdAt` is refused, and so is one whose name carries an
 underscore.
 
-Every schema-entry read therefore carries **`recordTypeEligible`** — the
+Every type read therefore carries **`tableEligible`** — the
 server's verdict, from the same gates the save runs. There is a sibling flag,
 `profileEligible`, answering the same kind of question for the end-user profile.
 
-A third, **`facetExtractable`**, answers a question the save never asks: would a
-`$facet` marker on one of this type's fields be READ? Only where a
+A third, **`vocabularyExtractable`**, answers a question the save never asks: would a
+`$vocabularyKey` marker on one of this type's fields be READ? Only where a
 `text.generate` step answers with exactly this type does a marker become that
-step's facet extraction. Anywhere else — including a step answering with a
+step's vocabulary extraction. Anywhere else — including a step answering with a
 _list_ of the type — a marker saves cleanly and extracts nothing, because the
-save checks the marker's name, uniqueness, facet, placement (top level only)
+save checks the marker's name, uniqueness, vocabulary, placement (top level only)
 and field type (a string or a list of strings), never whether anything reads
 it.
 
 ⚠️ **Do not re-derive any of them.** Object-shapedness is not the gate. Choose
-among the entries the flag admits and the save cannot refuse the choice.
+among the types the flag admits and the save cannot refuse the choice.
 
 ## What a keyword on a field does — ask the server, do not guess
 
@@ -117,24 +117,24 @@ so `{"type": "string", "enum": ["ab"], "minLength": 5}` accepts `"ab"`: the
 `minLength` is never compiled. Reading `type` alone gets that wrong, and a tool
 that did so told operators a length bound held when it did not.
 
-`GET /v1/schema-entries?expand=keywords` adds **`keywordVerdicts`** to every
-entry: one row per keyword per fragment, keyed by `pointer` (the fragment's
+`GET /v1/types?expand=keywords` adds **`keywordVerdicts`** to every
+type: one row per keyword per fragment, keyed by `pointer` (the fragment's
 place in the definition), with `enforcement` — `enforced`, `ignored`, or
 `conditional` when validation ignores it but something else reads it (a config
-namespace serving a top-level `default`, the end-user profile seeding one, facet
+namespace serving a top-level `default`, the end-user profile seeding one, vocabulary
 extraction, relation declarations) — and a `reason` naming which. The verdict is
 about the document as stored: after an edit, read it again. The keywords that
 are the definition's structure carry no row — `type` and `$ref`, the object's
 `properties` with its `required` list and `additionalProperties`, a list's
 `items`, and `x-field-order` — nor do the two labels, and a `$ref` target's
-keywords are that entry's own rows. Absent means not asked; an API older than the
+keywords are that type's own rows. Absent means not asked; an API older than the
 `keywords` expand refuses the whole read with a 422.
 
 ### Ask about a definition you have not saved: the write's `validateOnly`
 
 The read judges the document as stored. To know what an EDIT would do before you
 save it, send the PATCH itself with `validateOnly: true` —
-`PATCH /v1/schema-entries/{id}` with the whole draft `definition` and `version`.
+`PATCH /v1/types/{id}` with the whole draft `definition` and `version`.
 Its verdict carries **`derived.keywordVerdicts`** in the read's shape, computed by
 the same function with the same bindings: whether a `default` is read depends on
 what binds the type now (a config namespace, the end-user profile), and those
@@ -146,14 +146,14 @@ EDITOR on the type, like the PATCH, and a retired project refuses it like any
 other write.
 
 For a type you have **not created yet**, send the create body to
-`POST /v1/schema-entries` with `validateOnly: true`: the same
+`POST /v1/types` with `validateOnly: true`: the same
 `derived.keywordVerdicts`, for a type nothing binds — which is what a new type is
 until something does — beside the create's own verdict. It needs EDITOR on the
-project node. A record type's shape can also be asked through the type:
-`PATCH /v1/record-types/{id}` with `definition` and `validateOnly: true` answers
+project node. A table's shape can also be asked through the table:
+`PATCH /v1/tables/{id}` with `definition` and `validateOnly: true` answers
 the same `derived.keywordVerdicts`.
 
-⭐ **`ok` also answers what the write would leave broken.** The record-type PATCH's `validateOnly`
+⭐ **`ok` also answers what the write would leave broken.** The table PATCH's `validateOnly`
 rehearses the write and lists what it would leave behind in `leavesBehind`. `ok` is `false` when
 one of those findings is an error the write introduces, the same verdict a document plan of the
 change gives, so read `ok` and then `leavesBehind` before you send the write.
@@ -163,40 +163,40 @@ change gives, so read `ok` and then `leavesBehind` before you send the write.
 Records are written by flows; an operator or an importer writes them over HTTP at one prefix,
 `/v1/records` (the project named by `project`):
 
-- `POST /v1/records` — one record. When another record of the type already holds the natural key
+- `POST /v1/records` — one record. When another record of the table already holds the natural key
   the payload carries, the default refuses 409 `RECORD_NATURAL_KEY_TAKEN`;
   `onKeyTaken: "update"` replaces that record's `data` instead (an **upsert**, `outcome: "updated"`,
-  same id, re-indexed, flow not re-run). A type with no natural key refuses the upsert 422.
+  same id, re-indexed, flow not re-run). A table with no natural key refuses the upsert 422.
 - `PATCH /v1/records/{id}` — one correction: `version` (the lock every list row and detail
   carries) and either `data` (the whole document; keys left out are removed) or `merge` (only the
-  keys that change; `null` removes one). The result is judged by the type's shape either way.
+  keys that change; `null` removes one). The result is judged by the table's shape either way.
 - `POST /v1/records/bulk` — up to 500 of either kind in **one change set**: every item is judged by
   its single twin's rules first, and if any is refused nothing is written and the 422 names each
   item (`details.issues[].path` = `items.<n>`). `validateOnly: true` answers the verdict and writes
   nothing.
 
-⭐ **Adding a required field to a type that already holds records is four calls**, not two per
+⭐ **Adding a required field to a table that already holds records is four calls**, not two per
 record: widen the shape (the field optional), read the ids and versions (`GET /v1/records`, one
 page of up to 100), set the field on all of them (`POST /v1/records/bulk`, one `merge` item per
 record), then make it required. An import is one bulk of creates with `onKeyTaken: "update"`.
 
 ## Owner scope — whose records are these?
 
-Declared on the type as `ownerScope` — `user` or `project`, spelled as a record's own
+Declared on the table as `ownerScope` — `user` or `project`, spelled as a record's own
 `ownerScope` — and every generic reader, writer and processor branches on it. The stored
 spelling (`USER`, `PROJECT`) is refused on the wire.
 
 - **User-scoped**: records belong to one end user. Creation requires the run's
   authenticated user, and reads are pinned to them.
-- **Project-scoped**: the type is the project's **shared pool** — ingested once, read by everyone.
+- **Project-scoped**: the table is the project's **shared pool** — ingested once, read by everyone.
   Rows carry no user, creation needs no user (so a schedule can write), and the idempotent id
   substitutes the project for the user, so repeated ingests of one payload converge on **one**
   record rather than one per subscriber.
 
-**Scope freezes once records exist** (`RECORD_TYPE_PINNED_BY_RECORDS`). Decide it before you
+**Scope freezes once records exist** (`TABLE_PINNED_BY_RECORDS`). Decide it before you
 write anything, because unwinding it means deleting the data.
 
-⛔ **`ownerScope` is therefore REQUIRED on `POST /v1/record-types`.** A body without it is refused:
+⛔ **`ownerScope` is therefore REQUIRED on `POST /v1/tables`.** A body without it is refused:
 a default would make this permanent decision on your behalf, and you could not undo it after the
 first write.
 
@@ -204,17 +204,17 @@ first write.
 _keep the current value_, which is a real answer. On a create there is nothing to keep, so silence
 is not an answer at all.
 
-⚠️ What a pool type cannot use in this version is what needs a signed-in user: the
-`entity.teardown` and `vector.upsert` steps fail on a run with none, `taxonomy.aggregate` never
+⚠️ What a pool table cannot use in this version is what needs a signed-in user: the
+`record.teardown` and `vector.upsert` steps fail on a run with none, `vocabulary.aggregate` never
 counts pool records, and `userInfo` is absent. A pool record is torn down by
-`POST /v1/records/{id}/reprocess`, or by `entity.enqueue-process` with `replay: clean` — both
-strip the record's generated files and terms before the run. What does work on a pool type:
+`POST /v1/records/{id}/reprocess`, or by `record.enqueue-process` with `replay: clean` — both
+strip the record's generated files and terms before the run. What does work on a pool table:
 
 - **File-producing handlers** (`pdf.screenshot`, `image.resize`, `url.fetch-as-file`) run in a
-  pool type's processing flow; the files they produce are project files.
+  pool table's processing flow; the files they produce are project files.
 - **File attachment.** A pool record takes the project's own files, and a file uploaded through
   `POST /v1/files/upload-url` with `project` (the form an API key uses) is a project file. In a
-  flow, `entity.create`'s `fileIdsSlot` attaches it and checks each file against the record's
+  flow, `record.create`'s `fileIdsSlot` attaches it and checks each file against the record's
   owner. By hand, `POST /v1/files/{id}/attach` hangs a confirmed file on an existing record.
   `POST /v1/records` itself has no file field.
 
@@ -225,21 +225,21 @@ Billing lands on the project's payer.
 
 ## One statement of what each field is for: `uses`
 
-A record type carries ONE storage declaration, `uses`, and everything the platform stores about
+A table carries ONE storage declaration, `uses`, and everything the platform stores about
 its fields is derived from it. Per field, a list of what the field is **for**:
 
 - `filter` — an indexed column; the field can be filtered on, in the record store and the vector
   index alike (the derived `queryable` list, in this order). **Submitted fields only**: a `filter`
-  on a `processed` field is refused (`RECORD_TYPE_QUERYABLE_INVALID`), because the column is
+  on a `processed` field is refused (`TABLE_QUERYABLE_INVALID`), because the column is
   stamped from the record's submitted data and nothing stamps it when flow output lands. To
   filter, order or count on a value the flow computes, declare it as an optional submitted field
-  and have the flow write it into the record with `entity.update`.
+  and have the flow write it into the record with `record.update`.
 - `search` — the vector index; `{ "kind": "search", "role"? }`, the text is embedded (the derived
   `searchable` document).
-- `link` — the edge store; `{ "kind": "link", "relation", "element"? }`, the field holds a record id,
-  or is a list of objects whose `element.ref` does (the derived `relations` document).
-  `element.filters` names the sibling properties to carry on the edge and filter on — see
-  "Filtering on the data an edge carries" below.
+- `link` — the link store; `{ "kind": "link", "relation", "element"? }`, the field holds a record
+  id, or is a list of objects whose `element.ref` does (the derived `relations` document).
+  `element.filters` names the sibling properties to carry on the link and filter on — see
+  "Filtering on the data a link carries" below.
 - `stream` — the stream store; `{ "kind": "stream", "at", "filters"?, "retainDays"? }`, the field is
   a list of timed events that grows without bound, appended never assigned — see "A list that grows
   without bound" below.
@@ -247,13 +247,14 @@ its fields is derived from it. Per field, a list of what the field is **for**:
 
 There is no `file` use: a field whose type is File is what uploads, storage and processing go by.
 A statement naming one fails request validation (`422 VALIDATION_FAILED`), not a
-`RECORD_TYPE_USES_INVALID` issue.
+`TABLE_USES_INVALID` issue.
 
-And three statements about the **type**, beside the fields: `search` (the embedding profile, with
+And three statements about the **table**, beside the fields: `search` (the embedding profile, with
 optional overrides of `chunking`, `indexWhen` and `isolationGroup` — required iff a field is
-marked `search`), `join` (this type IS an edge — `{ kindKey, from, to }`, the relation kind by its
-key), and `facets` (the ordered facet keys the type
-surfaces — a facet is not a field, so it is not a use of one; see "Which facets a type surfaces").
+marked `search`), `join` (this table IS a link — `{ relationKey, from, to }`, the relation by its
+key), and `vocabularies` (the ordered vocabulary keys the table
+surfaces — a vocabulary is not a field, so it is not a use of one; see "Which vocabularies a table
+surfaces").
 
 ```jsonc
 {
@@ -277,17 +278,17 @@ surfaces — a facet is not a field, so it is not a use of one; see "Which facet
       },
     ],
     "search": { "profileId": "prof_…" },
-    "facets": ["topic", "language"],
+    "vocabularies": ["topic", "language"],
   },
 }
 ```
 
-A field's source `family` says which half of the type's contract it comes from: `submission` — the
-record's submitted data — or `processed` — an output of the processing flow bound to the type, the
+A field's source `family` says which half of the table's contract it comes from: `submission` — the
+record's submitted data — or `processed` — an output of the processing flow bound to the table, the
 way a searchable `body` extracted from an uploaded file is named (`{ "family": "processed",
 "field": "body" }`, where `body` is that flow's output slot). The grammar also has `system`
-(platform-maintained fields); a reference the type cannot supply is refused at save, never left to produce nothing.
-`search` and `link` take either family; `key` and `filter` take `submission` only.
+(platform-maintained fields); a reference the table cannot supply is refused at save, never left to
+produce nothing. `search` and `link` take either family; `key` and `filter` take `submission` only.
 
 ⛔ **`searchable` as well as `queryable` and `relations` are READ-ONLY on the wire.** They are derived from
 `uses` and reported beside it; a create or patch body naming any of them is a `422` from the strict
@@ -296,30 +297,30 @@ one use: `filter` fields are assigned storage slots by position, so reordering t
 their values to different columns and re-stamps every record. A patch that omits `uses` keeps the
 stored statement.
 
-⭐ **The read tells you where each use landed: `GET /v1/record-types/{id}?expand=uses`.**
+⭐ **The read tells you where each use landed: `GET /v1/tables/{id}?expand=uses`.**
 `usesRouting` carries `supported` — the use kinds THIS deployment has a reader for — then per field,
 per use, the store it routed to and the physical handle it got (the slot column for `filter`, the
-profile slots for `search`, the producer key for `link`), and the surfaced facets with their
+profile slots for `search`, the producer key for `link`), and the surfaced vocabularies with their
 positions. Offer exactly the kinds `supported` lists — every word in the vocabulary has a reader
 today, so the list is the deployment's statement, not a promise.
 
-**A refusal derives nothing.** Every issue comes back at once as `422 RECORD_TYPE_USES_INVALID`, and
+**A refusal derives nothing.** Every issue comes back at once as `422 TABLE_USES_INVALID`, and
 `details.issues[]` carries per issue a `code` to branch on, the `path` into your statement, the
 `field` and `use` it is about, and a `remedy` — what to do instead, never empty. Branch on the code:
 `USES_FIELD_UNKNOWN` (no such contract field), `USES_ILLEGAL_FOR_SHAPE` (that shape cannot be used
 that way — an object cannot be filtered, a number or a file cannot be a key), `USES_TWO_KEYS`,
 `USES_KEY_NOT_SUBMITTED` (a `key` on a field that is not submitted data, such as a flow output),
 `USES_SEARCH_NO_TEXT`, `USES_SEARCH_SETTINGS` (a `search` use with no `search` settings, or the
-reverse), `USES_FACET_UNKNOWN`, `USES_FACET_SHADOWS_FIELD` (a surfaced facet's key is also a
-field name of the type), `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the entry already
-marks the field as a reference to a different type), and for `element.filters` on a `link`:
-`EDGE_FILTER_NOT_FILTERABLE`, `EDGE_FILTER_BUDGET_EXCEEDED`, `EDGE_FILTER_TYPE_CONFLICT` (below).
+reverse), `USES_VOCABULARY_UNKNOWN`, `USES_VOCABULARY_SHADOWS_FIELD` (a surfaced vocabulary's key is
+also a field name of the table), `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the type already
+marks the field as a reference to a different table), and for `element.filters` on a `link`:
+`LINK_FILTER_NOT_FILTERABLE`, `LINK_FILTER_BUDGET_EXCEEDED`, `LINK_FILTER_TYPE_CONFLICT` (below).
 Nothing is written on a refusal — not the statement, not a projection, not a marker.
 
-## Making a type searchable
+## Making a table searchable
 
 Marking a text field `search` and naming an embedding profile (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) in
-`uses.search` is the **only** way a type gets vectors. The `searchable` document you read back is
+`uses.search` is the **only** way a table gets vectors. The `searchable` document you read back is
 derived from that: which fields fill which vector slots (a `search` use fills the profile's default
 role — its first dense slot, plus the sparse slot if it has one — unless `role` names another dense
 slot), how they are chunked (the profile's `defaultChunking`, unless `uses.search.chunking`
@@ -340,17 +341,17 @@ Three consequences that catch people out, and only two of them fail _silently_:
   a meaning-based search there is answered by the **record store** first, and the ranking runs
   over what it kept — so a `filter` field the points do not carry still narrows, exactly.)
 - ⚠️ **The tenant key is the scope key, not the user id.** Filtering by user id against a derived
-  collection matches nothing, silently. The scope key holds the user for a user-scoped type, the
-  project for a pool type, and the session for a preview write. A `vector.search` step over a
-  user-scoped type's collection must carry `filterSlots: { "scopeKey": "userInfo.userId" }` — that
+  collection matches nothing, silently. The scope key holds the user for a user-scoped table, the
+  project for a pool table, and the session for a preview write. A `vector.search` step over a
+  user-scoped table's collection must carry `filterSlots: { "scopeKey": "userInfo.userId" }` — that
   provider slot and no other — or the save refuses it `VECTOR_SEARCH_SCOPE_KEY_FILTER_MISSING`; a
-  pool type's collection needs none.
+  pool table's collection needs none.
 - **Turning searchable off does not delete the points immediately.** A background pass notices and
   removes them later.
 
 ⚠️ **Moving the derived searchable declaration re-embeds every existing record, and re-embedding
 costs credits.** Marking a different field `search`, changing its role, changing the profile, or
-changing the chunking — on the type, OR on the profile's default that this type inherits — makes
+changing the chunking — on the table, OR on the profile's default that this table inherits — makes
 every stored record's points stale, and the background reconcile re-runs each record's projection,
 embedding calls included. The save itself is instant; the spend arrives record by record as the
 re-embed drains. Three changes that look adjacent are **not** in that set: adding or removing a
@@ -362,35 +363,36 @@ reprocessed, not as this save's own bill. The trigger is the **diff of the deriv
 the edit: re-sending the same `uses` derives the same document and enqueues nothing.
 
 **The cost is estimable before you save, from measurements:
-`GET /v1/record-types/{id}?expand=embedding`** carries the profile's model, its current rate in
+`GET /v1/tables/{id}?expand=embedding`** carries the profile's model, its current rate in
 `creditsPerMillionTokens`, and `avgTokensPerRecord` — averaged over the project's recent
-embedding calls narrowed to this type's records (`measuredCalls` says how many the average stands
+embedding calls narrowed to this table's records (`measuredCalls` says how many the average stands
 on). Multiply by your record count for the estimate — an upper bound: a price rule carrying an
 included-units allowance makes each call's first tokens free, and the estimate does not model
-that. A type never embedded has nulls, which means "not yet measured", never free. **And the drain is countable while it runs:
-`expand=vectorProgress`** answers `{examined, remaining, scanCapped}` by the reconcile sweep's
-own divergence classifier — `remaining: 0` off an uncapped scan means converged. `scanCapped:
-true` means the type is too large to count in one pass: the figures describe a prefix, and the
-sweep keeps draining on its own — it continues from where the capped pass stopped, lap after lap,
-until a lap finds nothing left, or hands what remains to the nightly sweep when laps stop
-shrinking (a provider outage looks like that) — so read a capped answer as "still working",
-never as a fraction and never as done. A `remaining` frozen across polls during an outage is the
-hand-off, not a stall in your data. Both scan-priced expansions (`embedding`, `vectorProgress`) are **item-route
-only**: the list route refuses them, because a page of types multiplied by a row scan each is a
-cost nobody asked for. Poll during a re-embed rather than attaching either to routine reads.
+that. A table never embedded has nulls, which means "not yet measured", never free. **And the drain
+is countable while it runs: `expand=vectorProgress`** answers `{examined, remaining, scanCapped}` by
+the reconcile sweep's own divergence classifier — `remaining: 0` off an uncapped scan means
+converged. `scanCapped: true` means the table is too large to count in one pass: the figures
+describe a prefix, and the sweep keeps draining on its own — it continues from where the capped pass
+stopped, lap after lap, until a lap finds nothing left, or hands what remains to the nightly sweep
+when laps stop shrinking (a provider outage looks like that) — so read a capped answer as "still
+working", never as a fraction and never as done. A `remaining` frozen across polls during an outage
+is the hand-off, not a stall in your data. Both scan-priced expansions (`embedding`,
+`vectorProgress`) are **item-route only**: the list route refuses them, because a page of tables
+multiplied by a row scan each is a cost nobody asked for. Poll during a re-embed rather than
+attaching either to routine reads.
 
 **A `search` use needs text, and the platform says so before it derives anything.** `search` on a
 number, a date, a boolean, a file, an object or a list of objects is refused `USES_SEARCH_NO_TEXT`
-with a remedy: have the type's processing flow write the text into a text field (for a file, extract
-its text), and search that field. The refusal is the point: such a slot would render every record
-to an empty string, skip each one as having no content, and leave the type looking searchable while
-indexing nothing at all.
+with a remedy: have the table's processing flow write the text into a text field (for a file,
+extract its text), and search that field. The refusal is the point: such a slot would render every
+record to an empty string, skip each one as having no content, and leave the table looking
+searchable while indexing nothing at all.
 
 The refusal is about the field's **shape**: a record that happens to be empty is reported per
 record, which is a fact about data rather than about the declaration.
 
 **A search slot reads exactly one field.** There is no way to compose several fields into one
-slot. To search text built from more than one field, have the type's processing flow write the
+slot. To search text built from more than one field, have the table's processing flow write the
 combined text into a field of its own, and mark that field `search`.
 
 The contract read carries the same answer per field, so you can ask before declaring. It is a
@@ -406,9 +408,9 @@ the profile, and a field's every purpose is stated in one place. Read `uses`, ch
 
 ## Making fields filterable
 
-The `filter` use marks a field records of this type may be **filtered** on; the derived `queryable`
+The `filter` use marks a field records of this table may be **filtered** on; the derived `queryable`
 list is those fields, in the order you stated them. It is independent of `search`, and that is the
-point: filtering has nothing to do with embeddings, so **a type with no vectors at all can still
+point: filtering has nothing to do with embeddings, so **a table with no vectors at all can still
 mark fields `filter`.**
 
 One list serves both stores. A field you list here is filterable when you query records directly
@@ -418,35 +420,35 @@ same thing wherever it runs.
 Things to know before you declare one:
 
 - **The number of fields is capped, per kind.** Each queryable field takes a fixed storage slot
-  shared by every record type, so declaring one is a save rather than a schema change. You get
+  shared by every table, so declaring one is a save rather than a schema change. You get
   thirty-two text fields, eight numbers, eight dates and four booleans — a budget wide enough that
   it is no longer the thing you design around. A read names each field's slot as `column` and its
   kind as `family` (`text`, `number`, `datetime`, `bool`; null until the save resolves a column),
-  so count a type's usage by `family` rather than by parsing column names.
-- ⚠️ **Saving the list queues a rewrite of every existing record of the type.** The save itself
+  so count a table's usage by `family` rather than by parsing column names.
+- ⚠️ **Saving the list queues a rewrite of every existing record of the table.** The save itself
   returns immediately; a durable background restamp then rewrites each record's filter columns, so
   the filter you just turned on answers correctly for records that already existed, instead of only
   for ones written afterwards. Until it completes, filters answer from the **previous** declaration
   — a coherent window, never a mix of old and new columns — and a crash cannot lose the obligation:
-  it is retried at startup and by any later save of the type.
-- **On a searchable type, changing this list spends no credits — but it does rewrite every
+  it is retried at startup and by any later save of the table.
+- **On a searchable table, changing this list spends no credits — but it does rewrite every
   point.** A `filter` field travels on each stored vector, so adding or dropping one changes what
   every record's points carry: the background reconcile rewrites each record's payload in place,
   and nothing is re-embedded. Until a record's rewrite lands, a filter on the new field that is
   pushed into the vector store does not match that record — `expand=vectorProgress` counts the
   records still waiting, the same way it counts a re-embed. The only billed change on a searchable
-  type is moving the searchable declaration itself (a content slot, or the profile); see "Making a
-  type searchable".
-- **The window is readable: `GET /v1/record-types/{id}?expand=restamp`.** The section carries
+  table is moving the searchable declaration itself (a content slot, or the profile); see "Making a
+  table searchable".
+- **The window is readable: `GET /v1/tables/{id}?expand=restamp`.** The section carries
   `pending` (the restamp has not converged yet), `startedAt` (when the pending run began, null
   before the runner starts), and `lastRows`/`lastMs` — the last **completed** restamp's own
   measurement: rows rewritten and wall-clock duration. That pair is the platform's measured
-  restamp rate for this type; multiply your record count by it to estimate the next window rather
+  restamp rate for this table; multiply your record count by it to estimate the next window rather
   than guessing. Both are null until a first restamp completes — treat that as "not yet measured",
   not as fast.
 - ⚠️ **A date only behaves like a date if you say so.** A timestamp declared as a plain string is
   a _text_ field: it matches exactly and it does not compare. Give it the `date-time` format in
-  its schema entry and it becomes a date — which is what makes "before" and "after" mean what you
+  its type and it becomes a date — which is what makes "before" and "after" mean what you
   expect, and what moves it out of your text budget.
 - **Not every field can be filtered.** Objects, nested lists, untyped fields and fields that can
   hold more than one kind of value are refused when you save, with the reason. Project the value
@@ -455,10 +457,10 @@ Things to know before you declare one:
   — by family and position in your `uses.fields` — and records it on the derived declaration.
   `expand=uses` shows the column. Send the field; leave
   the slot alone, and know that **reordering two `filter` fields moves their values** and re-stamps
-  the type.
+  the table.
 - **Dropping `filter` from a field removes the filter, not the data.** Records keep their values,
   so putting it back costs nothing.
-- **On a searchable type every `filter` field also travels on each point.** The derivation makes
+- **On a searchable table every `filter` field also travels on each point.** The derivation makes
   the payload and the filter list the same list, so a filter clause can be pushed into the vector
   store; there is no separate "stored but not indexed" payload field to declare.
 
@@ -472,7 +474,7 @@ Once a field is queryable, a listing step can filter on it two ways, and they co
   the comparison.
 
 ⚠️ **A field that does not carry `filter` is refused, not filtered slowly.** That is deliberate:
-the alternative is a filter that quietly reads every record of the type on every request, forever,
+the alternative is a filter that quietly reads every record of the table on every request, forever,
 which is exactly the cost the declaration exists to avoid. If a listing step rejects a field, mark
 it `filter` — do not work around it.
 
@@ -486,25 +488,25 @@ A listing step can also **order** by a declared date field, which is the only wa
 your data means by a date rather than by when the row arrived. Two things to know:
 
 - **Only date fields.** The continuation token a page hands back carries a date, so that is what a
-  page can resume from. A timestamp stored as a plain string is a text field until its schema entry
+  page can resume from. A timestamp stored as a plain string is a text field until its type
   declares the `date-time` format — declare it and sorting works.
 - ⚠️ **Records with no value for that field are left out of the page.** The field's index only
   covers records that have a value, and including the rest would mean sorting every record of the
-  type on every request. Sorting by a date a record does not have has no answer anyway.
+  table on every request. Sorting by a date a record does not have has no answer anyway.
 
-Listing and counting steps can also filter on **relationships** — keep only records carrying an
-edge of a given kind, optionally to one specific record. That is the one filter that reaches the
+Listing and counting steps can also filter on **relationships** — keep only records carrying a
+link of a given relation, optionally to one specific record. That is the one filter that reaches the
 relationship graph rather than a record's own fields, and it answers questions no field filter can:
 "which answers cite this item", "how many notes link to this project".
 
-- **The kind is your configuration; the linked record is a runtime value.** Leaving the linked
-  record unset is itself a useful filter — "carries any edge of this kind".
+- **The relation is your configuration; the linked record is a runtime value.** Leaving the linked
+  record unset is itself a useful filter — "carries any link of this relation".
 - ⚠️ **If the linked record's value is missing at runtime, the whole filter is dropped** — it does
-  NOT fall back to "any edge of this kind". That would answer a neighbouring question with a wider
-  result that still looks right.
-- **A relationship kind the project does not have matches nothing**, and the filter is dropped
-  rather than widened, exactly as for a missing value above. A kind cannot be hidden: every kind
-  the project has is readable.
+  NOT fall back to "any link of this relation". That would answer a neighbouring question with a
+  wider result that still looks right.
+- **A relation the project does not have matches nothing**, and the filter is dropped
+  rather than widened, exactly as for a missing value above. A relation cannot be hidden: every
+  relation the project has is readable.
 - **There is no "does not link to".** A negative relationship filter would let a caller enumerate
   what a record is _not_ connected to.
 
@@ -512,9 +514,9 @@ relationship graph rather than a record's own fields, and it answers questions n
 window bounds when the record was _stored_; a queryable date field bounds whatever your data
 means by it. A feed item ingested today can have been published last year.
 
-### Filtering on the data an edge carries
+### Filtering on the data a link carries
 
-A `link` on a list of objects can say which of the element's OTHER properties travel onto the edge
+A `link` on a list of objects can say which of the element's OTHER properties travel onto the link
 and can be filtered on there: `element.filters`.
 
 ```jsonc
@@ -530,31 +532,31 @@ and can be filtered on there: `element.filters`.
 }
 ```
 
-Each named property is carried on the edge and stamped into an indexed edge column. The relations
-pack has the read side (`where` and `count` on an edge walk). Before you declare:
+Each named property is carried on the link and stamped into an indexed link column. The relations
+pack has the read side (`where` and `count` on a link walk). Before you declare:
 
 - **Scalars only, and a list of scalars stamps its first element.** A string, number, integer,
   boolean or date-time property, or a list of one of those. A nested object, a list of objects, an
-  untyped property, or the element's own reference (`ref` — the target, not data on the edge) is
-  refused `EDGE_FILTER_NOT_FILTERABLE`.
-- **The budget is the relation KIND's, and it is small.** Eight text, two number, two date-time,
-  two boolean columns per kind — shared by every record type that filters on that kind, because an
-  edge row is one row whichever type produced it. Past it, `EDGE_FILTER_BUDGET_EXCEEDED`, counted
-  over every declaring type. This is deliberately narrower than the record budget: an edge is a
-  relationship with a few attributes, not a document. Model anything wider as its own record type.
-- **Two types filtering on one kind must agree on each property's type.** A `quote` that is a string
-  in one type and an object in another is `EDGE_FILTER_TYPE_CONFLICT`, and the message names the
-  other type. The map is the kind's — `edgeFilters` on the relation-kind read, `{ property →
-column }`, read-only there; `GET /v1/record-types/{id}?expand=uses` routes the use as
-  `{ store: "edge-store", kindKey, producerKey, filters: { quote: "eText0" } }`.
-- **A property already on a column keeps it** when another type adds or drops a filter. A property
-  no type names any more leaves the map. So one type's edit never moves another's columns.
-- ⚠️ **Changing the filters restamps every live edge of the kind, after the save returns.** As with
-  `filter` above: the save records the obligation on the kind (`edgeRestampPending`,
-  `stampedEdgeFilters`), a runner rewrites the rows in batches, and edge reads resolve against the
+  untyped property, or the element's own reference (`ref` — the target, not data on the link) is
+  refused `LINK_FILTER_NOT_FILTERABLE`.
+- **The budget is the RELATION's, and it is small.** Eight text, two number, two date-time,
+  two boolean columns per relation — shared by every table that filters on that relation, because a
+  link row is one row whichever table produced it. Past it, `LINK_FILTER_BUDGET_EXCEEDED`, counted
+  over every declaring table. This is deliberately narrower than the record budget: a link is a
+  relationship with a few attributes, not a document. Model anything wider as its own table.
+- **Two tables filtering on one relation must agree on each property's type.** A `quote` that is a
+  string in one table and an object in another is `LINK_FILTER_TYPE_CONFLICT`, and the message names
+  the other table. The map is the relation's — `linkFilters` on the relation read, `{ property →
+column }`, read-only there; `GET /v1/tables/{id}?expand=uses` routes the use as
+  `{ store: "link-store", relationKey, producerKey, filters: { quote: "eText0" } }`.
+- **A property already on a column keeps it** when another table adds or drops a filter. A property
+  no table names any more leaves the map. So one table's edit never moves another's columns.
+- ⚠️ **Changing the filters restamps every live link of the relation, after the save returns.** As
+  with `filter` above: the save records the obligation on the relation (`linkRestampPending`,
+  `stampedLinkFilters`), a runner rewrites the rows in batches, and link reads resolve against the
   previous map until it converges. A filter you just declared is not queryable until then.
 
-All three refusals arrive inside `RECORD_TYPE_USES_INVALID.details.issues` with a remedy each.
+All three refusals arrive inside `TABLE_USES_INVALID.details.issues` with a remedy each.
 
 ### A list that grows without bound: `stream`
 
@@ -584,9 +586,9 @@ time-partitioned store, appended and never assigned, read only inside a time bou
   or a list of objects is `STREAM_FILTER_NOT_FILTERABLE`; a filter naming `at` is dropped, since the
   time is always indexed. `expand=uses` routes the use as `{ store: "stream-store", at, retainDays,
 filters: { action: "sText0" } }`.
-- **The field is no longer part of `data`.** `entity.create` and `entity.update` refuse a payload
+- **The field is no longer part of `data`.** `record.create` and `record.update` refuse a payload
   that names it — the step fails as invalid input saying the field is a stream. Events are written by
-  the `entity.append` step —
+  the `record.append` step —
   one event or a list per run, idempotent on `(recordId, at, eventId)`; the default event id hashes
   the record, the time and the payload, so a retried run converges. An event without a parseable
   `at` fails the step (`STREAM_EVENT_NO_TIME`).
@@ -602,20 +604,20 @@ filters: { action: "sText0" } }`.
 - **`retainDays` is a promise about reads, kept by a daily job.** Events past retention are deleted
   in the background and whole months are dropped once empty; declare it when you ever ask for "the
   latest", or that question opens every month.
-- ⚠️ **Declaring `stream` on a field that already holds an inline list, on a type with records, is a
-  MIGRATION, not an edit.** The save returns at once and records the obligation on the type; a runner
-  moves each record's list into rows in batches and removes the key from `data`; watch
-  `GET /v1/record-types/{id}?expand=migration` until `pending` is `null`. While it moves, the type
+- ⚠️ **Declaring `stream` on a field that already holds an inline list, on a table with records, is
+  a MIGRATION, not an edit.** The save returns at once and records the obligation on the table; a
+  runner moves each record's list into rows in batches and removes the key from `data`; watch
+  `GET /v1/tables/{id}?expand=migration` until `pending` is `null`. While it moves, the table
   is held still, each refused 409 `STREAM_MIGRATING`: appends to that field; ANY save of `uses` that
-  would start another stream migration, on that field or another; `entity.update` / `entity.create`
-  data naming the field, and an `entity.update` replace during a promote (it would drop the lists
+  would start another stream migration, on that field or another; `record.update` / `record.create`
+  data naming the field, and an `record.update` replace during a promote (it would drop the lists
   not yet moved); and a stream read or query clause on a field still being promoted, since most
   records' events are not rows yet. A list element with no parseable time cannot become a row: it is
   dropped, and the `dropped` count on the migration's `pending` says how many so far. Removing the
   use folds the rows back the same way, and is refused 422 `STREAM_DEMOTE_TOO_LARGE` (naming the
-  records and the cap of 1 000 events) while any record's stream is larger than an inline list should
-  be. Changing `filters` on a populated stream restamps its rows the same way. One field moves at a
-  time.
+  records and the cap of 1 000 events) while any record's stream is larger than an inline list
+  should be. Changing `filters` on a populated stream restamps its rows the same way. One field
+  moves at a time.
 
 ### One question across the stores: a query
 
@@ -623,18 +625,18 @@ Every use above routes a part of a record to a store that answers its own kind o
 none of those stores can answer another's. A **query** asks several of them at once and returns the
 records that satisfy ALL of its clauses — a conjunction, never an OR — with two fields on every
 answer that say how complete it is. One grammar, two places to state it: the config of an
-`entity.query` step inside a flow, and the body of `POST /v1/records/query` (with `project`) from
+`record.query` step inside a flow, and the body of `POST /v1/records/query` (with `project`) from
 outside one. A body, not query-string parameters, because clauses nest. The records list
-(`GET /v1/records?project=&recordType=`) speaks the same operator words in its `field=name:op:value`
+(`GET /v1/records?project=&tableKey=`) speaks the same operator words in its `field=name:op:value`
 conditions — `eq`, `gt`, `gte`, `lt`, `lte`.
 
 ```json
 {
-  "recordType": "person",
+  "tableKey": "person",
   "clauses": [
-    { "kind": "term", "facet": "language", "slug": "hebrew" },
+    { "kind": "term", "vocabularyKey": "language", "slug": "hebrew" },
     {
-      "kind": "edge",
+      "kind": "link",
       "relation": "friend-of",
       "where": [{ "property": "tag", "op": "eq", "value": "close" }],
       "count": { "op": ">=", "n": 2 },
@@ -659,25 +661,25 @@ Each kind of clause is answered by the store its use routed the field to, so eac
 
 - **`field`** needs `filter` on the field. `eq`, `lt`, `lte`, `gt`, `gte` take one value; `in`
   takes a list of up to 1 000 (an OR inside the clause). Dates travel as ISO strings.
-- **`term`** needs the facet in `uses.facets`. The `slug` may be an alias; it resolves one hop to
-  its canonical term, as every term read does. It matches **active** terms only: a record filed
-  under a candidate term is not found by a `term` clause, or by the list's `term=` condition, until
-  the term is admitted (`PATCH /v1/terms/{id}`).
+- **`term`** needs the vocabulary in `uses.vocabularies`. The `slug` may be an alias; it resolves
+  one hop to its canonical term, as every term read does. It matches **active** terms only: a record
+  filed under a candidate term is not found by a `term` clause, or by the list's `term=` condition,
+  until the term is admitted (`PATCH /v1/terms/{id}`).
 - **`edge`** needs a `link` for the `relation`, on the field that points. `direction` is
   `outgoing` unless you say `incoming` or `either` (a symmetric link matches on either side
-  whatever you ask). Asked `outgoing`, the link is on a field of the queried type. Asked `incoming`
-  or `either`, a link on a field of a type that points AT the queried one routes it too: with
+  whatever you ask). Asked `outgoing`, the link is on a field of the queried table. Asked `incoming`
+  or `either`, a link on a field of a table that points AT the queried one routes it too: with
   `in-story` declared on `post.storyId`, query `story` with `direction: "incoming"` — `story`
   declares no link and keeps no list of its posts. The default direction from `story` is refused
   `QUERY_CLAUSE_UNROUTED`, and the refusal says to ask `incoming`. `where` speaks the link's
-  `element.filters`; `count` is a comparison on matching edges (omitted: at least one);
+  `element.filters`; `count` is a comparison on matching links (omitted: at least one);
   `peer` is a list of clauses on the record at the far end — ONE hop: `field`, `term`, and at most
   one `semantic` (below).
 - **`stream`** needs `stream` on the field. `window` is `{ from, to }` on the event's own time —
   omitted, it is bounded by the stream's retention, and a `from` before the retention cutoff is 422
   `STREAM_WINDOW_BEYOND_RETENTION`; `where` speaks the stream's `filters`; `count` is `exists`
   (default), `none` (no matching event), or a comparison.
-- **`semantic`** needs a `search` use somewhere on the type (or on the named `field`). `text` is
+- **`semantic`** needs a `search` use somewhere on the table (or on the named `field`). `text` is
   the phrase, up to 8 000 characters; `topK` is how many to rank, 1–200, default 50. At most one per
   query, counting one inside a `peer`.
 
@@ -714,11 +716,11 @@ which records are in reach and gives the answer no scores.
 
 **A link's far end matched by meaning.** A `semantic` clause inside `peer` asks for the records
 linked to something that resembles a phrase — "guides who have led an outing about river
-crossings" is a query on `guide` with one `edge` clause:
+crossings" is a query on `guide` with one `link` clause:
 
 ```json
 {
-  "kind": "edge",
+  "kind": "link",
   "relation": "led-by",
   "direction": "incoming",
   "peer": [
@@ -728,13 +730,13 @@ crossings" is a query on `guide` with one `edge` clause:
 }
 ```
 
-The peer type is ranked first — its own `field` and `term` clauses narrowing the ranking — and the
-edge then reaches only the closest `topK` peers. So the answer is the records linked to one of
+The peer table is ranked first — its own `field` and `term` clauses narrowing the ranking — and the
+link then reaches only the closest `topK` peers. So the answer is the records linked to one of
 them, in the query's own order (newest first unless you set `order`), and it PAGES. It is still a
 bounded answer, `peer-top-k`: a record whose only matching peer ranked below `topK` is not in
 reach. ⚠️ There is no similarity cut-off — the nearest peers always come back — so narrow the peer
 with a `field` or `term` clause when "nothing matches" must be possible. The relation must pair
-the type with exactly ONE peer type; one that pairs it with several is refused for this clause.
+the table with exactly ONE peer table; one that pairs it with several is refused for this clause.
 
 <!-- field-ok: lastPostAt — a project-authored field name, an example of a value kept on the record to order by -->
 
@@ -744,7 +746,7 @@ the type with exactly ONE peer type; one that pairs it with several is refused f
 - `{ "by": "meaning" }` — closest first. The default with a semantic clause of the query's own,
   and refused without one (a peer's phrase chooses which records are in reach; it does not order
   them).
-- `{ "by": "field", "field": "startsAt", "direction": "desc" }` — by one of the type's own DATE
+- `{ "by": "field", "field": "startsAt", "direction": "desc" }` — by one of the table's own DATE
   fields carrying a `filter` use. An exact-only query pages by it. A record with no value in the
   field is left out. Beside a semantic clause it re-orders the ranking: the same at-most-`topK`
   records, listed by the field, with no cursor.
@@ -758,12 +760,12 @@ that value on the record itself — a processed `lastPostAt`, a count its proces
 a slot instead of written in place: `valueSlot` for a `field` clause's `value` (top level or in
 `peer`) and for a `where` entry's `value`, `slugSlot` for a `term`'s `slug`, `textSlot` for the
 `semantic` phrase, `fromSlot` / `toSlot` for a stream `window`. Exactly one of the literal and its
-slot. Which field, operator, facet, relation and count the clause names stays in the config, so
+slot. Which field, operator, vocabulary, relation and count the clause names stays in the config, so
 the routing check at save is the same either way.
 
 ```json
 {
-  "recordType": "outing",
+  "tableKey": "outing",
   "clauses": [
     {
       "kind": "field",
@@ -801,7 +803,7 @@ typed, among the guides they follow" is one step.
 - The save warns `QUERY_OPERAND_TYPE_MISMATCH` when the slot's declared type certainly cannot
   be the operand — a list where one value is compared, one value where `in` needs a list, a
   number where text is needed. A warning: the step saves, and the run would refuse the value.
-- `entity.list` and `entity.count` hold their filter slots to the same rule: a missing filter
+- `record.list` and `record.count` hold their filter slots to the same rule: a missing filter
   value skips the step, a wrong one fails it (`FILTER_VALUE_INVALID`), an empty list matches
   nothing. A filter is never dropped, so an optional one is two steps behind a `flow.dispatch`.
 - The request body of the route takes written values only; a `…Slot` key there is a 422.
@@ -820,23 +822,23 @@ typed, among the guides they follow" is one step.
   `cap` in force and the `mode`. An exact clause is `transactional`. The semantic clause is
   `{ eventual: true, watermark, unindexed }`: a ready record not yet in the meaning index is absent
   from it, `watermark` is the instant the index is current to, and `unindexed` is how many of the
-  type's ready records it cannot see yet — the number to read when a record is in an exact answer
+  table's ready records it cannot see yet — the number to read when a record is in an exact answer
   and missing from a semantic one.
 - `emptiedBy` — present when a clause produced nothing: its index in `clauses`. No later clause
   ran and the meaning index was not asked, so an empty `records` is that clause's doing.
 
 **Three refusals you will meet.**
 
-- 422 `QUERY_CLAUSE_UNROUTED` — a clause on a field, facet, relation or filter property the type's
-  `uses` does not route. The message names the field and the use to declare; no store scans for it.
-  For the step, at flow save; for the route, at request — it has no save step. The two shape
+- 422 `QUERY_CLAUSE_UNROUTED` — a clause on a field, vocabulary, relation or filter property the
+  table's `uses` does not route. The message names the field and the use to declare; no store scans
+  for it. For the step, at flow save; for the route, at request — it has no save step. The two shape
   refusals sit beside it: `QUERY_SEMANTIC_MULTIPLE` (a second semantic clause) and
   `QUERY_PEER_DEPTH` (a `peer` holding anything but `field`, `term` and `semantic`).
 - 422 `QUERY_CLAUSE_TOO_BROAD` — the first exact clause selected more than a million records
   before any other clause could narrow it. Add a narrower clause the planner will run first — a
   term, or a field equality — rather than reordering yours: the order is the planner's.
 - 503 `VECTOR_INDEX_UNREADABLE` — the meaning index could not be reached, or was never provisioned
-  for the type. Nothing partial comes back; a query with no semantic clause is unaffected.
+  for the table. Nothing partial comes back; a query with no semantic clause is unaffected.
 
 **Paging.** Only a query WITHOUT a semantic clause pages: on the route, pass back `nextCursor` as
 `after` for the next page and `prevCursor` as `before` for the previous one — never both — and
@@ -846,9 +848,10 @@ and `limit` caps what is returned of it.
 
 **Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
 hop through `peer`. Ordering by how closely a LINKED record matches, or by any value on a linked
-record. A similarity cut-off on a ranking. An answer carrying records of two types. A query language — the grammar is this JSON, in a step's config or a request
-body. A slot for WHICH field, operator or link a clause asks about — only the value compared
-against can come from the run. A cached answer — every query reads the stores as they are now.
+record. A similarity cut-off on a ranking. An answer carrying records of two tables. A query
+language — the grammar is this JSON, in a step's config or a request body. A slot for WHICH field,
+operator or link a clause asks about — only the value compared against can come from the run. A
+cached answer — every query reads the stores as they are now.
 
 A step's clauses are written through the design API (`POST /v1/steps`, `PATCH /v1/steps/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
 
@@ -856,118 +859,120 @@ A step's clauses are written through the design API (`POST /v1/steps`, `PATCH /v
 
 - **Reserved field names** — the identity, status, error and timestamp fields — may not be
   declared as data fields, nor collide with a derived slot
-  (`RECORD_TYPE_DERIVED_FIELD_RESERVED`). Names must be letter-led alphanumeric.
-- **Removing a field from an entry while a referencing type has records**
-  (`SCHEMA_ENTRY_UNSAFE_FOR_RECORD_TYPE`), or adding one named like a facet a referencing type
-  surfaces (same code). Editing an entry re-validates every type referencing it, strictest wins.
-- **A definition that contradicts itself or carries a `$facet` marker no extraction can honour.**
-  `SCHEMA_DEFINITION_MALFORMED_CONSTRAINT`: a range no value satisfies, a negative or fractional
-  count bound, an `enum` member listed twice, two `oneOf` / `anyOf` branches pinning one `const`, or
-  an empty `pattern` — every one found is named, with its path. `SCHEMA_DEFINITION_FACET_FIELD`: a
-  marked field below the top level of the type (a facet value is harvested by name from the top of
-  the response, so a nested one is never filled), or one whose type is not a string or a list of
-  strings. ⚠️ Both are **flat**: the save judges the whole definition it would store, touched or
-  not, so an entry that already carries one takes no save — not even a rename or a description
-  edit — until it is fixed. The message names the path and the fix (for a nested marker: move the
-  field to the top level, or remove its `$facet`). Create, PATCH and their `validateOnly` dry runs
-  all say it; a stored entry carrying one goes on deriving what it derived before.
+  (`TABLE_DERIVED_FIELD_RESERVED`). Names must be letter-led alphanumeric.
+- **Removing a field from a type while a referencing table has records**
+  (`TYPE_UNSAFE_FOR_TABLE`), or adding one named like a vocabulary a referencing table
+  surfaces (same code). Editing a type re-validates every table referencing it, strictest wins.
+- **A definition that contradicts itself or carries a `$vocabularyKey` marker no extraction can
+  honour.** `SCHEMA_DEFINITION_MALFORMED_CONSTRAINT`: a range no value satisfies, a negative or
+  fractional count bound, an `enum` member listed twice, two `oneOf` / `anyOf` branches pinning one
+  `const`, or an empty `pattern` — every one found is named, with its path.
+  `SCHEMA_DEFINITION_VOCABULARY_FIELD`: a marked field below the top level of the type (a vocabulary
+  value is harvested by name from the top of the response, so a nested one is never filled), or one
+  whose type is not a string or a list of strings. ⚠️ Both are **flat**: the save judges the whole
+  definition it would store, touched or not, so a type that already carries one takes no save — not
+  even a rename or a description edit — until it is fixed. The message names the path and the fix
+  (for a nested marker: move the field to the top level, or remove its `$vocabularyKey`). Create,
+  PATCH and their `validateOnly` dry runs all say it; a stored type carrying one goes on deriving
+  what it derived before.
 - **A `"null"` arm nothing reads** (`SCHEMA_DEFINITION_DEAD_NULL_ARM`): a field whose `type`
   lists `"null"` while another keyword on the same fragment decides what it is (an enum, a const, a
-  $ref, or a oneOf/anyOf/allOf) — that keyword is checked first, so a write of `null` is rejected however the field reads. The
-  message names each field and the spelling that works (a `null` member of the `enum`,
-  `const: null`, or none on that fragment). ⚠️ Flat, like the refusals above: an entry that already
-  carries one takes no save until it is fixed.
-- **Closing an entry's root while a configuration namespace stores a key it does not declare**
-  (`SCHEMA_ENTRY_UNSAFE_FOR_PROJECT_CONFIG`) — flat, like those above. See
+  $ref, or a oneOf/anyOf/allOf) — that keyword is checked first, so a write of `null` is rejected
+  however the field reads. The message names each field and the spelling that works (a `null` member
+  of the `enum`, `const: null`, or none on that fragment). ⚠️ Flat, like the refusals above: a type
+  that already carries one takes no save until it is fixed.
+- **Closing a type's root while a configuration namespace stores a key it does not declare**
+  (`TYPE_UNSAFE_FOR_PROJECT_CONFIG`) — flat, like those above. See
   project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`).
-- **A type's own chunking that cannot advance.** `uses.search.chunking` with an `overlap` not
+- **A table's own chunking that cannot advance.** `uses.search.chunking` with an `overlap` not
   smaller than its `tokens` is refused 422 on `uses.search.chunking.overlap`, code
-  `RECORD_TYPE_CHUNKING_INVALID` on the finding — the same rule a profile's `defaultChunking` meets
+  `TABLE_CHUNKING_INVALID` on the finding — the same rule a profile's `defaultChunking` meets
   (embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)). ⚠️ Flat: it is judged on the `uses` the save
-  would store, sent or not, so a type already carrying one takes no save — a description edit
+  would store, sent or not, so a table already carrying one takes no save — a description edit
   included — until the numbers are fixed.
-- **A record-type delete's `validateOnly=true`** rehearses the delete and rolls it back: `ok` is
+- **A table delete's `validateOnly=true`** rehearses the delete and rolls it back: `ok` is
   false when it would leave an error it introduces in a flow, as a document plan of the same delete
   answers, with the findings in `leavesBehind` and what it takes along in `consequences`.
-- **Deleting an entry** while it is a record type's data shape
-  (`SCHEMA_ENTRY_REFERENCED_BY_RECORD_TYPE`) or referenced by the type-relation graph
+- **Deleting a type** while it is a table's data shape
+  (`TYPE_REFERENCED_BY_TABLE`) or referenced by the type-relation graph
   (`SCHEMA_REFERENCED_BY_GRAPH`). ⭐ Ask the delete with `validateOnly=true` in the query: it runs
   the same gate the delete runs and answers a 200 verdict, with `derived` carrying the census of
-  everything pointing at the entry — record types, event types, configuration namespaces, relation
-  kinds, entries reaching it through a reference, and whether a project binds it as its end-user
+  everything pointing at the type — tables, event types, configuration namespaces,
+  relations, types reaching it through a reference, and whether a project binds it as its end-user
   profile. ⚠️ `derived` is absent when the verdict refuses: the gate stops inside its own walk, and
   a census loaded afterwards would be a different read from the one that refused. The refusal
   sentence names the consumer that blocked it.
 
-  `GET /v1/schema-entries?expand=graph` says which graph references those are before you try: each
-  entry carries `usedByGraph` and `usedByGraphRefs` — the flows, steps, handlers and sibling types
+  `GET /v1/types?expand=graph` says which graph references those are before you try: each
+  type carries `usedByGraph` and `usedByGraphRefs` — the flows, steps, handlers and sibling types
   that name it DIRECTLY. A flow taking a type that references this one is listed under that type,
-  not here. The `graph` section beside the entries resolves a relation's source ids through three
+  not here. The `graph` section beside the types resolves a relation's source ids through three
   maps: `flowLabels` (flow id → label), `skillKeys` (step id → key) and `entryKeys` (type id → key).
 
-- **Deleting a record type** that has records, was seeded, or carries a reserved type name (a
+- **Deleting a table** that has records, was seeded, or carries a reserved table name (a
   platform-wide set, not something your project defines). The DELETE answers 409 `CONFLICT` for
-  records, naming the rule at the head of its message (`RECORD_TYPE_PINNED_BY_RECORDS: …`); 409
-  `RECORD_TYPE_SEEDED_READONLY` for a seeded type; and 422 `VALIDATION_FAILED` for a reserved name,
-  again named at the head of the message (`RECORD_TYPE_KEY_RESERVED: …`). Deleting a type
-  removes only the descriptor; the entry outlives it.
+  records, naming the rule at the head of its message (`TABLE_PINNED_BY_RECORDS: …`); 409
+  `TABLE_SEEDED_READONLY` for a seeded table; and 422 `VALIDATION_FAILED` for a reserved name,
+  again named at the head of the message (`TABLE_KEY_RESERVED: …`). Deleting a table
+  removes only the descriptor; the type outlives it.
 
-  ⚠️ It does **not** leave the relation graph alone, and the response says what went. A record-type
-  pair naming the deleted type disappears with it — so a link that applied to no other pair is now a
-  link that connects nothing, cannot be produced and cannot be traversed. Those links are deleted
-  too, along with every connection they had made, and their keys come back in
-  `deletedRelationKinds`. A link that still applies to another pair survives untouched.
-  `invalidatedJoins`, beside it, reports the OTHER record types whose `joins` declaration this
+  ⚠️ It does **not** leave the relation graph alone, and the response says what went. A table
+  pair naming the deleted table disappears with it — so a relation that applied to no other pair is
+  now a relation that connects nothing, cannot be produced and cannot be traversed. Those relations
+  are deleted too, along with every link they had made, and their keys come back in
+  `deletedRelations`. A relation that still applies to another pair survives untouched.
+  `invalidatedJoins`, beside it, reports the OTHER tables whose `joins` declaration this
   delete voided. Both exist because you asked to remove one thing and something else changed.
 
-  **Ask before you delete: `DELETE /v1/record-types/{id}?validateOnly=true`** answers the
+  **Ask before you delete: `DELETE /v1/tables/{id}?validateOnly=true`** answers the
   delete's own verdict, writing nothing — the refusal the delete would answer right now, from the
   function it throws from, in the same code and words; `ok: true` when nothing stands in the way.
   It covers all three refusals above. Beside it, **`derived.dependents`**
   counts, through the delete's own reads and before the refusal is asked, the records that refuse
-  it (`kind: "records"`, `refuses: true`) and the paired relation kinds and other types' `joins`
-  it would change (`relation-kinds`, `joins`, `refuses: false`) — present on a refused verdict
+  it (`kind: "records"`, `refuses: true`) and the paired relations and other tables' `joins`
+  it would change (`relations`, `joins`, `refuses: false`) — present on a refused verdict
   too, so a refused dry run names the count that refused it. ⛔ `total` sums only the refusing
-  counts, so a seeded or reserved type reads `total: 0` and is refused anyway — never gate on
-  `total`. It needs ADMIN on the type, the delete's own floor.
+  counts, so a seeded or reserved table reads `total: 0` and is refused anyway — never gate on
+  `total`. It needs ADMIN on the table, the delete's own floor.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
+refused.
 
 - **A declaration the contract has moved out from under.** Each declaration is validated when it is
   saved; editing the shape or re-capturing the flow afterwards can leave one naming a field the
-  type no longer has, and nothing refuses until the next save that restates it.
-  `GET /v1/record-types/{id}?expand=diagnostics` runs the save's own validators over what is stored
+  table no longer has, and nothing refuses until the next save that restates it.
+  `GET /v1/tables/{id}?expand=diagnostics` runs the save's own validators over what is stored
   now and lists every issue with its code, path and the contract `field` it names — empty when all
-  of them still hold. A type is checked the way a save checks it: its `uses` statement is
+  of them still hold. A table is checked the way a save checks it: its `uses` statement is
   derived first, and a refused one reports only `declaration: "uses"` issues (the same `USES_*`
-  codes a `RECORD_TYPE_USES_INVALID` carries, the remedy appended to the message); a statement that
+  codes a `TABLE_USES_INVALID` carries, the remedy appended to the message); a statement that
   derives has the `searchable`, `queryable` and `relations` it derives checked, not the stored
   copies. A natural key no future record could supply is a refused `key` use, so it arrives as a
   `uses` issue. Both expansions are item-route only.
 
-- **Records created and never queued.** A record of a type that binds a processing flow is born
-  `PENDING`, and `entity.create` does not queue it — only an `entity.enqueue-process` step does. A
+- **Records created and never queued.** A record of a table that binds a processing flow is born
+  `PENDING`, and `record.create` does not queue it — only an `record.enqueue-process` step does. A
   flow that creates the record without one leaves it waiting with no run coming, and the flow's own
-  run still reads as succeeded. `GET /v1/record-types/{id}?expand=processingGaps` names every flow
-  of the project with an enabled `entity.create` of this type and no enabled
-  `entity.enqueue-process` step (`code: "RECORD_CREATED_NOT_QUEUED"`, the flow, the create step
-  and a sentence saying what to add); always empty for a type with no processing flow. Item-route
+  run still reads as succeeded. `GET /v1/tables/{id}?expand=processingGaps` names every flow
+  of the project with an enabled `record.create` of this table and no enabled
+  `record.enqueue-process` step (`code: "RECORD_CREATED_NOT_QUEUED"`, the flow, the create step
+  and a sentence saying what to add); always empty for a table with no processing flow. Item-route
   only. A record already stranded this way is processed with
   `POST /v1/records/{id}/reprocess`, which accepts a `pending` record only when
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
   A reprocess is charged like a first processing and answers no step from the step-result cache.
 
-- **Re-pointing or renaming a type that already has records**, and renaming — changing the `key`
-  of — a type any flow step's configuration names (`RECORD_TYPE_NAMED_BY_CONFIG`, listing the
-  flows): step configuration names a record type by key, so a rename would strand it.
+- **Re-pointing or renaming a table that already has records**, and renaming — changing the `key`
+  of — a table any flow step's configuration names (`TABLE_NAMED_BY_CONFIG`, listing the
+  flows): step configuration names a table by key, so a rename would strand it.
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than
   optional. The update runs in a transaction, so a rejected write rolls back the whole rename
   cascade rather than leaving it half-applied.
 
 ## Ask what a change would cost, before you make it
 
-`GET /v1/record-types/{id}?expand=contract` derives the field vocabulary from the descriptor **as
+`GET /v1/tables/{id}?expand=contract` derives the field vocabulary from the descriptor **as
 stored**. So an editor that has staged a different data shape, or a different processing flow, is
 holding a contract that no longer describes what it is about to save — and any declaration it
 offers against that contract is being written against the wrong vocabulary.
@@ -975,27 +980,27 @@ offers against that contract is being written against the wrong vocabulary.
 ⭐ **Each field also says whether a LINK may be declared on it, and what it points at.**
 `relationSource` carries `flat` (the field itself is a reference) or `element` (it is a list of
 objects whose properties are), each with `typed` — whether the reference names its target — and
-`targetRecordTypeKeys`, the keys of the record types it names.
+`targetTableKeys`, the keys of the tables it names.
 
-⚠️ **`typed` and `targetRecordTypeKeys` answer different questions, and only the second can be checked against
-the link you are making.** A declaration whose source points at `article` on a kind paired
-`article → note` **saves**: the save asks whether the field IS a reference and never what it points
-AT. Every edge it then produces is refused at write time as `UNDECLARED_PAIR` and reported rather
-than raised, so the kind reads `0 edges` and nothing says why. `targetRecordTypeKeys` is what lets an editor say
-so before the save instead of after it.
+⚠️ **`typed` and `targetTableKeys` answer different questions, and only the second can be checked
+against the link you are making.** A declaration whose source points at `article` on a relation
+paired `article → note` **saves**: the save asks whether the field IS a reference and never what it
+points AT. Every link it then produces is refused at write time as `UNDECLARED_PAIR` and reported
+rather than raised, so the relation reads `0 edges` and nothing says why. `targetTableKeys` is what
+lets an editor say so before the save instead of after it.
 
-⚠️ **`targetRecordTypeKeys` is a LIST, and empty means untyped.** A union of two annotated references names two
-types and is right for a link to either, so it cannot collapse to one value. An untyped reference —
-a plain string that happens to hold an id — is still legal: the save warns with
-`RELATION_SOURCE_FIELD_UNTYPED` rather than refusing, so do not treat an empty `targetRecordTypeKeys` as a
-refusal.
+⚠️ **`targetTableKeys` is a LIST, and empty means untyped.** A union of two annotated references
+names two tables and is right for a link to either, so it cannot collapse to one value. An untyped
+reference — a plain string that happens to hold an id — is still legal: the save warns with
+`RELATION_SOURCE_FIELD_UNTYPED` rather than refusing, so do not treat an empty `targetTableKeys` as
+a refusal.
 
 ⭐ **`element.properties` carries each sibling's NAME and the JSON types it declares.** These are the
-values that may travel onto an edge, and the bag they build is validated against the kind's
-`propertiesEntryId` — so an editor offering that entry has to compare the two SHAPES, not their
-spellings. A sibling `quote` that holds a `string`, pointed at an entry declaring `quote` as an
-object, agrees on every name and is refused on every edge as `PROPERTIES_INVALID` — reported rather
-than raised, so the kind reads `0 edges` and nothing says why.
+values that may travel onto a link, and the bag they build is validated against the relation's
+`propertiesDataTypeId` — so an editor offering that type has to compare the two SHAPES, not their
+spellings. A sibling `quote` that holds a `string`, pointed at a type declaring `quote` as an
+object, agrees on every name and is refused on every link as `PROPERTIES_INVALID` — reported rather
+than raised, so the relation reads `0 edges` and nothing says why.
 
 ⚠️ **`types` is a LIST, and empty means the property declares no type.** `{"type":["string","null"]}`
 is one fragment and a union names several, so this cannot collapse to one value either. Empty means
@@ -1011,8 +1016,8 @@ To ask what a **proposed** shape or flow would make of the contract, send the PA
 proposes it with `validateOnly: true`:
 
 ```
-PATCH /v1/record-types/{id}
-{ "dataEntryId": "<entry>", "version": 7, "validateOnly": true }   // another shape
+PATCH /v1/tables/{id}
+{ "dataTypeId": "<entry>", "version": 7, "validateOnly": true }   // another shape
 { "definition": { /* the type's shape, drafted */ }, "version": 7, "validateOnly": true }
 { "flowId": "<flowId>" | null, "version": 7, "validateOnly": true }
 ```
@@ -1040,18 +1045,18 @@ The verdict is the save's own, and when the patch moves the shape or the flow it
 
 Send the `uses` the save would send too: the plan re-derives every projection from the statement
 against the proposed contract, so a declaration the move strands is **refused** — the verdict's
-diagnostic, in the save's code (`RECORD_TYPE_SEARCHABLE_INVALID`, `RECORD_TYPE_QUERYABLE_INVALID`,
-`RECORD_TYPE_RELATIONS_INVALID`, `USES_FIELD_UNKNOWN`, …) — and the refused verdict still carries
+diagnostic, in the save's code (`TABLE_SEARCHABLE_INVALID`, `TABLE_QUERYABLE_INVALID`,
+`TABLE_RELATIONS_INVALID`, `USES_FIELD_UNKNOWN`, …) — and the refused verdict still carries
 `derived.contract` once the shape and the flow resolved, so an editor can draw the proposed fields
-beside the refusal. A refusal raised before that (an ineligible entry, a flow in another project)
+beside the refusal. A refusal raised before that (an ineligible type, a flow in another project)
 carries none.
 
-`definition` is a real write, not only a question: **`PATCH /v1/record-types/{id}` with
-`definition` replaces the shape of the entry the type points at** — with the rules
-`PATCH /v1/schema-entries/{id}` meets, every other row that uses the entry included — in one
-transaction with the type; the entry comes back in `touched`. It is refused 422 together
-with `dataEntryId` (`RECORD_TYPE_DEFINITION_WITH_DATA_ENTRY`). An edit that re-shapes a signature
-an endpoint or this type froze is refused 409 `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`; re-send it
+`definition` is a real write, not only a question: **`PATCH /v1/tables/{id}` with
+`definition` replaces the shape of the type the table points at** — with the rules
+`PATCH /v1/types/{id}` meets, every other row that uses the type included — in one
+transaction with the table; the type comes back in `touched`. It is refused 422 together
+with `dataTypeId` (`TABLE_DEFINITION_WITH_DATA_TYPE`). An edit that re-shapes a signature
+an endpoint or this table froze is refused 409 `TYPE_RESHAPES_BOUND_SNAPSHOTS`; re-send it
 through a project document with `adoptSnapshots` on the shape. Its dry run also answers
 `derived.keywordVerdicts` for the drafted document — on a refused draft too, but not on the
 refusal above, where no draft is judged. Send `flowId` beside
@@ -1064,20 +1069,20 @@ Things to hold about it:
   captures — not against the snapshot the descriptor already stores. Ask before you bind and the
   answer is the one the save will use.
 - ⚠️ **They are not independent, and the shape one is the reason.** Re-pointing the shape re-binds
-  the flow against it, so a `dataEntryId`-only proposal is resolved against the flow's **live**
+  the flow against it, so a `dataTypeId`-only proposal is resolved against the flow's **live**
   signature too — its `processed` fields can move, and it can be refused for a flow reason on a
   request that never mentioned a flow. That is the save's behaviour, faithfully: a shape change is
   what strands a declaration naming a flow slot.
-- **A `409` from `RECORD_TYPE_PINNED_BY_RECORDS` means the type already holds records** and the
+- **A `409` from `TABLE_PINNED_BY_RECORDS` means the table already holds records** and the
   shape you proposed is not the one they were written against. Re-pointing is refused for the life
-  of those records — a fact about the type rather than about your proposal.
-- **A `seed`-origin type is refused** (`RECORD_TYPE_SEEDED_READONLY`) by the dry run as by the save.
+  of those records — a fact about the table rather than about your proposal.
+- **A `seed`-origin table is refused** (`TABLE_SEEDED_READONLY`) by the dry run as by the save.
 - A stale `version` is reported as `derived.staleVersion: true` beside an `ok` verdict, never as a
   finding: the lock is about when the write lands, not whether the draft is coherent.
 
 ⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the key,
-the data shape and the owner scope; the binding can change at any point in a type's life. But a
-re-bind re-derives the `processed` family and re-derives the type's whole `uses` against the new
+the data shape and the owner scope; the binding can change at any point in a table's life. But a
+re-bind re-derives the `processed` family and re-derives the table's whole `uses` against the new
 signature — every use is re-resolved and the three derived documents re-validated **before the
 write opens at all** — so one use naming a field the new signature no longer produces refuses the
 whole save, including the rename that rode along with it. (Derivation precedes the transaction
@@ -1091,7 +1096,7 @@ approved against one vocabulary and indexed against another. Ask.
 ### And ask what the SAVE would do: `validateOnly` on the write itself
 
 The contract preview above answers what the field vocabulary would be. This one answers what your
-write would DO — send `PATCH /v1/record-types/{id}` (or `POST /v1/record-types`) with the body you
+write would DO — send `PATCH /v1/tables/{id}` (or `POST /v1/tables`) with the body you
 are about to save and `validateOnly: true`, and nothing is written.
 
 **A verdict comes back 200.** It says whether the write would be taken (`ok`), what the platform
@@ -1122,10 +1127,11 @@ again, embedding calls included. Two saves diverge every record and are still `f
 search off removes vectors, and adding or dropping a `filter` rewrites each record's stored payload
 in place — neither embeds anything.
 
-- **`resolved`** under `derived` is each derived declaration as it would be STORED — the `searchable`
-  document and the `queryable` and `relations` documents your `uses` derives to, with the platform's
-  own resolutions applied: `queryable` carries the storage slot each `filter` field resolved to —
-  the half you cannot compute yourself. Each one is a full document, or `null` where the type would declare nothing.
+- **`resolved`** under `derived` is each derived declaration as it would be STORED — the
+  `searchable` document and the `queryable` and `relations` documents your `uses` derives to, with
+  the platform's own resolutions applied: `queryable` carries the storage slot each `filter` field
+  resolved to — the half you cannot compute yourself. Each one is a full document, or `null` where
+  the table would declare nothing.
 - ⚠️ **`derived` is absent entirely when the planner stopped at a refusal.** There is no plan to
   describe, and an absent key says so where an empty list would read as a measurement.
 
@@ -1134,24 +1140,24 @@ disagree with the write. **EDITOR**, like the save it asks about.
 
 ## Identity — the field that says two records are the same thing
 
-A record type may declare a **natural key**: one field of the submitted payload that identifies the
+A table may declare a **natural key**: one field of the submitted payload that identifies the
 thing the record stands for. `externalId`
 
 <!-- field-ok: externalId — a field an operator authored on their own shape, named here as the
      worked example this whole section runs on; the platform declares no such field --> on a post, a
 
 canonical URL on a bookmark, an ISBN on a book. Declare one and the **database** refuses a second
-record of that type carrying the same value.
+record of that table carrying the same value.
 
 ⛔ **It is identity, not a reference.** It does not point at another record — it says which thing in
 the world this one is. Two writes carrying the same value are two claims about one thing, so the
 second is refused rather than converged: converging would discard the incoming payload, overwriting
-would discard the stored one. An edit to an existing record goes through `entity.update`.
+would discard the stored one. An edit to an existing record goes through `record.update`.
 
 ```
-PATCH /v1/record-types/{id}    `uses` with `"key"` on the field                  declare
-PATCH /v1/record-types/{id}    `uses` without it                                 retract
-PATCH /v1/record-types/{id}    `uses` with `"key"`, `"validateOnly": true`       ask first
+PATCH /v1/tables/{id}    `uses` with `"key"` on the field                  declare
+PATCH /v1/tables/{id}    `uses` without it                                 retract
+PATCH /v1/tables/{id}    `uses` with `"key"`, `"validateOnly": true`       ask first
 ```
 
 The key is the `key` use on a field in `uses` — the same statement as every other purpose a field
@@ -1163,15 +1169,15 @@ asking for the verdict before committing to it is the PATCH's own dry run, below
 ⛔ **It is not an ordinary configuration edit, even though it rides the PATCH.** Declaring verifies
 every existing record, stamps them all, and persists the declaration. A record that cannot supply
 the field, or a value two records share, refuses the WHOLE save — the `key` use and everything else
-in the body — with **409 `RECORD_TYPE_NATURAL_KEY_UNSATISFIED`**, listing the offending values so you
+in the body — with **409 `TABLE_NATURAL_KEY_UNSATISFIED`**, listing the offending values so you
 can act on them. The verification runs before the write; the stamp runs right after it commits, so
 a save that answers 200 has already proved the key holds. Nothing partial lands.
 
 The backfill is the point: without it the constraint would cover only future writes, and a
 pre-existing duplicate would sit permanently under a key claiming uniqueness.
 
-⚠️ **Retracting CLEARS the stamps.** Leaving them would keep constraining a type whose configuration
-no longer declares a key — a later create failing against a rule nobody can see.
+⚠️ **Retracting CLEARS the stamps.** Leaving them would keep constraining a table whose
+configuration no longer declares a key — a later create failing against a rule nobody can see.
 
 ### Ask before you declare: the PATCH with `validateOnly: true`
 
@@ -1179,14 +1185,14 @@ Send the `uses` that declares (or moves) the key, with `version` and `validateOn
 run runs the save's own verification — the same read of every record, the same check — writing
 nothing, and answers **`derived.naturalKey`** beside the verdict. When the save would refuse, the
 verdict says so in the save's words: `ok: false` with the 409's code,
-`RECORD_TYPE_NATURAL_KEY_UNSATISFIED`, on `uses`.
+`TABLE_NATURAL_KEY_UNSATISFIED`, on `uses`.
 
 ```jsonc
 {
   "ok": false,
   "diagnostics": [
     {
-      "code": "RECORD_TYPE_NATURAL_KEY_UNSATISFIED",
+      "code": "TABLE_NATURAL_KEY_UNSATISFIED",
       "severity": "error",
       "field": "uses",
       "message": "Cannot declare \"title\" as the natural key. 1 value(s) are held by more than one record: …",
@@ -1237,17 +1243,17 @@ verdict says so in the save's words: `ok: false` with the 409's code,
   the shape only — a `processed` field with a null `identityRefusal` is still refused as above.
 - **A record that cannot supply it is REFUSED, never written unconstrained** — the silent exemption
   is the gap the key exists to close.
-- **Uniqueness is per project and per type**, and on a `user`-scoped type also **per user**: two
+- **Uniqueness is per project and per table**, and on a `user`-scoped table also **per user**: two
   people may legitimately hold the same key. A `user`-scoped record with no user cannot be covered
   and is refused at declaration time.
 - **The key becomes the record's label** wherever the platform names a row — in the records list, in
-  the files ledger, and as the one field a free-text record search can always look in. A type with
+  the files ledger, and as the one field a free-text record search can always look in. A table with
   no key shows its records by their generated id.
 
 ## The key you author
 
 Every project element is addressed by its `key`, a string **you** choose rather than the row id.
-Endpoints, schedules and schema entries — with triggers, sources, eval suites and eval cases —
+Endpoints, schedules and types — with triggers, sources, eval suites and eval cases —
 share one format, the **address key**, and it is checked on write:
 
 ```
@@ -1259,8 +1265,8 @@ first character a letter or a digit
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
-event types and their namespaces, relation kinds and embedding profiles), a facet's is camelCase, a record
-type's is a type name and a step's a dotted kebab step name. Address keys are none of those, and
+event types and their namespaces, relations and embedding profiles), a vocabulary's is camelCase, a
+table's is a table name and a step's a dotted kebab step name. Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is
 refused, never re-cased for you.
@@ -1269,8 +1275,9 @@ The reason for the charset is narrow and worth knowing: these keys end up as **o
 URL**. Anything needing an escape to survive that — a slash, a space, a `{}` placeholder, a `?` or
 a `#` — is refused at the write rather than mangled later.
 
-⚠️ Unlike an endpoint's or a schedule's key, a schema entry's `key` **is** renameable — references
-resolve by id, so a rename breaks nothing. The charset rule applies to the rename exactly as it does to the create.
+⚠️ Unlike an endpoint's or a schedule's key, a type's `key` **is** renameable — references
+resolve by id, so a rename breaks nothing. The charset rule applies to the rename exactly as it does
+to the create.
 
 ### Two keys that differ only by case or separator are refused
 
@@ -1279,12 +1286,12 @@ create or rename whose key folds (lower-case, `.` `-` `_` dropped to one dash) o
 type already holds is a `409` (`SCHEMA_SLUG_DUPLICATE`) — including against a `builtin` or
 `library` name, which has no row to collide with in the table. For the same reason a key that
 differs from an existing one **only by capitalisation** is refused as well: `String` beside the
-builtin `string` is two entries a reader cannot tell apart. Rows written before these rules keep
+builtin `string` is two types a reader cannot tell apart. Rows written before these rules keep
 resolving; only new writes are refused.
 
 ### The registry read carries the `version` a PATCH needs
 
-Every schema entry on the wire — the flat CRUD reply, the registry read and the project bootstrap —
+Every type on the wire — the flat CRUD reply, the registry read and the project bootstrap —
 carries **`version`**, the optimistic lock. Send it back on a PATCH:
 
 ```jsonc
@@ -1292,82 +1299,83 @@ carries **`version`**, the optimistic lock. Send it back on a PATCH:
 ```
 
 - **It is REQUIRED on the PATCH.** An omitted lock is not a lighter check, it is no check: two
-  callers editing one entry would both be told the write succeeded and one edit would be gone. A
+  callers editing one type would both be told the write succeeded and one edit would be gone. A
   body without it is a `422`, and a stale one is a `409` — re-read and reconcile.
 - **It is `null` on the `builtin` and `library` tiers**, which are synthesized from the platform
   catalog and have no row to version. Those are exactly the tiers a PATCH refuses anyway, so a null
   version and "not yours to edit" are the same fact. Never invent a number for one: `0` would be a
   lock claim about a version nobody read.
-- **Read it from the same response you edited from.** Fetching the entry again immediately before
+- **Read it from the same response you edited from.** Fetching the type again immediately before
   writing gives you a lock that proves nothing about the document you actually looked at.
 
-### A `library` entry also names the handler that declares it
+### A `library` type also names the handler that declares it
 
-Every schema entry on the same three reads carries **`declaredBy`**: the handler key for a `library`
-entry, and `null` on every other tier.
+Every type on the same three reads carries **`declaredBy`**: the handler key for a `library`
+type, and `null` on every other tier.
 
 ```
-AudioMetadata → "audio.metadata"     RecordPage → "entity.list"
+AudioMetadata → "audio.metadata"     RecordPage → "record.list"
 RunInfo       → null                 string     → null
 ```
 
-**`null` is an answer, not a gap.** A `builtin` and an `infrastructure` entry are platform code with
-no handler behind them, and an `operator` entry was written by you. Only the library tier has
+**`null` is an answer, not a gap.** A `builtin` and an `infrastructure` type are platform code with
+no handler behind them, and an `operator` type was written by you. Only the library tier has
 something to name, so a reader that treats `null` as "not sent" will draw a hole where the correct
 reading is "nobody declares this — the platform brought it".
 
-⚠️ **Do not parse it out of `description`.** A library entry's description opens `Library type —
+⚠️ **Do not parse it out of `description`.** A library type's description opens `Library type —
 declared by handler <key>.`, so the key is technically recoverable from that sentence — and a
 consumer doing so owns a copy of a format it does not control, which breaks silently the day the
 sentence is reworded. The field is on the wire so that parse never has to exist.
 
-## Which facets a type surfaces
+## Which vocabularies a table surfaces
 
-A record type shows a facet only when a link exists between the two. Creating the facet does not
+A table shows a vocabulary only when a link exists between the two. Creating the vocabulary does not
 do it, and neither does a term resolving into it — the link is its own declaration, and until it
-exists the facet is invisible on every read of that type no matter how much term data sits behind
-it.
+exists the vocabulary is invisible on every read of that table no matter how much term data sits
+behind it.
 
-The declaration is **`uses.facets`**: the facet keys, in the order the type surfaces them, and that
-order is the field order the API emits. It is a list on the TYPE, beside `join`, and not a use of a
-field — a facet's values are resolved by the processing flow into the term store and never sit on a
-record field, so there is no field to hang it on. It goes with the rest of `uses`, whole:
-re-sending the same list changes nothing, a shorter list unlinks what you left out, and the same
-keys in a different order is how you reorder. There is no separate attach verb, no detach verb and
-no facet-list route, so a half-applied change is not something the API can produce.
+The declaration is **`uses.vocabularies`**: the vocabulary keys, in the order the table surfaces
+them, and that order is the field order the API emits. It is a list on the TABLE, beside `join`, and
+not a use of a field — a vocabulary's values are resolved by the processing flow into the term store
+and never sit on a record field, so there is no field to hang it on. It goes with the rest of
+`uses`, whole: re-sending the same list changes nothing, a shorter list unlinks what you left out,
+and the same keys in a different order is how you reorder. There is no separate attach verb, no
+detach verb and no vocabulary-list route, so a half-applied change is not something the API can
+produce.
 
-What it refuses: a key that is not a facet of this project (`USES_FACET_UNKNOWN`, one issue per
-unknown key, all at once), a key that is also one of the type's field names or a key every record
-row carries (`USES_FACET_SHADOWS_FIELD` — a record read returns facets as top-level keys, so the
-facet would replace the field), a key that repeats, and — like every other write — any change to a seeded
-record type (`RECORD_TYPE_SEEDED_READONLY`).
+What it refuses: a key that is not a vocabulary of this project (`USES_VOCABULARY_UNKNOWN`, one
+issue per unknown key, all at once), a key that is also one of the table's field names or a key
+every record row carries (`USES_VOCABULARY_SHADOWS_FIELD` — a record read returns vocabularies as
+top-level keys, so the vocabulary would replace the field), a key that repeats, and — like every
+other write — any change to a seeded table (`TABLE_SEEDED_READONLY`).
 
-Reading the current list is `expand=facets` on the ordinary type read rather than an endpoint of
-its own (and `expand=uses` shows each facet's position). An empty list means the type surfaces
-nothing — which is not the same as the project having no facets, and the difference is the whole
-point of the link.
+Reading the current list is `expand=vocabularies` on the ordinary table read rather than an endpoint
+of its own (and `expand=uses` shows each vocabulary's position). An empty list means the table
+surfaces nothing — which is not the same as the project having no vocabularies, and the difference
+is the whole point of the link.
 
-Each entry carries the facet's own label, cardinality and BOTH of its admission
-settings — `mint` (what a value the facet has never seen may become: `none`, `active` or
+Each entry carries the vocabulary's own label, cardinality and BOTH of its admission
+settings — `mint` (what a value the vocabulary has never seen may become: `none`, `active` or
 `candidate`) and `matching` (how an existing term is found: `exact` or `semantic`) — so a client
 can render the list without a second call. These two replaced a single `mode` field that conflated
 them; a reader that showed one word could not distinguish a fixed vocabulary matched by key from
-one searched by meaning, which are very different facets to hand a record type. See
-Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) for what to choose.
+one searched by meaning, which are very different vocabularies to hand a table. See
+Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) for what to choose.
 
 On the records API — the list, one record, a query, a filing — a record's `terms` are
-`{ facetKey, key, label, status }` entries. `status` is the term's place in its vocabulary:
-`active`, `candidate` (coined by a `mint: candidate` facet and not yet admitted) or `archived`. A
-client that shows only admitted vocabulary keeps the `active` ones.
+`{ vocabularyKey, key, label, status }` entries. `status` is the term's place in its vocabulary:
+`active`, `candidate` (coined by a `mint: candidate` vocabulary and not yet admitted) or `archived`.
+A client that shows only admitted vocabulary keeps the `active` ones.
 
 Unlinking is not deletion. The term rows a record already carries survive it; the link decides what
 is projected, never what is stored, so re-linking brings the same values back.
 
 ## Asking whether a type edit would be accepted — `validateOnly`
 
-`POST /v1/schema-entries` and `PATCH /v1/schema-entries/{id}` take **`validateOnly: true`** in the
+`POST /v1/types` and `PATCH /v1/types/{id}` take **`validateOnly: true`** in the
 body. Each runs every rule its write runs — the key clash, the definition compile gate, the
-unread-keyword and dead-null-arm refusals, the cycle detector, and every consumer guard (record-type
+unread-keyword and dead-null-arm refusals, the cycle detector, and every consumer guard (table
 declarations, flow bindings, user profiles, event payloads) — writes nothing, and answers **200**
 with a verdict:
 
@@ -1389,7 +1397,7 @@ type edit computes nothing of that kind: what it produces is the document you se
 nothing true to put in it is worse than an absent one.
 
 **A 409 is a verdict on the dry run.** An edit that re-shapes bound snapshots without
-`adoptSnapshots` is refused with **409** `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`, listing what it
+`adoptSnapshots` is refused with **409** `TYPE_RESHAPES_BOUND_SNAPSHOTS`, listing what it
 would re-shape; the same check under `validateOnly` answers `ok: false` with that code. Send
 `adoptSnapshots: true` alongside the check to ask what the permitted edit would do instead — the
 dry run then rehearses it and reports `records-invalid` and what it would break.
@@ -1405,7 +1413,7 @@ healthier draft.**
 
 ## What will bite you
 
-- **Editing a shape re-fires cached work, deliberately.** An entry edit bumps the version of every
+- **Editing a shape re-fires cached work, deliberately.** A type edit bumps the version of every
   step whose compiled schema depends on it — directly or through a nested chain — and that
   version is folded into the ingest cache key. So a shape edit re-runs dependent cached ingests
   with no manual cache bust. Useful, and expensive if you did not expect it.
@@ -1413,28 +1421,29 @@ healthier draft.**
   rewritten.** The drift read is what owns the live comparison — which is why `uncaptured` matters.
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
-- **A record type is named by key in handler config**, not by id — which is why a rename is
-  refused while any step's config names the type (`RECORD_TYPE_NAMED_BY_CONFIG`).
-- **A schema entry lists every consumer that blocks its delete, and `usedByRelationKinds` is one
-  of them.** Alongside `usedByRecordTypes`, `usedByEventTypes`, `usedByConfigNamespaces` and
-  `usedAsProfile`, an entry reports the relation kinds whose edge properties it describes; an
-  entry any of them names answers 409 to a delete.
+- **A table is named by key in handler config**, not by id — which is why a rename is
+  refused while any step's config names the table (`TABLE_NAMED_BY_CONFIG`).
+- **A type lists every consumer that blocks its delete, and `usedByRelations` is one
+  of them.** Alongside `usedByTables`, `usedByEventTypes`, `usedByConfigNamespaces` and
+  `usedAsProfile`, a type reports the relations whose link properties it describes; a
+  type any of them names answers 409 to a delete.
 
 ## How they connect to flows
 
-- The record-creating handler names a record type **by key**, plus the slot carrying the
-  submission. Flow-less types are born ready; flow-backed types start pending and are processed.
+- The record-creating handler names a table **by key**, plus the slot carrying the
+  submission. Flow-less tables are born ready; flow-backed tables start pending and are processed.
 - `text.generate` does **not** carry its output schema in handler config — the shape lives on the
-  step and points at a schema entry. That is the main link between the registry and a step.
-- A reference to a record-type _instance_ names the type by key too, and is deliberately
+  step and points at a type. That is the main link between the registry and a step.
+- A reference to a table _instance_ names the table by key too, and is deliberately
   invisible to the id-based delete checks.
 
 ## Related
 
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the flow a record type binds.
+- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the flow a table binds.
 - Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) — what `uses.search` names, and where chunking defaults live.
-- Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) and Relations (capability pack `relations` — `GET /v1/capability-packs/relations`) — classifying and linking records.
-- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — the shape comes first, and what a relation kind's
-  declaration moves on the type.
+- Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) and Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — classifying and
+  linking records.
+- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — the shape comes first, and what a relation's
+  declaration moves on the table.
 
 <!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field -->

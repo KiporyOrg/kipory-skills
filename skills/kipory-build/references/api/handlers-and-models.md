@@ -95,7 +95,7 @@ Each item of `handlers`:
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this handler, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "entities" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
+| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this handler executes. It constrains where a step using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What a step editor must ask the operator for this handler: which work surface to show, whether a prompt and a model are required, and where this handler's inputs and output slot come from. Always fully populated — a handler that declares nothing is served the platform defaults, so a client never applies a default of its own. |
@@ -133,7 +133,7 @@ Each item of `groups`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "entities" \| "outbound" \| "flow" \| "utility"` | yes | The group this sentence is about. |
+| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The group this sentence is about. |
 | `note` | `string` | yes | What this group is for, in one sentence, at any size. |
 
 ### `GET /v1/handlers/{key}`
@@ -157,7 +157,7 @@ Any authenticated caller; the answer is the same for everyone.
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this handler, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "entities" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
+| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this handler executes. It constrains where a step using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What a step editor must ask the operator for this handler: which work surface to show, whether a prompt and a model are required, and where this handler's inputs and output slot come from. Always fully populated — a handler that declares nothing is served the platform defaults, so a client never applies a default of its own. |
@@ -217,7 +217,7 @@ Each item of `config`:
 | `required` | `boolean` | yes | Whether a step using this handler must set the field. |
 | `default` | `string` | no | The default, JSON-ENCODED — so a string default arrives quoted, e.g. "\"auto\"". Absent when the field has no default. |
 | `description` | `string` | no | What the field does, when the handler's author wrote it down. |
-| `refKind` | `"record-type" \| "facet" \| "flow"` | no | The kind of project object this field names — a record type, a facet or a flow. Absent when the field names none. It is the KIND, not an instance: which one is configured per skill. |
+| `refKind` | `"table" \| "vocabulary" \| "flow"` | no | The kind of project object this field names — a table, a vocabulary or a flow. Absent when the field names none. It is the KIND, not an instance: which one is configured per skill. |
 | `caution` | `string` | no | What goes wrong if this field is set wrong, and what it costs. Absent when the field carries no such cost. |
 
 Each item of `configConstraints`:

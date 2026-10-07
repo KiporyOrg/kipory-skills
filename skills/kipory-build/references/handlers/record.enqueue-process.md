@@ -1,12 +1,12 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.enqueue-process` — Queue for processing
+# `record.enqueue-process` — Queue for processing
 
 Send an existing record back through its processing flow.
 
-Puts an existing record back on the processing queue. It only triggers — it does not change the record's status or clear anything, so the flow has to do that first. Fails if the record type has no processing flow.
+Puts an existing record back on the processing queue. It only triggers — it does not change the record's status or clear anything, so the flow has to do that first. Fails if the table has no processing flow.
 
-- **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
+- **Group:** records · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each call pushes a new processing job, so a new run processes the record again whenever it is pending by then, as it is when the flow resets its status before this step.
 - **I/O:** `record id` → `boolean`
 - **Reads:** The record id, from the slot `recordIdSlot` names. Everything else is settings on the step. _(shape hint: `record id`)_

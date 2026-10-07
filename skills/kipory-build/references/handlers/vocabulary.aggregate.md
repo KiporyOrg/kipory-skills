@@ -1,35 +1,35 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `taxonomy.aggregate` — Count records by term
+# `vocabulary.aggregate` — Count records by term
 
 Count a user's records by term, as a list or a browsable tree.
 
-Counts a user's records per term and groups them by facet, rolling merged terms into the one they point at. Comes back as a flat catalog per facet, or as a nested browse tree. Use it to answer what someone has, rather than searching it.
+Counts a user's records per term and groups them by vocabulary, rolling merged terms into the one they point at. Comes back as a flat catalog per vocabulary, or as a nested browse tree. Use it to answer what someone has, rather than searching it.
 
-- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `string` → `TaxonomyAggregate`
+- **I/O:** `string` → `VocabularyAggregate`
 - **Reads:** The user id, from the slot `userIdSlot` names. Every count is scoped to that user. Everything else is settings on the step. _(shape hint: `string`)_
-- **Emits:** A `TaxonomyAggregate` — the user's terms grouped per facet with counts — or a `TaxonomyTree` when `shape` is `tree`. A user with no terms gets an empty result.
+- **Emits:** A `VocabularyAggregate` — the user's terms grouped per vocabulary with counts — or a `VocabularyTree` when `shape` is `tree`. A user with no terms gets an empty result.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `facets` | string[] | no | — | Which facets to include. Leave it empty for every facet the user has terms in. Any project facet is accepted. ⚠️ Under `shape: tree` this is not a filter but the ordered list of levels, outermost first. |
-| `maxEntriesPerFacet` | integer, 1 to 1000 | no | `200` | Most entries per facet group, or per tree level. 200 by default, between 1 and 1000. ⚠️ Entries are sorted by count first, so when a group runs past the cap the highest-count terms are the ones that survive. |
-| `shape` | `aggregate` \| `tree` | no | `"aggregate"` | Which shape comes out: `aggregate` (the default) for a flat catalog per facet, or `tree` for a nested browse tree. ⚠️ Under `tree` the per-facet cap becomes a per-level cap — categories, then a category's types, then a type's subtypes. |
+| `maxEntriesPerVocabulary` | integer, 1 to 1000 | no | `200` | Most entries per vocabulary group, or per tree level. 200 by default, between 1 and 1000. ⚠️ Entries are sorted by count first, so when a group runs past the cap the highest-count terms are the ones that survive. |
+| `shape` | `aggregate` \| `tree` | no | `"aggregate"` | Which shape comes out: `aggregate` (the default) for a flat catalog per vocabulary, or `tree` for a nested browse tree. ⚠️ Under `tree` the per-vocabulary cap becomes a per-level cap — categories, then a category's types, then a type's subtypes. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Every count is scoped to that user; another user's records never contribute. ⚠️ This value is mandatory: an empty one fails the step rather than counting across users. |
+| `vocabularies` | string[] | no | — | Which vocabularies to include. Leave it empty for every vocabulary the user has terms in. Any project vocabulary is accepted. ⚠️ Under `shape: tree` this is not a filter but the ordered list of levels, outermost first. |
 
 ## Worked example
 
-Groups a user's terms per facet and counts their records, so a step can answer what they have without reading it.
+Groups a user's terms per vocabulary and counts their records, so a step can answer what they have without reading it.
 
-#### Every facet
+#### Every vocabulary
 
-No facet filter, so every facet the user has surfaces, each with its count and the biggest first.
+No vocabulary filter, so every vocabulary the user has surfaces, each with its count and the biggest first.
 
-Reads `object` → emits `TaxonomyAggregate` · 1 in → 1 out
+Reads `object` → emits `VocabularyAggregate` · 1 in → 1 out
 
 Step settings (`handlerConfig`):
 
@@ -50,16 +50,16 @@ Output:
 
 ```
 {
-  "facets": [
-    { "facet": "category", "totalTerms": 2, "totalItems": 17, "entries": [
+  "vocabularies": [
+    { "vocabularyKey": "category", "totalTerms": 2, "totalItems": 17, "entries": [
       { "slug": "finance", "label": "Finance", "itemsCount": 12, "parentSlug": null, "parentLabel": null },
       { "slug": "medical", "label": "Medical", "itemsCount": 5,  "parentSlug": null, "parentLabel": null }
     ]},
-    { "facet": "type", "totalTerms": 2, "totalItems": 10, "entries": [
+    { "vocabularyKey": "type", "totalTerms": 2, "totalItems": 10, "entries": [
       { "slug": "invoice",    "label": "Invoice",    "itemsCount": 7, "parentSlug": "finance", "parentLabel": "Finance" },
       { "slug": "lab-result", "label": "Lab result", "itemsCount": 3, "parentSlug": "medical", "parentLabel": "Medical" }
     ]},
-    { "facet": "tag", "totalTerms": 1, "totalItems": 9, "entries": [
+    { "vocabularyKey": "tag", "totalTerms": 1, "totalItems": 9, "entries": [
       { "slug": "2026", "label": "2026", "itemsCount": 9, "parentSlug": null, "parentLabel": null }
     ]}
   ]
@@ -70,7 +70,7 @@ Output:
 
 Nothing has been categorized yet, so the handler stops early and emits an empty catalog.
 
-Reads `object` → emits `TaxonomyAggregate` · 1 in → 1 out
+Reads `object` → emits `VocabularyAggregate` · 1 in → 1 out
 
 Input:
 
@@ -81,14 +81,14 @@ Input:
 Output:
 
 ```
-{ "facets": [] }
+{ "vocabularies": [] }
 ```
 
 #### Browse tree
 
 The same counts, nested instead of flat. Empty branches are pruned unless they lead to a term that survives.
 
-Reads `object` → emits `TaxonomyTree` · 1 in → 1 out
+Reads `object` → emits `VocabularyTree` · 1 in → 1 out
 
 Step settings (`handlerConfig`):
 

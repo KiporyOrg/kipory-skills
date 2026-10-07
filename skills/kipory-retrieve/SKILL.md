@@ -1,36 +1,36 @@
 ---
 name: kipory-retrieve
-description: Answer from a Kipory project's own records inside a flow (RAG, semantic search) — rank a type's records by meaning with a `semantic` clause of `entity.query`, read how close each one is, cut on a minimum score, quote the part that matched, or find the records most like a given record; then re-rank and sanitize the text before a model answers. Use when the product must answer, recommend, match or find similar items from the project's data rather than from the model's memory, when a search step returns nothing or the wrong things, or when a flow still uses `vector.search` and has to move off it.
+description: Answer from a Kipory project's own records inside a flow (RAG, semantic search) — rank a type's records by meaning with a `semantic` clause of `record.query`, read how close each one is, cut on a minimum score, quote the part that matched, or find the records most like a given record; then re-rank and sanitize the text before a model answers. Use when the product must answer, recommend, match or find similar items from the project's data rather than from the model's memory, when a search step returns nothing or the wrong things, or when a flow still uses `vector.search` and has to move off it.
 license: MIT
 ---
 
 # Search and answer over the project's own data
 
-Retrieval on Kipory has two halves, and only one of them is yours to build. The write half is **declared**: a record type's `uses` names the fields it searches on and the embedding profile it searches with (`kipory-model`), and the platform splits, embeds and indexes every record. The read half is one step, `entity.query`, which turns a phrase — or a record — into the records closest to it, with their fields and a score for each.
+Retrieval on Kipory has two halves, and only one of them is yours to build. The write half is **declared**: a table's `uses` names the fields it searches on and the embedding profile it searches with (`kipory-model`), and the platform splits, embeds and indexes every record. The read half is one step, `record.query`, which turns a phrase — or a record — into the records closest to it, with their fields and a score for each.
 
-**You name a record type, never a place where vectors live.** There is no collection name, vector name or point to write in a search step.
+**You name a table, never a place where vectors live.** There is no collection name, vector name or point to write in a search step.
 
 ## Before the first call
 
-- **The type has to be searchable already.** A record type declares `search` in its `uses` — `kipory-model` owns that, and the indexing failure that leaves records unsearchable.
-- **Check the index before you build on it**, with no flow at all: `GET /v1/records?project={nodeId}&recordType=<type>&mode=semantic&q=<text>` (`kipory-data`). An empty answer there is an indexing problem, not a flow problem.
-- **Confirm the handler's config live** with `GET /v1/handlers/{key}` (here `entity.query`). The shapes below are the catalog's, and the deployment's catalog wins.
+- **The type has to be searchable already.** A table declares `search` in its `uses` — `kipory-model` owns that, and the indexing failure that leaves records unsearchable.
+- **Check the index before you build on it**, with no flow at all: `GET /v1/records?project={nodeId}<type>=&tableKey=<type>=<type>&mode=semantic&q=<text>` (`kipory-data`). An empty answer there is an indexing problem, not a flow problem.
+- **Confirm the handler's config live** with `GET /v1/handlers/{key}` (here `record.query`). The shapes below are the catalog's, and the deployment's catalog wins.
 
 ## The chain, once
 
 ```
-write   record type `uses.search` (kipory-model) → the platform splits, embeds and indexes each record
-read    question, or a record → entity.query (a `semantic` clause) → records + scores
+write   table `uses.search` (kipory-model) → the platform splits, embeds and indexes each record
+read    question, or a record → record.query (a `semantic` clause) → records + scores
 answer  → (text.rerank) → text.sanitize → text.generate
 ```
 
 ## Records by meaning, in one step
 
-`entity.query` with a `semantic` clause ranks a type's records by meaning and returns the records themselves, fields included:
+`record.query` with a `semantic` clause ranks a table's records by meaning and returns the records themselves, fields included:
 
 ```json
 {
-  "recordType": "article",
+  "tableKey": "article",
   "clauses": [
     { "kind": "semantic", "textSlot": "request.q", "topK": 20 },
     { "kind": "field", "field": "language", "op": "eq", "value": "en" }
@@ -44,7 +44,7 @@ answer  → (text.rerank) → text.sanitize → text.generate
 - **It scopes itself.** A per-user type is read as the run's signed-in user (or `userIdSlot`); no filter of yours is needed.
 - **A profile that also indexes exact words blends keyword rank with meaning** in the order, with nothing to switch on.
 
-The whole clause grammar is in `kipory-model`'s `references/packs/record-types-and-schema-entries.md`, "One question across the stores", and on `entity.query`'s handler page in `kipory-build`.
+The whole clause grammar is in `kipory-model`'s `references/packs/tables-and-types.md`, "One question across the stores", and on `record.query`'s handler page in `kipory-build`.
 
 ## How close each record is: `scores`
 
@@ -63,7 +63,7 @@ Every answer ranked by meaning carries `scores` beside `records`: one `{ id, sco
 }
 ```
 
-- **The score is a similarity, on one scale.** It is how close the record's closest part is to the query: higher is closer, and a poor match can be below zero. It means the same on every record type, with or without keyword indexing, so a threshold you tune keeps its meaning.
+- **The score is a similarity, on one scale.** It is how close the record's closest part is to the query: higher is closer, and a poor match can be below zero. It means the same on every table, with or without keyword indexing, so a threshold you tune keeps its meaning.
 - **It sits beside the records, not on them.** A row's own fields are spread at its top level, so a `score` key there could collide with a field of yours. To read a record with its score in a `value.transform`, look the score up by id: `$s := $filter(q.scores, function($x){ $x.id = $r.id })[0].score`.
 - **`minScore` on the clause leaves out records below it** (−1 to 1). It removes from the `topK` ranking and never reaches past it. `explanation` says how many it removed (`belowMinScore` on the clause's row), and when it removed all of them `emptiedBy` names the clause — so "nothing is close enough" is told apart from "nothing is indexed".
 - **Decide in bands, not on one number.** A single threshold forces every borderline match into one of two wrong answers. Read the best score: above a high mark, treat it as the same thing; below a low mark, as new; between them, ask a model (`text.decide`) with the candidates in front of it.
@@ -92,7 +92,7 @@ Give the clause a record instead of a phrase and the answer ranks the records cl
 
 ```json
 {
-  "recordType": "story",
+  "tableKey": "story",
   "clauses": [
     {
       "kind": "semantic",
@@ -114,7 +114,7 @@ Give the clause a record instead of a phrase and the answer ranks the records cl
 
 ## From records to an answer
 
-**Shape the records.** `entity.query` returns each record with its fields — submitted and processed, both spread top-level on the row (a processed `body` is `$row.body`, not under `derived` as on the records API). A `value.transform` shapes those rows into `{ id, text }` for the steps below, taking the passage from `scores` when you asked for one.
+**Shape the records.** `record.query` returns each record with its fields — submitted and processed, both spread top-level on the row (a processed `body` is `$row.body`, not under `derived` as on the records API). A `value.transform` shapes those rows into `{ id, text }` for the steps below, taking the passage from `scores` when you asked for one.
 
 **Re-rank when precision matters more than a round trip.** `text.rerank` reads `documentItemsSlot` as a list of `{ id, text }` and emits `{ id, relevance }`, best first, capped at `topN` — no text. Put a `value.transform` after it that joins each hit back to its text by `id`, in rerank order. It bills per hundred documents scored, so raising `maxDocuments` multiplies what every call costs; `topN` above the number scored is refused at save; a document longer than `maxDocumentChars` is rejected, not truncated. It reads a Cohere credential from the vault under purpose `cohere` and falls through to the platform's key when no node holds one — `kipory-secrets` decides who pays.
 
@@ -127,18 +127,18 @@ Give the clause a record instead of a phrase and the answer ranks the records cl
 
 ## Leaving in the next release
 
-Six handlers work below the record type and are being removed: `vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`, `text.embed` and `text.embed-sparse`. A flow that names one stops saving and running when they go, so move off them now:
+Six handlers work below the table and are being removed: `vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`, `text.embed` and `text.embed-sparse`. A flow that names one stops saving and running when they go, so move off them now:
 
 | A flow that does this                                                            | Becomes                                                                          |
 | -------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| `vector.search` by text (`queryTextSlot`), then `entity.read`, then a join by id | one `entity.query` with a `semantic` clause; read `records` and `scores`         |
+| `vector.search` by text (`queryTextSlot`), then `record.read`, then a join by id | one `record.query` with a `semantic` clause; read `records` and `scores`         |
 | `scoreThreshold`                                                                 | `minScore` on the clause                                                         |
 | `vector.search` by record (`queryRecordIdSlot`)                                  | `likeRecordIdSlot` on the clause                                                 |
 | reading which chunk matched                                                      | `passage: true` on the clause                                                    |
-| `text.embed` then `vector.search` over a facet's terms, in a resolver flow       | one `term.search` step (`kipory-model`'s `references/classification-runtime.md`) |
+| `text.embed` then `vector.search` over a vocabulary's terms, in a resolver flow  | one `term.search` step (`kipory-model`'s `references/classification-runtime.md`) |
 | `text.chunk` → `text.embed` → `vector.upsert`, writing points by hand            | nothing: declare `search` on the type, and the platform indexes every record     |
 
-What does not carry over: searching several record types in one step (run one query per type), and the neighbouring parts or whole text of a match (the answer already carries the record).
+What does not carry over: searching several tables in one step (run one query per table), and the neighbouring parts or whole text of a match (the answer already carries the record).
 
 `text.chunk` stays. It splits a long text into parts for a step that handles one at a time, and has nothing to do with search.
 
@@ -160,4 +160,4 @@ The embedding-profile routes belong to `kipory-model`, which owns the profile a 
 
 ## Then
 
-`kipory-build` for the flow these steps live in. `kipory-model` when the answer is that the embedding profile or the record type is wrong rather than the query. `kipory-data` to check an index, or search as an operator, over the records API with no flow. `kipory-gather` when the text to index comes from outside the project, and `kipory-extract` when it arrives as a PDF, an image or audio. `kipory-secrets` for the re-ranker's credential. `kipory-operate` for what a search or a re-rank cost. `kipory-prove` to pin retrieval quality with an eval suite before you tune anything, and `kipory-diagnose` to read what a search step actually emitted on a run that answered badly.
+`kipory-build` for the flow these steps live in. `kipory-model` when the answer is that the embedding profile or the table is wrong rather than the query. `kipory-data` to check an index, or search as an operator, over the records API with no flow. `kipory-gather` when the text to index comes from outside the project, and `kipory-extract` when it arrives as a PDF, an image or audio. `kipory-secrets` for the re-ranker's credential. `kipory-operate` for what a search or a re-rank cost. `kipory-prove` to pin retrieval quality with an eval suite before you tune anything, and `kipory-diagnose` to read what a search step actually emitted on a run that answered badly.

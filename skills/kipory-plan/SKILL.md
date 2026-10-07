@@ -1,6 +1,6 @@
 ---
 name: kipory-plan
-description: Turn a product idea into a Kipory build sheet before anything is authored — every record type, shape, flow, step, endpoint, facet, relation, schedule, trigger, source, event, secret and eval that will exist, each marked buildable-as-configuration or needs-software-written — and stop for the human to reject it cheaply. Use when the user describes what they want to build rather than which call to make, asks whether Kipory can do something, or wants an existing project to grow a new capability (plan it here, then read kipory-evolve before changing what is live). Then kipory-build writes the accepted sheet as one project document and plans it. Not for a single endpoint or flow the user has already specified (kipory-build, kipory-expose).
+description: Turn a product idea into a Kipory build sheet before anything is authored — every table, type, flow, step, endpoint, vocabulary, relation, schedule, trigger, source, event, secret and eval that will exist, each marked buildable-as-configuration or needs-software-written — and stop for the human to reject it cheaply. Use when the user describes what they want to build rather than which call to make, asks whether Kipory can do something, or wants an existing project to grow a new capability (plan it here, then read kipory-evolve before changing what is live). Then kipory-build writes the accepted sheet as one project document and plans it. Not for a single endpoint or flow the user has already specified (kipory-build, kipory-expose).
 license: MIT
 ---
 
@@ -16,7 +16,7 @@ license: MIT
 ## The sequence
 
 1. **Fetch the protocol** — the eight-step walk, the four rules, and the build-sheet shape.
-2. **If the project exists, read what it already has**: `GET /v1/bootstrap?project={nodeId}`. A plan that re-authors an existing record type is wrong before it starts.
+2. **If the project exists, read what it already has**: `GET /v1/bootstrap?project={nodeId}`. A plan that re-authors an existing table is wrong before it starts.
 3. **Read the whole handler catalog** — `kipory-build`'s `references/handlers/README.md`, or `GET /v1/handlers` — before step 3 of the walk, not a filtered view. A keyword search encodes what you already believe. The first recorded run of this protocol searched for the words it expected, missed a handler entirely, and turned what should have been a `seed` row into a `code` row.
 4. **Fetch the pack each step points at, when you reach that step** — not all of them up front.
 5. **Confirm every fact live** — handler keys from `GET /v1/handlers`, routes and shapes from `GET /v1/openapi.json`, on this deployment. This is Rule 0 and it is not optional. Models are facts too: `GET /v1/nodes/{nodeId}/task-models` at the project's id lists the task each model step will inherit its model through, and a row with `callable: false` fails every step on that task. Put a binding row in the sheet for each such task the plan uses (`kipory-build`'s `references/models.md`).
@@ -35,7 +35,7 @@ license: MIT
 
 **An empty step is a decision.** An omitted step and a forgotten one look identical to the reader, and the reader is the person who needs to catch your mistake. Write "none, because…".
 
-**The four primitives easy to leave out and expensive to discover later**: a record type declared searchable needs an **embedding profile** to name; a flow calling a paid web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**; a threshold you will want to tune belongs in a **project-config namespace**, not baked into a flow; and the **eval cases** in step 8 are the only part of a plan that survives a later rewrite.
+**The four primitives easy to leave out and expensive to discover later**: a table declared searchable needs an **embedding profile** to name; a flow calling a paid web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**; a threshold you will want to tune belongs in a **project-config namespace**, not baked into a flow; and the **eval cases** in step 8 are the only part of a plan that survives a later rewrite.
 
 ## What will bite you
 
@@ -44,9 +44,9 @@ license: MIT
 - **Writing the document with ids.** A document carries names; an id in it is matched only when this project holds a row with it, and otherwise ignored (`ignoredIds`). A document written from another project's export plans cleanly here — its ids are noise, its names are the content.
 - **Skipping step 8 because the project is small.**
 - **Writing "model" on the sheet instead of the handler.** A judgement — is it, which one, how much — is a `text.decide` step, which costs a small fraction of a prompt. Only a step that must write words is `text.generate`. Deciding this on the sheet is what keeps a per-record flow cheap (`kipory-build`'s `references/models.md`).
-- **A per-user record type in a plan a key will execute.** A key's runs are project-owned; a type whose records belong to individual end users cannot be written by a flow it runs (a key can only hand-write one such record at a time, naming the owner). If the product has end users who own their data, the sheet needs an endpoint they call signed in (`kipory-expose`), and the plan should say so.
+- **A per-user table in a plan a key will execute.** A key's runs are project-owned; a table whose records belong to individual end users cannot be written by a flow it runs (a key can only hand-write one such record at a time, naming the owner). If the product has end users who own their data, the sheet needs an endpoint they call signed in (`kipory-expose`), and the plan should say so.
 - **Planning a record write as a coded route.** A product's record writes belong in a flow step reached through an endpoint, a schedule or processing; the sheet's exposure step is where the write lives. `POST /v1/records` exists, but it is an operator's one-record correction path (EDITOR, `kipory-data`), not a product's write.
-- **A top-level vocabulary whose terms overlap.** A facet another facet nests under holds one value per record (`kipory-model`'s `references/packs/facets.md`), and neither that nor a term's key can be changed later. Put the term list in the sheet and check each pair for "can one item be both?" before it is seeded; state how a new value is admitted (`mint`), because supervised minting needs a person reading candidates.
+- **A top-level vocabulary whose terms overlap.** A vocabulary another vocabulary nests under holds one value per record (`kipory-model`'s `references/packs/vocabularies.md`), and neither that nor a term's key can be changed later. Put the term list in the sheet and check each pair for "can one item be both?" before it is seeded; state how a new value is admitted (`mint`), because supervised minting needs a person reading candidates.
 - **Forgetting the two hosts.** Every endpoint row in the sheet is served on the project's host — its `baseUrl`, read from `GET /v1/grant` — and everything else the sheet authors is on the api host (`kipory-connect`'s `references/conventions.md`).
 
 ## References

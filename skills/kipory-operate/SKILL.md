@@ -30,12 +30,12 @@ GET    /v1/schedules/{id}/runs?limit=50     the occurrences, what each did, and 
 
 - **Inputs** are keyed by input slot; `overlapPolicy` is `skip` or `allow`.
 - **A write checks its inputs**, in `validateOnly` too: every input slot has a key, none is blank, and each value is of its slot's type (`SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`).
-- **A flow change can strand a schedule.** A document plan, or the flow or schema-entry PATCH with `validateOnly` (`leavesBehind`), names the schedules and triggers a narrowing change would leave unable to fire; the PATCH itself still saves.
+- **A flow change can strand a schedule.** A document plan, or the flow or type PATCH with `validateOnly` (`leavesBehind`), names the schedules and triggers a narrowing change would leave unable to fire; the PATCH itself still saves.
 - **A spent schedule disables itself.** Spending `maxRuns` (or passing `endsAt`) disables the schedule without moving its `version`; a disabled schedule shows `nextRunAt: null`.
 - **The next-run time is a claim you can hold the platform to**: it is computed by the same code the tick uses.
 - **Switching `enabled` on recomputes from now** — refused (422) when the bounds are spent — so a schedule disabled across its window does not fire a backlog.
 - On a retired project a PATCH of `{enabled: false, version}` alone is still accepted.
-- **A fire has no end user.** `userInfo` is absent, so a per-user record type refuses and a step reading `userInfo` beside a real slot waits for that slot. Preview with `principal: "no-end-user"` to see the run a fire makes (`kipory-build`'s `references/checking.md`). A trigger's fire is the same.
+- **A fire has no end user.** `userInfo` is absent, so a per-user table refuses and a step reading `userInfo` beside a real slot waits for that slot. Preview with `principal: "no-end-user"` to see the run a fire makes (`kipory-build`'s `references/checking.md`). A trigger's fire is the same.
 
 Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked` — its `invocation` with `id`, `status` (`pending`, `processing`, `ready`, `failed`, `deleting`), `statusError` (why a failed run failed), `failure` naming the step and phase that broke only when one step is to blame (null for any other failure, such as a missing output or a refused write), and `creditCost` where null is not zero. **The invocation's `id` is the run id**: take it to `GET /v1/runs/{runId}/steps` for the ordered, never-sampled step log (`kipory-diagnose`).
 
@@ -63,7 +63,7 @@ A trigger fires a flow every time a matching event is **recorded** in the projec
 ## Events
 
 ```
-POST /v1/event-types             { project, categoryKey, key, label, defaultScope, payloadEntryId?, durable? }
+POST /v1/event-types             { project, categoryKey, key, label, defaultScope, payloadDataTypeId?, durable? }
 GET  /v1/event-types?project={nodeId}[&categoryKey=]
 ```
 
@@ -71,17 +71,17 @@ GET  /v1/event-types?project={nodeId}[&categoryKey=]
 
 Every type write — `POST`, `PATCH { version, … }`, `DELETE` — takes `validateOnly` (in the body; `?validateOnly=true` on a DELETE) and answers a 200 verdict instead of writing: a taken key, a refused namespace, a seeded row's delete and the scope/payload rules come back as findings.
 
-A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload shape is optional; omit it and the event is a marker. When you give one, `payloadEntryId` must be a schema entry of this project — a builtin such as the `string` entry a flow's slot hands back is refused as unknown; wrap a scalar in an object shape. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`, whose `changed` frames name only which domain moved — never an event, id or payload — so it is a cue to re-read, not a feed; another flow reacts through a trigger, which needs the type to be `durable`.
+A type's `defaultScope` is `run`, `record`, `user` or `project`: a signal scoped to one run and one on the bus are different things — pick by who needs to hear it. The payload shape is optional; omit it and the event is a marker. When you give one, `payloadDataTypeId` must be a type of this project — a builtin such as the `string` type a flow's slot hands back is refused as unknown; wrap a scalar in an object shape. A flow emits with an `event.emit` step; a client subscribes through an `events.subscribe` endpoint (`kipory-expose`) or watches the project-wide `GET /v1/activity/stream`, whose `changed` frames name only which domain moved — never an event, id or payload — so it is a cue to re-read, not a feed; another flow reacts through a trigger, which needs the type to be `durable`.
 
 ## Project config
 
 ```
 GET    /v1/project-config?project={nodeId}       every row carries the overrides AND the effective values
-POST   /v1/project-config                        upsert on (project, namespace): schemaEntryId on create, version when it exists; `data` is the WHOLE override map; validateOnly: true checks it
+POST   /v1/project-config                        upsert on (project, namespace): dataTypeId on create, version when it exists; `data` is the WHOLE override map; validateOnly: true checks it
 DELETE /v1/project-config/{id}[?validateOnly=true]
 ```
 
-Reach for this instead of editing a flow whenever the thing being changed is a threshold, a cadence or a weight. The `namespace` binds a schema entry whose field defaults are overlaid, per top-level field, with your `data` (at most 32 KiB); `effective` is computed on every read, never stored, so editing a default in the entry takes effect at once. The entry reference is soft: deleting it leaves reads working and refuses the next write.
+Reach for this instead of editing a flow whenever the thing being changed is a threshold, a cadence or a weight. The `namespace` binds a type whose field defaults are overlaid, per top-level field, with your `data` (at most 32 KiB); `effective` is computed on every read, never stored, so editing a default in the type takes effect at once. The type reference is soft: deleting it leaves reads working and refuses the next write.
 
 **`data` is the whole override map.** A POST replaces every override stored in the namespace with the `data` it carries: sending only the key you changed deletes every other override and answers 200. Read the row, merge locally, send the full map.
 
@@ -108,7 +108,7 @@ GET /v1/credits/balance                            the wallet — on the PROJECT
 - **The compute rate is the deployment's and no route lists it.** <!-- absent: GET /v1/nodes/{nodeId}/compute-rate --> Read it off any `handler-run` charge on `/spend`: `credits ÷ units`.
 - **Model prices are a read**: `GET /v1/nodes/{nodeId}/model-prices`, at the project's id, quotes each model in credits per million tokens, minute or search (`kipory-build`'s `references/models.md` for choosing one).
 - **A cache hit is cheaper, not always free.** A step answered from the step-result cache — which only some handlers keep, and previews, eval runs and a reprocess never read — is charged nothing; one answered from a handler's input-keyed cache pays its one-second compute fee and no model or vendor charge.
-- **Previews, eval runs and reprocesses cost what a live run costs.** Flow previews, `POST /v1/steps/preview`, eval runs and `POST /v1/vector-collections/{name}/search` are design-time work, bounded by the design-time ceiling; a reprocess is not. The one record processing the ceiling does bound is a record handed over by an `entity.enqueue-process` step of a preview or an eval run.
+- **Previews, eval runs and reprocesses cost what a live run costs.** Flow previews, `POST /v1/steps/preview`, eval runs and `POST /v1/vector-collections/{name}/search` are design-time work, bounded by the design-time ceiling; a reprocess is not. The one record processing the ceiling does bound is a record handed over by an `record.enqueue-process` step of a preview or an eval run.
 
 **The spend read says what each step was charged for.** Every entry of `bySkill` names its step in `skillName` and `skillId` and carries `charges`, one per kind, that sum to the step's `credits` (`references/spend.md` lists the kinds).
 
@@ -124,7 +124,7 @@ A machine caller has no statement of its own: `GET /v1/credits/events` scopes to
 - **A refusing wallet stops more than the call.** Reads still answer, a queued job is refused when a worker takes it, a schedule or trigger fire is recorded `blocked`, and a run in flight has its remaining steps skipped (`references/spend.md`).
 - **Both ceilings live on project settings and are ADMIN.** `null` means no ceiling and `0` means block everything — opposites (`references/spend.md`).
 - **`credits: 0` on `/spend` is a price only when `uncharged` is 0.** Otherwise the platform paid for that work, and the same step has a price in a charged run (`references/spend.md`).
-- **A reprocess is charged** like the record's first processing, as is every run it queues through `entity.enqueue-process` (`references/spend.md`; `kipory-data` owns the reprocess itself).
+- **A reprocess is charged** like the record's first processing, as is every run it queues through `record.enqueue-process` (`references/spend.md`; `kipory-data` owns the reprocess itself).
 - **An empty `/spend` is not a zero.** A run that spent nothing, one that failed before its first billable operation and one too old to be tied to its charges all answer an empty `bySkill` (`references/spend.md`).
 - **A schedule's `key` never changes** and is not on the patch body — sending it is a 422. Rename through `label`; a blank string is a 422, `null` clears.
 - **`runs` is one page, newest first.** `limit` goes to 200; walk older occurrences or decisions with `after=<nextCursor>` until `nextCursor` is `null`. A full page says nothing about whether more exist — only the cursor does.
@@ -136,7 +136,7 @@ A machine caller has no statement of its own: `GET /v1/credits/events` scopes to
 - **A type's `status` does not gate emitting.** A retired type still fires; removing the emit step is the way to stop it. An event type carries two version numbers: `payloadVersion` for its shape and `version` for the lock.
 - **Config `version` is required when the namespace exists and ignored on create.** A stale one is a 409; re-read and reconcile. Two replacements, at two levels: the POST's `data` replaces the namespace's whole override map, and inside it an override replaces its whole top-level field, never merging into the default.
 - **`usage` defaults to seven days and excludes platform-paid work**; `window=custom` takes `from` and `to` as RFC 3339 instants, `to` exclusive (`references/spend.md`).
-- **Previews and eval runs start no trigger of their own — a processing handoff still does.** An `event.emit` during a preview or an eval run is checked and dropped: it is never recorded in `GET /v1/project-events` and starts nothing. To test the trigger half, feed `GET /v1/triggers/{id}/sample` to a preview of the triggered flow. But an `entity.enqueue-process` step hands the record to its processing flow, which runs live once the write applies, and that flow's events publish and start every matching trigger like any live run's (`kipory-prove`).
+- **Previews and eval runs start no trigger of their own — a processing handoff still does.** An `event.emit` during a preview or an eval run is checked and dropped: it is never recorded in `GET /v1/project-events` and starts nothing. To test the trigger half, feed `GET /v1/triggers/{id}/sample` to a preview of the triggered flow. But an `record.enqueue-process` step hands the record to its processing flow, which runs live once the write applies, and that flow's events publish and start every matching trigger like any live run's (`kipory-prove`).
 - **Model prices and vendor prices are reads; the compute rate and the held-storage rates are not.** `GET /v1/nodes/{nodeId}/model-prices` and `GET /v1/nodes/{nodeId}/vendor-prices` quote in credits before anything is spent; measure the other two from the charges on `/spend` (`references/spend.md`).
 
 ## References

@@ -1,12 +1,12 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.append` — Add events to a record
+# `record.append` — Add events to a record
 
 Add one or more events to a record's history.
 
-Writes events to a record's stream field — a list the record type stores as time-stamped rows instead of inside its data. Each event's time comes from the property the stream declares. A retried run converges: the same event is not written twice.
+Writes events to a record's stream field — a list the table stores as time-stamped rows instead of inside its data. Each event's time comes from the property the stream declares. A retried run converges: the same event is not written twice.
 
-- **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + event(s)` → `string`
 - **Reads:** The record id, from the slot `recordIdSlot` names, and one event object or a list of them from `eventSlot`; optionally your own event ids from `eventIdSlot`. _(shape hint: `record slot + event(s)`)_
@@ -20,7 +20,7 @@ Writes events to a record's stream field — a list the record type stores as ti
 | `eventSlot` | string | yes | — | The slot holding one event object, or a list of them. Each carries its time under the property the stream declares. ⚠️ An event with no time under the declared property, or one that is not a datetime, fails the step. Nothing is written for the batch. |
 | `field` | string | yes | — | The field of that type declared as a stream. The events land there, never in the record's data. |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to append to. ⚠️ The record has to be one this run can reach — the signed-in user's own, or the project's shared pool — and of the configured type. Anything else fails the step. |
-| `recordType` | string | yes | — | The record type whose stream field receives the events. |
+| `tableKey` | string | yes | — | The table whose stream field receives the events. |
 
 ## Worked example
 
@@ -36,7 +36,7 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "thread",
+  "tableKey": "thread",
   "field": "activity",
   "recordIdSlot": "events.recordId",
   "eventSlot": "events.events"
@@ -71,7 +71,7 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "thread",
+  "tableKey": "thread",
   "field": "activity",
   "recordIdSlot": "events.recordId",
   "eventSlot": "events.events"

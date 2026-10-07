@@ -58,7 +58,8 @@ It cannot see a stale `version`: that is the write's own lock. `DELETE …?valid
 the same for a removal, which nothing refuses.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
+refused.
 
 ## How a flow reads it
 
@@ -91,15 +92,15 @@ Three corners worth holding:
   **schema**, never partial against the **stored row**: see the replacement warning above.
 - **Updating requires the version you last read**, and a stale one is refused. Re-read and
   reconcile.
-- **The schema entry can refuse on the namespace's behalf** — 422
-  `SCHEMA_ENTRY_UNSAFE_FOR_PROJECT_CONFIG` on a `PATCH /v1/schema-entries/{id}`. Removing a declared
-  field a namespace stores an override for strands that override, and so does closing the entry's
-  root (`additionalProperties: false`) while a namespace bound to that very entry stores a
-  top-level key the entry does not declare: the namespace's next write would be refused for a value it already holds. ⚠️ The
-  closed-root refusal is **flat** — it judges the entry as it would be stored, so an entry already
-  in that state takes no save at all, not even a rename, until the override is removed here, the
-  key is declared there, or the root is opened again. The message names the namespaces and the
-  keys, and the entry's `validateOnly` dry run says the same.
+- **The type can refuse on the namespace's behalf** — 422
+  `TYPE_UNSAFE_FOR_PROJECT_CONFIG` on a `PATCH /v1/types/{id}`. Removing a declared
+  field a namespace stores an override for strands that override, and so does closing the type's
+  root (`additionalProperties: false`) while a namespace bound to that very type stores a
+  top-level key the type does not declare: the namespace's next write would be refused for a value
+  it already holds. ⚠️ The closed-root refusal is **flat** — it judges the type as it would be
+  stored, so a type already in that state takes no save at all, not even a rename, until the
+  override is removed here, the key is declared there, or the root is opened again. The message
+  names the namespaces and the keys, and the type's `validateOnly` dry run says the same.
 
 ## What will bite you
 
@@ -113,7 +114,7 @@ Three corners worth holding:
 
 ## Related
 
-- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — authoring the shape a
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring the shape a
   namespace binds.
 - Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — where the wiring that reads config lives.
 - Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — pinning behaviour that a tunable can move.

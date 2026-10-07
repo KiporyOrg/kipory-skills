@@ -72,7 +72,7 @@ why.
 ## The key you author
 
 Every project element is addressed by its `key`, a string **you** choose rather than the row id.
-Endpoints, schedules and schema entries — with triggers, sources, eval suites and eval cases —
+Endpoints, schedules and types — with triggers, sources, eval suites and eval cases —
 share one format, the **address key**, and it is checked on write:
 
 ```
@@ -84,8 +84,8 @@ first character a letter or a digit
 <!-- field-ok: subscriptionsList — an example of a key an operator authored, not a platform field -->
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
-event types and their namespaces, relation kinds and embedding profiles), a facet's is camelCase, a record
-type's is a type name and a step's a dotted kebab name. Address keys are none of those, and
+event types and their namespaces, relations and embedding profiles), a vocabulary's is camelCase, a
+table's is a table name and a step's a dotted kebab name. Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is
 refused, never re-cased for you.
@@ -130,7 +130,7 @@ There is **no read-only flag to set.** Whether a VIEWER-level caller may make a 
 platform's decision, not a declaration: an asynchronous invoke and a DELETE are writes; any other
 GET is a read; anything else is a write exactly when the bound flow — sub-flows included — reaches a
 step that changes data: a handler that writes, an event emitted beyond the run (it can start
-triggers), or a facet resolution. An asynchronous invoke cannot be saved on GET. So a
+triggers), or a vocabulary resolution. An asynchronous invoke cannot be saved on GET. So a
 POST search whose flow only reads is open to viewers without declaring anything.
 
 ### A public endpoint: `auth: "none"`
@@ -216,7 +216,7 @@ what stops a caller claiming to be a different user.
 
 **An action declares no output mapping, and this is deliberate.** Its response shape comes from one
 place — the flow signature snapshot (below) — so there is nothing to configure on the way out.
-Records are read through the `entity.read` / `entity.list` handlers inside a flow, so a
+Records are read through the `record.read` / `record.list` handlers inside a flow, so a
 record-shaped response is a flow output slot like any other.
 
 The practical consequence for an architect: **to change what an endpoint returns, change the flow
@@ -240,7 +240,7 @@ edit and re-snapshot every holder in one transaction:
 
 - Changing a flow's **signature** while anything binds it → `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`.
 - Editing a **shape** the flow's slots reference, where that reaches a bound snapshot →
-  `SCHEMA_ENTRY_RESHAPES_BOUND_SNAPSHOTS`.
+  `TYPE_RESHAPES_BOUND_SNAPSHOTS`.
 
 Re-send with `adoptSnapshots: true` to make the change and update the holders together. ⛔ **Do not
 decompose it into unbind → change → rebind**, which is the shape a reader reaches for when they
@@ -293,7 +293,7 @@ an endpoint you did not just write.
 | **401** | No, malformed, unknown, revoked or expired token                                                                                                                                                                                                                                                                                                                                                |
 | **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated                                                                                                                                                                                                                   |
 | **403** | `WORKLOAD_SUSPENDED`: the project, or an organisation above it, is suspended or archived, so every call that runs a flow is refused before its first step. A `suspended` hold is lifted only by the deployment's operator. An `archived` organisation is reactivated by one of its admins, signed in: `PATCH /v1/nodes/{nodeId}/status` with `{ "status": "active" }`, which refuses an API key |
-| **403** | A step reads or writes a record type owned by its users, and the call was made with a key: a key acts as the project and has no signed-in user. The flow is not at fault and no retry with the key succeeds                                                                                                                                                                                     |
+| **403** | A step reads or writes a table owned by its users, and the call was made with a key: a key acts as the project and has no signed-in user. The flow is not at fault and no retry with the key succeeds                                                                                                                                                                                           |
 | **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                                                                                                                                                                                                                                      |
 | **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**; or a step refusing what the caller sent — a `value.transform` `$assert` (with your message), a `cursor` no previous page answered                                                                                                                                                                   |
 | **502** | A step failed; response fails validation (a required output the run did not produce is the 422 below)                                                                                                                                                                                                                                                                                           |
@@ -338,7 +338,7 @@ binding but a step upstream that was SKIPPED, because the pipeline reads an abse
 input as "nothing to do here" and the skip cascades to the terminal step. Preview shows you which
 steps ran — **but only under the same principal.** A flow fired by a **schedule** or a **trigger**
 resolves no end user, so `userInfo` is absent: a step that reads only provider slots still runs,
-with no user behind it, and one that needs a person — a per-user record type — refuses, while a
+with no user behind it, and one that needs a person — a per-user table — refuses, while a
 step that reads `userInfo` beside another slot waits on that other slot. A preview run as yourself
 resolves you and reports the flow healthy. Preview such a flow with `"principal": "no-end-user"`
 or you are testing a different run. See the preview section of

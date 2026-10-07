@@ -193,7 +193,7 @@ read waits out once when the wait is short.
   `url.scrape` emits an empty page with a soft `SCRAPE_FAILED` warning (`RATE_LIMITED` for a 429,
   retried in-handler first); the run does not fail and the empty result is not cached. A step
   skips only when **every** input it reads is absent — it runs while **any one** is present — so a
-  `text.generate` reading only the empty page skips, but a transform or `entity.create` that also
+  `text.generate` reading only the empty page skips, but a transform or `record.create` that also
   reads the URL still runs and can write a record with the summary missing. Read `warnings` on the
   preview, use the fallback above, and put `slotPresent` conditions on writes.
 - **A refused key or an account out of credit is not about the page, and it fails the step** —

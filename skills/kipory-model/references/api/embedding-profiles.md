@@ -31,7 +31,7 @@ List a project's embedding profiles — every generation of every key, supersede
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Id of the project node whose profiles to list. Required. |
-| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Currently only `collections`, so send `expand=collections`. (The record-types routes take a comma-separated list instead, and refuse a repeated parameter.) |
+| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Currently only `collections`, so send `expand=collections`. (The tables routes take a comma-separated list instead, and refuse a repeated parameter.) |
 
 **Response `200`**
 
@@ -54,14 +54,14 @@ Each item of `profiles`:
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
-| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
-| `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
+| `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which tables use it — one per scope and isolation group in play, never named by hand. |
 | `canDelete` | `boolean` | yes | True when you may delete this profile right now: `deleteRefusal` is null, your role on the project is ADMIN or above, and the project is not retired. A UI affordance, not a permission — the delete re-checks on the server. |
 
 ### `POST /v1/embedding-profiles`
@@ -79,7 +79,7 @@ Declare a vector space: a new profile key at generation 1, its geometry derived 
 | `denseSlots` | `string[]` | yes | Names for the dense vector slots this profile writes. At least one is required — a profile with no dense slot could back nothing searchable. |
 | `sparseSlot` | `string \| null` | no | Optional name for a sparse vector slot. Declaring one makes every record carry sparse vectors from then on, so only add it if a search step will read them. |
 | `isDefault` | `boolean` | no | Make this the profile used when a searchable declaration names none. Setting it moves the default off whichever profile currently holds it. |
-| `defaultChunking` | `object` | yes | The chunking every record type on this profile inherits. Required: a profile is a vector space AND the default way records enter it. Exactly one of `{ kind: "whole" }` (one point per record) or `{ kind: "chunks", tokens, overlap }` (pieces of `tokens` tokens, each repeating `overlap` tokens of the previous; `overlap` below `tokens`). |
+| `defaultChunking` | `object` | yes | The chunking every table on this profile inherits. Required: a profile is a vector space AND the default way records enter it. Exactly one of `{ kind: "whole" }` (one point per record) or `{ kind: "chunks", tokens, overlap }` (pieces of `tokens` tokens, each repeating `overlap` tokens of the previous; `overlap` below `tokens`). |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -114,14 +114,14 @@ Each item of `diagnostics`:
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
-| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
-| `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
+| `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which tables use it — one per scope and isolation group in play, never named by hand. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 Each item of `collections`:
@@ -130,20 +130,20 @@ Each item of `collections`:
 | --- | --- | --- | --- |
 | `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
 | `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
-| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
-| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two tables with different isolation groups never share a collection. |
+| `tableKeys` | `string[]` | yes | Keys of the tables whose searchable declarations are stored in this collection. |
 
 Each item of `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `record-types`, `schema-entries`, `relation-kinds`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `tables`, `types`, `relations`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
 | `id` | `string` | yes | The row's id. |
 | `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
 ### `GET /v1/embedding-profiles/{id}`
 
-Read one embedding profile generation: its model, slots, derived geometry, default chunking, `generation` and `version` lock; `expand=collections` adds the collections its record types imply. Every profile at once: `GET /v1/embedding-profiles?project=`.
+Read one embedding profile generation: its model, slots, derived geometry, default chunking, `generation` and `version` lock; `expand=collections` adds the collections its tables imply. Every profile at once: `GET /v1/embedding-profiles?project=`.
 
 **Path parameters**
 
@@ -155,7 +155,7 @@ Read one embedding profile generation: its model, slots, derived geometry, defau
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Currently only `collections`, so send `expand=collections`. (The record-types routes take a comma-separated list instead, and refuse a repeated parameter.) |
+| `expand` | `"collections" \| "collections"[]` | no | Optional sections to include. Currently only `collections`, so send `expand=collections`. (The tables routes take a comma-separated list instead, and refuse a repeated parameter.) |
 
 **Response `200`**
 
@@ -172,14 +172,14 @@ Read one embedding profile generation: its model, slots, derived geometry, defau
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
-| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
-| `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
+| `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which tables use it — one per scope and isolation group in play, never named by hand. |
 
 Each item of `collections`:
 
@@ -187,12 +187,12 @@ Each item of `collections`:
 | --- | --- | --- | --- |
 | `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
 | `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
-| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
-| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two tables with different isolation groups never share a collection. |
+| `tableKeys` | `string[]` | yes | Keys of the tables whose searchable declarations are stored in this collection. |
 
 ### `PATCH /v1/embedding-profiles/{id}`
 
-Change a profile's label, whether it is the project default, or the chunking its record types inherit — never its geometry, which needs a new generation (`POST /v1/embedding-profiles/{id}/generations`). Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be taken — every inheriting record type planned against a changed default — writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document`.
+Change a profile's label, whether it is the project default, or the chunking its tables inherit — never its geometry, which needs a new generation (`POST /v1/embedding-profiles/{id}/generations`). Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be taken — every inheriting table planned against a changed default — writing nothing. Several rows at once: `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -225,16 +225,16 @@ Change a profile's label, whether it is the project default, or the chunking its
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
-| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
-| `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
+| `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which tables use it — one per scope and isolation group in play, never named by hand. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
-| `rederive` | `object` | no | Present when `defaultChunking` changed: which inheriting record types followed. |
+| `rederive` | `object` | no | Present when `defaultChunking` changed: which inheriting tables followed. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -245,14 +245,14 @@ Each item of `collections`:
 | --- | --- | --- | --- |
 | `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
 | `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
-| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
-| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two tables with different isolation groups never share a collection. |
+| `tableKeys` | `string[]` | yes | Keys of the tables whose searchable declarations are stored in this collection. |
 
 Each item of `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `record-types`, `schema-entries`, `relation-kinds`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `tables`, `types`, `relations`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
 | `id` | `string` | yes | The row's id. |
 | `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
@@ -267,7 +267,7 @@ Each item of `diagnostics`:
 
 ### `DELETE /v1/embedding-profiles/{id}`
 
-Delete one profile generation. Refused (409) while a searchable record type uses it, or while it still owns provisioned collections (the rollback path of the generation that superseded it) — the list publishes that refusal per profile as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. A whole key, every generation: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+Delete one profile generation. Refused (409) while a searchable table uses it, or while it still owns provisioned collections (the rollback path of the generation that superseded it) — the list publishes that refusal per profile as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. A whole key, every generation: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 
@@ -302,7 +302,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/embedding-profiles/{id}/activate`
 
-Make this generation the live one for its key: every searchable record type on the key moves onto it, saved search steps are repointed at its collections, and the project reindexes. Activating a superseded generation is the rollback. Requires the addressed profile's `version` (409 `VERSION_CONFLICT` when stale); each moved record type's own lock is checked too. Safe to repeat: an already-live generation moves nothing and is answered 200 whatever `version` the retry carries. 409 too when the project default moved while the activation ran. To mint the generation first: `POST /v1/embedding-profiles/{id}/generations`.
+Make this generation the live one for its key: every searchable table on the key moves onto it, saved search steps are repointed at its collections, and the project reindexes. Activating a superseded generation is the rollback. Requires the addressed profile's `version` (409 `VERSION_CONFLICT` when stale); each moved table's own lock is checked too. Safe to repeat: an already-live generation moves nothing and is answered 200 whatever `version` the retry carries. 409 too when the project default moved while the activation ran. To mint the generation first: `POST /v1/embedding-profiles/{id}/generations`.
 
 **Path parameters**
 
@@ -314,14 +314,14 @@ Make this generation the live one for its key: every searchable record type on t
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The addressed profile's `version` as you last read it. REQUIRED: an activation that moves anything is refused with 409 `VERSION_CONFLICT` if the profile changed since. Each record type it moves keeps its own lock, checked as it moves. An already-active generation moves nothing and is not judged against it, so an identical retry answers the same 200. |
+| `version` | `integer` | yes | The addressed profile's `version` as you last read it. REQUIRED: an activation that moves anything is refused with 409 `VERSION_CONFLICT` if the profile changed since. Each table it moves keeps its own lock, checked as it moves. An already-active generation moves nothing and is not judged against it, so an identical retry answers the same 200. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `profile` | `object` | yes | The profile generation that is now active. |
-| `movedRecordTypes` | `string[]` | yes | Record types moved onto this generation by this call. Empty when it was already the active one — activation is safe to repeat. |
+| `movedTables` | `string[]` | yes | Tables moved onto this generation by this call. Empty when it was already the active one — activation is safe to repeat. |
 | `repointedSteps` | `string[]` | yes | Names of saved search steps whose stored collection name was rewritten onto the new generation. A step stores that name as a literal and the generation is part of it, so a step left behind keeps querying the superseded collection — which still exists, so it returns stale results rather than an error. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
@@ -329,7 +329,7 @@ Each item of `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `record-types`, `schema-entries`, `relation-kinds`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
+| `resource` | `string` | yes | Which design resource the row belongs to, spelled as the bootstrap read spells its sections — `tables`, `types`, `relations`, … — or, for `terms`, which the bootstrap does not carry, as its route does (`/v1/terms/{id}`). |
 | `id` | `string` | yes | The row's id. |
 | `version` | `integer` | yes | The row's optimistic-lock version AFTER this write. Replace the version you cached for this row with it; a PATCH sent with the old one is refused with 409. |
 
@@ -385,14 +385,14 @@ Each item of `diagnostics`:
 | `denseSlots` | `string[]` | yes | Named dense vector slots this profile writes, in order. A searchable declaration targets one of these by name. |
 | `sparseSlot` | `string \| null` | yes | Name of the sparse vector slot this profile writes, or null if it writes none. Declaring one makes every record carry sparse vectors, whether or not anything searches them — see `sparseUsage`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
-| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a record type's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every type on the profile that does not override. |
+| `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
 | `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
-| `usedByRecordTypeCount` | `integer` | yes | How many searchable record types point at this profile. Deleting a profile that is still in use is refused. |
+| `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `sparseUsage` | `object \| null` | yes | Whether this profile's sparse slot is really queried, or null when it declares none. Sparse vectors are written as soon as the slot is declared, but only read by a step that opts into hybrid search — so a slot can cost storage and be read by nothing. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which record types use it — one per scope and isolation group in play, never named by hand. |
+| `collections` | `object[]` | no | The collections this profile implies, present only when you pass `expand=collections`. Derived from which tables use it — one per scope and isolation group in play, never named by hand. |
 
 Each item of `collections`:
 
@@ -400,8 +400,8 @@ Each item of `collections`:
 | --- | --- | --- | --- |
 | `collectionName` | `string` | yes | The physical collection name to use in a search step, shaped `{project}.{profile}-v{generation}-{scope}[-{group}]`. It contains the generation, so activating a new generation changes it. |
 | `scope` | `"user" \| "project" \| "session"` | yes | Who the vectors in a collection belong to, and therefore what a search can reach: `project` is shared across the project, `user` is partitioned per end user, `session` per conversation. |
-| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two record types with different isolation groups never share a collection. |
-| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose searchable declarations are stored in this collection. |
+| `isolationGroup` | `string \| null` | yes | The value vectors in this collection are partitioned by, or null when the scope needs no partition. Two tables with different isolation groups never share a collection. |
+| `tableKeys` | `string[]` | yes | Keys of the tables whose searchable declarations are stored in this collection. |
 
 ### `GET /v1/vector-collections`
 
@@ -429,7 +429,7 @@ Each item of `collections`:
 | `collectionName` | `string` | yes | Physical collection name (`{slug}.{name}`) — the value a vector-search skill's `collection` setting carries. |
 | `live` | `object \| null` | yes | Geometry read from the vector store. Null means the store did not hand one over — either it has no such collection or the read failed — and `storeState` says WHICH. Do not read a null here as an empty collection, and do not read it as an outage either. |
 | `storeState` | `"present" \| "absent" \| "unreachable"` | yes | What the store said about THIS collection. `present`: it answered and `live` carries the geometry. `absent`: it answered clearly that it holds no such collection — a divergence to act on, NOT an outage. `unreachable`: the read failed, so the geometry and everything derived from it are unknown. `live` is null under both of the last two and they must never be folded together. |
-| `role` | `"derived" \| "terms" \| "preview" \| "unregistered"` | yes | What this collection is. `derived`: a registry row claims it — the record vectors of one embedding profile version, for one scope and isolation group; `identity` names them. `terms`: the project's facet vocabulary. `preview`: the project's flow-preview store, partitioned by session. `unregistered`: none of those — nothing on the platform owns it, so it is residue to investigate. Decided by the registry and the two fixed names, never by parsing the rest of the name. |
+| `role` | `"derived" \| "terms" \| "preview" \| "unregistered"` | yes | What this collection is. `derived`: a registry row claims it — the record vectors of one embedding profile version, for one scope and isolation group; `identity` names them. `terms`: the project's vocabulary terms. `preview`: the project's flow-preview store, partitioned by session. `unregistered`: none of those — nothing on the platform owns it, so it is residue to investigate. Decided by the registry and the two fixed names, never by parsing the rest of the name. |
 | `identity` | `object` | yes | The tuple the physical name was computed from, read from the registry. Nobody parses the name: for anything but a `derived` collection `registered` is false and every profile field is null. |
 
 ### `GET /v1/vector-collections/{name}`
@@ -457,10 +457,10 @@ One collection of the project named by `?project=`, by the `name` a listing retu
 | `collectionName` | `string` | yes | Physical collection name (`{slug}.{name}`) — the value a vector-search skill's `collection` setting carries. |
 | `live` | `object \| null` | yes | Geometry read from the vector store. Null means the store did not hand one over — either it has no such collection or the read failed — and `storeState` says WHICH. Do not read a null here as an empty collection, and do not read it as an outage either. |
 | `storeState` | `"present" \| "absent" \| "unreachable"` | yes | What the store said about THIS collection. `present`: it answered and `live` carries the geometry. `absent`: it answered clearly that it holds no such collection — a divergence to act on, NOT an outage. `unreachable`: the read failed, so the geometry and everything derived from it are unknown. `live` is null under both of the last two and they must never be folded together. |
-| `role` | `"derived" \| "terms" \| "preview" \| "unregistered"` | yes | What this collection is. `derived`: a registry row claims it — the record vectors of one embedding profile version, for one scope and isolation group; `identity` names them. `terms`: the project's facet vocabulary. `preview`: the project's flow-preview store, partitioned by session. `unregistered`: none of those — nothing on the platform owns it, so it is residue to investigate. Decided by the registry and the two fixed names, never by parsing the rest of the name. |
+| `role` | `"derived" \| "terms" \| "preview" \| "unregistered"` | yes | What this collection is. `derived`: a registry row claims it — the record vectors of one embedding profile version, for one scope and isolation group; `identity` names them. `terms`: the project's vocabulary terms. `preview`: the project's flow-preview store, partitioned by session. `unregistered`: none of those — nothing on the platform owns it, so it is residue to investigate. Decided by the registry and the two fixed names, never by parsing the rest of the name. |
 | `identity` | `object` | yes | The tuple the physical name was computed from, read from the registry. Nobody parses the name: for anything but a `derived` collection `registered` is false and every profile field is null. |
 | `payloadIndexes` | `object[] \| null` | yes | Every INDEXED payload key. A key absent from this list cannot be filtered on — Qdrant answers a filter over an unindexed key without complaining. ⛔ NULL MEANS THE LIST WAS NOT READ, and `[]` cannot say that: an empty array is a collection that genuinely indexes nothing, and folding the two renders an outage as “nothing here is filterable”. ⚠️ NULL DOES NOT IMPLY A NON-`present` `storeState`: the index list is a SECOND store call, so a collection dropped between the two — or a list this reader could not parse — is `present` with a null list. Read this field's own nullness, never `storeState`, to decide whether the list is known. |
-| `recordTypeKeys` | `string[]` | yes | Keys of the record types whose points land here, from the registry's own reads. Empty for a collection no declaration owns. |
+| `tableKeys` | `string[]` | yes | Keys of the tables whose points land here, from the registry's own reads. Empty for a collection no declaration owns. |
 | `counts` | `object` | yes | How much is in the collection, and of what. |
 
 Each item of `payloadIndexes`:

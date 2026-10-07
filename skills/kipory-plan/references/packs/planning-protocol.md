@@ -16,7 +16,7 @@ Every other pack is indexed by capability, which assumes you already know which 
 want. This one runs the other direction — from an idea to the primitives it decomposes into.
 
 What Kipory builds is the **backend** of the idea: the processes it runs (flows), the data it
-keeps (record types), and the entry points the outside uses (endpoints, triggers, schedules). The
+keeps (tables), and the entry points the outside uses (endpoints, triggers, schedules). The
 frontends people use are clients of what the project exposes and are not on the build sheet. The
 walk below is in dependency order — records before processing, because a flow reads and writes
 typed records — not in order of importance; the processes are the idea.
@@ -93,13 +93,13 @@ the project, otherwise one of `projects`. Every route takes that one id.
 
 ### 2 — Records
 
-What _things_ exist here? Each becomes a **record type**: a shape plus a descriptor. For each,
+What _things_ exist here? Each becomes a **table**: a shape plus a descriptor. For each,
 decide what fields it carries, whether records are authored by people or produced by the system,
 and whether it has a processing flow or is born ready.
 
 This step usually dominates the sheet, and every later step inherits its mistakes.
 
-→ Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`)
+→ Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)
 
 ### 3 — Processing
 
@@ -127,11 +127,11 @@ async or streaming — plus the auth that reaches it.
 
 ### 5 — Classification and linking
 
-Do records need classifying against a vocabulary (**facets**, resolved to terms), or linking to
-each other with typed edges (**relation kinds** and their pairings)? Both are frequently "none" —
+Do records need classifying against a vocabulary (**vocabularies**, resolved to terms), or linking
+to each other with typed links (**relations** and their pairings)? Both are frequently "none" —
 say so explicitly.
 
-→ Facets (capability pack `facets` — `GET /v1/capability-packs/facets`) · Relations (capability pack `relations` — `GET /v1/capability-packs/relations`)
+→ Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) · Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)
 
 ### 6 — Time and reaction
 
@@ -178,17 +178,17 @@ One row per object to be built:
 | ---- | --------- | ---- | ----------- | ----- |
 
 - **Step** — which of the eight produced it.
-- **Primitive** — record type, schema entry, embedding profile, flow, skill, endpoint, schedule,
-  trigger, source, facet, relation kind, event, project-config namespace, secret, task-model
+- **Primitive** — table, type, embedding profile, flow, skill, endpoint, schedule,
+  trigger, source, vocabulary, relation, event, project-config namespace, secret, task-model
   binding, eval suite, eval case.
   ⚠️ Four of those are easy to leave out of a sheet and expensive to discover later: a
-  record type declared searchable needs an **embedding profile** to name, a flow calling a paid
-  web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**, a threshold you will want to tune belongs in a
-  **project-config namespace** rather than baked into a flow, and the **eval cases** of step 8 are
-  the only part of a plan that survives a later rewrite. A fifth is a fact to read rather than a
-  row to invent: a model step inherits its model through a task, and
-  `GET /v1/nodes/{nodeId}/task-models` says, per task, whether that model is `callable` on this
-  deployment — a task that is not needs a **task-model binding** row.
+  table declared searchable needs an **embedding profile** to name, a flow calling a paid
+  web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**, a
+  threshold you will want to tune belongs in a **project-config namespace** rather than baked into a
+  flow, and the **eval cases** of step 8 are the only part of a plan that survives a later rewrite.
+  A fifth is a fact to read rather than a row to invent: a model step inherits its model through a
+  task, and `GET /v1/nodes/{nodeId}/task-models` says, per task, whether that model is `callable` on
+  this deployment — a task that is not needs a **task-model binding** row.
 - **Name** — what it will be called.
 - **Disposition** — **`seed`** (design-API configuration, you can build it now) or **`code`**
   (software has to be written: either a platform capability Kipory does not have, or a service of

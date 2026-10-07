@@ -48,7 +48,7 @@ Each item of `elements`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"project" \| "flow" \| "step" \| "record-type" \| "endpoint" \| "schedule" \| "trigger" \| "facet" \| "event-type"` | yes | What kind of element. |
+| `kind` | `"project" \| "flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
 | `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
 | `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
 | `summary` | `string` | yes | One line, for a list row. |
@@ -108,7 +108,7 @@ Each item of `versions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"project" \| "flow" \| "step" \| "record-type" \| "endpoint" \| "schedule" \| "trigger" \| "facet" \| "event-type"` | yes | What kind of element. |
+| `kind` | `"project" \| "flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
 | `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
 | `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
 | `summary` | `string` | yes | One line, for a list row. |
@@ -273,7 +273,7 @@ Move the project to a new address (its subdomain); the slug never changes. The o
 
 ### `GET /v1/projects/{nodeId}/connections`
 
-Every element of the project — flows, steps, record types, endpoints, schedules, triggers, facets, event types — with every relation between two of them (what starts what, which records a step reads or writes, what it tags and announces) and every model, outside service and mail call a step makes, computed from the configuration when read. Revalidate with `If-None-Match`: an unchanged project answers 304. For the configuration itself, read `GET /v1/projects/{nodeId}/document` instead.
+Every element of the project — flows, steps, tables, endpoints, schedules, triggers, vocabularies, event types — with every relation between two of them (what starts what, which records a step reads or writes, what it tags and announces) and every model, outside service and mail call a step makes, computed from the configuration when read. Revalidate with `If-None-Match`: an unchanged project answers 304. For the configuration itself, read `GET /v1/projects/{nodeId}/document` instead.
 
 **Path parameters**
 
@@ -294,15 +294,15 @@ Each item of `elements`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `ref` | `string` | yes | `<kind>:<id>` — the element's reference, the same `elementRef` the element descriptions use. An opaque identifier: its prefix keeps the descriptions' spelling (`recordType:`, `eventType:`), so read an element's kind from `kind`, never from the prefix. |
-| `kind` | `"flow" \| "step" \| "record-type" \| "endpoint" \| "schedule" \| "trigger" \| "facet" \| "event-type"` | yes | What kind of element. |
+| `ref` | `string` | yes | `<kind>:<id>` — the element's reference, the same `elementRef` the element descriptions use. An opaque identifier: its prefix keeps the descriptions' spelling (`table:`, `eventType:`), so read an element's kind from `kind`, never from the prefix. |
+| `kind` | `"flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
 | `label` | `string` | yes | The element's display text. A step's own key; its flow is `flowRef`. |
 | `flowRef` | `string \| null` | yes | Steps only: the reference of the flow the step is part of. |
 | `order` | `integer \| null` | yes | Steps only: the step's position in its flow, 1-based. |
 | `enabled` | `boolean` | yes | False for a step, schedule or trigger that is switched off; true otherwise. |
 | `platform` | `boolean` | yes | True for a platform (SYSTEM) flow the project uses — named here because a project relation reaches it, never one of the project's own. |
 | `handlerUnknown` | `boolean` | yes | Steps only: the step names a handler the platform no longer knows, so its data relations and calls cannot be stated. |
-| `startedByNothing` | `boolean` | yes | Flows only: nothing in the project starts it — no endpoint, schedule, trigger, record type, facet, flow or evaluation suite. |
+| `startedByNothing` | `boolean` | yes | Flows only: nothing in the project starts it — no endpoint, schedule, trigger, table, vocabulary, flow or evaluation suite. |
 
 Each item of `relations`:
 
@@ -414,12 +414,12 @@ Each item of `changes`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The audit record's own id. |
-| `resource` | `string` | yes | The design resource, one of the 23 in use — `facets`, `flows`, `record-types` — or, on a record written before a resource was retired, its old name (`flow-test-cases`). A string rather than an enum so a new resource needs no migration, matching the stored column. |
+| `resource` | `string` | yes | The design resource, one of the 23 in use — `vocabularies`, `flows`, `tables` — or, on a record written before a resource was retired, its old name (`flow-test-cases`). A string rather than an enum so a new resource needs no migration, matching the stored column. |
 | `section` | `string` | yes | The bootstrap section the resource maps to. |
 | `operation` | `"create" \| "update" \| "delete"` | yes | What happened to this object. |
 | `targetModel` | `string` | yes | The Prisma model the mutated row belongs to. |
 | `targetId` | `string` | yes | The row's primary key. Globally unique, and NOT a substitute for `targetKey` — nor the reverse. |
-| `targetKey` | `string \| null` | yes | The object's name in the reader's own vocabulary — a facet key, a flow slug. NULL when the model carries no such field, which is a property of the model rather than a gap in the record. |
+| `targetKey` | `string \| null` | yes | The object's name in the reader's own words — a vocabulary key, a flow slug. NULL when the model carries no such field, which is a property of the model rather than a gap in the record. |
 | `priorState` | `"versioned" \| "not-applicable" \| "created" \| "deleted"` | yes | Why `fromVersion`/`toVersion` are absent when they are. `versioned` — both present. `not-applicable` — this kind carries no version column at all. `created` / `deleted` — one end of the pair does not exist. ⛔ A client MUST render these differently: 'has no version' and 'we failed to capture one' are the same two nulls without this field. |
 | `fromVersion` | `integer \| null` | yes | The version this change replaced. NULL unless `priorState` says otherwise. |
 | `toVersion` | `integer \| null` | yes | The version this change produced. NULL unless `priorState` says otherwise. |

@@ -6,13 +6,13 @@ Everything about a step that calls a model: which handler fits the question, how
 
 Three <!-- count: rows-of-next-table --> handlers put a question to a model. **`text.decide` costs a small fraction of the other two — reach for it first, and use the others only for what it cannot answer.**
 
-| The question                                                                         | Handler         | What you write                                                                                  | What it costs                                                                                                                                   |
-| ------------------------------------------------------------------------------------ | --------------- | ----------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Yes or no, pick one of a closed list, or a score on named levels                     | `text.decide`   | no prompt: the step's output type IS the questions, one field each (section 2)                  | the least by far: a very cheap model that returns values, never text                                                                            |
-| Which term of a facet does this belong to, in a vocabulary that is searched or grows | `facet.resolve` | the facet's own settings; it proposes with a model, then matches and mints by the facet's rules | the most: a chat-model proposal plus matching, for each facet not fed by `deterministicSlots` or `extractedFacetsSlots` (those run no proposal) |
-| Anything that needs written words back — a summary, a title, an extraction           | `text.generate` | a prompt and a typed output                                                                     | a chat model, charged on what it reads and what it writes                                                                                       |
+| The question                                                                              | Handler              | What you write                                                                                            | What it costs                                                                                                                                              |
+| ----------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Yes or no, pick one of a closed list, or a score on named levels                          | `text.decide`        | no prompt: the step's output type IS the questions, one field each (section 2)                            | the least by far: a very cheap model that returns values, never text                                                                                       |
+| Which term of a vocabulary does this belong to, in a vocabulary that is searched or grows | `vocabulary.resolve` | the vocabulary's own settings; it proposes with a model, then matches and mints by the vocabulary's rules | the most: a chat-model proposal plus matching, for each vocabulary not fed by `deterministicSlots` or `extractedVocabulariesSlots` (those run no proposal) |
+| Anything that needs written words back — a summary, a title, an extraction                | `text.generate`      | a prompt and a typed output                                                                               | a chat model, charged on what it reads and what it writes                                                                                                  |
 
-**Why `text.decide` is the cheap one.** It runs on a decision model, not a chat model, and a decision model is a very cheap model: it does not generate text at all. It answers each question with a value — a chance of yes, the chosen option, a score — so there is nothing written to pay for, and what it reads is priced far below a chat model. One call also answers every field of the output type, so ten questions are one call, not ten. On one deployment a two-question call measured about 30–40 credits, 10 of them the step's compute second; the same closed pick asked through `facet.resolve` measured about 600, and a `text.generate` step 120–220. `GET /v1/nodes/{nodeId}/model-prices` quotes this deployment's prices, and section 4 says how to measure your own flow.
+**Why `text.decide` is the cheap one.** It runs on a decision model, not a chat model, and a decision model is a very cheap model: it does not generate text at all. It answers each question with a value — a chance of yes, the chosen option, a score — so there is nothing written to pay for, and what it reads is priced far below a chat model. One call also answers every field of the output type, so ten questions are one call, not ten. On one deployment a two-question call measured about 30–40 credits, 10 of them the step's compute second; the same closed pick asked through `vocabulary.resolve` measured about 600, and a `text.generate` step 120–220. `GET /v1/nodes/{nodeId}/model-prices` quotes this deployment's prices, and section 4 says how to measure your own flow.
 
 So: put every yes/no, closed pick and score a flow needs into `text.decide`, several to a step where they read the same input, and keep `text.generate` for the steps that must write words.
 
@@ -27,7 +27,7 @@ Both shapes were measured on one deployment, on the same stored input:
 
 The two made the same accept and reject decisions. These are one deployment's measurements on one model binding, not a price list: a `text.generate` call costs what it reads and writes, so the 120–220 above is a short prompt with a short answer and the figures here are a long one. Measure your own flow as section 4 says.
 
-- A closed pick written as a `text.generate` prompt, or as a `facet.resolve` over a facet that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` and assign the term from the answer.
+- A closed pick written as a `text.generate` prompt, or as a `vocabulary.resolve` over a vocabulary that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` and assign the term from the answer.
 - "Is this the same thing as that?" is a probability, not prose: one `text.decide` field, compared against a threshold where you branch.
 - `text.decide` runs on a decision model, not a chat model, named in `handlerConfig.model` (default `typesafe/jev-latest`). A step save refuses it (`HANDLER_MODEL_UNUSABLE`) when the catalog does not hold that model or it is not a decision model. Read `GET /v1/ai-models?type=decision` and name one it lists; an empty list means the step cannot run on this deployment.
 
@@ -35,13 +35,13 @@ The other model handlers answer no question of yours: `text.embed` turns text in
 
 ## 2. Writing a `text.decide` question
 
-A `text.decide` step has no prompt. Its `outputSchema` names a schema entry, and **every field of that entry is one question**, asked in the entry's field order against the step's one input. The field's `description` is the question's wording, and it is required on every field. The input is text, or a JSON object or list. A file fails the step: extract its text first. There are exactly three forms:
+A `text.decide` step has no prompt. Its `outputSchema` names a type, and **every field of that type is one question**, asked in the type's field order against the step's one input. The field's `description` is the question's wording, and it is required on every field. The input is text, or a JSON object or list. A file fails the step: extract its text first. There are exactly three forms:
 
-| Form   | The field's definition                                                                                                                                                                 | What comes back                                                                  |
-| ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
-| Yes/no | a `$ref` to the builtin `probability` entry, plus `description`; optionally `x-criteria: { "true": "…", "false": "…" }` saying what each side looks like (either side may be left out) | the chance of yes, a number from 0 to 1                                          |
-| Choice | `enum` of text, 2 to 255 options — or, to word each option, `oneOf` of `{ "const": "<option>", "description": "<what it covers>" }`                                                    | one option's text                                                                |
-| Score  | `"type": "number"` with `x-levels` (2 to 10 worded levels, lowest first), `"minimum": 0` and `"maximum"` equal to the number of levels minus one                                       | a number in that range; it is a weighted mean, so it can fall between two levels |
+| Form   | The field's definition                                                                                                                                                                | What comes back                                                                  |
+| ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| Yes/no | a `$ref` to the builtin `probability` type, plus `description`; optionally `x-criteria: { "true": "…", "false": "…" }` saying what each side looks like (either side may be left out) | the chance of yes, a number from 0 to 1                                          |
+| Choice | `enum` of text, 2 to 255 options — or, to word each option, `oneOf` of `{ "const": "<option>", "description": "<what it covers>" }`                                                   | one option's text                                                                |
+| Score  | `"type": "number"` with `x-levels` (2 to 10 worded levels, lowest first), `"minimum": 0` and `"maximum"` equal to the number of levels minus one                                      | a number in that range; it is a weighted mean, so it can fall between two levels |
 
 ```json
 "TicketTriage": {
@@ -72,7 +72,7 @@ A `text.decide` step has no prompt. Its `outputSchema` names a schema entry, and
 }
 ```
 
-- **The `probability` reference is by id**, on the row API and in a document alike: `{ "$ref": "#/$defs/<entryId>" }`, the id read from `GET /v1/schema-entries?project={nodeId}&key=probability` (`kipory-model` has the rule for a `$ref` inside a definition). The id is the project's own, so read it after the project exists.
+- **The `probability` reference is by id**, on the row API and in a document alike: `{ "$ref": "#/$defs/<dataTypeId>" }`, the id read from `GET /v1/types?project={nodeId}&key=probability` (`kipory-model` has the rule for a `$ref` inside a definition). The id is the project's own, so read it after the project exists.
 - **What the save refuses**, each as `DECISION_QUESTIONS_INVALID` naming the field in `details.field`:
   - a `boolean` field — a yes/no is a probability, compared where you branch;
   - a field with no `description`;
@@ -90,7 +90,7 @@ A `text.decide` step has no prompt. Its `outputSchema` names a schema entry, and
 "outputs": [{ "slot": "sureness", "schema": { "kind": "ref", "ref": "DecisionConfidence" } }]
 ```
 
-That is the document form; on the row API the reference is `{ "kind": "ref", "entryId": "<id>" }` with the id of the platform's `DecisionConfidence` entry. A step takes at most one such output, typed `DecisionConfidence`, on a slot other than its `outputSlot`; anything else is `DECISION_OUTPUTS_INVALID`.
+That is the document form; on the row API the reference is `{ "kind": "ref", "dataTypeId": "<id>" }` with the id of the platform's `DecisionConfidence` type. A step takes at most one such output, typed `DecisionConfidence`, on a slot other than its `outputSlot`; anything else is `DECISION_OUTPUTS_INVALID`.
 
 The slot holds:
 
@@ -112,7 +112,7 @@ The slot holds:
 A task-driven step's model resolves in this order: `text.generate`'s `modelSlot` at run time → the step's `modelId` → the binding for the step's `taskKey` on the nearest node that has one (the project, or an ancestor) → the environment → the code default. Omitting `modelId` inherits, and inheriting is a real answer.
 
 - **`taskKey` is one of five on a step**: `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`. Omitted, a new step starts on `extraction`.
-- **Some handlers name their model in `handlerConfig`, not through the step's task.** `text.decide` and `text.rerank` carry `model` with a fixed default. `text.embed`, `audio.transcribe` and `facet.resolve` carry an optional `model`; left empty they take the project's embedding, transcription and extraction model.
+- **Some handlers name their model in `handlerConfig`, not through the step's task.** `text.decide` and `text.rerank` carry `model` with a fixed default. `text.embed`, `audio.transcribe` and `vocabulary.resolve` carry an optional `model`; left empty they take the project's embedding, transcription and extraction model.
 - **Pinning `modelId` opts a step out of the project's next model change, silently.** Omit it to inherit through `taskKey`. An unrecognised `modelId` is refused at the write.
 - **A `text.generate` step's `modelSlot` naming an unknown or disabled model fails the run** with no fallback.
 - **Changing `text.embed`'s model invalidates every stored vector** and needs an index rebuild. `model` is a catalog id (`creator/slug`); the account that serves it is not part of the config.
@@ -146,7 +146,7 @@ Bind a task with `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creat
 - Pinning `modelId` on one step does the same for that step only, and stops it following the next change.
 - The call is made once: an exhausted account refuses the same call the same way, so the step fails at the first refusal and is not tried again. Running it again does not help until the task is moved or the account is topped up.
 - **Routing is not an alternative model.** `PUT /v1/nodes/{nodeId}/routing/{modelId} { providerOrder, failover: "on-exhaustion" }` (ADMIN) retries the SAME model through the next account listed in `providerOrder`, and only those. Naming an account that does not offer the model is refused with `PROVIDER_HAS_NO_OFFER`, and a one-account order is accepted but cannot fail over.
-- **This recipe moves chat tasks only.** Term writes and a semantic facet's resolution embed on the platform's shared term model, which a project cannot rebind (`kipory-model`).
+- **This recipe moves chat tasks only.** Term writes and a semantic vocabulary's resolution embed on the platform's shared term model, which a project cannot rebind (`kipory-model`).
 
 **A sync endpoint over `text.generate` can 504 while the model is fast.** `text.generate` and the other ingest-phase handlers queue on the platform's worker, and the wait counts against the endpoint's `syncTimeoutMs` (default 30 s). Raise it on the endpoint (up to 120 000) for a flow with a model step, or make the endpoint `async`. The step log's `durationMs` includes the wait; `GET /v1/ai-calls?project={nodeId}` `latencyMs` is the model's own time, so the difference is queue.
 

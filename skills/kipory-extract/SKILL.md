@@ -55,7 +55,7 @@ pdf.parse → text?  ── yes ──→ the flow's `body` output            (a
                  └─ no  ──→ pdf.screenshot → text.generate with a vision model → the same output
 ```
 
-The platform chunks and indexes that output itself once the record type gives it a `search` use
+The platform chunks and indexes that output itself once the table gives it a `search` use
 (`kipory-model`); the flow has no chunking or embedding step.
 
 `pdf.parse` tells you which case you are in rather than erroring. `text` empty with `pageCount`
@@ -115,7 +115,7 @@ none — the platform chunks a `search` field itself (`kipory-model`).
   file sooner, find its id in `GET /v1/files?project=<node>` and `DELETE /v1/files/{id}`. A record
   write (`fileIdsSlot`) does not take it: it is a flow's output, not an input. The file belongs to the signed-in person the run acts for, and to
   the project when there is none (an API key, a public endpoint, a schedule, a trigger). A failed
-  run keeps none of its files. To keep a file for good, produce it in a record type's processing
+  run keeps none of its files. To keep a file for good, produce it in a table's processing
   flow: it stays with the record. A preview's files live 7 days.
 - **`file.read-text` fails on a file over the size cap rather than truncating it.** That is the
   intended behaviour: a silently shortened document is a wrong answer with no symptom. Check the

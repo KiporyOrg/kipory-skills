@@ -31,9 +31,9 @@ slug grammar would refuse included; there is no `422` on this read.
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
-`kipory: 2`, and every rule of that pack holds for it: what a row may state, how each reference is
+`kipory: 3`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused. A template that breaks one is refused like any other document. A
-record type there names its shape by key — the entry stated under `schema` — never inline. Check
+table there names its shape by key — the type stated under `schema` — never inline. Check
 each `evals` suite's `applyWrites` before you run it: `true` means a run saves the records the
 flow writes into your new project. Check each endpoint's `contractConfig.auth` too: `"none"` would
 make it public, callable with no credential. No shipped template declares one — a new project has
@@ -70,9 +70,9 @@ Four things to know about the result:
 There is no "apply a template" call, and none is needed: a template's `document` is an ordinary
 project document, with the document's own rules. Two of them decide what lands:
 
-- A facet that omits `resolver` takes the platform's default binding on the deployment it lands
+- A vocabulary that omits `resolver` takes the platform's default binding on the deployment it lands
   on; one that states `resolver: null` lands unbound everywhere.
-- A relation kind that states `properties: null` lands with no properties type; one that omits the
+- A relation that states `properties: null` lands with no properties type; one that omits the
   field keeps what the project already holds.
 
 Read it with `GET /v1/templates/{slug}`, plan it against your project to see what it would add or

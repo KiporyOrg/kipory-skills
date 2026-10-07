@@ -2,6 +2,120 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261007.234256 — 2026-10-07
+
+Synced from the Kipory monorepo at `00f358eba`.
+
+Handlers renamed: `entity.append` → `record.append`, `entity.count` → `record.count`, `entity.create` → `record.create`, `entity.delete` → `record.delete`, `entity.enqueue-process` → `record.enqueue-process`, `entity.link-assert` → `record.link-assert`, `entity.link-retract` → `record.link-retract`, `entity.links` → `record.links`, `entity.list` → `record.list`, `entity.query` → `record.query`, `entity.read` → `record.read`, `entity.teardown` → `record.teardown`, `entity.update` → `record.update`, `facet.resolve` → `vocabulary.resolve`, `taxonomy.aggregate` → `vocabulary.aggregate`.
+
+Routes renamed: `DELETE /v1/facets/{id}` → `DELETE /v1/vocabularies/{id}`, `DELETE /v1/record-types/{id}` → `DELETE /v1/tables/{id}`, `DELETE /v1/records/{id}/relations/{kind}/{peerRecordId}` → `DELETE /v1/records/{id}/links/{relationKey}/{peerRecordId}`, `DELETE /v1/relation-kind-pairings/{id}` → `DELETE /v1/relation-pairings/{id}`, `DELETE /v1/relation-kinds/{id}` → `DELETE /v1/relations/{id}`, `DELETE /v1/schema-entries/{id}` → `DELETE /v1/types/{id}`, `GET /v1/facets/` → `GET /v1/vocabularies/`, `GET /v1/facets/resolvers` → `GET /v1/vocabularies/resolvers`, `GET /v1/facets/{id}` → `GET /v1/vocabularies/{id}`, `GET /v1/record-types/` → `GET /v1/tables/`, `GET /v1/record-types/{id}` → `GET /v1/tables/{id}`, `GET /v1/records/{id}/relations/{kind}` → `GET /v1/records/{id}/links/{relationKey}`, `GET /v1/relation-kind-pairings/` → `GET /v1/relation-pairings/`, `GET /v1/relation-kind-pairings/{id}` → `GET /v1/relation-pairings/{id}`, `GET /v1/relation-kinds/` → `GET /v1/relations/`, `GET /v1/relation-kinds/{id}` → `GET /v1/relations/{id}`, `GET /v1/relations/` → `GET /v1/links/`, `GET /v1/schema-entries/` → `GET /v1/types/`, `GET /v1/schema-entries/{id}` → `GET /v1/types/{id}`, `PATCH /v1/facets/{id}` → `PATCH /v1/vocabularies/{id}`, `PATCH /v1/record-types/{id}` → `PATCH /v1/tables/{id}`, `PATCH /v1/relation-kinds/{id}` → `PATCH /v1/relations/{id}`, `PATCH /v1/schema-entries/{id}` → `PATCH /v1/types/{id}`, `POST /v1/facets/` → `POST /v1/vocabularies/`, `POST /v1/facets/{id}/terms` → `POST /v1/vocabularies/{id}/terms`, `POST /v1/record-types/` → `POST /v1/tables/`, `POST /v1/records/{id}/relations/{kind}` → `POST /v1/records/{id}/links/{relationKey}`, `POST /v1/relation-kind-pairings/` → `POST /v1/relation-pairings/`, `POST /v1/relation-kinds/` → `POST /v1/relations/`, `POST /v1/schema-entries/` → `POST /v1/types/`, `POST /v1/schema-entries/seed` → `POST /v1/types/seed`, `PUT /v1/records/{id}/facets/{facetKey}` → `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
+
+- changed: `.claude-plugin/marketplace.json`
+- changed: `.claude-plugin/plugin.json`
+- changed: `README.md`
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/handlers-and-models.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/api/skills.md`
+- changed: `skills/kipory-build/references/checking.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/handlers/README.md`
+- removed: `skills/kipory-build/references/handlers/facet.resolve.md`
+- changed: `skills/kipory-build/references/handlers/flow.invoke.md`
+- changed: `skills/kipory-build/references/handlers/flow.merge.md`
+- changed: `skills/kipory-build/references/handlers/list.concat.md`
+- changed: `skills/kipory-build/references/handlers/entity.append.md`
+- changed: `skills/kipory-build/references/handlers/entity.count.md`
+- changed: `skills/kipory-build/references/handlers/entity.create.md`
+- changed: `skills/kipory-build/references/handlers/entity.delete.md`
+- changed: `skills/kipory-build/references/handlers/entity.enqueue-process.md`
+- changed: `skills/kipory-build/references/handlers/entity.link-assert.md`
+- changed: `skills/kipory-build/references/handlers/entity.link-retract.md`
+- changed: `skills/kipory-build/references/handlers/entity.links.md`
+- changed: `skills/kipory-build/references/handlers/entity.list.md`
+- changed: `skills/kipory-build/references/handlers/entity.query.md`
+- changed: `skills/kipory-build/references/handlers/entity.read.md`
+- changed: `skills/kipory-build/references/handlers/entity.teardown.md`
+- changed: `skills/kipory-build/references/handlers/entity.update.md`
+- changed: `skills/kipory-build/references/handlers/term.threshold-gate.md`
+- changed: `skills/kipory-build/references/handlers/term.upsert.md`
+- changed: `skills/kipory-build/references/handlers/text.decide.md`
+- changed: `skills/kipory-build/references/handlers/text.generate.md`
+- changed: `skills/kipory-build/references/handlers/vector.search.md`
+- changed: `skills/kipory-build/references/handlers/taxonomy.aggregate.md`
+- added: `skills/kipory-build/references/handlers/vocabulary.resolve.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-build/references/packs/authoring-order.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-build/references/step-fields.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/bootstrap.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/glossary.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/packs/project-provisioning.md`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- added: `skills/kipory-connect/scripts/upgrade-document.mjs`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/api/files.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-data/references/csv-import.md`
+- changed: `skills/kipory-data/references/in-flow-record-handlers.md`
+- changed: `skills/kipory-diagnose/references/api/traces.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-expose/references/sign-in.md`
+- changed: `skills/kipory-extract/SKILL.md`
+- changed: `skills/kipory-extract/references/document-flows.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/embedding-profiles.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/record-types.md`
+- changed: `skills/kipory-model/references/api/schema-entries.md`
+- changed: `skills/kipory-model/references/api/facets-and-terms.md`
+- changed: `skills/kipory-model/references/classification-runtime.md`
+- changed: `skills/kipory-model/references/packs/embedding-profiles.md`
+- added: `skills/kipory-model/references/packs/relations-and-links.md`
+- removed: `skills/kipory-model/references/packs/relations.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/events.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-operate/references/packs/credits.md`
+- changed: `skills/kipory-operate/references/packs/events.md`
+- changed: `skills/kipory-operate/references/packs/project-config.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-operate/references/spend.md`
+- changed: `skills/kipory-plan/SKILL.md`
+- changed: `skills/kipory-plan/references/build-sheet-example.md`
+- changed: `skills/kipory-plan/references/packs/planning-protocol.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+- changed: `skills/kipory-prove/references/assertions.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+- changed: `skills/kipory-retrieve/references/pipeline.md`
+
 ## 1.20261007.220326 — 2026-10-07
 
 Synced from the Kipory monorepo at `c4e426737`.

@@ -33,8 +33,8 @@ one slot it writes. The routes say `/v1/steps`; the fields that name a step say 
 a write's `skill`, a document's `skills` map. They are one thing, and this pack says "step".
 
 Everything else in a project is a trigger or a binding on top of a flow. An endpoint exposes one
-over HTTP, a schedule fires one on a clock, a record type processes records through one, and a
-facet resolver _is_ one. Build the flow first; bind it after.
+over HTTP, a schedule fires one on a clock, a table processes records through one, and a
+vocabulary resolver _is_ one. Build the flow first; bind it after.
 
 ## When you need it — and when you don't
 
@@ -67,7 +67,7 @@ A step's `key` follows the step-name grammar (below) and is renameable.
 
 ⚠️ **There is no activation step, and no flow lifecycle state.** A flow has no active/inactive flag,
 and nothing publishes one — a flow becomes reachable by being _bound_ to something (an endpoint, a
-schedule, a record type, a facet resolver), and unreachable by not being. If you went looking for an
+schedule, a table, a vocabulary resolver), and unreachable by not being. If you went looking for an
 activate call, that is why you did not find one.
 
 ⚠️ **Nothing refuses to run a flow because its health has errors.** Preview, endpoints, triggers,
@@ -188,7 +188,7 @@ than something to design around. Do not collapse the two: filtering on "null mea
 silently stops filtering at the moment the check broke.
 
 ⚠️ **`version` is the DEPLOYMENT catalog's hash and does not move when your registry does.** Editing
-a schema entry changes the resolved types underneath an unchanged `version`, so it is not a
+a type changes the resolved types underneath an unchanged `version`, so it is not a
 sufficient cache key for this read.
 
 ## Output binding — what makes a flow produce anything
@@ -212,9 +212,10 @@ Each entry is `{ fromSlot, path? }`. `path` omitted or `null` returns the step's
 return part of it, `path` is an object — `{ "segments": [{ "kind": "field", "name": "recordId" }] }`
 — never a dotted string. The segments are the ones `inputPaths` uses: `field` (one property),
 `first` (a list's first element), `last` (its last), `index` (the element at a position), `pluck`
-(one property of every element) and `wrap` (a value as a one-element list). ⚠️ **A `field` segment is checked against the step's declared output
-shape**, so it needs a step whose `outputSchema` is a shape declaring that field. A step typed as the
-open builtin `object` refuses it as a type mismatch; give the step a schema entry.
+(one property of every element) and `wrap` (a value as a one-element list). ⚠️ **A `field` segment
+is checked against the step's declared output shape**, so it needs a step whose `outputSchema` is a
+shape declaring that field. A step typed as the open builtin `object` refuses it as a type mismatch;
+give the step a type.
 
 - **On create** it is optional, and only its shape is checked: every key must name a declared
   output slot. There are no steps yet, so nothing else _can_ be checked.
@@ -228,7 +229,7 @@ open builtin `object` refuses it as a type mismatch; give the step a schema entr
 
 **A signature change is refused with `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` while anything live
 still holds a snapshot of the old one.** Two things do: a dynamic API endpoint, and a flow-backed
-record type. Each captured the shape when it bound and keeps validating against it, so changing the
+table. Each captured the shape when it bound and keeps validating against it, so changing the
 flow underneath would not break them loudly; it would leave them serving a contract the flow no
 longer satisfies. The refusal names them, not just their count, so you can see which routes you are
 about to re-publish.
@@ -239,7 +240,7 @@ that is your decision to make explicitly — but taking it is one call, where un
 by hand leaves the route bound to nothing in between.
 
 Other things bind a flow without capturing its shape: a schedule, a trigger, a
-facet resolver. None of them blocks a signature change, because none froze a copy
+vocabulary resolver. None of them blocks a signature change, because none froze a copy
 to go stale. What a schedule needs is that its stored inputs still cover the flow's declared input
 slots, and that is reported live on the schedule itself (`uncoveredInputSlots`) and re-checked when
 it fires. A signature change does not refuse on a schedule or trigger it leaves uncovered or
@@ -321,7 +322,7 @@ indistinguishable from success — so to rehearse a flow safely, preview it.
 
 ⚠️ **Whose corpus a preview reads is the seam that wastes an afternoon.** A preview from a signed-in
 session runs as **you**; a preview from an API key or an internal token runs as a stable sentinel.
-Neither of those owns your end users' records, so a `vector.search` over a user-scoped type comes
+Neither of those owns your end users' records, so a `vector.search` over a user-scoped table comes
 back **empty** — not an error, just nothing. Every step downstream then behaves as though the corpus
 were empty, and the flow looks broken when it is fine. Judge such a flow on the steps _above_ the
 search, or give the run a real end user to act as. Two settings do that:
@@ -334,11 +335,11 @@ the way it will really run, and an eval suite's `runAsUserId`, which names an ar
 ⚠️ `record-owner` is an impersonation capability — it needs EDITOR on the record's project as well as
 on the flow, and refuses a record with no owner.
 
-⚠️ **A record preview takes a record of a type BOUND to the flow — any such type, and only such.**
+⚠️ **A record preview takes a record of a table BOUND to the flow — any such table, and only such.**
 The record's inputs are built the way a real record run builds them: each declared input slot reads
 the same-named field of the record's submission, with the record's id, creation time and submitted
-files available by those slot names. A record of a type this flow does not process is refused with
-422, and the refusal names the types that are bound. `GET /v1/flows/{id}/recent-records` lists the
+files available by those slot names. A record of a table this flow does not process is refused with
+422, and the refusal names the tables that are bound. `GET /v1/flows/{id}/recent-records` lists the
 records the flow ran on lately — the ones most worth previewing.
 
 ⛔ **The same seam bites the OTHER way, and this one is why a broken schedule can preview green.**
@@ -347,7 +348,7 @@ key's call and a trigger), and the engine then omits `userInfo` entirely rather 
 an empty one. What that does to a step depends on what else it reads:
 
 - **A step whose inputs are all provider slots still runs.** It has nothing upstream to wait for.
-  A project-wide read ignores the missing user; a read of a per-user record type fails, because
+  A project-wide read ignores the missing user; a read of a per-user table fails, because
   there is nobody whose records to read.
 - **A step reading `userInfo` beside a real slot waits for that slot.** When the slot never
   arrives the step is skipped, the skip cascades, the terminal step never writes the slot your
@@ -381,8 +382,8 @@ Use it to prove a binding: break the binding and preview reports `missingRequire
 and `flowOutput` fills in.
 
 Preview proves one run. Which steps real runs have exercised since the flow last changed is
-`GET /v1/flows/{id}/coverage`; it names the record types the covered flows touch by key, under
-`recordTypeKeys`.
+`GET /v1/flows/{id}/coverage`; it names the tables the covered flows touch by key, under
+`tableKeys`.
 
 ## When a write is refused with a 409
 
@@ -800,11 +801,11 @@ and a type you give is kept for that input wherever the platform places it.
 <!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
 
-- **Provider slots are roots like any other.** `entity.list` and `entity.read` default `userIdSlot`
-  to `userInfo.userId`, so `userInfo` is an input even on a project-wide type; a prompt reading
+- **Provider slots are roots like any other.** `record.list` and `record.read` default `userIdSlot`
+  to `userInfo.userId`, so `userInfo` is an input even on a project-wide table; a prompt reading
   `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo`. Their shapes are the
-  platform's entries `UserInfo`, `ProjectInfo`, `RunInfo` and `RecordTypeInfo` — by key in a
-  document, by id on the row API (`GET /v1/schema-entries?project={nodeId}&key=UserInfo`), and
+  platform's types `UserInfo`, `ProjectInfo`, `RunInfo` and `TableInfo` — by key in a
+  document, by id on the row API (`GET /v1/types?project={nodeId}&key=UserInfo`), and
   typed in `/scope` above.
 - **A run with no signed-in user has no `userInfo` at all** — a key's call, a schedule, a trigger.
   A step whose inputs are all provider slots still runs: a project-wide read ignores the missing
@@ -1049,7 +1050,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 - **A flow cannot be deleted while another flow invokes it, or while anything live points at it**
   — one 409 `FLOW_HAS_DEPENDENTS` naming every kind that holds it, the calling flows included
   (⚠️ a **wider** set than the signature guard's, not the same one: to the endpoint and
-  record-type bindings that freeze a shape it adds schedules, triggers, facet resolvers and — for a
+  table bindings that freeze a shape it adds schedules, triggers, vocabulary resolvers and — for a
   platform flow — the platform jobs it does. Those bind a flow by
   id, or a job by the flow fitting it, and capture nothing, so they cannot go stale on a signature
   edit — but they very much break on a delete). Only a platform job's stored default is a
@@ -1058,7 +1059,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   `DELETE /v1/flows/{id}?validateOnly=true` deletes nothing and answers the delete's own verdict —
   `ok: false` with that 409 as its diagnostic, in the delete's words — and `derived.dependents`, the
   counts it decided on (`kinds[{kind, count, label, refuses}]`, `total`; `kind` is kebab-case:
-  `api-endpoints`, `schedules`, `triggers`, `record-types`, `facet-resolvers`, `platform-jobs`,
+  `api-endpoints`, `schedules`, `triggers`, `tables`, `vocabulary-resolvers`, `platform-jobs`,
   `invoking-flows`). Delete where `ok` is true; do not decide from `total`.
 - **A flow's contract suite goes with it.** The delete also deletes the eval suite keyed
   `<flowKey>-contract` over that flow, with its cases and runs, and answers
@@ -1075,7 +1076,8 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   never existed.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-facet's (which also carries `confirm` and `assignedTerms`); anything else in the query is refused.
+vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
+refused.
 
 ## What will bite you
 
@@ -1159,19 +1161,19 @@ Each diagnostic `GET /v1/flows/{id}/health` answers carries its words in two hal
 | `remedySegments` | the remedy in pieces; empty exactly when there is no remedy                                             |
 
 A segment is `{ kind: "text" }`, `{ kind: "code" }` — a slot, a path, an expression — or
-`{ kind: "ref" }`, whose `ref` carries `of`, naming the object (`step`, `flow`, `record-type`, `facet`,
-`handler`, `event`). Every segment also carries its own `text`. Read `segments` when you want the
-objects and `message` when you want a sentence; do not parse either. A health summary's
+`{ kind: "ref" }`, whose `ref` carries `of`, naming the object (`step`, `flow`, `table`,
+`vocabulary`, `handler`, `event`). Every segment also carries its own `text`. Read `segments` when
+you want the objects and `message` when you want a sentence; do not parse either. A health summary's
 `firstErrorCode` and `firstErrorMessage` come off one diagnostic, so they are `null` together.
 
 **A `derived.draft` diagnostic names `fields`, a list.** One entry is the field at fault. Several
 mean the rule is about the relationship between them: `dataEqualsPath` and `dataEqualsSlot` on
-`entity.list` must be set together or not at all, and a `flow.dispatch` step needs its `rules`
+`record.list` must be set together or not at all, and a `flow.dispatch` step needs its `rules`
 list, or else a `default` branch. An empty list is a problem with the configuration as a whole.
 
 **`derivedFrom` says where the dry run read the step's inputs from, not whether the step's inputs
 are chosen on its row.** `editor.inputStreams` on the handler's catalog entry says that: `flow.merge`
-takes no inputs on the row while deriving nothing here, and `entity.count` takes them on the row
+takes no inputs on the row while deriving nothing here, and `record.count` takes them on the row
 while naming slots in its config.
 
 ### Which slots fit a step's inputs
@@ -1221,7 +1223,7 @@ What the answer means for the write:
 - **Fitting is by type identity, not by resemblance.** A named type fits only an input that wants
   that same type, so an object never fits a text input directly — the case `reach-in` covers.
 - **Whether a slot holds a file is nominal.** An object of your own carrying a key, a name and a
-  MIME type is not a file, and neither is an entry whose definition points at the builtin `file`;
+  MIME type is not a file, and neither is a type whose definition points at the builtin `file`;
   the save refuses a wire chosen by comparing shapes.
 - **A fan-out needs a list that is always there.** A slot declared as a list that may be missing
   comes back `no`.

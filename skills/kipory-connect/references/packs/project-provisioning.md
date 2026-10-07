@@ -78,13 +78,13 @@ Project templates (capability pack `templates` — `GET /v1/capability-packs/tem
 
 ⚠️ **Nothing seeds your builtin shapes, and nothing needs to.** The builtin and library tiers are
 virtual — synthesized from the platform's own catalog on read, with no rows in your project — so do
-not read a fresh project's empty schema-entry list as a provisioning failure.
+not read a fresh project's empty type list as a provisioning failure.
 
 **One part is deliberately not atomic.** After the commit, and best-effort, the flow-provider
 shapes are seeded. A failure there is logged and swallowed, because the project is committed and
 usable without them and they re-materialise on first use.
 
-⚠️ **So a 201 is not proof those entries exist.** If you are about to reference one, read it back
+⚠️ **So a 201 is not proof those types exist.** If you are about to reference one, read it back
 rather than assuming.
 
 ## Choosing a slug
@@ -192,5 +192,5 @@ correct request at the wrong moment.
 ## Related
 
 - Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`) — step 1.
-- Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) — what the builtin shapes
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — what the builtin shapes
   are, and what to add next.

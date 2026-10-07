@@ -19,18 +19,11 @@ Fills the step's prompt with the slots wired into it and sends it to a model. Re
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `facetFields` | object[] | no | — | Which fields of the answer are facet values, so they can be resolved into terms. |
 | `modelSlot` | string | no | — | Names a slot holding the model to use, picked while the flow runs. Leave it empty to use the model set on this step. ⚠️ The model named while the flow runs has to be one that is enabled and can generate text. An unknown or disabled one fails the run — nothing falls back to the step's own model. |
-| `outputs` | object[] | no | — | Extra slots this step writes besides its main answer: exactly one entry, for the facet values, when `facetFields` is set, and none otherwise. |
+| `outputs` | object[] | no | — | Extra slots this step writes besides its main answer: exactly one entry, for the vocabulary values, when `vocabularyFields` is set, and none otherwise. |
 | `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How hard the model thinks first. Costs time and tokens. ⚠️ Also part of the cache key, and higher settings are what dominate both the time and the token bill on models that reason. |
 | `temperature` | number, 0 to 2 | no | — | How much the answer may vary. Empty means the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
-
-### `facetFields` — each item
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `field` | string | yes | — | The field of the answer that holds the facet's value. |
-| `facet` | string | yes | — | The facet, by key. |
+| `vocabularyFields` | object[] | no | — | Which fields of the answer are vocabulary values, so they can be resolved into terms. |
 
 ### `outputs` — each item
 
@@ -45,8 +38,8 @@ Fills the step's prompt with the slots wired into it and sends it to a model. Re
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape, defined once in the project's schema entries and reused by id. |
-| `entryId` | string | yes | — | Id of the schema entry this points at. It has to already exist, and one that something still points at cannot be deleted. |
+| `kind` | `ref` | yes | — | A named shape, defined once in the project's types and reused by id. |
+| `dataTypeId` | string | yes | — | Id of the type this points at. It has to already exist, and one that something still points at cannot be deleted. |
 
 **`schema` › `kind: list`**
 
@@ -81,7 +74,14 @@ Fills the step's prompt with the slots wired into it and sends it to a model. Re
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
-| `recordType` | string | yes | — | Which record type the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+| `tableKey` | string | yes | — | Which table the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+
+### `vocabularyFields` — each item
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `field` | string | yes | — | The field of the answer that holds the vocabulary's value. |
+| `vocabularyKey` | string | yes | — | The vocabulary, by key. |
 
 ## Worked example
 
@@ -136,7 +136,7 @@ Output schema:
   "kind": "list",
   "element": {
     "kind": "ref",
-    "entryId": "string"
+    "dataTypeId": "string"
   }
 }
 ```

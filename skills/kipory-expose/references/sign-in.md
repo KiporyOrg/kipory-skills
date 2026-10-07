@@ -147,12 +147,12 @@ The `auth` and `account` groups can be switched off per project (route enablemen
 
 ## The end-user profile
 
-A project's end users each have a profile, typed by one schema entry the builder connects. Until one is connected there is no profile: `userInfo` carries `userId` alone. These are design routes — the api host, with your key:
+A project's end users each have a profile, typed by one type the builder connects. Until one is connected there is no profile: `userInfo` carries `userId` alone. These are design routes — the api host, with your key:
 
 | Route                                                        | Floor  | What it does                                                                                  |
 | ------------------------------------------------------------ | ------ | --------------------------------------------------------------------------------------------- |
 | `GET /v1/projects/{nodeId}/profile-schema`                   | VIEWER | the type that shapes the project's profiles, or none                                          |
-| `PUT /v1/projects/{nodeId}/profile-schema { schemaEntryId }` | EDITOR | connects a schema entry; re-pointing to another is refused once profiles exist                |
+| `PUT /v1/projects/{nodeId}/profile-schema { dataTypeId }`    | EDITOR | connects a type; re-pointing to another is refused once profiles exist                        |
 | `POST /v1/projects/{nodeId}/profile-schema/starter { key }`  | EDITOR | creates a type from the platform's starter shape and connects it; refused once profiles exist |
 | `DELETE /v1/projects/{nodeId}/profile-schema`                | ADMIN  | disconnects it and keeps the type; stored profiles are left typed by nothing                  |
 | `GET /v1/users/{userId}/profile?project={nodeId}`            | VIEWER | one person's profile                                                                          |
@@ -167,4 +167,4 @@ A key cannot sign a user in, mint a session, or call any `/v1/me` route. To test
 - A human signs in once per test user and hands you the `session`; send it as a Bearer to the project host.
 - Inside an eval suite, `runAsUserId` runs the flow as one user without a session (`kipory-prove`). Plan a two-user proof as two suites.
 
-A key calling a product endpoint has no `userInfo` at all, and what that does depends on the step: anything that needs a person fails closed — a per-user record type refuses, and an endpoint whose flow reads or writes person-owned records answers 403 before the flow runs (`access.requiresUser` says so beforehand) — while a step that reads a project-wide type runs without one.
+A key calling a product endpoint has no `userInfo` at all, and what that does depends on the step: anything that needs a person fails closed — a per-user table refuses, and an endpoint whose flow reads or writes person-owned records answers 403 before the flow runs (`access.requiresUser` says so beforehand) — while a step that reads a project-wide table runs without one.

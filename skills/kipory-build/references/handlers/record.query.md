@@ -1,12 +1,12 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.query` — Query records
+# `record.query` — Query records
 
 Find records by their fields, terms, links, or meaning, all in one question.
 
 Returns the records of one type that satisfy every clause. Exact clauses narrow first; a `semantic` clause then ranks by meaning and adds `scores`, how close each record is. A clause's value may come from a slot. Every answer says whether it is complete.
 
-- **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
+- **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the slots its clauses name` → `RecordQueryPage`
 - **Reads:** The slots its clauses name for the values they compare against; optionally a cursor from `cursorSlot`; and on a user-owned type the user id from `userIdSlot`. _(shape hint: `the slots its clauses name`)_
@@ -20,8 +20,8 @@ Returns the records of one type that satisfy every clause. Exact clauses narrow 
 | `cursorSlot` | string | no | — | The slot holding a prior answer's cursor. Absent, the first page. Only a query without a semantic clause pages. ⚠️ A cursor that has been edited or truncated fails the step; an absent one starts from the newest record. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. A semantic clause's own topK is bounded separately. |
 | `order` | union | no | — | How the answer is ordered: `created`, `meaning`, or a date field of the type. Omitted: by meaning with a semantic clause, else newest first. ⚠️ A field order needs a date field with a `filter` use, and leaves out records with no value there. Beside a semantic clause it re-orders the ranking and does not page. |
-| `recordType` | string | yes | — | The record type the question is asked of. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
-| `userIdSlot` | string | no | — | On a user-owned type, the slot holding the user whose records are queried. Absent, the run's signed-in user. ⚠️ On a user-owned record type an empty value fails the step rather than returning an unfiltered answer, and a run with no signed-in user and no slot fails the same way. |
+| `tableKey` | string | yes | — | The table the question is asked of. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
+| `userIdSlot` | string | no | — | On a user-owned type, the slot holding the user whose records are queried. Absent, the run's signed-in user. ⚠️ On a user-owned table an empty value fails the step rather than returning an unfiltered answer, and a run with no signed-in user and no slot fails the same way. |
 
 ### `clauses` — each item is one of
 
@@ -30,7 +30,7 @@ Returns the records of one type that satisfy every clause. Exact clauses narrow 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `field` | yes | — | A condition on a field the type routes with `filter`. |
-| `field` | string | yes | — | A field of the record type that carries a `filter` use. Any other field is refused. |
+| `field` | string | yes | — | A field of the table that carries a `filter` use. Any other field is refused. |
 | `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | `eq`, `lt`, `lte`, `gt`, `gte` take one value; `in` takes a list (OR within the clause). |
 | `value` | union | no | — | One scalar, or a list for `in`. Dates as ISO 8601 strings. |
 | `valueSlot` | string | no | — | The slot whose run-time value is compared against, in place of `value`: one scalar, or a list for `in`. |
@@ -41,27 +41,27 @@ Returns the records of one type that satisfy every clause. Exact clauses narrow 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `term` | yes | — | An assignment of a facet term, by slug. |
-| `facet` | string | yes | — | A facet the record type surfaces in `uses.facets`. Any other facet is refused. |
+| `kind` | `term` | yes | — | An assignment of a vocabulary term, by slug. |
+| `vocabularyKey` | string | yes | — | A vocabulary the table surfaces in `uses.vocabularies`. Any other vocabulary is refused. |
 | `slug` | string | no | — | The term, by slug. An alias resolves to its canonical term, one hop. |
 | `slugSlot` | string | no | — | The slot whose run-time value is the term's slug, in place of `slug`. |
 
-**`kind: edge`**
+**`kind: link`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `edge` | yes | — | A relation a `link` use declares, optionally narrowed by its edge filters, a count and one hop of peer clauses. |
-| `relation` | string | yes | — | A relation kind a `link` use declares: on a field of this type, or, asked `incoming` or `either`, of a type pointing at it. |
+| `kind` | `link` | yes | — | A relation a `link` use declares, optionally narrowed by its link filters, a count and one hop of peer clauses. |
+| `relation` | string | yes | — | A relation a `link` use declares: on a field of this table, or, asked `incoming` or `either`, of a table pointing at it. |
 | `direction` | `outgoing` \| `incoming` \| `either` | no | — | Which end the record is on. Omitted: `outgoing`. |
-| `where` | object[], 1 to 16 items | no | — | Clauses on the kind's declared edge filters, ANDed. |
-| `count` | object | no | — | Keep records whose number of matching edges compares so. Omitted: at least one. |
+| `where` | object[], 1 to 16 items | no | — | Clauses on the relation's declared link filters, ANDed. |
+| `count` | object | no | — | Keep records whose number of matching links compares so. Omitted: at least one. |
 | `peer` | union[], 1 to 16 items | no | — | Clauses on the PEER record's own uses — `field`, `term`, and at most one `semantic` — one hop. |
 
 `where` — each item:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `property` | string | yes | — | A declared edge filter of the relation, or a declared stream filter of the field. |
+| `property` | string | yes | — | A declared link filter of the relation, or a declared stream filter of the field. |
 | `op` | `eq` \| `ne` \| `in` \| `lt` \| `lte` \| `gt` \| `gte` | yes | — | How the stamped value compares. |
 | `value` | string | no | — | The value compared against, as a string; `in` takes up to 1000 comma-separated members. |
 | `valueSlot` | string | no | — | The slot whose run-time value is compared against, in place of `value`: text, or a list for `in`. |
@@ -102,7 +102,7 @@ Returns the records of one type that satisfy every clause. Exact clauses narrow 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `property` | string | yes | — | A declared edge filter of the relation, or a declared stream filter of the field. |
+| `property` | string | yes | — | A declared link filter of the relation, or a declared stream filter of the field. |
 | `op` | `eq` \| `ne` \| `in` \| `lt` \| `lte` \| `gt` \| `gte` | yes | — | How the stamped value compares. |
 | `value` | string | no | — | The value compared against, as a string; `in` takes up to 1000 comma-separated members. |
 | `valueSlot` | string | no | — | The slot whose run-time value is compared against, in place of `value`: text, or a list for `in`. |
@@ -153,13 +153,13 @@ Returns the records of one type that satisfy every clause. Exact clauses narrow 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `by` | `field` | yes | — | By one of the type's own date fields. |
-| `field` | string | yes | — | A date field of the record type that carries a `filter` use. A record with no value there is left out. |
+| `by` | `field` | yes | — | By one of the table's own date fields. |
+| `field` | string | yes | — | A date field of the table that carries a `filter` use. A record with no value there is left out. |
 | `direction` | `asc` \| `desc` | no | `"desc"` | `desc` (latest first, the default) or `asc`. |
 
 ## Worked example
 
-Asks one question across a record type's stores and says, on every answer, whether it is complete and which store answered each clause.
+Asks one question across a table's stores and says, on every answer, whether it is complete and which store answered each clause.
 
 #### Three conditions
 
@@ -171,16 +171,16 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "person",
+  "tableKey": "person",
   "userIdSlot": "userInfo.userId",
   "clauses": [
     {
       "kind": "term",
-      "facet": "language",
+      "vocabularyKey": "language",
       "slug": "hebrew"
     },
     {
-      "kind": "edge",
+      "kind": "link",
       "relation": "friend-of",
       "where": [
         {
@@ -215,7 +215,7 @@ Output:
   "explanation": {
     "clauses": [
       { "clause": 0, "store": "term-store", "index": "RecordTerm_termId_recordId_idx", "rank": 1, "candidates": 412, "freshness": "transactional" },
-      { "clause": 1, "store": "edge-store", "index": "RecordRelation_eText0_idx", "rank": 3, "candidates": 37, "freshness": "transactional" },
+      { "clause": 1, "store": "link-store", "index": "RecordRelation_eText0_idx", "rank": 3, "candidates": 37, "freshness": "transactional" },
       { "clause": 2, "store": "vector-index", "index": "kipory_proj_a1b2_person", "rank": 9, "candidates": 1, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 } }
     ],
     "pushdown": { "ids": 37, "cap": 25000, "mode": "exact" }
@@ -233,16 +233,16 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "person",
+  "tableKey": "person",
   "userIdSlot": "userInfo.userId",
   "clauses": [
     {
       "kind": "term",
-      "facet": "language",
+      "vocabularyKey": "language",
       "slug": "hebrew"
     },
     {
-      "kind": "edge",
+      "kind": "link",
       "relation": "friend-of",
       "where": [
         {
@@ -275,7 +275,7 @@ Output:
   "explanation": {
     "clauses": [
       { "clause": 0, "store": "term-store", "index": "RecordTerm_termId_recordId_idx", "rank": 1, "candidates": 9, "freshness": "transactional" },
-      { "clause": 1, "store": "edge-store", "index": "RecordRelation_eText0_idx", "rank": 3, "candidates": 0, "freshness": "transactional" }
+      { "clause": 1, "store": "link-store", "index": "RecordRelation_eText0_idx", "rank": 3, "candidates": 0, "freshness": "transactional" }
     ],
     "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }
   },
@@ -293,7 +293,7 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "outing",
+  "tableKey": "outing",
   "clauses": [
     {
       "kind": "field",
@@ -347,10 +347,10 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "guide",
+  "tableKey": "guide",
   "clauses": [
     {
-      "kind": "edge",
+      "kind": "link",
       "relation": "led-by",
       "direction": "incoming",
       "peer": [
@@ -389,7 +389,7 @@ Output:
   "explanation": {
     "clauses": [
       { "clause": 0, "store": "vector-index", "index": "kipory_proj_a1b2_outing", "rank": 9, "candidates": 50, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 }, "operands": [{ "path": "peer.0.text", "slot": "request.q" }] },
-      { "clause": 0, "store": "edge-store", "index": "RecordRelation_validity_idx", "rank": 3, "candidates": 14, "freshness": "transactional", "operands": [{ "path": "peer.0.text", "slot": "request.q" }] }
+      { "clause": 0, "store": "link-store", "index": "RecordRelation_validity_idx", "rank": 3, "candidates": 14, "freshness": "transactional", "operands": [{ "path": "peer.0.text", "slot": "request.q" }] }
     ],
     "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }
   }
@@ -406,7 +406,7 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "person",
+  "tableKey": "person",
   "clauses": [
     {
       "kind": "field",

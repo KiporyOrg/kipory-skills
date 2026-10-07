@@ -26,12 +26,12 @@ Public: no credential needed.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kipory` | `2` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
+| `kipory` | `3` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
 | `schema` | `object` | no | Shapes, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `records` | `object` | no | Record types, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `relations` | `object` | no | Relation kinds, with their pairings, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
-| `facets` | `object` | no | Facets, with their terms, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `tables` | `object` | no | Tables, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `relations` | `object` | no | Relations, with their pairings, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `vocabularies` | `object` | no | Vocabularies, with their terms, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `events` | `object` | no | The event registry. |
 | `vectors` | `object` | no | Vector spaces. |
 | `flows` | `object` | no | Flows keyed by key, each with its steps, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
@@ -53,7 +53,7 @@ Public: no credential needed.
 
 ### `GET /v1/projects/{nodeId}/document`
 
-The project's whole configuration as one document addressed by key — flows with their steps, record types, facets, endpoints, schedules, triggers, evals. Edit it and send it back through `POST …/document/plan` (what would change) and `POST …/document` (apply). To read or change one row, its own route is simpler (`GET /v1/flows/{id}`, `GET /v1/steps?flowId=`, …); this is for the whole project at once — a copy, a diff, a template. The same configuration by id, with a live stream, is `GET /v1/bootstrap?project=`.
+The project's whole configuration as one document addressed by key — flows with their steps, tables, vocabularies, endpoints, schedules, triggers, evals. Edit it and send it back through `POST …/document/plan` (what would change) and `POST …/document` (apply). To read or change one row, its own route is simpler (`GET /v1/flows/{id}`, `GET /v1/steps?flowId=`, …); this is for the whole project at once — a copy, a diff, a template. The same configuration by id, with a live stream, is `GET /v1/bootstrap?project=`.
 
 **Path parameters**
 
@@ -100,8 +100,8 @@ Apply a project document: every row it names is created, changed or removed thro
 | `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
-| `contracts` | `object` | no | On a plan: the contract each record type the document CREATES would have, by the record type's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/record-types/{id}` with `validateOnly`, for a type that has no row to ask yet. Absent when the document creates no record type, and on an apply. |
-| `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a record type that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
+| `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
+| `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a table that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
 | `applied` | `true` | yes | The document is now the project's configuration. Also true when it changed nothing — nothing was written, and the project already says what the document says. |
@@ -112,9 +112,9 @@ Each item of `changes`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `path` | `string` | yes | Where the row stands in the document, e.g. `records.Member` or `flows.intake.skills.classify`. |
+| `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.skills.classify`. |
 | `kind` | `"create" \| "update" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "schema-entries" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "skills" \| "facets" \| "terms" \| "record-types" \| "relation-kinds" \| "relation-kind-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "skills" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -124,7 +124,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
 | `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
@@ -169,8 +169,8 @@ _No fields._
 | `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
-| `contracts` | `object` | no | On a plan: the contract each record type the document CREATES would have, by the record type's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/record-types/{id}` with `validateOnly`, for a type that has no row to ask yet. Absent when the document creates no record type, and on an apply. |
-| `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a record type that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
+| `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
+| `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a table that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
 
@@ -178,9 +178,9 @@ Each item of `changes`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `path` | `string` | yes | Where the row stands in the document, e.g. `records.Member` or `flows.intake.skills.classify`. |
+| `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.skills.classify`. |
 | `kind` | `"create" \| "update" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "schema-entries" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "skills" \| "facets" \| "terms" \| "record-types" \| "relation-kinds" \| "relation-kind-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "skills" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -190,7 +190,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "edge-restamp" \| "edges-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `edge-restamp`: stored edges are re-stamped. `edges-deleted`: deleting a relation kind deletes every stored edge of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this type's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
 | `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |

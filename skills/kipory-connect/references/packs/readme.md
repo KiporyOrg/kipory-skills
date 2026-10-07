@@ -2,11 +2,11 @@
 
 # Capability packs
 
-Judgment for building on Kipory, the platform for a product's backend. A **project** on Kipory —
-its flows (the processes), record types (the data), endpoints, triggers and schedules (the entry
-points), facets and events — is configuration you author by calling the design API. These packs
-are what you need _beyond_ the schemas: when to reach for each capability, which calls drive it in
-what order, the invariants no JSON Schema expresses, and the mistakes that have already been made.
+Judgment for building on Kipory, the platform for a product's backend. A **project** on Kipory — its
+flows (the processes), tables (the data), endpoints, triggers and schedules (the entry points),
+vocabularies and events — is configuration you author by calling the design API. These packs are
+what you need _beyond_ the schemas: when to reach for each capability, which calls drive it in what
+order, the invariants no JSON Schema expresses, and the mistakes that have already been made.
 
 ## How to use them
 
@@ -46,38 +46,38 @@ quietly working around it.
 
 ## "I want to…"
 
-| I want to…                                                                 | Pack                                                                |
-| -------------------------------------------------------------------------- | ------------------------------------------------------------------- |
-| **Turn an idea into a plan and see everything that will be built**         | Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`)                           |
-| Read, plan or apply a whole project as one document                        | The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)                         |
-| Know what must exist before what, when authoring row by row                | Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`)                               |
-| Start a project from a shipped template                                    | Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`)                                   |
-| Know what Kipory **cannot** do before committing to a design               | Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)                                                 |
-| Create a project, or find its id and its address                           | Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)                     |
-| Understand how a request to a project's own host is served, end to end     | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)           |
-| Expose a flow over HTTP — sync, async or streaming                         | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)           |
-| Mint a token that can call a project's API                                 | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)           |
-| Build or edit a flow; add, change or reorder skills                        | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                               |
-| Make a flow actually return its declared output                            | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                               |
-| Run a flow against real inputs — and the flag that stops it writing        | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                               |
-| Define a reusable data shape                                               | Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) |
-| Define a kind of record people create or the system processes              | Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`) |
-| Classify records against a vocabulary that resolves to terms               | Facets (capability pack `facets` — `GET /v1/capability-packs/facets`)                                                 |
-| Link records to each other with typed edges                                | Relations (capability pack `relations` — `GET /v1/capability-packs/relations`)                                           |
-| Read a record's edges, or state one by hand                                | Relations (capability pack `relations` — `GET /v1/capability-packs/relations`)                                           |
-| Run a flow on a clock                                                      | Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)                                           |
-| Run a flow when an event is recorded                                       | Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)                                             |
-| Start a flow from something outside it — today a watched Telegram channel  | Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)                                               |
-| Emit progress or fan-out signals from a flow, or subscribe to them         | Events (capability pack `events` — `GET /v1/capability-packs/events`)                                                 |
-| Snapshot a flow before a risky change, and roll back                       | Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`)                             |
-| Store what "working" means and re-check it after every edit                | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — a contract suite                          |
-| Judge whether a change made a flow **better**, not just still passing      | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — scorer flows                              |
-| Give a project tunable runtime settings — thresholds, cadences, weights    | Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)                                 |
-| Make a record type searchable                                              | Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)                         |
-| See what you have spent, or why a call was refused with `402`              | Credits and spend (capability pack `credits` — `GET /v1/capability-packs/credits`)                                     |
-| Use your own vendor API key, so the vendor bills you and not us            | Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)                                               |
-| Store any credential a flow needs, without it being readable back          | Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)                                               |
-| Call an outside API with a stored key, or tell an outside system something | Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — what a flow can reach; Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)  |
+| I want to…                                                                 | Pack                                                               |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------ |
+| **Turn an idea into a plan and see everything that will be built**         | Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`)                          |
+| Read, plan or apply a whole project as one document                        | The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)                        |
+| Know what must exist before what, when authoring row by row                | Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`)                              |
+| Start a project from a shipped template                                    | Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`)                                  |
+| Know what Kipory **cannot** do before committing to a design               | Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)                                                |
+| Create a project, or find its id and its address                           | Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)                    |
+| Understand how a request to a project's own host is served, end to end     | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
+| Expose a flow over HTTP — sync, async or streaming                         | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
+| Mint a token that can call a project's API                                 | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
+| Build or edit a flow; add, change or reorder skills                        | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                              |
+| Make a flow actually return its declared output                            | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                              |
+| Run a flow against real inputs — and the flag that stops it writing        | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                              |
+| Define a reusable data shape                                               | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
+| Define a kind of record people create or the system processes              | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
+| Classify records against a vocabulary that resolves to terms               | Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)                                    |
+| Link records to each other with typed links                                | Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)                        |
+| Read a record's links, or state one by hand                                | Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)                        |
+| Run a flow on a clock                                                      | Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)                                          |
+| Run a flow when an event is recorded                                       | Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)                                            |
+| Start a flow from something outside it — today a watched Telegram channel  | Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)                                              |
+| Emit progress or fan-out signals from a flow, or subscribe to them         | Events (capability pack `events` — `GET /v1/capability-packs/events`)                                                |
+| Snapshot a flow before a risky change, and roll back                       | Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`)                            |
+| Store what "working" means and re-check it after every edit                | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — a contract suite                         |
+| Judge whether a change made a flow **better**, not just still passing      | Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — scorer flows                             |
+| Give a project tunable runtime settings — thresholds, cadences, weights    | Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)                                |
+| Make a table searchable                                                    | Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)                        |
+| See what you have spent, or why a call was refused with `402`              | Credits and spend (capability pack `credits` — `GET /v1/capability-packs/credits`)                                    |
+| Use your own vendor API key, so the vendor bills you and not us            | Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)                                              |
+| Store any credential a flow needs, without it being readable back          | Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)                                              |
+| Call an outside API with a stored key, or tell an outside system something | Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — what a flow can reach; Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`) |
 
 ## The packs
 
@@ -99,13 +99,13 @@ quietly working around it.
 - **Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)** — the main build target. Output binding, preview (which
   costs money **and writes records unless you pass `apply: false`**), what travels between skills,
   and the rule that a save succeeding is not a promise it will run.
-- **Record types & schema entries (capability pack `record-types-and-schema-entries` — `GET /v1/capability-packs/record-types-and-schema-entries`)** — shapes versus record
-  types, the reserved names, and what a schema edit cascades into.
-- **Facets (capability pack `facets` — `GET /v1/capability-packs/facets`)** — classification against a resolvable vocabulary, and the path from
-  resolving to committing terms.
-- **Relations (capability pack `relations` — `GET /v1/capability-packs/relations`)** — typed record-to-record edges: kinds, pairings, the declaration
-  that rides on the record type, the surfaces edges arrive on, and the multi-hop walk that does not
-  exist.
+- **Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)** — shapes versus tables, the reserved names, and what a
+  schema edit cascades into.
+- **Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)** — classification against a resolvable vocabulary, and the path
+  from resolving to committing terms.
+- **Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)** — typed record-to-record links: relations,
+  pairings, the declaration that rides on the table, the surfaces links arrive on, and the multi-hop
+  walk that does not exist.
 - **Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)** — time-triggered flow runs, run history, and why the next-run time
   you are given is one you can hold the platform to.
 - **Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)** — event-triggered flow runs: the durable event log, the selector and

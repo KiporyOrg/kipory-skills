@@ -168,27 +168,27 @@ _Vectors: encode a value, store it, and find the nearest matches._
 - [`vector.search`](vector.search.md) — Search by meaning · `inline` · model (when it embeds) · `any+` → `a hit list, typed by hitShape`
 - [`vector.upsert`](vector.upsert.md) — Store search data · `ingest` · `any+` → `nothing`
 
-## entities (17)
+## records (17)
 
 _Read and change the project's records and terms. Only these steps can change a record._
 
-- [`entity.append`](entity.append.md) — Add events to a record · `inline` · `record slot + event(s)` → `string`
-- [`entity.count`](entity.count.md) — Count records · `inline` · `user id` → `number`
-- [`entity.create`](entity.create.md) — Create a record · `inline` · `submission object` → `RecordCreate`
-- [`entity.delete`](entity.delete.md) — Delete records · `inline` · `record id list` → `boolean`
-- [`entity.enqueue-process`](entity.enqueue-process.md) — Queue for processing · `inline` · `record id` → `boolean`
-- [`entity.link-assert`](entity.link-assert.md) — Link two records · `inline` · `string, string` → `RelationAssertion`
-- [`entity.link-retract`](entity.link-retract.md) — Remove a link · `inline` · `string, string` → `RelationRetraction`
-- [`entity.links`](entity.links.md) — Read a record's links · `inline` · `string` → `RecordLink[]`
-- [`entity.list`](entity.list.md) — List records · `inline` · `user id + cursor` → `RecordPage`
-- [`entity.query`](entity.query.md) — Query records · `inline` · model (when it embeds) · `the slots its clauses name` → `RecordQueryPage`
-- [`entity.read`](entity.read.md) — Read records · `inline` · `any+` → `RecordRead[]`
-- [`entity.teardown`](entity.teardown.md) — Clear generated data · `inline` · `record id` → `object`
-- [`entity.update`](entity.update.md) — Update a record · `inline` · `record slot + data/derived patches` → `boolean`
-- [`facet.resolve`](facet.resolve.md) — Pick terms for a record · `inline` · model · `record context` → `TermResolution[]`
-- [`taxonomy.aggregate`](taxonomy.aggregate.md) — Count records by term · `inline` · `string` → `TaxonomyAggregate`
+- [`record.append`](record.append.md) — Add events to a record · `inline` · `record slot + event(s)` → `string`
+- [`record.count`](record.count.md) — Count records · `inline` · `user id` → `number`
+- [`record.create`](record.create.md) — Create a record · `inline` · `submission object` → `RecordCreate`
+- [`record.delete`](record.delete.md) — Delete records · `inline` · `record id list` → `boolean`
+- [`record.enqueue-process`](record.enqueue-process.md) — Queue for processing · `inline` · `record id` → `boolean`
+- [`record.link-assert`](record.link-assert.md) — Link two records · `inline` · `string, string` → `RelationAssertion`
+- [`record.link-retract`](record.link-retract.md) — Remove a link · `inline` · `string, string` → `RelationRetraction`
+- [`record.links`](record.links.md) — Read a record's links · `inline` · `string` → `RecordLink[]`
+- [`record.list`](record.list.md) — List records · `inline` · `user id + cursor` → `RecordPage`
+- [`record.query`](record.query.md) — Query records · `inline` · model (when it embeds) · `the slots its clauses name` → `RecordQueryPage`
+- [`record.read`](record.read.md) — Read records · `inline` · `any+` → `RecordRead[]`
+- [`record.teardown`](record.teardown.md) — Clear generated data · `inline` · `record id` → `object`
+- [`record.update`](record.update.md) — Update a record · `inline` · `record slot + data/derived patches` → `boolean`
 - [`term.threshold-gate`](term.threshold-gate.md) — Decide: match or new term · `inline` · `candidates + thresholds + proposal` → `GateDecision`
 - [`term.upsert`](term.upsert.md) — Save terms · `ingest` · model (when it embeds) · `TermResolution[]` → `nothing`
+- [`vocabulary.aggregate`](vocabulary.aggregate.md) — Count records by term · `inline` · `string` → `VocabularyAggregate`
+- [`vocabulary.resolve`](vocabulary.resolve.md) — Pick terms for a record · `inline` · model · `record context` → `TermResolution[]`
 
 ## outbound (2)
 

@@ -6,6 +6,6 @@
     "url": "https://github.com/KiporyOrg"
   },
   "license": "MIT",
-  "keywords": ["kipory", "agent-skills", "api", "flows", "record-types"],
+  "keywords": ["kipory", "agent-skills", "api", "flows", "tables"],
   "skills": "./skills"
 }

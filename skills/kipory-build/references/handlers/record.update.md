@@ -1,16 +1,16 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.update` — Update a record
+# `record.update` — Update a record
 
 Change an existing record's data.
 
 Changes a record's data: on a per-user type only the user's own record, on a project type any record. Merges by default, or replaces. Can clear derived output, set a status, attach files, and require a status first. Returns whether a row changed.
 
-- **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + data/derived patches` → `boolean`
 - **Reads:** The record id, from the slot `recordIdSlot` names, plus whichever patch slots you wire: the new data, the new derived output, and file ids to attach. _(shape hint: `record slot + data/derived patches`)_
-- **Emits:** A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `entity.delete`).
+- **Emits:** A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `record.delete`).
 
 ## Config
 
@@ -24,7 +24,7 @@ Changes a record's data: on a per-user type only the user's own record, on a pro
 | `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) shallow-merges each provided patch over the record's existing column value; `replace` overwrites. Applies to BOTH `data` and `derived`. |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to patch. ⚠️ On a per-user type only the user's own record is patched — another id, or a run with no user, changes nothing and reports no error. Any run reaches a project type's records. |
 | `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record's current status is this one. Leave it unset to write to any record that is not being deleted. |
-| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Flip the record to this processing status, clearing any earlier error. Leave it unset to leave the status alone. ⚠️ Setting it to pending does not start processing on its own — a separate `entity.enqueue-process` step does that. |
+| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Flip the record to this processing status, clearing any earlier error. Leave it unset to leave the status alone. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` step does that. |
 
 ## Worked example
 

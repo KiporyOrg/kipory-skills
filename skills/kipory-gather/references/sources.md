@@ -118,9 +118,9 @@ fetch    url.fetch          feedUrl → xml         "reuseResultsForMinutes": 0,
 items    text.extract       xml → blocks          { "pattern": "<item[\\s\\S]*?</item>", "flags": ["i"] }
 each     flow.fan-out       blocks → one block per branch
 fields   value.transform    block → item          { title, link, published } — $match on each tag, below
-found    entity.list        item → found          { "recordType": "<type>", "fieldFilterSlots": { "link": "item.link" }, "limit": 1 }
-create   entity.create      item                  { "recordType": "<type>", "dataSlot": "item" } — when nothing was found
-update   entity.update      item, found           "recordIdSlot": "found.records[0].id", "dataSlot": "item" — when one was
+found    record.list        item → found          { "tableKey": "<type>", "fieldFilterSlots": { "link": "item.link" }, "limit": 1 }
+create   record.create      item                  { "tableKey": "<type>", "dataSlot": "item" } — when nothing was found
+update   record.update      item, found           "recordIdSlot": "found.records[0].id", "dataSlot": "item" — when one was
 ```
 
 - **`url.fetch` returns the feed as one string**, whatever content type the server names, so
@@ -140,9 +140,9 @@ update   entity.update      item, found           "recordIdSlot": "found.records
   is the title; the link is `<link>…</link>` in RSS and the `href` attribute of `<link …/>` in
   Atom. Wrap a value in `$trim`, and strip `<![CDATA[` … `]]>` where the feed uses it.
 - **Look the link up before you write.** There is no upsert step, and a `key` use does not turn
-  a create into an update. What `entity.create` alone does with an item an earlier poll wrote:
-  - **Unchanged item, project-wide type**: the record's id comes from its data, so
-    `entity.create` lands on the record that is already there and adds nothing.
+  a create into an update. What `record.create` alone does with an item an earlier poll wrote:
+  - **Unchanged item, project-wide table**: the record's id comes from its data, so
+    `record.create` lands on the record that is already there and adds nothing.
   - **Changed item** (an edited title, a new date): with no `key` use it becomes a second
     record; with a `key` use on the link it is different data under a held key, the create is
     refused `RECORD_NATURAL_KEY_TAKEN`, and the whole poll writes nothing.
@@ -150,19 +150,19 @@ update   entity.update      item, found           "recordIdSlot": "found.records
     can filter on it, and guard the two writes on what it returned:
     `create` with `{ "op": "listEmpty", "slot": "found", "path": "records" }`, `update` with
     that condition inside `{ "op": "not", "inner": … }`.
-    `entity.update` merges the new fields over the stored ones. `listEmpty` also holds when
+    `record.update` merges the new fields over the stored ones. `listEmpty` also holds when
     `found` is absent, and `found` is skipped for an item with no link — so if the feed can
     omit one, add `{ "op": "slotPresent", "slot": "item", "path": "link" }` to the `create`
     guard under an `and`.
   - Leave `inputStreams` out of all three steps and the save derives them from each step's
     config: `update` reads `item` and `found`, `found` reads `item` and, like every
-    `entity.list`, `userInfo`, and `create` reads `item` alone. `create`'s condition names
+    `record.list`, `userInfo`, and `create` reads `item` alone. `create`'s condition names
     `found`, and that alone runs it after the lookup; listing `found` among `create`'s inputs
     is refused `FREE_FORM_INPUT_STREAMS_MISMATCH`.
   - A `key` use beside the `filter` use (`"uses": ["key", "filter"]`) is a backstop that
     refuses a second record under one link; it is never the update.
-  - Store the items in a project-wide type. A scheduled poll has no end user, so a per-user
-    type refuses there; and inside a fan-out a per-user record gets a new id on every run.
+  - Store the items in a project-wide table. A scheduled poll has no end user, so a per-user
+    table refuses there; and inside a fan-out a per-user record gets a new id on every run.
   - Match on the link, not on the feed's `<guid>`, which is not always stable between fetches.
 
   `kipory-build`'s `references/records-and-endpoints.md` (§8, natural-key collisions) has the

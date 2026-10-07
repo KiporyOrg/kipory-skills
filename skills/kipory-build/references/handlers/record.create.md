@@ -1,12 +1,12 @@
 <!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# `entity.create` — Create a record
+# `record.create` — Create a record
 
 Create a new record of the type you choose.
 
-Creates a record of one of the project's types. On a per-user type the record belongs to the run's user (a run with no user is refused); on a project type, to the project. With a processing flow it stays pending until an `entity.enqueue-process` step.
+Creates a record of one of the project's types. On a per-user type the record belongs to the run's user (a run with no user is refused); on a project type, to the project. With a processing flow it stays pending until an `record.enqueue-process` step.
 
-- **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`
 - **Reads:** The new record's fields, from the slot `dataSlot` names, and optional uploaded file ids to attach. Fields off the type's shape fail the step, each named, as through the API. _(shape hint: `submission object`)_
@@ -18,7 +18,7 @@ Creates a record of one of the project's types. On a per-user type the record be
 | --- | --- | --- | --- | --- |
 | `dataSlot` | string | yes | — | Slot PATH (e.g. `submission`) that resolves to the new record's submitted `data` object. A non-object resolves to an empty `{}`. |
 | `fileIdsSlot` | string | no | — | The slot holding uploaded file ids to attach to the new record. ⚠️ Each file must belong to the record's owner (the run's user, or the project — a key's uploads are project files), be fully uploaded, and be attached nowhere else, or the create fails. |
-| `recordType` | string | yes | — | The record type to create. Must be a type defined in this project. |
+| `tableKey` | string | yes | — | The table to create a record in. Must be one defined in this project. |
 
 ## Worked example
 
@@ -34,7 +34,7 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "item",
+  "tableKey": "item",
   "dataSlot": "submission"
 }
 ```
@@ -53,7 +53,7 @@ Output:
 ```
 {
   "recordId": "ckwx0a1b2c3d",
-  "recordType": "item"
+  "tableKey": "item"
 }
 ```
 
@@ -67,7 +67,7 @@ Step settings (`handlerConfig`):
 
 ```json
 {
-  "recordType": "item",
+  "tableKey": "item",
   "dataSlot": "submission"
 }
 ```
@@ -86,6 +86,6 @@ Output:
 ```
 {
   "recordId": "ckwx0a1b2c3d",
-  "recordType": "item"
+  "tableKey": "item"
 }
 ```

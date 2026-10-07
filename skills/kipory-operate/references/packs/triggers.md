@@ -21,7 +21,7 @@ skipped, blocked — is written down in its runs, and any decision can be replay
 <!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field a caller sends -->
 
 **A fire has no end user.** `userInfo` is absent from the run. A step that reads only provider
-slots still runs, with no user behind it — so a per-user record type refuses there, a project-wide
+slots still runs, with no user behind it — so a per-user table refuses there, a project-wide
 one reads normally, and a `user`-scoped emit is dropped. A step that reads `userInfo` beside
 another slot waits on that other slot. Carry the person you mean as data in the event's payload,
 and preview the flow with `"principal": "no-end-user"`, which is the run a fire makes.

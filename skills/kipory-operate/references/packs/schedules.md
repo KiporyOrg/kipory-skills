@@ -16,7 +16,7 @@ The fire is attributed to the **project**, not to a person, and billed to the pr
 <!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field a caller sends -->
 
 **A fire has no end user.** `userInfo` is absent from the run. A step that reads only provider
-slots still runs, with no user behind it — so a per-user record type refuses there, a project-wide
+slots still runs, with no user behind it — so a per-user table refuses there, a project-wide
 one reads normally, and a `user`-scoped emit is dropped. A step that reads `userInfo` beside
 another slot waits on that other slot. Carry the person you mean as an input, and preview the flow
 with `"principal": "no-end-user"`, which is the run a fire makes.
@@ -26,7 +26,7 @@ with `"principal": "no-end-user"`, which is the run a fire makes.
 - **Against an endpoint:** use an endpoint when an outside caller decides _when_. Use a schedule
   when the clock decides. Because there is no caller, every input has to be fixed in advance.
 - **Against a trigger:** a schedule fires on wall-clock time; a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) fires when
-  something happens. "Every ten minutes" is a schedule. "Whenever a record of this type appears"
+  something happens. "Every ten minutes" is a schedule. "Whenever a record of this table appears"
   is an event — model the producer to emit one and bind a trigger to it rather than polling for it
   on a timer.
 
@@ -50,7 +50,7 @@ that suppresses fires, so state it when you meant `allow`.
 ## The key you author
 
 A schedule is addressed by its `key`, a string **you** choose rather than the row id. Schedules,
-triggers, sources, endpoints, schema entries, eval suites and eval cases share one format, the
+triggers, sources, endpoints, types, eval suites and eval cases share one format, the
 **address key**, checked on write:
 
 ```
@@ -131,7 +131,7 @@ read the one schedule you are about to show from it when the list left it `null`
 
   Coverage is presence; the TYPE is judged where inputs are stored. A value its slot's type
   refuses is refused at the schedule's save (`SCHEDULE_INPUT_MISTYPED`, one issue per slot), and
-  a change that narrows the flow or a shape under it — a document plan, or a schema-entry or flow
+  a change that narrows the flow or a shape under it — a document plan, or a type or flow
   PATCH with `validateOnly` — reports every schedule and trigger it would leave unable to fire,
   with the same code, even when it never names them. The fire itself asks only presence, so a
   schedule stored before a change keeps firing until you patch its `inputs`.
@@ -309,7 +309,7 @@ query is refused.
   provenance only, read by nothing at fire time, and is empty for a token-authenticated caller.
   This is deliberate: a departed creator's account can never stop or misattribute a run.
 - **A flow that works from an endpoint can do nothing on a schedule.** The endpoint run had a
-  signed-in user and the fire has none (above): a per-user record type refuses and a `user`-scoped
+  signed-in user and the fire has none (above): a per-user table refuses and a `user`-scoped
   emit drops. A preview run as yourself resolves you and reports the flow healthy, so preview with
   `"principal": "no-end-user"`.
 - **A schedule stored before a change keeps firing.** The fire asks only presence, so a value a

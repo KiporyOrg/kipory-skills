@@ -100,8 +100,8 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape, defined once in the project's schema entries and reused by id. |
-| `entryId` | string | yes | — | Id of the schema entry this points at. It has to already exist, and one that something still points at cannot be deleted. |
+| `kind` | `ref` | yes | — | A named shape, defined once in the project's types and reused by id. |
+| `dataTypeId` | string | yes | — | Id of the type this points at. It has to already exist, and one that something still points at cannot be deleted. |
 
 **`derivedShape` › `kind: list`**
 
@@ -136,7 +136,7 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
-| `recordType` | string | yes | — | Which record type the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+| `tableKey` | string | yes | — | Which table the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
 
 ## Worked example
 

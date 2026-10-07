@@ -6,7 +6,7 @@ license: MIT
 
 # Connect to Kipory
 
-Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code: its flows, record types, HTTP endpoints, triggers, schedules, facets and events are **validated configuration rows** you author by calling the design API over HTTP. This skill is turn zero. The fact most people get wrong: there are **two hosts**, and the design API you author against answers on the api host with your key, while the product's own endpoints answer on the project's host — a design route called on the project host, or a product endpoint called on the api host, is a 404 that looks like a typo.
+Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code: its flows, tables, HTTP endpoints, triggers, schedules, vocabularies and events are **validated configuration rows** you author by calling the design API over HTTP. This skill is turn zero. The fact most people get wrong: there are **two hosts**, and the design API you author against answers on the api host with your key, while the product's own endpoints answer on the project's host — a design route called on the project host, or a product endpoint called on the api host, is a 404 that looks like a typo.
 
 ## What you need before turn one
 
@@ -96,6 +96,9 @@ The create also takes a `template` slug (`GET /v1/templates` lists them) or a wh
 (`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
 transaction — a refused one leaves no project behind.
 
+A project document exported before the data words were renamed states `kipory: 2` and is refused
+(`DOCUMENT_VERSION_UNSUPPORTED`). `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts it to version 3. It renames only the names the platform defines, never one you chose; it lists the prompts and expressions that name a renamed field, which are yours to edit; and it refuses, with the line number, a YAML mapping written on one line (`{ … }`) in a place it would have to rewrite — write that mapping out as a block and run it again.
+
 `GET /v1/projects/address-availability?candidate=` says whether a slug is free before you send it. A
 project's address — its subdomain — can move later and its slug never does; moving it is `kipory-evolve`.
 
@@ -130,7 +133,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 
 - **Silence about the node id.** Nothing at mint time tells the key its grant. Read `GET /v1/grant` at turn zero, not at the first 403.
 - **`parentNodeId` omitted on create** — defaults to the platform organisation, refuses, and reads like an auth failure.
-- **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider shapes are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/schema-entries/seed`.
+- **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider shapes are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/types/seed`.
 - **A retired project stops its own keys.** A key granted at the project answers `401` to every call, reads included, until the project is restored. A key granted at the organisation above still reads it, and a write naming it answers 409 — except the restore and the purge, switching off a schedule, trigger or source, and deleting a secret.
 - **A declared query string is strict.** On a route whose reference lists query parameters, an unlisted key or value — `expand` on a resource that has none, an `expand` value that resource does not offer, a typo — is a 422. A route whose reference lists no query parameters ignores any you send, so a misspelled flag there is silent — except a DELETE, which refuses any query key it does not list (422) and deletes nothing.
 - **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.

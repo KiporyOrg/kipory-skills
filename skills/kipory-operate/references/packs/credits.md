@@ -46,7 +46,7 @@ apply.
 by the project's design-time ceiling (`402 DESIGN_SPEND_CAP_EXCEEDED`), which the balance does not
 show: read `designSpend` on `GET /v1/projects/{nodeId}/settings` for what the current window has
 consumed, and `designSpendCapCredits` and `designSpendCapPeriod` beside it for the ceiling. A
-record that an `entity.enqueue-process` step of a preview or an eval run hands to its processing
+record that an `record.enqueue-process` step of a preview or an eval run hands to its processing
 flow counts toward the same ceiling.
 
 ⚠️ **The wallet may not be the project's.** A project without a wallet of its own draws on the
