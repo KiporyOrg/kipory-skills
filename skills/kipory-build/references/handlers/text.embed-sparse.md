@@ -4,6 +4,8 @@
 
 Turn text into numbers that capture its keywords, for keyword search.
 
+Computes a sparse, BM25-style vector for one text, the exact-word counterpart to `text.embed`. Empty text gives an empty vector rather than an error. No model, no network; the same text, tokenizer and language always give the same vector.
+
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SparseVector`

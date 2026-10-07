@@ -4,6 +4,8 @@
 
 Save one page of a PDF as an image.
 
+Draws one page of a PDF as a PNG or JPEG image. Put a `slotStartsWith currentFile.mime application/pdf` condition or a `flow.dispatch` on the file's type before it, so other files are skipped.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `file` → `file`

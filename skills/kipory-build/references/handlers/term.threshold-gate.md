@@ -4,6 +4,8 @@
 
 Decide whether a proposed term matches one you have, is new, or needs review.
 
+Decides a term from the best similarity score alone. A high score reuses the matching term, a low one coins a new term, and anything between is handed on for a model to settle.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `candidates + thresholds + proposal` → `GateDecision`

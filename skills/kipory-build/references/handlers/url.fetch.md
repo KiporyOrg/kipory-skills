@@ -4,6 +4,8 @@
 
 Download the text behind a web address.
 
+Reads JSON, plaintext or an XML feed. The request can carry query parameters, headers, a body and a stored credential named in `secret`. A read may repeat and is cached, so a POST must change nothing. A 4xx or a refused address fails the step.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

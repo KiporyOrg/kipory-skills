@@ -4,6 +4,8 @@
 
 Run the next steps once for each item in a list.
 
+Starts one branch for each item of a list slot. Each branch runs the rest of the flow on its own, with its item in the output slot. Any list fans out: text, files, objects, numbers or booleans.
+
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]` → `T`

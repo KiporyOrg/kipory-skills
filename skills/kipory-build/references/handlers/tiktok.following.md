@@ -4,6 +4,8 @@
 
 List the accounts a TikTok account follows.
 
+Reads the public list of accounts one TikTok account follows, from its handle or profile link, up to the bound you set. Each account comes back with its handle, name, bio and counts.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile[]`

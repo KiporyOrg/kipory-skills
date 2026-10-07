@@ -93,6 +93,7 @@ Each item of `handlers`:
 | `key` | `string` | yes | The handler's key — the value a step's `handlerKey` stores to select it. |
 | `title` | `string` | yes | Its display name. |
 | `description` | `string` | yes | What it does. |
+| `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this handler, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
 | `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "entities" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this handler executes. It constrains where a step using it can sit in a flow. |
@@ -154,6 +155,7 @@ Any authenticated caller; the answer is the same for everyone.
 | `key` | `string` | yes | The handler's key — the value a step's `handlerKey` stores to select it. |
 | `title` | `string` | yes | Its display name. |
 | `description` | `string` | yes | What it does. |
+| `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this handler, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
 | `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "entities" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers handlers under, so a reader meets one vocabulary rather than two. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this handler executes. It constrains where a step using it can sit in a flow. |

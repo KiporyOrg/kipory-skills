@@ -4,6 +4,8 @@
 
 Make retrieved text safe to put into an AI prompt.
 
+Wraps each item's text in a tagged block stamped with a per-run nonce, strips control tokens a model might read as instructions, and caps the length. This is what stops a poisoned document in a search result from giving the model orders.
+
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`

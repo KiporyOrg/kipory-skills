@@ -4,6 +4,8 @@
 
 Create a new record of the type you choose.
 
+Creates a record of one of the project's types. On a per-user type the record belongs to the run's user (a run with no user is refused); on a project type, to the project. With a processing flow it stays pending until an `entity.enqueue-process` step.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`

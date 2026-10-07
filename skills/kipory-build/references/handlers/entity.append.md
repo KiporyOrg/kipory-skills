@@ -4,6 +4,8 @@
 
 Add one or more events to a record's history.
 
+Writes events to a record's stream field — a list the record type stores as time-stamped rows instead of inside its data. Each event's time comes from the property the stream declares. A retried run converges: the same event is not written twice.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + event(s)` → `string`

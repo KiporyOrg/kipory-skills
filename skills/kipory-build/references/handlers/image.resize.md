@@ -4,6 +4,8 @@
 
 Make an image smaller and return the new file.
 
+Shrinks an image to fit inside a maximum width and height, for thumbnails, previews or tidying an upload. A file that is not an image fails, so put a `slotStartsWith currentFile.mime image/` condition or a `flow.dispatch` on the file's type before it.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `file` → `file`

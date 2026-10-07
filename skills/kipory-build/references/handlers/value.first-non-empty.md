@@ -4,6 +4,8 @@
 
 Take the first value that is filled in, from a list you rank.
 
+Hands the chosen value on exactly as it arrived, without converting it. So the candidates can be of different kinds, a URL string first and a file second, and the winner reaches later steps unchanged.
+
 - **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `the first input's type`

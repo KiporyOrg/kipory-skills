@@ -4,6 +4,8 @@
 
 Read a web page's title, description, icon, and preview image.
 
+Reads just the head of a page — title, description, author, icon and social preview — without downloading the body. A site that cannot be reached is reported in the result, with a reason code, and does not fail the step.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `UrlMeta`

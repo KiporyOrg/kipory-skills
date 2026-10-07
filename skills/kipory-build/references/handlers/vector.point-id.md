@@ -4,6 +4,8 @@
 
 Make the stable id a record's search data is stored under.
 
+Turns a record id into the point id its vectors are stored under. The same record id always gives the same point id. A missing or non-string id fails loudly rather than addressing the wrong point.
+
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `string`

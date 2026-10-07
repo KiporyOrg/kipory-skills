@@ -4,6 +4,8 @@
 
 Look up one ad in the TikTok ad library.
 
+Reads one ad from the public TikTok ad library, from its link or its id: title, video link, landing page, the countries it ran in and, where given, its brand and engagement. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`

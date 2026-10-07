@@ -4,6 +4,8 @@
 
 Turn a map point into a place: city, region, and country.
 
+Turns one pair of coordinates into a place — city, region, country. A coordinate the provider cannot place comes back empty. Answers are cached per coordinate, so repeats are free.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `Location` → `Place`

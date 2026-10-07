@@ -4,6 +4,8 @@
 
 Look up one Threads post and its numbers.
 
+Reads one public Threads post from its link: text, author, time and its like, reply and repost counts. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`

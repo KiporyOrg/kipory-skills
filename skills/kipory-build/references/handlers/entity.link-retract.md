@@ -4,6 +4,8 @@
 
 Remove a link this flow made earlier.
 
+Takes back the link of the kind you name between the record in the first input and the record in the second. The link is expired, not deleted, so who stated it and when both survive.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string, string` → `RelationRetraction`

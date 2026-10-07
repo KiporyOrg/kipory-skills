@@ -4,6 +4,8 @@
 
 Delete one or more records.
 
+Deletes records by id: the signed-in user's own and the project's pool records, only the pool when the run has no user, never another user's. A record still processing is marked and goes on its own; the rest go at once. Deleting twice is harmless.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id list` → `boolean`

@@ -4,6 +4,8 @@
 
 Pick the right terms for a record in each facet you choose.
 
+Proposes facet values for a record in one call, then resolves each into a term — reusing one that matches, or minting a new one when the facet allows it. Wire the output into a single `term.upsert` step to save them.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record context` → `TermResolution[]`

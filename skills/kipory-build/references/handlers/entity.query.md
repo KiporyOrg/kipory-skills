@@ -4,6 +4,8 @@
 
 Find records by their fields, terms, links, or meaning, all in one question.
 
+Returns the records of one type that satisfy every clause. Exact clauses run first and their intersection is pushed into the semantic search. A clause's value may come from a slot: `valueSlot`, `slugSlot`, `textSlot`, `fromSlot`, `toSlot`. Every answer says whether it is complete.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the slots its clauses name` → `RecordQueryPage`

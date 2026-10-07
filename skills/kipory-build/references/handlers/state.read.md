@@ -4,6 +4,8 @@
 
 Recall a value saved earlier in this run.
 
+Returns empty when nothing has written the cell yet, so a read that runs too early looks exactly like a cell holding nothing. Put it after the writes it depends on.
+
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `none` → `string, or string[] for an append or union cell`

@@ -4,6 +4,8 @@
 
 Send an existing record back through its processing flow.
 
+Puts an existing record back on the processing queue. It only triggers — it does not change the record's status or clear anything, so the flow has to do that first. Fails if the record type has no processing flow.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each call pushes a new processing job, so a new run processes the record again whenever it is pending by then, as it is when the flow resets its status before this step.
 - **I/O:** `record id` → `boolean`

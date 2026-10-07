@@ -4,6 +4,8 @@
 
 Find TikTok videos that match a search.
 
+Searches public TikTok videos for a keyword or phrase and returns the matches, up to the bound you set, each with its caption, author, time and engagement counts.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

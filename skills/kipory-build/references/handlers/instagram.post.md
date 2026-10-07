@@ -4,6 +4,8 @@
 
 Look up one Instagram post or reel and its numbers.
 
+Reads one public Instagram post or reel from its link: caption, author, time, media links and engagement counts. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`

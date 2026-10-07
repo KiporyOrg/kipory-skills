@@ -4,6 +4,8 @@
 
 Link one record to another.
 
+Writes one link of the kind you name, from the record in the first input to the record in the second. The link is stated under the label you give this step, and only a step with the same label can take it back.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string, string` → `RelationAssertion`

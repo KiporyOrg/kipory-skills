@@ -4,6 +4,8 @@
 
 List the comments on a Reddit post.
 
+Reads the top-level comments on one public Reddit post from its link, up to the bound you set, each with the replies the thread shows under it. Every comment comes back with its text, author, time and score.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`

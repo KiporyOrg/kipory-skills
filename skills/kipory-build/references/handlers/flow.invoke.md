@@ -4,6 +4,8 @@
 
 Run another flow, passing values in and taking results back.
 
+Runs another saved flow inside this one. The input slots you map are handed to the sub-flow as its starting values, and the output slots you map come back to this flow. Nothing else crosses between the two.
+
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the parent slots its inputs name` → `nothing`

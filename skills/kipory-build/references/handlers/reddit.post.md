@@ -4,6 +4,8 @@
 
 Look up one Reddit post and its numbers.
 
+Reads one public Reddit post from its link: title, text, author, subreddit, time, score and comment count. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`

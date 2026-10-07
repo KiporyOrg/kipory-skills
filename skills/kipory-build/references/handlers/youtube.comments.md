@@ -4,6 +4,8 @@
 
 List the comments on a YouTube video.
 
+Reads the top-level comments on one public YouTube video, from its link or its video id, most liked or newest first, up to the bound you set. Each comes back with its text, author, like count, how many replies it has and an approximate time.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`

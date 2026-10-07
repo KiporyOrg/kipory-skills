@@ -4,6 +4,8 @@
 
 Make a link anyone can use to download a file.
 
+Makes a signed link to a file that anything can read from: a browser, a model's tool call, a step with no storage access. It never expires unless you turn that off and set a lifetime. Nothing is fetched; the link is signed locally.
+
 - **Group:** files · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`

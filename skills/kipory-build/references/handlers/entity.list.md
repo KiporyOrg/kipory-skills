@@ -4,6 +4,8 @@
 
 List a user's records, newest first, one page at a time.
 
+Reads a page of records of one type, newest first. Each page carries up to `limit` rows and a cursor for the next one. Filter by status, date, facet, declared field, or link. Use it to answer questions about the whole catalog.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id + cursor` → `RecordPage`

@@ -4,6 +4,8 @@
 
 List the recent posts a public Facebook page has published.
 
+Reads a public Facebook page's posts from its handle or page link, newest first, up to the bound you set. Each comes back with its text, time, link, counts, and a video link when it has one. Posts arrive three to a paid request.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

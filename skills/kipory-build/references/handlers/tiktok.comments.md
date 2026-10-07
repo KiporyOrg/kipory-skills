@@ -4,6 +4,8 @@
 
 List the comments on a TikTok video.
 
+Reads the comments on one public TikTok video from its link, up to the bound you set. Each comes back with its text, author, time and like count.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`

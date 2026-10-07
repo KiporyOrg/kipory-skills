@@ -4,6 +4,8 @@
 
 Look up one ad in the Google ad library.
 
+Reads one ad from the public Google ad library, from its library link: format, headline, text, image, destination, the regions it ran in and when it was last shown. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`

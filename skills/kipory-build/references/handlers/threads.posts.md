@@ -4,6 +4,8 @@
 
 List the recent posts a Threads account has published.
 
+Reads a public Threads account's recent posts from its handle or profile link, in the order the platform lists them. Threads shows a signed-out visitor only the most recent twenty to thirty, so the list can be shorter than your bound.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

@@ -4,6 +4,8 @@
 
 Tell which language a text is written in.
 
+Names the language a text is written in, as a two-letter code. No model, no network. Where the writing system belongs to one language it answers from that alone; otherwise it guesses statistically, and it returns nothing rather than a wrong guess.
+
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

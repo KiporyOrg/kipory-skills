@@ -4,6 +4,8 @@
 
 Read records so later steps can use their text, files, and details.
 
+Reads records by id. Takes a list of ids from an earlier step and returns the requested fields in the order the ids came in. On a user-owned type it keeps only the signed-in user's records.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `RecordRead[]`

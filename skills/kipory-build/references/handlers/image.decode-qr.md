@@ -4,6 +4,8 @@
 
 Read the QR codes in an image and return what they say.
 
+Looks for a QR code in an image and emits what it encodes. By default only web links are kept, since a QR can also hold wifi details or plain text. Nothing found gives an empty list rather than an error.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string[]`

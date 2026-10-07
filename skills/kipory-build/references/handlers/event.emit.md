@@ -4,6 +4,8 @@
 
 Send an event, with its data, to anything listening.
 
+Emits one of the project's registered event types, with the payload taken from a slot. It writes nothing back, so the step can sit anywhere without affecting the data flowing past it.
+
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Every emission gets a new event id, so a new run publishes the event again and starts every trigger listening for it again.
 - **I/O:** `event payload` → `nothing`

@@ -4,6 +4,8 @@
 
 Look up one TikTok video's details and numbers.
 
+Reads one public TikTok video from its link: caption, author, time, cover, a link to the video file and its engagement counts. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`

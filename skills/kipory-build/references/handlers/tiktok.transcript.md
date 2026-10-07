@@ -4,6 +4,8 @@
 
 Get the words spoken in a TikTok video.
 
+Reads the captions of one public TikTok video from its link, as text. A video with no captions returns an empty string, unless the fallback is on: it transcribes videos up to two minutes long, at a higher cost.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

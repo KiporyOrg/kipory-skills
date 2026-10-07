@@ -4,6 +4,8 @@
 
 Read an audio file's length, format, and tags.
 
+Reads an audio file's header and tags and returns whatever they carried — the length, the format, and the track details when the file has them. A file with no tags still gets the technical fields; an unreadable one gets nothing.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `AudioMetadata`

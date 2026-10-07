@@ -4,6 +4,8 @@
 
 List the comments on an Instagram post or reel.
 
+Reads the comments on one public Instagram post or reel from its link, up to the bound you set. Each comes back with its text, author, time and like count. Replies are left out unless you ask for them, which costs far more per request.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`

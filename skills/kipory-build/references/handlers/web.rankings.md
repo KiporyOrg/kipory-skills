@@ -4,6 +4,8 @@
 
 List a country's most visited websites, in order.
 
+Returns the most-visited websites for one country. This ranks where the traffic comes from, not where a site is published. National rankings move slowly, so results are cached for a month.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TopSiteRanking`

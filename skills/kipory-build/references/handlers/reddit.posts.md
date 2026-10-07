@@ -4,6 +4,8 @@
 
 List the posts in a subreddit.
 
+Reads the posts of one public subreddit from its name or link, in the order you choose, up to the bound you set. Each comes back with its title, text, author, time, score and comment count.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

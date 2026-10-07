@@ -4,6 +4,8 @@
 
 Split long text into smaller overlapping pieces.
 
+The same text and settings always give the same chunks, so the embeddings made from them stay the same from run to run and reprocessing a record leaves its search data unchanged. Use it to summarize, piece by piece, text too long for a model.
+
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string[]`

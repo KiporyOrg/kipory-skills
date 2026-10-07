@@ -4,6 +4,8 @@
 
 End a loop: stop when the condition holds, or go round again.
 
+Closes a `flow.loop`. After each round it checks the stop condition; if it does not hold and the cap allows, its outputs become the next round's carry slots. Afterwards the flow sees the escape slots and the output slot, which holds the last carried value.
+
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the loop's own slots` → `nothing`

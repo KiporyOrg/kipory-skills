@@ -4,6 +4,8 @@
 
 Save a value for later steps in this run, or add to one.
 
+The cell is shared across the whole run, sub-flows included, so two branches writing one name contend for it. That is why only `set` depends on order. It emits a marker, so a later read can be ordered after this write.
+
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `string`

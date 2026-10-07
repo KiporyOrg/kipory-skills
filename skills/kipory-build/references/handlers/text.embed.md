@@ -4,6 +4,8 @@
 
 Turn text into numbers that capture its meaning, for search by meaning.
 
+Runs one string through an embedding model and returns the vector. Text that arrives empty is skipped without a call, so a step that only sometimes has something to embed costs nothing when it does not. The same text and model return a cached vector.
+
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Vector`

@@ -4,6 +4,8 @@
 
 Look up one LinkedIn post or article and its numbers.
 
+Reads one public LinkedIn post or article from its link: headline, text, author, time and its like and comment counts. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`

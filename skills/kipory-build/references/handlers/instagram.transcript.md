@@ -4,6 +4,8 @@
 
 Get the words spoken in an Instagram reel or video post.
 
+Reads what is said in one public Instagram reel or video post, up to two minutes long, and returns it as text. Several clips return each clip's words, separated by a blank line. No speech returns an empty string.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

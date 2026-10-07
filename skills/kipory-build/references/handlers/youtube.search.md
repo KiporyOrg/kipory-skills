@@ -4,6 +4,8 @@
 
 Find YouTube videos that match a search.
 
+Searches public YouTube videos for a keyword or phrase and returns the matches, by relevance or by views, up to the bound you set. Each comes back with its title, channel, thumbnail, length, view count and an approximate time.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

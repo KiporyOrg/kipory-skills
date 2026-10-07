@@ -4,6 +4,8 @@
 
 Read a file's size, fingerprint, and last change date.
 
+Reads three facts every file has, whatever its type: its size in bytes, a SHA-256 hash of its contents and when it was last changed. Run it once before a flow branches by file type, so every branch reads the same slot.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `FileStats`

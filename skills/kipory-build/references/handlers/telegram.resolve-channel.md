@@ -4,6 +4,8 @@
 
 Look up a public Telegram channel: its name, members, description, and picture.
 
+Looks up a public Telegram channel from its handle. A recent lookup is reused; otherwise the request is queued and this waits for an answer. When the lookup does not succeed, you get the reason rather than nothing.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelResolution`

@@ -4,6 +4,8 @@
 
 Look up one ad in the LinkedIn ad library.
 
+Reads one ad from the public LinkedIn ad library, from its library link: advertiser, headline, copy, image, destination, run dates and who it was shown to. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`

@@ -4,6 +4,8 @@
 
 Send one email to one person.
 
+Sends a message earlier steps put together — recipient, subject and body all come from slots. It leaves only after the run saves everything else, so a flow that fails later sends nothing. Previews never send.
+
 - **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own message, so a new run of the same input sends it again.
 - **I/O:** `recipient, subject, body` → `boolean`

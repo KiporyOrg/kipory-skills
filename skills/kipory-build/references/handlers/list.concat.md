@@ -4,6 +4,8 @@
 
 Join several values or lists into one list.
 
+Joins any number of slot values into one flat list. A single value becomes one item, and a list adds each of its items. Use it to collect what several independent steps produced when there is no fan-out to merge.
+
 - **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `list+` → `a list of the first input's element type`

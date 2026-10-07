@@ -4,6 +4,8 @@
 
 Fill a text template with values from earlier steps.
 
+Fills the `{{slot}}` references in a template from the run's slots and writes the text to this step's output slot. No model is called. Use it for prose with holes; work that walks a list, sorts, filters or reshapes belongs in Reshape values.
+
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `string`

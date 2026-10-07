@@ -4,6 +4,8 @@
 
 See which countries a TikTok account's audience is in.
 
+Reads where the followers of one public TikTok account are, as a list of countries with each one's share of the audience. One lookup costs 26 vendor credits, far more than any other TikTok read.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAudience`

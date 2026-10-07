@@ -4,6 +4,8 @@
 
 Get the words spoken in a YouTube video.
 
+Takes a bare 11-character video id, usually the `id` field of `youtube.video`. Reads both automatic and manual captions, and you can name the caption language. A URL is refused, not parsed: put `youtube.video` before it and wire its `id` in.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

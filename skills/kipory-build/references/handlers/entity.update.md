@@ -4,6 +4,8 @@
 
 Change an existing record's data.
 
+Changes a record's data: on a per-user type only the user's own record, on a project type any record. Merges by default, or replaces. Can clear derived output, set a status, attach files, and require a status first. Returns whether a row changed.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + data/derived patches` → `boolean`

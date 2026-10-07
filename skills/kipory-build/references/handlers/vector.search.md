@@ -4,6 +4,8 @@
 
 Find the stored items closest in meaning to a query.
 
+Finds the nearest points in a collection. The query is one of three things, and only one may be set: text to embed here, a vector an earlier step made, or a record whose own vectors are used. An empty collection returns an empty list.
+
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `a hit list, typed by hitShape`

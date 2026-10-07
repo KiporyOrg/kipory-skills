@@ -4,6 +4,8 @@
 
 Take a picture of a web page.
 
+Renders a web page in full and saves the picture as a PNG or JPEG file. Returns a reference to that file. A fresh screenshot is a paid request; a repeat for the same record within a day is reused.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `string` → `file`

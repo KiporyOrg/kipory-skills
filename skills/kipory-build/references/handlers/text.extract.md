@@ -4,6 +4,8 @@
 
 Pull every piece of text that matches a pattern.
 
+Runs a JavaScript regular expression over every text input wired in and returns the matches with duplicates removed. Use a capture group when you need only part of each match, such as a URL's id, a hashtag, a chapter timestamp or an embedded code.
+
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string+` → `string[]`

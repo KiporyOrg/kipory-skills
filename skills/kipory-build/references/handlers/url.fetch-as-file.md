@@ -4,6 +4,8 @@
 
 Download a web address and save it as a file.
 
+Downloads what a URL returns and saves it as a file on the record. Returns a reference to it. Deleting or reprocessing the record reclaims the bytes.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **I/O:** `string` → `file`

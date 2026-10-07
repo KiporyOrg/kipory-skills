@@ -4,6 +4,8 @@
 
 Reshape or combine values with a short expression.
 
+Runs an expression over the slots and writes what it returns. Nothing is fetched and no model is called. Use it for computation — walking, sorting, reshaping — even when the result is a string; for prose with holes use Fill a template.
+
 - **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`

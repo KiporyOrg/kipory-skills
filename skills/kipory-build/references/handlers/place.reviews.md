@@ -4,6 +4,8 @@
 
 Read what people wrote about a place on the map.
 
+Returns one place's reviews — text, stars, date, photos and the owner's reply — newest first by default. Takes a place ID or a map link, not a name. Reviewer names and profiles are left out unless asked for. Cached for a day.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceReviews`

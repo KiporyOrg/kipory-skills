@@ -4,6 +4,8 @@
 
 List the ads a company or one page runs, or ads that match a keyword, from the Facebook ad library.
 
+Reads the public Facebook ad library, which also covers Instagram. Give it a company name, or one page's ad library id, to list its ads, or switch it to keyword search. Each ad comes back with its advertiser, copy, media links, destination and run dates.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`

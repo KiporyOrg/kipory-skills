@@ -4,6 +4,8 @@
 
 Sort documents by how well they answer a question.
 
+Scores every candidate together with the query rather than comparing two vectors separately. More accurate than the search that produced them, and far too slow to run over a whole collection. Each result carries the id it was given, so nothing matches on position.
+
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `a question + documents` → `RerankHit[]`

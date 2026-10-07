@@ -4,6 +4,8 @@
 
 Look up an Instagram account's details and numbers.
 
+Reads one public Instagram account from its handle or profile link: name, bio, whether it is verified or private, its link, category and business contact, its counts, and when it last posted. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`

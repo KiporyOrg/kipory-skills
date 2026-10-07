@@ -4,6 +4,8 @@
 
 Look up a YouTube channel's details and numbers.
 
+Takes a channel URL, a handle, or a channel id and returns what YouTube knows about it. You pick which parts to fetch, and each part costs one unit of the daily quota.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeChannel`

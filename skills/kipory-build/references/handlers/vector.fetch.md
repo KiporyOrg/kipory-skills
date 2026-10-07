@@ -4,6 +4,8 @@
 
 Read the stored meaning numbers for an item.
 
+Reads one point's stored vectors by id and returns them as an object keyed by vector name. A name the point does not carry is left out rather than set to null. Naming one as required turns its absence into an error instead.
+
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Record<string, number[]>`

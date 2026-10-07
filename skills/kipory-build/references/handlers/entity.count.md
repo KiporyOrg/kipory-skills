@@ -4,6 +4,8 @@
 
 Count the records that match, without reading them.
 
+Counts the records of one type that match its filters; the database does the counting. Takes the same filters as `entity.list` and none of its paging. Use it when a step needs a total rather than the rows.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id` → `number`

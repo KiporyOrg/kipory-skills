@@ -4,6 +4,8 @@
 
 Send a value down the first branch whose rule it matches.
 
+Sends the input down one of several branches, choosing the first rule that matches. What gets matched is set by `matchOn` — the value, its host, or a named field — while the original input is what travels on.
+
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string | file | object` → `the input, unchanged`

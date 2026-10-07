@@ -4,6 +4,8 @@
 
 Count a user's records by term, as a list or a browsable tree.
 
+Counts a user's records per term and groups them by facet, rolling merged terms into the one they point at. Comes back as a flat catalog per facet, or as a nested browse tree. Use it to answer what someone has, rather than searching it.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TaxonomyAggregate`

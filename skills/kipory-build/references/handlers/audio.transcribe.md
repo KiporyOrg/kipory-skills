@@ -4,6 +4,8 @@
 
 Turn speech in an audio file into text.
 
+Turns spoken audio into plain text. Leaving the model empty inherits the project's transcription setting, so which service runs and what it costs is a project decision rather than this step's. The same file, model and language reuse the previous transcript.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`

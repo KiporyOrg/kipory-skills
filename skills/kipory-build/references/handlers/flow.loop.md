@@ -4,6 +4,8 @@
 
 Start a loop that repeats the steps inside it.
 
+Opens a loop with a capped number of rounds. The steps between this and its `flow.loop-end` repeat until the stop condition holds or the cap is reached. Each round reads the carry slot, which is this step's output and is seeded for the first round.
+
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the starting values` → `string`

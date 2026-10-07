@@ -4,6 +4,8 @@
 
 Look up a person's public LinkedIn profile.
 
+Reads one person's public LinkedIn profile from its link: name, about text, photo, location and follower count, as a signed-out visitor sees them. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`

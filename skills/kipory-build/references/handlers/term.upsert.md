@@ -4,6 +4,8 @@
 
 Save resolved terms and link them to their records.
 
+Saves a bundle of resolved terms: matches the ones that already exist, creates the rest, links them to the record, and writes their vectors. A preview run writes nothing.
+
 - **Group:** entities · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `TermResolution[]` → `nothing`

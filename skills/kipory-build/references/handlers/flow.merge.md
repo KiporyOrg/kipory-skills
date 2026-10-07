@@ -4,6 +4,8 @@
 
 Gather the results of parallel branches into one list.
 
+Gathers what a `flow.fan-out`'s branches produced into one or more output slots. Each lane reads its own source slots, branch by branch, and reduces them into its own output slot with its own strategy. Steps after the merge run once, on the gathered values.
+
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]+` → `T[]`

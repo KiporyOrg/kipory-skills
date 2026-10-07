@@ -4,6 +4,8 @@
 
 Read a record's links, grouped by kind.
 
+Returns the links a record carries: what is on the other end, which way each points, and any properties its kind declares. Reads current state, with no model call and no queue.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `RecordLink[]`

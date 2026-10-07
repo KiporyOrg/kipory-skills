@@ -4,6 +4,8 @@
 
 Find Threads posts that match a search.
 
+Searches public Threads posts for a keyword or phrase and returns the matches. Threads returns one page of at most ten results to a signed-out visitor.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

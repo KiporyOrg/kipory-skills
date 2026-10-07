@@ -4,6 +4,8 @@
 
 List the videos or shorts a YouTube channel has published.
 
+Reads a public YouTube channel's uploads from its handle, channel id or channel link, newest or most viewed first, up to your bound. Switch it to shorts to list those instead. Each comes back with its title, description, thumbnail, views and an approximate time.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

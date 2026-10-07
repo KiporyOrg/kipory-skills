@@ -4,6 +4,8 @@
 
 Find the places a map lists for a query, like a category in a town.
 
+Searches the map for a text query and returns each place found as a card: address and coordinates, category, rating, phone, website and open or closed status. Every place the search reads is charged. Results are cached for a day.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceCard[]`

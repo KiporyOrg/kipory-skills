@@ -4,6 +4,8 @@
 
 Find Reddit posts that match a search.
 
+Searches public Reddit posts across all subreddits for a keyword or phrase and returns the matches in the order you choose, up to the bound you set.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

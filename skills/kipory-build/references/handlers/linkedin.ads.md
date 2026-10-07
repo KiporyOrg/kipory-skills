@@ -4,6 +4,8 @@
 
 List the ads a company runs, or ads that match a keyword, from the LinkedIn ad library.
 
+Reads the public LinkedIn ad library. Give it a company name to list that company's ads, or switch it to keyword search. Each ad comes back with its advertiser, copy, image, destination and run dates.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`

@@ -4,6 +4,8 @@
 
 Read the posts from an X post, profile, or search link.
 
+Reads one X URL — a post, a profile, or a search — into a list of posts, each with its text, author, time, media and engagement counts.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `XPost[]`

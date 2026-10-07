@@ -4,6 +4,8 @@
 
 Look up a website's visits, ranking, and audience by country.
 
+Looks up one site's traffic profile. The URL is reduced to its bare domain, which is echoed back. The audience breakdown says where a site's visitors are — a different question from `web.rankings`.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SiteTrafficMetrics`

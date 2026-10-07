@@ -4,6 +4,8 @@
 
 Pull the text and document details out of a PDF.
 
+Reads a PDF once and returns both its embedded text and whatever its own metadata carried. A scan has no text layer, so its text is empty; a locked file says so with a flag. Anything that is not a PDF fails.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `PdfDocument`

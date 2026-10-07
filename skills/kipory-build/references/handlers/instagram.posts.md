@@ -4,6 +4,8 @@
 
 List the recent posts and reels an Instagram account has published.
 
+Reads a public Instagram account's posts and reels from its handle or profile link, up to the bound you set. Each comes back with its caption, time, media links and engagement counts.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

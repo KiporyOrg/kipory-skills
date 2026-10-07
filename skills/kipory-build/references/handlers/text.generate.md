@@ -4,6 +4,8 @@
 
 Send your prompt to an AI model and return its answer.
 
+Fills the step's prompt with the slots wired into it and sends it to a model. Returns text, or a structured value when the step declares an output shape. A file wired in is attached to the prompt, which needs a model that reads images.
+
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `the step's outputSchema`

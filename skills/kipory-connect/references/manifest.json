@@ -92,467 +92,467 @@
   },
   "handlers": {
     "audio.metadata": {
-      "hash": "b32e4c47b952",
+      "hash": "d565e2b374c8",
       "page": "kipory-build/references/handlers/audio.metadata.md"
     },
     "audio.transcribe": {
-      "hash": "269bae159b02",
+      "hash": "4417178ab7b3",
       "page": "kipory-build/references/handlers/audio.transcribe.md"
     },
     "email.send": {
-      "hash": "aa01a7fa48c3",
+      "hash": "41e4e4c0e444",
       "page": "kipory-build/references/handlers/email.send.md"
     },
     "entity.append": {
-      "hash": "f097c4565677",
+      "hash": "d419e4ecc279",
       "page": "kipory-build/references/handlers/entity.append.md"
     },
     "entity.count": {
-      "hash": "4591eae246bf",
+      "hash": "5034e7c6ed34",
       "page": "kipory-build/references/handlers/entity.count.md"
     },
     "entity.create": {
-      "hash": "5066565662ef",
+      "hash": "4baf64dc8617",
       "page": "kipory-build/references/handlers/entity.create.md"
     },
     "entity.delete": {
-      "hash": "43fdbb08eb1b",
+      "hash": "9011e567c969",
       "page": "kipory-build/references/handlers/entity.delete.md"
     },
     "entity.enqueue-process": {
-      "hash": "3f8aaef32326",
+      "hash": "621f4e53755e",
       "page": "kipory-build/references/handlers/entity.enqueue-process.md"
     },
     "entity.link-assert": {
-      "hash": "ad3474fff7c6",
+      "hash": "938fc7a6004a",
       "page": "kipory-build/references/handlers/entity.link-assert.md"
     },
     "entity.link-retract": {
-      "hash": "09879eac50c6",
+      "hash": "4a40d139e304",
       "page": "kipory-build/references/handlers/entity.link-retract.md"
     },
     "entity.links": {
-      "hash": "489ce419ad6a",
+      "hash": "e8fba2dd7767",
       "page": "kipory-build/references/handlers/entity.links.md"
     },
     "entity.list": {
-      "hash": "ef1da0a40c47",
+      "hash": "df408c40060d",
       "page": "kipory-build/references/handlers/entity.list.md"
     },
     "entity.query": {
-      "hash": "fe82b5633e0f",
+      "hash": "d254f897918d",
       "page": "kipory-build/references/handlers/entity.query.md"
     },
     "entity.read": {
-      "hash": "67ea3278a22c",
+      "hash": "4d73100ca49c",
       "page": "kipory-build/references/handlers/entity.read.md"
     },
     "entity.teardown": {
-      "hash": "21057905c58c",
+      "hash": "887833df1ca3",
       "page": "kipory-build/references/handlers/entity.teardown.md"
     },
     "entity.update": {
-      "hash": "863e5d7dd266",
+      "hash": "fb86ea8cfe16",
       "page": "kipory-build/references/handlers/entity.update.md"
     },
     "event.emit": {
-      "hash": "292b2fad7819",
+      "hash": "5ba5dd8462d3",
       "page": "kipory-build/references/handlers/event.emit.md"
     },
     "facebook.ad": {
-      "hash": "3846fee78e9b",
+      "hash": "6e46e1ee73b9",
       "page": "kipory-build/references/handlers/facebook.ad.md"
     },
     "facebook.ads": {
-      "hash": "f5f8df687bd1",
+      "hash": "7664f9eacb6e",
       "page": "kipory-build/references/handlers/facebook.ads.md"
     },
     "facebook.page": {
-      "hash": "d938d95b2271",
+      "hash": "b705919d4034",
       "page": "kipory-build/references/handlers/facebook.page.md"
     },
     "facebook.posts": {
-      "hash": "00176483dc4f",
+      "hash": "ba20e5762b85",
       "page": "kipory-build/references/handlers/facebook.posts.md"
     },
     "facet.resolve": {
-      "hash": "efad7feb747a",
+      "hash": "853d6aae732f",
       "page": "kipory-build/references/handlers/facet.resolve.md"
     },
     "file.download-url": {
-      "hash": "8d5044b401ef",
+      "hash": "2f9a6cfc63b4",
       "page": "kipory-build/references/handlers/file.download-url.md"
     },
     "file.read-text": {
-      "hash": "58c3ad1ffa53",
+      "hash": "2d1069b04965",
       "page": "kipory-build/references/handlers/file.read-text.md"
     },
     "file.stats": {
-      "hash": "654b6a43d79d",
+      "hash": "1fd9ed21c8cf",
       "page": "kipory-build/references/handlers/file.stats.md"
     },
     "flow.dispatch": {
-      "hash": "bfc67ef6ccd3",
+      "hash": "17927c63efb9",
       "page": "kipory-build/references/handlers/flow.dispatch.md"
     },
     "flow.fan-out": {
-      "hash": "c259b1b9632c",
+      "hash": "8c17e33e375a",
       "page": "kipory-build/references/handlers/flow.fan-out.md"
     },
     "flow.invoke": {
-      "hash": "c22341a179e7",
+      "hash": "cbcde2ca3827",
       "page": "kipory-build/references/handlers/flow.invoke.md"
     },
     "flow.loop": {
-      "hash": "3e371c3afe24",
+      "hash": "3c0869f45103",
       "page": "kipory-build/references/handlers/flow.loop.md"
     },
     "flow.loop-end": {
-      "hash": "008be04b5c1b",
+      "hash": "76ca9e7b0c7a",
       "page": "kipory-build/references/handlers/flow.loop-end.md"
     },
     "flow.merge": {
-      "hash": "32f93335444d",
+      "hash": "b7b199759a25",
       "page": "kipory-build/references/handlers/flow.merge.md"
     },
     "google.ad": {
-      "hash": "eb0e63d6e67f",
+      "hash": "9a358a923baf",
       "page": "kipory-build/references/handlers/google.ad.md"
     },
     "google.ads": {
-      "hash": "34f5324bbe55",
+      "hash": "285708808fc9",
       "page": "kipory-build/references/handlers/google.ads.md"
     },
     "image.decode-qr": {
-      "hash": "21938124a882",
+      "hash": "01050fb8f7f9",
       "page": "kipory-build/references/handlers/image.decode-qr.md"
     },
     "image.metadata": {
-      "hash": "a7af316beb6f",
+      "hash": "8a11e5afa8d4",
       "page": "kipory-build/references/handlers/image.metadata.md"
     },
     "image.resize": {
-      "hash": "8b201cc4a46f",
+      "hash": "3f55043b7c32",
       "page": "kipory-build/references/handlers/image.resize.md"
     },
     "instagram.comments": {
-      "hash": "6a7fb0ff2f6e",
+      "hash": "8023bddf66ac",
       "page": "kipory-build/references/handlers/instagram.comments.md"
     },
     "instagram.post": {
-      "hash": "8d6d162bec33",
+      "hash": "0724c71223f0",
       "page": "kipory-build/references/handlers/instagram.post.md"
     },
     "instagram.posts": {
-      "hash": "29882f3502f5",
+      "hash": "bac3083e858f",
       "page": "kipory-build/references/handlers/instagram.posts.md"
     },
     "instagram.profile": {
-      "hash": "14a7ebcb0ead",
+      "hash": "5d155af4f303",
       "page": "kipory-build/references/handlers/instagram.profile.md"
     },
     "instagram.transcript": {
-      "hash": "7671767521dd",
+      "hash": "7f4e37c3b8d0",
       "page": "kipory-build/references/handlers/instagram.transcript.md"
     },
     "linkedin.ad": {
-      "hash": "7173356b3f80",
+      "hash": "b708d4f7a9ad",
       "page": "kipory-build/references/handlers/linkedin.ad.md"
     },
     "linkedin.ads": {
-      "hash": "8a908cfb8a91",
+      "hash": "a9bb4736bcb6",
       "page": "kipory-build/references/handlers/linkedin.ads.md"
     },
     "linkedin.company": {
-      "hash": "0046b047676c",
+      "hash": "1fae2f15ffaa",
       "page": "kipory-build/references/handlers/linkedin.company.md"
     },
     "linkedin.post": {
-      "hash": "4de9cadb2cbc",
+      "hash": "f181e1bae5c2",
       "page": "kipory-build/references/handlers/linkedin.post.md"
     },
     "linkedin.posts": {
-      "hash": "4a90190cd8b5",
+      "hash": "9edab56e1e4b",
       "page": "kipory-build/references/handlers/linkedin.posts.md"
     },
     "linkedin.profile": {
-      "hash": "2f795132fc9a",
+      "hash": "33ea802e92fe",
       "page": "kipory-build/references/handlers/linkedin.profile.md"
     },
     "list.concat": {
-      "hash": "def04f5dbf97",
+      "hash": "9cd5c2f65355",
       "page": "kipory-build/references/handlers/list.concat.md"
     },
     "location.resolve": {
-      "hash": "fb9550f10b71",
+      "hash": "813962095145",
       "page": "kipory-build/references/handlers/location.resolve.md"
     },
     "pdf.parse": {
-      "hash": "0910d5bfac0e",
+      "hash": "742df88bbd89",
       "page": "kipory-build/references/handlers/pdf.parse.md"
     },
     "pdf.screenshot": {
-      "hash": "cc56b97bf0f2",
+      "hash": "0bdae5582617",
       "page": "kipory-build/references/handlers/pdf.screenshot.md"
     },
     "place.details": {
-      "hash": "2f97516ceff1",
+      "hash": "2f6764200143",
       "page": "kipory-build/references/handlers/place.details.md"
     },
     "place.reviews": {
-      "hash": "b12e800171f9",
+      "hash": "9311a2df6bb2",
       "page": "kipory-build/references/handlers/place.reviews.md"
     },
     "place.search": {
-      "hash": "995d900bda7d",
+      "hash": "795cdcbc025a",
       "page": "kipory-build/references/handlers/place.search.md"
     },
     "reddit.comments": {
-      "hash": "df7a6428bb53",
+      "hash": "25646336c9bc",
       "page": "kipory-build/references/handlers/reddit.comments.md"
     },
     "reddit.post": {
-      "hash": "fbc57bc1f916",
+      "hash": "74ab35e39755",
       "page": "kipory-build/references/handlers/reddit.post.md"
     },
     "reddit.posts": {
-      "hash": "e2a109aa119d",
+      "hash": "2d8b96ee8760",
       "page": "kipory-build/references/handlers/reddit.posts.md"
     },
     "reddit.search": {
-      "hash": "5d76c1a2b66c",
+      "hash": "e1619084f7ae",
       "page": "kipory-build/references/handlers/reddit.search.md"
     },
     "state.read": {
-      "hash": "a1c40bd613c8",
+      "hash": "065761edb4d5",
       "page": "kipory-build/references/handlers/state.read.md"
     },
     "state.write": {
-      "hash": "afe7d5e25f56",
+      "hash": "36ed30024c03",
       "page": "kipory-build/references/handlers/state.write.md"
     },
     "taxonomy.aggregate": {
-      "hash": "075c634f8e54",
+      "hash": "bf39bd7096e8",
       "page": "kipory-build/references/handlers/taxonomy.aggregate.md"
     },
     "telegram.resolve-channel": {
-      "hash": "db992863ec52",
+      "hash": "bf3cda609e20",
       "page": "kipory-build/references/handlers/telegram.resolve-channel.md"
     },
     "telegram.search-channels": {
-      "hash": "7a5a8d8efee6",
+      "hash": "7f749c8dd273",
       "page": "kipory-build/references/handlers/telegram.search-channels.md"
     },
     "telegram.stats": {
-      "hash": "2e7f445c76b5",
+      "hash": "193627b08cca",
       "page": "kipory-build/references/handlers/telegram.stats.md"
     },
     "term.threshold-gate": {
-      "hash": "0e85e32f0dfc",
+      "hash": "6c796237f902",
       "page": "kipory-build/references/handlers/term.threshold-gate.md"
     },
     "term.upsert": {
-      "hash": "1ae9c217d50f",
+      "hash": "0e2896646207",
       "page": "kipory-build/references/handlers/term.upsert.md"
     },
     "text.chunk": {
-      "hash": "3fe4ab09af75",
+      "hash": "42c9fc23db7b",
       "page": "kipory-build/references/handlers/text.chunk.md"
     },
     "text.decide": {
-      "hash": "909736601b07",
+      "hash": "6cf9857d3685",
       "page": "kipory-build/references/handlers/text.decide.md"
     },
     "text.detect-language": {
-      "hash": "6f41a1e6c6f3",
+      "hash": "bafa4bc2993e",
       "page": "kipory-build/references/handlers/text.detect-language.md"
     },
     "text.embed": {
-      "hash": "dea8772696c7",
+      "hash": "fdcb5ed50d24",
       "page": "kipory-build/references/handlers/text.embed.md"
     },
     "text.embed-sparse": {
-      "hash": "39e30a9c9cbd",
+      "hash": "d6c144a804b8",
       "page": "kipory-build/references/handlers/text.embed-sparse.md"
     },
     "text.extract": {
-      "hash": "1fe8c24a773b",
+      "hash": "575ef6cacb39",
       "page": "kipory-build/references/handlers/text.extract.md"
     },
     "text.generate": {
-      "hash": "b64c9d82d575",
+      "hash": "0eac91645799",
       "page": "kipory-build/references/handlers/text.generate.md"
     },
     "text.interpolate": {
-      "hash": "cc6fb88a515a",
+      "hash": "8c6d8ec6ce4c",
       "page": "kipory-build/references/handlers/text.interpolate.md"
     },
     "text.rerank": {
-      "hash": "e19e968f2ebd",
+      "hash": "96f61212e5e6",
       "page": "kipory-build/references/handlers/text.rerank.md"
     },
     "text.sanitize": {
-      "hash": "452c1b389ba7",
+      "hash": "6d5966670ca0",
       "page": "kipory-build/references/handlers/text.sanitize.md"
     },
     "threads.post": {
-      "hash": "697dc84dcfe8",
+      "hash": "39120a00f38d",
       "page": "kipory-build/references/handlers/threads.post.md"
     },
     "threads.posts": {
-      "hash": "ea0a9ba69431",
+      "hash": "dd00514f1f16",
       "page": "kipory-build/references/handlers/threads.posts.md"
     },
     "threads.profile": {
-      "hash": "4433b129c932",
+      "hash": "b3b9be41b169",
       "page": "kipory-build/references/handlers/threads.profile.md"
     },
     "threads.search": {
-      "hash": "3137970ff072",
+      "hash": "52d3d24c98bc",
       "page": "kipory-build/references/handlers/threads.search.md"
     },
     "tiktok.ad": {
-      "hash": "f82c3b87129b",
+      "hash": "1222c4a874fa",
       "page": "kipory-build/references/handlers/tiktok.ad.md"
     },
     "tiktok.ads": {
-      "hash": "ff3a0d5b1596",
+      "hash": "1d5c4ba9a939",
       "page": "kipory-build/references/handlers/tiktok.ads.md"
     },
     "tiktok.audience": {
-      "hash": "36b992774e60",
+      "hash": "464a89d82e86",
       "page": "kipory-build/references/handlers/tiktok.audience.md"
     },
     "tiktok.comments": {
-      "hash": "d20181fea72b",
+      "hash": "0e087068b5ca",
       "page": "kipory-build/references/handlers/tiktok.comments.md"
     },
     "tiktok.followers": {
-      "hash": "d6e110686533",
+      "hash": "b9b31e388a2a",
       "page": "kipory-build/references/handlers/tiktok.followers.md"
     },
     "tiktok.following": {
-      "hash": "adbdc30f79ca",
+      "hash": "9993c23ec25c",
       "page": "kipory-build/references/handlers/tiktok.following.md"
     },
     "tiktok.post": {
-      "hash": "bae4d9f6ec9e",
+      "hash": "45d3911bf0e9",
       "page": "kipory-build/references/handlers/tiktok.post.md"
     },
     "tiktok.posts": {
-      "hash": "51dcc73d2b28",
+      "hash": "8161d40e4f0e",
       "page": "kipory-build/references/handlers/tiktok.posts.md"
     },
     "tiktok.profile": {
-      "hash": "5e9f1f3b1486",
+      "hash": "3fbebe739445",
       "page": "kipory-build/references/handlers/tiktok.profile.md"
     },
     "tiktok.search": {
-      "hash": "496199323e82",
+      "hash": "a9944034ef7d",
       "page": "kipory-build/references/handlers/tiktok.search.md"
     },
     "tiktok.transcript": {
-      "hash": "5b8fe4331316",
+      "hash": "485e9b2ef43e",
       "page": "kipory-build/references/handlers/tiktok.transcript.md"
     },
     "url.fetch": {
-      "hash": "1cc83555d9bc",
+      "hash": "a6cff408c880",
       "page": "kipory-build/references/handlers/url.fetch.md"
     },
     "url.fetch-as-file": {
-      "hash": "ad36a1169abf",
+      "hash": "41f09ea7ec3a",
       "page": "kipory-build/references/handlers/url.fetch-as-file.md"
     },
     "url.metadata": {
-      "hash": "1f2d08b77544",
+      "hash": "78887fcb877a",
       "page": "kipory-build/references/handlers/url.metadata.md"
     },
     "url.scrape": {
-      "hash": "7bb245559d5a",
+      "hash": "e2471fd5ac89",
       "page": "kipory-build/references/handlers/url.scrape.md"
     },
     "url.screenshot": {
-      "hash": "ba2083f7727e",
+      "hash": "bc5bb554858a",
       "page": "kipory-build/references/handlers/url.screenshot.md"
     },
     "url.send": {
-      "hash": "12509e464893",
+      "hash": "e8b868711437",
       "page": "kipory-build/references/handlers/url.send.md"
     },
     "value.first-non-empty": {
-      "hash": "420af7526858",
+      "hash": "c3f0de97e3db",
       "page": "kipory-build/references/handlers/value.first-non-empty.md"
     },
     "value.transform": {
-      "hash": "90b62659abc8",
+      "hash": "7a97ed234d5e",
       "page": "kipory-build/references/handlers/value.transform.md"
     },
     "vector.fetch": {
-      "hash": "b71e9269c5cf",
+      "hash": "695cc885a2e0",
       "page": "kipory-build/references/handlers/vector.fetch.md"
     },
     "vector.point-id": {
-      "hash": "979278564cd6",
+      "hash": "e49b40b48200",
       "page": "kipory-build/references/handlers/vector.point-id.md"
     },
     "vector.search": {
-      "hash": "cb2c99e3f7c5",
+      "hash": "e291d96d3894",
       "page": "kipory-build/references/handlers/vector.search.md"
     },
     "vector.upsert": {
-      "hash": "e320eef56df2",
+      "hash": "02657f6693c6",
       "page": "kipory-build/references/handlers/vector.upsert.md"
     },
     "web.rankings": {
-      "hash": "91ed99770ef6",
+      "hash": "954b6dbb7fbf",
       "page": "kipory-build/references/handlers/web.rankings.md"
     },
     "web.search": {
-      "hash": "5b5ba3b8151a",
+      "hash": "b51e943c43ef",
       "page": "kipory-build/references/handlers/web.search.md"
     },
     "web.traffic": {
-      "hash": "052576580b32",
+      "hash": "6ddc14e4e3b3",
       "page": "kipory-build/references/handlers/web.traffic.md"
     },
     "x.posts": {
-      "hash": "048f2a673a25",
+      "hash": "2b281748c34f",
       "page": "kipory-build/references/handlers/x.posts.md"
     },
     "x.profile": {
-      "hash": "24d96fc0b396",
+      "hash": "c6d3a0ed2e1d",
       "page": "kipory-build/references/handlers/x.profile.md"
     },
     "x.transcript": {
-      "hash": "102a0845b0a5",
+      "hash": "eb515bb9a476",
       "page": "kipory-build/references/handlers/x.transcript.md"
     },
     "youtube.channel": {
-      "hash": "9c0d87a17cdb",
+      "hash": "45e3fa9852ad",
       "page": "kipory-build/references/handlers/youtube.channel.md"
     },
     "youtube.comments": {
-      "hash": "bb8af066a340",
+      "hash": "52a64bca4186",
       "page": "kipory-build/references/handlers/youtube.comments.md"
     },
     "youtube.posts": {
-      "hash": "8fb24bd57f9c",
+      "hash": "7f3d92ea81f1",
       "page": "kipory-build/references/handlers/youtube.posts.md"
     },
     "youtube.search": {
-      "hash": "dcd294fb3895",
+      "hash": "6fbffb8d727b",
       "page": "kipory-build/references/handlers/youtube.search.md"
     },
     "youtube.transcript": {
-      "hash": "ef71eedf2ab8",
+      "hash": "f309556cb1cc",
       "page": "kipory-build/references/handlers/youtube.transcript.md"
     },
     "youtube.trending": {
-      "hash": "a9a85bc55207",
+      "hash": "868d100d1512",
       "page": "kipory-build/references/handlers/youtube.trending.md"
     },
     "youtube.video": {
-      "hash": "8643e8c3f74b",
+      "hash": "dd5011d3c442",
       "page": "kipory-build/references/handlers/youtube.video.md"
     }
   },
@@ -891,11 +891,11 @@
       "page": "kipory-connect/references/api/nodes-and-organizations.md"
     },
     "GET /v1/handlers/": {
-      "hash": "cddb7a263238",
+      "hash": "21fa169c935f",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/handlers/{key}": {
-      "hash": "894342c48045",
+      "hash": "54fffdaf51e7",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/keys/": {

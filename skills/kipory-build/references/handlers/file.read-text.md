@@ -4,6 +4,8 @@
 
 Read a text file and return what it says.
 
+Reads a text file and emits its contents. Anything that is not text fails rather than being mangled — a PDF has its own step, and an image or a sound file goes straight to a model that can read it.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`

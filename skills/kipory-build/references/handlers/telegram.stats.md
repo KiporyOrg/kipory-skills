@@ -4,6 +4,8 @@
 
 Read a Telegram channel's latest member count.
 
+Returns the member count a periodic sweep last wrote for this channel, not a live one — so the number is as old as that sweep. Empty when this project watches no source for the channel, or it has not been swept yet.
+
 - **Group:** sources · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelStats`

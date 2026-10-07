@@ -4,6 +4,8 @@
 
 Read an image's size and the camera details stored in it.
 
+Dimensions come back for any image format that can be read; the tags only for the narrower set that carries them — so an image can legitimately have dimensions and no tags. It returns whatever was there and never fails on a file that downloaded.
+
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `FileMetadata`

@@ -4,6 +4,8 @@
 
 Store an item's search data so it can be found by meaning or keywords.
 
+Writes one point to a search collection: an id, any number of named vectors, and a payload. Writes nothing back into the flow and runs every time, since a cached result would replay nothing. Slots that arrive empty are skipped rather than erroring.
+
 - **Group:** search · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `nothing`

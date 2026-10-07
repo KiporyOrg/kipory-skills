@@ -4,6 +4,8 @@
 
 Find public Telegram channels that match your search words.
 
+Searches public Telegram channels by keyword. Reads comma-separated terms from its first input, and a per-term ceiling stops one broad term using the whole budget. `telegram.resolve-channel` goes the other way, from a known handle to that one channel.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelSearchResults`

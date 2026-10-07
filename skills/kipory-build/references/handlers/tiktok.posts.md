@@ -4,6 +4,8 @@
 
 List the recent videos a TikTok account has posted.
 
+Reads a public TikTok account's videos from its handle or profile link, up to the bound you set. Each comes back with its caption, time, cover and engagement counts.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

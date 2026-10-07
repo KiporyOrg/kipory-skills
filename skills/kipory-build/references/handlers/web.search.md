@@ -4,6 +4,8 @@
 
 Search the web and return the results.
 
+Runs one search-engine query and returns its organic results. A search costs one billable results page; `maxResults` also sets the page size, so raising it does not add pages. Reads its query from its first input.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `WebSearchResults`

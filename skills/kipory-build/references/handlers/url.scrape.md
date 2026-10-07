@@ -4,6 +4,8 @@
 
 Read a web page and return its main text and details.
 
+Loads a page in a real browser and returns it as clean markdown, together with the page's metadata. Handles pages that need scripts to render. Results are cached for a day by default.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `ScrapedPage`

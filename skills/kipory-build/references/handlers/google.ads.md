@@ -4,6 +4,8 @@
 
 List the ads a company runs, from the Google ad library.
 
+Reads the Google ad library for one advertiser, named by its website domain. Each ad comes back with its advertiser, format and the dates it was shown. Its image and text are left out unless you ask for them, at a much higher cost.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`

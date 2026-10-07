@@ -4,6 +4,8 @@
 
 Look up a public Facebook page's details and numbers.
 
+Reads one public Facebook page from its handle or page link: name, category, contact details, address, counts, its ad library id and whether it runs ads. A private page comes back marked private. A link to anything else is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `FacebookPage`

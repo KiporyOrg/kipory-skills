@@ -4,6 +4,8 @@
 
 List ads that match a keyword or a company, from the TikTok ad library.
 
+Reads the public TikTok ad library. Give it a keyword to search ads, or switch it to list one company's ads by name. Each ad comes back with its advertiser, video links and the dates it was shown.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`

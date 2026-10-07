@@ -4,6 +4,8 @@
 
 Get the words spoken in a video posted on X.
 
+Reads what is said in the video of one public X post, from the post's link, and returns it as text. Works on videos up to two minutes long. A video with no speech returns an empty string.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

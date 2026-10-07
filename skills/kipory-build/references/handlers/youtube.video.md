@@ -4,6 +4,8 @@
 
 Look up a YouTube video's details, numbers, and thumbnail.
 
+Takes a video URL or id and returns what YouTube knows about it. You pick which parts to fetch, and each costs one unit of the daily quota. Useful as a cheap check before paying for a transcript.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeVideo`

@@ -4,6 +4,8 @@
 
 List the channels behind a region's trending YouTube videos.
 
+Reads a region's trending chart and returns the distinct channels behind those videos. This is what is hot right now, not what is biggest — a catalogue has to accumulate it across runs.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeTrendingChannels`

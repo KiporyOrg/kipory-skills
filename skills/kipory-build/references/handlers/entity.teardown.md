@@ -4,6 +4,8 @@
 
 Clear a record's generated files and terms so it can be processed again.
 
+Removes what a processing run generated for a record — its generated files, its term assignments, or both. Submitted inputs are untouched. Running it twice, or on a record that has nothing to strip, does no harm.
+
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id` → `object`

@@ -4,6 +4,8 @@
 
 List the recent posts a company has published on LinkedIn.
 
+Reads a company's public LinkedIn posts from its page link, up to the bound you set. Each comes back with its text, link and time. Engagement counts are not part of this list; look a post up on its own for those.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

@@ -4,6 +4,8 @@
 
 Tell an outside system something, once the run is saved.
 
+Sends one HTTP request an earlier step put together. It leaves only after the run saves everything else, so a flow that fails later sends nothing, and the flow does not read the answer. Previews never send. A new run sends again.
+
 - **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own request, so a new run of the same input sends it again.
 - **I/O:** `string` → `boolean`

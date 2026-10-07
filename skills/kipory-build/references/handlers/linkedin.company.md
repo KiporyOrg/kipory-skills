@@ -4,6 +4,8 @@
 
 Look up a company's public LinkedIn page.
 
+Reads one company's public LinkedIn page from its link: name, description, logo, website, industry, size and headquarters, in the same shape as a person's profile. A link to another site is refused before anything is fetched.
+
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`
