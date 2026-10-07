@@ -13,8 +13,8 @@ statement of charges. One credit is one micro-USD, and every amount on this surf
 These two reads are your own consumption. Prices are read elsewhere: `GET
 /v1/nodes/{nodeId}/model-prices` (at the project's id) quotes each model in credits per million
 tokens, minute or search, and `GET /v1/nodes/{nodeId}/vendor-prices` quotes each paid fetch — a
-scrape, a search, a profile read — in credits per call or per item, with the units a charge
-includes and the fewest it bills. The per-second compute rate and the held-storage rates are not listed
+scrape, a search, a profile read — in credits per call or per item, with what one item is (`countedAs`: a post returned, a place
+read, a page of search results), the units a charge includes and the fewest it bills. The per-second compute rate and the held-storage rates are not listed
 anywhere a key can read: derive the compute rate from any `handler-run` charge on
 `GET /v1/runs/{runId}/spend` (`credits ÷ units`).
 

@@ -492,7 +492,8 @@ Each item of `prices`:
 | --- | --- | --- | --- |
 | `provider` | `string` | yes | The vendor the operation is fetched from — the value a handler's `provider` config field names where a step may choose one. |
 | `operation` | `string` | yes | The billable operation at that vendor. A handler's reference page lists the `provider/operation` pairs a step on it is charged under. |
-| `unit` | `"call" \| "item"` | yes | What `credits` is the price OF: one call to the vendor, or one item it returns or counts (a post, a place, a review, a credit of the vendor's own). The handler's page says which. |
+| `unit` | `"call" \| "item"` | yes | What `credits` is the price OF: one call to the vendor, or one item it returns or counts (a post, a place, a review, a credit of the vendor's own). `countedAs` says which item. |
+| `countedAs` | `string \| null` | yes | What one item is, where `unit` is `item`: a post returned, a place read, a page of search results. Null where `unit` is `call`. |
 | `billing` | `"metered" \| "quota-free"` | yes | `metered` is charged per `unit`. `quota-free` is not charged at all: the vendor bills a daily quota rather than per call. |
 | `credits` | `number \| null` | yes | The charged price in credits (1 credit = 1 µUSD) for ONE `unit`, exact and never negative. A step's `vendor-fetch` charge is this times the units billed, after `includedUnits` and `minimumUnits`, rounded down. Null beside `quota-free` means no charge; null beside `metered` means no price is set for the operation here, so none can be quoted — it is not a statement that the call is free. `0` is a price somebody chose. |
 | `includedUnits` | `integer \| null` | yes | Units that are free per charge event before `credits` applies. A charge event is one request or one job at the vendor: a read that pages makes one per page, a search run as a single job makes one. Counted afresh on each event, not per run or per day. Null when the price includes none. |

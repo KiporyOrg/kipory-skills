@@ -10,7 +10,7 @@
       "page": "kipory-build/references/packs/authoring-order.md"
     },
     "credits": {
-      "hash": "4c41597e8868",
+      "hash": "a876764b9835",
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embedding-profiles": {
@@ -508,7 +508,7 @@
       "page": "kipory-build/references/handlers/web.rankings.md"
     },
     "web.search": {
-      "hash": "dc2311ba10cb",
+      "hash": "843cd3bafeac",
       "page": "kipory-build/references/handlers/web.search.md"
     },
     "web.traffic": {
@@ -958,7 +958,7 @@
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/nodes/{nodeId}/vendor-prices": {
-      "hash": "6d5e73d374d7",
+      "hash": "bb0376d4cbef",
       "page": "kipory-build/references/api/handlers-and-models.md"
     },
     "GET /v1/organizations/{nodeId}/ledger": {

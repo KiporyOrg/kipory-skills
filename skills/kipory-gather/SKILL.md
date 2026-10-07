@@ -38,7 +38,7 @@ mentions.
 | `url.metadata`                                                 | title, description, icon, social preview                                                    | the site       | `url.metadata`     | 24h    |
 | `url.scrape`                                                   | the rendered page as clean markdown                                                         | Firecrawl      | `firecrawl`        | 24h    |
 | `url.screenshot`                                               | a full-page image file                                                                      | Firecrawl      | `firecrawl`        | 24h    |
-| `web.search`                                                   | one page of organic search results                                                          | Apify          | `apify`            | 24h    |
+| `web.search`                                                   | organic search results, ten to a page                                                       | Apify          | `apify`            | 24h    |
 | `web.rankings`                                                 | a country's most-visited sites, ranked                                                      | Apify          | `apify`            | 30d    |
 | `web.traffic`                                                  | one site's visits, ranking and audience                                                     | Apify          | `apify`            | 7d     |
 | `x.posts`                                                      | a tweet, profile or search URL as posts                                                     | Apify ¹        | `apify` ¹          | 24h    |
@@ -89,6 +89,13 @@ shapes with typed fields of their own added (`XPost`, `YoutubeVideo`, `YoutubeCh
 path over a shared field carries across platforms, a path over an added one does
 not. The transcript reads return text. Every list read takes a `maxItems`
 bound; on a read that pages, each page is one paid request.
+
+A time on a shared shape — `postedAt` on a post or a comment, `createdAt` on a
+profile, `startedAt` and `endedAt` on an ad — is an ISO 8601 time in UTC, like
+`2026-03-13T08:00:00.000Z`, whichever platform it came from. It is absent when the platform gave no time that can be read as one;
+on YouTube's list reads it is approximate, worked out from "2 years ago". The
+text of an X post arrives as plain text (`->`, `&`), with no `&gt;` or `&amp;`
+to undo.
 
 The Apify handlers share `apify` at 30 a minute. Three <!-- count: handlers-in-bucket-youtube --> share `youtube` at 60 a minute **and a single
 daily quota measured in units, not calls** — a heavy day of channel reads can exhaust what a later
@@ -264,6 +271,18 @@ read waits out once when the wait is short.
 - **Falling through to the platform's key is silent and it succeeds.** When no node in the chain
   holds a credential for the vendor, the call runs on the platform's key at the platform's price.
   You do not get an error; you get a charge. `kipory-secrets` explains the resolution order.
+- **`web.search` charges by the page of results, and a page holds about ten.** `maxResults` (up to 50) decides how many pages one search reads: 10 is one page, 30 is three, each charged at the
+  `apify/web-search` row of the price list. Pages are read one after another and one can take a
+  minute or more, so a deep search can run out of time: it then returns what it read with a
+  `TRUNCATED` warning, charged for those pages. `hasMore` says whether further results exist;
+  there is no setting to read "page 3 only". A search that finds nothing is charged its one page.
+  For "profiles, not posts" on one site, set `sites` and `excludeUrlContains` (`/p/`, `/reel/`)
+  and raise `maxResults`: results left out were read and are charged, and `dropped` counts them.
+  A search limited to one site shows no `relatedSearches`.
+- **`web.search` takes only a language and a country its search engine knows.** `languageCode` and
+  `countryCode` are closed lists, on the handler's page, and a save or a plan refuses any other
+  value. Write Hebrew as `he` (the older `iw` is taken too), and name the variant for Chinese and
+  Portuguese: `zh-CN`, `zh-TW`, `pt-BR`, `pt-PT`.
 - **An empty result and a failure are not the same thing, and they differ per handler.**
   `web.search` returns a bare object when a search genuinely found nothing. `web.rankings` treats an
   empty ranking as a **source failure** and refuses to cache it, because a country with no popular
