@@ -2,6 +2,17 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261007.104941 — 2026-10-07
+
+Synced from the Kipory monorepo at `77ab8ed9e`.
+
+- changed: `skills/kipory-build/references/handlers/email.send.md`
+- changed: `skills/kipory-build/references/handlers/text.decide.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+
 ## 1.20261007.102737 — 2026-10-07
 
 Synced from the Kipory monorepo at `b5a463504`.

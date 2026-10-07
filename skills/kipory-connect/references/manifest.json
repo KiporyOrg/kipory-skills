@@ -18,7 +18,7 @@
       "page": "kipory-model/references/packs/embedding-profiles.md"
     },
     "evals": {
-      "hash": "d51ea63493cf",
+      "hash": "c50bc4ff1e8a",
       "page": "kipory-prove/references/packs/evals.md"
     },
     "events": {
@@ -100,7 +100,7 @@
       "page": "kipory-build/references/handlers/audio.transcribe.md"
     },
     "email.send": {
-      "hash": "41e4e4c0e444",
+      "hash": "571ff8dfbb18",
       "page": "kipory-build/references/handlers/email.send.md"
     },
     "entity.append": {
@@ -360,7 +360,7 @@
       "page": "kipory-build/references/handlers/text.chunk.md"
     },
     "text.decide": {
-      "hash": "6cf9857d3685",
+      "hash": "1753954ffd50",
       "page": "kipory-build/references/handlers/text.decide.md"
     },
     "text.detect-language": {
@@ -811,7 +811,7 @@
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/eval-suites/{id}/trend": {
-      "hash": "8c490f41ce96",
+      "hash": "04a44cd886ec",
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/event-types/": {

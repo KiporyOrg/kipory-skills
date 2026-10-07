@@ -16,7 +16,7 @@ Sends a message earlier steps put together — recipient, subject and body all c
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `address` | string | yes | — | The address the message comes from. ⚠️ Checked when the message goes, not when you save. Never created, switched off, or somebody else's all give the same refusal. |
+| `address` | string | yes | — | The address the message comes from. ⚠️ A save only warns; the message is refused when it goes. Never created, switched off, or somebody else's all give the same refusal. |
 | `htmlSlot` | string | no | — | Optional. The slot holding an HTML version of the same message. ⚠️ The plain-text body is still required. A message with only an HTML part reads as blank in a text-only client. |
 | `replyTo` | string | no | — | Optional. Where replies go, if not the sending address. Leaving it empty is a decision, not a default — see the caution. ⚠️ Left empty, replies go to whoever reads the catch-all mailbox, which makes a person into a manual router. That is fine for a message nobody should answer and wrong for one somebody will. |
 | `subjectSlot` | string | yes | — | The slot holding the subject line. |

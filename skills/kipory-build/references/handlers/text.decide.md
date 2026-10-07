@@ -4,7 +4,7 @@
 
 Answer typed questions about a value: yes/no, pick one, or score.
 
-The cheapest model step: its model returns values, not text, and one call answers every question. The questions are the output type's fields, and it answers every one, however poor the input. How sure it was can go to a second slot.
+The cheapest model step: its model returns values, not text, and one call answers every question. Each field of the output type is one question: a probability (yes/no), one of a set, or a number with levels. Plain text and yes/no fields are refused.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`

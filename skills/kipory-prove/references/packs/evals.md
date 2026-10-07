@@ -301,16 +301,19 @@ whether the cost is acceptable; the verdict is about quality.
 
 ⚠️ **A run compared against nothing says why.** A suite's first run answers with
 `reason: "no-baseline"`; a run whose previous run exists but could not be loaded answers
-`reason: "baseline-unreadable"`. Both have `delta: null` and `costChanges: []`, and neither
-regresses unless a case flipped — a contract flip's reason then takes the place of theirs. Only a
-`false` beside a null `reason` and no `delta.suppressedReason` means "compared, and nothing got
-worse".
+`reason: "baseline-unreadable"`. Both have `delta: null` and `costChanges: []`. A run whose
+comparison was refused answers `reason: "not-comparable"`, and its `delta.suppressedReason` says
+why. None of the three regresses unless a case flipped — a contract flip's reason then takes the
+place of theirs. Only a `false` beside a null `reason` means "compared, and nothing got worse" —
+on a run recorded since the reason was added. An older run whose comparison was refused carries
+`false` and a null `reason` too, and its `delta` is worked out when you read it, under today's
+rules: read an old run's verdict as what was decided then, not as a statement about that delta.
 
 ⛔ **`regression` is `null` when no verdict was computed, which is not `regressed: false`.** An
 older run can carry none. "We did not look" and "we looked and it was fine" are different findings.
 
 ⚠️ **A suppressed delta answers `regressed: false`, not `null`.** When the delta is withheld because
-the configuration or the cases moved, no metric is compared, so the verdict is `false` — unless the
+a scorer flow's checkpoint or the cases moved, no metric is compared, so the verdict is `false` — unless the
 suite stopped producing measurable results (`success` or `partial` → `error` or `not-measured`) or a
 case flipped, both of which are judged across any delta. Read `delta.suppressedReason` before you
 read `false` as "compared and fine".
@@ -492,7 +495,8 @@ declaration is not enforcement, and it covers top-level configuration fields onl
 can name a record type without the walk being able to see which. Six handlers in the catalog reach
 record or vector data while naming no type; `taxonomy.aggregate` is the one that reads per-user
 data. Any of them present in the closure is reported in `unattributedHandlerKeys`, which is the
-measured size of the blind spot rather than a silence.
+measured size of the blind spot rather than a silence. The list is always empty for a project that
+declares no user-owned record type: there is then no person's row for such a handler to miss.
 
 ⛔ **`scope: null` means the graph could not be walked** — the suite's flow is not in the project's
 flow library. It never means "walked and found
@@ -509,13 +513,17 @@ while measuring nothing:
   _errored_. Neither is a low score, and averaging them as zeros would manufacture a decline.
 - **A scorer that emitted nothing records no score**, rather than a zero.
 - **A run with no cases is an error**, never a green pass over nothing.
-- **A delta is suppressed when a checkpoint moved.** If the subject flow's newest checkpoint, or
-  any scorer's, differs between two runs — one was captured or restored in between — the numeric
+- **A delta is suppressed when a scorer's checkpoint moved.** If any scorer flow's newest
+  checkpoint differs between two runs — one was captured or restored in between — the numeric
   deltas are withheld and the reason is named. An edited judge silently rebaselines every prior
-  score, and a delta measured across that edit looks exactly like evidence. A step edit takes no
-  checkpoint on a project flow, so a delta across an edit alone IS reported: that is the read for
-  "did this edit break it". Capture a checkpoint after editing a scorer so its old scores are not
-  compared with its new ones.
+  score, and a delta measured across that edit looks exactly like evidence. Capture a checkpoint
+  after editing a scorer so its old scores are not compared with its new ones.
+- **A change to the flow under test is compared, and said.** "Did this edit make it better" is
+  what a suite is for, so the delta is reported across an edit to the subject flow, and across a
+  checkpoint saved or restored on it. `delta.subjectChanged` says whether the flow's configuration
+  moved between the two runs (`true`, `false`, or `null` when a run predates the record or the
+  comparison is against a control arm). A trend line runs through such a change and breaks only at
+  an edited scorer.
 - **Adding cases does not suppress the delta** over the cases that did not change — but every
   metric reports its sample size alongside. A gain over 4 of 50 cases is not the claim a gain over
   49 is, and the number that tells you which is right there.
