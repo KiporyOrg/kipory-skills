@@ -11,6 +11,7 @@ Loads a page in a real browser and returns it as clean markdown, together with t
 - **I/O:** `string` → `ScrapedPage`
 - **Reads:** One URL — the page to scrape. Anything that is not `http` or `https` is refused before a call is spent; an empty slot emits an empty result. _(shape hint: `string`)_
 - **Emits:** A `ScrapedPage` — the rendered body as markdown, plus its metadata. Empty, with a `SCRAPE_FAILED` or `RATE_LIMITED` warning rather than a failed run, when the page could not be rendered.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.

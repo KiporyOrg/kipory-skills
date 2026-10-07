@@ -11,6 +11,7 @@ Looks up one place by its place ID, its map link, or its name, and returns what 
 - **I/O:** `string` → `PlaceCard`
 - **Reads:** One place: a place ID, a full map link, or a name with its city. A name returns the best match only. _(shape hint: `string`)_
 - **Emits:** `PlaceCard` — one place's listing. A place the map does not know comes back empty, and that answer is cached.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `place`
 - **External dependency:** Apify — Runs an Apify actor that reads the map listing. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.

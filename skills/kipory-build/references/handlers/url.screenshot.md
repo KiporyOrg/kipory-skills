@@ -11,6 +11,7 @@ Renders a web page in full and saves the picture as a PNG or JPEG file. Returns 
 - **I/O:** `string` → `file`
 - **Reads:** One URL — the page to capture. Anything that is not `http` or `https` is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** A `FileRef` for the captured image — PNG by default, JPEG when you ask for it. An empty one when there was no URL to capture.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** Firecrawl — Renders the page in a headless browser and captures a full-page screenshot via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.

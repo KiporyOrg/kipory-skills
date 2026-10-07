@@ -11,6 +11,7 @@ Turns spoken audio into plain text. Leaving the model empty inherits the project
 - **I/O:** `file` → `string`
 - **Reads:** One audio file. A non-audio mime fails, and a file over the size cap is refused before anything is sent. _(shape hint: `file`)_
 - **Emits:** The spoken words as plain text. Empty when there is no file. The same file, model and language reuse the previous transcript.
+- **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentFile`
 - **External dependency:** a model provider — Whichever provider hosts the transcription model this step is set to. `whisper-1` is only the default: the key is resolved per model.
 - **Rate limit:** 50 per min in bucket `audio.transcribe`

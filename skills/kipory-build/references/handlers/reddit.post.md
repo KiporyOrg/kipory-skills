@@ -11,6 +11,7 @@ Reads one public Reddit post from its link: title, text, author, subreddit, time
 - **I/O:** `string` → `SocialPost`
 - **Reads:** One Reddit post link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialPost`. A bare `{}` when the post does not exist or was removed.
+- **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads Reddit through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.

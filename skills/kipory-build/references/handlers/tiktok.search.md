@@ -11,6 +11,7 @@ Searches public TikTok videos for a keyword or phrase and returns the matches, u
 - **I/O:** `string` → `SocialPost[]`
 - **Reads:** One search phrase. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`. Empty when nothing matches.
+- **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads TikTok through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.

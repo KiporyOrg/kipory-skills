@@ -11,6 +11,7 @@ Reads one company's public LinkedIn page from its link: name, description, logo,
 - **I/O:** `string` → `SocialProfile`
 - **Reads:** One LinkedIn company link (`linkedin.com/company/…`). Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialProfile`. A bare `{}` when the page does not exist.
+- **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads LinkedIn through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.

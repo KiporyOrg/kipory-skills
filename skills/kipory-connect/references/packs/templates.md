@@ -80,6 +80,9 @@ change, and apply it like any other document. Rows your project already has unde
 are UPDATED to the template's, which is rarely what you want for a whole template — plan first,
 and send the sections you mean.
 
+A template's steps carry the same fields a document's do, a step's optional `failureSlot`
+included: a project created from the template gets it as written.
+
 ## When not to use one
 
 A template is a starting point for a project that does not exist yet. It is not a way to keep

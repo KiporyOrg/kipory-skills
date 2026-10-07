@@ -370,6 +370,10 @@ refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}
 
 ## A document written for an older format
 
+A step's `failureSlot` is optional in a document. Stated, it is the slot the step's failure is
+written to (flows and skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`), "How a step runs"); left out, the step has
+none, and an export leaves the key out for a step that names none.
+
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 

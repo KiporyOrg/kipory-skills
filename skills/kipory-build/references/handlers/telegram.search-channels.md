@@ -11,6 +11,7 @@ Searches public Telegram channels by keyword. Reads comma-separated terms from i
 - **I/O:** `string` → `TelegramChannelSearchResults`
 - **Reads:** One string of comma-separated search terms. The terms are sorted for the cache key, so the same set in any order shares one entry. _(shape hint: `string`)_
 - **Emits:** `TelegramChannelSearchResults` — candidate channels, deduped by username. A bare `{}` when nothing matches.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `terms`
 - **External dependency:** Apify — Runs Apify's `telegram-search` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.

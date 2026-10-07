@@ -11,6 +11,7 @@ Draws one page of a PDF as a PNG or JPEG image. Put a `slotStartsWith currentFil
 - **I/O:** `file` → `file`
 - **Reads:** One PDF file. Anything else fails, so route non-PDFs elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the rendered page. A retry on the same item reuses the previous render. An empty input gives an empty file back.
+- **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentFile`
 - **Queue:** 1 attempt, no backoff; waits up to 3 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 

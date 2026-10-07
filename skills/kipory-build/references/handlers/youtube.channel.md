@@ -11,6 +11,7 @@ Takes a channel URL, a handle, or a channel id and returns what YouTube knows ab
 - **I/O:** `string` → `YoutubeChannel`
 - **Reads:** One string naming a channel — a full URL, a handle, or a raw channel id. All three normalise to the same cache entry. _(shape hint: `string`)_
 - **Emits:** A `YoutubeChannel`. Which fields arrive depends on the parts you asked for, and every one is optional. Empty when it could not be read — missing, private, or refused.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** YouTube Data API — Reads channel metadata and statistics from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube handler. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.

@@ -481,6 +481,17 @@ step that sets none behaves as it always has.
   that do not depend on this one still run. `continue`: the run carries on without this step's
   output and reports the failure as a warning. Refused on a control step, on a step that may write
   or reach a sub-flow, and on a step writing a slot a required flow output is bound to.
+- **`failureSlot`** — a slot the platform writes the step's failure to, as a `StepFailure`:
+  a stable `code`, the platform's sentence for it, whether a second try could answer differently,
+  the failure phase, and the HTTP status when a site or vendor answered with one.
+  It is written when the step failed and the run carried on, or when its handler softened a
+  failure into a warning; a step that succeeded, was skipped or ran and found nothing writes none,
+  so "output absent, failure absent" still means it found nothing. A later step reads it as any
+  optional slot. Refused at save on a step that can never write it — one that does not continue
+  and whose handler softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the step's
+  own output (`FAILURE_SLOT_IS_OWN_OUTPUT`), and as the source of a required flow output
+  (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`). `null` clears it. The codes a handler softens are on its
+  catalog entry, `run.softFailureCodes`.
 - **`reuseResultsForMinutes`** — how long a result the step saved stays reusable: null is the
   handler's own period, `0` always runs fresh and saves nothing. It is checked when a result is
   READ, so a result another step with identical settings saved counts only within this step's own

@@ -11,6 +11,7 @@ Returns the most-visited websites for one country. This ranks where the traffic 
 - **I/O:** `string` → `TopSiteRanking`
 - **Reads:** One country slug, like `israel` or `worldwide`. The ranking is by where the traffic comes from, not where a site is published. _(shape hint: `string`)_
 - **Emits:** `TopSiteRanking` — ranked domains with search traffic parsed to numbers. An empty ranking is treated as a SOURCE FAILURE, never cached: a country with no popular websites does not exist.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `country`
 - **External dependency:** Apify — Runs Apify's `top-websites` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.

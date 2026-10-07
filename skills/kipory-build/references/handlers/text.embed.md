@@ -11,6 +11,7 @@ Runs one string through an embedding model and returns the vector. Text that arr
 - **I/O:** `string` → `Vector`
 - **Reads:** One string. Empty or missing returns an empty vector without calling the model; anything that is not a string is a shape error. _(shape hint: `string`)_
 - **Emits:** A `Vector`. Empty when the input was empty, which is how a later write leaves that vector alone. The same text and model hit the cache.
+- **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `inputText`
 - **External dependency:** a model provider — Whichever provider hosts the embedding model this step is set to. The key is resolved per model.
 - **Rate limit:** 300 per min in bucket `ai-embed` — shared with `vector.search`

@@ -11,6 +11,7 @@ Reads just the head of a page — title, description, author, icon and social pr
 - **I/O:** `string` → `UrlMeta`
 - **Reads:** One URL — the page to read. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** A `UrlMeta`; an unreachable site does not fail the step and carries `failure` instead of a status. Only `&amp;` `&lt;` `&gt;` `&quot;` `&#39;` `&apos;` are decoded.
+- **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
 - **Rate limit:** 120 per min in bucket `url.metadata`
@@ -149,7 +150,7 @@ Output:
   "url":     "https://expired-domain.example.com/",
   "failure": {
     "code":    "dns-not-found",
-    "message": "DNS resolution failed for \"expired-domain.example.com\": getaddrinfo ENOTFOUND expired-domain.example.com"
+    "message": "The name \"expired-domain.example.com\" has no address: getaddrinfo ENOTFOUND expired-domain.example.com"
   }
 }
 ```

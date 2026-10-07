@@ -11,6 +11,7 @@ Reads where the followers of one public TikTok account are, as a list of countri
 - **I/O:** `string` → `SocialAudience`
 - **Reads:** One TikTok handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialAudience`. A bare `{}` when the account has no audience data.
+- **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads TikTok through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.

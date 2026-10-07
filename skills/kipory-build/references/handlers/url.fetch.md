@@ -11,6 +11,7 @@ Reads JSON, plaintext or an XML feed. The request can carry query parameters, he
 - **I/O:** `string` → `string`
 - **Reads:** One URL to fetch. Anything that is not `http` or `https`, resolves to a private address, or does not resolve at all is refused as a blocked request. _(shape hint: `string`)_
 - **Emits:** The body as text, or parsed: an object under `json`, a list of objects under `json-list`. Empty, with a warning, on no URL or a 5xx; another non-2xx fails.
+- **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Fetches whatever the URL points at, through the SSRF guard. No vendor — the site itself is the dependency. A service that needs a key takes a stored request credential, named in `secret`.
 - **Step credential:** a step may name a stored secret of type `http_credential` in `secret`, by its purpose; resolved from the project's node and the organisations above it, with no platform fallback.

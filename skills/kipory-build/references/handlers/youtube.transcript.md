@@ -11,6 +11,7 @@ Takes a bare 11-character video id, usually the `id` field of `youtube.video`. R
 - **I/O:** `string` → `string`
 - **Reads:** One bare video id. A full URL is refused — parse it with `youtube.video` first. Anything else is dropped without a call. _(shape hint: `string`)_
 - **Emits:** The transcript as text — plain prose, or lines prefixed with timestamps when you ask for them. An empty string when the video has no captions.
+- **Softens these failures:** `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `youtubeVideoId`
 - **External dependency:** Supadata or ScrapeCreators — Each step picks its vendor (`provider`): Supadata, the default, or ScrapeCreators. Each vendor uses its own API key: the project's own, stored in its secrets, or Kipory's. With `fallback` on — the default — a vendor that fails hands the video to the other; a video with no captions is an answer and is not retried elsewhere, and a key the chosen vendor refuses fails the step.
 - **Credential:** one per vendor the step's `provider` names, each resolved from the secrets vault and falling through to the platform's own key when no node holds one: `supadata` (the default) — type `api_key`, purpose `supadata`; `scrapecreators` — type `api_key`, purpose `scrapecreators`.

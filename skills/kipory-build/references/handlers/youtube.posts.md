@@ -11,6 +11,7 @@ Reads a public YouTube channel's uploads from its handle, channel id or channel 
 - **I/O:** `string` → `SocialPost[]`
 - **Reads:** One YouTube channel handle (with or without `@`), channel id (`UC…`), or a `/@handle` or `/channel/UC…` link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`. Empty when the channel has published nothing or cannot be read.
+- **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads YouTube through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.

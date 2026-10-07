@@ -11,6 +11,7 @@ Reads a public Instagram account's posts and reels from its handle or profile li
 - **I/O:** `string` → `SocialPost[]`
 - **Reads:** One Instagram handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`, in the order the platform lists them. Empty when the account has posted nothing or cannot be read.
+- **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads Instagram through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.

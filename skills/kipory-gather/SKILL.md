@@ -227,13 +227,29 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
 - **"Nothing found" is saved like any answer.** A failed
   call is never saved, but a call that finished with nothing is: `web.search`, `place.details` by
   id, the ad libraries and the social reads keep an empty answer for the handler's window, and the
-  next run is handed it as a hit — with the `NO_RESULTS` warning the first run had, so its `step-warned` row is
-  there again beside `cacheHit: true`. For an ad library "none" is usually
+  next run is handed it as a hit. `web.search` and `place.details` repeat the `NO_RESULTS` warning
+  the first run had, so its `step-warned` row is there again beside `cacheHit: true`; an ad library
+  or a social read returns an empty list and warns nothing, the first time or on a hit. For an ad library "none" is usually
   true. For `web.search` it is also what a blocked or broken results page looks like, and the two
   cannot be told apart — the same query can return ten results an hour later. A flow that would
   store "this business is not on the web" from one empty search sets a short
   `reuseResultsForMinutes` on that step (or `0`), and treats an empty search as "not known" rather
   than "none".
+- **"This source must answer" is a rule you put on the steps after it.** A source that found
+  nothing stores no slot, so a later step can act on that in two ways, and no step setting is
+  needed:
+  - **Keep what you have.** Put `"condition": { "op": "slotPresent", "slot": "hits" }` on the step
+    that saves, so an empty answer never overwrites a better record. The run still succeeds.
+  - **Fail the run.** Add a `value.transform` that reads the source's slot beside one that is
+    always there, and assert: `($assert($exists(hits), "The search returned nothing."); query)` with
+    `inputStreams: ["query", "hits"]`. Both names are needed — a transform reading only the empty
+    slot is skipped and never asserts. The run ends `failed`, its writes are discarded, and the
+    step log carries your sentence (a sync endpoint answers `422` with it).
+
+  Neither tells "nothing exists" from "the source could not be read": to the flow both are an
+  absent slot. The run's `step-warned` row does tell them apart, by kind (`NO_RESULTS` against a
+  failure kind such as `SEARCH_FAILED`), and that row is read by a person, not by a step.
+
 - **Polling a source needs the step's own period.** The windows in the table are each handler's
   default, not a fixed property: a step sets `reuseResultsForMinutes` — `0` runs fresh every time
   and saves nothing, a number is the step's own window. A flow that polls a feed, a channel or a
@@ -295,7 +311,7 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
   value. Write Hebrew as `he` (the older `iw` is taken too), and name the variant for Chinese and
   Portuguese: `zh-CN`, `zh-TW`, `pt-BR`, `pt-PT`.
 - **An empty result and a failure are not the same thing, and they differ per handler.**
-  `web.search` returns a bare object when a search genuinely found nothing. `web.rankings` treats an
+  `web.search` stores nothing and warns `NO_RESULTS` when a search found nothing. `web.rankings` treats an
   empty ranking as a **source failure** and refuses to cache it, because a country with no popular
   websites does not exist. `location.resolve` returns empty when the provider found nothing but
   **throws** when the provider itself failed. `url.fetch` returns empty on a site's 5xx and fails

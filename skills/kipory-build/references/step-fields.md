@@ -29,6 +29,7 @@ What a step body carries, how a type is referenced, how an output is bound, and 
 | `condition`                                                               | a clause that must hold for the step to run; it may name a slot the step does not read (section 5)       | the step runs whenever an input is present                                                  |
 | `enabled`                                                                 | `false` keeps the step in the flow and never runs it                                                     | `true`                                                                                      |
 | `timeoutMs`, `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes` | how the step runs; `onFailure` is `fail-run` (the default) or `continue`                                 | the handler's own (`packs/flows-and-skills.md`, "How a step runs")                          |
+| `failureSlot`                                                             | a slot the platform writes the step's failure to, as a `StepFailure` (section 6)                         | none: a failure is only in the step log                                                     |
 
 - **There is no position field**: execution order is derived from slot edges.
 - **A PATCH requires `version`.**
@@ -119,3 +120,44 @@ Two things catch people:
 - **A condition that fails is a skip, not a failure**, and so is a condition that throws.
 - **Which operator tests which kind of value** is `GET /v1/steps/condition-operators` — the table a `condition` is checked against at save and evaluated by at run time.
 - **`flow.dispatch` with no `default` silently skips an unmatched input**, and so does every step below the unwritten branch slot whose inputs all trace back to it. A step that also reads another present slot still runs, so guard a branch step on its branch slot with `slotPresent`.
+
+## 6. Why a step produced nothing: the failure slot
+
+A step that fails softly, or fails with `"onFailure": "continue"`, leaves its output slot absent — and so does a step that ran and found nothing. Name a `failureSlot` on the step and the platform writes the reason there, as a value a later step reads.
+
+```json
+{
+  "key": "read-site",
+  "handlerKey": "url.fetch",
+  "inputStreams": ["url"],
+  "outputSlot": "page",
+  "onFailure": "continue",
+  "failureSlot": "pageFailure"
+}
+```
+
+- **It is written in two cases only**: the step failed and the run carried on, or its handler softened a failure into a warning. A step that succeeded, was skipped, or ran and found nothing writes none.
+- **So three outcomes read apart**: output present — it worked; output absent and failure present — it failed, and `code` says how; both absent — it ran and found nothing.
+- **The value is a `StepFailure`**: `code`, `message`, `retryable`, `phase`, and `httpStatus` when a site or vendor answered with one.
+
+| `code`                                                                                  | Means                                                          |
+| --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
+| `dns-not-found`                                                                         | the name has no address: the site is gone                      |
+| `connection-refused`, `connection-reset`, `tls-failed`, `redirect-limit`, `unreachable` | the address did not answer; the same codes `url.metadata` uses |
+| `timeout`                                                                               | no answer in time                                              |
+| `address-blocked`                                                                       | an address a flow may not reach (a private one)                |
+| `vendor-refused`                                                                        | the service rejected this request's values                     |
+| `vendor-out-of-credit`                                                                  | the service's account has no credit, or its quota is spent     |
+| `rate-limited`, `vendor-unavailable`                                                    | the service is limiting requests, or failed (a 5xx)            |
+| `credential-missing`, `credential-rejected`                                             | no key is stored, or the service did not accept it             |
+| `not-found`                                                                             | what was asked for does not exist                              |
+| `invalid-input`, `precondition-unmet`                                                   | the step's own input, or the record's state, was refused       |
+| `error`                                                                                 | none of the above                                              |
+
+- **Which codes a handler softens** is on its page ("Softens these failures") and on its catalog entry, `run.softFailureCodes`. A handler with none writes the slot only under `"onFailure": "continue"`, and then any code can appear.
+- **`retryable` is true** for `timeout`, `connection-reset`, `unreachable`, `rate-limited` and `vendor-unavailable`: a later run may answer differently. The rest answer the same way again.
+- **`message` is the platform's sentence for the code**, naming at most the host and the status. The handler's own text, which can name a vendor, stays in the step log (`step-failed`, `step-warned`).
+- **`phase`** is the `step-failed` row's `detail.phase` for a failed step, and `handler-soft-warning` for a softened one, which has a `step-warned` row instead.
+- **Read it like any optional slot.** In a `value.transform`: `$exists(pageFailure) ? {"state": pageFailure.code = "dns-not-found" ? "gone" : "unknown"} : {"state": "ok"}`, with `inputStreams` naming a slot that is always there beside it. As a guard: `{ "op": "slotPresent", "slot": "pageFailure" }`.
+- **A fan-out branch's failure slot is that branch's own**; a `flow.merge` lane over it collects one list of the failures.
+- **It is refused at save** on a step that can never write it — one that does not continue and whose handler softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the step's own output (`FAILURE_SLOT_IS_OWN_OUTPUT`), and as the source of a required flow output (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`; an optional output may return it). A slot another step also writes is reported `DUPLICATE_OUTPUT_SLOT`, as two output slots are.

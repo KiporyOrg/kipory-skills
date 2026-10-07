@@ -11,6 +11,7 @@ Reads the public Facebook ad library, which also covers Instagram. Give it a com
 - **I/O:** `string` → `SocialAd[]`
 - **Reads:** One company name; or one keyword, or one page's ad library id, when the step is set to it. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialAd`. Empty when the library has no matching ads.
+- **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads the Facebook ad library through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `scrapecreators` (vendor: ScrapeCreators); falls through to the platform's own key when no node holds one.

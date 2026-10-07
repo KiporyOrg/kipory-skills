@@ -92,7 +92,8 @@ its outputs is NOT a no-op restore.
 
 ⚠️ **A restore puts back how each step runs — if the checkpoint recorded it.** A step's per-call
 deadline (`timeoutMs`) and its run settings — `tries`, `tryDelayMs`, `onFailure`,
-`reuseResultsForMinutes` — are captured with the step and written back by a restore. A checkpoint
+`reuseResultsForMinutes` — are captured with the step and written back by a restore. So is its
+`failureSlot`, when it names one; a captured step without the key restores with none. A checkpoint
 taken before the format recorded them does not carry them, and restoring one resets those steps: no
 per-step deadline, the handler's own tries and reuse period, and a failure that fails the run. The
 dry run tells the two apart: a `currentSteps` entry always carries the live values, and on the

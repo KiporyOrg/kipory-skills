@@ -11,6 +11,7 @@ Looks up one site's traffic profile. The URL is reduced to its bare domain, whic
 - **I/O:** `string` → `SiteTrafficMetrics`
 - **Reads:** One site URL, reduced to its bare domain. Numbers are monthly, so results are cached for a week by default. _(shape hint: `string`)_
 - **Emits:** A `SiteTrafficMetrics`. Every metric can be null — the upstream hides data for small sites — while `domain` echoes the normalised host. Empty when the domain is unknown.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** Apify — Runs Apify's `similarweb-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.

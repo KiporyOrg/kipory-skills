@@ -11,6 +11,7 @@ Saves a bundle of resolved terms: matches the ones that already exist, creates t
 - **I/O:** `TermResolution[]` → `nothing`
 - **Reads:** One slot, named by `resolutionsSlot`, holding the resolved terms to save — usually what `facet.resolve` emitted. An empty one saves nothing and succeeds. _(shape hint: `TermResolution[]`)_
 - **Emits:** Nothing a later step reads: it saves, leaving an empty marker in its slot. It still needs an `outputSlot`: any unused slot. A repeat with the same input changes nothing.
+- **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 30 s; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

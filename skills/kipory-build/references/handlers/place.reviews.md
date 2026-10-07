@@ -11,6 +11,7 @@ Returns one place's reviews — text, stars, date, photos and the owner's reply 
 - **I/O:** `string` → `PlaceReviews`
 - **Reads:** One place: a place ID or a full map link. A name alone returns nothing, with a warning. _(shape hint: `string`)_
 - **Emits:** `PlaceReviews` — the place and its reviews. A place with no reviews comes back empty, and that answer is cached.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `place`
 - **External dependency:** Apify — Runs an Apify actor that reads the place's reviews. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.

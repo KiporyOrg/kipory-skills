@@ -11,6 +11,7 @@ Downloads what a URL returns and saves it as a file on the record. Returns a ref
 - **I/O:** `string` → `file`
 - **Reads:** One URL — the thing to download. Anything that is not `http` or `https`, or that resolves to a private address, is refused. _(shape hint: `string`)_
 - **Emits:** A `FileRef` for the downloaded bytes, saved to storage. An empty one when the URL is missing, or when a soft failure turns a failed download into a warning.
+- **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Fetches whatever the URL points at, through the SSRF guard, and stores the bytes. The site itself is the dependency. A service that needs a key takes a stored request credential, named in `secret`.
 - **Step credential:** a step may name a stored secret of type `http_credential` in `secret`, by its purpose; resolved from the project's node and the organisations above it, with no platform fallback.

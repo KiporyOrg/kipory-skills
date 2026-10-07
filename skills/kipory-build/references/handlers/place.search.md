@@ -11,6 +11,7 @@ Searches the map for a text query and returns each place found as a card: addres
 - **I/O:** `string` → `PlaceCard[]`
 - **Reads:** One text query that says what and where, like a category and a town. With `locationSlot` set, the slot says where and the text only what. _(shape hint: `string`)_
 - **Emits:** A list of `PlaceCard`, each with the place ID other place steps take. Empty when the map lists nothing; a `TRUNCATED` warning means more places may exist.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `query`
 - **External dependency:** Apify — Runs an Apify actor that searches the map. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.

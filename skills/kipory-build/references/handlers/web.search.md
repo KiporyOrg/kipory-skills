@@ -11,6 +11,7 @@ Runs one search query and returns its organic results, reading as many pages as 
 - **I/O:** `string` → `WebSearchResults`
 - **Reads:** One search query. Each page of results read is charged, one for every ten results asked for. _(shape hint: `string`)_
 - **Emits:** A `WebSearchResults`. Warns `TRUNCATED` when time ran out before `maxResults`, `NO_RESULTS` with no value when nothing is found or kept, and `SEARCH_FAILED` when it could not be made.
+- **Softens these failures:** `rate-limited`, `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `query`
 - **External dependency:** Apify — Runs Apify's `google-search-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.

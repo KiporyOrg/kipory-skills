@@ -89,8 +89,8 @@ body     value.first-non-empty       { "inputs": ["page.content", "plain"], "val
    `url.scrape` turns a vendor refusal into a warning and an empty page. `url.fetch` fails the step
    on a 4xx page, on an address that does not resolve and on a refused one — and one failed step
    fails the whole run, even when the scrape beside it worked: a sync endpoint answers `502`
-   (`details.phase: "handler-error"`), or `400` "blocked network request" for a lookup failure or a
-   private address. Only a 5xx from the site comes back as an empty value with a `FETCH_FAILED`
+   (`details.phase: "handler-error"`, or `"target-unreachable"` for a name that does not resolve),
+   or `400` "blocked network request" for a private address. Only a 5xx from the site comes back as an empty value with a `FETCH_FAILED`
    warning. With `continue` a failed fetch is a warning, its readers skip, and `body` takes the
    scrape.
 4. **Guard every step that reads `body` beside another slot** with
