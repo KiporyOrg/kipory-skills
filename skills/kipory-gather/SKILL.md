@@ -201,6 +201,16 @@ read waits out once when the wait is short.
   one-second compute minimum (`kipory-operate` has the billing detail). So a flow that re-runs is
   cheap, and a source that changed inside the window is one your flow cannot see. The windows differ by an order of magnitude across
   this table: rankings hold for a month, trending for six hours.
+- **"Nothing found" is saved like any answer.** A failed
+  call is never saved, but a call that finished with nothing is: `web.search`, `place.details` by
+  id, the ad libraries and the social reads keep an empty answer for the handler's window, and the
+  next run is handed it as a hit — with the `NO_RESULTS` warning the first run had, so its `step-warned` row is
+  there again beside `cacheHit: true`. For an ad library "none" is usually
+  true. For `web.search` it is also what a blocked or broken results page looks like, and the two
+  cannot be told apart — the same query can return ten results an hour later. A flow that would
+  store "this business is not on the web" from one empty search sets a short
+  `reuseResultsForMinutes` on that step (or `0`), and treats an empty search as "not known" rather
+  than "none".
 - **Polling a source needs the step's own period.** The windows in the table are each handler's
   default, not a fixed property: a step sets `reuseResultsForMinutes` — `0` runs fresh every time
   and saves nothing, a number is the step's own window. A flow that polls a feed, a channel or a

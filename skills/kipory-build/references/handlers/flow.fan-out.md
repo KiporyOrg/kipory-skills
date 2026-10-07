@@ -19,7 +19,7 @@ Starts one branch for each item of a list slot. Each branch runs the rest of the
 | --- | --- | --- | --- | --- |
 | `branchTargetsAreDisjoint` | boolean | no | `false` | Tick this when every branch writes its own record and no two ever touch the same one. ⚠️ It lets the engine overlap branches that write records, which it otherwise cannot. Leave it off if unsure: if two branches DO hit one record, the last write wins. |
 | `dedupe` | boolean | no | `true` | Drop repeated list elements before fan-out: text compared exactly (case-sensitive), a file by its storage key, anything else by its value. |
-| `maxItems` | integer, 1 to 100 | no | `20` | The most branches one run starts; later items are dropped. ⚠️ Above the system ceiling (100 unless the deployment changed it) the save refuses it with INVALID_HANDLER_CONFIG naming the setting and the limit. One run handles at most that many items, so split a bigger import. |
+| `maxItems` | integer, 1 to 100 | no | `20` | The most branches one run starts; later items are dropped. ⚠️ Above the system ceiling (100 unless the deployment changed it) the save refuses it with INVALID_HANDLER_CONFIG. Items past `maxItems` get no branch: the run still succeeds and warns `fan-out-capped`, so split a bigger import. |
 | `maxParallelBranches` | integer, 1 to 8 | no | — | How many branches may run at once. Leave it empty to let the engine decide from what the branches touch. ⚠️ 1 forces one at a time — the only setting where a branch reliably sees what earlier ones wrote. Higher forces overlap, so two branches writing one record become a race. |
 
 ## Worked example

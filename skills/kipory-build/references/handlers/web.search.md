@@ -4,13 +4,13 @@
 
 Search the web and return the results.
 
-Runs one search-engine query and returns its organic results. A search costs one billable results page; `maxResults` also sets the page size, so raising it does not add pages. Reads its query from its first input.
+Runs one search-engine query and returns its organic results. A search costs one billable results page, and a page holds about ten results whatever `maxResults` says; no setting reads a second page. Reads its query from its first input.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `WebSearchResults`
 - **Reads:** One search query. A single page of results is one billable call, whatever `maxResults` says. _(shape hint: `string`)_
-- **Emits:** A `WebSearchResults`. One page of organic results; paid ads and the other blocks on a results page are left out. A bare `{}` when the search returns nothing.
+- **Emits:** A `WebSearchResults`: one page of organic results, about ten. Nothing, with a `NO_RESULTS` warning, when the search finds none; `SEARCH_FAILED` when it could not be made.
 - **Suggested input streams:** `query`
 - **External dependency:** Apify — Runs Apify's `google-search-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
@@ -23,8 +23,8 @@ Runs one search-engine query and returns its organic results. A search costs one
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `countryCode` | string | no | — | Optional 2-letter country domain (e.g. 'us', 'de', 'il'). Omit for the actor's default (US). |
-| `languageCode` | string | no | — | Optional interface-language code (`hl` parameter, e.g. 'en', 'he'). Omit for the actor's default. |
-| `maxResults` | integer, more than 0, at most 100 | no | `10` | How many results to return, up to 100 — one page. It also sets the page size, so cost does not change. |
+| `languageCode` | string | no | — | Optional interface-language code (`hl`), such as 'en' or 'iw'. Omit for the actor's default. ⚠️ The vendor's own list, not ISO codes: Hebrew is `iw`, and `he` is refused with a `SEARCH_FAILED` warning. |
+| `maxResults` | integer, more than 0, at most 100 | no | `10` | The most results to keep from the one page a search reads, which holds about ten. ⚠️ A page holds about ten results, sometimes fewer, so a value above 10 returns no more and nothing warns. An empty answer is saved for the cache period, and a blocked page looks the same. |
 
 ## Worked example
 
@@ -32,7 +32,7 @@ Runs one search and returns the organic results. Ads and related-question blocks
 
 #### A topic search
 
-One page of results, one billable call. The list is bounded by `maxResults`, ten by default.
+One page of results, one billable call: about ten, and never more than `maxResults`.
 
 Reads `string` → emits `WebSearchResults` · 1 in → 1 out
 

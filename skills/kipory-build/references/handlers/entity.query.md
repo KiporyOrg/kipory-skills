@@ -20,7 +20,7 @@ Returns the records of one type that satisfy every clause. Exact clauses run fir
 | `cursorSlot` | string | no | — | The slot holding a prior answer's cursor. Absent, the first page. Only a query without a semantic clause pages. ⚠️ A cursor that has been edited or truncated fails the step; an absent one starts from the newest record. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. A semantic clause's own topK is bounded separately. |
 | `order` | union | no | — | How the answer is ordered: `created`, `meaning`, or a date field of the type. Omitted: by meaning with a semantic clause, else newest first. ⚠️ A field order needs a date field with a `filter` use, and leaves out records with no value there. Beside a semantic clause it re-orders the ranking and does not page. |
-| `recordType` | string | yes | — | The record type the question is asked of. |
+| `recordType` | string | yes | — | The record type the question is asked of. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
 | `userIdSlot` | string | no | — | On a user-owned type, the slot holding the user whose records are queried. Absent, the run's signed-in user. ⚠️ On a user-owned record type an empty value fails the step rather than returning an unfiltered answer, and a run with no signed-in user and no slot fails the same way. |
 
 ### `clauses` — each item is one of

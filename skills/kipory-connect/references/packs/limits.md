@@ -122,6 +122,29 @@ the link field does not make a re-poll update the item: an item whose data chang
 key is refused `RECORD_NATURAL_KEY_TAKEN` and the whole run writes nothing. There is no upsert
 step — look the link up first, then create or update.
 
+### How much a run carries, and what happens at the edge
+
+Sizes are counted in characters, not bytes: a text by its length, a list or an object by the
+length of its JSON. Most of these do not fail the run — they cut, warn, and close `succeeded` —
+so design for them rather than waiting to meet them.
+
+| Limit                                        | Value                                                  | At the limit                                                                                                                                                                                                                                                                                        |
+| -------------------------------------------- | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One slot                                     | 500,000 characters (unless the deployment set another) | A text keeps its head and ends in `[TRUNCATED]`, cut wherever the count falls. A list loses elements from its tail. An object or a file cannot be cut and is **dropped whole**: no slot is stored, and a step whose only input it was is skipped. The run warns `slot-truncated` and still succeeds |
+| All inputs of one `value.transform` together | 1,000,000 characters of JSON                           | The step fails. JSON escapes quotes and line breaks, so two slots near the slot cap — or a page beside its own chunks — pass it                                                                                                                                                                     |
+| One `value.transform` expression             | 1,000 parts                                            | Refused at save                                                                                                                                                                                                                                                                                     |
+| A page from `entity.list` or `entity.query`  | 100 rows                                               | The page carries `nextCursor` when more rows exist; an absent `nextCursor` is the only statement that the list is complete                                                                                                                                                                          |
+| `entity.read`, `entity.delete`               | 200 ids                                                | The step fails. Below it, an id that does not resolve is left out of the list silently                                                                                                                                                                                                              |
+| `flow.fan-out`                               | `maxItems`, 20 unless set, 100 at most                 | The items after the limit are not processed. The run warns `fan-out-capped` with how many were handed and how many ran, and still succeeds                                                                                                                                                          |
+| The step log of one run                      | 10,000 rows, and 200 warnings beside them              | `truncated: true` on the log; later rows were never recorded                                                                                                                                                                                                                                        |
+| A warning's or a failure's message           | 500 characters                                         | Cut                                                                                                                                                                                                                                                                                                 |
+
+A run that hit one of the cutting limits reads `succeeded`. Its warnings are `step-warned` rows
+in `GET /v1/runs/{runId}/steps`, counted by kind under `warnings` in the run's `closing`; a flow cannot read a
+warning — a step downstream sees only what was stored. Where a cut would be wrong for the
+product, cut deliberately first: bound the text in a transform and mark the record, page the
+list, or fan out in batches.
+
 ---
 
 ## What is NOT a limit
