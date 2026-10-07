@@ -54,7 +54,7 @@ mentions.
 | `youtube.posts` · `youtube.comments` · `youtube.search`        | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`   | 24h    |
 | `x.profile` · `x.transcript`                                   | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`   | 24h    |
 | `tiktok.*` (11 <!-- count: handlers-in-family-tiktok -->)      | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`   | 24h    |
-| `instagram.*` (5 <!-- count: handlers-in-family-instagram -->) | profile, posts, post, transcript, comments                                                  | ScrapeCreators | `scrapecreators`   | 24h    |
+| `instagram.*` (8 <!-- count: handlers-in-family-instagram -->) | profile, posts, post, transcript, comments, search, search-profiles, related-profiles       | ScrapeCreators | `scrapecreators`   | 24h    |
 | `linkedin.*` (6 <!-- count: handlers-in-family-linkedin -->)   | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`   | 24h    |
 | `reddit.*` (4 <!-- count: handlers-in-family-reddit -->)       | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`   | 24h    |
 | `threads.*` (4 <!-- count: handlers-in-family-threads -->)     | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`   | 24h    |
@@ -305,10 +305,13 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
 - **Falling through to the platform's key is silent and it succeeds.** When no node in the chain
   holds a credential for the vendor, the call runs on the platform's key at the platform's price.
   You do not get an error; you get a charge. `kipory-secrets` explains the resolution order.
-- **`web.search` charges by the page of results, and a page holds about ten.** `maxResults` (up to 50) decides how many pages one search reads: 10 is one page, 30 is three, each charged at the
-  `apify/web-search` row of the price list. Pages are read one after another and one can take a
-  minute or more, so a deep search can run out of time: it then returns what it read with a
-  `TRUNCATED` warning, charged for those pages. `hasMore` says whether further results exist;
+- **`web.search` charges by the page of results, and a page holds about ten.** `maxResults` (up to 50) is how many results you want, and a search reads pages until it has them
+  or is within a few of them, each page charged at the `apify/web-search` row of the price list.
+  A page often holds seven to nine, so 20 results is two pages or three; a search reads at most
+  two pages more than one per ten results, and never buys a page for the last few (fewer than
+  five missing is the answer). Pages are read one after another and one can take a minute or
+  more. A search that runs out of time, or reads its last allowed page while five or more are
+  still missing, returns what it read with a `TRUNCATED` warning, charged for those pages. `hasMore` says whether further results exist;
   there is no setting to read "page 3 only". A search that finds nothing is charged its one page.
   For "profiles, not posts" on one site, set `sites` and `excludeUrlContains` (`/p/`, `/reel/`)
   and raise `maxResults`: results left out were read and are charged, and `dropped` counts them.
