@@ -4,7 +4,7 @@
 
 Find records by their fields, terms, links, or meaning, all in one question.
 
-Returns the records of one type that satisfy every clause. Exact clauses run first and their intersection is pushed into the semantic search. A clause's value may come from a slot: `valueSlot`, `slugSlot`, `textSlot`, `fromSlot`, `toSlot`. Every answer says whether it is complete.
+Returns the records of one type that satisfy every clause. Exact clauses narrow first; a `semantic` clause then ranks by meaning and adds `scores`, how close each record is. A clause's value may come from a slot. Every answer says whether it is complete.
 
 - **Group:** entities · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -128,7 +128,12 @@ Returns the records of one type that satisfy every clause. Exact clauses run fir
 | `field` | string | no | — | A field carrying a `search` use, to rank on that field's role. Omitted: the type's default search role. |
 | `text` | string, at most 8000 characters | no | — | The phrase to resemble. |
 | `textSlot` | string | no | — | The slot whose run-time value is the phrase, in place of `text`. |
+| `likeRecordId` | string | no | — | A record to resemble, in place of a phrase. The answer ranks the records closest to it, leaves it out, and calls no model. |
+| `likeTableKey` | string | no | — | The table of the record to resemble, when it is not the queried table. Both tables must use the same search model. |
+| `likeRecordIdSlot` | string | no | — | The slot whose run-time value is the id of the record to resemble, in place of `likeRecordId`. |
 | `topK` | integer, 1 to 200 | no | — | How many to rank. Omitted: 50. |
+| `minScore` | number, -1 to 1 | no | — | Leave out records scoring below this, from −1 to 1. It removes from the `topK` ranking and never reaches past it. |
+| `passage` | boolean | no | — | `true`: each entry of `scores` also carries the text of the record's best-matching part, when it is indexed in several parts. |
 
 ### `order` — one of
 

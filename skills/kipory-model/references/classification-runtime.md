@@ -7,21 +7,29 @@ that reads the vocabulary back, none of which are part of that configuration.
 ## Where the thresholds are actually decided
 
 A `semantic` facet resolves a proposed value against terms that already exist. The comparison is a
-vector search, and the decision is a gate. Two flows are involved — the processing flow, and the
-facet's resolver flow that `facet.resolve` invokes once per value:
+search of the facet's terms by meaning, and the decision is a gate. Two flows are involved — the
+processing flow, and the facet's resolver flow that `facet.resolve` invokes once per value:
 
 ```
 processing flow:  facet.resolve → term.upsert
                   (a proposal per facet, each dispatched to the resolver; then save)
-resolver flow:    text.embed           → the proposed value as a vector
-                  vector.search        → candidate terms, best first
-                                         (collection: "$project.terms", hitShape: term, filter.facet)
+resolver flow:    term.search          → candidate terms, best first, each with a score
+                                         (vocabularySlot: "facet", textSlot: "proposalSlug")
                   term.threshold-gate  → { kind: "resolved", resolution } · { kind: "tiebreak" }
-                  text.generate        → the tiebreak, on the tiebreak branch only
+                  text.decide          → the tiebreak, on the tiebreak branch only
 ```
 
-A `term` search takes only a query vector (`queryVectorSlot`), so the resolver embeds the value
-first; `vector.search`'s handler page in `kipory-build` has a worked term search.
+`term.search` takes the proposed value as text and the facet's key, and answers the closest terms
+as `{ termId, slug, score }`. It embeds the value itself, with the one model every term of the
+project is indexed with — a resolver has no model to choose and no vector to pass. With
+`parentTermIdSlot` set it searches under that parent only, and the roots when the slot holds
+nothing. With no `status` it reads active terms, plus candidates when the facet coins candidates,
+so a second record proposing the same thing reuses the candidate instead of coining its twin.
+Its handler page in `kipory-build` has the whole configuration.
+
+A resolver flow built from `text.embed` and `vector.search` still runs today and stops when those
+two handlers are removed in the next release: replace the pair with one `term.search` step that
+writes the same output slot, and leave the rest of the flow as it is.
 
 `term.threshold-gate` compares the top candidate's score against the facet's two thresholds. Its
 output has two kinds: `resolved`, carrying the finished `resolution` whose `outcome` is `match` or
@@ -116,7 +124,7 @@ needs no record reads, and is already scoped correctly.
   identical key always matches; a near-synonym (`ai`, `artificial-intelligence`) matches only
   when its score clears the facet's thresholds, so twins still appear and merging them is part
   of reviewing candidates. Nothing activates a candidate on its own. A resolver flow of your own
-  must leave `status` unset on its `vector.search` step: one that states `active` reuses nothing.
+  must leave `status` unset on its `term.search` step: one that states `active` reuses nothing.
 - **A record's `terms` say which are candidates.** Each entry of `terms` on a record read carries
   `status` — `active`, `candidate` or `archived` — so a client can leave an unadmitted term out
   without a second read of the vocabulary.

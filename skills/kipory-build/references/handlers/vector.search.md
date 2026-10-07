@@ -13,7 +13,7 @@ Finds the nearest points in a collection. The query is one of three things, and 
 - **Emits:** `TermHit` (default), `GenericHit`, `CandidateHit` or `RecordHit` per `hitShape`, best first, capped at `topK`. A `RecordHit` holds matched chunks, not the record's text, unless `expand: "record"` merged it.
 - **Suggested input streams:** `vector`
 - **External dependency:** a model provider — A text query is embedded here, with the model the target collection was built with, before the search runs. A query arriving as a vector spends no model call.
-- **Rate limit:** 300 per min in bucket `ai-embed` — shared with `text.embed`
+- **Rate limit:** 300 per min in bucket `ai-embed` — shared with `term.search`, `text.embed`
 
 ## Config
 

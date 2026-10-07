@@ -2,6 +2,31 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261007.202017 — 2026-10-07
+
+Synced from the Kipory monorepo at `ea2379512`.
+
+Handlers added: `term.search`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/handlers/README.md`
+- changed: `skills/kipory-build/references/handlers/entity.query.md`
+- added: `skills/kipory-build/references/handlers/term.search.md`
+- changed: `skills/kipory-build/references/handlers/text.chunk.md`
+- changed: `skills/kipory-build/references/handlers/text.embed.md`
+- changed: `skills/kipory-build/references/handlers/vector.search.md`
+- changed: `skills/kipory-build/references/packs/flows-and-skills.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-extract/references/document-flows.md`
+- changed: `skills/kipory-model/references/classification-runtime.md`
+- changed: `skills/kipory-model/references/packs/facets.md`
+- changed: `skills/kipory-model/references/packs/record-types-and-schema-entries.md`
+- changed: `skills/kipory-plan/references/build-sheet-example.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+- changed: `skills/kipory-retrieve/references/pipeline.md`
+
 ## 1.20261007.195135 — 2026-10-07
 
 Synced from the Kipory monorepo at `61bdfc98f`.

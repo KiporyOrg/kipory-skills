@@ -687,6 +687,31 @@ EXACTLY when it holds at most 25 000 records, so a record satisfying every claus
 by the ranking. Above that the ranking runs first and the exact clauses narrow it — a bounded
 answer, and the answer says so.
 
+**How close each record is.** An answer ranked by the query's own `semantic` clause carries
+`scores` beside `records`: one `{ id, score }` per returned record, in the records' order. The
+score is the similarity of the record's closest part to the query — higher is closer, a poor
+match can be below zero, and it is on the same scale for every type, whether or not the type's
+profile also indexes exact words. It sits beside the rows and not on them, because a row's own
+fields are spread at its top level. On the clause:
+
+- `minScore` (−1 to 1) leaves out records scoring below it. It removes from the `topK` ranking and
+  never reaches past it; `explanation` says how many it removed (`belowMinScore` on the clause's
+  row), and `emptiedBy` names the clause when it removed them all.
+- `passage: true` adds `passage: { index, text }` to each entry — the record's best-matching
+  part — when the record is indexed in more than one part. A record that changed after it was
+  indexed carries `passageStale: true` instead.
+- `likeRecordId` (or `likeRecordIdSlot` in a step) names a record to resemble in place of a
+  phrase: the answer ranks the records closest to it, leaves it out, and calls no model.
+  `likeTableKey` names the record's type when it is not the queried one; both must use the same
+  embedding profile, or the save is refused `QUERY_LIKE_TABLE_MODEL_MISMATCH`. A record with no
+  index entry yet fails the query `QUERY_LIKE_RECORD_NOT_INDEXED` rather than answering empty; one
+  that does not exist, or is not the caller's, answers `QUERY_LIKE_RECORD_NOT_FOUND`. A clause
+  resembles a phrase or a record, never both (`QUERY_SEMANTIC_SOURCE_AMBIGUOUS`), and `passage`
+  cannot be combined with a record (`QUERY_PASSAGE_WITH_LIKE_RECORD`).
+
+None of the four belongs on a `peer` clause (`QUERY_PEER_SCORE_MEMBER`): a peer's phrase chooses
+which records are in reach and gives the answer no scores.
+
 **A link's far end matched by meaning.** A `semantic` clause inside `peer` asks for the records
 linked to something that resembles a phrase — "guides who have led an outing about river
 crossings" is a query on `guide` with one `edge` clause:

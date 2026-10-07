@@ -67,7 +67,7 @@ merging or archiving is still your step: nothing activates a candidate on its ow
 
 ⚠️ Reuse is as good as the match. Short or differently worded values (`tv`, then `television`)
 score low against each other and can still coin two candidates; merge them when you review. A
-resolver flow of your own that states `status: active` on its `vector.search` step searches active
+resolver flow of your own that states `status: active` on its `term.search` step searches active
 terms only and reuses no candidate — leave the status unset.
 
 Choose `none` when the value set is authoritative and finite, `active` when the vocabulary should

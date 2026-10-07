@@ -73,9 +73,9 @@ the run unless a `file.download-url` step makes a link to them (`SKILL.md`, "Wha
 Reach past that only when the route does not fit:
 
 - **`entity.update`** writes the text onto a record the flow did not get as its input.
-- **The hand-built chain** (`text.chunk` → `text.embed` → `vector.upsert`) writes points the
-  declaration does not, and only on a run with a signed-in end user — `kipory-retrieve` covers it,
-  and its limits.
+- **`text.chunk`** cuts a long text into parts when a step should handle one part at a time —
+  summarising a transcript part by part, say. Indexing needs none of it: the platform splits a
+  `search` field itself.
 
 ## Costs worth knowing before you build
 

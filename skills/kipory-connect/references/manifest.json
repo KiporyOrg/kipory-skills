@@ -26,7 +26,7 @@
       "page": "kipory-operate/references/packs/events.md"
     },
     "facets": {
-      "hash": "cf7abbf064a5",
+      "hash": "f89b6475b22a",
       "page": "kipory-model/references/packs/facets.md"
     },
     "flow-checkpoints": {
@@ -34,7 +34,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-skills": {
-      "hash": "d050a06648a3",
+      "hash": "77adfada87cc",
       "page": "kipory-build/references/packs/flows-and-skills.md"
     },
     "limits": {
@@ -62,7 +62,7 @@
       "page": "kipory-connect/references/packs/readme.md"
     },
     "record-types-and-schema-entries": {
-      "hash": "b18d95e197c0",
+      "hash": "68a9f58c8e5a",
       "page": "kipory-model/references/packs/record-types-and-schema-entries.md"
     },
     "relations": {
@@ -140,7 +140,7 @@
       "page": "kipory-build/references/handlers/entity.list.md"
     },
     "entity.query": {
-      "hash": "6f13ad9895ba",
+      "hash": "c71a22b03902",
       "page": "kipory-build/references/handlers/entity.query.md"
     },
     "entity.read": {
@@ -347,6 +347,10 @@
       "hash": "894c2f5be8a1",
       "page": "kipory-build/references/handlers/telegram.stats.md"
     },
+    "term.search": {
+      "hash": "828db48e2ab4",
+      "page": "kipory-build/references/handlers/term.search.md"
+    },
     "term.threshold-gate": {
       "hash": "0b94c6ccf075",
       "page": "kipory-build/references/handlers/term.threshold-gate.md"
@@ -356,7 +360,7 @@
       "page": "kipory-build/references/handlers/term.upsert.md"
     },
     "text.chunk": {
-      "hash": "f68d67328550",
+      "hash": "6a1982734b6c",
       "page": "kipory-build/references/handlers/text.chunk.md"
     },
     "text.decide": {
@@ -368,7 +372,7 @@
       "page": "kipory-build/references/handlers/text.detect-language.md"
     },
     "text.embed": {
-      "hash": "7860be3e0776",
+      "hash": "86e1350d7306",
       "page": "kipory-build/references/handlers/text.embed.md"
     },
     "text.embed-sparse": {
@@ -496,7 +500,7 @@
       "page": "kipory-build/references/handlers/vector.point-id.md"
     },
     "vector.search": {
-      "hash": "59bc4b7afc85",
+      "hash": "548e7d05ceb8",
       "page": "kipory-build/references/handlers/vector.search.md"
     },
     "vector.upsert": {
@@ -1525,7 +1529,7 @@
       "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/records/query": {
-      "hash": "87d68473d2b1",
+      "hash": "109f11642808",
       "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/records/{id}/relations/{kind}": {

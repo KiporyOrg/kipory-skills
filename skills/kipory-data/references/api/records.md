@@ -466,7 +466,7 @@ Ask a project's records one question: a conjunction of clauses — `field` (`eq`
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
 | `recordType` | `string` | yes | The record type the question is asked of. Every clause is validated against this type's `uses`: a field needs `filter`, a facet `facet`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the type. |
-| `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column) `{ kind, field, op, value }` with `op` one of eq/lt/lte/gt/gte/in, `in` taking a list; `term` (a facet assignment) `{ kind, facet, slug }`, `slug` being the term's key; `edge` (a relation) `{ kind, relation, direction?, where?, count?, peer? }` — `direction` outgoing/incoming/either, `where` stamped edge filters `{ property, op, value }`, `count` `{ op, n }`, and `peer` one hop of `field`/`term` clauses, and at most one `semantic`, on the far record; `stream` (event rows) `{ kind, field, window?, where?, count? }` — exists/none/count inside a window; and at most one `semantic` `{ kind, field?, text, topK? }` (a phrase ranked by meaning). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
+| `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column) `{ kind, field, op, value }` with `op` one of eq/lt/lte/gt/gte/in, `in` taking a list; `term` (a facet assignment) `{ kind, facet, slug }`, `slug` being the term's key; `edge` (a relation) `{ kind, relation, direction?, where?, count?, peer? }` — `direction` outgoing/incoming/either, `where` stamped edge filters `{ property, op, value }`, `count` `{ op, n }`, and `peer` one hop of `field`/`term` clauses, and at most one `semantic`, on the far record; `stream` (event rows) `{ kind, field, window?, where?, count? }` — exists/none/count inside a window; and at most one `semantic` `{ kind, field?, text, topK?, minScore?, passage? }` (a phrase ranked by meaning; `minScore` leaves out records scoring below it, `passage` asks for the text of each record's best-matching part). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
 | `limit` | `integer` | no | How many records come back at most. For an exact-only query this is the page size; with a semantic clause the clause's own `topK` bounds the ranking and this caps what is returned of it. |
 | `order` | `object` | no | How the answer is ordered. Omitted: closest first when the query has a `semantic` clause of its own, newest created first otherwise. `field` orders by one of the type's own date fields carrying a `filter` use, and an exact-only query pages by it; beside a `semantic` clause it re-orders the ranking, which stays bounded. A cursor belongs to the order that minted it. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
@@ -482,7 +482,8 @@ Ask a project's records one question: a conjunction of clauses — `field` (`eq`
 | `paging` | `null` | yes | Always null: a query is never counted. An exact-only answer is walked by `after` / `before`; a ranking has no position to count from. |
 | `bounded` | `false \| object` | yes | `false`: every record satisfying every clause is in reach. Otherwise the answer is a ranking of at most `bound` records — because the semantic clause ran alone (`semantic-only`); because the exact intersection exceeded the pushdown cap and the semantic clause had to run first (`pushdown-cap`); or because every satisfying record WAS scored exactly but more than `topK` — or than the request's `limit` — satisfied, so only the closest `bound` are returned (`top-k`); or because a link's far end was matched by meaning, so only records linked to the closest `bound` peers are in reach (`peer-top-k`). Under any reason, `bound` is the request's `limit` when that is the smaller number. Never omitted. |
 | `explanation` | `object` | yes | How the answer was produced: one row per clause that ran, in the order it ran, and what was pushed into the vector store. STATED on every response. |
-| `emptiedBy` | `integer` | no | Present when an exact clause's leg emptied the intersection: its index in `clauses`. No later leg ran and the vector index was not touched, so `records` is empty by that clause's doing and not by the ranking's. |
+| `emptiedBy` | `integer` | no | Present when an exact clause's leg emptied the intersection: its index in `clauses`. No later leg ran and the vector index was not touched, so `records` is empty by that clause's doing and not by the ranking's. A `semantic` clause's index is named when its `minScore` removed every record it ranked. |
+| `scores` | `object[]` | no | Present when the query's own `semantic` clause ranked: one entry per returned record, in the order of the records. Absent on a query with no `semantic` clause of its own. |
 
 Each item of `records`:
 
@@ -504,6 +505,15 @@ Each item of `records`:
 | `createdAt` | `string` | yes | When the record arrived. |
 | `updatedAt` | `string` | yes | When it last changed. |
 | `version` | `integer` | yes | Its optimistic-concurrency token, for a later write. |
+
+Each item of `scores`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record's id — one of `records`. |
+| `score` | `number` | yes | How close the record's closest part is to the query: a cosine similarity, on the same scale for every table. Higher is closer; a poor match can be negative. |
+| `passage` | `object` | no | The record's best-matching part, when the clause asked (`passage: true`) and the record is indexed in more than one part. |
+| `passageStale` | `true` | no | Present in place of `passage` when the record changed after it was last indexed, so the part that was scored can no longer be quoted. |
 
 ### `GET /v1/relations`
 

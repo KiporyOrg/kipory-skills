@@ -501,7 +501,7 @@ step that sets none behaves as it always has.
 
 ## Asking about a step you have not saved
 
-26 <!-- count: editor-inputs-from-config --> handlers do not take their inputs
+27 <!-- count: editor-inputs-from-config --> handlers do not take their inputs
 from the step row: they name them INSIDE their own configuration. `value.transform` — the most-used handler there is — names them
 inside a JSONata expression, so writing the expression IS writing the step's input list, and there
 is nothing to pick from a list.

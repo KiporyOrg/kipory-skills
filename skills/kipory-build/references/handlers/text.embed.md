@@ -14,7 +14,7 @@ Runs one string through an embedding model and returns the vector. Text that arr
 - **Softens these failures:** `error` — the step still finishes with a warning, and a `failureSlot` on it then holds the code (`step-fields.md` §6).
 - **Suggested input streams:** `inputText`
 - **External dependency:** a model provider — Whichever provider hosts the embedding model this step is set to. The key is resolved per model.
-- **Rate limit:** 300 per min in bucket `ai-embed` — shared with `vector.search`
+- **Rate limit:** 300 per min in bucket `ai-embed` — shared with `term.search`, `vector.search`
 - **Queue:** 2 attempts, exponential from 1 s 500 ms; waits up to 1 min; cache no expiry — the handler's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
