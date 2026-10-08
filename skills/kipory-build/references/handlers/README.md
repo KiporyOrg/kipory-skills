@@ -2,11 +2,11 @@
 
 # Handler catalog
 
-120 customer handlers, one page each, listed under the group the catalog files them in. A step in a flow is one of these plus its config. `GET /v1/handlers` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+119 customer handlers, one page each, listed under the group the catalog files them in. A step in a flow is one of these plus its config. `GET /v1/handlers` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/handlers` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the handler's phase, then what a step on it spends:
 
-- `ingest` (78) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound steps.
+- `ingest` (77) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound steps.
 - `inline` (36) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
@@ -32,7 +32,7 @@ _Work on text without a model: split, match, fill a template, clean._
 - [`text.interpolate`](text.interpolate.md) — Fill a template · `inline` · `any+` → `string`
 - [`text.sanitize`](text.sanitize.md) — Make text safe for a prompt · `inline` · `any+` → `object`
 
-## sources (64)
+## sources (63)
 
 _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost money._
 
@@ -54,7 +54,6 @@ _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost 
 - [`instagram.post`](instagram.post.md) — Fetch an Instagram post · `ingest` · vendor key · `string` → `SocialPost`
 - [`instagram.posts`](instagram.posts.md) — Fetch an Instagram account's posts · `ingest` · vendor key · `string` → `SocialPost[]`
 - [`instagram.profile`](instagram.profile.md) — Fetch an Instagram profile · `ingest` · vendor key · `string` → `SocialProfile`
-- [`instagram.related-profiles`](instagram.related-profiles.md) — Fetch related Instagram accounts · `ingest` · vendor key · `string` → `SocialProfile[]`
 - [`instagram.search`](instagram.search.md) — Search Instagram posts · `ingest` · vendor key · `string` → `SocialPost[]`
 - [`instagram.search-profiles`](instagram.search-profiles.md) — Search Instagram accounts · `ingest` · vendor key · `string` → `SocialProfile[]`
 - [`instagram.transcript`](instagram.transcript.md) — Fetch an Instagram transcript · `ingest` · vendor key · `string` → `string`

@@ -54,7 +54,7 @@ mentions.
 | `youtube.posts` · `youtube.comments` · `youtube.search`        | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`   | 24h    |
 | `x.profile` · `x.transcript`                                   | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`   | 24h    |
 | `tiktok.*` (11 <!-- count: handlers-in-family-tiktok -->)      | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`   | 24h    |
-| `instagram.*` (8 <!-- count: handlers-in-family-instagram -->) | profile, posts, post, transcript, comments, search, search-profiles, related-profiles       | ScrapeCreators | `scrapecreators`   | 24h    |
+| `instagram.*` (7 <!-- count: handlers-in-family-instagram -->) | profile, posts, post, transcript, comments, search, search-profiles                         | ScrapeCreators | `scrapecreators`   | 24h    |
 | `linkedin.*` (6 <!-- count: handlers-in-family-linkedin -->)   | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`   | 24h    |
 | `reddit.*` (4 <!-- count: handlers-in-family-reddit -->)       | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`   | 24h    |
 | `threads.*` (4 <!-- count: handlers-in-family-threads -->)     | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`   | 24h    |
