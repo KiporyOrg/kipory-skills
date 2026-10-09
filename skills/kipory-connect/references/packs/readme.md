@@ -26,8 +26,8 @@ from one compiled-in module and carry the same `version`.
 | Fact                                                | Where it actually lives                        |
 | --------------------------------------------------- | ---------------------------------------------- |
 | Endpoint paths, request and response shapes         | `GET /v1/openapi.json`                         |
-| Which handlers exist, their config and their I/O    | `GET /v1/handlers`                             |
-| Contract, action and input-mapping grammars         | `GET /v1/openapi.json`                         |
+| Which functions exist, their config and their I/O   | `GET /v1/functions`                            |
+| Contract, target and input-mapping grammars         | `GET /v1/openapi.json`                         |
 | Which paths the platform itself occupies            | `GET /v1/coded-routes` — before you pick one   |
 | Whether a coded route shadows an endpoint you SAVED | `expand=shadowed` on the api-endpoints read    |
 | These packs, and whether your copy is current       | `GET /v1/capability-packs` — compare `version` |
@@ -40,7 +40,7 @@ If a pack and a live source disagree, the live source wins. The packs are checke
 continuously, but a deployment can always move first — so report the disagreement rather than
 quietly working around it.
 
-> **Confirm every handler key against `GET /v1/handlers`, never against a pack.** A snapshot of
+> **Confirm every function key against `GET /v1/functions`, never against a pack.** A snapshot of
 > the catalog once kept naming a key after the running deployment had merged it into
 > `value.first-non-empty`. See Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`), Rule 0.
 
@@ -57,9 +57,9 @@ quietly working around it.
 | Understand how a request to a project's own host is served, end to end     | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
 | Expose a flow over HTTP — sync, async or streaming                         | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
 | Mint a token that can call a project's API                                 | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
-| Build or edit a flow; add, change or reorder skills                        | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                              |
-| Make a flow actually return its declared output                            | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                              |
-| Run a flow against real inputs — and the flag that stops it writing        | Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)                              |
+| Build or edit a flow; add, change or reorder actions                       | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
+| Make a flow actually return its declared output                            | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
+| Run a flow against real inputs — and the flag that stops it writing        | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
 | Define a reusable data shape                                               | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
 | Define a kind of record people create or the system processes              | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
 | Classify records against a vocabulary that resolves to terms               | Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)                                    |
@@ -96,8 +96,8 @@ quietly working around it.
   id everywhere, and that a key reads that id and the project's `baseUrl` from `GET /v1/grant`.
 - **Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)** — read early. The full request
   lifecycle, and the resource that defines it.
-- **Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`)** — the main build target. Output binding, preview (which
-  costs money **and writes records unless you pass `apply: false`**), what travels between skills,
+- **Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)** — the main build target. Output binding, preview (which
+  costs money **and writes records unless you pass `apply: false`**), what travels between actions,
   and the rule that a save succeeding is not a promise it will run.
 - **Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)** — shapes versus tables, the reserved names, and what a
   schema edit cascades into.
@@ -128,13 +128,13 @@ quietly working around it.
   that renders only `status` never sees.
 - **Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)** — the node-scoped credential vault. Which tier's key pays the vendor,
   why disabling a secret defers upward instead of switching it off, why nothing reads a value
-  back, and the request credential a `url.fetch` or `url.send` step names to call an outside API.
+  back, and the request credential a `url.fetch` or `url.send` action names to call an outside API.
 
 ## True of every design resource
 
 - **Address by node, or by the parent that owns you.** Most resources create and list by the
   project's **id**, and individual items are addressed by their own id — but a resource
-  with a parent design object scopes by THAT instead: skills by their flow, checkpoints by their
+  with a parent design object scopes by THAT instead: actions by their flow, checkpoints by their
   flow. Check the resource's own pack rather than assuming the node.
 - **Two planes, two audiences.** The design plane is where a project is _authored_, on the api
   host. The dynamic plane is where a project's own users are _served_, on the project's own host —

@@ -16,9 +16,9 @@ Links themselves arrive on more than one surface, and picking the wrong one is w
 
 - `GET /v1/records/{id}/links/{relationKey}` — one record, **one relation** per call. The narrowest
   read, and the only one that reaches a `join-record` relation.
-- **Inside a flow**, the record read and list steps can carry a record's links per row, grouped by
-  relation and for every relation at once, and the list and count steps can keep only rows that
-  carry a link. Both are step configuration, opt-in and off by default — check the handler catalog
+- **Inside a flow**, the record read and list actions can carry a record's links per row, grouped by
+  relation and for every relation at once, and the list and count actions can keep only rows that
+  carry a link. Both are action configuration, opt-in and off by default — check the function catalog
   for the field names rather than trusting this pack's vocabulary.
 - **Over HTTP**, the project's links sweep (`GET /v1/links?project=`) anchored on a record
   (`record=`) returns its links across every relation in one call.
@@ -102,23 +102,23 @@ links by endpoint alone.
 Both ROUTES above need EDITOR on **both** ends, and both refuse an unresolvable end identically — so
 a refusal cannot tell a caller whether the far record exists.
 
-⭐ **A flow states one under a label you choose.** The two steps are
+⭐ **A flow states one under a label you choose.** The two actions are
 `record.link-assert` and `record.link-retract`; each reads two positional slots — the record the
 link runs FROM, then the one it runs TO — so the order between them decides which way a directed
 link points. Each slot takes a record ID: after a `record.create`, read `recordId` off its receipt,
-since a whole receipt wired there is refused when the step is saved. Assert answers `stated` or
-`refused`, and a refusal also leaves a `LINK_REFUSED` warning on the step in the run, since the step
+since a whole receipt wired there is refused when the action is saved. Assert answers `stated` or
+`refused`, and a refusal also leaves a `LINK_REFUSED` warning on the action in the run, since the action
 itself still finishes; retract answers `retracted` or `not-found`, and
-finding nothing to take back is an ordinary answer rather than a failure. Give the stating step a
+finding nothing to take back is an ordinary answer rather than a failure. Give the stating action a
 label and
-the step that takes links back the SAME label, and the second reaches exactly what the first wrote —
+the action that takes links back the SAME label, and the second reaches exactly what the first wrote —
 never a link a person made by hand, and never another label's. That scoping is why the label
 matters more than it looks: it is not a name, it is who is allowed to take the link back. A flow can
 never reach a person's link, and cannot learn one is there — finding nothing to take back and
 finding somebody else's are the same answer.
 
 ⚠️ A flow-stated link carries **no properties**. The route above takes a properties bag and these
-steps have no such input, so a relation whose meaning lives in its bag is stated from the route
+actions have no such input, so a relation whose meaning lives in its bag is stated from the route
 rather than from a flow.
 
 ## When you need it — and when you don't

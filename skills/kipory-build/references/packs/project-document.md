@@ -10,7 +10,7 @@
 
 A project's whole configuration — its shapes, tables, relations, vocabularies, events, flows,
 entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
-ownership: a flow's steps sit under the flow, a vocabulary's terms under the vocabulary, a suite's
+ownership: a flow's actions sit under the flow, a vocabulary's terms under the vocabulary, a suite's
 cases under the suite. Ids are optional; the platform fills
 them in on export and matches by them on apply. The document you write is the document the
 platform hands back.
@@ -31,7 +31,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 3`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 4`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
@@ -79,12 +79,12 @@ are ids on the row API and keys in the document — flows, shapes, sources, and 
 | `dataTypeId`                 | `shape`               | a config namespace's shape, by type key                   |
 | `flowId`                     | `flow`                | a table's, trigger's, schedule's or eval suite's flow     |
 | `sourceId`                   | `source`              | a trigger's source, as `<provider>/<key>`                 |
-| `actionConfig.flow.id`       | `actionConfig.flow`   | an endpoint action's flow, by key                         |
+| `targetConfig.flow.id`       | `targetConfig.flow`   | an endpoint target's flow, by key                         |
 | `resolverFlowId`             | `resolver`            | a vocabulary's resolving flow, by key                     |
 | `scorerFlowIds`              | `scorers`             | an eval suite's scorer flows, by key                      |
 | `uses.search.profileId`      | `uses.search.profile` | a table's embedding profile, by key — its live generation |
-| `targetFlowId`               | `target`              | a `flow.invoke` step's target, by key                     |
-| `dataTypeId` in a schema ref | `ref`                 | a step's schema reference, by type key                    |
+| `targetFlowId`               | `target`              | a `flow.invoke` action's target, by key                   |
+| `dataTypeId` in a schema ref | `ref`                 | an action's schema reference, by type key                 |
 
 An endpoint's `contractConfig` is the row API's, whole: who may call it is stated there too.
 `auth: "none"` makes the endpoint public — callable with no key and no session — and `publicRpm`
@@ -148,7 +148,7 @@ A field the row's own PATCH does not take — a vocabulary's `cardinality`, a pr
 trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
 it is fine (an export states everything), stated CHANGED it is refused on its own path, never
 dropped. To change one, state the row under a new key without the `id` and remove the old one.
-The exception is the owned collections (a flow's `skills`, a suite's `cases`, a relation's
+The exception is the owned collections (a flow's `actions`, a suite's `cases`, a relation's
 `pairings` — each `{ fromTableKey, toTableKey }`, as the relation's create takes them — a
 vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
 and a member the project holds that the collection no longer names is REMOVED, which makes that
@@ -229,7 +229,7 @@ pairing it has that relation's change on `relations.<kind>` as the cascade, not 
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a shape, a
-table (while it holds no records and no step's config names it), a skill, an eval suite and
+table (while it holds no records and no action's config names it), an action, an eval suite and
 an eval case, keeping the `id` under a new key is a RENAME — one update of the
 same row, and everything that named it follows; the row API renames exactly the same kinds. Every
 other key is permanent (a vocabulary, a flow, an endpoint: other rows or stored data are linked to
@@ -267,9 +267,9 @@ A refused apply answers `422` with the PLAN as its body and has written nothing 
 before the refused one either. A document that changes nothing answers `applied: true` and leaves
 the version where it was, so re-applying what you exported is always safe. What the platform fills in
 on a write is not a change: a `flow.invoke` or `flow.merge` `derivedShape`, a `flow.dispatch`
-`outputSlot` of `""`, the carry slots a `flow.loop-end` adds to its `inputStreams`, `handlerConfig: {}`
+`outputSlot` of `""`, the carry slots a `flow.loop-end` adds to its `inputStreams`, `functionConfig: {}`
 against a stored `null`, and the `x-record-ref` a `link` use stamps on a field. Planning the same
-document again, or its export, reports every row `unchanged`, and a step it leaves alone keeps its
+document again, or its export, reports every row `unchanged`, and an action it leaves alone keeps its
 `version` and the results cached under it.
 
 The answer is the plan plus `applied`, `appliedVersion` — present that on your next apply if nothing else wrote since — and
@@ -300,30 +300,30 @@ the same document again to retry, and only what is still missing is attempted.
 An apply whose only change is a vocabulary's terms is still a change: it moves the version, and its
 seed runs after the commit like any other.
 
-A flow's `skills` are matched by `id`, then by key. A step's key is a step name, the one format
-every step write takes (lower-case kebab, optionally grouped with dots); a key outside it refuses
-that step on its own path. A step the document leaves as it is is not
+A flow's `actions` are matched by `id`, then by key. An action's key is an action name, the one format
+every action write takes (lower-case kebab, optionally grouped with dots); a key outside it refuses
+that action on its own path. An action the document leaves as it is is not
 written; one it changes is updated in place, keeps its `id` and moves its `version`; a new key is
-created; a key the map omits is deleted. So a step id held across an apply stays good — a step
+created; a key the map omits is deleted. So an action id held across an apply stays good — an action
 renamed by keeping its `id` under the new key keeps it too; only one restated under a new key
-without its `id` gets a new one. What a single step save works out, the apply works out too: each
+without its `id` gets a new one. What a single action save works out, the apply works out too: each
 `flow.invoke` output row's `derivedShape` is typed from the flow it calls (never state it — and a
-document that rewrites a sub-flow's steps re-types every step calling it, restated or not), and a
-flow whose signature changes is judged against the steps the document LEAVES, so retyping an input
-and replacing the step that read it is one apply. A step leaves out what a single create lets it
-leave out: `inputStreams` for a handler that names its inputs in its settings, prompt or
+document that rewrites a sub-flow's actions re-types every action calling it, restated or not), and a
+flow whose signature changes is judged against the actions the document LEAVES, so retyping an input
+and replacing the action that read it is one apply. An action leaves out what a single create lets it
+leave out: `inputStreams` for a function that names its inputs in its settings, prompt or
 `flow.invoke` input rows (derived, as the save derives them), `inputSchemas` (each input typed from
-what feeds it, a step of the same document included, and typed again when what feeds it changes),
-`promptTemplate` and `taskKey`, `outputSlot` on a handler that writes no named result,
-`description`, `condition`, `enabled` and `outputSchema`. Left out of a step the flow already holds,
-each keeps its value; a new step starts on `""`, `extraction`, no slot, no description, no
-condition, enabled, and the type its handler emits (`record.create` → `RecordCreate`,
+what feeds it, an action of the same document included, and typed again when what feeds it changes),
+`promptTemplate` and `taskKey`, `outputSlot` on a function that writes no named result,
+`description`, `condition`, `enabled` and `outputSchema`. Left out of an action the flow already holds,
+each keeps its value; a new action starts on `""`, `extraction`, no slot, no description, no
+condition, enabled, and the type its function emits (`record.create` → `RecordCreate`,
 `value.transform` → `object`), worked out once what feeds it is typed. An `outputSchema` of `null`
-is stated: no constraint. A step the flow already holds keeps its
-`outputSchema` when the entry leaves it out — unless the entry moves what its handler emits: a new
-`handlerKey`, or a setting the handler's type depends on, stores the new type, and a move to a
-handler with no type of its own (`text.generate`) stores none, as a step PATCH does. A list the step does state is written as stated. A step field the write
-refuses is named on the step's own path (`flows.<flow>.skills.<step>.outputSchema`), never the
+is stated: no constraint. An action the flow already holds keeps its
+`outputSchema` when the entry leaves it out — unless the entry moves what its function emits: a new
+`functionKey`, or a setting the function's type depends on, stores the new type, and a move to a
+function with no type of its own (`text.generate`) stores none, as an action PATCH does. A list the action does state is written as stated. An action field the write
+refuses is named on the action's own path (`flows.<flow>.actions.<action>.outputSchema`), never the
 flow's.
 
 In the project's history an apply is ONE entry, titled as a document apply with the three counts
@@ -371,15 +371,15 @@ refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}
 
 ## A document written for an older format
 
-A step's `failureSlot` is optional in a document. Stated, it is the slot the step's failure is
-written to (flows and skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`), "How a step runs"); left out, the step has
-none, and an export leaves the key out for a step that names none.
+An action's `failureSlot` is optional in a document. Stated, it is the slot the action's failure is
+written to (flows and actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`), "How an action runs"); left out, the action has
+none, and an export leaves the key out for an action that names none.
 
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 3`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
-- **A step's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
+- **A format version other than `kipory: 4`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
+- **An action's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
   lower-case. Change the two values.
 - **A `file` use, a `derived` field family, or projection `stages`** on a table or as a
   profile default — none exists. Remove them; a search slot reads one stored field.

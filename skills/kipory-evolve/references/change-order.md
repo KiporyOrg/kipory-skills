@@ -21,16 +21,16 @@ a `DELETE` and in the body on a `PATCH` or `POST`.
 | `DELETE /v1/flows/{id}` + `validateOnly`                                                                                                                         | whether a flow delete would be refused, and `derived.dependents`: everything that holds the flow — endpoints, schedules, triggers, tables, resolvers, callers                                   |
 | `DELETE /v1/api-endpoints/{id}` + `validateOnly`                                                                                                                 | the verdict on removing an endpoint — nothing refuses it, and its path stops answering at once                                                                                                  |
 | `DELETE /v1/schedules/{id}` + `validateOnly`                                                                                                                     | the verdict on removing a schedule and its run history — to stop it but keep it, disable it                                                                                                     |
-| `DELETE /v1/steps/{id}` + `validateOnly`                                                                                                                         | whether later steps read its output — the dependents and the slots they read                                                                                                                    |
+| `DELETE /v1/actions/{id}` + `validateOnly`                                                                                                                       | whether later actions read its output — the dependents and the slots they read                                                                                                                  |
 | `DELETE /v1/terms/{id}` + `validateOnly`                                                                                                                         | whether assignments, children or aliases refuse it                                                                                                                                              |
 | `DELETE /v1/triggers/{id}`, `/v1/types/{id}`, `/v1/eval-suites/{id}`, `/v1/event-types/{id}`, `/v1/embedding-profiles/{id}`, `/v1/sources/{id}` + `validateOnly` | the delete's own verdict                                                                                                                                                                        |
 | `PATCH /v1/types/{id}` + `validateOnly`                                                                                                                          | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                                                   |
 | `PATCH /v1/tables/{id}` + `validateOnly`                                                                                                                         | what a `uses`, shape (`dataTypeId`, own `definition`), binding or key change derives to — `derived.contract`, `derived.naturalKey`, reindex, restamp                                            |
-| `PATCH /v1/steps/{id}` + `validateOnly`                                                                                                                          | a slot rename's `derived.rename`, the patched config's `derived.draft`, and — with `enabled: false` — `derived.switchOff`: the steps that would stop with it                                    |
+| `PATCH /v1/actions/{id}` + `validateOnly`                                                                                                                        | a slot rename's `derived.rename`, the patched config's `derived.draft`, and — with `enabled: false` — `derived.switchOff`: the actions that would stop with it                                  |
 | `PATCH /v1/flows/{id}` + `validateOnly`                                                                                                                          | whether a signature or `outputBinding` change would be refused — `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` without `adoptSnapshots` — and what it would break around the flow, under `leavesBehind` |
-| `POST /v1/steps` + `validateOnly`                                                                                                                                | whether an unsaved step is valid — it executes nothing                                                                                                                                          |
+| `POST /v1/actions` + `validateOnly`                                                                                                                              | whether an unsaved action is valid — it executes nothing                                                                                                                                        |
 | `GET /v1/flows/{id}/health`                                                                                                                                      | whether the flow is whole after the edit                                                                                                                                                        |
-| `POST /v1/flow-checkpoints/{id}/restore` + `validateOnly`                                                                                                        | what restoring would change back — the restore rehearsed: its own refusals, and `derived.restore` with both step lists and the signature changes                                                |
+| `POST /v1/flow-checkpoints/{id}/restore` + `validateOnly`                                                                                                        | what restoring would change back — the restore rehearsed: its own refusals, and `derived.restore` with both action lists and the signature changes                                              |
 | `GET /v1/eval-suites/{id}/readiness`                                                                                                                             | whether the suite can still judge the thing you changed                                                                                                                                         |
 | `POST /v1/projects/{nodeId}/document/plan`                                                                                                                       | everything a whole document would create, change and remove — with every refusal, every cascade, and what it does to stored records — without writing                                           |
 
@@ -45,20 +45,20 @@ schema.
 
 ## Start by classifying the change
 
-| The request                                                 | Class       | What it needs                                                                          |
-| ----------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
-| add a field, a table, a flow, an endpoint                   | additive    | dependency order, nothing else                                                         |
-| add a **required** field to a table with records            | narrowing   | widen → backfill → patch fixed inputs → narrow, four steps                             |
-| change the steps of a flow that processes a table's records | re-run      | the edit saves; stored records keep what the old steps wrote until each is reprocessed |
-| rename a step's output slot                                 | cascade     | rehearse, then one document carrying the step, its readers and the flow binding        |
-| rename a field or a table                                   | pinned      | refused once the table has records                                                     |
-| change what is searchable                                   | reindex     | rehearse; a `reembed` bills per record                                                 |
-| remove anything                                             | subtractive | rehearse, expect a refusal naming dependents                                           |
-| retire a term records carry                                 | merge       | merge it into the term that survives, or archive it                                    |
-| rename or change a flow's own input or output slots         | contract    | `409` until `adoptSnapshots: true` re-publishes the endpoints in front of it           |
+| The request                                                   | Class       | What it needs                                                                            |
+| ------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
+| add a field, a table, a flow, an endpoint                     | additive    | dependency order, nothing else                                                           |
+| add a **required** field to a table with records              | narrowing   | widen → backfill → patch fixed inputs → narrow, four steps                               |
+| change the actions of a flow that processes a table's records | re-run      | the edit saves; stored records keep what the old actions wrote until each is reprocessed |
+| rename an action's output slot                                | cascade     | rehearse, then one document carrying the action, its readers and the flow binding        |
+| rename a field or a table                                     | pinned      | refused once the table has records                                                       |
+| change what is searchable                                     | reindex     | rehearse; a `reembed` bills per record                                                   |
+| remove anything                                               | subtractive | rehearse, expect a refusal naming dependents                                             |
+| retire a term records carry                                   | merge       | merge it into the term that survives, or archive it                                      |
+| rename or change a flow's own input or output slots           | contract    | `409` until `adoptSnapshots: true` re-publishes the endpoints in front of it             |
 
 Misclassifying is the usual failure. "Add a field" and "add a required field" look identical in a
-request and are a create and a migration respectively. "Edit a step" and "edit a step of the flow
+request and are a create and a migration respectively. "Edit an action" and "edit an action of the flow
 that already processed ten thousand records" look identical too.
 
 ## The sequences
@@ -146,13 +146,13 @@ to 100, filtered to the rows still to change) → `flow.fan-out` over the record
 
 ### Editing the processing flow of a table that holds records
 
-A step added, removed or re-configured in a table's processing flow saves like any step edit —
+An action added, removed or re-configured in a table's processing flow saves like any action edit —
 unless it changes the flow's input or output slots, which is the contract class below. What the
 edit does not do is touch a stored record:
 
-- **Records processed from now on run the new steps.** That includes a record created after the
+- **Records processed from now on run the new actions.** That includes a record created after the
   edit and one queued again by `record.enqueue-process`.
-- **Records already processed keep what the old steps wrote** — their fields, their terms, their
+- **Records already processed keep what the old actions wrote** — their fields, their terms, their
   vectors. Nothing re-runs them: `GET /v1/tables/{id}` (`recordCount`) is the number the
   edit left behind.
 - **To bring one forward, reprocess it**: `POST /v1/records/{id}/reprocess`. It clears what the
@@ -160,13 +160,13 @@ edit does not do is touch a stored record:
   processing — nothing is answered from a cache and every model call is billed again — so reprocess
   one record, read its result and its spend, then decide how many of the rest are worth it.
   `kipory-data` owns the route, its modes and what it sweeps.
-- **A retry after the edit is not refused.** Every re-run of a record runs all of the flow's steps
+- **A retry after the edit is not refused.** Every re-run of a record runs all of the flow's actions
   again, on the flow as it is now; nothing is carried over from the attempt before the edit.
 
 So the sequence is: take a checkpoint, run the flow's eval suite once for a baseline, make the
 edit, preview it on one input with `apply: false` (`kipory-build`), reprocess one stored record and
 read it back, then reprocess the rest or leave them — and say in your report which you chose,
-because a project whose old and new records were written by different steps looks inconsistent to
+because a project whose old and new records were written by different actions looks inconsistent to
 whoever reads it next.
 
 ### Subtractive
@@ -205,23 +205,23 @@ ignore the flag and **delete** (`200 {"deleted": true}`).
 
 Rehearse, then commit. Three different things are called a rename:
 
-**A step's output slot, on a live endpoint — one document apply.** State the step's new
+**An action's output slot, on a live endpoint — one document apply.** State the action's new
 `outputSlot`, every reader rewritten to the new name, and the flow's re-pointed `outputBinding`:
 one transaction, and the endpoint never answers from a dangling binding. A document writes each
-step as stated and cascades nothing, so the readers to restate (each one's prompt, config or
-`inputStreams`) are the ones the step PATCH's `validateOnly` lists in `derived.rename`.
+action as stated and cascades nothing, so the readers to restate (each one's prompt, config or
+`inputStreams`) are the ones the action PATCH's `validateOnly` lists in `derived.rename`.
 
 **The same rename, row by row:**
 
 ```
-PATCH /v1/steps/{id}             the new outputSlot + validateOnly — derived.rename names every step it would rewrite
-PATCH /v1/steps/{id}             the new outputSlot + confirmedOutputSlotRenames — one transaction
+PATCH /v1/actions/{id}             the new outputSlot + validateOnly — derived.rename names every action it would rewrite
+PATCH /v1/actions/{id}             the new outputSlot + confirmedOutputSlotRenames — one transaction
 PATCH /v1/flows/{id}              { outputBinding, version } — give every output bound to the old name its new `fromSlot`
 GET   /v1/flows/{id}/health       whether the flow is still whole
 ```
 
 - `confirmedOutputSlotRenames` is `[{ flowId, oldSlotName, newSlotName }]`. With it, every sibling
-  step that reads the old name is rewritten in the same transaction. Without it the rename lands
+  action that reads the old name is rewritten in the same transaction. Without it the rename lands
   and every reader is left on a slot that no longer exists.
 - The flow's `outputBinding` is never rewritten, and `derived.rename` does not list it. The save
   lands with `OUTPUT_BINDING_DANGLING_SLOT` as an error in its `outstandingIssues`.
@@ -233,7 +233,7 @@ GET   /v1/flows/{id}/health       whether the flow is still whole
   (`details.missing` names the output) and writes nothing — a required output nothing produces is
   refused, never filled. Health names the dangling binding before a call does.
 
-**A flow's own input or output slot** is its signature, not a step rename:
+**A flow's own input or output slot** is its signature, not an action rename:
 `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until `PATCH /v1/flows/{id}` carries
 `adoptSnapshots: true`, and then every client of the endpoint sees the new key at once. That PATCH
 may send `outputTypeNames` alone; the inputs stay as stored (and the same the other way round).
@@ -278,7 +278,7 @@ rehearsal of its own. What to know before writing one:
   `changes` on its own path as a `delete` with `because: "cascade"`, not as `unchanged`.
 - **A plan's `changes` are not the apply's write order**, and the ids a plan shows for creates are
   from its rolled-back attempt; the apply mints its own.
-- **The table pins still hold.** A table with records, or one a step's configuration names,
+- **The table pins still hold.** A table with records, or one an action's configuration names,
   refuses a rename (a change of its `key`), a re-pointed shape and an ownership change exactly as
   its own PATCH does, and the finding lands on the row's path in your document.
 
@@ -293,7 +293,7 @@ thing you were trying to change.
 | a rename, or a field removed, on a table with records | nothing lifts it: add the new field or table beside the old one ("A rename", above)                                                                                                                                                                                                                 |
 | the table is reserved or seeded                       | nothing; it is not yours to delete, whatever it holds                                                                                                                                                                                                                                               |
 | a related row still references this flow              | whatever references it — an endpoint, a schedule (even disabled), a trigger, a table, a resolver, an invoking flow                                                                                                                                                                                  |
-| N dependents read these slots                         | re-wire those steps first, then delete                                                                                                                                                                                                                                                              |
+| N dependents read these slots                         | re-wire those actions first, then delete                                                                                                                                                                                                                                                            |
 | assignments still exist on this term                  | merge it into the term that should survive (`POST /v1/terms/{id}/merge`) — every assignment moves and a delete then accepts the alias — or archive it to keep it on the records that have it                                                                                                        |
 | a vocabulary delete answers 409                       | if another vocabulary nests under it, delete that vocabulary first — no flag lifts that, and a vocabulary's parent cannot be changed. Otherwise send `confirm=true`, and `assignedTerms=delete` or `assignedTerms=archive` once any of its terms is assigned. Ask it with `validateOnly=true` first |
 | the event type is built in                            | nothing; a built-in event type cannot be deleted                                                                                                                                                                                                                                                    |
@@ -305,7 +305,7 @@ thing you were trying to change.
 - **A flow delete's refusal counts what references the flow, by kind** — `details` on the 409,
   `derived.dependents.kinds` on the dry run — without naming the rows;
   `GET /v1/projects/{nodeId}/connections` names them.
-- **A step delete's refusal** counts the dependents and names the slots they read.
+- **An action delete's refusal** counts the dependents and names the slots they read.
 - **A term** is refused while it is assigned to records (`TERM_DELETE_HAS_ASSIGNMENTS`), is the
   parent of others, or is the canonical of aliases — "Retiring a term records carry", above.
 - **A document never writes a built-in event type**: a type in a source provider's namespace
@@ -336,7 +336,7 @@ What starts each one:
   declaration until it finishes — `GET /v1/tables/{id}?expand=restamp` says whether it has.
 - **A slot rename cascades only when you confirm it, and never into the flow's outputs** —
   "A rename", above.
-- **Editing a processing flow re-runs nothing.** Stored records keep what the old steps wrote
+- **Editing a processing flow re-runs nothing.** Stored records keep what the old actions wrote
   until each is reprocessed.
 
 Keep the response. It is the only record of what a change reached.

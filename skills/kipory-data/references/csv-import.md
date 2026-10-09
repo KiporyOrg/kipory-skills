@@ -1,8 +1,8 @@
-# A CSV file into records: the parse step
+# A CSV file into records: the parse action
 
-The "one file, many records" import in this skill's main page is four steps: `file.read-text` →
+The "one file, many records" import in this skill's main page is four actions: `file.read-text` →
 `value.transform` (parse) → `flow.fan-out` over the valid rows, with `record.create` in the branch →
-`flow.merge`. The parse is the step with no handler of its own. This page is one worked expression
+`flow.merge`. The parse is the action with no function of its own. This page is one worked expression
 for it and the four things that go wrong around it.
 
 ## The expression
@@ -46,19 +46,19 @@ file holding only the header answers `{ "total": 0, "valid": [], "rejected": [] 
 Why it is written this way:
 
 - **Every row is reached through a variable** (`$r.sku`, never a bare `sku`). A bare name at the
-  start of a path is read as a slot name, and the save would add `sku` to the step's inputs.
+  start of a path is read as a slot name, and the save would add `sku` to the action's inputs.
 - **`valid` and `rejected` are wrapped in `[ … ]`.** JSONata returns a one-item sequence as the bare
   item; without the brackets a file with exactly one valid row yields an object, and a list-typed
-  `outputSchema` fails the step at run time.
+  `outputSchema` fails the action at run time.
 - **It nests iteration two deep and no deeper** — the limit an expression is allowed. A third level —
   a loop inside the per-cell `$map` — is refused at save.
 - **`$split` on a comma does not understand quoting.** A cell holding a comma inside quotes is cut
   in two. For such files, change the delimiter the export uses, or pre-process the file before
-  upload; there is no CSV-aware function.
+  upload; there is no CSV-aware function. <!-- absent-function: csv.* -->
 
 ## Type the result, and the row
 
-Give the parse step an `outputSchema` naming a shape with `total`, `valid` and `rejected`, and make
+Give the parse action an `outputSchema` naming a shape with `total`, `valid` and `rejected`, and make
 `valid`'s `items` a reference to a row shape of its own (`kipory-model` has the `$ref` form). The
 fan-out reads `valid` through an `inputPaths` `field` segment, and its branch slot is typed as that
 row shape only when the items are a named type — an inline `items` object is the anonymous
@@ -66,10 +66,10 @@ row shape only when the items are a named type — an inline `items` object is t
 
 ## What goes wrong around it
 
-- **A file with no valid rows.** The fan-out starts no branch, the body does not run, and a step
-  that reads only the merged list is skipped. If the flow's required output comes from such a step
+- **A file with no valid rows.** The fan-out starts no branch, the body does not run, and an action
+  that reads only the merged list is skipped. If the flow's required output comes from such an action
   the call is refused `422 FLOW_OUTPUT_MISSING`, though plan and health were clean. Build the answer
-  in a step that also reads the parse step's slot, which is always present: a transform returning
+  in an action that also reads the parse action's slot, which is always present: a transform returning
   `{ "total": parsed.total, "created": $count(created), "rejected": parsed.rejected }`.
 - **A key repeated inside the file.** Two rows carrying the same natural key with different data
   are two creates under one key: the second is `409 RECORD_NATURAL_KEY_TAKEN` and the whole run is

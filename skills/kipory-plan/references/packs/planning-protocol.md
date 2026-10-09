@@ -34,14 +34,14 @@ built on top of it.
 You may carry the **shape** of Kipory without looking anything up: what composes with what, what
 the invariants are, what is expensive. You may **not** produce a fact from memory.
 
-Before naming a handler in a build sheet, confirm it against `GET /v1/handlers`. Before naming a
+Before naming a function in a build sheet, confirm it against `GET /v1/functions`. Before naming a
 route or an error code, confirm it against `GET /v1/openapi.json`. Both answer for the deployment
 you are actually building on, which is the entire point — a pack can only tell you how to think,
 never what currently exists.
 
-This is not caution for its own sake. A snapshot of the handler catalog once went on naming a key
+This is not caution for its own sake. A snapshot of the function catalog once went on naming a key
 after the running deployment had already merged it into `value.first-non-empty`; the plan built on
-it burned real calls before anyone noticed. **A remembered handler key is not admissible in a
+it burned real calls before anyone noticed. **A remembered function key is not admissible in a
 build sheet.**
 
 **Read the whole catalog, never a keyword filter.** The first real run of this protocol searched
@@ -103,20 +103,20 @@ This step usually dominates the sheet, and every later step inherits its mistake
 
 ### 3 — Processing
 
-What happens to those records? Each pipeline becomes a **flow** of **skills** over existing
-**handlers**.
+What happens to those records? Each pipeline becomes a **flow** of **actions** over existing
+**functions**.
 
-The decisive question is whether every step maps to a handler that already exists — confirmed
-live, per Rule 0. A step with no handler is not automatically impossible, but it is the moment to
+The decisive question is whether every step maps to a function that already exists — confirmed
+live, per Rule 0. A step with no function is not automatically impossible, but it is the moment to
 read Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) before going further.
 
-Calling an outside service that has no handler of its own is still configuration when it has an
-HTTP API and a static key: a `url.fetch` step reads from it, a `url.send` step tells it something
+Calling an outside service that has no function of its own is still configuration when it has an
+HTTP API and a static key: a `url.fetch` action reads from it, a `url.send` action tells it something
 (staged once per run, delivered after the run has saved, its answer never seen by the flow), and
-the key is a **secret** row of type `http_credential` that the step names. A request the platform
+the key is a **secret** row of type `http_credential` that the action names. A request the platform
 would have to sign, or a write whose answer the flow needs, is a `code` row.
 
-→ Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) · Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)
+→ Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) · Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)
 
 ### 4 — Exposure
 
@@ -178,7 +178,7 @@ One row per object to be built:
 | ---- | --------- | ---- | ----------- | ----- |
 
 - **Step** — which of the eight produced it.
-- **Primitive** — table, type, embedding profile, flow, skill, endpoint, schedule,
+- **Primitive** — table, type, embedding profile, flow, action, endpoint, schedule,
   trigger, source, vocabulary, relation, event, project-config namespace, secret, task-model
   binding, eval suite, eval case.
   ⚠️ Four of those are easy to leave out of a sheet and expensive to discover later: a
@@ -186,14 +186,14 @@ One row per object to be built:
   web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**, a
   threshold you will want to tune belongs in a **project-config namespace** rather than baked into a
   flow, and the **eval cases** of step 8 are the only part of a plan that survives a later rewrite.
-  A fifth is a fact to read rather than a row to invent: a model step inherits its model through a
+  A fifth is a fact to read rather than a row to invent: a model action inherits its model through a
   task, and `GET /v1/nodes/{nodeId}/task-models` says, per task, whether that model is `callable` on
   this deployment — a task that is not needs a **task-model binding** row.
 - **Name** — what it will be called.
 - **Disposition** — **`seed`** (design-API configuration, you can build it now) or **`code`**
   (software has to be written: either a platform capability Kipory does not have, or a service of
   your own that Kipory calls).
-- **Notes** — for a `seed` row, the handler keys or shape that matter. For a `code` row, what
+- **Notes** — for a `seed` row, the function keys or shape that matter. For a `code` row, what
   would have to exist, and why no existing primitive covers it.
 
 Follow the table with:

@@ -268,7 +268,7 @@ Delete one record and everything derived from it (terms, links, files it produce
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record this answers about, echoed. |
 | `deleted` | `true` | yes | Always true: the record is gone, or is going (`outcome`). |
-| `outcome` | `"removed" \| "draining"` | yes | `removed` — the row and everything derived from it are gone. `draining` — a flow was running over it, so it is marked `deleting` and is removed at the run's next step boundary. |
+| `outcome` | `"removed" \| "draining"` | yes | `removed` — the row and everything derived from it are gone. `draining` — a flow was running over it, so it is marked `deleting` and is removed at the run's next action boundary. |
 
 ### `GET /v1/records/{id}/links/{relationKey}`
 
@@ -369,7 +369,7 @@ Retract the curated link this caller stated between the two records: it EXPIRES 
 
 ### `GET /v1/records/{id}/processing-stream`
 
-Watch one record's processing live, as Server-Sent Events: a `snapshot` of where it stood when you connected, a `status` frame per transition (`pending`, `processing` with the step now starting, `ready`, `failed` with why), then `done`. A failed run is a `status` frame followed by a clean `done` — read the status, not the close. To read the record's result afterwards, `GET /v1/records/{id}`.
+Watch one record's processing live, as Server-Sent Events: a `snapshot` of where it stood when you connected, a `status` frame per transition (`pending`, `processing` with the action now starting, `ready`, `failed` with why), then `done`. A failed run is a `status` frame followed by a clean `done` — read the status, not the close. To read the record's result afterwards, `GET /v1/records/{id}`.
 
 **Streams.** The success response is `text/event-stream`, not JSON. Event names: `snapshot`, `status`, `error`, `close`, `done`.
 
@@ -388,7 +388,7 @@ Watch one record's processing live, as Server-Sent Events: a `snapshot` of where
 | `statusError` | `string \| null` | yes | Why it failed, when it has. Null in every other state. |
 | `statusUpdatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `at` | `integer` | yes | When the server emitted this frame, in unix milliseconds. For correlating logs, not for ordering. |
-| `skillId` | `string` | no | Id of the step now starting. Present only while processing is under way. |
+| `actionId` | `string` | no | Id of the action now starting. Present only while processing is under way. |
 | `error` | `string` | no | Why it failed. Present only on the failing frame. |
 | `requestId` | `string` | yes | The request that started this processing run, for correlation. |
 | `code` | `"CLIENT_TOO_SLOW" \| "INTERNAL"` | yes | A TRANSPORT fault, not a record failure — the connection broke. `CLIENT_TOO_SLOW` means you were not reading fast enough. Reconnect and take the snapshot again. |
@@ -412,11 +412,11 @@ Re-run the record's processing flow from a clean slate: its derived output, gene
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record a run was queued for, echoed. |
 | `status` | `"pending"` | yes | Where the record now sits, waiting for the worker to claim it. |
-| `mode` | `"full"` | yes | An explicit re-run is always a CLEAN SLATE — prior output, generated files, vocabularies and vector points are swept and regenerated, and the skill cache is bypassed. ⚠️ Vocabularies included: a filing set by hand is swept with the rest, and the resolver decides again. ⚠️ Charged like the record's first processing, every model call included. An edit runs no flow at all, so it is not a cheaper version of this. |
+| `mode` | `"full"` | yes | An explicit re-run is always a CLEAN SLATE — prior output, generated files, vocabularies and vector points are swept and regenerated, and the action cache is bypassed. ⚠️ Vocabularies included: a filing set by hand is swept with the rest, and the resolver decides again. ⚠️ Charged like the record's first processing, every model call included. An edit runs no flow at all, so it is not a cheaper version of this. |
 
 ### `GET /v1/records/{id}/stream/{field}`
 
-One record's events on one `stream` field (a field its type declares with a `stream` use), newest first, within a window bounded by the field's retention, paged on `after`. A stream's events are rows appended by a flow's `record.append` step — no route writes them. The record's own `data` never holds a stream field; read it with `GET /v1/records/{id}`.
+One record's events on one `stream` field (a field its type declares with a `stream` use), newest first, within a window bounded by the field's retention, paged on `after`. A stream's events are rows appended by a flow's `record.append` action — no route writes them. The record's own `data` never holds a stream field; read it with `GET /v1/records/{id}`.
 
 **Path parameters**
 
@@ -533,7 +533,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/records/query`
 
-Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `edge` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` step authors, run by the same executor. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
+Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `edge` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` action authors, run by the same executor. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
 
 **Request body**
 

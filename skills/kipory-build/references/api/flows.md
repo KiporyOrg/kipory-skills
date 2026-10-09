@@ -2,7 +2,7 @@
 
 # Flows
 
-A flow is a named group of steps with its own typed signature. The flow write carries no diagnostics; ask `GET /v1/flows/{id}/health` or read with `expand=health`. Preview bills the payer and applies its writes unless `apply` is false.
+A flow is a named group of actions with its own typed signature. The flow write carries no diagnostics; ask `GET /v1/flows/{id}/health` or read with `expand=health`. Preview bills the payer and applies its writes unless `apply` is false.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -24,7 +24,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/flows`
 
-List one project's flows (`?project=<nodeId>`), or the platform's own with `?scope=system` (staff only). Each row carries its `version`, the lock `PATCH /v1/flows/{id}` requires. `expand=health` folds each flow's validity into the row — the full report is `GET /v1/flows/{id}/health`. The same rows, with every other design section, come in one read from `GET /v1/bootstrap`; the project's whole configuration, steps included, is `GET /v1/projects/{nodeId}/document`.
+List one project's flows (`?project=<nodeId>`), or the platform's own with `?scope=system` (staff only). Each row carries its `version`, the lock `PATCH /v1/flows/{id}` requires. `expand=health` folds each flow's validity into the row — the full report is `GET /v1/flows/{id}/health`. The same rows, with every other design section, come in one read from `GET /v1/bootstrap`; the project's whole configuration, actions included, is `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -52,17 +52,17 @@ Each item of `flows`:
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `inputSlots` | `unknown[]` | yes | The flow's resolved input signature — always a list, `[]` when the flow declares no inputs. Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
 | `outputSlots` | `unknown[]` | yes | The flow's resolved output signature — always a list, `[]` when the flow declares no outputs. Read-only and opaque — authored as `outputTypeNames`. |
-| `outputBinding` | `object` | yes | Which skill output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
-| `skillCount` | `integer` | yes | How many skills the flow currently contains. |
+| `outputBinding` | `object` | yes | Which action output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
+| `actionCount` | `integer` | yes | How many actions the flow currently contains. |
 | `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/steps?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 
 ### `POST /v1/flows`
 
-Create a flow — its key, label and typed signature (`inputTypeNames`, `outputTypeNames`); its steps are added after, with `POST /v1/steps`. `scope: "system"` creates a platform flow (staff only) instead of one in `project`. With `validateOnly: true` it answers whether the create would be refused and the slot names the signature would be stored with, writing nothing. Several flows at once, with their steps: the `flows` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`). Stored checks on a flow are eval cases, in the `evals` section of the same document.
+Create a flow — its key, label and typed signature (`inputTypeNames`, `outputTypeNames`); its actions are added after, with `POST /v1/actions`. `scope: "system"` creates a platform flow (staff only) instead of one in `project`. With `validateOnly: true` it answers whether the create would be refused and the slot names the signature would be stored with, writing nothing. Several flows at once, with their actions: the `flows` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`). Stored checks on a flow are eval cases, in the `evals` section of the same document.
 
 **Request body**
 
@@ -75,7 +75,7 @@ Create a flow — its key, label and typed signature (`inputTypeNames`, `outputT
 | `description` | `string \| null` | no | Optional prose about what the flow is for. Whitespace is trimmed before the length limit applies. |
 | `inputTypeNames` | `object[]` | yes | The flow's inputs, as registered type names. |
 | `outputTypeNames` | `object[]` | yes | The flow's outputs, as registered type names. |
-| `outputBinding` | `object` | no | Which skill output feeds each flow output. Usually omitted at creation — the flow has no skills yet, so only the shape is checked; wire it up once the skills exist. |
+| `outputBinding` | `object` | no | Which action output feeds each flow output. Usually omitted at creation — the flow has no actions yet, so only the shape is checked; wire it up once the actions exist. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -130,17 +130,17 @@ Each item of `consequences`:
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `inputSlots` | `unknown[]` | yes | The flow's resolved input signature — always a list, `[]` when the flow declares no inputs. Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
 | `outputSlots` | `unknown[]` | yes | The flow's resolved output signature — always a list, `[]` when the flow declares no outputs. Read-only and opaque — authored as `outputTypeNames`. |
-| `outputBinding` | `object` | yes | Which skill output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
-| `skillCount` | `integer` | yes | How many skills the flow currently contains. |
+| `outputBinding` | `object` | yes | Which action output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
+| `actionCount` | `integer` | yes | How many actions the flow currently contains. |
 | `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/steps?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 
 ### `GET /v1/flows/{id}`
 
-Read one flow — its signature, binding, step count and `version` (the lock `PATCH /v1/flows/{id}` requires). Its steps are `GET /v1/steps?flowId=`; `expand=timeLimits` adds each step's effective time limit. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true` (`derived.dependents`). For a project's flow, every flow at once is `GET /v1/bootstrap`, and the flow as configuration you can restate, with its steps, is `GET /v1/projects/{nodeId}/document`, whose `evals` section holds its eval cases. A platform flow (`scope: "system"`) belongs to no project and is in neither: its steps are `GET /v1/steps?flowId=`.
+Read one flow — its signature, binding, action count and `version` (the lock `PATCH /v1/flows/{id}` requires). Its actions are `GET /v1/actions?flowId=`; `expand=timeLimits` adds each action's effective time limit. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true` (`derived.dependents`). For a project's flow, every flow at once is `GET /v1/bootstrap`, and the flow as configuration you can restate, with its actions, is `GET /v1/projects/{nodeId}/document`, whose `evals` section holds its eval cases. A platform flow (`scope: "system"`) belongs to no project and is in neither: its actions are `GET /v1/actions?flowId=`.
 
 **Path parameters**
 
@@ -166,17 +166,17 @@ Read one flow — its signature, binding, step count and `version` (the lock `PA
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `inputSlots` | `unknown[]` | yes | The flow's resolved input signature — always a list, `[]` when the flow declares no inputs. Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
 | `outputSlots` | `unknown[]` | yes | The flow's resolved output signature — always a list, `[]` when the flow declares no outputs. Read-only and opaque — authored as `outputTypeNames`. |
-| `outputBinding` | `object` | yes | Which skill output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
-| `skillCount` | `integer` | yes | How many skills the flow currently contains. |
+| `outputBinding` | `object` | yes | Which action output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
+| `actionCount` | `integer` | yes | How many actions the flow currently contains. |
 | `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/steps?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 
 ### `PATCH /v1/flows/{id}`
 
-Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNames`, either side alone) or output binding; its key is permanent. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. A signature change another row froze a copy of is refused unless `adoptSnapshots: true`. With `validateOnly: true` it answers whether the patch would be refused and rehearses it — what it would leave behind in this flow and the flows that call it — writing nothing; that is a dry run of a WRITE, where `POST /v1/flows/{id}/preview` RUNS the flow. Several flows at once, with their steps: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNames`, either side alone) or output binding; its key is permanent. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. A signature change another row froze a copy of is refused unless `adoptSnapshots: true`. With `validateOnly: true` it answers whether the patch would be refused and rehearses it — what it would leave behind in this flow and the flows that call it — writing nothing; that is a dry run of a WRITE, where `POST /v1/flows/{id}/preview` RUNS the flow. Several flows at once, with their actions: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -190,9 +190,9 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 | --- | --- | --- | --- |
 | `label` | `string` | no | New display text. Omit to leave it alone. |
 | `description` | `string \| null` | no | Three distinct states: omit to leave the description alone, pass null (or an empty string) to clear it, pass text to replace it. |
-| `inputTypeNames` | `object[]` | no | Replacement input signature. Omit to leave it alone — it may be sent without `outputTypeNames`, and the outputs then stay as stored. Changing it re-validates every step in the flow. |
+| `inputTypeNames` | `object[]` | no | Replacement input signature. Omit to leave it alone — it may be sent without `outputTypeNames`, and the outputs then stay as stored. Changing it re-validates every action in the flow. |
 | `outputTypeNames` | `object[]` | no | Replacement output signature. Omit to leave it alone — it may be sent without `inputTypeNames`, and the inputs then stay as stored. Changing it re-validates the whole flow. |
-| `outputBinding` | `object` | no | Rewire which step output feeds each flow output. Can be sent on its own once the steps exist, or together with `outputTypeNames` (and `inputTypeNames`, if they change too) to rewrite the signature at once. Without it, a signature change carries the stored binding, pruned to the outputs that remain. Either way the graph is re-validated in full before anything is saved. |
+| `outputBinding` | `object` | no | Rewire which action output feeds each flow output. Can be sent on its own once the actions exist, or together with `outputTypeNames` (and `inputTypeNames`, if they change too) to rewrite the signature at once. Without it, a signature change carries the stored binding, pruned to the outputs that remain. Either way the graph is re-validated in full before anything is saved. |
 | `adoptSnapshots` | `boolean` | no | Opt in to re-publishing the request and response contract of any live endpoint this flow serves. Off by default, because that changes what a running route promises its callers — an explicit decision, not a side effect of editing a flow. |
 | `version` | `integer` | yes | The flow's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the flow changed since — another patch, a checkpoint restore, or a project document apply — so a concurrent edit is never silently overwritten. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
@@ -209,13 +209,13 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 | `description` | `string \| null` | yes | Free prose about what the flow is for, or null when none was written. Documentation only — nothing at runtime reads it. |
 | `inputSlots` | `unknown[]` | yes | The flow's resolved input signature — always a list, `[]` when the flow declares no inputs. Read-only and opaque — you author it as `inputTypeNames` and the server resolves it. |
 | `outputSlots` | `unknown[]` | yes | The flow's resolved output signature — always a list, `[]` when the flow declares no outputs. Read-only and opaque — authored as `outputTypeNames`. |
-| `outputBinding` | `object` | yes | Which skill output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
-| `skillCount` | `integer` | yes | How many skills the flow currently contains. |
+| `outputBinding` | `object` | yes | Which action output feeds each output slot, as resolved — always an object, `{}` when no output is bound. Read-only here; author it through `outputBinding` on create or patch. |
+| `actionCount` | `integer` | yes | How many actions the flow currently contains. |
 | `version` | `integer` | yes | The flow's optimistic-lock version. Send it back as `version` on `PATCH /v1/flows/{id}`; every write that changes the flow's label, description, signature or binding bumps it, including a checkpoint restore and the project document's apply. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each skill's time limit as a run applies it, keyed by skill id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/steps?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for a skill whose handler is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
@@ -263,7 +263,7 @@ Each item of `consequences`:
 
 ### `DELETE /v1/flows/{id}`
 
-Delete a flow and every step in it (`deletedSkillCount` says how many); its checkpoints go with it, and so does its `<flowKey>-contract` eval suite with that suite's cases and runs (`deletedContractSuiteCount`; for a platform flow, every project's). Other eval suites over it stay, and their runs fail until they name another flow. Refused (409 `FLOW_HAS_DEPENDENTS`) while anything holds it — an endpoint, schedule, trigger, table, vocabulary resolver, platform job, or another flow that calls it. With `?validateOnly=true` it answers whether the delete would be refused, and `derived.dependents` counts what holds the flow and the contract suites that would go with it (`refuses: false`), writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
+Delete a flow and every action in it (`deletedActionCount` says how many); its checkpoints go with it, and so does its `<flowKey>-contract` eval suite with that suite's cases and runs (`deletedContractSuiteCount`; for a platform flow, every project's). Other eval suites over it stay, and their runs fail until they name another flow. Refused (409 `FLOW_HAS_DEPENDENTS`) while anything holds it — an endpoint, schedule, trigger, table, vocabulary resolver, platform job, or another flow that calls it. With `?validateOnly=true` it answers whether the delete would be refused, and `derived.dependents` counts what holds the flow and the contract suites that would go with it (`refuses: false`), writing nothing. Several at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`) with `delete: true`.
 
 **Path parameters**
 
@@ -283,7 +283,7 @@ Delete a flow and every step in it (`deletedSkillCount` says how many); its chec
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `deletedSkillCount` | `integer` | yes | How many skills went with the flow. Deleting a flow deletes everything inside it. |
+| `deletedActionCount` | `integer` | yes | How many actions went with the flow. Deleting a flow deletes everything inside it. |
 | `deletedContractSuiteCount` | `integer` | yes | How many `<flowKey>-contract` eval suites went with the flow, with their cases and runs. For a platform flow, this counts the contract suites over it in every project. Other eval suites over the flow are kept; their runs fail until they name another flow. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
@@ -301,7 +301,7 @@ Each item of `diagnostics`:
 
 ### `GET /v1/flows/{id}/coverage`
 
-Which steps in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the per-attempt record every processing run already writes (the steps it applied and the steps that failed), no test needed. An aggregate over a SAMPLE of at most `attemptLimit` recent attempts (default 500), with `truncated` when more exist: a report, not a log, so it takes no cursor, and a larger `attemptLimit` widens the sample. It measures execution, not correctness: whether each step's output is right is what an eval suite over the flow judges (`POST /v1/eval-suites/{id}/run`; `wait: true` answers in the same call). The attempts' traces: `GET /v1/flows/{id}/traces`; is the graph itself sound: `GET /v1/flows/{id}/health`.
+Which actions in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the per-attempt record every processing run already writes (the actions it applied and the actions that failed), no test needed. An aggregate over a SAMPLE of at most `attemptLimit` recent attempts (default 500), with `truncated` when more exist: a report, not a log, so it takes no cursor, and a larger `attemptLimit` widens the sample. It measures execution, not correctness: whether each action's output is right is what an eval suite over the flow judges (`POST /v1/eval-suites/{id}/run`; `wait: true` answers in the same call). The attempts' traces: `GET /v1/flows/{id}/traces`; is the graph itself sound: `GET /v1/flows/{id}/health`.
 
 **Path parameters**
 
@@ -319,41 +319,41 @@ Which steps in this flow (and the flows it invokes) actually ran, across the rec
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `evidence` | `"execution-only" \| "execution-and-slots"` | yes | How much this report could measure. `execution-and-slots` means what each skill emitted was captured too, so the `vacuity` axis is meaningful; `execution-only` means only whether skills ran. |
-| `vacuity` | `object \| null` | yes | Whether skills actually emitted anything when they ran. **Null means nobody captured that — an absence of evidence, not a clean bill of health.** |
-| `coldUnclassifiable` | `boolean` | yes | True when some skill never ran and the evidence cannot say whether that is expected. Worth looking at; not a failure. |
+| `evidence` | `"execution-only" \| "execution-and-slots"` | yes | How much this report could measure. `execution-and-slots` means what each action emitted was captured too, so the `vacuity` axis is meaningful; `execution-only` means only whether actions ran. |
+| `vacuity` | `object \| null` | yes | Whether actions actually emitted anything when they ran. **Null means nobody captured that — an absence of evidence, not a clean bill of health.** |
+| `coldUnclassifiable` | `boolean` | yes | True when some action never ran and the evidence cannot say whether that is expected. Worth looking at; not a failure. |
 | `rootFlowId` | `string` | yes | The flow this report is rooted at. |
 | `attemptCount` | `integer` | yes | How many runs were examined. |
 | `traceCount` | `integer` | yes | How many of those runs carried captured output. Compare against `attemptCount` to see how thin the sample behind `vacuity` is. |
 | `flowIds` | `string[]` | yes | Every flow covered, including ones the root flow invokes. |
-| `skills` | `object[]` | yes | Per-skill results on the did-it-run axis. |
-| `coldUnconditionalCount` | `integer` | yes | How many skills never ran despite having no condition — the ones worth investigating. |
-| `coldGatedCount` | `integer` | yes | How many skills never ran but have a condition, so being cold is expected. |
-| `unknownSkillIds` | `string[]` | yes | Skills seen in the run history that are no longer in the flow — usually the trace of an edit. |
+| `actions` | `object[]` | yes | Per-action results on the did-it-run axis. |
+| `coldUnconditionalCount` | `integer` | yes | How many actions never ran despite having no condition — the ones worth investigating. |
+| `coldGatedCount` | `integer` | yes | How many actions never ran but have a condition, so being cold is expected. |
+| `unknownActionIds` | `string[]` | yes | Actions seen in the run history that are no longer in the flow — usually the trace of an edit. |
 | `verdict` | `"measured" \| "not-measured"` | yes | Whether this report measured anything at all. `not-measured` is not a pass — see `reason`. |
-| `reason` | `"no-attempts" \| "vacuous-skills"` | yes | Why the verdict is `not-measured`, or null when it is `measured`. |
+| `reason` | `"no-attempts" \| "vacuous-actions"` | yes | Why the verdict is `not-measured`, or null when it is `measured`. |
 | `tableKeys` | `string[]` | yes | Keys of the tables the covered flows touch. |
 | `graphChangedAt` | `string \| null` | yes | When the flow last changed. Runs from before this are excluded, because they exercised a different graph. |
 | `truncated` | `boolean` | yes | True when the read hit `attemptLimit` and covers only the most recent attempts. A truncated report is a sample, so read its counts as such. |
 | `attemptLimit` | `integer` | yes | The cap that was applied, echoed back. |
 
-Each item of `skills`:
+Each item of `actions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowId` | `string` | yes | The flow this skill belongs to. |
+| `flowId` | `string` | yes | The flow this action belongs to. |
 | `flowLabel` | `string` | yes | That flow's label (display text). |
-| `skillId` | `string` | yes | Id of the skill. |
-| `skillKey` | `string` | yes | The skill's key. |
-| `handlerKey` | `string` | yes | Which handler the skill runs. |
-| `gated` | `boolean` | yes | True when the skill has a condition, so never running is expected rather than suspicious. |
-| `ranCount` | `integer` | yes | How many of the observed attempts reached this skill. |
+| `actionId` | `string` | yes | Id of the action. |
+| `actionKey` | `string` | yes | The action's key. |
+| `functionKey` | `string` | yes | Which function the action runs. |
+| `gated` | `boolean` | yes | True when the action has a condition, so never running is expected rather than suspicious. |
+| `ranCount` | `integer` | yes | How many of the observed attempts reached this action. |
 | `rate` | `number` | yes | `ranCount` over the attempts observed. Reported as a rate rather than a yes/no so a single attempt cannot stand in for the rest. |
-| `verdict` | `"covered" \| "cold-gated" \| "cold-unconditional"` | yes | The summary judgement for this skill, already accounting for whether it is gated. |
+| `verdict` | `"covered" \| "cold-gated" \| "cold-unconditional"` | yes | The summary judgement for this action, already accounting for whether it is gated. |
 
 ### `GET /v1/flows/{id}/health`
 
-The full validation report for the flow as saved: every diagnostic, what it is about (step, edge or flow) and whose it is. A report, not a gate — a flow with errors still runs, and gets them wrong. The one-line summary rides each row of `GET /v1/flows?expand=health`. What a change WOULD leave behind is the change's own dry run (`validateOnly: true` on `PATCH /v1/flows/{id}` or a step write), which rehearses it and reports the findings it introduces; what actually ran is `GET /v1/flows/{id}/coverage`.
+The full validation report for the flow as saved: every diagnostic, what it is about (action, edge or flow) and whose it is. A report, not a gate — a flow with errors still runs, and gets them wrong. The one-line summary rides each row of `GET /v1/flows?expand=health`. What a change WOULD leave behind is the change's own dry run (`validateOnly: true` on `PATCH /v1/flows/{id}` or an action write), which rehearses it and reports the findings it introduces; what actually ran is `GET /v1/flows/{id}/coverage`.
 
 **Path parameters**
 
@@ -368,7 +368,7 @@ The full validation report for the flow as saved: every diagnostic, what it is a
 | `flowId` | `string` | yes | The flow this report is about. |
 | `diagnostics` | `object[]` | yes | Every diagnostic, errors and warnings together. An empty array means the flow is healthy — it is a real answer, not a missing one. |
 | `counts` | `object` | yes | Summary counts, so a caller need not tally the list itself. |
-| `danglingReads` | `object[]` | yes | Every input a skill reads that nothing in the flow supplies — one entry per skill and slot, the same findings `diagnostics` reports as `INPUT_STREAM_DANGLING_SLOT`. Such a skill never runs, and neither does anything after it. Empty when every read is supplied. |
+| `danglingReads` | `object[]` | yes | Every input an action reads that nothing in the flow supplies — one entry per action and slot, the same findings `diagnostics` reports as `INPUT_STREAM_DANGLING_SLOT`. Such an action never runs, and neither does anything after it. Empty when every read is supplied. |
 
 Each item of `diagnostics`:
 
@@ -380,20 +380,20 @@ Each item of `diagnostics`:
 | `segments` | `object[]` | yes | `message` in pieces, for a consumer that can draw the objects it names as references. The two are folded from one list by the producer and cannot disagree about the words — but they are not the same characters: `message` quotes what a segment names and backticks what it spells as configuration, where a segment's `text` is the bare word. |
 | `remedy` | `string \| null` | yes | What to do about it, in one line. Null is a real answer: some findings have no action a person can take from here, and an invented one would be worse than none. |
 | `remedySegments` | `object[]` | yes | `remedy` in pieces. Empty exactly when `remedy` is null. |
-| `target` | `"skill" \| "edge" \| "flow"` | yes | What the diagnostic is about — the whole flow, one skill, or one connection. This is what decides where to render it, and it is independent of `attribution`. |
-| `attribution` | `object` | yes | Where to point the reader, which is not the same as `target`: a flow-level diagnostic can still name the skill that caused it. |
+| `target` | `"action" \| "edge" \| "flow"` | yes | What the diagnostic is about — the whole flow, one action, or one connection. This is what decides where to render it, and it is independent of `attribution`. |
+| `attribution` | `object` | yes | Where to point the reader, which is not the same as `target`: a flow-level diagnostic can still name the action that caused it. |
 | `details` | `unknown` | no | Extra context whose shape depends on `code`. Read it only after matching the code. |
 
 Each item of `danglingReads`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string` | yes | The skill that reads the slot. |
-| `slot` | `string` | yes | The slot it reads, which no skill writes and the flow does not take as an input. |
+| `actionId` | `string` | yes | The action that reads the slot. |
+| `slot` | `string` | yes | The slot it reads, which no action writes and the flow does not take as an input. |
 
 ### `POST /v1/flows/{id}/preview`
 
-Run the flow now, in a sandbox, and answer what happened: every step's transcript, its failures, and the declared outputs. Seed it from `input` slot values or an existing record; run the saved steps or a draft `graph` you send. It bills the project for its model calls and applies the writes its steps make unless you pass `apply: false` (then the change set is recorded and discarded) — a preview EXECUTES the flow, where `validateOnly: true` on a write judges the write without running anything. The same run reported as it happens: `POST /v1/flows/{id}/preview/stream`; queued, with a run log: `POST /v1/flows/{id}/preview-runs`. Stored cases with assertions: an eval suite over the flow (`GET /v1/eval-suites?project=<nodeId>&flowId=`), run with `POST /v1/eval-suites/{id}/run`.
+Run the flow now, in a sandbox, and answer what happened: every action's transcript, its failures, and the declared outputs. Seed it from `input` slot values or an existing record; run the saved actions or a draft `graph` you send. It bills the project for its model calls and applies the writes its actions make unless you pass `apply: false` (then the change set is recorded and discarded) — a preview EXECUTES the flow, where `validateOnly: true` on a write judges the write without running anything. The same run reported as it happens: `POST /v1/flows/{id}/preview/stream`; queued, with a run log: `POST /v1/flows/{id}/preview-runs`. Stored cases with assertions: an eval suite over the flow (`GET /v1/eval-suites?project=<nodeId>&flowId=`), run with `POST /v1/eval-suites/{id}/run`.
 
 **Path parameters**
 
@@ -405,7 +405,7 @@ Run the flow now, in a sandbox, and answer what happened: every step's transcrip
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `graph` | `object` | no | Which graph to run: the flow's saved skills, or a draft supplied here. Defaults to the saved graph. |
+| `graph` | `object` | no | Which graph to run: the flow's saved actions, or a draft supplied here. Defaults to the saved graph. |
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
 | `project` | `string` | no | Resolve project-scoped context — relations, project config, vocabularies, the caller's profile — against this project (its id, as `POST /v1/projects` answered it) instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
@@ -417,13 +417,13 @@ Run the flow now, in a sandbox, and answer what happened: every step's transcrip
 | --- | --- | --- | --- |
 | `flowOutput` | `object` | yes | The flow's declared output slots, exactly as the run produced them. A slot the run did not produce stays absent; nothing is filled in, here or live. |
 | `missingRequiredOutput` | `string \| null` | yes | First required output slot the run failed to produce, or null. Non-null means a live invocation of this run would be refused (422 `FLOW_OUTPUT_MISSING`) and write nothing — so this preview discarded its writes too, even with `apply`. |
-| `transcript` | `object[]` | yes | What each skill did, in execution order. |
-| `errors` | `object[]` | yes | Failures, one entry per skill and branch that errored. |
+| `transcript` | `object[]` | yes | What each action did, in execution order. |
+| `errors` | `object[]` | yes | Failures, one entry per action and branch that errored. |
 | `warnings` | `unknown[]` | yes | Non-fatal problems the engine noticed. The run still completed. |
 | `fanOutCaps` | `object[]` | yes | Every fan-out whose element list was truncated, and by which limit. Empty when nothing was dropped — check this before reading a branch count as the whole population. |
 | `branches` | `unknown[]` | yes | Full per-branch results — inputs, outputs, usage and failures — for deep inspection. |
 | `runState` | `object` | yes | The shared run state as it stood when the run ended. |
-| `ingestSpend` | `object` | no | Paid third-party ingest spend for this run. Absent when no ingest handler ran, which is different from having spent zero. |
+| `ingestSpend` | `object` | no | Paid third-party ingest spend for this run. Absent when no ingest function ran, which is different from having spent zero. |
 | `previewSessionId` | `string` | yes | Identifies this run. Every model call and ingest job it produced is tagged with it, so it is the key for looking the run up afterwards. |
 | `traceId` | `string \| null` | yes | The persisted trace for this run, or null when none was written — either because none was requested, or because it was requested and skipped. If you asked for one and get null, `traceSkipped` says why; treat the run as having left no evidence rather than as having produced an empty one. |
 | `traceSkipped` | `object` | yes | Why `traceId` is null despite a trace being requested. Null both when a trace was written and when none was asked for. |
@@ -437,19 +437,19 @@ Each item of `transcript`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string` | yes | Id of the skill this entry reports. |
-| `skillKey` | `string` | yes | Key of the skill this entry reports. |
+| `actionId` | `string` | yes | Id of the action this entry reports. |
+| `actionKey` | `string` | yes | Key of the action this entry reports. |
 | `outcome` | `"applied" \| "skipped" \| "failed" \| "no-op"` | yes | `applied` — ran and wrote its output. `skipped` — its condition was not satisfied, or it is disabled. `failed` — it ran and errored; see `error`. `no-op` — it ran and had nothing to do. |
-| `durationMs` | `number` | yes | Wall-clock time this skill took. |
+| `durationMs` | `number` | yes | Wall-clock time this action took. |
 | `error` | `string` | no | Failure message. Present when `outcome` is `failed`. |
-| `reason` | `string` | no | Why the skill was skipped. Present when `outcome` is `skipped`. |
+| `reason` | `string` | no | Why the action was skipped. Present when `outcome` is `skipped`. |
 
 Each item of `errors`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string` | yes | Skill that failed. |
-| `branchId` | `string \| null` | yes | Branch it failed in, or null when the skill is not inside a fan-out. |
+| `actionId` | `string` | yes | Action that failed. |
+| `branchId` | `string \| null` | yes | Branch it failed in, or null when the action is not inside a fan-out. |
 | `phase` | `string` | yes | Stage of execution the failure happened in. |
 | `message` | `string` | yes | What went wrong. |
 
@@ -457,15 +457,15 @@ Each item of `fanOutCaps`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string` | yes | Id of the fan-out node that was truncated. |
-| `skillKey` | `string` | yes | Key of the fan-out node. |
+| `actionId` | `string` | yes | Id of the fan-out node that was truncated. |
+| `actionKey` | `string` | yes | Key of the fan-out node. |
 | `branches` | `integer` | yes | Branches actually spawned. |
 | `requested` | `integer` | yes | Elements the node would have spawned, after de-duplication and before the limit applied. |
 | `cappedBy` | `"preview" \| "config" \| "system"` | yes | Which limit truncated the list: `preview` — this request's `fanOutCap`; `config` — the node's own configured maximum; `system` — the platform ceiling. |
 
 ### `POST /v1/flows/{id}/preview-runs`
 
-Queue the same sandboxed run as `POST /v1/flows/{id}/preview` and answer 202 with its run id; the worker runs the SAVED steps (a draft `graph` is refused) and writes a step log, read like any run at `GET /v1/runs/{runId}` and its `/steps`. The id is 404 there until the worker starts. A preview EXECUTES the flow; to judge a write without running anything, send it with `validateOnly: true`. The answer in the response instead: `POST /v1/flows/{id}/preview`, or as it happens: `/preview/stream`.
+Queue the same sandboxed run as `POST /v1/flows/{id}/preview` and answer 202 with its run id; the worker runs the SAVED actions (a draft `graph` is refused) and writes a timeline, read like any run at `GET /v1/runs/{runId}` and its `/timeline`. The id is 404 there until the worker starts. A preview EXECUTES the flow; to judge a write without running anything, send it with `validateOnly: true`. The answer in the response instead: `POST /v1/flows/{id}/preview`, or as it happens: `/preview/stream`.
 
 **Path parameters**
 
@@ -477,7 +477,7 @@ Queue the same sandboxed run as `POST /v1/flows/{id}/preview` and answer 202 wit
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `graph` | `object` | no | Which graph to run: the flow's saved skills, or a draft supplied here. Defaults to the saved graph. |
+| `graph` | `object` | no | Which graph to run: the flow's saved actions, or a draft supplied here. Defaults to the saved graph. |
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
 | `project` | `string` | no | Resolve project-scoped context — relations, project config, vocabularies, the caller's profile — against this project (its id, as `POST /v1/projects` answered it) instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
@@ -487,13 +487,13 @@ Queue the same sandboxed run as `POST /v1/flows/{id}/preview` and answer 202 wit
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `runId` | `string` | yes | The queued run's id. It appears at GET /v1/runs/{runId} — and on /steps, /steps/stream, /spend, /change-set, /flow-snapshots and /trace — once the worker writes its opening frame; until then those routes answer 404. Poll the run, then follow its step stream. |
+| `runId` | `string` | yes | The queued run's id. It appears at GET /v1/runs/{runId} — and on /timeline, /timeline/stream, /spend, /change-set, /flow-snapshots and /trace — once the worker writes its opening frame; until then those routes answer 404. Poll the run, then follow its timeline stream. |
 
 ### `POST /v1/flows/{id}/preview/stream`
 
-The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same authorization, same spend — reported as server-sent events while it happens: each step as it starts and ends, then the outcome. A preview EXECUTES the flow; to judge a write without running anything, send it with `validateOnly: true`. Queued instead, with a run log you can read later: `POST /v1/flows/{id}/preview-runs`.
+The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same authorization, same spend — reported as server-sent events while it happens: each action as it starts and ends, then the outcome. A preview EXECUTES the flow; to judge a write without running anything, send it with `validateOnly: true`. Queued instead, with a run log you can read later: `POST /v1/flows/{id}/preview-runs`.
 
-**Streams.** The success response is `text/event-stream`, not JSON. Event names: `preview-started`, `skill-started`, `skill-ended`, `skill-not-reached`, `preview-complete`, `preview-error`, `error`, `done`.
+**Streams.** The success response is `text/event-stream`, not JSON. Event names: `preview-started`, `action-started`, `action-ended`, `action-not-reached`, `preview-complete`, `preview-error`, `error`, `done`.
 
 **Path parameters**
 
@@ -505,7 +505,7 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `graph` | `object` | no | Which graph to run: the flow's saved skills, or a draft supplied here. Defaults to the saved graph. |
+| `graph` | `object` | no | Which graph to run: the flow's saved actions, or a draft supplied here. Defaults to the saved graph. |
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
 | `project` | `string` | no | Resolve project-scoped context — relations, project config, vocabularies, the caller's profile — against this project (its id, as `POST /v1/projects` answered it) instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
@@ -520,27 +520,27 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 | `flowId` | `string` | yes | Flow being previewed. |
 | `fanOutBranchCap` | `integer \| null` | yes | Branch ceiling in force for this run, or null if uncapped. |
 | `ts` | `string` | yes | When the run started. |
-| `skillId` | `string` | yes | Skill this frame is about. |
-| `skillKey` | `string` | yes | Key of that skill. |
-| `branchId` | `string \| null` | yes | Branch the skill ran in, or null when it is not inside a fan-out. |
+| `actionId` | `string` | yes | Action this frame is about. |
+| `actionKey` | `string` | yes | Key of that action. |
+| `branchId` | `string \| null` | yes | Branch the action ran in, or null when it is not inside a fan-out. |
 | `branchPath` | `unknown[]` | no | Position within nested fan-outs, outermost first. |
 | `outcome` | `"applied" \| "skipped" \| "failed" \| "no-op"` | yes | `applied` — ran and wrote its output. `skipped` — its condition was not satisfied, or it is disabled. `failed` — it ran and errored. `no-op` — it ran and had nothing to do. |
-| `durationMs` | `number` | yes | Wall-clock time this skill took. |
+| `durationMs` | `number` | yes | Wall-clock time this action took. |
 | `slotBag` | `object` | no | Slot values visible at this point in the run. |
 | `runState` | `object` | no | Shared run state as of this frame. |
-| `skipReason` | `unknown` | no | Why the skill was skipped, when `outcome` is `skipped`. |
+| `skipReason` | `unknown` | no | Why the action was skipped, when `outcome` is `skipped`. |
 | `error` | `string` | no | Failure message, when `outcome` is `failed`. |
-| `nestedFailures` | `unknown[]` | no | Failures from branches nested under this skill. |
-| `reason` | `"empty-fanout"` | no | Present when the skill did nothing because a fan-out above it produced no branches. |
-| `cacheHit` | `true` | no | A cache answered this skill and its handler never ran. Present only when true. Without it a replayed run reads as a fast flow rather than as one that had already run. |
+| `nestedFailures` | `unknown[]` | no | Failures from branches nested under this action. |
+| `reason` | `"empty-fanout"` | no | Present when the action did nothing because a fan-out above it produced no branches. |
+| `cacheHit` | `true` | no | A cache answered this action and its function never ran. Present only when true. Without it a replayed run reads as a fast flow rather than as one that had already run. |
 | `mergeInputs` | `unknown[]` | no | Per-source-branch inputs. Merge nodes only. |
 | `fanOut` | `object` | no | Fan-out nodes only, on the `applied` path. Arrives before the branch frames it describes, so it is the denominator for what follows and names any truncation rather than leaving a short count looking complete. |
-| `parentSkillId` | `string` | yes | The fan-out node whose empty result stranded this skill. |
+| `parentActionId` | `string` | yes | The fan-out node whose empty result stranded this action. |
 | `branches` | `unknown[]` | yes | Full per-branch results, as on the non-streaming response. |
 | `flowOutput` | `object` | no | The flow's declared output slots, as a live invocation would return them. |
 | `outputValidation` | `object` | no | Whether the run produced everything the flow declares. |
 | `totals` | `object` | yes | Token usage for the whole run. |
-| `ingestSpend` | `object` | no | Paid third-party ingest spend. Absent when no ingest handler ran. |
+| `ingestSpend` | `object` | no | Paid third-party ingest spend. Absent when no ingest function ran. |
 | `fanOutCaps` | `object[]` | yes | Every fan-out whose element list was truncated. Empty when nothing was dropped. |
 | `timings` | `object` | yes | Full breakdown of where the run's wall clock went. |
 | `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself — so the failure can be attributed. |
@@ -550,15 +550,15 @@ Each item of `fanOutCaps`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string` | yes | Id of the fan-out node that was truncated. |
-| `skillKey` | `string` | yes | Key of the fan-out node. |
+| `actionId` | `string` | yes | Id of the fan-out node that was truncated. |
+| `actionKey` | `string` | yes | Key of the fan-out node. |
 | `branches` | `integer` | yes | Branches actually spawned. |
 | `requested` | `integer` | yes | Elements the node would have spawned, after de-duplication and before the limit applied. |
 | `cappedBy` | `"preview" \| "config" \| "system"` | yes | Which limit truncated the list: `preview` — this request's `fanOutCap`; `config` — the node's own configured maximum; `system` — the platform ceiling. |
 
 ### `GET /v1/flows/{id}/scope`
 
-Every slot a step of this flow may read, typed: for a saved step with `?stepId=` (what it can wait on without closing a cycle), for a step being added without. What an editor's input picker offers. A draft step's own inputs and their types come from its write's dry run (`validateOnly: true` on `POST /v1/steps` or `PATCH /v1/steps/{id}`, `derived.draft`); the candidates for one input with their verdicts are `GET /v1/steps/input-options`.
+Every slot an action of this flow may read, typed: for a saved action with `?actionId=` (what it can wait on without closing a cycle), for an action being added without. What an editor's input picker offers. A draft action's own inputs and their types come from its write's dry run (`validateOnly: true` on `POST /v1/actions` or `PATCH /v1/actions/{id}`, `derived.draft`); the candidates for one input with their verdicts are `GET /v1/actions/input-options`.
 
 **Path parameters**
 
@@ -570,20 +570,20 @@ Every slot a step of this flow may read, typed: for a saved step with `?stepId=`
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `stepId` | `string` | no | Unique id of a saved step (skill) in that flow — the one whose scope is read. Omit it for a step being added: nothing can wait on one yet, so every slot the flow's steps write is in its scope. ⚠️ A saved step that already reads the slot the new step will write is not left out — naming its output closes a cycle, which the create reports as a warning rather than refuses. |
+| `actionId` | `string` | no | Unique id of a saved action in that flow — the one whose scope is read. Omit it for an action being added: nothing can wait on one yet, so every slot the flow's actions write is in its scope. ⚠️ A saved action that already reads the slot the new action will write is not left out — naming its output closes a cycle, which the create reports as a warning rather than refuses. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `flowId` | `string` | yes | The flow asked about. |
-| `stepId` | `string \| null` | yes | The saved step whose scope this is, or null for a step being added — one nothing can wait on yet, so every slot the flow's steps write is in its scope. |
-| `slots` | `object[]` | yes | Every slot the step may read: the flow's inputs, the platform's own slots, and every slot written by a step that does not wait on this one — directly or through others, by an input or by a condition. A saved step's own outputs are never listed. Sorted by name. |
+| `actionId` | `string \| null` | yes | The saved action whose scope this is, or null for an action being added — one nothing can wait on yet, so every slot the flow's actions write is in its scope. |
+| `slots` | `object[]` | yes | Every slot the action may read: the flow's inputs, the platform's own slots, and every slot written by an action that does not wait on this one — directly or through others, by an input or by a condition. A saved action's own outputs are never listed. Sorted by name. |
 
 Each item of `slots`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `slot` | `string` | yes | The slot's name. |
-| `source` | `object` | yes | Where the shape below comes from: the step the save types the slot from, the flow's inputs, or the platform. |
+| `source` | `object` | yes | Where the shape below comes from: the action the save types the slot from, the flow's inputs, or the platform. |
 | `shape` | `object` | yes | What the slot holds, or null when nothing declares its shape. |

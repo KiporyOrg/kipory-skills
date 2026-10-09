@@ -33,10 +33,10 @@ events — a trigger on a `post/created` your flow emits has no source at all �
 one for the clock: a schedule (capability pack `schedules` — `GET /v1/capability-packs/schedules`) fires its flow directly.
 
 **A source only reads.** Nothing here sends a message into a channel. The one built-in way a flow
-reaches a person is email; a service with an HTTP API is reached with a `url.send` step — see
+reaches a person is email; a service with an HTTP API is reached with a `url.send` action — see
 limits (capability pack `limits` — `GET /v1/capability-packs/limits`). And a source is for a standing subscription — to look a
 channel up once inside a flow, use the `telegram.resolve-channel` or `telegram.search-channels`
-handler instead.
+function instead.
 
 ## The sequence
 

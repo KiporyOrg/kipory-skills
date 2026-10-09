@@ -128,8 +128,8 @@ Each item of `assertions`:
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
 | `slot` | `string` | yes | Output slot that must be present. |
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
-| `skillKey` | `string` | yes | Key of the step to check. |
-| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that skill must have reached. |
+| `actionKey` | `string` | yes | Key of the action to check. |
+| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
 | `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
@@ -170,8 +170,8 @@ Each item of `assertions`:
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
 | `slot` | `string` | yes | Output slot that must be present. |
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
-| `skillKey` | `string` | yes | Key of the step to check. |
-| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that skill must have reached. |
+| `actionKey` | `string` | yes | Key of the action to check. |
+| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
 | `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
@@ -230,8 +230,8 @@ Each item of `assertions`:
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
 | `slot` | `string` | yes | Output slot that must be present. |
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
-| `skillKey` | `string` | yes | Key of the step to check. |
-| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that skill must have reached. |
+| `actionKey` | `string` | yes | Key of the action to check. |
+| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
 | `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
@@ -281,7 +281,7 @@ Each item of `diagnostics`:
 
 ### `GET /v1/eval-runs/{id}`
 
-One eval run in full — its status, trigger, provenance, per-case results with every score, and the run's aggregates. A suite's runs are `GET /v1/eval-suites/{id}/runs`; one case's trace is `GET /v1/eval-runs/{id}/traces/{traceId}`; which step spent what is `GET /v1/eval-runs/{id}/spend`.
+One eval run in full — its status, trigger, provenance, per-case results with every score, and the run's aggregates. A suite's runs are `GET /v1/eval-suites/{id}/runs`; one case's trace is `GET /v1/eval-runs/{id}/traces/{traceId}`; which action spent what is `GET /v1/eval-runs/{id}/spend`.
 
 **Path parameters**
 
@@ -305,7 +305,7 @@ Each item of `results`:
 | `caseKey` | `string` | yes | The case's stable `key`. |
 | `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run" \| "unknown"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. `unknown` — the run predates per-case recording, so the answer is not stored rather than being any of the above. |
 | `reason` | `string \| null` | yes | Why the case ended in a non-`scored` outcome. Null when it was scored. |
-| `traceId` | `string \| null` | yes | Trace this case produced, for per-skill drill-down. Null means the run left no evidence, which is itself why the case could not be scored. |
+| `traceId` | `string \| null` | yes | Trace this case produced, for per-action drill-down. Null means the run left no evidence, which is itself why the case could not be scored. |
 | `platformFlowRun` | `boolean` | yes | True when this case's trace is a platform flow's run: filed under this project because this suite ran it, though the flow is not one of the project's own (the trace's own `platformFlowRun`). False without a trace. |
 | `fingerprint` | `string` | yes | Digest of the inputs this case ran with. A change here means the case itself moved, so a score difference is not necessarily a regression. |
 | `labels` | `string[]` | yes | The case's tags, copied onto the result. |
@@ -315,7 +315,7 @@ Each item of `results`:
 
 ### `GET /v1/eval-runs/{id}/spend`
 
-What one eval run cost, and which step spent it: one entry per step of the subject flow and of each scorer flow, summed over every case and repeat. Empty for a run that spent nothing, and for one that ran before eval spend was attributed to its run. The run itself is `GET /v1/eval-runs/{id}`; a project's spend over a window is `GET /v1/projects/{nodeId}/usage`.
+What one eval run cost, and which action spent it: one entry per action of the subject flow and of each scorer flow, summed over every case and repeat. Empty for a run that spent nothing, and for one that ran before eval spend was attributed to its run. The run itself is `GET /v1/eval-runs/{id}`; a project's spend over a window is `GET /v1/projects/{nodeId}/usage`.
 
 **Path parameters**
 
@@ -328,21 +328,21 @@ What one eval run cost, and which step spent it: one entry per step of the subje
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `runId` | `string` | yes | The eval run this spend belongs to (`GET /v1/eval-runs/{id}`). |
-| `credits` | `integer` | yes | What the run's case and scorer previews were charged, summed from the same rows as `bySkill`. ⚠️ The run's own `credits` is measured per case while it runs and may differ: a case cut by the run's budget is charged here and not scored there. |
+| `credits` | `integer` | yes | What the run's case and scorer previews were charged, summed from the same rows as `byAction`. ⚠️ The run's own `credits` is measured per case while it runs and may differ: a case cut by the run's budget is charged here and not scored there. |
 | `events` | `integer` | yes | Billable operations across the whole eval run. |
 | `uncharged` | `integer` | yes | How many of the eval run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. |
-| `bySkill` | `object[]` | yes | One entry per step, across every case and repeat, the subject flow's steps and the scorer flows' alike; descending by charge. Each entry's `charges` says what the step was charged for, by kind, with the seconds or tokens billed. ⚠️ EMPTY has more than one cause: the run spent nothing, or it ran before eval spend was attributed to its run (2026-10-02) and its charges cannot be found. |
+| `byAction` | `object[]` | yes | One entry per action, across every case and repeat, the subject flow's actions and the scorer flows' alike; descending by charge. Each entry's `charges` says what the action was charged for, by kind, with the seconds or tokens billed. ⚠️ EMPTY has more than one cause: the run spent nothing, or it ran before eval spend was attributed to its run (2026-10-02) and its charges cannot be found. |
 
-Each item of `bySkill`:
+Each item of `byAction`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string \| null` | yes | The skill that spent it, or `null` for spend the run made OUTSIDE any skill. ⛔ THE NULL ENTRY IS NOT A GAP: per-skill attribution comes from a child scope opened around each handler, so anything billed before the first skill or between two of them lands here — and dropping it would make these entries stop summing to `credits` while both numbers still looked right. |
-| `skillName` | `string \| null` | yes | `Skill.name` FROZEN at event time, so the label outlives the row. A flow edit deletes and recreates skills with fresh ids, and this route serves runs that may be weeks old — so a caller renders this and falls back to `skillId`, never the other way round. `null` on the unattributed entry and on rows written before the column. |
-| `credits` | `integer` | yes | What the customer was charged for this step, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the step being absent from this list. A cache hit is not a `0`: a step answered from a handler's input-keyed cache still pays its compute fee, one second at least, and a step answered from the step-result cache makes no charge at all. |
+| `actionId` | `string \| null` | yes | The action that spent it, or `null` for spend the run made OUTSIDE any action. ⛔ THE NULL ENTRY IS NOT A GAP: per-action attribution comes from a child scope opened around each function, so anything billed before the first action or between two of them lands here — and dropping it would make these entries stop summing to `credits` while both numbers still looked right. |
+| `actionName` | `string \| null` | yes | The action's name FROZEN at event time, so the label outlives the row. A flow edit deletes and recreates actions with fresh ids, and this route serves runs that may be weeks old — so a caller renders this and falls back to `actionId`, never the other way round. `null` on the unattributed entry and on rows written before the column. |
+| `credits` | `integer` | yes | What the customer was charged for this action, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the action being absent from this list. A cache hit is not a `0`: an action answered from a function's input-keyed cache still pays its compute fee, one second at least, and an action answered from the action-result cache makes no charge at all. |
 | `events` | `integer` | yes | How many billable operations made up that charge. Kept beside the amount because zero credits over six operations and zero credits over none are different facts, and only this tells them apart. |
-| `uncharged` | `integer` | yes | How many of this step's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of a step that failed on a platform fault (`detail.phase: "platform-fault"` in the step log), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same step in a charged run has a price. |
-| `charges` | `object[]` | yes | What the step was charged FOR: the same charge by kind, descending by credits. Its entries sum to this step's `credits` and `events`. A model step reads as one `handler-run` entry (seconds of compute) beside an `llm-call` entry per direction (tokens). |
+| `uncharged` | `integer` | yes | How many of this action's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of an action that failed on a platform fault (`detail.phase: "platform-fault"` in the timeline), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same action in a charged run has a price. |
+| `charges` | `object[]` | yes | What the action was charged FOR: the same charge by kind, descending by credits. Its entries sum to this action's `credits` and `events`. A model action reads as one `function-run` entry (seconds of compute) beside an `llm-call` entry per direction (tokens). |
 
 ### `GET /v1/eval-runs/{id}/traces/{traceId}`
 
@@ -366,11 +366,11 @@ The trace of one case in an eval run, with its `runId`. The run's per-case score
 | `platformFlowRun` | `boolean` | yes | True when the flow that ran is a platform flow, run by one of this project's eval suites: the trace is filed under this project, which ran it, but the flow is not one of the project's own. |
 | `flowId` | `string \| null` | yes | The flow that ran. |
 | `recordId` | `string \| null` | yes | The record being processed, when `subject` is `record`. Null otherwise. |
-| `runId` | `string \| null` | yes | The run that wrote this trace — its steps, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |
+| `runId` | `string \| null` | yes | The run that wrote this trace — its timeline, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |
 | `inputs` | `unknown` | no | What the run received. |
 | `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
-| `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |
-| `stepOutputs` | `object \| null` | yes | What each STEP wrote, for the writes a slot name cannot name. Null when the writer recorded no steps. |
+| `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by action. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. An action whose output slot is empty contributes no key. |
+| `actionOutputs` | `object \| null` | yes | What each ACTION wrote, for the writes a slot name cannot name. Null when the writer recorded no actions. |
 | `durationMs` | `integer \| null` | yes | How long the run took, in milliseconds. ⚠️ NULL MEANS UNTIMED, not instant — an old row, or a run that crashed before it got going. Render the difference. |
 | `createdAt` | `string` | yes | When the run happened. |
 | `expiresAt` | `string` | yes | When this trace will be deleted. Reading it after this point returns 404 by design, not because the reference is broken. |
@@ -411,7 +411,7 @@ Each item of `suites`:
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
 | `applyWrites` | `boolean` | yes | Whether a run saves the writes the flow makes. True applies them, as a preview does. False runs every case as a dry run: the flow executes and bills in full, and the records it would have created or changed are discarded, so the suite does not change the data it measures. Both arms of a bracketed run follow it; scorer flows do not. Defaults to true. |
-| `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
+| `perActionLatency` | `boolean` | yes | Also record a latency score per action that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's action count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
 | `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
 | `regressionEventKey` | `string \| null` | yes | Key of that event type. Null emits nothing. |
@@ -447,7 +447,7 @@ Create an eval suite: a flow under test (`flowId`), the scorer flows that grade 
 | `latencyIsolated` | `boolean` | no | Run cases one at a time, for latency measurement. |
 | `subjectUncached` | `boolean` | no | Run the flow with the ingest cache out of the path. |
 | `applyWrites` | `boolean` | no | Whether a run saves the writes the flow makes. False runs every case as a dry run and discards them. |
-| `perSkillLatency` | `boolean` | no | Also record latency per skill, not just per run. |
+| `perActionLatency` | `boolean` | no | Also record latency per action, not just per run. |
 | `bracketed` | `boolean` | no | Run the baseline configuration alongside the live one. Doubles spend. |
 | `regressionCategoryKey` | `string \| null` | no | Key of the category of the event emitted when a run regresses. |
 | `regressionEventKey` | `string \| null` | no | Key of that event type. It must already exist. |
@@ -490,7 +490,7 @@ Each item of `diagnostics`:
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
 | `applyWrites` | `boolean` | yes | Whether a run saves the writes the flow makes. True applies them, as a preview does. False runs every case as a dry run: the flow executes and bills in full, and the records it would have created or changed are discarded, so the suite does not change the data it measures. Both arms of a bracketed run follow it; scorer flows do not. Defaults to true. |
-| `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
+| `perActionLatency` | `boolean` | yes | Also record a latency score per action that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's action count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
 | `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
 | `regressionEventKey` | `string \| null` | yes | Key of that event type. Null emits nothing. |
@@ -542,7 +542,7 @@ Read one eval suite: its configuration, the `version` its PATCH takes, its newes
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
 | `applyWrites` | `boolean` | yes | Whether a run saves the writes the flow makes. True applies them, as a preview does. False runs every case as a dry run: the flow executes and bills in full, and the records it would have created or changed are discarded, so the suite does not change the data it measures. Both arms of a bracketed run follow it; scorer flows do not. Defaults to true. |
-| `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
+| `perActionLatency` | `boolean` | yes | Also record a latency score per action that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's action count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
 | `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
 | `regressionEventKey` | `string \| null` | yes | Key of that event type. Null emits nothing. |
@@ -592,7 +592,7 @@ Change an eval suite's configuration — its flow, scorers, `scoreRules` (replac
 | `latencyIsolated` | `boolean` | no | Run cases one at a time, for latency measurement. |
 | `subjectUncached` | `boolean` | no | Run the flow with the ingest cache out of the path. |
 | `applyWrites` | `boolean` | no | Whether a run saves the writes the flow makes. False runs every case as a dry run and discards them. |
-| `perSkillLatency` | `boolean` | no | Also record latency per skill, not just per run. |
+| `perActionLatency` | `boolean` | no | Also record latency per action, not just per run. |
 | `bracketed` | `boolean` | no | Run the baseline configuration alongside the live one. |
 | `regressionCategoryKey` | `string \| null` | no | Key of the category of the event emitted when a run regresses. |
 | `regressionEventKey` | `string \| null` | no | Key of that event type. |
@@ -619,7 +619,7 @@ Change an eval suite's configuration — its flow, scorers, `scoreRules` (replac
 | `latencyIsolated` | `boolean` | yes | Run cases one at a time. A case timed alongside siblings is slower for reasons unrelated to the flow, so set this when measuring latency. It costs the run its parallelism against the time budget. |
 | `subjectUncached` | `boolean` | yes | Run the flow with the ingest cache out of the path. True for a performance suite — served from cache, a repeat is a replay rather than a sample. False for a quality suite, where an uncached run is itself unstable enough to move results between identical runs. Defaults to true, because a suite reporting replayed numbers still says `success`. |
 | `applyWrites` | `boolean` | yes | Whether a run saves the writes the flow makes. True applies them, as a preview does. False runs every case as a dry run: the flow executes and bills in full, and the records it would have created or changed are discarded, so the suite does not change the data it measures. Both arms of a bracketed run follow it; scorer flows do not. Defaults to true. |
-| `perSkillLatency` | `boolean` | yes | Also record a latency score per skill that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's skill count times cases times repeats. |
+| `perActionLatency` | `boolean` | yes | Also record a latency score per action that executed, not just for the run as a whole. Opt-in: the number of rows scales with the flow's action count times cases times repeats. |
 | `bracketed` | `boolean` | yes | Run the baseline's configuration alongside the live one, interleaved, so drift in the environment affects both and cancels out of the comparison. Doubles the suite's spend. Withheld rather than quietly degraded when there is no baseline to compare against; the run reports why in `bracketRefusal`. |
 | `regressionCategoryKey` | `string \| null` | yes | Key of the category of the project event emitted when a run comes out worse than its baseline. Null emits nothing. The event type must already exist in your project. |
 | `regressionEventKey` | `string \| null` | yes | Key of that event type. Null emits nothing. |
@@ -748,7 +748,7 @@ Each item of `results`:
 | `caseKey` | `string` | yes | The case's stable `key`. |
 | `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run" \| "unknown"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. `unknown` — the run predates per-case recording, so the answer is not stored rather than being any of the above. |
 | `reason` | `string \| null` | yes | Why the case ended in a non-`scored` outcome. Null when it was scored. |
-| `traceId` | `string \| null` | yes | Trace this case produced, for per-skill drill-down. Null means the run left no evidence, which is itself why the case could not be scored. |
+| `traceId` | `string \| null` | yes | Trace this case produced, for per-action drill-down. Null means the run left no evidence, which is itself why the case could not be scored. |
 | `platformFlowRun` | `boolean` | yes | True when this case's trace is a platform flow's run: filed under this project because this suite ran it, though the flow is not one of the project's own (the trace's own `platformFlowRun`). False without a trace. |
 | `fingerprint` | `string` | yes | Digest of the inputs this case ran with. A change here means the case itself moved, so a score difference is not necessarily a regression. |
 | `labels` | `string[]` | yes | The case's tags, copied onto the result. |
@@ -884,7 +884,7 @@ Each item of `numericSeries`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `name` | `string` | yes | Score name of the series. |
-| `skillKey` | `string \| null` | yes | Key of the step the series describes, or null for a run-level one. With `name`, the series' identity — the same pair each point's aggregate carries. |
+| `actionKey` | `string \| null` | yes | Key of the action the series describes, or null for a run-level one. With `name`, the series' identity — the same pair each point's aggregate carries. |
 | `source` | `"scorer-flow" \| "assertion" \| "system"` | yes | Who produced every score in this series across the whole window: `scorer-flow` — a grading flow; `assertion` — a deterministic check on the case; `system` — the platform's own reading of latency, tokens or cost. Null when the window pools more than one producer — two points name different ones, or one point's own aggregate already pooled two. |
 
 ### `GET /v1/eval-suites/trend`

@@ -217,10 +217,10 @@ Each item of `processingGaps`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `"RECORD_CREATED_NOT_QUEUED"` | yes | Always `RECORD_CREATED_NOT_QUEUED`: the flow creates records of this table and has no step that queues them for processing. |
+| `code` | `"RECORD_CREATED_NOT_QUEUED"` | yes | Always `RECORD_CREATED_NOT_QUEUED`: the flow creates records of this table and has no action that queues them for processing. |
 | `message` | `string` | yes | The platform's own sentence, with the way forward. |
 | `flow` | `object` | yes | The flow that creates the records. |
-| `skillKey` | `string` | yes | The key of the flow's step that creates them. |
+| `actionKey` | `string` | yes | The key of the flow's action that creates them. |
 
 Each item of `touched`:
 
@@ -332,10 +332,10 @@ Each item of `processingGaps`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `"RECORD_CREATED_NOT_QUEUED"` | yes | Always `RECORD_CREATED_NOT_QUEUED`: the flow creates records of this table and has no step that queues them for processing. |
+| `code` | `"RECORD_CREATED_NOT_QUEUED"` | yes | Always `RECORD_CREATED_NOT_QUEUED`: the flow creates records of this table and has no action that queues them for processing. |
 | `message` | `string` | yes | The platform's own sentence, with the way forward. |
 | `flow` | `object` | yes | The flow that creates the records. |
-| `skillKey` | `string` | yes | The key of the flow's step that creates them. |
+| `actionKey` | `string` | yes | The key of the flow's action that creates them. |
 
 ### `PATCH /v1/tables/{id}`
 
@@ -351,7 +351,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `key` | `string` | no | The table's new key. Refused once the table has records, or while a flow step names it. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
+| `key` | `string` | no | The table's new key. Refused once the table has records, or while a flow action names it. A letter followed by letters and digits, like `Observation`, up to 64 characters. |
 | `dataTypeId` | `string` | no | Point the table at a different type. Refused once the table has records. Omit to keep the current one. |
 | `definition` | `object` | no | Replace the table's shape — the JSON Schema of the type this table points at — wholesale, with the rules `PATCH /v1/types/{id}` meets: field names, an object schema, keywords something reads, a removed field no stored record still holds, every other row that uses the type, the bound flow's binding, and every captured signature it re-shapes (refused 409 `TYPE_RESHAPES_BOUND_SNAPSHOTS`; restate the shape in a project document with `adoptSnapshots` for that). Saved with the table in one transaction, and the type is named in `touched`. Refused 422 together with `dataTypeId`. |
 | `description` | `string \| null` | no | This table's own description, separate from the type's. |
@@ -453,10 +453,10 @@ Each item of `processingGaps`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `"RECORD_CREATED_NOT_QUEUED"` | yes | Always `RECORD_CREATED_NOT_QUEUED`: the flow creates records of this table and has no step that queues them for processing. |
+| `code` | `"RECORD_CREATED_NOT_QUEUED"` | yes | Always `RECORD_CREATED_NOT_QUEUED`: the flow creates records of this table and has no action that queues them for processing. |
 | `message` | `string` | yes | The platform's own sentence, with the way forward. |
 | `flow` | `object` | yes | The flow that creates the records. |
-| `skillKey` | `string` | yes | The key of the flow's step that creates them. |
+| `actionKey` | `string` | yes | The key of the flow's action that creates them. |
 
 Each item of `touched`:
 

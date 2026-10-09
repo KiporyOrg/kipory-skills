@@ -24,7 +24,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/ai-calls`
 
-A project's model calls over a window, newest first, walked on `after`/`before` — provider, model, outcome, tokens, latency, cost and the step that made each — with fourteen narrowings. The same window added up is `GET /v1/ai-calls/rollup`; one call with its stored prompt is `GET /v1/ai-calls/{id}`; what ALL billable work cost, model calls included, is `GET /v1/projects/{nodeId}/usage`.
+A project's model calls over a window, newest first, walked on `after`/`before` — provider, model, outcome, tokens, latency, cost and the action that made each — with fourteen narrowings. The same window added up is `GET /v1/ai-calls/rollup`; one call with its stored prompt is `GET /v1/ai-calls/{id}`; what ALL billable work cost, model calls included, is `GET /v1/projects/{nodeId}/usage`.
 
 **Query**
 
@@ -36,15 +36,15 @@ A project's model calls over a window, newest first, walked on `after`/`before` 
 | `origins` | `string` | no | Comma-separated `AiCall.origin` values to INCLUDE, e.g. `session,projection`. Use `unset` to name the rows whose origin is null — the largest bucket in production, and unnameable otherwise — or `all` on its own to turn the filter off entirely. Omit the parameter entirely to get the default view, which hides what a human did while building (see `excludedOrigins` on the response for exactly what was applied). |
 | `outcome` | `"success" \| "error"` | no | Narrow to calls that succeeded, or to calls that failed. |
 | `taskKind` | `string` | no | Narrow to one kind of model work. ⚠️ NOT AN ENUM: `AiCall.taskKind` is a text column, so a row written before a member existed is still filterable. `callLogTaskKindSchema` is what the platform emits today and is the right list to OFFER; it is not the column's domain. |
-| `skillId` | `string` | no | The skill that made the call — `AiCall.skillId`, an indexed column. |
-| `flowId` | `string` | no | The flow the skill belongs to. `AiCall` carries NO flow column: this resolves through `Skill.flowId` to a list of skill ids, which the implementation must do in its own statement — see the module note on what a subquery costs here. ⛔⛔ IT THEREFORE REACHES THE FLOW'S CURRENT SKILL GENERATION AND NO OTHER: `replaceFlowSkillsTx` DELETES and recreates every skill of a flow with fresh ids on each whole-graph edit, and `AiCall.skillId` is a soft link with no foreign key — so calls made before the last edit are unreachable by this filter and by `q`'s skill-key arm. Nothing on a page can detect the loss: the rollup runs the same predicate, so a band and its table agree perfectly on the truncated population. The repair is a column (`CostEvent` denormalizes `skillName` beside `skillId` for exactly this reason), not a cleverer query — once the row is gone there is nothing left to map a dead id back to a name. |
+| `actionId` | `string` | no | The action that made the call — an indexed column of the call. |
+| `flowId` | `string` | no | The flow the action belongs to. `AiCall` carries NO flow column: this resolves through the action's `flowId` to a list of action ids, which the implementation must do in its own statement — see the module note on what a subquery costs here. ⛔⛔ IT THEREFORE REACHES THE FLOW'S CURRENT ACTION GENERATION AND NO OTHER: `replaceFlowActionsTx` DELETES and recreates every action of a flow with fresh ids on each whole-graph edit, and a call's `actionId` is a soft link with no foreign key — so calls made before the last edit are unreachable by this filter and by `q`'s action-key arm. Nothing on a page can detect the loss: the rollup runs the same predicate, so a band and its table agree perfectly on the truncated population. The repair is a column (a charge keeps `actionName` beside `actionId` for exactly this reason), not a cleverer query — once the row is gone there is nothing left to map a dead id back to a name. |
 | `provider` | `string` | no | The vendor, e.g. `openai`. Separate from `model` because one vendor degrading is the question this column exists to answer. |
 | `model` | `string` | no | The exact model identifier. |
 | `recordId` | `string` | no | The record this call was processing, when it was processing one. |
 | `userId` | `string` | no | The end user the call was made on behalf of. |
 | `sessionId` | `string` | no | The session the call was made inside. ⭐ THE ONE HANDLE THAT GATHERS A CONVERSATION'S CALLS, and the most populated optional dimension on the table: 73,300 of 117,211 rows carry one (production 2026-08-26) against 53,882 for `userId` and 17,706 for `recordId`. `correlationId` reads like the field for this and is not — it equals the row's own id on every production row, as its own note records. ⚠️ Served by `@@index([sessionId, createdAt(sort: Desc)])`, which is the same shape the keyset reads in, so this narrows without a scan. |
 | `correlationId` | `string` | no | The call's correlation handle. ⚠️ Measured on production 2026-08-25, `correlationId` equals the row's own id on 114,862 of 114,862 rows — the `?? id` fallback in the chokepoint's call scaffold fires every time — so today this is an id lookup wearing another name, and it cannot yet gather the calls of one run. |
-| `q` | `string` | no | Case-insensitive match against the row's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the skill that made the call, which is resolved to skill ids first because an `AiCall` records only the id. That set is every text column a list of these draws, so a reader can search for what is in front of them. ⛔ IT MUST NOT BE WIDENED TO THE PROMPT, and the reason is size rather than taste: a prompt spills to object storage past 256 kB (production 2026-08-25: 174 rows, median 567 kB, max 10.06 MB), so a match over it cannot reach a spilled payload at all and would answer confidently about a subset with no way to say which. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
+| `q` | `string` | no | Case-insensitive match against the row's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the action that made the call, which is resolved to action ids first because an `AiCall` records only the id. That set is every text column a list of these draws, so a reader can search for what is in front of them. ⛔ IT MUST NOT BE WIDENED TO THE PROMPT, and the reason is size rather than taste: a prompt spills to object storage past 256 kB (production 2026-08-25: 174 rows, median 567 kB, max 10.06 MB), so a match over it cannot reach a spilled payload at all and would answer confidently about a subset with no way to say which. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
 | `sort` | `"created-at" \| "latency-ms" \| "total-tokens"` | no | The column the call list is ordered by: `created-at` (the default), `latency-ms`, or `total-tokens`. Ties break on the call id, in the same direction. ⚠️ `totalTokens` is null where the provider reported no usage, and those calls sort LAST in both directions — a null is not measured, never the smallest figure. Credits are not a sort: they are summed from cost events at read time, not stored on the call. |
 | `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Defaults to `desc` — newest, slowest, largest first. |
 | `after` | `string` | no | The NEXT page along this ordering — pass back the `nextCursor` you were given. Opaque: read it from a response, never build one. ⛔ A cursor carries the ordering it was minted in, and replaying it under a different `sort` or `order` is refused (400) rather than paged from a position that ordering does not have. |
@@ -75,9 +75,9 @@ Each item of `calls`:
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
 | `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown"` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown` rather than passed through, so a client can switch on this exhaustively. |
-| `skill` | `object \| null` | yes | Null for a call no skill made. |
-| `flow` | `object \| null` | yes | The skill's flow. Null whenever `skill` is. |
-| `record` | `object \| null` | yes | The record this call was processing, null when it was processing none. A call with no skill and no flow can be most of a busy project's traffic (`origin: projection`), and the record is the only thing that says WHAT such a call was for. ⚠️ THE NAME IS BEST-EFFORT AND MAY BE NULL: it is read from `derived.title`, then `data.title`, then a truncated `data.text`, which are CONVENTIONS a table is free to mean something else by. A null name is not a missing record — the id is still the handle. |
+| `action` | `object \| null` | yes | Null for a call no action made. |
+| `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
+| `record` | `object \| null` | yes | The record this call was processing, null when it was processing none. A call with no action and no flow can be most of a busy project's traffic (`origin: projection`), and the record is the only thing that says WHAT such a call was for. ⚠️ THE NAME IS BEST-EFFORT AND MAY BE NULL: it is read from `derived.title`, then `data.title`, then a truncated `data.text`, which are CONVENTIONS a table is free to mean something else by. A null name is not a missing record — the id is still the handle. |
 | `totalTokens` | `integer \| null` | yes | NOT MEASURED when null, never zero. Embeddings, reranks and transcriptions routinely report no usage at all. |
 | `credits` | `integer \| null` | yes | What this call CHARGED, in credits — a credit is a millionth of a dollar — summed over the `CostEvent` rows linked to it. ⛔ THE CUSTOMER'S FIGURE, NOT KIPORY'S: this used to serve `providerCostMicroUsd`, which is what Kipory paid its vendor and is never shaped onto a `/v1` response. ⛔ Null means NO COST EVENT LANDED — the call was not free, it is unpriced, and a call that has just run sits here for a moment. |
 | `latencyMs` | `integer` | yes | Wall time. On a timeout this is OUR deadline rather than the provider's answer, which is why it is never null. |
@@ -85,7 +85,7 @@ Each item of `calls`:
 
 ### `GET /v1/ai-calls/{id}`
 
-One model call in full — the list's row plus its step, flow, record, cost and redaction counts; `payload=prompt|response` also returns that stored payload. 404 for an id you cannot see.
+One model call in full — the list's row plus its action, flow, record, cost and redaction counts; `payload=prompt|response` also returns that stored payload. 404 for an id you cannot see.
 
 **Path parameters**
 
@@ -111,8 +111,8 @@ One model call in full — the list's row plus its step, flow, record, cost and 
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
 | `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown"` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown` rather than passed through, so a client can switch on this exhaustively. |
-| `skill` | `object \| null` | yes | Null for a call no skill made. |
-| `flow` | `object \| null` | yes | The skill's flow. Null whenever `skill` is. |
+| `action` | `object \| null` | yes | Null for a call no action made. |
+| `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
 | `record` | `object \| null` | yes | The record this call was processing. ⛔ NO ADDRESS COMES WITH IT — unlike `flow`, which carries a key because it has a page. A record is named so a reader recognises it, and the id is what they can search on; it is not a link. |
 | `totalTokens` | `integer \| null` | yes | NOT MEASURED when null, never zero. Embeddings, reranks and transcriptions routinely report no usage at all. |
 | `credits` | `integer \| null` | yes | What this call CHARGED, in credits — a credit is a millionth of a dollar — summed over the `CostEvent` rows linked to it. ⛔ THE CUSTOMER'S FIGURE, NOT KIPORY'S: this used to serve `providerCostMicroUsd`, which is what Kipory paid its vendor and is never shaped onto a `/v1` response. ⛔ Null means NO COST EVENT LANDED — the call was not free, it is unpriced, and a call that has just run sits here for a moment. |
@@ -133,7 +133,7 @@ One model call in full — the list's row plus its step, flow, record, cost and 
 
 ### `GET /v1/ai-calls/rollup`
 
-The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures by error code, latency spread, spend, a volume strip and one row per step. Totals exactly the rows the list pages through.
+The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures by error code, latency spread, spend, a volume strip and one row per action. Totals exactly the rows the list pages through.
 
 **Query**
 
@@ -145,15 +145,15 @@ The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures
 | `origins` | `string` | no | Comma-separated `AiCall.origin` values to INCLUDE, e.g. `session,projection`. Use `unset` to name the rows whose origin is null — the largest bucket in production, and unnameable otherwise — or `all` on its own to turn the filter off entirely. Omit the parameter entirely to get the default view, which hides what a human did while building (see `excludedOrigins` on the response for exactly what was applied). |
 | `outcome` | `"success" \| "error"` | no | Narrow to calls that succeeded, or to calls that failed. |
 | `taskKind` | `string` | no | Narrow to one kind of model work. ⚠️ NOT AN ENUM: `AiCall.taskKind` is a text column, so a row written before a member existed is still filterable. `callLogTaskKindSchema` is what the platform emits today and is the right list to OFFER; it is not the column's domain. |
-| `skillId` | `string` | no | The skill that made the call — `AiCall.skillId`, an indexed column. |
-| `flowId` | `string` | no | The flow the skill belongs to. `AiCall` carries NO flow column: this resolves through `Skill.flowId` to a list of skill ids, which the implementation must do in its own statement — see the module note on what a subquery costs here. ⛔⛔ IT THEREFORE REACHES THE FLOW'S CURRENT SKILL GENERATION AND NO OTHER: `replaceFlowSkillsTx` DELETES and recreates every skill of a flow with fresh ids on each whole-graph edit, and `AiCall.skillId` is a soft link with no foreign key — so calls made before the last edit are unreachable by this filter and by `q`'s skill-key arm. Nothing on a page can detect the loss: the rollup runs the same predicate, so a band and its table agree perfectly on the truncated population. The repair is a column (`CostEvent` denormalizes `skillName` beside `skillId` for exactly this reason), not a cleverer query — once the row is gone there is nothing left to map a dead id back to a name. |
+| `actionId` | `string` | no | The action that made the call — an indexed column of the call. |
+| `flowId` | `string` | no | The flow the action belongs to. `AiCall` carries NO flow column: this resolves through the action's `flowId` to a list of action ids, which the implementation must do in its own statement — see the module note on what a subquery costs here. ⛔⛔ IT THEREFORE REACHES THE FLOW'S CURRENT ACTION GENERATION AND NO OTHER: `replaceFlowActionsTx` DELETES and recreates every action of a flow with fresh ids on each whole-graph edit, and a call's `actionId` is a soft link with no foreign key — so calls made before the last edit are unreachable by this filter and by `q`'s action-key arm. Nothing on a page can detect the loss: the rollup runs the same predicate, so a band and its table agree perfectly on the truncated population. The repair is a column (a charge keeps `actionName` beside `actionId` for exactly this reason), not a cleverer query — once the row is gone there is nothing left to map a dead id back to a name. |
 | `provider` | `string` | no | The vendor, e.g. `openai`. Separate from `model` because one vendor degrading is the question this column exists to answer. |
 | `model` | `string` | no | The exact model identifier. |
 | `recordId` | `string` | no | The record this call was processing, when it was processing one. |
 | `userId` | `string` | no | The end user the call was made on behalf of. |
 | `sessionId` | `string` | no | The session the call was made inside. ⭐ THE ONE HANDLE THAT GATHERS A CONVERSATION'S CALLS, and the most populated optional dimension on the table: 73,300 of 117,211 rows carry one (production 2026-08-26) against 53,882 for `userId` and 17,706 for `recordId`. `correlationId` reads like the field for this and is not — it equals the row's own id on every production row, as its own note records. ⚠️ Served by `@@index([sessionId, createdAt(sort: Desc)])`, which is the same shape the keyset reads in, so this narrows without a scan. |
 | `correlationId` | `string` | no | The call's correlation handle. ⚠️ Measured on production 2026-08-25, `correlationId` equals the row's own id on 114,862 of 114,862 rows — the `?? id` fallback in the chokepoint's call scaffold fires every time — so today this is an id lookup wearing another name, and it cannot yet gather the calls of one run. |
-| `q` | `string` | no | Case-insensitive match against the row's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the skill that made the call, which is resolved to skill ids first because an `AiCall` records only the id. That set is every text column a list of these draws, so a reader can search for what is in front of them. ⛔ IT MUST NOT BE WIDENED TO THE PROMPT, and the reason is size rather than taste: a prompt spills to object storage past 256 kB (production 2026-08-25: 174 rows, median 567 kB, max 10.06 MB), so a match over it cannot reach a spilled payload at all and would answer confidently about a subset with no way to say which. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
+| `q` | `string` | no | Case-insensitive match against the row's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the action that made the call, which is resolved to action ids first because an `AiCall` records only the id. That set is every text column a list of these draws, so a reader can search for what is in front of them. ⛔ IT MUST NOT BE WIDENED TO THE PROMPT, and the reason is size rather than taste: a prompt spills to object storage past 256 kB (production 2026-08-25: 174 rows, median 567 kB, max 10.06 MB), so a match over it cannot reach a spilled payload at all and would answer confidently about a subset with no way to say which. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
 | `buckets` | `"hour" \| "day"` | no | The width of one column in `buckets`. Defaults to `hour`, which is what the 24-hour strip draws. |
 
 **Response `200`**
@@ -165,7 +165,7 @@ The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures
 | `latency` | `object \| null` | yes | Null when the window holds no call to measure. |
 | `spend` | `object \| null` | yes | What the window cost, and how much of it the platform can speak for. ⛔ NULL WHEN `unmeasurable` IS `all` — over the row cap no cost query runs at all, and a zero here would be a positive claim that nothing was spent. `latency` is null on the same arm for the same reason. |
 | `buckets` | `object[]` | yes | The window sliced into equal columns of width `buckets`, oldest first. A slice with no calls is PRESENT with zeroes rather than absent — a strip that skipped empty columns would compress quiet hours and misreport the shape of the traffic. |
-| `skills` | `object[]` | yes | One row per skill that made a call in the window, so a client can place a single call against its own skill's distribution without a read per row. Absent entirely for a window with no calls. |
+| `actions` | `object[]` | yes | One row per action that made a call in the window, so a client can place a single call against its own action's distribution without a read per row. Absent entirely for a window with no calls. |
 | `models` | `object[]` | yes | Every provider/model pair present in the window, with the model and provider narrowings RELEASED so the control that applied one can still undo it. Every other filter still applies. |
 | `excluded` | `object` | yes | What the default origin view dropped, counted — the figure the call list deliberately cannot supply. |
 | `unmeasurable` | `"failures" \| "all"` | yes | A window the platform cannot vouch for. `failures` — the calls are counted but their outcomes are not trustworthy. `all` — nothing here should be read as a measurement. `null` — these figures stand. ⛔ NOT an error: the figures beside it are the best the platform has, and this says they are a floor rather than a fact. |
@@ -178,20 +178,20 @@ Each item of `buckets`:
 | `calls` | `integer` | yes | Calls that landed inside this column. A measured zero — an empty column is present rather than omitted. |
 | `failed` | `integer` | yes | A subset of `calls`, never a second total — the strip stacks it at the base of the same column rather than beside it. |
 
-Each item of `skills`:
+Each item of `actions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string` | yes | The skill these calls were made by. |
-| `skillKey` | `string \| null` | yes | The skill's key. Null when the skill has been deleted. |
-| `flowId` | `string \| null` | yes | The flow that holds the skill. Null when the skill is gone, so the row can still be counted without claiming an address for it. |
-| `calls` | `integer` | yes | Calls this skill made in the window, under the same filter. |
-| `failed` | `integer` | yes | A subset of this skill's `calls`, never a second total. |
+| `actionId` | `string` | yes | The action these calls were made by. |
+| `actionKey` | `string \| null` | yes | The action's key. Null when the action has been deleted. |
+| `flowId` | `string \| null` | yes | The flow that holds the action. Null when the action is gone, so the row can still be counted without claiming an address for it. |
+| `calls` | `integer` | yes | Calls this action made in the window, under the same filter. |
+| `failed` | `integer` | yes | A subset of this action's `calls`, never a second total. |
 | `p50Ms` | `integer \| null` | yes | Null when too few calls to characterise — never zero. |
 | `p95Ms` | `integer \| null` | yes | Null exactly when `p50Ms` is. The pair is decided together. |
-| `answeredP50Ms` | `integer \| null` | yes | The median over this skill's calls that answered (did not fail). Null when too few answered to characterise — never zero. `p50Ms` is over every call, failed ones included. |
-| `credits` | `integer` | yes | What this skill's calls CHARGED over the window, in credits. ⚠️ A FLOOR, not a total: read it beside `callsWithNoCostEvent`. |
-| `callsWithNoCostEvent` | `integer` | yes | This skill's calls with no `CostEvent`. ⛔ AN ABSENT SUM IS NOT A ZERO SUM — without this figure a skill whose billing dropped reports a confident `$0.0000` and sorts as the cheapest thing in the window. |
+| `answeredP50Ms` | `integer \| null` | yes | The median over this action's calls that answered (did not fail). Null when too few answered to characterise — never zero. `p50Ms` is over every call, failed ones included. |
+| `credits` | `integer` | yes | What this action's calls CHARGED over the window, in credits. ⚠️ A FLOOR, not a total: read it beside `callsWithNoCostEvent`. |
+| `callsWithNoCostEvent` | `integer` | yes | This action's calls with no `CostEvent`. ⛔ AN ABSENT SUM IS NOT A ZERO SUM — without this figure an action whose billing dropped reports a confident `$0.0000` and sorts as the cheapest thing in the window. |
 
 Each item of `models`:
 
@@ -309,14 +309,14 @@ What the projects under this organization spent over a window, by kind, model, p
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "handler-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
-| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
-| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 | `project` | `string` | no | Narrow to one project, by its OrgNode id — the key a breakdown by project hands back. A node outside this organization's subtree is refused with a 404. |
-| `by` | `"project" \| "kind" \| "skill" \| "model" \| "handler" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the project, which is the split only this height can show. |
+| `by` | `"project" \| "kind" \| "action" \| "model" \| "function" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the project, which is the split only this height can show. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 
 **Response `200`**
@@ -336,7 +336,7 @@ What the projects under this organization spent over a window, by kind, model, p
 | `projects` | `object[]` | yes | Every project in the subtree, by name. |
 | `nearestCap` | `object \| null` | yes | The ceiling closest to refusing across every project: one already refusing first, then the highest share. Only a ceiling with something consumed against it — or one already refusing — is ranked. `null` when no such ceiling exists, whether because none is set or nothing has been consumed; `projects[].caps` says which. |
 | `payer` | `object \| null` | yes | The wallet that pays for this organization's work — its own, or the ancestor's it bills up to. `null` when no wallet resolves anywhere on the chain, in which case the platform serves the work unbilled and records the fact elsewhere. |
-| `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but handler runs, which are most of the events and charge nothing. Only cells with events are listed. |
+| `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but function runs, which are most of the events and charge nothing. Only cells with events are listed. |
 
 Each item of `buckets`:
 
@@ -359,10 +359,10 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "handler-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | The kind of work that was charged. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | The kind of work that was charged. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
-| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the handler runs, vector writes and storage ticks recorded at no charge. |
+| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
 
 Each item of `models`:
 
@@ -371,7 +371,7 @@ Each item of `models`:
 | `model` | `string` | yes | The model id the calls named. |
 | `credits` | `integer` | yes | What its calls cost over the window. |
 | `events` | `integer` | yes | Its billable events — a generation writes one per direction, so this is not the call count. |
-| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the handler runs, vector writes and storage ticks recorded at no charge. |
+| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
 | `calls` | `integer` | yes | Distinct model calls those events belong to. |
 | `tokens` | `integer` | yes | Tokens the calls reported, input and output together. `0` for a model priced per minute or per search unit, which reports none. |
 
@@ -396,7 +396,7 @@ Each item of `hours`:
 
 ### `GET /v1/projects/{nodeId}/usage`
 
-What one project spent over a window, by kind of billable work — split by kind, skill, model, handler, user or key, with the prior period on `compare=1`, its caps and its payer. `window=custom` takes `from`/`to` instants (`to` exclusive). The charges behind the figure are `GET /v1/projects/{nodeId}/usage/events`; model calls alone are `GET /v1/ai-calls`; one run's cost by step is `GET /v1/runs/{runId}/spend`; the whole organization is `GET /v1/organizations/{nodeId}/usage`.
+What one project spent over a window, by kind of billable work — split by kind, action, model, function, user or key, with the prior period on `compare=1`, its caps and its payer. `window=custom` takes `from`/`to` instants (`to` exclusive). The charges behind the figure are `GET /v1/projects/{nodeId}/usage/events`; model calls alone are `GET /v1/ai-calls`; one run's cost by action is `GET /v1/runs/{runId}/spend`; the whole organization is `GET /v1/organizations/{nodeId}/usage`.
 
 **Path parameters**
 
@@ -412,13 +412,13 @@ What one project spent over a window, by kind of billable work — split by kind
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "handler-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
-| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
-| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
-| `by` | `"kind" \| "skill" \| "model" \| "handler" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work, which is the split the other spend pages cannot show. |
+| `by` | `"kind" \| "action" \| "model" \| "function" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work, which is the split the other spend pages cannot show. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 | `flows` | `"1"` | no | Pass `1` to also split the window's credits by the flow whose runs spent them, as `flows`. Under the same scope and narrowing as every other figure here. `flows` is null without it. |
 
@@ -438,7 +438,7 @@ What one project spent over a window, by kind of billable work — split by kind
 | `models` | `object[]` | yes | Every model with calls in the window under the scope and narrowing, costliest first. |
 | `caps` | `object` | yes | The project's spend ceilings and how close each is. Measured on the ceilings' own windows, not the page's. |
 | `payer` | `object \| null` | yes | The wallet this project's work settles to. `null` when no wallet resolves anywhere above it, in which case the work is served unbilled and the platform records the fact elsewhere. |
-| `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but handler runs, which are most of the events and charge nothing. Only cells with events are listed. |
+| `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but function runs, which are most of the events and charge nothing. Only cells with events are listed. |
 | `flows` | `object \| null` | yes | The window's credits by the flow whose runs spent them, when `flows=1` was sent. `null` when it was not sent, or when the window holds too many runs to split — never an empty split for a window that was not counted. |
 
 Each item of `buckets`:
@@ -462,10 +462,10 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "handler-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | The kind of work that was charged. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | The kind of work that was charged. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
-| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the handler runs, vector writes and storage ticks recorded at no charge. |
+| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
 
 Each item of `models`:
 
@@ -474,7 +474,7 @@ Each item of `models`:
 | `model` | `string` | yes | The model id the calls named. |
 | `credits` | `integer` | yes | What its calls cost over the window. |
 | `events` | `integer` | yes | Its billable events — a generation writes one per direction, so this is not the call count. |
-| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the handler runs, vector writes and storage ticks recorded at no charge. |
+| `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
 | `calls` | `integer` | yes | Distinct model calls those events belong to. |
 | `tokens` | `integer` | yes | Tokens the calls reported, input and output together. `0` for a model priced per minute or per search unit, which reports none. |
 
@@ -504,10 +504,10 @@ The project's statement — every charge under the same window and narrowings as
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "handler-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
-| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
-| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 | `after` | `string` | no | The page OLDER than this row — pass back the `nextCursor` you were given. Omit for the newest page. |
@@ -531,13 +531,13 @@ Each item of `events`:
 | `id` | `string` | yes | The charge's id. |
 | `occurredAt` | `string` | yes | When the work happened — the instant the window ranges on and the statement is ordered by. |
 | `createdAt` | `string` | yes | When the charge was recorded. Later than `occurredAt` for a retried or backfilled row. |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "handler-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | What kind of work was charged for. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | What kind of work was charged for. |
 | `actor` | `"request" \| "design" \| "system" \| "holding" \| "public"` | yes | Whose work: `request` an end user's, `public` a call to a public endpoint, made with no credential and paid by the project, `design` design-time, `system` the platform's own, which charges nobody; `holding` what the project stores — files and vectors — charged by the daily held tick with no end user behind it. |
 | `credits` | `integer` | yes | What the project was charged for this event, in credits. `0` is a measured charge — a free or platform-actor row — not an absence. |
-| `skillId` | `string \| null` | yes | The skill row that spent it, or null outside any skill. ⚠️ Ids fragment on every flow edit; `skillName` is the key that totals. |
-| `skillName` | `string \| null` | yes | The skill's name, frozen at charge time; null outside any skill. |
+| `actionId` | `string \| null` | yes | The action row that spent it, or null outside any action. ⚠️ Ids fragment on every flow edit; `actionName` is the key that totals. |
+| `actionName` | `string \| null` | yes | The action's name, frozen at charge time; null outside any action. |
 | `model` | `string \| null` | yes | The model a priced AI call named, lifted out of `details`; null for work that named none. |
-| `handler` | `string \| null` | yes | The vendor handler that made a paid fetch, lifted out of `details`; null for every other kind. |
+| `functionKey` | `string \| null` | yes | The vendor function that made a paid fetch, lifted out of `details`; null for every other kind. |
 | `userId` | `string \| null` | yes | The end user whose request caused it, or null. |
 | `userLabel` | `string \| null` | yes | That user's name, else their email, else null when the user could not be resolved — never the id repeated. |
 | `apiKeyId` | `string \| null` | yes | The API key that made the call, or null. |
@@ -546,7 +546,7 @@ Each item of `events`:
 | `aiCallId` | `string \| null` | yes | The logged model call behind an AI charge, or null. |
 | `recordId` | `string \| null` | yes | The record the work was about, or null. |
 | `requestId` | `string \| null` | yes | Groups every charge from one inbound request; null for a charge with no originating request. |
-| `details` | `object` | yes | The charge's own particulars, as the meter wrote them — units, the rate that priced them, the model or handler named. Shape varies by kind; a client reads what it recognises and prints nothing for the rest. |
+| `details` | `object` | yes | The charge's own particulars, as the meter wrote them — units, the rate that priced them, the model or function named. Shape varies by kind; a client reads what it recognises and prints nothing for the rest. |
 
 ### `GET /v1/projects/{nodeId}/usage/events.csv`
 
@@ -566,10 +566,10 @@ The statement of `GET /v1/projects/{nodeId}/usage/events` as CSV, newest first, 
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "handler-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
-| `skill` | `string` | no | Narrow to one skill, by its NAME — the key a breakdown by skill hands back, and the one that survives a flow edit. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
-| `handler` | `string` | no | Narrow to the paid fetches one vendor handler made. |
+| `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 
@@ -579,7 +579,7 @@ _No fields._
 
 ### `GET /v1/runs/{runId}/spend`
 
-What one run cost, and which step spent it. `0` for a run that spent nothing; `uncharged` counts the operations the platform paid for, whose `0` is not a price. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
+What one run cost, and which action spent it. `0` for a run that spent nothing; `uncharged` counts the operations the platform paid for, whose `0` is not a price. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
 
 **Path parameters**
 
@@ -591,19 +591,19 @@ What one run cost, and which step spent it. `0` for a run that spent nothing; `u
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `runId` | `string` | yes | The run this spend belongs to. The same heterogeneous id space `GET /v1/runs/{runId}/steps`, `/change-set` and `/flow-snapshots` take — a record attempt id, a flow run's request id, or an endpoint invocation id. |
-| `credits` | `integer` | yes | The run's whole charge. ⭐ Computed from the SAME rows as `bySkill`, not by a second query, so the total and its parts cannot disagree. |
+| `runId` | `string` | yes | The run this spend belongs to. The same heterogeneous id space `GET /v1/runs/{runId}/timeline`, `/change-set` and `/flow-snapshots` take — a record attempt id, a flow run's request id, or an endpoint invocation id. |
+| `credits` | `integer` | yes | The run's whole charge. ⭐ Computed from the SAME rows as `byAction`, not by a second query, so the total and its parts cannot disagree. |
 | `events` | `integer` | yes | Billable operations across the whole run. |
 | `uncharged` | `integer` | yes | How many of the run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. ⚠️ When this equals `events` the whole run was platform-paid, and `credits: 0` is not what the same work costs when it is charged. A record's first processing and its reprocess are both charged; a run the platform started for its own purposes is not. |
-| `bySkill` | `object[]` | yes | Descending by charge, so the expensive step is first. Each entry's `charges` says what the step was charged for, by kind — `handler-run` with the seconds of compute billed, `llm-call` per direction with its tokens. ⚠️ EMPTY is a real answer with more than one cause and this route cannot tell them apart: a run of pure transforms spent nothing, a run that failed before its first billable op spent nothing, and a run that predates per-run attribution has spend that cannot be found. A caller must not draw any of the three as `0 credits` without saying which it cannot rule out. |
+| `byAction` | `object[]` | yes | Descending by charge, so the expensive action is first. Each entry's `charges` says what the action was charged for, by kind — `function-run` with the seconds of compute billed, `llm-call` per direction with its tokens. ⚠️ EMPTY is a real answer with more than one cause and this route cannot tell them apart: a run of pure transforms spent nothing, a run that failed before its first billable op spent nothing, and a run that predates per-run attribution has spend that cannot be found. A caller must not draw any of the three as `0 credits` without saying which it cannot rule out. |
 
-Each item of `bySkill`:
+Each item of `byAction`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `skillId` | `string \| null` | yes | The skill that spent it, or `null` for spend the run made OUTSIDE any skill. ⛔ THE NULL ENTRY IS NOT A GAP: per-skill attribution comes from a child scope opened around each handler, so anything billed before the first skill or between two of them lands here — and dropping it would make these entries stop summing to `credits` while both numbers still looked right. |
-| `skillName` | `string \| null` | yes | `Skill.name` FROZEN at event time, so the label outlives the row. A flow edit deletes and recreates skills with fresh ids, and this route serves runs that may be weeks old — so a caller renders this and falls back to `skillId`, never the other way round. `null` on the unattributed entry and on rows written before the column. |
-| `credits` | `integer` | yes | What the customer was charged for this step, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the step being absent from this list. A cache hit is not a `0`: a step answered from a handler's input-keyed cache still pays its compute fee, one second at least, and a step answered from the step-result cache makes no charge at all. |
+| `actionId` | `string \| null` | yes | The action that spent it, or `null` for spend the run made OUTSIDE any action. ⛔ THE NULL ENTRY IS NOT A GAP: per-action attribution comes from a child scope opened around each function, so anything billed before the first action or between two of them lands here — and dropping it would make these entries stop summing to `credits` while both numbers still looked right. |
+| `actionName` | `string \| null` | yes | The action's name FROZEN at event time, so the label outlives the row. A flow edit deletes and recreates actions with fresh ids, and this route serves runs that may be weeks old — so a caller renders this and falls back to `actionId`, never the other way round. `null` on the unattributed entry and on rows written before the column. |
+| `credits` | `integer` | yes | What the customer was charged for this action, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the action being absent from this list. A cache hit is not a `0`: an action answered from a function's input-keyed cache still pays its compute fee, one second at least, and an action answered from the action-result cache makes no charge at all. |
 | `events` | `integer` | yes | How many billable operations made up that charge. Kept beside the amount because zero credits over six operations and zero credits over none are different facts, and only this tells them apart. |
-| `uncharged` | `integer` | yes | How many of this step's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of a step that failed on a platform fault (`detail.phase: "platform-fault"` in the step log), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same step in a charged run has a price. |
-| `charges` | `object[]` | yes | What the step was charged FOR: the same charge by kind, descending by credits. Its entries sum to this step's `credits` and `events`. A model step reads as one `handler-run` entry (seconds of compute) beside an `llm-call` entry per direction (tokens). |
+| `uncharged` | `integer` | yes | How many of this action's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of an action that failed on a platform fault (`detail.phase: "platform-fault"` in the timeline), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same action in a charged run has a price. |
+| `charges` | `object[]` | yes | What the action was charged FOR: the same charge by kind, descending by credits. Its entries sum to this action's `credits` and `events`. A model action reads as one `function-run` entry (seconds of compute) beside an `llm-call` entry per direction (tokens). |

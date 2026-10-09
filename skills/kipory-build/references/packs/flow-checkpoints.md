@@ -7,7 +7,7 @@
 
 ## What it is
 
-A snapshot of a flow's whole shape, taken by value: every skill in order, the typed signature, and
+A snapshot of a flow's whole shape, taken by value: every action in order, the typed signature, and
 the output binding. Restoring one rewrites the flow back to exactly that state, atomically.
 
 It snapshots the _shape_, not the _history_ — no records, no runs. Restoring does not undo work a
@@ -15,7 +15,7 @@ flow did; it undoes what the flow **is**.
 
 ## When you need it — and when you don't
 
-Take one before any edit you are not certain of: replacing a skill set, rewriting a signature,
+Take one before any edit you are not certain of: replacing an action set, rewriting a signature,
 re-doing a binding. It is the rollback primitive, so reach for it as a habit rather than as a
 reaction.
 
@@ -40,7 +40,7 @@ PATCH or restore rather than re-reading.
 
 Capture takes the flow (`flowId`), a `label`, and an optional description. Listing is scoped by
 `?flowId=`; an individual checkpoint is addressed by its own id, and every checkpoint names the flow
-it was taken from as `flowId`. A restore warning names the step by `skillKey`. An
+it was taken from as `flowId`. A restore warning names the action by `actionKey`. An
 automatic checkpoint's `label` reads `auto: …` followed by why it was taken.
 
 Renaming a checkpoint or changing its note is `PATCH /v1/flow-checkpoints/{id}` with `label` and/or
@@ -68,7 +68,7 @@ The checkpoint a restore takes of what it replaces is authored by whoever restor
 `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true` **rehearses the restore and rolls
 it back**, so its verdict is the restore's own: `ok: false` with the refusal in `diagnostics` when the
 captured signature would break what is bound to the flow (409 on the real call), or when a captured
-step is refused by today's rules (422 on the real call) — run settings held to today's handlers, a
+action is refused by today's rules (422 on the real call) — run settings held to today's functions, a
 pinned model its call cannot use. **Any error in `diagnostics` means the restore fails and changes
 nothing**, so read the verdict before you call restore. A stored payload the platform cannot parse
 is still a plain 422 — and so is one that could not put back a whole signature: a checkpoint whose
@@ -78,41 +78,41 @@ slot lists and holds a binding. A platform flow's restore is rehearsed the same 
 `consequences` empty: they judge one project's flows, and the projects bound to a platform flow are
 held by the signature guards instead.
 
-The steps a dry run returns (`currentSteps`, `restoredSteps`) carry each step's `key` as it was
-captured. A read does not apply the step-name rule, so a checkpoint taken before that rule can show
+The actions a dry run returns (`currentActions`, `restoredActions`) carry each action's `key` as it was
+captured. A read does not apply the action-name rule, so a checkpoint taken before that rule can show
 a key no write would accept today.
 
-Whatever the verdict, `derived.restore` says what the restore would do. `currentSteps` and
-`restoredSteps` are the flow's steps now and the checkpoint's — pair them by `key`, never by
+Whatever the verdict, `derived.restore` says what the restore would do. `currentActions` and
+`restoredActions` are the flow's actions now and the checkpoint's — pair them by `key`, never by
 position: they are ordered separately and need not be the same length. `warnings` names references
-that no longer resolve — a model that is gone, a handler no longer registered, an invoke target that
-has since been deleted, or a pinned model its step can no longer use (`model-unsuited`, which the
+that no longer resolve — a model that is gone, a function no longer registered, an invoke target that
+has since been deleted, or a pinned model its action can no longer use (`model-unsuited`, which the
 restore also refuses). `signatureChanges` says whether a restore would rewrite the flow's inputs,
 outputs and output binding — it puts the captured signature back, so a flow whose only change was
 its outputs is NOT a no-op restore.
 
-⚠️ **A restore puts back how each step runs — if the checkpoint recorded it.** A step's per-call
+⚠️ **A restore puts back how each action runs — if the checkpoint recorded it.** An action's per-call
 deadline (`timeoutMs`) and its run settings — `tries`, `tryDelayMs`, `onFailure`,
-`reuseResultsForMinutes` — are captured with the step and written back by a restore. So is its
-`failureSlot`, when it names one; a captured step without the key restores with none. A checkpoint
-taken before the format recorded them does not carry them, and restoring one resets those steps: no
-per-step deadline, the handler's own tries and reuse period, and a failure that fails the run. The
-dry run tells the two apart: a `currentSteps` entry always carries the live values, and on the
-`restoredSteps` entry with the same `key` an ABSENT field means "this record does not say", which for a
+`reuseResultsForMinutes` — are captured with the action and written back by a restore. So is its
+`failureSlot`, when it names one; a captured action without the key restores with none. A checkpoint
+taken before the format recorded them does not carry them, and restoring one resets those actions: no
+per-action deadline, the function's own tries and reuse period, and a failure that fails the run. The
+dry run tells the two apart: a `currentActions` entry always carries the live values, and on the
+`restoredActions` entry with the same `key` an ABSENT field means "this record does not say", which for a
 restore is the same as "it will be reset". Read the pair before restoring an older checkpoint of a flow
-whose steps were tuned by hand.
+whose actions were tuned by hand.
 
 Those warnings and the verdict are the early signal for the way a restore usually fails: **the captured graph
-is validated against the project as it is now, not as it was.** A snapshot taken when a handler
-existed will not restore after that handler goes away, a step pinned to a model its call cannot be
-sent to — an embedding model on a step that generates text — is refused until the pin changes, and a
-step's run settings are held to its handler's rules today. `ok: true` and empty warnings mean a
+is validated against the project as it is now, not as it was.** A snapshot taken when a function
+existed will not restore after that function goes away, an action pinned to a model its call cannot be
+sent to — an embedding model on an action that generates text — is refused until the pin changes, and a
+action's run settings are held to its function's rules today. `ok: true` and empty warnings mean a
 clean restore.
 
 ## What the platform guarantees
 
 **Restore is all-or-nothing.** In a single transaction it captures the pre-restore state, swaps
-the entire skill set, reinstates the captured signature and binding, and validates the resulting
+the entire action set, reinstates the captured signature and binding, and validates the resulting
 graph. A blocking problem rolls the whole thing back — there is no half-restored flow.
 
 **A restore is itself reversible**, because the state you are leaving is auto-captured on the way
@@ -128,24 +128,24 @@ label, rather than trusting the automatic one to still be there.
 - **A restore rewrites; it does not merge.** Anything added to the flow after the snapshot is
   gone. That is the point, but it means a checkpoint taken before a long session throws away the
   good changes along with the bad.
-- **A restore matches steps by key.** A step the flow still holds is rewritten in place and keeps
+- **A restore matches actions by key.** An action the flow still holds is rewritten in place and keeps
   its id; if the restore changes it, its `version` moves FORWARD (never back to the captured
-  number), so a `version` you held is stale: re-read the flow's steps after a restore. The flow's
-  own `version` moves too — a restore rewrites the flow's signature and binding. A step deleted since comes back with a NEW
-  id, and one added since is deleted. History keyed by step id —
-  `GET /v1/ai-calls?project={nodeId}&skillId=`, the `bySkill` rows of
-  `GET /v1/runs/{runId}/spend`, a trace's `skillId` — splits only for a step that came back with a
-  new id; key your own history by step key and it never splits. A project-document apply matches
-  steps the same way — and by `id` first, where the document states one.
-- **Restore and a project-document apply share the same step-set path**, so a restore accepts
-  entries a single skill create would have rejected — it validates the resulting graph rather than
+  number), so a `version` you held is stale: re-read the flow's actions after a restore. The flow's
+  own `version` moves too — a restore rewrites the flow's signature and binding. An action deleted since comes back with a NEW
+  id, and one added since is deleted. History keyed by action id —
+  `GET /v1/ai-calls?project={nodeId}&actionId=`, the `byAction` rows of
+  `GET /v1/runs/{runId}/spend`, a trace's `actionId` — splits only for an action that came back with a
+  new id; key your own history by action key and it never splits. A project-document apply matches
+  actions the same way — and by `id` first, where the document states one.
+- **Restore and a project-document apply share the same action-set path**, so a restore accepts
+  entries a single action create would have rejected — it validates the resulting graph rather than
   the incoming format.
 - **A flow whose project is off the design surface is a 404**, and so are its checkpoints.
 
 ## Related
 
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — what is being snapshotted.
-- Project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the other write that sets a flow's steps as a whole.
+- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — what is being snapshotted.
+- Project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the other write that sets a flow's actions as a whole.
 - Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — how to find out you needed the rollback. A capture, and the capture a
   restore takes first, makes each suite's next run on the flow incomparable with the one before
   (`delta.suppressedReason`), even when the content is identical: run the suite once after a

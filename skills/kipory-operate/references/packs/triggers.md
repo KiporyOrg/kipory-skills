@@ -11,7 +11,7 @@ The event-driven sibling of a schedule (capability pack `schedules` — `GET /v1
 inputs and a **selector** — an event's namespace (`categoryKey`) and key from the project's own
 registry (capability pack `events` — `GET /v1/capability-packs/events`) — and runs the flow every time a matching event is **recorded**: with the
 event's envelope in a reserved input slot named `event`, and a little delivery context in a second
-reserved slot named `trigger`. An optional **filter**, the same condition grammar a flow step uses,
+reserved slot named `trigger`. An optional **filter**, the same condition grammar a flow action uses,
 narrows which events count.
 
 The fire is attributed to the **project**, not to a person, and billed to the project's payer —
@@ -20,9 +20,9 @@ skipped, blocked — is written down in its runs, and any decision can be replay
 
 <!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field a caller sends -->
 
-**A fire has no end user.** `userInfo` is absent from the run. A step that reads only provider
+**A fire has no end user.** `userInfo` is absent from the run. An action that reads only provider
 slots still runs, with no user behind it — so a per-user table refuses there, a project-wide
-one reads normally, and a `user`-scoped emit is dropped. A step that reads `userInfo` beside
+one reads normally, and a `user`-scoped emit is dropped. An action that reads `userInfo` beside
 another slot waits on that other slot. Carry the person you mean as data in the event's payload,
 and preview the flow with `"principal": "no-end-user"`, which is the run a fire makes.
 
@@ -48,7 +48,7 @@ has already decided can be replayed, but a trigger never sees an event it was no
 - **Against a schedule:** a schedule fires when the clock says so; a trigger fires when something
   happened. "Every ten minutes" is a schedule. "Whenever a post is created" is a trigger. Polling
   on a schedule for what an event would tell you is the most common way to spend money on nothing.
-- **Against calling the second flow from the first:** a `flow.invoke` step couples the two flows —
+- **Against calling the second flow from the first:** a `flow.invoke` action couples the two flows —
   the emitter names the reactor. A trigger decouples them: the emitting flow raises `post/created`
   and knows nothing about who reacts; three triggers can react to one event, each with its own
   filter and flow, each failing independently.
@@ -113,7 +113,7 @@ they may not appear in `inputs` — the write refuses either by name with a 422:
 
 Declare both slots on the flow with the builtin `object` type — the envelope is the platform's, not
 a shape of your project, and the save does not check what you typed them as. Read the payload in
-the first step as `event.data.<field>`.
+the first action as `event.data.<field>`.
 
 Everything else the flow declares must be in `inputs`, fixed in advance — a trigger, like a
 schedule, has no caller to fill gaps. Coverage is checked at save: a missing slot is a 422 naming
@@ -123,19 +123,19 @@ it, and so is a **blank** one — an empty string, `null` or an empty list — u
 `TRIGGER_INPUT_MISTYPED`, one issue per slot; the reserved `event` and `trigger` slots are filled
 per event and never judged.
 
-Shaping belongs in the flow. There is no template language on the trigger; the first step of the
+Shaping belongs in the flow. There is no template language on the trigger; the first action of the
 bound flow is where the payload under the `event` slot becomes whatever the rest of the flow wants,
 which keeps that shaping previewable and testable with the flow's own eval suite.
 
 ## The filter
 
-A `filter` is a step condition evaluated over **two slots**: `event` (the envelope's own fields)
+A `filter` is an action condition evaluated over **two slots**: `event` (the envelope's own fields)
 and `data` (its payload). A payload field is addressed as
 `{ "op": "slotEquals", "slot": "data", "path": "source", "value": "telegram" }`; an envelope
 field as `{ "slot": "event", "path": "category", … }`. The three combinators — all-of, any-of and
-not — compose as they do in a step condition.
+not — compose as they do in an action condition.
 
-A `path` walks the slot the way a step condition's does: `author.profile.id` descends into objects
+A `path` walks the slot the way an action condition's does: `author.profile.id` descends into objects
 (a key that itself contains a dot still matches, longest key first) and `items[0].kind` reads one
 item of a list. ⚠️ A path that reads nothing reads as absent — `slotEquals` on it is false, with
 no error — so a misspelled one records every event as `filtered` rather than failing.
@@ -143,7 +143,7 @@ no error — so a misspelled one records every event as `filtered` rather than f
 A filter may nest at most **16** levels — each `not`, all-of and any-of is one level, and a lone
 leaf is none. A deeper one is refused at the write with a 422 on `filter` that says how deep it is
 and what the bound is; flatten it (an all-of inside an all-of is one all-of). The bound is the
-same one every step condition meets.
+same one every action condition meets.
 
 An event the filter rejects is recorded as **`filtered`** in the runs with the reason, never
 silently dropped; a filter that fails to evaluate is recorded the same way with the evaluator's
@@ -226,14 +226,14 @@ refused.
   Choose `allow` when every event must be acted on — a notification, a per-record write — and make
   the flow safe to run concurrently.
 - **The payload cap applies to every emit**, not only to what the log stores: an `event.emit`
-  whose payload exceeds 256 KiB fails the step, whatever the type's scope or durability.
+  whose payload exceeds 256 KiB fails the action, whatever the type's scope or durability.
 
 ## Reading what happened
 
 `GET /v1/triggers/{id}/runs` is the debugging surface. Each row carries the `eventId`, the
 `attempt` (0 live, higher on replays), the `outcome`, a plain-words `reason` for anything that did
-not fire, and — for a fire — the invocation with its live `status` and, on a step failure, a
-`failure` naming the step (`skillName`) and phase, and a `reason` when it is one a caller may read
+not fire, and — for a fire — the invocation with its live `status` and, on an action failure, a
+`failure` naming the action (`actionName`) and phase, and a `reason` when it is one a caller may read
 (a mail refusal, `project-mail-cap-reached`). `replayOf` points a replayed row at the decision it re-ran.
 
 The log itself, `GET /v1/project-events`, is where you find an `eventId` to replay. Its `source`

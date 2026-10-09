@@ -1,6 +1,6 @@
 # The retrieval pipeline, step by step
 
-Two halves. The write half indexes and is declared; the read half answers and is one step.
+Two halves. The write half indexes and is declared; the read half answers and is one action.
 
 ## Write half — a record becomes searchable
 
@@ -10,10 +10,10 @@ before it is searchable.
 
 ## Read half — which records, and how close?
 
-One step. `record.query` with a `semantic` clause returns the records, ranked, with their fields
+One action. `record.query` with a `semantic` clause returns the records, ranked, with their fields
 and a score for each:
 
-| #   | Handler           | Reads                                  | Emits                                         | Why it is here                             |
+| #   | Function          | Reads                                  | Emits                                         | Why it is here                             |
 | --- | ----------------- | -------------------------------------- | --------------------------------------------- | ------------------------------------------ |
 | 1   | `record.query`    | the question (`textSlot`), or a record | `records`, `scores`, `bounded`, `explanation` | rank by meaning, narrowed by exact clauses |
 | 2   | `text.rerank`     | question + `{ id, text }[]`            | `{ id, relevance }[]` — no text               | precision the score alone does not give    |
@@ -25,7 +25,7 @@ Steps 2–5 are only for an answer a model writes; step 2 is optional among them
 records, or a match-or-new decision, is step 1 and a `value.transform`.
 
 - **Step 1** takes the question as text (`textSlot`) — it embeds the phrase with the model the
-  type was indexed with, a model call billed inside the step — or a record id
+  type was indexed with, a model call billed inside the action — or a record id
   (`likeRecordIdSlot`), which embeds nothing. Its `limit` (1–100, default 50) cuts the ranking
   after `topK`, so raise both together.
 - **`scores`** lists `{ id, score }` in the order of `records`. With `passage: true` an entry also
@@ -41,10 +41,10 @@ records, or a match-or-new decision, is step 1 and a `value.transform`.
 
 ## Match or new, by score
 
-The same step answers "is this the thing we already have?". Read the best score and decide in
+The same action answers "is this the thing we already have?". Read the best score and decide in
 bands:
 
-| #   | Handler           | Reads                                                  | Emits                                      |
+| #   | Function          | Reads                                                  | Emits                                      |
 | --- | ----------------- | ------------------------------------------------------ | ------------------------------------------ |
 | 1   | `record.query`    | the new item's text                                    | the closest records, with `scores`         |
 | 2   | `value.transform` | `records`, `scores`, your marks                        | `{ band: "same" \| "ask" \| "new", best }` |

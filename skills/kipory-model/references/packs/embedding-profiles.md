@@ -11,7 +11,7 @@ Where a project's RECORD vector space is defined. A profile names a dense embedd
 ordered set of named vector slots — and it may also declare a **sparse** slot, which is worth
 deciding deliberately: declaring one makes every record carry sparse vectors, and every `semantic`
 query clause — in `record.query`, `POST /v1/records/query` and the records list's `mode=semantic` —
-then fuses keyword rank with meaning on its own; a `vector.search` step reads them only with
+then fuses keyword rank with meaning on its own; a `vector.search` action reads them only with
 `hybrid: true`. Declare one when exact words (names, codes) must be findable, and know that a fused
 score is derived from rank, not a cosine. The **geometry** — how many dimensions, and which distance
 metric — is **derived** from the model and returned read-only.
@@ -117,7 +117,7 @@ Because the two halves cost completely different things, and collapsing them wou
 - **Activating is the expensive half.** It repoints every searchable declaration on that key onto
   the generation, moves the default, and enqueues the reindex. The new collections start **empty**, so
   searches return less while it drains. ⚠️ It also **rewrites the stored collection name inside your
-  saved vector steps** and reports which ones in `repointedSteps` — a step left behind would keep
+  saved vector actions** and reports which ones in `repointedActions` — an action left behind would keep
   querying the superseded collection and return stale results rather than an error, so this is a
   silent mutation of your flows that you want to read back.
 

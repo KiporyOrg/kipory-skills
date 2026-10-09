@@ -1,0 +1,97 @@
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+
+# `record.append` — Add events to a record
+
+Add one or more events to a record's history.
+
+Writes events to a record's stream field — a list the table stores as time-stamped rows instead of inside its data. Each event's time comes from the property the stream declares. A retried run converges: the same event is not written twice.
+
+- **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
+- **I/O:** `record slot + event(s)` → `string`
+- **Reads:** The record id, from the slot `recordIdSlot` names, and one event object or a list of them from `eventSlot`; optionally your own event ids from `eventIdSlot`. _(shape hint: `record slot + event(s)`)_
+- **Emits:** A bare string — `appended` when at least one event row was written, `unchanged` when every event already existed and the retry converged.
+
+## Config
+
+| Field | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `eventIdSlot` | string | no | — | Your own event id: one string, or a list matching the event list. Unset, the id is derived from the event. ⚠️ The identity is the record, the time AND the id: one id under another time is a second event, not a retry. Left unset, the id hashes record, time and payload, so a retry converges. |
+| `eventSlot` | string | yes | — | The slot holding one event object, or a list of them. Each carries its time under the property the stream declares. ⚠️ An event with no time under the declared property, or one that is not a datetime, fails the action. Nothing is written for the batch. |
+| `field` | string | yes | — | The field of that type declared as a stream. The events land there, never in the record's data. |
+| `recordIdSlot` | string | yes | — | The slot holding the id of the record to append to. ⚠️ The record has to be one this run can reach — the signed-in user's own, or the project's shared pool — and of the configured type. Anything else fails the action. |
+| `tableKey` | string | yes | — | The table whose stream field receives the events. |
+
+## Worked example
+
+Appends time-stamped events to a record's stream field and says whether anything new landed.
+
+#### New events
+
+Each event becomes one row under the record, keyed by its time. The record itself is untouched.
+
+Reads `list` → emits `string` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "tableKey": "thread",
+  "field": "activity",
+  "recordIdSlot": "events.recordId",
+  "eventSlot": "events.events"
+}
+```
+
+Input:
+
+```
+{
+  "recordId": "ckwx0a1b2c3d",
+  "events": [
+    { "at": "2026-09-14T09:12:00Z", "kind": "opened" },
+    { "at": "2026-09-14T09:15:30Z", "kind": "replied" }
+  ]
+}
+```
+
+Output:
+
+```
+appended
+```
+
+#### Sent twice
+
+A retry derives the same ids, so every row already exists and nothing is written twice.
+
+Reads `list` → emits `string` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "tableKey": "thread",
+  "field": "activity",
+  "recordIdSlot": "events.recordId",
+  "eventSlot": "events.events"
+}
+```
+
+Input:
+
+```
+{
+  "recordId": "ckwx0a1b2c3d",
+  "events": [
+    { "at": "2026-09-14T09:12:00Z", "kind": "opened" },
+    { "at": "2026-09-14T09:15:30Z", "kind": "replied" }
+  ]
+}
+```
+
+Output:
+
+```
+unchanged
+```

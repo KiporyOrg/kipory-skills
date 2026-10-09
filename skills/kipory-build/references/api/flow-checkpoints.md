@@ -2,7 +2,7 @@
 
 # Flow checkpoints
 
-A point-in-time snapshot of one flow's steps, by value, immutable. Reads carry metadata only; to see what a rollback would change, send the restore with `validateOnly: true` (ADMIN, like the restore) — it rehearses the restore and answers `derived.restore`.
+A point-in-time snapshot of one flow's actions, by value, immutable. Reads carry metadata only; to see what a rollback would change, send the restore with `validateOnly: true` (ADMIN, like the restore) — it rehearses the restore and answers `derived.restore`.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -19,7 +19,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/flow-checkpoints`
 
-List one flow's checkpoints (`?flowId=`), newest first, automatic ones included — metadata only, never the captured steps. A checkpoint is a saved version of ONE flow's steps and signature that you can restore (`POST /v1/flow-checkpoints/{id}/restore`). It is not the project's history: `GET /v1/projects/{nodeId}/history` is the audit of every design write, and the project document (`GET /v1/projects/{nodeId}/document`) is the whole project as authorable configuration.
+List one flow's checkpoints (`?flowId=`), newest first, automatic ones included — metadata only, never the captured actions. A checkpoint is a saved version of ONE flow's actions and signature that you can restore (`POST /v1/flow-checkpoints/{id}/restore`). It is not the project's history: `GET /v1/projects/{nodeId}/history` is the audit of every design write, and the project document (`GET /v1/projects/{nodeId}/document`) is the whole project as authorable configuration.
 
 **Query**
 
@@ -42,8 +42,8 @@ Each item of `checkpoints`:
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
+| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key — a machine credential is shown no roster of humans. |
@@ -53,7 +53,7 @@ Each item of `checkpoints`:
 
 ### `POST /v1/flow-checkpoints`
 
-Save a flow's steps and signature as they are now, under a label — a checkpoint you can restore later (`POST /v1/flow-checkpoints/{id}/restore`). Take one before a risky edit; a restore takes one of its own automatically first. With `validateOnly: true` it answers whether the save would be refused (a blank label), writing nothing. The audit of every design write is `GET /v1/projects/{nodeId}/history`; the whole project as authorable configuration is `GET /v1/projects/{nodeId}/document`.
+Save a flow's actions and signature as they are now, under a label — a checkpoint you can restore later (`POST /v1/flow-checkpoints/{id}/restore`). Take one before a risky edit; a restore takes one of its own automatically first. With `validateOnly: true` it answers whether the save would be refused (a blank label), writing nothing. The audit of every design write is `GET /v1/projects/{nodeId}/history`; the whole project as authorable configuration is `GET /v1/projects/{nodeId}/document`.
 
 **Request body**
 
@@ -90,8 +90,8 @@ Each item of `diagnostics`:
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
+| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key — a machine credential is shown no roster of humans. |
@@ -101,7 +101,7 @@ Each item of `diagnostics`:
 
 ### `GET /v1/flow-checkpoints/{id}`
 
-Read one checkpoint's metadata — its label, note, who took it, how many steps it captured, and its `version` (the lock its PATCH requires). What restoring it would change: `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`. A flow's checkpoints: `GET /v1/flow-checkpoints?flowId=`.
+Read one checkpoint's metadata — its label, note, who took it, how many actions it captured, and its `version` (the lock its PATCH requires). What restoring it would change: `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`. A flow's checkpoints: `GET /v1/flow-checkpoints?flowId=`.
 
 **Path parameters**
 
@@ -118,8 +118,8 @@ Read one checkpoint's metadata — its label, note, who took it, how many steps 
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
+| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key — a machine credential is shown no roster of humans. |
@@ -155,8 +155,8 @@ Rename a checkpoint or change its note; what it captured never changes — to ca
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `skillCount` | `integer` | yes | How many steps the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
+| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key — a machine credential is shown no roster of humans. |
@@ -213,7 +213,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/flow-checkpoints/{id}/restore`
 
-Restore a checkpoint: replace its flow's steps and signature with the captured ones, in one transaction. Requires the FLOW's `version` (the checkpoint itself is unchanged); a flow edited since is 409 `VERSION_CONFLICT`. The restore first takes an automatic checkpoint of the flow as it was — `autoCheckpointId` in the reply; restore that to undo. Refused (409) when the captured signature would break what is bound to the flow, and (422) when the restored steps have a blocking error; either way nothing changes. With `validateOnly: true` it rehearses the restore and rolls it back, answering the restore's own verdict plus `derived.restore` — both step lists, references that no longer resolve, and the signature changes. A checkpoint covers ONE flow: what changed across the project is `GET /v1/projects/{nodeId}/history` (a read, it restores nothing), and the whole project is authored through `POST /v1/projects/{nodeId}/document`.
+Restore a checkpoint: replace its flow's actions and signature with the captured ones, in one transaction. Requires the FLOW's `version` (the checkpoint itself is unchanged); a flow edited since is 409 `VERSION_CONFLICT`. The restore first takes an automatic checkpoint of the flow as it was — `autoCheckpointId` in the reply; restore that to undo. Refused (409) when the captured signature would break what is bound to the flow, and (422) when the restored actions have a blocking error; either way nothing changes. With `validateOnly: true` it rehearses the restore and rolls it back, answering the restore's own verdict plus `derived.restore` — both action lists, references that no longer resolve, and the signature changes. A checkpoint covers ONE flow: what changed across the project is `GET /v1/projects/{nodeId}/history` (a read, it restores nothing), and the whole project is authored through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -225,17 +225,17 @@ Restore a checkpoint: replace its flow's steps and signature with the captured o
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The FLOW's `version` as you last read it (the flow row, `GET /v1/flows/{id}`) — the flow a restore overwrites; the checkpoint itself is unchanged. REQUIRED: the lock guards the flow row, so a flow whose own row changed since (its label, description or signature — a patch, another restore, a document apply) is refused with 409 `VERSION_CONFLICT`. ⚠️ A step edit does not move the flow's `version` (`PATCH /v1/steps/{id}` moves the step's own), so step edits made since you read the flow are REPLACED by the checkpoint's steps — they are not lost: the restore first takes an automatic checkpoint of the flow as it stands (`autoCheckpointId` in the response), and restoring that one brings them back. |
+| `version` | `integer` | yes | The FLOW's `version` as you last read it (the flow row, `GET /v1/flows/{id}`) — the flow a restore overwrites; the checkpoint itself is unchanged. REQUIRED: the lock guards the flow row, so a flow whose own row changed since (its label, description or signature — a patch, another restore, a document apply) is refused with 409 `VERSION_CONFLICT`. ⚠️ An action edit does not move the flow's `version` (`PATCH /v1/actions/{id}` moves the action's own), so action edits made since you read the flow are REPLACED by the checkpoint's actions — they are not lost: the restore first takes an automatic checkpoint of the flow as it stands (`autoCheckpointId` in the response), and restoring that one brings them back. |
 | `validateOnly` | `boolean` | no | Check this restore against the flow as it is now and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a flow `version` the flow has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `GET /v1/flow-checkpoints/{id}/restore-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowId` | `string` | yes | Id of the flow whose steps were restored, so you can navigate to it. |
-| `restoredSkillCount` | `integer` | yes | How many steps the flow now has — the checkpoint's count. |
+| `flowId` | `string` | yes | Id of the flow whose actions were restored, so you can navigate to it. |
+| `restoredActionCount` | `integer` | yes | How many actions the flow now has — the checkpoint's count. |
 | `autoCheckpointId` | `string` | yes | A checkpoint taken of the PREVIOUS state, automatically, just before this restore. Restore it to undo what you just did. |
-| `outstandingIssues` | `object[]` | yes | Problems found on re-validating the restored flow. These did NOT block the restore — the steps are back either way, and these are what to fix next. |
+| `outstandingIssues` | `object[]` | yes | Problems found on re-validating the restored flow. These did NOT block the restore — the actions are back either way, and these are what to fix next. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |

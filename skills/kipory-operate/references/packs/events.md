@@ -3,7 +3,7 @@
 # Capability pack — Events
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`;
-> the `event.emit` handler config → live `GET /v1/handlers`. This pack carries judgment.
+> the `event.emit` function config → live `GET /v1/functions`. This pack carries judgment.
 
 ## What it is
 
@@ -32,7 +32,7 @@ subscribe on the bus, depending on scope.
   than the bus — and **`active`**: a draft, deprecated or retired type is refused too. Every event
   type you read carries `listenable`, the platform's answer to all three at once and the same test
   a trigger write applies, so offer what it says rather than re-deriving the rule from `durable`,
-  scope and status. A `flow.invoke` step is the coupled way, and the right one when the second flow
+  scope and status. A `flow.invoke` action is the coupled way, and the right one when the second flow
   is really a step of the first.
 
 ### Scope decides the transport, so choose it by who needs to hear it
@@ -40,7 +40,7 @@ subscribe on the bus, depending on scope.
 - **`run`** rides the live stream of the run that raised it. This is progress UX: it exists while
   someone is watching and is gone afterwards. ⭐ It is also the **only** scope that is live _during_
   the run.
-- **`record`, `user`, `project`** go to the bus, and are consumed by a subscription action on an
+- **`record`, `user`, `project`** go to the bus, and are consumed by a subscription target on an
   endpoint. ⚠️ These are **transactional**: staged with the run's other effects and published only
   once it commits — so they arrive after the run, and a run that fails publishes none of them.
 
@@ -77,7 +77,7 @@ Four things to get right:
   will accept an emit with none. The payload is
   validated against that shape before anything is transported, on every path.
 - **The emit is never served from a cache, and that is not yours to get wrong.** Caching is a
-  property each handler declares, not a setting on your node, and `event.emit` does not opt in — a
+  property each function declares, not a setting on your node, and `event.emit` does not opt in — a
   cache hit would swallow the side effect silently. There is no flag here for you to set either
   way; if you went looking for one, that is why you did not find it.
 - **The scope key is derived by the server**, from the run, record, user or project as
@@ -97,7 +97,7 @@ the user you mean as data.
 
 - **Reserved namespaces**, as a security fence: the fence covers every channel prefix the
   platform builds by hand — around ten of them, spanning sessions and revocation, projects and
-  records, bootstrap, activity and the run-step stream. Do not work from a list; the 422 names
+  records, bootstrap, activity and the timeline stream. Do not work from a list; the 422 names
   the key it rejected. This is what stops an authored key forging a control-plane channel.
 - **A source provider's namespace is its source's alone.** `telegram` (and each provider's own
   namespace) is where that provider's source (capability pack `sources` — `GET /v1/capability-packs/sources`) writes its events; an event type you
@@ -152,8 +152,8 @@ the user you mean as data.
 
 ## Related
 
-- Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the subscription action that
+- Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the subscription target that
   consumes bus-scoped events.
 - Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — running a flow because a durable event was recorded.
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — where the emit node lives.
+- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — where the emit node lives.
 - Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring a payload shape.

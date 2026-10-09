@@ -7,8 +7,8 @@ One closed set of six kinds, carried by eval cases. Each is an object with `kind
 | `no-missing-required-output` | —                                           | every output slot the flow declares required was produced. The highest-value check: its failure means a live invocation would be refused `FLOW_OUTPUT_MISSING` |
 | `output-present`             | `slot`                                      | the named output slot was produced with a non-empty value                                                                                                      |
 | `output-matches-schema`      | `slot`, `dataTypeId?`                       | the slot's value conforms to the slot's declared type — or, with `dataTypeId`, to that type instead                                                            |
-| `skill-outcome`              | `skillKey`, `outcome`                       | the named step ended as `applied`, `skipped`, `no-op` or `failed` — whichever you assert                                                                       |
-| `no-errors`                  | —                                           | the run reported no per-skill errors                                                                                                                           |
+| `action-outcome`             | `actionKey`, `outcome`                      | the named action ended as `applied`, `skipped`, `no-op` or `failed` — whichever you assert                                                                     |
+| `no-errors`                  | —                                           | the run reported no per-action errors                                                                                                                          |
 | `jsonata`                    | `expression` (1–4000 chars), `description?` | the expression, evaluated over the run result, returns `true`. A non-boolean result **fails** rather than coercing. Validated at save time as well as run time |
 
 ## What a `jsonata` expression reads
@@ -21,8 +21,8 @@ The expression is evaluated over one object:
 | `inputs`                           | the case's own input bag, as the flow was invoked with it                      |
 | `expected`                         | the case's `expected` value, or null when it has none                          |
 | `missingRequiredOutput`            | the first required output slot the run did not produce, as a name, or null     |
-| `transcript`                       | the per-step transcript                                                        |
-| `errors`                           | the per-step errors, each with `skillId`, `branchId`, `phase`, `message`       |
+| `transcript`                       | the per-action transcript                                                      |
+| `errors`                           | the per-action errors, each with `actionId`, `branchId`, `phase`, `message`    |
 | `warnings`                         | the run's warnings                                                             |
 | `totalTokensIn` · `totalTokensOut` | the run's token totals                                                         |
 | `latencyMs`                        | the run's wall time                                                            |
@@ -42,6 +42,6 @@ A case's outcome is `scored`, `errored`, `invalid` or `not-run`. `invalid` is th
 ## Choosing
 
 - Pin the **contract** with `no-missing-required-output` and `output-matches-schema` on every case. These are the two an endpoint's caller depends on.
-- Pin a **decision** with `skill-outcome`: that a dispatch took the branch you meant, that a conditional step was `skipped` on this input.
+- Pin a **decision** with `action-outcome`: that a dispatch took the branch you meant, that a conditional action was `skipped` on this input.
 - Pin a **property** with `jsonata`: a list has at least three items, a field is one of a closed set, a number is within range.
 - Leave **quality** — is the summary good — to a scorer flow on the suite.

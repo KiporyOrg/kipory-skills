@@ -1,6 +1,6 @@
 ---
 name: kipory-evolve
-description: Change a Kipory project that already holds records or serves callers, without breaking it — rename or re-shape a table, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or shape change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary step edit (kipory-build, kipory-model).
+description: Change a Kipory project that already holds records or serves callers, without breaking it — rename or re-shape a table, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or shape change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary action edit (kipory-build, kipory-model).
 license: MIT
 ---
 
@@ -29,7 +29,7 @@ reach for when the change touches more than a handful of rows.
   it holds.
 - **Concurrency control is per-resource, and you have to know which kind you are facing.** Tables,
   vocabularies and their neighbours require the `version` you last read on a patch and refuse a
-  stale one. A step in a flow is optimistic-locked the same way and answers **409**
+  stale one. An action in a flow is optimistic-locked the same way and answers **409**
   with one of three kinds — `stale-version`, `concurrent-consumer-write` or `unique-collision`. The
   first two are re-read-and-retry, or resubmit with `overwriteConcurrentEdit`, which skips the
   pre-check **and nothing else**: it never clears a `unique-collision`, and it never relaxes
@@ -47,7 +47,7 @@ Every rehearsal, route by route, with what each answers, is the first table of
 | what the project holds                    | `GET /v1/bootstrap?project={nodeId}`, then `GET /v1/tables/{id}` for each table's `hasRecords` / `recordCount`                                            |
 | what points at an element                 | `GET /v1/projects/{nodeId}/connections` — computed from the configuration, so current after every write                                                   |
 | whether a delete would be refused         | the same `DELETE` with `?validateOnly=true` — every design-row delete has one, and its reference lists it; a record, file, link or secret delete has none |
-| what a patch would derive, break or queue | the same `PATCH` with `validateOnly: true` — flows, steps, types, tables, relations, and every other design row whose reference lists the flag            |
+| what a patch would derive, break or queue | the same `PATCH` with `validateOnly: true` — flows, actions, types, tables, relations, and every other design row whose reference lists the flag          |
 | what a checkpoint restore would undo      | `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`                                                                                        |
 | what a whole change would do              | `POST /v1/projects/{nodeId}/document/plan` — every refusal, every cascade, and what it does to stored records, without writing                            |
 
@@ -97,8 +97,8 @@ the class decides the sequence, and every sequence is written out once, in
 | **Adding**                                                    | the dependency exists before the thing that names it: type → flow → table → endpoint → schedule                                                      |
 | **Removing**                                                  | the reverse: delete the leaf, then what it hung from. A flow delete is `409 FLOW_HAS_DEPENDENTS` while anything names it, a disabled schedule too    |
 | **Changing a shape under live records**                       | four steps: widen (add the field as optional), backfill, patch the fixed inputs of schedules and triggers, then narrow. Narrowing first is an outage |
-| **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old steps wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing      |
-| **Renaming a step's output slot**                             | rehearse, then one document carrying the step, its readers and the flow's `outputBinding`                                                            |
+| **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old actions wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing    |
+| **Renaming an action's output slot**                          | rehearse, then one document carrying the action, its readers and the flow's `outputBinding`                                                          |
 | **Changing a flow's own input or output slots**               | a change to the product's API: `409` until `adoptSnapshots: true`                                                                                    |
 
 ## What refuses, and what cascades instead
@@ -107,7 +107,7 @@ Some destructive changes are refused outright:
 
 - deleting a table that holds records (`TABLE_PINNED_BY_RECORDS`), or renaming it, or
   removing a field from its shape; deleting a reserved or seeded table, whatever it holds;
-- deleting a flow something still references, or a step whose output later steps read;
+- deleting a flow something still references, or an action whose output later actions read;
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
 - deleting a vocabulary without `confirm=true`, or while another vocabulary nests under it;
 - deleting a built-in event type, or a relation's last pairing.
@@ -130,9 +130,9 @@ one is the one that costs money while you are not looking.
 
 **Flows have checkpoints; nothing else does.** Take one before a risky edit — `POST /v1/flow-checkpoints`
 with the flow and a `label` — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
-asking it the same with `validateOnly: true` (both take the flow's `version`). A restore keeps each step's id by key (a
-step deleted since comes back with a new one) and moves a changed step's version forward, so re-read the steps
-before your next step edit. A capture or a restore also makes each eval suite's next run on that flow
+asking it the same with `validateOnly: true` (both take the flow's `version`). A restore keeps each action's id by key (a
+action deleted since comes back with a new one) and moves a changed action's version forward, so re-read the actions
+before your next action edit. A capture or a restore also makes each eval suite's next run on that flow
 incomparable with the one before (`delta.suppressedReason`): run the suite once after the capture,
 before the edit, so the edit has a baseline (`kipory-prove`). `kipory-build` owns the detail. A flow's checkpoints are deleted with
 the flow, so a deleted flow comes back only from an export.
@@ -193,17 +193,17 @@ at all:
 - **A flow PATCH carries the flow's `version`.** `PATCH /v1/flows/{id}` without it is a `422`, and
   a stale one a `409 VERSION_CONFLICT` — a checkpoint restore and a document apply move it too (a
   restore names the flow's new `version` in its `touched`), so re-read the flow after either. A signature PATCH may state one side alone; the other is kept.
-- **A `502` from a sync endpoint wrote nothing; a `200` with an empty output did.** A failed step
+- **A `502` from a sync endpoint wrote nothing; a `200` with an empty output did.** A failed action
   discards every write the run staged, so a retry on a 5xx does not write twice (it is charged
   again). A `200` applied its writes even when its output came back empty, and a client that
   retries it writes twice unless the write is idempotent — give the table a natural key, or send an
   `Idempotency-Key` (`kipory-expose`'s `references/consumer.md` says what it guarantees).
 - **An `record.create` pointed at the wrong table is caught only when a declared field misfits.**
   Switching its `tableKey` saves. Health and a document plan warn `RECORD_CREATE_DATA_MISMATCH`,
-  and the run fails the step naming each field — the check `POST /v1/records` makes — when the
+  and the run fails the action naming each field — the check `POST /v1/records` makes — when the
   incoming slot lacks a field the table requires or carries one under a different type. Fields the
   table's shape does not declare are not a misfit unless the shape sets
-  `"additionalProperties": false`: the warning stays silent, the step does not fail, and the run
+  `"additionalProperties": false`: the warning stays silent, the action does not fail, and the run
   writes a record in the wrong table. Close the shape if that matters, and preview with
   `apply: false` after such an edit, reading the `tableKey` it reports.
 - **A schedule PATCH's dry run does not check `version`.** `validateOnly: true` answers `ok: true`
@@ -239,7 +239,7 @@ at all:
 ## Then
 
 `kipory-model` for the table, vocabulary, term or relation itself; what each delete reports
-is on that skill's `references/api/` pages. `kipory-build` for checkpoints, flow health and the step-level dependents report.
+is on that skill's `references/api/` pages. `kipory-build` for checkpoints, flow health and the action-level dependents report.
 `kipory-expose` when the change reaches an endpoint's contract. `kipory-prove` to re-baseline what a
 deliberate change made red. `kipory-data` for the backfill, for reprocessing stored records after
 their flow changed, and for deleting records before a table can go. `kipory-diagnose` when the change landed and something downstream started answering wrongly.

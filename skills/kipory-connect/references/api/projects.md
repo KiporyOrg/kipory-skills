@@ -48,7 +48,7 @@ Each item of `elements`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"project" \| "flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
+| `kind` | `"project" \| "flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
 | `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
 | `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
 | `summary` | `string` | yes | One line, for a list row. |
@@ -108,7 +108,7 @@ Each item of `versions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"project" \| "flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
+| `kind` | `"project" \| "flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
 | `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
 | `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
 | `summary` | `string` | yes | One line, for a list row. |
@@ -273,7 +273,7 @@ Move the project to a new address (its subdomain); the slug never changes. The o
 
 ### `GET /v1/projects/{nodeId}/connections`
 
-Every element of the project — flows, steps, tables, endpoints, schedules, triggers, vocabularies, event types — with every relation between two of them (what starts what, which records a step reads or writes, what it tags and announces) and every model, outside service and mail call a step makes, computed from the configuration when read. Revalidate with `If-None-Match`: an unchanged project answers 304. For the configuration itself, read `GET /v1/projects/{nodeId}/document` instead.
+Every element of the project — flows, actions, tables, endpoints, schedules, triggers, vocabularies, event types — with every relation between two of them (what starts what, which records an action reads or writes, what it tags and announces) and every model, outside service and mail call an action makes, computed from the configuration when read. Revalidate with `If-None-Match`: an unchanged project answers 304. For the configuration itself, read `GET /v1/projects/{nodeId}/document` instead.
 
 **Path parameters**
 
@@ -288,20 +288,20 @@ Every element of the project — flows, steps, tables, endpoints, schedules, tri
 | `version` | `string` | yes | The structure version the connections were computed at. |
 | `elements` | `object[]` | yes | Every element of the project, plus each platform flow a relation reaches. |
 | `relations` | `object[]` | yes | Every relation between two elements. |
-| `calls` | `object[]` | yes | Every model, outside service and mail call a step makes. A flow calls what its steps call. |
+| `calls` | `object[]` | yes | Every model, outside service and mail call an action makes. A flow calls what its actions call. |
 
 Each item of `elements`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `ref` | `string` | yes | `<kind>:<id>` — the element's reference, the same `elementRef` the element descriptions use. An opaque identifier: its prefix keeps the descriptions' spelling (`table:`, `eventType:`), so read an element's kind from `kind`, never from the prefix. |
-| `kind` | `"flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
-| `label` | `string` | yes | The element's display text. A step's own key; its flow is `flowRef`. |
-| `flowRef` | `string \| null` | yes | Steps only: the reference of the flow the step is part of. |
-| `order` | `integer \| null` | yes | Steps only: the step's position in its flow, 1-based. |
-| `enabled` | `boolean` | yes | False for a step, schedule or trigger that is switched off; true otherwise. |
+| `kind` | `"flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
+| `label` | `string` | yes | The element's display text. An action's own key; its flow is `flowRef`. |
+| `flowRef` | `string \| null` | yes | Actions only: the reference of the flow the action is part of. |
+| `order` | `integer \| null` | yes | Actions only: the action's position in its flow, 1-based. |
+| `enabled` | `boolean` | yes | False for an action, schedule or trigger that is switched off; true otherwise. |
 | `platform` | `boolean` | yes | True for a platform (SYSTEM) flow the project uses — named here because a project relation reaches it, never one of the project's own. |
-| `handlerUnknown` | `boolean` | yes | Steps only: the step names a handler the platform no longer knows, so its data relations and calls cannot be stated. |
+| `functionUnknown` | `boolean` | yes | Actions only: the action names a function the platform no longer knows, so its data relations and calls cannot be stated. |
 | `startedByNothing` | `boolean` | yes | Flows only: nothing in the project starts it — no endpoint, schedule, trigger, table, vocabulary, flow or evaluation suite. |
 
 Each item of `relations`:
@@ -311,22 +311,22 @@ Each item of `relations`:
 | `from` | `string` | yes | The reference of the element the relation starts at. An evaluation suite, which has no element of its own here, is `evalSuite:<id>`. |
 | `to` | `string \| null` | yes | The reference of the element the relation ends at; null when the configuration does not resolve it (see `unresolved`). |
 | `verb` | `"runs" \| "processes" \| "resolves" \| "invokes" \| "evaluates" \| "scores" \| "creates" \| "reads" \| "updates" \| "deletes" \| "appends" \| "queues" \| "strips" \| "links" \| "unlinks" \| "searches" \| "counts" \| "aggregates" \| "writes" \| "tags" \| "extracts" \| "matches" \| "groups" \| "filters" \| "uses" \| "declares" \| "nests" \| "emits" \| "listens" \| "streams" \| "contains"` | yes | What the relation says `from` does to `to`. |
-| `via` | `string \| null` | yes | The reference of the step that carries the relation, when `from` is a flow and a step of it is what acts — an invoke, for one. |
+| `via` | `string \| null` | yes | The reference of the action that carries the relation, when `from` is a flow and an action of it is what acts — an invoke, for one. |
 | `through` | `string \| null` | yes | Set when the relation is reached through a sub-flow: the reference of the flow invoked on the way. The relation belongs to that sub-flow, not to the flow that invokes it. |
-| `switchedOff` | `boolean` | yes | True when the step, schedule, trigger or evaluation suite behind the relation is switched off. |
+| `switchedOff` | `boolean` | yes | True when the action, schedule, trigger or evaluation suite behind the relation is switched off. |
 | `detail` | `string \| null` | yes | A short fact the verb needs, when it has one: a schedule's cron and time zone, an endpoint's mode (sync, queued, streamed), an evaluation suite's name — or, on a relation to something that no longer exists, the name the configuration still uses for it. |
-| `unresolved` | `"missing-element" \| "type-not-stated"` | yes | Why `to` is null: `missing-element` — the configuration names something that no longer exists; `type-not-stated` — the step acts on record ids whose type the configuration does not state. Null when resolved. |
+| `unresolved` | `"missing-element" \| "type-not-stated"` | yes | Why `to` is null: `missing-element` — the configuration names something that no longer exists; `type-not-stated` — the action acts on record ids whose type the configuration does not state. Null when resolved. |
 
 Each item of `calls`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `stepRef` | `string` | yes | The reference of the step that makes the call. |
+| `actionRef` | `string` | yes | The reference of the action that makes the call. |
 | `kind` | `"model" \| "service" \| "mail"` | yes | `model` — it calls a language or embedding model; `service` — it reaches an outside vendor; `mail` — it sends mail. |
-| `task` | `string \| null` | yes | Model calls: the task the step names, when it names one. |
-| `model` | `string \| null` | yes | Model calls: the model the step pins or configures, when it names one. |
-| `vendor` | `string \| null` | yes | Service calls: the vendor the step reaches. |
-| `switchedOff` | `boolean` | yes | True when the step that makes the call is switched off, so the call does not happen. |
+| `task` | `string \| null` | yes | Model calls: the task the action names, when it names one. |
+| `model` | `string \| null` | yes | Model calls: the model the action pins or configures, when it names one. |
+| `vendor` | `string \| null` | yes | Service calls: the vendor the action reaches. |
+| `switchedOff` | `boolean` | yes | True when the action that makes the call is switched off, so the call does not happen. |
 
 ### `GET /v1/projects/{nodeId}/history`
 

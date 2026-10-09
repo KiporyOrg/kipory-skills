@@ -15,7 +15,7 @@ These two reads are your own consumption. Prices are read elsewhere: `GET
 tokens, minute or search, and `GET /v1/nodes/{nodeId}/vendor-prices` quotes each paid fetch — a
 scrape, a search, a profile read — in credits per call or per item, with what one item is (`countedAs`: a post returned, a place
 read, a page of search results), the units a charge includes and the fewest it bills. The per-second compute rate and the held-storage rates are not listed
-anywhere a key can read: derive the compute rate from any `handler-run` charge on
+anywhere a key can read: derive the compute rate from any `function-run` charge on
 `GET /v1/runs/{runId}/spend` (`credits ÷ units`).
 
 ## Two gates exist, only one of them is `status` — and only one of them binds a key
@@ -42,11 +42,11 @@ call, and it is the wallet, which `status` summarises. For an end-user session t
 apply.
 
 ⚠️ **A key's design-time calls meet a different second gate.** Flow previews,
-`POST /v1/steps/preview`, eval runs and `POST /v1/vector-collections/{name}/search` are bounded
+`POST /v1/actions/preview`, eval runs and `POST /v1/vector-collections/{name}/search` are bounded
 by the project's design-time ceiling (`402 DESIGN_SPEND_CAP_EXCEEDED`), which the balance does not
 show: read `designSpend` on `GET /v1/projects/{nodeId}/settings` for what the current window has
 consumed, and `designSpendCapCredits` and `designSpendCapPeriod` beside it for the ceiling. A
-record that an `record.enqueue-process` step of a preview or an eval run hands to its processing
+record that an `record.enqueue-process` action of a preview or an eval run hands to its processing
 flow counts toward the same ceiling.
 
 ⚠️ **The wallet may not be the project's.** A project without a wallet of its own draws on the
@@ -141,7 +141,7 @@ an empty page.
 
 ⛔ **That is not an edge case — it is what an API key always gets.** A key has no person behind it,
 so `GET /v1/credits/events` answers `401` to every key-authenticated caller, always. The route
-serves end-user session tokens only. ⚠️ The refusal comes from inside the handler rather than from
+serves end-user session tokens only. ⚠️ The refusal comes from inside the function rather than from
 the route's declared shape, so nothing about the endpoint's signature warns you. To account for
 key-driven spend, read `GET /v1/runs/{runId}/spend` for a run, or a schedule occurrence's own cost
 figure.
@@ -152,7 +152,7 @@ by paging this one. It answers a question about one caller, however broad that c
 Events carry the charge you incurred and never the platform's own vendor cost: you see what you
 were charged, not what it cost us to serve you.
 
-Filtering is by event type (a lowercase kebab word — `llm-call`, `embedding`, `handler-run`, …),
+Filtering is by event type (a lowercase kebab word — `llm-call`, `embedding`, `function-run`, …),
 request id, and a time range: `from` is an inclusive instant, `to` an exclusive one.
 
 ## The statement walks in both directions and refuses to number itself
@@ -205,8 +205,8 @@ deliberate about which credential the question is being asked with.
 | Attribute a machine-driven charge to what caused it | `GET /v1/runs/{runId}/spend`                           |
 | Total one schedule occurrence's billed charges      | the occurrence's `creditCost` on the schedule's `runs` |
 
-`/runs/{runId}/spend` holds every charge the run made, by step — a model call a step makes on a
-worker included. Each step's `charges` says what it was charged for, by kind (`handler-run` is the
+`/runs/{runId}/spend` holds every charge the run made, by action — a model call an action makes on a
+worker included. Each action's `charges` says what it was charged for, by kind (`function-run` is the
 compute fee, `llm-call` the model), and its `uncharged` counts the operations the platform paid
 for: ⚠️ `credits: 0` is a price only when `uncharged` is 0. `GET /v1/eval-runs/{id}/spend` answers
 the same for an eval run.
@@ -233,8 +233,8 @@ run and a reprocess cost — is stated once, in the `kipory-operate` skill's `re
 - **Expecting the tenant's charges.** This is one caller's own; breadth of grant does not widen it.
 - **Looking for the compute rate here.** Model prices are `GET /v1/nodes/{nodeId}/model-prices`
   and vendor prices `GET /v1/nodes/{nodeId}/vendor-prices`; the per-second rate is read off a
-  `handler-run` charge.
-- **Paying for a vendor call to learn its price.** Two vendors of one handler can differ several
+  `function-run` charge.
+- **Paying for a vendor call to learn its price.** Two vendors of one function can differ several
   times over for the same read; `vendor-prices` says so before the first call. A row with
   `includedUnits` or `minimumUnits` is not a flat per-item price: work the charge out per vendor
   call.

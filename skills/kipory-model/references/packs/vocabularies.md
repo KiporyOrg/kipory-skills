@@ -3,7 +3,7 @@
 # Capability pack — Vocabularies
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`
-> (design plane); the `vocabulary.resolve` handler config → live `GET /v1/handlers`. This pack carries
+> (design plane); the `vocabulary.resolve` function config → live `GET /v1/functions`. This pack carries
 > judgment, not the field lists.
 
 ## What it is
@@ -19,7 +19,7 @@ the same term.
 
 ## When you need it — and when you don't
 
-- **Against a plain field on the shape.** Use a field when a caller or a single step just
+- **Against a plain field on the shape.** Use a field when a caller or a single action just
   _writes_ the value. Use a vocabulary when the value should be resolved against shared terms —
   deduplicated, reused across records, and able to nest. A field gives you a flat literal; a
   vocabulary gives you terms with reuse.
@@ -70,7 +70,7 @@ admitting, merging or archiving is still your step: nothing activates a candidat
 
 ⚠️ Reuse is as good as the match. Short or differently worded values (`tv`, then `television`)
 score low against each other and can still coin two candidates; merge them when you review. A
-resolver flow of your own that states `status: active` on its `term.search` step searches active
+resolver flow of your own that states `status: active` on its `term.search` action searches active
 terms only and reuses no candidate — leave the status unset.
 
 Choose `none` when the value set is authoritative and finite, `active` when the vocabulary should
@@ -210,7 +210,7 @@ flow output, and adding a `term.upsert` there is not required.
 ⚠️ **`term.upsert` adds an assignment; it never replaces one.** A run that resolves a `one`
 vocabulary to a different term than the record already carries fails when its writes apply: the
 record goes `failed`, every write of the run is dropped, and `GET /v1/runs/{runId}/change-set` reads
-`rejected` with `rejection.cause.kind: "unique-violation"` — while the step log shows every step
+`rejected` with `rejection.cause.kind: "unique-violation"` — while the timeline shows every action
 applied. On a `many` vocabulary the new terms land beside the old ones. So re-classify a record only
 on a clean run — `POST /v1/records/{id}/reprocess`, or `record.enqueue-process` with
 `replay: clean`, both of which strip the record's terms first — or replace one vocabulary's terms by
@@ -248,21 +248,21 @@ is **refused**, because it throws at ingest and blocking the save turns an outag
 empty vocabulary never fails at all: every ingest succeeds and the vocabulary simply resolves
 nothing, which is precisely why something has to say so out loud.
 
-<!-- field-ok: vocabularyFields — a `text.generate` HANDLER CONFIG key, not a wire field; it reaches the
-     API inside the opaque `handlerConfig` blob, so no wire contract declares it by name. -->
+<!-- field-ok: vocabularyFields — a `text.generate` FUNCTION CONFIG key, not a wire field; it reaches the
+     API inside the opaque `functionConfig` blob, so no wire contract declares it by name. -->
 
-**And one more, on the extraction side:** a `text.generate` step's `vocabularyFields` — the list of
-`{ vocabularyKey, field }` pairs in its `handlerConfig` — is what the run reads. The
-`$vocabularyKey` markers on the type the step answers with are never read at run time, and no write
+**And one more, on the extraction side:** a `text.generate` action's `vocabularyFields` — the list of
+`{ vocabularyKey, field }` pairs in its `functionConfig` — is what the run reads. The
+`$vocabularyKey` markers on the type the action answers with are never read at run time, and no write
 re-derives the list from them. Editing the type afterwards leaves the list behind: a marker you
 added is never extracted, a marker you removed is still extracted into a field the type no longer
 declares. The run succeeds either way. The flow's health warns
 `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED`, naming the vocabularies the type added and the ones the
-step still carries; the fix is to send the step's `handlerConfig` again (`PATCH /v1/steps/{id}`)
+action still carries; the fix is to send the action's `functionConfig` again (`PATCH /v1/actions/{id}`)
 with `vocabularyFields` matching the type's markers. Two save errors guard that write. Each pair's
 `field` must equal its `vocabularyKey` (`LLM_GENERATE_VOCABULARY_FIELD_MISMATCH` otherwise). And
 `outputs` must hold exactly one entry while `vocabularyFields` is non-empty — the slot the
-vocabulary values are written to, named differently from the step's own output slot — and none when
+vocabulary values are written to, named differently from the action's own output slot — and none when
 it is empty (`LLM_GENERATE_VOCABULARY_OUTPUTS_MISMATCH`).
 
 All four are warnings rather than refusals for the same reason: each names a state that is ordinary
@@ -349,10 +349,10 @@ happened. A preview run does not count — only values that actually landed.
 ## Who feeds this vocabulary?
 
 Ask the vocabularies read with `expand=wiring` and each vocabulary lists the flow nodes that put
-values into it: the flow (`flowId`, `flowKey`, `flowLabel`) and node (`skillId`, `skillKey`), and
-how — `extracted` (a `text.generate` step lists it in `vocabularyFields`), `proposed` (a
-`vocabulary.resolve` step lists it with no slot feeding it, so its own model call proposes values)
-or `fed` (a `vocabulary.resolve` step reads candidates from a slot, with no model call). It is the
+values into it: the flow (`flowId`, `flowKey`, `flowLabel`) and node (`actionId`, `actionKey`), and
+how — `extracted` (a `text.generate` action lists it in `vocabularyFields`), `proposed` (a
+`vocabulary.resolve` action lists it with no slot feeding it, so its own model call proposes values)
+or `fed` (a `vocabulary.resolve` action reads candidates from a slot, with no model call). It is the
 same scan the platform's own wiring view reads, so a node whose configuration does not parse
 contributes nothing, exactly as it would contribute nothing to a run.
 
@@ -363,7 +363,7 @@ a row that exists only because the TYPE marks the vocabulary while the node has 
 nothing reaches the vocabulary from that row until the node is re-derived from its type.
 
 ⛔ **An empty list is weaker than "nothing fills it".** The scan reads configuration, and a
-`vocabulary.resolve` step can pick a vocabulary up from a slot it discovers at run time without
+`vocabulary.resolve` action can pick a vocabulary up from a slot it discovers at run time without
 naming it anywhere. Empty means no node's configuration names this vocabulary.
 
 ## Adding terms — one or many, under the vocabulary
@@ -544,6 +544,6 @@ refused.
 - Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — what a vocabulary attaches to,
   and the `uses.vocabularies` list that says which tables surface it.
 - Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — when the value is a record rather than a term.
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — building the resolver, and the ingest flow that uses it.
+- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — building the resolver, and the ingest flow that uses it.
 - Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — a vocabulary before the table that uses it; a parent
   vocabulary and a parent term before their children.

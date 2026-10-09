@@ -2,7 +2,7 @@
 
 # Schedules
 
-Run a flow on a cron in a timezone. Enable recomputes the next run from now; the run history carries the occurrence, its outcome, and the failing step.
+Run a flow on a cron in a timezone. Enable recomputes the next run from now; the run history carries the occurrence, its outcome, and the failing action.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 

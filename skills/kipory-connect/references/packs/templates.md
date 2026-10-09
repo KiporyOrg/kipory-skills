@@ -31,7 +31,7 @@ slug grammar would refuse included; there is no `422` on this read.
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
-`kipory: 3`, and every rule of that pack holds for it: what a row may state, how each reference is
+`kipory: 4`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused. A template that breaks one is refused like any other document. A
 table there names its shape by key — the type stated under `schema` — never inline. Check
 each `evals` suite's `applyWrites` before you run it: `true` means a run saves the records the
@@ -80,7 +80,7 @@ change, and apply it like any other document. Rows your project already has unde
 are UPDATED to the template's, which is rarely what you want for a whole template — plan first,
 and send the sections you mean.
 
-A template's steps carry the same fields a document's do, a step's optional `failureSlot`
+A template's actions carry the same fields a document's do, an action's optional `failureSlot`
 included: a project created from the template gets it as written.
 
 ## When not to use one

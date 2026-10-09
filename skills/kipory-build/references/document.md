@@ -7,11 +7,11 @@
 - **Every element is addressed by its `key`** — the key each section's map is keyed by; display text is `label`.
   - Where the row API takes an id (`dataTypeId`, `flowId`, `resolverFlowId`) the document takes the key (`shape`, `flow`, `resolver`).
   - A bare flow key is this project's; a platform flow is `system:<key>`.
-  - A step's `ref` is a type's key.
-  - The document states `kipory: 3`; a `kipory: 2` document is refused with `DOCUMENT_VERSION_UNSUPPORTED`.
+  - An action's `ref` is a type's key.
+  - The document states `kipory: 4`; a `kipory: 2` or `kipory: 3` document is refused with `DOCUMENT_VERSION_UNSUPPORTED`.
 - **A partial document is fine.** A section left out is untouched, and so is every row you do not name; of an existing row's optional fields, only the ones you state are compared. A row's required fields are required, because a row is its create body.
 - **Absence never deletes.** Removal is `delete: true` on a row, or `prune: true` on a map to remove every row of that map you did not name — and any document that removes something needs ADMIN.
-- **Owned collections are stated whole.** A flow's `skills`, a vocabulary's `terms`, a suite's `cases` and a relation's `pairings` replace the owner's, so a member you leave out of one IS a removal, with the same ADMIN floor.
+- **Owned collections are stated whole.** A flow's `actions`, a vocabulary's `terms`, a suite's `cases` and a relation's `pairings` replace the owner's, so a member you leave out of one IS a removal, with the same ADMIN floor.
 - **A field the row's PATCH does not take is permanent.** A vocabulary's `cardinality`, a profile's `modelId`, a trigger's `source`: stated as exported it is fine, stated changed it is refused on its path — the document never drops it in silence. A new value is a new row under a new key.
 - **A shape is stated under `schema`, and a table names it by key.** State both in one document to make a table and its shape together; any other row may use the same shape.
 - **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most 2 MiB and 2 000 rows, refused with `413` past either.
@@ -38,20 +38,20 @@ A plan is not a simulation: the platform applies the document through every row'
 - **Any other write to the project in between moves the version too** — a task-model binding, a row edit.
 - **A refused apply answers `422` with the plan as its body.**
 
-## Steps in a document
+## Actions in a document
 
-- **A step keeps its id across applies; a changed one moves its version.** Steps are matched by `id`, then by key:
+- **An action keeps its id across applies; a changed one moves its version.** Actions are matched by `id`, then by key:
   - one the document leaves alone is not written;
   - one it changes is updated in place with its `version` moved;
   - a new key is created;
-  - a key the `skills` map omits is deleted.
-- **Hold a step by id if you like.** A rename that keeps the `id` under the new key keeps the step; only a new key stated without the `id` gives a new one.
-- **The step-result cache follows the step.** The cache a live run reads first is keyed by the step's id and version, so an apply empties it for the steps it changed and no others.
-- **Re-applying an unchanged document, or its export, changes no step.** What the platform fills in — a derived `derivedShape`, a dispatch's `""` `outputSlot`, a loop-end's carry streams, `{}` against `null`, a stamped `x-record-ref` — is not a difference.
-- **A document step is completed the way a single save completes it.**
-  - A `flow.invoke` step's `inputStreams` are derived from its `kind: "slot"` input rows; leave them out (`patterns.md` §3).
+  - a key the `actions` map omits is deleted.
+- **Hold an action by id if you like.** A rename that keeps the `id` under the new key keeps the action; only a new key stated without the `id` gives a new one.
+- **The action-result cache follows the action.** The cache a live run reads first is keyed by the action's id and version, so an apply empties it for the actions it changed and no others.
+- **Re-applying an unchanged document, or its export, changes no action.** What the platform fills in — a derived `derivedShape`, a dispatch's `""` `outputSlot`, a loop-end's carry streams, `{}` against `null`, a stamped `x-record-ref` — is not a difference.
+- **A document action is completed the way a single save completes it.**
+  - A `flow.invoke` action's `inputStreams` are derived from its `kind: "slot"` input rows; leave them out (`patterns.md` §3).
   - Each `flow.invoke` output row's `derivedShape` is filled from the flow it calls; never state it.
-  - A handler whose settings or prompt name its inputs gets them derived (`step-fields.md`).
-  - A step's `inputPaths` is the same positional list of path objects, `[{ "segments": [{ "kind": "first" }] }]`.
-- **A flow's new signature is judged against the steps the document leaves**, so retyping an input and replacing its reader is one apply.
+  - A function whose settings or prompt name its inputs gets them derived (`action-fields.md`).
+  - An action's `inputPaths` is the same positional list of path objects, `[{ "segments": [{ "kind": "first" }] }]`.
+- **A flow's new signature is judged against the actions the document leaves**, so retyping an input and replacing its reader is one apply.
 - **A signature or shape change that live dependents hold needs its grant on the row that changes**: `adoptSnapshots: true` on the flow's row for a signature change, and on the `schema.<Name>` row for a shape edit refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` (`kipory-evolve`).

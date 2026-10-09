@@ -40,14 +40,14 @@ deterministically.
 POST /v1/eval-suites            create — a `key`, a `label`, and the flow (`flowId`)
 POST /v1/eval-cases             add cases: the `suiteId`, a REQUIRED `key`, then a `label`, inputs,
                                 expected (if any), labels, assertions (the six kinds below: a
-                                `skill-outcome` names its step by `skillKey`)
+                                `action-outcome` names its action by `actionKey`)
 POST /v1/eval-suites/{id}/run   queue a run — 202 with its `runId`, the run has NOT happened yet
                                 … with `wait: true` — 200 with the settled run (no scorers only)
                                 … with `validateOnly: true` — 200 with a verdict, nothing queued
 GET  /v1/eval-suites/{id}/runs  the suite's runs, newest first (each run names its `suiteId`)
 GET  /v1/eval-suites?project=&flowId=   the suites whose subject is one flow
 GET  /v1/eval-runs/{id}         read one run back, WITH its delta against the previous
-GET  /v1/eval-runs/{id}/spend   what that run cost, by step — subject and scorer steps alike
+GET  /v1/eval-runs/{id}/spend   what that run cost, by action — subject and scorer actions alike
 GET  /v1/eval-suites/{id}/trend across runs — one suite, its whole recent history
 GET  /v1/eval-suites/trend      across runs AND suites — every series in one answer
 ```
@@ -78,14 +78,14 @@ it names a flow that exists. Re-key or re-point a suite you want to keep before 
 
 Six kinds, a closed set — unknown fields are refused, and a case carries up to 50:
 
-| Kind                         | Asserts                                                       |
-| ---------------------------- | ------------------------------------------------------------- |
-| `no-missing-required-output` | the flow produced everything its signature promises           |
-| `output-present`             | a named slot exists and is non-empty                          |
-| `output-matches-schema`      | a slot's value validates against its declared type            |
-| `skill-outcome`              | the step `skillKey` reached applied, skipped, no-op or failed |
-| `no-errors`                  | the run produced no skill errors                              |
-| `jsonata`                    | a boolean expression over the whole run result                |
+| Kind                         | Asserts                                                          |
+| ---------------------------- | ---------------------------------------------------------------- |
+| `no-missing-required-output` | the flow produced everything its signature promises              |
+| `output-present`             | a named slot exists and is non-empty                             |
+| `output-matches-schema`      | a slot's value validates against its declared type               |
+| `action-outcome`             | the action `actionKey` reached applied, skipped, no-op or failed |
+| `no-errors`                  | the run produced no action errors                                |
+| `jsonata`                    | a boolean expression over the whole run result                   |
 
 **Write `no-missing-required-output` first.** It is the highest-value assertion in the list: a
 failure means a real invocation of this flow would fail outright. If you write only one assertion
@@ -118,8 +118,8 @@ an id — rather than generated prose.
 
 The expression sees one object: `output` (the flow's bound outputs, keyed by output slot), `inputs`
 (the case's input bag), `expected` (the case's expected value, `null` when it has none),
-`missingRequiredOutput` (the unbound required output, or null), `transcript` (the steps as they ran),
-`errors` (failed steps), `warnings` (step warnings), `totalTokensIn` and `totalTokensOut` (model
+`missingRequiredOutput` (the unbound required output, or null), `transcript` (the actions as they ran),
+`errors` (failed actions), `warnings` (action warnings), `totalTokensIn` and `totalTokensOut` (model
 tokens) and `latencyMs` (wall time). ⚠️ The root is `output` — not `flowOutput`, which is what the
 preview response calls the same value. `flowOutput.urgent = true` reads nothing and fails. A
 non-boolean result is its own kind of failure, not a truthy pass.
@@ -255,7 +255,7 @@ will and will not have measured when it finishes. Gate on `severity`, never on `
 | `EVAL_RUN_SCORER_UNRESOLVABLE`    | a named scorer flow is gone; its cases come back ungraded        | yes                   |
 | `EVAL_SUITE_DISABLED`             | the sweep skips this suite; only a run asked for by hand happens | yes                   |
 | `EVAL_REGRESSION_EVENT_UNDEFINED` | a detected regression is recorded and emitted to nobody          | yes                   |
-| `EVAL_SCORER_SLOT_UNFILLABLE`     | a scorer reads a slot no subject step writes; its cases error    | yes                   |
+| `EVAL_SCORER_SLOT_UNFILLABLE`     | a scorer reads a slot no subject action writes; its cases error  | yes                   |
 | `EVAL_CASE_CANNOT_FAIL`           | a scorer-less suite has cases with no assertions                 | yes                   |
 
 ⚠️ **The same findings ride the 202.** A caller who queued a run without asking first gets
@@ -325,8 +325,8 @@ fired the event. Read it as a record of the past.
 
 ⚠️ **A run carries what it cost — `credits` — summed from its own `cost.credits` scores**, the same
 sum a suite's `lastRun.credits` reports. `null` is unknown, never free. Do not rebuild it from an
-aggregate's mean and sample size. `GET /v1/eval-runs/{id}/spend` breaks the cost down by step,
-subject and scorer steps alike, with `uncharged` counting the operations the platform paid for. It
+aggregate's mean and sample size. `GET /v1/eval-runs/{id}/spend` breaks the cost down by action,
+subject and scorer actions alike, with `uncharged` counting the operations the platform paid for. It
 can read higher than `credits`: a case the run's deadline cut is charged there and not scored here.
 
 ⚠️ **A case's `latencyMs` is `null` when no duration was recorded** — a case the run never started,
@@ -407,7 +407,7 @@ flows. The run read carries the same mark on each case result, `results[].platfo
 or updates records **mutates the very corpus it is measuring** — which also moves the case
 fingerprint and makes the next delta incomparable.
 
-⭐ **`applyWrites: false` makes every case a dry run.** Every step runs — every model call, the
+⭐ **`applyWrites: false` makes every case a dry run.** Every action runs — every model call, the
 same credits — and the records and terms the flow would have written are discarded when the case
 ends, on both arms of a bracketed run. An `record.enqueue-process` handoff is discarded with the
 writes, so the record's processing flow does not run. Scorer flows are not covered: a scorer that
@@ -422,14 +422,14 @@ the database rejects — fails an applying case with a run-level error and passe
 applying case, or preview the flow once with `apply` left on, when the write itself is what you are
 checking.
 
-In either mode a run reads its own writes one way only: a step that reads a record by id sees what
-an earlier step of the same case wrote, and a list, query, count or search does not.
+In either mode a run reads its own writes one way only: an action that reads a record by id sees what
+an earlier action of the same case wrote, and a list, query, count or search does not.
 
-Whatever `applyWrites` says: files land in a sandbox prefix, a send is refused — an `email.send` or `url.send` step
+Whatever `applyWrites` says: files land in a sandbox prefix, a send is refused — an `email.send` or `url.send` action
 fails rather than sending — and an
 emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
 published, so no trigger starts. In an applying suite, records and terms are not isolated, and
-neither is a processing handoff: an `record.enqueue-process` step runs the record's processing flow
+neither is a processing handoff: an `record.enqueue-process` action runs the record's processing flow
 live once the case applies, and that flow's events publish and its mail is sent. An eval run's model calls are
 `origin: test` in the AI-call list; the run's own `credits` is the per-suite figure. Re-running an applying suite over a mutating flow is not a safe idempotent act:
 set `applyWrites: false`, measure a flow that does not write, or accept that each run changes the
@@ -445,7 +445,7 @@ baseline.
 
 The contract is by slot NAME, on both sides. An input slot named `output` receives the subject's
 bound output, one named `inputs` the case's input bag, and one named `expected` the case's `expected` value; any other
-input slot receives what the subject's step wrote to the output slot of that name in the case's
+input slot receives what the subject's action wrote to the output slot of that name in the case's
 trace. The scorer's own outputs are read as `value` (a finite number → a numeric score), else
 `verdict` or `stringValue` (a non-empty string → a categorical one), `name` (the score's name —
 the scorer flow's key when absent) and `comment`. A scorer that returns neither a value nor a
@@ -478,25 +478,25 @@ searches an empty corpus — and the run reports `success` with a column of real
 downstream can tell that from a flow that genuinely retrieves nothing.
 
 The suite carries half the answer. This read carries the other half: it walks the subject flow's
-transitive `flow.invoke` closure and reports every table the enabled skills name, together
+transitive `flow.invoke` closure and reports every table the enabled actions name, together
 with its `ownerScope`.
 
 - `ownerScope: "user"` — rows belong to one end user. Paired with a suite that names no user,
   this is the failure above, and you can fix it before spending anything.
 - `ownerScope: "project"` — a shared pool every user of the project reads. A sentinel run reads
   it normally.
-- `ownerScope: null` — **this project declares no table by that name.** The skill names something
+- `ownerScope: null` — **this project declares no table by that name.** The action names something
   that does not exist, which fails the run rather than emptying it. It is deliberately not folded
   into the `project` arm: that is the safe-looking one, and this is not a safe state.
 
 ⛔ **An empty `tableReads` is NOT an all-clear, and the response says so out loud.** The walk
-reads each handler's own declaration of which configuration field names a table. That
-declaration is not enforcement, and it covers top-level configuration fields only — so a handler
-can name a table without the walk being able to see which. Six handlers in the catalog reach
+reads each function's own declaration of which configuration field names a table. That
+declaration is not enforcement, and it covers top-level configuration fields only — so a function
+can name a table without the walk being able to see which. Six functions in the catalog reach
 record or vector data while naming no table; `vocabulary.aggregate` is the one that reads per-user
-data. Any of them present in the closure is reported in `unattributedHandlerKeys`, which is the
+data. Any of them present in the closure is reported in `unattributedFunctionKeys`, which is the
 measured size of the blind spot rather than a silence. The list is always empty for a project that
-declares no user-owned table: there is then no person's row for such a handler to miss.
+declares no user-owned table: there is then no person's row for such a function to miss.
 
 ⛔ **`scope: null` means the graph could not be walked** — the suite's flow is not in the project's
 flow library. It never means "walked and found
@@ -569,7 +569,7 @@ that also work against production traffic.
 For a client that draws suites, runs and trends. None of it changes what a run measures.
 
 ⭐ **To mark the series a verdict named, read `worsened` on the pooled aggregates** — do not match
-`worsenedMetrics` against names yourself. Those are display names (`latency.skill (rerankSet)`),
+`worsenedMetrics` against names yourself. Those are display names (`latency.action (rerankSet)`),
 and two series can spell the same one. The platform joins its own recorded verdict back to each
 series: `true` names this series, `false` does not, and `null` means no verdict was computed, the
 series is in a per-label group (a verdict judges the pooled comparison only), or the verdict's name
@@ -580,7 +580,7 @@ trend point — has a `source`, so telling a suite's own answers from the platfo
 never needs a list of system metric names, which would go stale the day the platform adds one.
 ⚠️ It is `null` when one series pools scores from more than one producer: a scorer is free to name
 its score `cost.credits`, and that series then holds both.
-Both trend reads also answer `numericSeries` — one `{ name, skillKey, source }` per numeric series
+Both trend reads also answer `numericSeries` — one `{ name, actionKey, source }` per numeric series
 across the whole window, its `source` merged over every run by the same rule. Order or filter a
 chart's series by it rather than folding the points' sources yourself.
 
@@ -629,5 +629,5 @@ begins mid-history is not a baseline.
 ## Related
 
 - Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`) — what to do when a run tells you the edit was bad.
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the subject being measured, and the preview engine that
+- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the subject being measured, and the preview engine that
   runs it.

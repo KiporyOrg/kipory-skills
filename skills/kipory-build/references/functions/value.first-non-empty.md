@@ -1,0 +1,85 @@
+<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+
+# `value.first-non-empty` — Take the first filled value
+
+Take the first value that is filled in, from a list you rank.
+
+Hands the chosen value on exactly as it arrived, without converting it. So the candidates can be of different kinds, a URL string first and a file second, and the winner reaches later actions unchanged.
+
+- **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
+- **I/O:** `any+` → `the first input's type`
+- **Reads:** Reads any number of root slots — useful for mixed display fallbacks such as URL string first, FileRef second. The action's inputs must list each root `inputs` names. _(shape hint: `any+`)_
+- **Emits:** The first populated value from a priority-ordered list of slot paths, preserving the selected value's runtime shape.
+
+## Config
+
+| Field | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `inputs` | string[], at least 1 item | yes | — | The slots to try, in the order you want them tried. Each is a slot name or a path into an object slot. |
+| `mimePrefixes` | string[] | no | `[]` | Only used when valueKind is `file`. Optional MIME prefixes to accept, for example `image/`. Empty means every non-empty FileRef is eligible. |
+| `valueKind` | `any` \| `string` \| `file` | no | `"any"` | `any` preserves the first populated runtime value. `string` only accepts non-empty strings. `file` only accepts non-empty FileRefs or FileRef list members. |
+
+## Worked example
+
+Walk ordered candidates and return the first populated value while preserving its shape.
+
+#### Link wins
+
+Reads `mixed` → emits `string` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "inputs": [
+    "pickedThumbnailUrl",
+    "pickedThumbnailFile"
+  ]
+}
+```
+
+Input:
+
+```
+{
+  "pickedThumbnailUrl": "https://cdn.example.com/cover.jpg",
+  "pickedThumbnailFile": { "key": "files/user/u/photo.jpg", "name": "photo.jpg", "mime": "image/jpeg" }
+}
+```
+
+Output:
+
+```
+https://cdn.example.com/cover.jpg
+```
+
+#### File fallback
+
+Reads `mixed` → emits `file` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "inputs": [
+    "pickedThumbnailUrl",
+    "pickedThumbnailFile"
+  ]
+}
+```
+
+Input:
+
+```
+{
+  "pickedThumbnailUrl": "",
+  "pickedThumbnailFile": { "key": "files/user/u/photo.jpg", "name": "photo.jpg", "mime": "image/jpeg" }
+}
+```
+
+Output:
+
+```
+{ "key": "files/user/u/photo.jpg", "name": "photo.jpg", "mime": "image/jpeg" }
+```

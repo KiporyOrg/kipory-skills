@@ -56,7 +56,7 @@ Each item of `eventTypes`:
 
 ### `POST /v1/event-types`
 
-Create an event type in a project: the namespace it lives in (`categoryKey` — a new one needs nothing created first), what a flow's `event.emit` step raises, who it is about by default (`defaultScope`), its payload shape (`payloadDataTypeId`, a type) and whether its events are stored in the event log (`durable`, default false). A trigger can select it once it is stored and not run-scoped. Its namespace and key are permanent. A reserved platform channel name is refused (422), and so is a source provider's namespace (409 — only that provider's source writes there). With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several at once: the `events` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create an event type in a project: the namespace it lives in (`categoryKey` — a new one needs nothing created first), what a flow's `event.emit` action raises, who it is about by default (`defaultScope`), its payload shape (`payloadDataTypeId`, a type) and whether its events are stored in the event log (`durable`, default false). A trigger can select it once it is stored and not run-scoped. Its namespace and key are permanent. A reserved platform channel name is refused (422), and so is a source provider's namespace (409 — only that provider's source writes there). With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several at once: the `events` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 

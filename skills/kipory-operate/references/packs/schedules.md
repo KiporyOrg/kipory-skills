@@ -15,9 +15,9 @@ The fire is attributed to the **project**, not to a person, and billed to the pr
 
 <!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field a caller sends -->
 
-**A fire has no end user.** `userInfo` is absent from the run. A step that reads only provider
+**A fire has no end user.** `userInfo` is absent from the run. An action that reads only provider
 slots still runs, with no user behind it — so a per-user table refuses there, a project-wide
-one reads normally, and a `user`-scoped emit is dropped. A step that reads `userInfo` beside
+one reads normally, and a `user`-scoped emit is dropped. An action that reads `userInfo` beside
 another slot waits on that other slot. Carry the person you mean as an input, and preview the flow
 with `"principal": "no-end-user"`, which is the run a fire makes.
 
@@ -173,22 +173,22 @@ read the one schedule you are about to show from it when the list left it `null`
 `GET /v1/schedules/{id}/runs` is the debugging surface, and there are **two** error fields on a
 run's invocation. Reach for them in this order:
 
-- **`failure`** — `{ skillName, phase, reason? }`. This is the one that tells you something: it
-  **names the step that failed** and the category of failure. Present only for a step-level failure.
-  `reason` is set only for a refusal a caller may read: a mail step's sender refusal, or
+- **`failure`** — `{ actionName, phase, reason? }`. This is the one that tells you something: it
+  **names the action that failed** and the category of failure. Present only for an action-level failure.
+  `reason` is set only for a refusal a caller may read: a mail action's sender refusal, or
   `project-mail-cap-reached` past the project's daily mail cap; `statusError` then names it too.
-- **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary step failure
+- **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary action failure
   it is the fixed string _"The flow failed to run."_ on every run, because the raw error can carry
-  provider bodies and prompt fragments and is deliberately not put there. The step's own words, cut
-  to 500 characters, are on its `step-failed` row in `GET /v1/runs/{runId}/steps`. Three other shapes exist:
+  provider bodies and prompt fragments and is deliberately not put there. The action's own words, cut
+  to 500 characters, are on its `action-failed` row in `GET /v1/runs/{runId}/timeline`. Three other shapes exist:
   a validation failure surfaces the operator-authored message verbatim, a missing record says so,
   and a flow that produced none of its declared output reports that instead.
 
 So a schedule whose runs all read _"The flow failed to run."_ often means you are reading the wrong
-field: `failure.skillName` names the step. ⛔ **But `failure` is `null` whenever the failure happened
-before any step, or came out of the catch-all** — and that combination (generic message, no failure
+field: `failure.actionName` names the action. ⛔ **But `failure` is `null` whenever the failure happened
+before any action, or came out of the catch-all** — and that combination (generic message, no failure
 summary) is common rather than exotic. When you hit it, take the occurrence's invocation id to
-`GET /v1/runs/{runId}/steps`: that is the per-step execution record, it says which steps ran and
+`GET /v1/runs/{runId}/timeline`: that is the per-action execution record, it says which actions ran and
 what happened to each, and unlike a flow trace it is **never sampled**.
 
 Outcomes worth telling apart:
@@ -318,7 +318,7 @@ query is refused.
 
 ## Related
 
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the flow being bound, and why its signature is locked
+- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the flow being bound, and why its signature is locked
   while you are bound to it.
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the caller-triggered sibling.
 - Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — when the trigger is something happening rather than a time.

@@ -7,7 +7,7 @@
 
 ## What they are
 
-- A **type** is a named shape in the project's registry — reusable, referenced by steps
+- A **type** is a named shape in the project's registry — reusable, referenced by actions
   and by tables.
 - A **table** is a named kind of stored record. It does **not** inline a shape; it
   _references_ a type for its data shape, and optionally binds a flow whose output slots become
@@ -15,7 +15,7 @@
 
 Both are addressed by their `key`. A table's key is a **table name** — letters and digits,
 starting with a letter — and it is the value its records carry as `tableKey`; it is renameable
-only while the table holds no records and no step's configuration names it. A type's key
+only while the table holds no records and no action's configuration names it. A type's key
 is an address key (below) and renameable at any time.
 
 They are separate resources on purpose: shapes are authored once and reused, while a table
@@ -30,7 +30,7 @@ shapes where one refers to the other are two writes: the referenced shape first.
 ## When you need which
 
 - **A reusable shape** — a payload schema, a model's output schema, a nested object used in
-  several places — is a **type**, referenced from steps.
+  several places — is a **type**, referenced from actions.
 - **A kind of record people create and the system processes** is a **table**, referencing a
   type for its data and optionally a flow that processes it.
 - **Derived fields are not authored.** They are _captured_ from the bound flow's output slots. To
@@ -98,8 +98,8 @@ server's verdict, from the same gates the save runs. There is a sibling flag,
 
 A third, **`vocabularyExtractable`**, answers a question the save never asks: would a
 `$vocabularyKey` marker on one of this type's fields be READ? Only where a
-`text.generate` step answers with exactly this type does a marker become that
-step's vocabulary extraction. Anywhere else — including a step answering with a
+`text.generate` action answers with exactly this type does a marker become that
+action's vocabulary extraction. Anywhere else — including an action answering with a
 _list_ of the type — a marker saves cleanly and extracts nothing, because the
 save checks the marker's name, uniqueness, vocabulary, placement (top level only)
 and field type (a string or a list of strings), never whether anything reads
@@ -205,12 +205,12 @@ _keep the current value_, which is a real answer. On a create there is nothing t
 is not an answer at all.
 
 ⚠️ What a pool table cannot use in this version is what needs a signed-in user: the
-`record.teardown` and `vector.upsert` steps fail on a run with none, `vocabulary.aggregate` never
+`record.teardown` and `vector.upsert` actions fail on a run with none, `vocabulary.aggregate` never
 counts pool records, and `userInfo` is absent. A pool record is torn down by
 `POST /v1/records/{id}/reprocess`, or by `record.enqueue-process` with `replay: clean` — both
 strip the record's generated files and terms before the run. What does work on a pool table:
 
-- **File-producing handlers** (`pdf.screenshot`, `image.resize`, `url.fetch-as-file`) run in a
+- **File-producing functions** (`pdf.screenshot`, `image.resize`, `url.fetch-as-file`) run in a
   pool table's processing flow; the files they produce are project files.
 - **File attachment.** A pool record takes the project's own files, and a file uploaded through
   `POST /v1/files/upload-url` with `project` (the form an API key uses) is a project file. In a
@@ -218,7 +218,7 @@ strip the record's generated files and terms before the run. What does work on a
   owner. By hand, `POST /v1/files/{id}/attach` hangs a confirmed file on an existing record.
   `POST /v1/records` itself has no file field.
 
-A pool processing run carries no user at all, so `userInfo` is absent from it: **a step that
+A pool processing run carries no user at all, so `userInfo` is absent from it: **an action that
 reads only `userInfo` still runs, with no user, and a per-user read refuses**. Read configuration through the
 project attribute instead.
 Billing lands on the project's payer.
@@ -336,13 +336,13 @@ Three consequences that catch people out, and only two of them fail _silently_:
   ⭐ This one is **loud**: a `vector.search` filter naming an undeclared key is refused at save
   `VECTOR_SEARCH_PLAN_INVALID`, whose `details.issues[]` carry `SEARCH_FILTER_KEY_UNDECLARED` or
   `SEARCH_FILTER_KEY_NOT_FILTERABLE` and name the fix — so read the refusal as the platform
-  naming the fix rather than as a broken search. A step's `filter` and `filterSlots` keys are the field's own name
+  naming the fix rather than as a broken search. An action's `filter` and `filterSlots` keys are the field's own name
   (`title`), never the stored payload key. (The records list is different: a condition beside
   a meaning-based search there is answered by the **record store** first, and the ranking runs
   over what it kept — so a `filter` field the points do not carry still narrows, exactly.)
 - ⚠️ **The tenant key is the scope key, not the user id.** Filtering by user id against a derived
   collection matches nothing, silently. The scope key holds the user for a user-scoped table, the
-  project for a pool table, and the session for a preview write. A `vector.search` step over a
+  project for a pool table, and the session for a preview write. A `vector.search` action over a
   user-scoped table's collection must carry `filterSlots: { "scopeKey": "userInfo.userId" }` — that
   provider slot and no other — or the save refuses it `VECTOR_SEARCH_SCOPE_KEY_FILTER_MISSING`; a
   pool table's collection needs none.
@@ -464,27 +464,27 @@ Things to know before you declare one:
   the payload and the filter list the same list, so a filter clause can be pushed into the vector
   store; there is no separate "stored but not indexed" payload field to declare.
 
-Once a field is queryable, a listing step can filter on it two ways, and they compose:
+Once a field is queryable, a listing action can filter on it two ways, and they compose:
 
 - **A fixed filter** carries its own comparison — equals, before/after, at least, at most, or any
   of a list. This is where a **range** lives, and it is the only place one can: "published after
   March", "at least five views". Two fixed filters on one field bound it from both sides.
-- **A filter from an upstream value** takes what an earlier step produced. Equals, or any-of when
+- **A filter from an upstream value** takes what an earlier action produced. Equals, or any-of when
   the value is a list. There is no range here, because a filter named by field has nowhere to put
   the comparison.
 
 ⚠️ **A field that does not carry `filter` is refused, not filtered slowly.** That is deliberate:
 the alternative is a filter that quietly reads every record of the table on every request, forever,
-which is exactly the cost the declaration exists to avoid. If a listing step rejects a field, mark
+which is exactly the cost the declaration exists to avoid. If a listing action rejects a field, mark
 it `filter` — do not work around it.
 
-A counting step takes the same filters and answers **how many** without reading the rows. That is
+A counting action takes the same filters and answers **how many** without reading the rows. That is
 not a convenience over listing: a page is capped, so counting one is right only while the whole
 matching set fits on it, and paging through everything to add it up reads the entire set to throw
 it away. A count over a queryable field is served by that field's own index and never reads a
 record at all.
 
-A listing step can also **order** by a declared date field, which is the only way to sort by what
+A listing action can also **order** by a declared date field, which is the only way to sort by what
 your data means by a date rather than by when the row arrived. Two things to know:
 
 - **Only date fields.** The continuation token a page hands back carries a date, so that is what a
@@ -494,7 +494,7 @@ your data means by a date rather than by when the row arrived. Two things to kno
   covers records that have a value, and including the rest would mean sorting every record of the
   table on every request. Sorting by a date a record does not have has no answer anyway.
 
-Listing and counting steps can also filter on **relationships** — keep only records carrying a
+Listing and counting actions can also filter on **relationships** — keep only records carrying a
 link of a given relation, optionally to one specific record. That is the one filter that reaches the
 relationship graph rather than a record's own fields, and it answers questions no field filter can:
 "which answers cite this item", "how many notes link to this project".
@@ -587,11 +587,11 @@ time-partitioned store, appended and never assigned, read only inside a time bou
   time is always indexed. `expand=uses` routes the use as `{ store: "stream-store", at, retainDays,
 filters: { action: "sText0" } }`.
 - **The field is no longer part of `data`.** `record.create` and `record.update` refuse a payload
-  that names it — the step fails as invalid input saying the field is a stream. Events are written by
-  the `record.append` step —
+  that names it — the action fails as invalid input saying the field is a stream. Events are written by
+  the `record.append` action —
   one event or a list per run, idempotent on `(recordId, at, eventId)`; the default event id hashes
   the record, the time and the payload, so a retried run converges. An event without a parseable
-  `at` fails the step (`STREAM_EVENT_NO_TIME`).
+  `at` fails the action (`STREAM_EVENT_NO_TIME`).
 - **Every read is bounded in time.** `GET /v1/records/{id}/stream/{field}` lists one record's
   events newest first inside a window (a `from` instant, a `to` instant, either optional), with a
   repeatable `where=<prop>:<op>:<value>` on the declared
@@ -625,7 +625,7 @@ Every use above routes a part of a record to a store that answers its own kind o
 none of those stores can answer another's. A **query** asks several of them at once and returns the
 records that satisfy ALL of its clauses — a conjunction, never an OR — with two fields on every
 answer that say how complete it is. One grammar, two places to state it: the config of an
-`record.query` step inside a flow, and the body of `POST /v1/records/query` (with `project`) from
+`record.query` action inside a flow, and the body of `POST /v1/records/query` (with `project`) from
 outside one. A body, not query-string parameters, because clauses nest. The records list
 (`GET /v1/records?project=&tableKey=`) speaks the same operator words in its `field=name:op:value`
 conditions — `eq`, `gt`, `gte`, `lt`, `lte`.
@@ -702,7 +702,7 @@ fields are spread at its top level. On the clause:
 - `passage: true` adds `passage: { index, text }` to each entry — the record's best-matching
   part — when the record is indexed in more than one part. A record that changed after it was
   indexed carries `passageStale: true` instead.
-- `likeRecordId` (or `likeRecordIdSlot` in a step) names a record to resemble in place of a
+- `likeRecordId` (or `likeRecordIdSlot` in an action) names a record to resemble in place of a
   phrase: the answer ranks the records closest to it, leaves it out, and calls no model.
   `likeTableKey` names the record's type when it is not the queried one; both must use the same
   embedding profile, or the save is refused `QUERY_LIKE_TABLE_MODEL_MISMATCH`. A record with no
@@ -756,7 +756,7 @@ order by something on a LINKED record ("stories by their newest post", "most com
 that value on the record itself — a processed `lastPostAt`, a count its processing flow maintains
 — and order by the field.
 
-**In a step, what a clause compares against can come from the run.** Each operand may be named by
+**In an action, what a clause compares against can come from the run.** Each operand may be named by
 a slot instead of written in place: `valueSlot` for a `field` clause's `value` (top level or in
 `peer`) and for a `where` entry's `value`, `slugSlot` for a `term`'s `slug`, `textSlot` for the
 `semantic` phrase, `fromSlot` / `toSlot` for a stream `window`. Exactly one of the literal and its
@@ -785,15 +785,15 @@ the routing check at save is the same either way.
 
 A search behind an endpoint is the same move on the phrase — `{ "kind": "semantic", "textSlot":
 "request.q" }` — which composes with any other clause, so "outings resembling what the caller
-typed, among the guides they follow" is one step.
+typed, among the guides they follow" is one action.
 
-- ⛔ **Every slot a clause names must be there, or the step does not run.** A value that is
-  missing (undefined or null) SKIPS the step, even when its other inputs are present — a query
+- ⛔ **Every slot a clause names must be there, or the action does not run.** A value that is
+  missing (undefined or null) SKIPS the action, even when its other inputs are present — a query
   with one condition missing is a wider question, and it is never asked. There is no optional
-  clause: an endpoint with an optional filter routes to one of two steps with `flow.dispatch`.
+  clause: an endpoint with an optional filter routes to one of two actions with `flow.dispatch`.
 - **An empty list is not missing.** It matches nothing, so the answer is empty with `emptiedBy`
-  naming that clause, and the step runs even when that list is its only input.
-- **A value of the wrong kind fails the step**, `QUERY_OPERAND_INVALID`, before any store is read:
+  naming that clause, and the action runs even when that list is its only input.
+- **A value of the wrong kind fails the action**, `QUERY_OPERAND_INVALID`, before any store is read:
   a single value where `in` needs a list (or the reverse), more than 1 000 distinct members, a
   link or stream filter value that is not text, a window bound that is not an ISO moment with an
   offset, a blank phrase. A value of the wrong type for the field is refused as the same written
@@ -802,10 +802,10 @@ typed, among the guides they follow" is one step.
   the clause's row — and never repeats the value.
 - The save warns `QUERY_OPERAND_TYPE_MISMATCH` when the slot's declared type certainly cannot
   be the operand — a list where one value is compared, one value where `in` needs a list, a
-  number where text is needed. A warning: the step saves, and the run would refuse the value.
+  number where text is needed. A warning: the action saves, and the run would refuse the value.
 - `record.list` and `record.count` hold their filter slots to the same rule: a missing filter
-  value skips the step, a wrong one fails it (`FILTER_VALUE_INVALID`), an empty list matches
-  nothing. A filter is never dropped, so an optional one is two steps behind a `flow.dispatch`.
+  value skips the action, a wrong one fails it (`FILTER_VALUE_INVALID`), an empty list matches
+  nothing. A filter is never dropped, so an optional one is two actions behind a `flow.dispatch`.
 - The request body of the route takes written values only; a `…Slot` key there is a 422.
 
 **Two honesty fields, never omitted.** Read them before you read `records`:
@@ -831,7 +831,7 @@ typed, among the guides they follow" is one step.
 
 - 422 `QUERY_CLAUSE_UNROUTED` — a clause on a field, vocabulary, relation or filter property the
   table's `uses` does not route. The message names the field and the use to declare; no store scans
-  for it. For the step, at flow save; for the route, at request — it has no save step. The two shape
+  for it. For the action, at flow save; for the route, at request — it has no save step. The two shape
   refusals sit beside it: `QUERY_SEMANTIC_MULTIPLE` (a second semantic clause) and
   `QUERY_PEER_DEPTH` (a `peer` holding anything but `field`, `term` and `semantic`).
 - 422 `QUERY_CLAUSE_TOO_BROAD` — the first exact clause selected more than a million records
@@ -842,18 +842,18 @@ typed, among the guides they follow" is one step.
 
 **Paging.** Only a query WITHOUT a semantic clause pages: on the route, pass back `nextCursor` as
 `after` for the next page and `prevCursor` as `before` for the previous one — never both — and
-`paging` is always null because a query is never counted; in the step, `cursorSlot` in and
+`paging` is always null because a query is never counted; in the action, `cursorSlot` in and
 `nextCursor` out. With a semantic clause the answer is a ranking of at most `topK` with no cursor,
 and `limit` caps what is returned of it.
 
 **Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
 hop through `peer`. Ordering by how closely a LINKED record matches, or by any value on a linked
 record. A similarity cut-off on a ranking. An answer carrying records of two tables. A query
-language — the grammar is this JSON, in a step's config or a request body. A slot for WHICH field,
+language — the grammar is this JSON, in an action's config or a request body. A slot for WHICH field,
 operator or link a clause asks about — only the value compared against can come from the run. A
 cached answer — every query reads the stores as they are now.
 
-A step's clauses are written through the design API (`POST /v1/steps`, `PATCH /v1/steps/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
+An action's clauses are written through the design API (`POST /v1/actions`, `PATCH /v1/actions/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
 
 ## What the platform refuses
 
@@ -904,10 +904,10 @@ A step's clauses are written through the design API (`POST /v1/steps`, `PATCH /v
   sentence names the consumer that blocked it.
 
   `GET /v1/types?expand=graph` says which graph references those are before you try: each
-  type carries `usedByGraph` and `usedByGraphRefs` — the flows, steps, handlers and sibling types
+  type carries `usedByGraph` and `usedByGraphRefs` — the flows, actions, functions and sibling types
   that name it DIRECTLY. A flow taking a type that references this one is listed under that type,
   not here. The `graph` section beside the types resolves a relation's source ids through three
-  maps: `flowLabels` (flow id → label), `skillKeys` (step id → key) and `entryKeys` (type id → key).
+  maps: `flowLabels` (flow id → label), `actionKeys` (action id → key) and `entryKeys` (type id → key).
 
 - **Deleting a table** that has records, was seeded, or carries a reserved table name (a
   platform-wide set, not something your project defines). The DELETE answers 409 `CONFLICT` for
@@ -952,20 +952,20 @@ refused.
   `uses` issue. Both expansions are item-route only.
 
 - **Records created and never queued.** A record of a table that binds a processing flow is born
-  `PENDING`, and `record.create` does not queue it — only an `record.enqueue-process` step does. A
+  `PENDING`, and `record.create` does not queue it — only an `record.enqueue-process` action does. A
   flow that creates the record without one leaves it waiting with no run coming, and the flow's own
   run still reads as succeeded. `GET /v1/tables/{id}?expand=processingGaps` names every flow
   of the project with an enabled `record.create` of this table and no enabled
-  `record.enqueue-process` step (`code: "RECORD_CREATED_NOT_QUEUED"`, the flow, the create step
+  `record.enqueue-process` action (`code: "RECORD_CREATED_NOT_QUEUED"`, the flow, the create action
   and a sentence saying what to add); always empty for a table with no processing flow. Item-route
   only. A record already stranded this way is processed with
   `POST /v1/records/{id}/reprocess`, which accepts a `pending` record only when
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
-  A reprocess is charged like a first processing and answers no step from the step-result cache.
+  A reprocess is charged like a first processing and answers no action from the action-result cache.
 
 - **Re-pointing or renaming a table that already has records**, and renaming — changing the `key`
-  of — a table any flow step's configuration names (`TABLE_NAMED_BY_CONFIG`, listing the
-  flows): step configuration names a table by key, so a rename would strand it.
+  of — a table any flow action's configuration names (`TABLE_NAMED_BY_CONFIG`, listing the
+  flows): action configuration names a table by key, so a rename would strand it.
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than
   optional. The update runs in a transaction, so a rejected write rolls back the whole rename
   cascade rather than leaving it half-applied.
@@ -1266,7 +1266,7 @@ first character a letter or a digit
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
 event types and their namespaces, relations and embedding profiles), a vocabulary's is camelCase, a
-table's is a table name and a step's a dotted kebab step name. Address keys are none of those, and
+table's is a table name and an action's a dotted kebab action name. Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is
 refused, never re-cased for you.
@@ -1308,9 +1308,9 @@ carries **`version`**, the optimistic lock. Send it back on a PATCH:
 - **Read it from the same response you edited from.** Fetching the type again immediately before
   writing gives you a lock that proves nothing about the document you actually looked at.
 
-### A `library` type also names the handler that declares it
+### A `library` type also names the function that declares it
 
-Every type on the same three reads carries **`declaredBy`**: the handler key for a `library`
+Every type on the same three reads carries **`declaredBy`**: the function key for a `library`
 type, and `null` on every other tier.
 
 ```
@@ -1319,12 +1319,12 @@ RunInfo       → null                 string     → null
 ```
 
 **`null` is an answer, not a gap.** A `builtin` and an `infrastructure` type are platform code with
-no handler behind them, and an `operator` type was written by you. Only the library tier has
+no function behind them, and an `operator` type was written by you. Only the library tier has
 something to name, so a reader that treats `null` as "not sent" will draw a hole where the correct
 reading is "nobody declares this — the platform brought it".
 
 ⚠️ **Do not parse it out of `description`.** A library type's description opens `Library type —
-declared by handler <key>.`, so the key is technically recoverable from that sentence — and a
+declared by function <key>.`, so the key is technically recoverable from that sentence — and a
 consumer doing so owns a copy of a format it does not control, which breaks silently the day the
 sentence is reworded. The field is on the wire so that parse never has to exist.
 
@@ -1414,15 +1414,15 @@ healthier draft.**
 ## What will bite you
 
 - **Editing a shape re-fires cached work, deliberately.** A type edit bumps the version of every
-  step whose compiled schema depends on it — directly or through a nested chain — and that
+  action whose compiled schema depends on it — directly or through a nested chain — and that
   version is folded into the ingest cache key. So a shape edit re-runs dependent cached ingests
   with no manual cache bust. Useful, and expensive if you did not expect it.
 - **A flow-backed binding is re-validated against a new shape, but the captured snapshot is not
   rewritten.** The drift read is what owns the live comparison — which is why `uncaptured` matters.
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
-- **A table is named by key in handler config**, not by id — which is why a rename is
-  refused while any step's config names the table (`TABLE_NAMED_BY_CONFIG`).
+- **A table is named by key in function config**, not by id — which is why a rename is
+  refused while any action's config names the table (`TABLE_NAMED_BY_CONFIG`).
 - **A type lists every consumer that blocks its delete, and `usedByRelations` is one
   of them.** Alongside `usedByTables`, `usedByEventTypes`, `usedByConfigNamespaces` and
   `usedAsProfile`, a type reports the relations whose link properties it describes; a
@@ -1430,16 +1430,16 @@ healthier draft.**
 
 ## How they connect to flows
 
-- The record-creating handler names a table **by key**, plus the slot carrying the
+- The record-creating function names a table **by key**, plus the slot carrying the
   submission. Flow-less tables are born ready; flow-backed tables start pending and are processed.
-- `text.generate` does **not** carry its output schema in handler config — the shape lives on the
-  step and points at a type. That is the main link between the registry and a step.
+- `text.generate` does **not** carry its output schema in function config — the shape lives on the
+  action and points at a type. That is the main link between the registry and an action.
 - A reference to a table _instance_ names the table by key too, and is deliberately
   invisible to the id-based delete checks.
 
 ## Related
 
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — the flow a table binds.
+- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the flow a table binds.
 - Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) — what `uses.search` names, and where chunking defaults live.
 - Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) and Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — classifying and
   linking records.

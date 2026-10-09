@@ -226,7 +226,7 @@ Each item of `members`:
 | `spend` | `object` | yes | What this member has spent against the project's per-person ceiling, and the window it was measured over. While the project gives its members wallets the ceiling is not applied and reads null; the figure spent is still measured. |
 | `wallet` | `object \| null` | yes | The member's own wallet in this project. Null when the project has member wallets off, and for a member whose wallet is not open yet (a suspended seat that never had one). |
 | `records` | `integer` | yes | Records in this project owned by this member. Removing their seat does not remove these. |
-| `files` | `integer` | yes | Files in this project this member HOLDS — the ones stored under their own owner prefix, which is the population account deletion erases and the one `GET …/files?owner=<userId>` lists. ⚠️ NOT the files they UPLOADED (`uploadedByUserId` is written only by the presign route and is null on every handler-produced file) and NOT the files that landed on their records. The three come apart routinely. |
+| `files` | `integer` | yes | Files in this project this member HOLDS — the ones stored under their own owner prefix, which is the population account deletion erases and the one `GET …/files?owner=<userId>` lists. ⚠️ NOT the files they UPLOADED (`uploadedByUserId` is written only by the presign route and is null on every function-produced file) and NOT the files that landed on their records. The three come apart routinely. |
 | `profileVersion` | `integer \| null` | yes | The schema version this member's profile was written against, or null when they hold no profile. Drift from the current shape is reported, never enforced. |
 
 ### `POST /v1/projects/{nodeId}/members/{userId}/credits`

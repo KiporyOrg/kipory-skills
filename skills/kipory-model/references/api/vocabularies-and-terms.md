@@ -214,7 +214,7 @@ Each item of `vocabularies`:
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 
 ### `POST /v1/vocabularies`
 
@@ -277,7 +277,7 @@ Each item of `diagnostics`:
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 
 Each item of `wiring`:
 
@@ -286,9 +286,9 @@ Each item of `wiring`:
 | `flowId` | `string` | yes | Id of the flow the node belongs to. |
 | `flowKey` | `string` | yes | That flow's key within the project. |
 | `flowLabel` | `string` | yes | That flow's label (display text). |
-| `skillId` | `string` | yes | Id of the node (step) that feeds the vocabulary. |
-| `skillKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` step lists the vocabulary in `vocabularyFields`, so its value rides that step's structured answer. `proposed` — a `vocabulary.resolve` step lists it in `vocabularyKeys` with no slot feeding it, so the step's own model call proposes values. `fed` — a `vocabulary.resolve` step reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
+| `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
+| `actionKey` | `string` | yes | The node's key within its flow. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the node's config is re-derived from its type. Always false for `proposed` and `fed`. |
@@ -333,7 +333,7 @@ Read one vocabulary by id, with the `version` its PATCH takes; `expand` adds its
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 
 Each item of `wiring`:
 
@@ -342,9 +342,9 @@ Each item of `wiring`:
 | `flowId` | `string` | yes | Id of the flow the node belongs to. |
 | `flowKey` | `string` | yes | That flow's key within the project. |
 | `flowLabel` | `string` | yes | That flow's label (display text). |
-| `skillId` | `string` | yes | Id of the node (step) that feeds the vocabulary. |
-| `skillKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` step lists the vocabulary in `vocabularyFields`, so its value rides that step's structured answer. `proposed` — a `vocabulary.resolve` step lists it in `vocabularyKeys` with no slot feeding it, so the step's own model call proposes values. `fed` — a `vocabulary.resolve` step reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
+| `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
+| `actionKey` | `string` | yes | The node's key within its flow. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the node's config is re-derived from its type. Always false for `proposed` and `fed`. |
@@ -396,7 +396,7 @@ Rename a vocabulary or change how it admits values (`mint`, `matching`, `proposa
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -408,9 +408,9 @@ Each item of `wiring`:
 | `flowId` | `string` | yes | Id of the flow the node belongs to. |
 | `flowKey` | `string` | yes | That flow's key within the project. |
 | `flowLabel` | `string` | yes | That flow's label (display text). |
-| `skillId` | `string` | yes | Id of the node (step) that feeds the vocabulary. |
-| `skillKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` step lists the vocabulary in `vocabularyFields`, so its value rides that step's structured answer. `proposed` — a `vocabulary.resolve` step lists it in `vocabularyKeys` with no slot feeding it, so the step's own model call proposes values. `fed` — a `vocabulary.resolve` step reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
+| `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
+| `actionKey` | `string` | yes | The node's key within its flow. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the node's config is re-derived from its type. Always false for `proposed` and `fed`. |

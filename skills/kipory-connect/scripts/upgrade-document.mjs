@@ -12,6 +12,10 @@
  * Without `--write` it prints the converted document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
+ * It converts in two steps, and a version 2 document takes both in one run. A
+ * version 3 document takes the second; a version 4 document is returned as it
+ * is.
+ *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
  *   - function keys `entity.*` → `record.*`, `facet.resolve` →
@@ -19,18 +23,34 @@
  *   - fields: `recordType` → `tableKey`, `entryId` → `dataTypeId`, `facet` →
  *     `vocabularyKey`, and the rest of KEYS below.
  *
+ * Version 3 → 4 (the flow words):
+ *   - a flow's `skills` → `actions`;
+ *   - on each action, `handlerKey` → `functionKey` and `handlerConfig` →
+ *     `functionConfig` (nothing inside the config changes);
+ *   - on an endpoint, `actionConfig` → `targetConfig`;
+ *   - on an eval suite, `perSkillLatency` → `perActionLatency`; in a case's
+ *     assertions, `kind: skill-outcome` with its `skillKey` → `kind:
+ *     action-outcome` with `actionKey`.
+ *
  * ⛔ A NAME IS RENAMED BY WHERE IT SITS, never by how it is spelled. Only the
  * places the platform defines are rewritten: a table's and a relation's own
- * settings, a function's config, a type reference. A name YOU chose — a
- * table, a step, a slot, a property of one of your types, an endpoint
- * parameter, an input, a header, a config value — is left exactly as written,
- * even when it is spelled `facet` or `recordType`.
+ * settings, a flow's and an action's own settings, a function's config, a
+ * type reference. A name YOU chose — a table, an action, a slot, a property
+ * of one of your types, an endpoint parameter, an input, a header, a config
+ * value — is left exactly as written, even when it is spelled `facet`,
+ * `recordType`, `skills` or `handlerKey`.
  *
  * It does NOT rewrite free text: a prompt, a template, an expression or a slot
- * path that names a renamed field (`{{record.recordType}}`, `$r.facet`) is
- * listed on stderr for you to edit by hand. The three provider paths the
- * platform owns (`runInfo.recordType`, `projectInfo.relationKinds`,
- * `recordTypeInfo`) are the exception: they are exact, and are rewritten.
+ * path that names a renamed field (`{{record.recordType}}`, `$r.facet`,
+ * `$run.skillKey`, `handler-error`, a `step-failed` event kind) is listed on
+ * stderr for you to edit by hand. Two exceptions are exact, and are
+ * rewritten: the three provider paths the platform owns
+ * (`runInfo.recordType`, `projectInfo.relationKinds`, `recordTypeInfo`), and
+ * in a `jsonata` assertion's expression the preview's `skillId`, `skillKey`,
+ * `skillName`, `handler-error`, `handler-soft-warning` and
+ * `step-failed-continued` (→ `actionId`, `actionKey`, `actionName`,
+ * `function-error`, `function-soft-warning`, `action-failed-continued`), as
+ * the platform rewrote its stored copy.
  *
  * YAML is converted line by line, since YAML cannot be parsed without a
  * dependency. A construct that cannot be converted safely that way — a
@@ -43,7 +63,7 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /** The version this script converts TO. */
-const TARGET_VERSION = 3;
+const TARGET_VERSION = 4;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -343,8 +363,12 @@ const isOldResolverSlot = (mode, key, value) =>
 const RESOLVER_SLOT_NOTE =
   "a flow input named `facet`: if this is a resolver flow, the platform now passes `vocabularyKey`";
 
-/** A scalar string, converted where its position says the platform owns it. */
-const stringAt = (mode, key, value, siblingRelation) => {
+/**
+ * A scalar string, converted where its position says the platform owns it.
+ * `sibling(name)` is the text another key of the same mapping holds, or
+ * undefined when it holds none.
+ */
+const stringAt = (mode, key, value, sibling) => {
   if (
     key === "handlerKey" &&
     (mode.name === "skillRow" || mode.name === "platform")
@@ -356,7 +380,7 @@ const stringAt = (mode, key, value, siblingRelation) => {
     mode.name === "platform" &&
     key === "kind" &&
     value === "edge" &&
-    siblingRelation
+    typeof sibling("relation") === "string"
   )
     return "link";
   if (
@@ -372,12 +396,141 @@ const stringAt = (mode, key, value, siblingRelation) => {
   return value;
 };
 
+/* ── version 3 → 4: the flow words ────────────────────────────────────────
+ *
+ * The same questions, asked of a version 3 document. Far fewer places answer:
+ * a flow, an action, an endpoint, an eval suite and an assertion each hold a
+ * renamed key, and nothing under a function's or an endpoint's config does.
+ */
+const ACTION_KEYS = new Map([
+  ["handlerKey", "functionKey"],
+  ["handlerConfig", "functionConfig"],
+]);
+/** Text that names a flow word, or a run event or failure phase that moved. */
+const NAMES_A_FLOW_WORD =
+  /\b(skillName|skillId|skillKey|handlerKey|handlerConfig)\b|(?<![\w-])(handler-error|handler-soft-warning|skill-(started|ended|not-reached|outcome)|step-(?!by-step)[a-z]+)(?![\w])/;
+/** Nothing under it is renamed; its text is read for a flow word. */
+const WATCHED = M("untouched", "", "watch");
+
+const flowKeyIn = (mode, key, sibling) => {
+  switch (mode.name) {
+    case "flowRow":
+      return key === "skills" ? "actions" : key;
+    case "actionRow":
+      return ACTION_KEYS.get(key) ?? key;
+    case "endpointRow":
+      return key === "actionConfig" ? "targetConfig" : key;
+    case "suiteRow":
+      return key === "perSkillLatency" ? "perActionLatency" : key;
+    case "assertion":
+      return key === "skillKey" && sibling("kind") === "skill-outcome"
+        ? "actionKey"
+        : key;
+    default:
+      return key;
+  }
+};
+const flowUnder = (mode, key) => {
+  switch (mode.name) {
+    case "root":
+      if (key === "flows") return M("rows", "flow");
+      if (key === "evals") return M("rows", "suite");
+      if (key === "surfaces") return M("surfaces");
+      return UNTOUCHED;
+    case "rows":
+      return M(`${mode.parent}Row`);
+    case "flowRow":
+      return key === "skills" ? M("rows", "action") : UNTOUCHED;
+    case "actionRow":
+      return key === "handlerConfig" || PATHS.has(key) ? WATCHED : UNTOUCHED;
+    case "surfaces":
+      return key === "endpoints" ? M("rows", "endpoint") : UNTOUCHED;
+    case "suiteRow":
+      return key === "cases" ? M("rows", "case") : UNTOUCHED;
+    case "caseRow":
+      return key === "assertions" ? M("assertion", "", "watch") : UNTOUCHED;
+    default:
+      // An assertion's own values, and whatever sits under watched text.
+      return mode.text === null ? UNTOUCHED : WATCHED;
+  }
+};
+/** An assertion's keys whose value is a kind or an action's key, never text. */
+const ASSERTION_NAMES = new Set(["kind", "skillKey", "actionKey"]);
+const flowTextOf = (mode, key) =>
+  mode.name === "assertion" && ASSERTION_NAMES.has(key)
+    ? null
+    : mode.text !== null
+      ? mode.text
+      : mode.name === "actionRow" && (FREE_TEXT.has(key) || PATHS.has(key))
+        ? "watch"
+        : null;
+/**
+ * The field names a jsonata assertion reads off the preview it scores, and
+ * the failure phase and warning kinds it may compare: the same rewrite the
+ * platform's migration gives a stored case (ruled 2026-10-08). An expression
+ * filtering on a name the preview no longer carries matches nothing and
+ * passes vacuously.
+ */
+const jsonataFlowWords = (text) =>
+  text
+    .replace(/\bskillId\b/g, "actionId")
+    .replace(/\bskillKey\b/g, "actionKey")
+    .replace(/\bskillName\b/g, "actionName")
+    .replaceAll("handler-error", "function-error")
+    .replaceAll("handler-soft-warning", "function-soft-warning")
+    .replaceAll("step-failed-continued", "action-failed-continued");
+const flowStringAt = (mode, key, value, sibling) => {
+  if (mode.name !== "assertion") return value;
+  if (key === "kind" && value === "skill-outcome") return "action-outcome";
+  if (key === "expression" && sibling("kind") === "jsonata")
+    return jsonataFlowWords(value);
+  return value;
+};
+
+/**
+ * One step of the conversion: the version it reads, the version it writes,
+ * and its answers to the questions above.
+ */
+const STAGES = [
+  {
+    from: 2,
+    to: 3,
+    keyIn,
+    under,
+    textOf,
+    stringAt,
+    rewrite: providerPaths,
+    needsAPerson,
+    watchedKey: (key) => KEYS.has(key),
+    slotNote: isOldResolverSlot,
+  },
+  {
+    from: 3,
+    to: 4,
+    keyIn: flowKeyIn,
+    under: flowUnder,
+    textOf: flowTextOf,
+    stringAt: flowStringAt,
+    rewrite: (text) => text,
+    needsAPerson: (text) => NAMES_A_FLOW_WORD.test(text),
+    watchedKey: () => false,
+    slotNote: () => false,
+  },
+];
+const CONVERTS = `this script converts version ${STAGES.map((stage) => stage.from).join(" or ")} to ${TARGET_VERSION}`;
+/** The steps a document stating `version` still has to take, or null for a version not read. */
+const stagesFrom = (version) => {
+  const first = STAGES.findIndex((stage) => stage.from === version);
+  return first === -1 ? null : STAGES.slice(first);
+};
+const noSibling = () => undefined;
+
 /** `value` as it should be written, and whether a person must look at it. */
-const textAt = (mode, key, value, siblingRelation) => {
-  const placed = stringAt(mode, key, value, siblingRelation);
-  const policy = textOf(mode, key);
-  const out = policy === "paths" ? providerPaths(placed) : placed;
-  return { out, listed: policy !== null && needsAPerson(out) };
+const textAt = (stage, mode, key, value, sibling) => {
+  const placed = stage.stringAt(mode, key, value, sibling);
+  const policy = stage.textOf(mode, key);
+  const out = policy === "paths" ? stage.rewrite(placed) : placed;
+  return { out, listed: policy !== null && stage.needsAPerson(out) };
 };
 
 const versionOf = (stated) =>
@@ -390,53 +543,86 @@ export function upgradeJson(doc, notes = []) {
   }
   const version = versionOf(doc.kipory);
   if (version === TARGET_VERSION) return doc;
-  if (version !== 2) {
+  const stages = stagesFrom(version);
+  if (stages === null) {
     throw new Error(
-      `this script converts version 2 to ${TARGET_VERSION}; the document states ${JSON.stringify(doc.kipory)}`,
+      `${CONVERTS}; the document states ${JSON.stringify(doc.kipory)}`,
     );
   }
+  /** Places to review, each { path, extra }: a path is the keys down to it. */
+  let places = [];
+  let out = doc;
+  for (const stage of stages) {
+    // A place an earlier step listed is named as the later step leaves it.
+    places = places.map(({ path, extra }) => ({
+      path: pathAfter(stage, path),
+      extra,
+    }));
+    out = stageJson(out, stage, places);
+  }
+  // One note per place, however many strings under it matched.
+  const said = places.map(
+    ({ path, extra }) =>
+      `${path.join(".")}${extra === "" ? "" : ` (${extra})`}`,
+  );
+  notes.splice(0, notes.length, ...new Set([...notes, ...said]));
+  return out;
+}
+
+/** The keys down to a place, as `stage` renames them. */
+const pathAfter = (stage, path) => {
+  let mode = M("root");
+  return path.map((key) => {
+    const to = stage.keyIn(mode, key, noSibling);
+    mode = stage.under(mode, key);
+    return to;
+  });
+};
+
+/** One step over a structured document. */
+const stageJson = (doc, stage, places) => {
   /**
    * The value under `key` in a mapping of `mode`. A list's items sit where
    * the list does: a string item is that key's text, a mapping item is a
    * mapping of the mode under that key.
    */
-  const valueAt = (value, mode, key, at, siblingRelation) => {
+  const valueAt = (value, mode, key, path, sibling) => {
     if (typeof value === "string") {
-      const { out, listed } = textAt(mode, key, value, siblingRelation);
-      if (listed) notes.push(at);
-      if (isOldResolverSlot(mode, key, value))
-        notes.push(`${at} (${RESOLVER_SLOT_NOTE})`);
+      const { out, listed } = textAt(stage, mode, key, value, sibling);
+      if (listed) places.push({ path, extra: "" });
+      if (stage.slotNote(mode, key, value))
+        places.push({ path, extra: RESOLVER_SLOT_NOTE });
       return out;
     }
     if (Array.isArray(value)) {
-      return value.map((item) => valueAt(item, mode, key, at, false));
+      return value.map((item) => valueAt(item, mode, key, path, noSibling));
     }
     if (value === null || typeof value !== "object") return value;
-    return mapping(value, under(mode, key), at);
+    return mapping(value, stage.under(mode, key), path);
   };
-  const mapping = (value, mode, at) => {
+  const mapping = (value, mode, path) => {
     if (mode.name === "untouched" && mode.text === null) return value;
     const out = {};
-    const relation = typeof value.relation === "string";
+    const sibling = (name) =>
+      typeof value[name] === "string" ? value[name] : undefined;
     for (const [k, v] of Object.entries(value)) {
-      const to = keyIn(mode, k);
+      const to = stage.keyIn(mode, k, sibling);
       if (Object.hasOwn(out, to) || (to !== k && Object.hasOwn(value, to))) {
         throw new Error(
-          `${at === "" ? "the document" : at}: holds two names for "${to}" (one of them "${k}")`,
+          `${path.length === 0 ? "the document" : path.join(".")}: holds two names for "${to}" (one of them "${k}")`,
         );
       }
-      const here = at === "" ? to : `${at}.${to}`;
-      if (mode.text === "watch" && to === k && KEYS.has(k)) notes.push(here);
-      out[to] = valueAt(v, mode, k, here, relation);
+      const here = [...path, to];
+      if (mode.text === "watch" && to === k && stage.watchedKey(k))
+        places.push({ path: here, extra: "" });
+      out[to] = valueAt(v, mode, k, here, sibling);
     }
     return out;
   };
-  const out = mapping(doc, M("root"), "");
-  out.kipory = TARGET_VERSION;
-  // One note per place, however many strings under it matched.
-  notes.splice(0, notes.length, ...new Set(notes));
+  const out = mapping(doc, M("root"), []);
+  out.kipory = stage.to;
   return out;
-}
+};
 
 /* ── YAML, line by line ─────────────────────────────────────────────────── */
 
@@ -453,6 +639,12 @@ const unquoted = (text) =>
 const refuse = (line, why) => {
   throw new Error(
     `line ${line}: ${why}. Write it out as an indented block, or convert the file to JSON, and run this again.`,
+  );
+};
+
+const refuseTwoNames = (line, to, from) => {
+  throw new Error(
+    `line ${line}: this mapping holds two names for "${to}" (one of them "${from}"). Keep one and run this again.`,
   );
 };
 
@@ -485,34 +677,46 @@ const isStringScalar = (value) =>
  * and layout are kept.
  */
 export function upgradeYaml(text, notes = []) {
-  const bom = text.charCodeAt(0) === 0xfeff ? text[0] : "";
-  const eol = text.includes("\r\n") ? "\r\n" : "\n";
-  const lines = text.slice(bom.length).split(/\r?\n/);
-  const versionLine = lines.findIndex((line) => TOP_VERSION.test(line));
-  if (versionLine === -1) {
+  const stated = text
+    .slice(text.charCodeAt(0) === 0xfeff ? 1 : 0)
+    .split(/\r?\n/)
+    .find((line) => TOP_VERSION.test(line));
+  if (stated === undefined) {
     throw new Error(
       "not a project document: no top-level `kipory: <version>` line",
     );
   }
-  const version = Number(TOP_VERSION.exec(lines[versionLine])[3]);
+  const version = Number(TOP_VERSION.exec(stated)[3]);
   if (version === TARGET_VERSION) return text;
-  if (version !== 2) {
-    throw new Error(
-      `this script converts version 2 to ${TARGET_VERSION}; the document states ${version}`,
-    );
+  const stages = stagesFrom(version);
+  if (stages === null) {
+    throw new Error(`${CONVERTS}; the document states ${version}`);
   }
+  // Each step keeps every line where it is, so a line number one step lists
+  // still names that line after the next.
+  return stages.reduce((held, stage) => stageYaml(held, stage, notes), text);
+}
+
+/** One step over a YAML document. */
+const stageYaml = (text, stage, notes) => {
+  const { keyIn, under, textOf } = stage;
+  const bom = text.charCodeAt(0) === 0xfeff ? text[0] : "";
+  const eol = text.includes("\r\n") ? "\r\n" : "\n";
+  const lines = text.slice(bom.length).split(/\r?\n/);
+  const versionLine = lines.findIndex((line) => TOP_VERSION.test(line));
   const keyOf = (match) => match[2] ?? match[3] ?? match[4];
   const columnOf = (match) => match[1].length;
   const valueOf = (rest) => rest.replace(/\s+#.*$/, "").trim();
   /**
-   * Whether the mapping holding line `index` (its keys at `column`) has a
-   * `relation` key naming a relation. A mapping that is a list item starts on
-   * its `- ` line and ends before the next one, so the scan stops at both.
+   * The text the mapping holding line `index` (its keys at `column`) holds
+   * under the key `name`, or undefined when it holds none there. A mapping
+   * that is a list item starts on its `- ` line and ends before the next one,
+   * so the scan stops at both.
    */
-  const hasRelationSibling = (index, column) => {
+  const siblingText = (index, column, name) => {
     const scan = (step) => {
       // The item's own first line has nothing of this mapping above it.
-      if (step === -1 && indentOf(lines[index]) < column) return false;
+      if (step === -1 && indentOf(lines[index]) < column) return undefined;
       for (let i = index + step; i >= 0 && i < lines.length; i += step) {
         const line = lines[i];
         if (line.trim() === "" || /^\s*#/.test(line)) continue;
@@ -520,24 +724,26 @@ export function upgradeYaml(text, notes = []) {
         const match = KEY_LINE.exec(line);
         const at = match === null ? indent : columnOf(match);
         // Going down, a shallower line (the next item's dash included) ends it.
-        if (step === 1 && indent < column) return false;
-        if (match !== null && at === column && keyOf(match) === "relation") {
+        if (step === 1 && indent < column) return undefined;
+        if (match !== null && at === column && keyOf(match) === name) {
           const value = valueOf(match[6]);
-          return /^(["']).*\1$/.test(value) || isStringScalar(value);
+          const quoted = /^(["'])(.*)\1$/.exec(value);
+          if (quoted !== null) return quoted[2];
+          return isStringScalar(value) ? value : undefined;
         }
         // Going up, the item's first line is the last one to look at.
-        if (step === -1 && indent < column) return false;
+        if (step === -1 && indent < column) return undefined;
       }
-      return false;
+      return undefined;
     };
-    return scan(-1) || scan(1);
+    return scan(-1) ?? scan(1);
   };
 
   /** Text that is not a key's own one-line value: a body or continuation line. */
   const looseText = (line, policy, note) => {
     if (policy === null) return line;
-    const moved = policy === "paths" ? providerPaths(line) : line;
-    if (needsAPerson(moved)) notes.push(note);
+    const moved = policy === "paths" ? stage.rewrite(line) : line;
+    if (stage.needsAPerson(moved)) notes.push(note);
     return moved;
   };
   /** Whether a mapping of `mode` is rewritten or listed at all. */
@@ -545,9 +751,11 @@ export function upgradeYaml(text, notes = []) {
 
   /**
    * Open keys met so far, innermost last: { column, key, mode (of its
-   * children), policy (of its own text) }.
+   * children), policy (of its own text), names (of the mapping under it) }.
    */
   const stack = [];
+  /** The new name of each key the top-level mapping has shown, by how it was written. */
+  const rootNames = new Map();
   let scalar = null; // { column, policy, key } while inside a block scalar
   let quoted = null; // { quote, policy, key } while inside a multi-line quoted scalar
   const out = lines.map((line, index) => {
@@ -561,7 +769,7 @@ export function upgradeYaml(text, notes = []) {
       return line.replace(TOP_VERSION, (all, _q1, q2, _digits, comment) => {
         const head = all.slice(0, all.indexOf(":") + 1);
         const gap = /^\s*/.exec(all.slice(head.length))[0];
-        return `${head}${gap}${q2}${TARGET_VERSION}${q2}${comment === undefined ? "" : ` ${comment}`}`;
+        return `${head}${gap}${q2}${stage.to}${q2}${comment === undefined ? "" : ` ${comment}`}`;
       });
     }
     if (line.trim() === "" || /^\s*#/.test(line)) return line;
@@ -619,7 +827,8 @@ export function upgradeYaml(text, notes = []) {
     }
     const mode = parent === null ? M("root") : parent.mode;
     const key = keyOf(match);
-    const to = keyIn(mode, key);
+    const sibling = (name) => siblingText(index, column, name);
+    const to = keyIn(mode, key, sibling);
     const child = under(mode, key);
     const policy = textOf(mode, key);
     const rest = match[6];
@@ -629,8 +838,24 @@ export function upgradeYaml(text, notes = []) {
       match[2] !== undefined ? '"' : match[3] !== undefined ? "'" : "";
     const head = `${match[1]}${quote}${to}${quote}${match[5]}`;
     const note = `line ${number} (${key})`;
-    stack.push({ column, key, mode: child, policy: policy ?? child.text });
-    if (mode.text === "watch" && to === key && KEYS.has(key)) notes.push(note);
+    if (live(mode)) {
+      // The keys of one mapping: a list item's start anew on its `- ` line.
+      const holder = parent ?? { names: rootNames };
+      if (match[1].includes("-")) holder.names = new Map();
+      const first = holder.names.get(to);
+      if (first !== undefined && first !== key)
+        refuseTwoNames(number, to, to === key ? first : key);
+      holder.names.set(to, first ?? key);
+    }
+    stack.push({
+      column,
+      key,
+      mode: child,
+      policy: policy ?? child.text,
+      names: new Map(),
+    });
+    if (mode.text === "watch" && to === key && stage.watchedKey(key))
+      notes.push(note);
     if (BLOCK_SCALAR.test(value)) {
       scalar = { column, policy, key };
       return `${head}${rest}`;
@@ -660,14 +885,9 @@ export function upgradeYaml(text, notes = []) {
     // A plain or one-line quoted scalar.
     const bare = /^(["'])(.*)\1$/.exec(value);
     const plain = bare === null ? value : bare[2];
-    const { out: converted, listed } = textAt(
-      mode,
-      key,
-      plain,
-      key === "kind" && plain === "edge" && hasRelationSibling(index, column),
-    );
+    const { out: converted, listed } = textAt(stage, mode, key, plain, sibling);
     if (listed) notes.push(note);
-    if (isOldResolverSlot(mode, key, plain))
+    if (stage.slotNote(mode, key, plain))
       notes.push(`line ${number} (${RESOLVER_SLOT_NOTE})`);
     if (converted === plain) return `${head}${rest}`;
     const lead = /^\s*/.exec(rest)[0];
@@ -676,7 +896,7 @@ export function upgradeYaml(text, notes = []) {
   });
   notes.splice(0, notes.length, ...new Set(notes));
   return `${bom}${out.join(eol)}`;
-}
+};
 
 /** Convert a document given as text: JSON when it starts as JSON, YAML otherwise. */
 export function upgradeDocumentText(text, notes = []) {

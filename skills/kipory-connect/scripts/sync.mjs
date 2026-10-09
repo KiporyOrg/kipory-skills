@@ -5,15 +5,15 @@
 // The content hashes every generated reference page was built from are recorded
 // once, in `references/versions.md` beside this script. The deployment serves
 // all three live: `version` on `GET /v1/capability-packs` and on
-// `GET /v1/handlers`, and `info["x-kipory-surface-version"]` on
+// `GET /v1/functions`, and `info["x-kipory-surface-version"]` on
 // `GET /v1/openapi.json` for the API pages. When they match, the bundled copy is exactly what the
 // deployment would return; when they differ, the deployment moved (or these
 // files are older than it) and the live one wins.
 //
 // A layer that differs is then compared item by item. `references/manifest.json`
-// records one hash per pack, per handler and per API route, and the same three
+// records one hash per pack, per function and per API route, and the same three
 // reads serve the same hashes: `hash` on each pack in the index, `hashes` on
-// the handler catalog, `info["x-kipory-surface-operations"]` on the OpenAPI
+// the function catalog, `info["x-kipory-surface-operations"]` on the OpenAPI
 // document. The script prints the names that differ, so only those pages need
 // a live read — the rest of the layer is what the deployment serves.
 //
@@ -50,7 +50,7 @@ const referencesDir = resolve(
   "references",
 );
 // The directory the skills are installed in: the page paths manifest.json
-// records (`kipory-build/references/handlers/…`) start there.
+// records (`kipory-build/references/functions/…`) start there.
 const skillsDir = resolve(referencesDir, "..", "..");
 // Which bundle this is, before anything can fail: a run from the wrong copy
 // reports a stale bundle as a stale deployment. VERSION is written at the
@@ -85,7 +85,7 @@ if (!baseUrl) {
 
 const versionsFile = resolve(referencesDir, "versions.md");
 // manifest.json is the per-item companion:
-// { packs | handlers | api: { <name>: { hash, page? } } }.
+// { packs | functions | api: { <name>: { hash, page? } } }.
 const manifestFile = resolve(referencesDir, "manifest.json");
 // One row per layer: where the deployment serves its version, and what to do
 // when it differs from the bundled one.
@@ -108,38 +108,38 @@ const LAYERS = [
       "read GET /v1/capability-packs/{id} live for the packs listed above; the other pages under references/packs/ are what the deployment serves",
   },
   {
-    // The live list also carries the platform-only handlers, which have no
+    // The live list also carries the platform-only functions, which have no
     // page; `documented` checks the customer key set the pages cover.
-    label: "handlers",
-    path: "/v1/handlers",
+    label: "functions",
+    path: "/v1/functions",
     withKey: true,
     pick: (json) => json?.version,
     documented: (json) => {
-      if (!Array.isArray(json?.handlers)) return undefined;
-      const keys = json.handlers
+      if (!Array.isArray(json?.functions)) return undefined;
+      const keys = json.functions
         .filter((h) => h?.run?.platformOnly !== true)
         .map((h) => h.key);
       return { count: keys.length, hash: keySetHash(keys) };
     },
     items: (json) => {
-      if (!Array.isArray(json?.handlers) || !isHashMap(json?.hashes)) {
+      if (!Array.isArray(json?.functions) || !isHashMap(json?.hashes)) {
         return undefined;
       }
       return Object.fromEntries(
-        json.handlers
+        json.functions
           .filter((h) => h?.run?.platformOnly !== true && h.key in json.hashes)
           .map((h) => [h.key, json.hashes[h.key]]),
       );
     },
     advice:
-      "read GET /v1/handlers/{key} live before authoring a step; treat references/handlers/ as a sketch",
+      "read GET /v1/functions/{key} live before authoring an action; treat references/functions/ as a sketch",
     itemAdvice:
-      "read GET /v1/handlers/{key} live for the handlers listed above; the other handler pages are what the deployment serves, and the index, references/handlers/README.md, is stale for the listed ones",
+      "read GET /v1/functions/{key} live for the functions listed above; the other function pages are what the deployment serves, and the index, references/functions/README.md, is stale for the listed ones",
     // The catalog version also covers the group notes and the platform-only
-    // handlers; neither has a per-item hash here, so which of the two moved
+    // functions; neither has a per-item hash here, so which of the two moved
     // is not known.
     noItemAdvice:
-      "no documented handler differs — a group note or a platform-only handler moved; every handler page is what the deployment serves, and only the index, references/handlers/README.md, may be stale",
+      "no documented function differs — a group note or a platform-only function moved; every function page is what the deployment serves, and only the index, references/functions/README.md, may be stale",
   },
   {
     // A deployment older than the served surface version has no such field:
@@ -221,7 +221,7 @@ const diffItems = (bundledLayer, liveHashes) => {
   };
 };
 
-// The customer handler key set the handler pages document, as the generator
+// The customer function key set the function pages document, as the generator
 // wrote it: sorted keys, one per line, sha256, first 12 hex.
 const keySetHash = (keys) =>
   createHash("sha256")
@@ -229,7 +229,7 @@ const keySetHash = (keys) =>
     .digest("hex")
     .slice(0, 12);
 const DOCUMENTED =
-  /^Handler pages: (\d+) customer handlers, key set `([0-9a-f]+)`/m;
+  /^Function pages: (\d+) customer functions, key set `([0-9a-f]+)`/m;
 const documentedMatch = DOCUMENTED.exec(versionsText);
 const bundledDocumented = documentedMatch
   ? { count: Number(documentedMatch[1]), hash: documentedMatch[2] }
@@ -329,7 +329,7 @@ const reportItems = (label, result) => {
 const report = ({ label }, result, local) => {
   const live = result.live;
   /* ⛔ AN EQUAL CATALOG HASH IS "IDENTICAL" ONLY OVER THE SET THE PAGES
-   * DOCUMENT. When the bundle records which handlers it covers, the live
+   * DOCUMENT. When the bundle records which functions it covers, the live
    * customer set must match it too, or the line says so. */
   const docs = result.documented;
   const setDiffers =
@@ -354,14 +354,14 @@ const report = ({ label }, result, local) => {
   } else if (local === live && !setDiffers) {
     const over =
       docs !== undefined
-        ? ` (${docs.count} customer handlers documented; platform-only ones have no page)`
+        ? ` (${docs.count} customer functions documented; platform-only ones have no page)`
         : "";
     console.log(
       `  ${label.padEnd(9)} bundled: ${local}   live: ${live}   ✓ identical — the bundled copy is what the deployment serves${over}`,
     );
   } else {
     const set = setDiffers
-      ? ` (documented ${bundledDocumented.count} customer handlers, live lists ${docs.count})`
+      ? ` (documented ${bundledDocumented.count} customer functions, live lists ${docs.count})`
       : "";
     console.log(
       `  ${label.padEnd(9)} bundled: ${local}   live: ${live}   ✗ DIFFERS — prefer the deployment: it moved, or these files predate it${set}`,

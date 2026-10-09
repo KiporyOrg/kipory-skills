@@ -63,8 +63,8 @@ refused.
 
 ## How a flow reads it
 
-Through the project provider attribute — `projectInfo.config.<namespace>.<field>`. No skill, no
-handler call; it is resolved once per run and cached for that run.
+Through the project provider attribute — `projectInfo.config.<namespace>.<field>`. No action, no
+function call; it is resolved once per run and cached for that run.
 
 The map a flow sees is the **effective** one, so a flow picks up a field's default the moment the
 shape declares it. Each row also carries **`defaults`** — the half of `effective` your overrides did
@@ -116,5 +116,5 @@ Three corners worth holding:
 
 - Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring the shape a
   namespace binds.
-- Flows & skills (capability pack `flows-and-skills` — `GET /v1/capability-packs/flows-and-skills`) — where the wiring that reads config lives.
+- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — where the wiring that reads config lives.
 - Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — pinning behaviour that a tunable can move.

@@ -2,7 +2,7 @@
 
 # Managed email addresses
 
-Sending identities attached to a node, which the outbound mail handler sends from.
+Sending identities attached to a node, which the outbound mail function sends from.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
