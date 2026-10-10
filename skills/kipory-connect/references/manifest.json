@@ -936,7 +936,7 @@
       "page": "kipory-data/references/api/records.md"
     },
     "GET /v1/managed-email-addresses/": {
-      "hash": "95a9df39448d",
+      "hash": "b4fdf31a8aee",
       "page": "kipory-channels/references/api/managed-email-addresses.md"
     },
     "GET /v1/me/": {
@@ -1485,7 +1485,7 @@
       "hash": "b72667138745"
     },
     "POST /v1/managed-email-addresses/": {
-      "hash": "ffaf186d77f6",
+      "hash": "46978ca91043",
       "page": "kipory-channels/references/api/managed-email-addresses.md"
     },
     "POST /v1/me/projects": {

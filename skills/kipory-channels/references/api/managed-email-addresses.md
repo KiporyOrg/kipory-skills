@@ -17,7 +17,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/managed-email-addresses`
 
-The managed sending addresses a node owns itself (`?node=`), not those of the nodes beneath it. Requires **VIEWER** at the node.
+The managed sending addresses a node owns itself (`?node=`), not those of the nodes beneath it, and the domains this deployment can send from (`sendableDomains`). Requires **VIEWER** at the node.
 
 A sending address is a platform-wide claim on a name, distinct from a stored credential: credentials are `GET /v1/secrets`.
 
@@ -32,6 +32,7 @@ A sending address is a platform-wide claim on a name, distinct from a stored cre
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `addresses` | `object[]` | yes | The node's own addresses, ordered by domain then local part. |
+| `sendableDomains` | `string[] \| null` | yes | The domains this deployment can send from, so a claim can be aimed at one. `null` when it restricts none: any well-formed domain then claims, which says nothing about whether mail from it is delivered. |
 
 Each item of `addresses`:
 
@@ -49,7 +50,7 @@ Each item of `addresses`:
 
 ### `POST /v1/managed-email-addresses`
 
-Claim a managed sending address for a node (`node` in the body). The name is unique across the whole platform, so a taken one is refused 409. Requires **ADMIN** at the node.
+Claim a managed sending address for a node (`node` in the body). The name is unique across the whole platform, so a taken one is refused 409. A domain this deployment cannot send from is refused 422 with the ones it can in `details.sendableDomains`; read them first from `GET /v1/managed-email-addresses`. Requires **ADMIN** at the node.
 
 To change its display name, reply-to or grade later, or to switch it off, `PATCH /v1/managed-email-addresses/{id}`; to give the name up, `DELETE`.
 
