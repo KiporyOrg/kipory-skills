@@ -2,6 +2,21 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261010.75128 — 2026-10-10
+
+Synced from the Kipory monorepo at `2dac14773`.
+
+Functions added: `source.unwatch`, `source.watch`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- added: `skills/kipory-build/references/functions/source.unwatch.md`
+- added: `skills/kipory-build/references/functions/source.watch.md`
+- changed: `skills/kipory-channels/references/api/sources.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261009.202827 — 2026-10-09
 
 Synced from the Kipory monorepo at `ddb44fd19`.

@@ -70,7 +70,7 @@
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
-      "hash": "9ed1f0ddb982",
+      "hash": "222ab054751f",
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
@@ -326,6 +326,14 @@
     "reddit.search": {
       "hash": "df4b5100b855",
       "page": "kipory-build/references/functions/reddit.search.md"
+    },
+    "source.unwatch": {
+      "hash": "d867cd1658ff",
+      "page": "kipory-build/references/functions/source.unwatch.md"
+    },
+    "source.watch": {
+      "hash": "713e6927b1d0",
+      "page": "kipory-build/references/functions/source.watch.md"
     },
     "state.read": {
       "hash": "72afc201606c",
@@ -1178,7 +1186,7 @@
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "GET /v1/sources/": {
-      "hash": "5a88ddc3c8c0",
+      "hash": "450ddfbdecea",
       "page": "kipory-channels/references/api/sources.md"
     },
     "GET /v1/sources/providers": {
@@ -1186,7 +1194,7 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "GET /v1/sources/{id}": {
-      "hash": "f47ac7c3ee53",
+      "hash": "5b4402557ebf",
       "page": "kipory-channels/references/api/sources.md"
     },
     "GET /v1/tables/": {
@@ -1344,7 +1352,7 @@
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "PATCH /v1/sources/{id}": {
-      "hash": "44d102dbb4e9",
+      "hash": "3990e282ffad",
       "page": "kipory-channels/references/api/sources.md"
     },
     "PATCH /v1/tables/{id}": {
@@ -1581,7 +1589,7 @@
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "POST /v1/sources/": {
-      "hash": "81d5a556012a",
+      "hash": "cff2855350c3",
       "page": "kipory-channels/references/api/sources.md"
     },
     "POST /v1/tables/": {

@@ -77,6 +77,39 @@ and the design layer gets there first with a 409 naming the source that already 
 sources on one channel would mean two events, two media copies and two admissions for one message,
 so a create or a patch that would produce one is refused rather than reconciled.
 
+A Telegram handle is stored in one spelling, lower-case: `@HarbourDaily` is written and read
+back as `@harbourdaily`, and is the same channel as `@harbourdaily`. A numeric id is kept as sent.
+
+## Watching on demand, from a flow
+
+When **what is watched is decided by your users** — a person follows a creator, and through it a
+channel — do not write a source per follow from outside. A flow does it with two actions:
+
+- `source.watch` holds a watch on one channel for one **holder** you name — use the id of the
+  record that stands for the follow. The first holder makes the project's source for the channel; a
+  later one adds a hold; a source that was switched off is switched back on.
+- `source.unwatch` lets that holder go. The channel stays watched while anyone else holds it; the
+  last one switches its source off (never deletes it).
+
+The routing stays yours, at design time: create **one** trigger on `categoryKey: "telegram"`,
+`eventKey: "message"` with **no `sourceId`**. A trigger without a source hears every source of its
+provider in the project, so every channel a flow watches runs that one flow, and no flow's data
+can point messages anywhere else. You may create that trigger before the project has any
+Telegram source. Saving a flow with `source.watch` and no such trigger warns you.
+
+What holds:
+
+- **It lands with the run.** The watch is written with the run's other writes; a run that fails
+  watches nothing.
+- **A cap.** A project may keep at most 200 Telegram sources watched by runs (the platform can raise
+  it for you). A watch past it fails the run with 409 `SOURCE_WATCH_CAP`; holds on channels already
+  watched never count.
+- **About a minute** before the platform starts reading a newly watched channel.
+- **What it costs** is the runs your trigger starts, one per message. Letting the last holder go
+  stops them; the platform's own reader stays in the channel, which costs you nothing.
+- **A preview watches nothing.** It answers what the action would have done, marked `preview`.
+- `GET /v1/sources` says which sources runs hold (`watchedByRuns`) and by how many (`holders`).
+
 ## What the flow receives
 
 The envelope in the reserved `event` slot. Its payload sits under the envelope's `data` field, and
