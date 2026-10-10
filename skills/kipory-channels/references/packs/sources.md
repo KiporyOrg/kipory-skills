@@ -146,6 +146,9 @@ An edited message is a second event with a different id; a deleted one a third.
 - A key already taken for the provider in the project (409).
 - A create or a patch that would point a second source at a channel this project already watches
   (409 naming the source that has it).
+- A patch that would move a source flows hold (`holders` above 0) to another channel (409, with the
+  number of holders among its details). The holders name it by its channel, so their `source.unwatch` could
+  never release it there. Create a source for the new channel instead.
 - A delete while any trigger listens (409 `SOURCE_HAS_LISTENERS`, with the count). Delete the
   triggers first, on purpose. Every source on the read carries `deleteRefusal` — that refusal in
   the delete's own words, or null — from the function the delete throws from, so offer Delete

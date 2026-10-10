@@ -149,7 +149,7 @@ Read one source, with its health, listening count and `deleteRefusal`. The event
 
 ### `PATCH /v1/sources/{id}`
 
-Change a source's name or config (the provider is permanent), or switch it on or off with `enabled` — a source switched off writes no events. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. On a retired project only `{enabled: false, version}` is accepted. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change a source's name or config (the provider is permanent), or switch it on or off with `enabled` — a source switched off writes no events. Requires the `version` you read; a stale one is 409 `VERSION_CONFLICT`. A config that moves a source flows hold (`holders` above 0) to another channel is 409: create a source for the new channel instead. With `validateOnly: true` it answers whether the patch would be refused, writing nothing. On a retired project only `{enabled: false, version}` is accepted. Several rows at once: `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 

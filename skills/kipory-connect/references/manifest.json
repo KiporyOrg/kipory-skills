@@ -70,7 +70,7 @@
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
-      "hash": "222ab054751f",
+      "hash": "71784e078f72",
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
@@ -1352,7 +1352,7 @@
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "PATCH /v1/sources/{id}": {
-      "hash": "3990e282ffad",
+      "hash": "2e87fe0d1951",
       "page": "kipory-channels/references/api/sources.md"
     },
     "PATCH /v1/tables/{id}": {
