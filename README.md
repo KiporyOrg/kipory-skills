@@ -2,7 +2,7 @@
 
 Skills that teach a coding agent how to build a product on **Kipory**, over its HTTP API.
 
-Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code — its flows, record types, HTTP endpoints, triggers, schedules, vocabularies and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a product's whole backend without writing an application, which is what these skills are for. The frontends people use are clients of what the project exposes.
+Kipory is a platform for building a product's backend — its processes, its data, and the entry points the outside uses. A product on Kipory is a **project**, and a project is not code — its flows, tables, HTTP endpoints, triggers, schedules, vocabularies and events are validated configuration rows you author by calling the design API. So an agent with an API key can build a product's whole backend without writing an application, which is what these skills are for. The frontends people use are clients of what the project exposes.
 
 ## Words on the site and in the API
 
@@ -71,9 +71,9 @@ Every generated file opens with a stamp naming its source, and the content hashe
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `kipory-connect`  | **Start here.** Prove the deployment and the key, read the project in one call, learn the conventions every route shares                                                          |
 | `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                                                                                    |
-| `kipory-model`    | Record types and shapes, vocabularies and terms, relation kinds, the embedding profile that makes records searchable                                                              |
+| `kipory-model`    | Tables and shapes, vocabularies and terms, relations, the embedding profile that makes records searchable                                                                         |
 | `kipory-build`    | Build and edit flows over the function catalog: actions, slots, output binding, health, preview, checkpoints                                                                      |
-| `kipory-data`     | Read and write records, files and edges by hand: import, correct, reprocess, delete; the processing stream                                                                        |
+| `kipory-data`     | Read and write records, files and links by hand: import, correct, reprocess, delete; the processing stream                                                                        |
 | `kipory-gather`   | Reach outside the project: fetch and scrape pages, call an API with or without a stored key, send a request to an outside system, web search, social platforms, places, geocoding |
 | `kipory-extract`  | Turn a file into something a flow can use: PDF text, page renders, transcripts, image data, signed links                                                                          |
 | `kipory-retrieve` | Search the project's own records and answer over them: chunk, embed, search, re-rank, and sanitize                                                                                |

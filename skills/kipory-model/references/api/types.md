@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# Schema entries
+# Types
 
-Reusable typed shapes a record type or a flow output refers to. Builtin and library shapes are synthesized on read and have no rows; the seed call materialises the flow-provider entries and is idempotent.
+Reusable typed shapes a table or a flow output refers to. Builtin and library shapes are synthesized on read and have no rows; the seed call materialises the flow-provider types and is idempotent.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -19,7 +19,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/types`
 
-Read a project's type registry: the platform's builtin and library types and the project's own types, filtered by tier or key, with `expand=graph` for the type-relation graph and `expand=keywords` for what each keyword does. `GET /v1/bootstrap` carries the registry in one snapshot with the rest of the project; `GET /v1/projects/{nodeId}/document` carries the project's own types by key (`schema`, and each table's inline `shape`).
+Read a project's type registry: the platform's builtin and library types and the project's own types, filtered by tier or key, with `expand=graph` for the type-reference graph and `expand=keywords` for what each keyword does. `GET /v1/bootstrap` carries the registry in one snapshot with the rest of the project; `GET /v1/projects/{nodeId}/document` carries the project's own types by key (`schema`, and each table's inline `shape`).
 
 **Query**
 
@@ -35,7 +35,7 @@ Read a project's type registry: the platform's builtin and library types and the
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `entries` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
-| `graph` | `object` | no | The project's type-relation graph. Present only with `expand=graph`, because building it costs the whole graph. |
+| `graph` | `object` | no | The project's type-reference graph. Present only with `expand=graph`, because building it costs the whole graph. |
 
 Each item of `entries`:
 
@@ -236,7 +236,7 @@ Each item of `consequences`:
 
 ### `DELETE /v1/types/{id}`
 
-Delete one type. Refused (409) while anything references it — a table's shape, an event type's payload, a config namespace, a relation, the end-user profile, or a flow, action or type in the project's type-relation graph. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with the count of each kind of reference (`derived`). Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+Delete one type. Refused (409) while anything references it — a table's shape, an event type's payload, a config namespace, a relation, the end-user profile, or a flow, action or type in the project's type-reference graph. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with the count of each kind of reference (`derived`). Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 
@@ -287,7 +287,7 @@ Store the platform-provided types a project's flows need (idempotent), then answ
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `entries` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
-| `graph` | `object` | no | The project's type-relation graph. Present only with `expand=graph`, because building it costs the whole graph. |
+| `graph` | `object` | no | The project's type-reference graph. Present only with `expand=graph`, because building it costs the whole graph. |
 
 Each item of `entries`:
 

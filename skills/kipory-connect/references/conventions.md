@@ -64,7 +64,7 @@ These files name a route's floor in capitals. On the wire a role is lowercase �
 
 ## `expand=`
 
-<!-- field-ok: flowLabels — an expand KEY on the record-types read, not a property -->
+<!-- field-ok: flowLabels — an expand KEY on the tables read, not a property -->
 
 A comma-separated list of computed fields a read will add. Each may cost extra queries, so ask only for what you will read. The values each read takes today — the route's own page under `api/` is authoritative when the two differ:
 

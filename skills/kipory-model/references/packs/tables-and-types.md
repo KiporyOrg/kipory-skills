@@ -63,7 +63,7 @@ list — every event type and table whose version moved with it — as the table
 flow PATCHes do.
 
 Both are scoped by `project`. Reads take useful expansions: the synthesised derived output shape,
-a **drift** verdict, and the type-relation graph.
+a **drift** verdict, and the type-reference graph.
 
 ## The model to hold
 
@@ -665,7 +665,7 @@ Each kind of clause is answered by the store its use routed the field to, so eac
   one hop to its canonical term, as every term read does. It matches **active** terms only: a record
   filed under a candidate term is not found by a `term` clause, or by the list's `term=` condition,
   until the term is admitted (`PATCH /v1/terms/{id}`).
-- **`edge`** needs a `link` for the `relation`, on the field that points. `direction` is
+- **`link`** needs a `link` use for the `relation`, on the field that points. `direction` is
   `outgoing` unless you say `incoming` or `either` (a symmetric link matches on either side
   whatever you ask). Asked `outgoing`, the link is on a field of the queried table. Asked `incoming`
   or `either`, a link on a field of a table that points AT the queried one routes it too: with
@@ -831,7 +831,7 @@ typed, among the guides they follow" is one action.
 
 - 422 `QUERY_CLAUSE_UNROUTED` — a clause on a field, vocabulary, relation or filter property the
   table's `uses` does not route. The message names the field and the use to declare; no store scans
-  for it. For the action, at flow save; for the route, at request — it has no save step. The two shape
+  for it. For the action, at flow save; for the route, at request — it is never saved. The two shape
   refusals sit beside it: `QUERY_SEMANTIC_MULTIPLE` (a second semantic clause) and
   `QUERY_PEER_DEPTH` (a `peer` holding anything but `field`, `term` and `semantic`).
 - 422 `QUERY_CLAUSE_TOO_BROAD` — the first exact clause selected more than a million records
@@ -894,7 +894,7 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
   false when it would leave an error it introduces in a flow, as a document plan of the same delete
   answers, with the findings in `leavesBehind` and what it takes along in `consequences`.
 - **Deleting a type** while it is a table's data shape
-  (`TYPE_REFERENCED_BY_TABLE`) or referenced by the type-relation graph
+  (`TYPE_REFERENCED_BY_TABLE`) or referenced by the type-reference graph
   (`SCHEMA_REFERENCED_BY_GRAPH`). ⭐ Ask the delete with `validateOnly=true` in the query: it runs
   the same gate the delete runs and answers a 200 verdict, with `derived` carrying the census of
   everything pointing at the type — tables, event types, configuration namespaces,
@@ -906,8 +906,9 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
   `GET /v1/types?expand=graph` says which graph references those are before you try: each
   type carries `usedByGraph` and `usedByGraphRefs` — the flows, actions, functions and sibling types
   that name it DIRECTLY. A flow taking a type that references this one is listed under that type,
-  not here. The `graph` section beside the types resolves a relation's source ids through three
-  maps: `flowLabels` (flow id → label), `actionKeys` (action id → key) and `entryKeys` (type id → key).
+  not here. The `graph` section beside the types lists them under `references`; a validate-only delete
+  (`DELETE /v1/types/{id}?validateOnly=true`) counts in `derived.blockingReferences` how many would refuse it. It resolves a reference's source
+  ids through three maps: `flowLabels` (flow id → label), `actionKeys` (action id → key) and `entryKeys` (type id → key).
 
 - **Deleting a table** that has records, was seeded, or carries a reserved table name (a
   platform-wide set, not something your project defines). The DELETE answers 409 `CONFLICT` for

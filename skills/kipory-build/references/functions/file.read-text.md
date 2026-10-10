@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
 # `file.read-text` — Read a text file
 
@@ -75,7 +75,7 @@ Output:
 
 #### A PDF
 
-Non-text mime — the function throws a `mime-mismatch` HandlerFailure rather than silently mangling binary bytes. Use `pdf.parse` for PDFs.
+Non-text mime — the function throws a `mime-mismatch` FunctionFailure rather than silently mangling binary bytes. Use `pdf.parse` for PDFs.
 
 Reads `file` → emits `string` · 1 in → 1 out
 
@@ -88,7 +88,7 @@ reports/2026-q1.pdf (application/pdf)
 Output:
 
 ```
-Error: mime-mismatch HandlerFailure
+Error: mime-mismatch FunctionFailure
   mime: "application/pdf" is not in the text-decodable allowlist.
   Use pdf.parse for PDFs, or pass the FileRef directly to a
   multimodal LLM for images / audio / video.

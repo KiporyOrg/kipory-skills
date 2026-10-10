@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# Facets and terms
+# Vocabularies and terms
 
-A facet is a classification kind; a term is one value in it. Two write paths reach terms — through the facet, and directly — and `version` is required on every facet patch.
+A vocabulary is a managed list of values; a term is one value in it. Two write paths reach terms — through the vocabulary, and directly — and `version` is required on every vocabulary patch.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 

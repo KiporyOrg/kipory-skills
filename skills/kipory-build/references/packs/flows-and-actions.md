@@ -65,7 +65,7 @@ binding bumps it — a PATCH, a checkpoint restore, a project document's apply �
 answers 409 `VERSION_CONFLICT`. Re-read the flow and reapply your change; do not blind-retry.
 An action's `key` follows the action-name grammar (below) and is renameable.
 
-⚠️ **There is no activation step, and no flow lifecycle state.** A flow has no active/inactive flag,
+⚠️ **There is no activation, and no flow lifecycle state.** A flow has no active/inactive flag,
 and nothing publishes one — a flow becomes reachable by being _bound_ to something (an endpoint, a
 schedule, a table, a vocabulary resolver), and unreachable by not being. If you went looking for an
 activate call, that is why you did not find one.
@@ -502,7 +502,7 @@ action that sets none behaves as it always has.
 
 ## Asking about an action you have not saved
 
-0 <!-- count: editor-inputs-from-config --> functions do not take their inputs
+29 <!-- count: editor-inputs-from-config --> functions do not take their inputs
 from the action row: they name them INSIDE their own configuration. `value.transform` — the most-used function there is — names them
 inside a JSONata expression, so writing the expression IS writing the action's input list, and there
 is nothing to pick from a list.
@@ -1009,7 +1009,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 
 - **An action's `key` must be an action name** on every write that states one — a single create, a batch, a
   project document's action alike — lower-case kebab, `analyze-text` is a complete key. A dot
-  may group segments (`custom.my-skill`), but grouping is yours to choose: nothing dispatches on
+  may group segments (`custom.my-action`), but grouping is yours to choose: nothing dispatches on
   the segment before the dot, and no group has to exist before a key does. What is refused is
   anything outside the grammar: uppercase, underscores, spaces, a leading digit, an empty
   segment. Slots use a different, plainer identifier grammar. The rule is a write rule: a
@@ -1025,10 +1025,10 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   a non-prompt config field the function declares (`text.generate`'s `modelSlot` is one). A PATCH
   sending `promptTemplate` alone — or `functionConfig` alone — re-derives the set for you (keeping
   the action's wired files); a PATCH that also sends `inputStreams` is judged on the list it sends.
-- **`CONFIG_SLOT_PATH_CROSSES_LIST`** — a config slot path takes a bare FIELD step off a LIST,
+- **`CONFIG_SLOT_PATH_CROSSES_LIST`** — a config slot path takes a bare FIELD segment off a LIST,
   which reads nothing: a list has no fields, so the value resolves to `undefined` on every run and
   the action behaves as though nothing were wired. `hits.chunks.text` is refused where
-  `hits` holds a list. ⭐ **Say which item instead** — a config path carries the same steps
+  `hits` holds a list. ⭐ **Say which item instead** — a config path carries the same segments
   a wire does: `hits[0].id` for one item, `hits[first]` / `hits[last]`, and `hits[].id` for that
   field taken from every item. Naming the list itself passes the whole list. ⚠️ **A WIRE's printed
   path is not always a config path.** An input projection is sometimes printed with the suffix `.first`,
@@ -1092,8 +1092,8 @@ refused.
   reasoning, summarisation, embedding, tiebreak — and that is what selects the model, through a
   binding set once for the whole project. The model itself is optional on every
   write, and leaving it out is how an action keeps following that binding. Name one and you have
-  pinned that action: the project's next model change moves every other action and silently steps
-  around yours. Pin deliberately, for an action that genuinely needs a particular model, not as a
+  pinned that action: the project's next model change moves every other action and silently passes
+  yours by. Pin deliberately, for an action that genuinely needs a particular model, not as a
   field you felt obliged to fill in. An unrecognised model is refused at the write either way.
 
   **`GET /v1/nodes/{nodeId}/task-models`, at the project's id, is how you see the binding you
@@ -1112,7 +1112,7 @@ refused.
   one is a decision, the other is its absence. It is the same walk the runtime performs, so what it
   reports is what an action will actually run on.
 
-  ⚠️ An action's `taskKey` may name only a task carrying `assignableToAction`. The taxonomy is wider
+  ⚠️ An action's `taskKey` may name only a task carrying `assignableToAction`. The task list is wider
   than what an action may name, and an action naming an unassignable task is refused at the write:
   `transcription` and `rerank` are resolved by their functions directly, and `substrate-embedding`
   is the platform's. Read the field rather than trusting that list.
@@ -1244,7 +1244,7 @@ What the answer means for the write:
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — exposing a flow over HTTP.
 - Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`) — snapshot before a risky edit.
 - Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — make "it works" a stored, replayable claim with a contract suite.
-- Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — read before assuming a step exists.
+- Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — read before assuming a function exists.
 - Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — producers before consumers, and how two flows that
   invoke each other are created.
 

@@ -33,7 +33,7 @@ subscribe on the bus, depending on scope.
   type you read carries `listenable`, the platform's answer to all three at once and the same test
   a trigger write applies, so offer what it says rather than re-deriving the rule from `durable`,
   scope and status. A `flow.invoke` action is the coupled way, and the right one when the second flow
-  is really a step of the first.
+  is really a part of the first.
 
 ### Scope decides the transport, so choose it by who needs to hear it
 

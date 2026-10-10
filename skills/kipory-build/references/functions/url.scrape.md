@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
 # `url.scrape` — Fetch a web page
 
@@ -15,7 +15,7 @@ Loads a page in a real browser and returns it as clean markdown, together with t
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
-- **Charged as:** `firecrawl/scrape` per call. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; a step spending a stored vendor key is not charged it.
+- **Charged as:** `firecrawl/scrape` per call. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
 - **Rate limit:** 10 per min in bucket `firecrawl` — shared with `url.screenshot`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 

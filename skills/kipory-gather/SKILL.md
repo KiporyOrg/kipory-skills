@@ -111,7 +111,7 @@ real browser.
   skill says how to store one). Set `responseAs` to `json` to address an object's fields, or to `json-list` for an API that returns
   a list of objects, which a fan-out can then walk. It is a
   read: it may be sent several times and is cached, so a POST here must change nothing.
-  <!-- field-ok: bodySlot — a `url.fetch` config field, listed on the handler's reference page -->
+  <!-- field-ok: bodySlot — a `url.fetch` config field, listed on the function's reference page -->
 - **`url.metadata`** when you only need the head: title, description, icon. It reads the page's head
   over plain HTTP with no JS render, so it is cheap and it is wrong about pages that build their
   own title in the browser. It is also the liveness check: a site that cannot be reached does not
@@ -165,7 +165,7 @@ for `url.fetch` to do that, because a read is cached and may be sent several tim
   retried for about ten minutes, every attempt with the same `Idempotency-Key` header. A 3xx or
   4xx is final: a redirect is not followed. A new run of the same input stages a new request;
   name an `idempotencyKeySlot` so the receiving system can recognise that repeat too.
-  <!-- field-ok: idempotencyKeySlot — a `url.send` config field, listed on the handler's reference page -->
+  <!-- field-ok: idempotencyKeySlot — a `url.send` config field, listed on the function's reference page -->
 - **In a preview or an eval run the action fails rather than sending.** To preview the rest of the
   flow, guard the action with a condition over a slot the preview's inputs leave empty;
   `"onFailure": "continue"` is refused on it (`RUN_CONTINUE_NOT_ALLOWED`), as on any action that may

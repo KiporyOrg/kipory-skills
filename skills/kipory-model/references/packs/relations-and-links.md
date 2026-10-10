@@ -89,7 +89,7 @@ is no window where the record is saved and its links are not.
   keeps who asserted what, and when), nothing reconciles a curated relation, and cardinality is not
   enforced — assertions arrive one at a time from different people, so a limit could only ever be
   checked against whatever happened to have arrived.
-- **`join-record`** — the table IS the link. No `RecordRelation` row is ever written: a
+- **`join-record`** — the table IS the link. No `Link` row is ever written: a
   traversal resolves against the join table's records instead, and a link's properties are that
   record's own fields. Cardinality is **not enforced here either**, and for a sharper reason — there
   is no link write at all, so nothing on any path could count a degree. The platform refuses one
@@ -352,7 +352,7 @@ Both work on the per-relation walk (`GET /v1/records/{id}/links/{relationKey}`) 
 sweep (`GET /v1/links?project=…&relation=K&where=…`).
 
 ⚠️ **A property nobody declared is a 422 `LINK_FILTER_UNDECLARED`, never a scan.** This is the one
-run-time refusal in the vocabulary: the read has no save step where the clause could be validated.
+run-time refusal in the vocabulary: a read is never saved, so nothing could validate the clause earlier.
 Check the relation's `linkFilters` map (on the relation read) before you offer a property to filter
 on.
 
@@ -574,7 +574,7 @@ well-typed.
 
 A relation read offers two counts, both behind `expand`, and they are not interchangeable:
 
-- **`expand=relationCount`** — every `RecordRelation` row of this relation, retracted ones included.
+- **`expand=relationCount`** — every `Link` row of this relation, retracted ones included.
   This is the **blast radius**: deleting the relation destroys every one of them, retracted or not.
   Show this in a delete confirmation.
 - **`expand=liveRelationCount`** — only the rows with `validTo IS NULL`. This is **what the project
@@ -642,7 +642,7 @@ Do not promise these:
   saying so, because the field is the truth and the history lives on the record. Only a curated
   link expires rather than vanishing.
 - **No peer clause on the link read.** A `where` here names a property stamped on the LINK; it
-  cannot reach into the peer record's own declared fields. That question is a query: the `edge`
+  cannot reach into the peer record's own declared fields. That question is a query: the `link`
   clause of a query takes a `peer` list of `field`, `term` and at most one `semantic` clause on the
   record at the far end, one hop — see the query section of
   Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`). OR across clauses is not

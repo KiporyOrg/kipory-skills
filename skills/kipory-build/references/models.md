@@ -1,6 +1,6 @@
 # Models: which function asks, which model answers
 
-Everything about an action that calls a model: which function fits the question, how a `text.decide` question is written, which model an action runs on and how to change it, what a model costs, and what to do when a provider stops answering. Field names are the functions' own config keys — `handlers/<key>.md` has each table.
+Everything about an action that calls a model: which function fits the question, how a `text.decide` question is written, which model an action runs on and how to change it, what a model costs, and what to do when a provider stops answering. Field names are the functions' own config keys — `functions/<key>.md` has each table.
 
 ## 1. Which model function asks the question
 

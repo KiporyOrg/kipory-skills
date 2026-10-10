@@ -15,7 +15,7 @@ Both responses carry a `version` — a content hash of the whole served set. Cac
 refetch when it moves; a `version` you have not seen means this deployment's judgment layer
 changed under you.
 
-Read one or two packs per step, not all of them. The index below is built for that.
+Read one or two packs at a time, not all of them. The index below is built for that.
 
 The same set is indexed for agents that look for it at `/llms.txt` on the api host, with each
 pack as a markdown page at `/llms/{id}.md` — the JSON routes above and those pages are computed
@@ -150,7 +150,7 @@ quietly working around it.
   rather than blind-retrying.
 - **A 2xx is not a promise it will run correctly.** Saves return success even when wiring is still
   unresolved; only a resource's _blocking_ problems refuse the write. Nothing is stricter later:
-  there is no activation step, and a flow with unresolved wiring still runs — wrongly. ⚠️ `outstandingIssues` is the flow
+  nothing activates a flow, and a flow with unresolved wiring still runs — wrongly. ⚠️ `outstandingIssues` is the flow
   plane's channel and does not appear on every save; elsewhere, re-read the resource asking for
   readiness.
 - **Seeded rows cannot be DELETED.** Anything the platform seeded refuses a delete — but a PATCH is

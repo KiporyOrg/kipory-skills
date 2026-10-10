@@ -66,7 +66,7 @@ the identical key always matches, and under `semantic` so does a value the resol
 above the vocabulary's high threshold (or the tiebreak accepts). A second record about the same
 thing lands on the candidate the first one coined, and that candidate stays a candidate. How many
 records a candidate carries is the evidence for admitting it — read it from the terms list — and
-admitting, merging or archiving is still your step: nothing activates a candidate on its own.
+admitting, merging or archiving is still yours to do: nothing activates a candidate on its own.
 
 ⚠️ Reuse is as good as the match. Short or differently worded values (`tv`, then `television`)
 score low against each other and can still coin two candidates; merge them when you review. A
@@ -144,7 +144,7 @@ the platform binds for that kind of decision.
 
 ```
 GET   /v1/vocabularies/resolvers what this project may bind
-POST  /v1/vocabularies           create the facet (identity, cardinality)
+POST  /v1/vocabularies           create the vocabulary (identity, cardinality)
   … or build your own resolver flow …
 PATCH /v1/vocabularies/{id}      bind resolverFlowId (and mint, matching, params, proposal)
   … then author the ingest flow that resolves it …
@@ -286,7 +286,7 @@ while a project is still being assembled.
   a table already surfacing the vocabulary is refused with `TYPE_UNSAFE_FOR_TABLE`. A pair that
   arises any other way (a flow output of that name, say) is not refused; the table's
   diagnostics report it. Pick a key no surfacing table uses as a field name (`cuisineTag`).
-  <!-- field-ok: cuisineTag — an example facet key a project would author, not a platform field -->
+  <!-- field-ok: cuisineTag — an example vocabulary key a project would author, not a platform field -->
 - **An empty label is refused** with `VOCABULARY_LABEL_EMPTY`, on the create and the rename alike.
   ⭐ Every one of these refusals carries the field it is about on `details.issues`.
 - **A parent vocabulary is cardinality `one`** (`VOCABULARY_PARENT_CARDINALITY` on the child's
@@ -504,7 +504,7 @@ different claims, and only one of them is true.
 - **`vocabulary.resolve` runs inline, not queued.** It dispatches sub-flows bound to the live run:
   depth and cycle guards, the provider cache, the tenant scope, billing. That is precisely why it
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.
-- **Terms are the vocabulary substrate; there is no separate taxonomy resource.** Vocabulary
+- **Terms are the vocabulary substrate; no separate resource holds a vocabulary's values.** Vocabulary
   statistics and samples are computed over terms.
 - **A term carries a `version`, and its writes are locked on it.** `GET /v1/terms` publishes it;
   `PATCH /v1/terms/{id}` (rename, archive, restore or admit — both a label and a status in one call

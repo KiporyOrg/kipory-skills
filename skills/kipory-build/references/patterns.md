@@ -5,7 +5,7 @@
 <!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
 
-Six control shapes cover how most flows are wired. Each names the control functions involved and the one rule each has that is not obvious from its config table. Field names are the function's own config keys — see `handlers/<key>.md` for the full table and a worked example.
+Six control shapes cover how most flows are wired. Each names the control functions involved and the one rule each has that is not obvious from its config table. Field names are the function's own config keys — see `functions/<key>.md` for the full table and a worked example.
 
 The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7 (a record's processing flow), §8 (what an endpoint answers: 404, 422, optional filters), §9 (`record.query` and a per-user feed) and §10 (roll-ups); `models.md` holds which model function to use, `text.decide` questions, model bindings and prices.
 
@@ -66,7 +66,7 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → record.up
 - The sub-flow returns only the output slots it binds. `subFlowSlot` in an `outputs[]` row names one of them; a slot a sub-flow action wrote and the sub-flow did not bind never reaches the parent.
 - The validator refuses a cycle, a depth over the limit, a cross-project target, two input rows that fill the same `subFlowSlot` (`FLOW_INVOKE_DUPLICATE_INPUT`), and two output rows that read the same `subFlowSlot` (`FLOW_INVOKE_DUPLICATE_OUTPUT`). Two input rows reading the same `parentSlot` are not duplicates.
 - **You never state `derivedShape`.** The platform types each `outputs[]` row from the sub-flow action that writes `subFlowSlot` — on a single action save and in a document alike, including for a sub-flow the same document creates. A document that rewrites a sub-flow's actions re-types every action calling it, restated or not; a single action save of the sub-flow does not, so save the calling action again — until then health says `FLOW_INVOKE_DERIVED_SHAPES_STALE`. A mapped slot no sub-flow action writes has no shape.
-- **Leave `inputStreams`, `inputSchemas` and `outputSlot` to the platform.** An action save — single or document — derives the inputs from the `kind: "slot"` input rows (each row's `parentSlot` in row order, its `path` beside it), types them from the flow it calls, and mirrors the first output's `parentSlot` into `outputSlot`. A list you state is replaced by the derived one, in a document as on a single save, so there is nothing to keep in step. Other action fields as in `first-flow.md` §8:
+- **Leave `inputStreams`, `inputSchemas` and `outputSlot` to the platform.** An action save — single or document — derives the inputs from the `kind: "slot"` input rows (each row's `parentSlot` in row order, its `path` beside it), types them from the flow it calls, and mirrors the first output's `parentSlot` into `outputSlot`. A list you state is replaced by the derived one, in a document as on a single save, so there is nothing to keep in sync. Other action fields as in `first-flow.md` §8:
 
 ```json
 "brief": {

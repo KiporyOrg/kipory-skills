@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# Record types
+# Tables
 
-A record type is a kind of record the project holds — its shape, owner scope, vocabularies, natural key and processing flow. Name, owner scope and data-shape reference freeze once the first record exists.
+A table holds one kind of the project's records — its shape, owner scope, vocabularies, natural key and processing flow. Name, owner scope and data-shape reference freeze once the first record exists.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 

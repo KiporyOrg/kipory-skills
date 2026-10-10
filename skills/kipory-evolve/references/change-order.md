@@ -48,7 +48,7 @@ schema.
 | The request                                                   | Class       | What it needs                                                                            |
 | ------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
 | add a field, a table, a flow, an endpoint                     | additive    | dependency order, nothing else                                                           |
-| add a **required** field to a table with records              | narrowing   | widen → backfill → patch fixed inputs → narrow, four steps                               |
+| add a **required** field to a table with records              | narrowing   | widen → backfill → patch fixed inputs → narrow, four moves                               |
 | change the actions of a flow that processes a table's records | re-run      | the edit saves; stored records keep what the old actions wrote until each is reprocessed |
 | rename an action's output slot                                | cascade     | rehearse, then one document carrying the action, its readers and the flow binding        |
 | rename a field or a table                                     | pinned      | refused once the table has records                                                       |
@@ -68,7 +68,7 @@ that already processed ten thousand records" look identical too.
 Dependency order, outside-in:
 
 ```
-schema entry → flow → record type → endpoint → schedule
+type → flow → table → endpoint → schedule
 ```
 
 Each names one before it (a table names its processing flow in `flowId`), so the reverse
@@ -80,7 +80,7 @@ all of it for you.
 ### Narrowing under live records
 
 Removing a field is refused once the table has records, and a field made required at once
-invalidates every record that lacks it. So it is four steps, never one, in this order:
+invalidates every record that lacks it. So it is four changes, never one, in this order:
 
 ```
 1  add the field as optional            → existing records stay valid

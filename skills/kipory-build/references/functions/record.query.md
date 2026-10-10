@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
 # `record.query` — Query records
 
@@ -16,7 +16,7 @@ Returns the records of one type that satisfy every clause. Exact clauses narrow 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clauses` | union[], 1 to 16 items | yes | — | Records match all clauses — field, term, edge, stream, at most one semantic. A value may come from a slot: `valueSlot`, `slugSlot`, `textSlot`, `fromSlot`, `toSlot`. ⚠️ A semantic clause makes the answer a ranking of at most topK records, with no cursor. If a value named by a slot is missing the action is skipped; an empty list answers no records. |
+| `clauses` | union[], 1 to 16 items | yes | — | Records match all clauses — field, term, link, stream, at most one semantic. A value may come from a slot: `valueSlot`, `slugSlot`, `textSlot`, `fromSlot`, `toSlot`. ⚠️ A semantic clause makes the answer a ranking of at most topK records, with no cursor. If a value named by a slot is missing the action is skipped; an empty list answers no records. |
 | `cursorSlot` | string | no | — | The slot holding a prior answer's cursor. Absent, the first page. Only a query without a semantic clause pages. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. A semantic clause's own topK is bounded separately. |
 | `order` | union | no | — | How the answer is ordered: `created`, `meaning`, or a date field of the type. Omitted: by meaning with a semantic clause, else newest first. ⚠️ A field order needs a date field with a `filter` use, and leaves out records with no value there. Beside a semantic clause it re-orders the ranking and does not page. |
@@ -215,7 +215,7 @@ Output:
   "explanation": {
     "clauses": [
       { "clause": 0, "store": "term-store", "index": "RecordTerm_termId_recordId_idx", "rank": 1, "candidates": 412, "freshness": "transactional" },
-      { "clause": 1, "store": "link-store", "index": "RecordRelation_eText0_idx", "rank": 3, "candidates": 37, "freshness": "transactional" },
+      { "clause": 1, "store": "link-store", "index": "Link_eText0_idx", "rank": 3, "candidates": 37, "freshness": "transactional" },
       { "clause": 2, "store": "vector-index", "index": "kipory_proj_a1b2_person", "rank": 9, "candidates": 1, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 } }
     ],
     "pushdown": { "ids": 37, "cap": 25000, "mode": "exact" }
@@ -275,7 +275,7 @@ Output:
   "explanation": {
     "clauses": [
       { "clause": 0, "store": "term-store", "index": "RecordTerm_termId_recordId_idx", "rank": 1, "candidates": 9, "freshness": "transactional" },
-      { "clause": 1, "store": "link-store", "index": "RecordRelation_eText0_idx", "rank": 3, "candidates": 0, "freshness": "transactional" }
+      { "clause": 1, "store": "link-store", "index": "Link_eText0_idx", "rank": 3, "candidates": 0, "freshness": "transactional" }
     ],
     "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }
   },
@@ -329,8 +329,8 @@ Output:
   "bounded": false,
   "explanation": {
     "clauses": [
-      { "clause": 0, "store": "record-store", "index": "ProjectRecord_sText0_idx", "rank": 2, "candidates": 41, "freshness": "transactional", "operands": [{ "path": "value", "slot": "followed.guideIds", "members": 3 }] },
-      { "clause": 1, "store": "record-store", "index": "ProjectRecord_sDate0_idx", "rank": 5, "candidates": 12, "freshness": "transactional", "operands": [{ "path": "value", "slot": "runInfo.now" }] }
+      { "clause": 0, "store": "record-store", "index": "TableRecord_sText0_idx", "rank": 2, "candidates": 41, "freshness": "transactional", "operands": [{ "path": "value", "slot": "followed.guideIds", "members": 3 }] },
+      { "clause": 1, "store": "record-store", "index": "TableRecord_sDate0_idx", "rank": 5, "candidates": 12, "freshness": "transactional", "operands": [{ "path": "value", "slot": "runInfo.now" }] }
     ],
     "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }
   }
@@ -389,7 +389,7 @@ Output:
   "explanation": {
     "clauses": [
       { "clause": 0, "store": "vector-index", "index": "kipory_proj_a1b2_outing", "rank": 9, "candidates": 50, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 }, "operands": [{ "path": "peer.0.text", "slot": "request.q" }] },
-      { "clause": 0, "store": "link-store", "index": "RecordRelation_validity_idx", "rank": 3, "candidates": 14, "freshness": "transactional", "operands": [{ "path": "peer.0.text", "slot": "request.q" }] }
+      { "clause": 0, "store": "link-store", "index": "Link_validity_idx", "rank": 3, "candidates": 14, "freshness": "transactional", "operands": [{ "path": "peer.0.text", "slot": "request.q" }] }
     ],
     "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }
   }
@@ -438,7 +438,7 @@ Output:
   "bounded": false,
   "explanation": {
     "clauses": [
-      { "clause": 0, "store": "record-store", "index": "ProjectRecord_sText0_idx", "rank": 2, "candidates": 214, "freshness": "transactional" }
+      { "clause": 0, "store": "record-store", "index": "TableRecord_sText0_idx", "rank": 2, "candidates": 214, "freshness": "transactional" }
     ],
     "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }
   }

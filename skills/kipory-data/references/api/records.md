@@ -2,7 +2,7 @@
 
 # Records and relations
 
-The project's own data: listing and searching records, writing and correcting one by hand, re-running or ending it, stating how it is filed, reading and stating a record's typed edges one hop at a time, and watching a record's processing as it happens.
+The project's own data: listing and searching records, writing and correcting one by hand, re-running or ending it, stating how it is filed, reading and stating a record's links one hop at a time, and watching a record's processing as it happens.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -160,7 +160,7 @@ Each item of `records`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The `ProjectRecord` row id, and the open address. |
+| `id` | `string` | yes | The `TableRecord` row id, and the open address. |
 | `identity` | `object` | yes | What to CALL this row — its declared natural key where the type has one, a fragment of its own content where it does not, and its id where neither is readable. Carries which of the three it was, because a row labelled by its id is a different fact from one labelled by a key its author chose. |
 | `preview` | `string \| null` | yes | Null when the identity IS the record's own content. |
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page, so a cross-type result needs no second shape. |
@@ -343,7 +343,7 @@ State a curated link of this relation from this record to `targetRecordId`, with
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `edgeId` | `string` | yes | The link that now stands. |
+| `linkId` | `string` | yes | The link that now stands. |
 | `outcome` | `"asserted" \| "unchanged"` | yes | `asserted` — a new link, or a retracted one stated again. `unchanged` — it already stood, so nothing moved and its start time was deliberately left alone. |
 | `revived` | `boolean` | yes | True when this brought back a link that had been retracted. It gets a NEW validity window rather than reopening the old one. |
 
@@ -533,7 +533,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/records/query`
 
-Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `edge` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` action authors, run by the same executor. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
+Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `link` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` action authors, run by the same executor. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
 
 **Request body**
 
@@ -541,7 +541,7 @@ Ask a project's records one question: a conjunction of clauses — `field` (`eq`
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
 | `tableKey` | `string` | yes | The table the question is asked of. Every clause is validated against this table's `uses`: a field needs `filter`, a vocabulary `vocabularies`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the table. |
-| `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column) `{ kind, field, op, value }` with `op` one of eq/lt/lte/gt/gte/in, `in` taking a list; `term` (a vocabulary assignment) `{ kind, vocabularyKey, slug }`, `slug` being the term's key; `edge` (a relation) `{ kind, relation, direction?, where?, count?, peer? }` — `direction` outgoing/incoming/either, `where` stamped link filters `{ property, op, value }`, `count` `{ op, n }`, and `peer` one hop of `field`/`term` clauses, and at most one `semantic`, on the far record; `stream` (event rows) `{ kind, field, window?, where?, count? }` — exists/none/count inside a window; and at most one `semantic` `{ kind, field?, text, topK?, minScore?, passage? }` (a phrase ranked by meaning; `minScore` leaves out records scoring below it, `passage` asks for the text of each record's best-matching part). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
+| `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column) `{ kind, field, op, value }` with `op` one of eq/lt/lte/gt/gte/in, `in` taking a list; `term` (a vocabulary assignment) `{ kind, vocabularyKey, slug }`, `slug` being the term's key; `link` (a relation) `{ kind, relation, direction?, where?, count?, peer? }` — `direction` outgoing/incoming/either, `where` stamped link filters `{ property, op, value }`, `count` `{ op, n }`, and `peer` one hop of `field`/`term` clauses, and at most one `semantic`, on the far record; `stream` (event rows) `{ kind, field, window?, where?, count? }` — exists/none/count inside a window; and at most one `semantic` `{ kind, field?, text, topK?, minScore?, passage? }` (a phrase ranked by meaning; `minScore` leaves out records scoring below it, `passage` asks for the text of each record's best-matching part). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
 | `limit` | `integer` | no | How many records come back at most. For an exact-only query this is the page size; with a semantic clause the clause's own `topK` bounds the ranking and this caps what is returned of it. |
 | `order` | `object` | no | How the answer is ordered. Omitted: closest first when the query has a `semantic` clause of its own, newest created first otherwise. `field` orders by one of the type's own date fields carrying a `filter` use, and an exact-only query pages by it; beside a `semantic` clause it re-orders the ranking, which stays bounded. A cursor belongs to the order that minted it. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
@@ -564,7 +564,7 @@ Each item of `records`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The `ProjectRecord` row id, and the open address. |
+| `id` | `string` | yes | The `TableRecord` row id, and the open address. |
 | `identity` | `object` | yes | What to CALL this row — its declared natural key where the type has one, a fragment of its own content where it does not, and its id where neither is readable. Carries which of the three it was, because a row labelled by its id is a different fact from one labelled by a key its author chose. |
 | `preview` | `string \| null` | yes | Null when the identity IS the record's own content. |
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page, so a cross-type result needs no second shape. |

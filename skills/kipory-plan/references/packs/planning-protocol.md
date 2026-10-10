@@ -106,8 +106,8 @@ This step usually dominates the sheet, and every later step inherits its mistake
 What happens to those records? Each pipeline becomes a **flow** of **actions** over existing
 **functions**.
 
-The decisive question is whether every step maps to a function that already exists — confirmed
-live, per Rule 0. A step with no function is not automatically impossible, but it is the moment to
+The decisive question is whether every action maps to a function that already exists — confirmed
+live, per Rule 0. An action with no function is not automatically impossible, but it is the moment to
 read Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) before going further.
 
 Calling an outside service that has no function of its own is still configuration when it has an

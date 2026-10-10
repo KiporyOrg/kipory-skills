@@ -86,7 +86,7 @@ included: a project created from the template gets it as written.
 ## When not to use one
 
 A template is a starting point for a project that does not exist yet. It is not a way to keep
-projects in step: two projects created from one template share nothing afterwards, and a change
+projects in sync: two projects created from one template share nothing afterwards, and a change
 to the template reaches neither. To move configuration between projects deliberately, export the
 one and apply to the other.
 

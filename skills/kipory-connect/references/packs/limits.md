@@ -8,13 +8,13 @@
 ## What it is
 
 The negative space. Every other pack tells you what you can build; this one tells you what you
-cannot, so a plan routes around it early instead of discovering it three steps in.
+cannot, so a plan routes around it early instead of discovering it halfway through the build.
 
 ## When you need it
 
 At two moments, both during planning:
 
-- **Deciding how a pipeline decomposes.** Before assuming a step exists, check that its shape is
+- **Deciding how a pipeline decomposes.** Before assuming a function exists for each part, check that its shape is
   not listed here.
 - **Deciding what to expose.** Before promising a caller a behaviour, check it is reachable.
 

@@ -57,7 +57,7 @@ An id the design plane cannot resolve — a typo, or a project your grant does n
 The create is **atomic** — there is no such thing as a half-made project. In one transaction it
 creates the project's **node** under the parent organisation and then the project itself, already
 attached to it: the node comes first because the link column cannot be null, and there is no
-trailing step that joins them. The subdomain starts equal to the slug, so the project is addressable
+later write that joins them. The subdomain starts equal to the slug, so the project is addressable
 immediately.
 
 **The address as a URL is `baseUrl`**, on `GET /v1/projects/{nodeId}` and on each project in

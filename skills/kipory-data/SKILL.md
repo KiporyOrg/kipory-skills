@@ -30,7 +30,7 @@ GET /v1/records?project=<node>&tableKey=<type>&mode=semantic&q=<text>   a bounde
 GET /v1/records?project=<node>&id=<id>&id=<id>                     name records by id (up to 100), any type; missing ids are absent
 GET /v1/records?project=<node>&tableKey=<type>&key=<naturalKey>    the one record with exactly that natural key
 GET /v1/records/{id}                                               one record whole: its `data`, its `version`, its type's contract
-POST /v1/records/query  { project, tableKey, clauses, order?, limit? }   fields, terms, edges, streams and one phrase in one question
+POST /v1/records/query  { project, tableKey, clauses, order?, limit? }   fields, terms, links, streams and one phrase in one question
 ```
 
 Narrow the list with repeated `field=name:operator:value` and `term=vocabulary:key` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100. A `term=` condition matches **active** terms only: a record filed under a candidate term is not found by it until the term is admitted (`kipory-model`).
@@ -47,14 +47,14 @@ The `field=` operators are the platform's one comparison vocabulary — the same
 
 ```
 GET    /v1/records/{id}/links/{relationKey}                     one hop, one kind — there is no multi-hop
-POST   /v1/records/{id}/links/{relationKey}                     { targetRecordId, properties? } → { edgeId, outcome, revived }
+POST   /v1/records/{id}/links/{relationKey}                     { targetRecordId, properties? } → { linkId, outcome, revived }
 DELETE /v1/records/{id}/links/{relationKey}/{peerRecordId}      retract your own assertion → { id, deleted: true, retracted: true }
 GET    /v1/links?project=<node>&relation=<key>              every link in the project as rows
 ```
 
 `{relationKey}` is the relation's **key**, not its id. The walk takes `direction` — `outgoing` (the default), `incoming` or `either`; any other word is a 422, and a symmetric relation ignores it. So from a product to its supplier is the default, and from a supplier back to its products is `?direction=incoming`. A busy record's walk pages: pass `nextCursor` back as `after`. Asserting and retracting need EDITOR on **both** records' project, and work on `curated` relations only — a `field` relation's link is changed by changing the record's field.
 
-**Get a file in.** Three steps, and the bytes never pass through the API:
+**Get a file in.** Three calls, and the bytes never pass through the API:
 
 ```
 POST /v1/files/upload-url      { project, fileName, contentType, size } → { fileId, uploadUrl, key, expiresAt }

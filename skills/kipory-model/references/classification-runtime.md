@@ -114,7 +114,7 @@ needs no record reads, and is already scoped correctly.
   - or replace one vocabulary's terms by hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
 - **The gate does not check that the vocabulary exists.** It stamps the vocabulary onto its
   decision; whether that vocabulary is real is checked when the terms are saved. A typo surfaces one
-  step later than you would expect.
+  action later than you would expect.
 - **A `tiebreak` that nothing handles is a value that never lands.** The branch rule is a
   whole-flow check: it never refuses the action write that creates the gate (the branch actions cannot
   exist yet), so read `GET /v1/flows/{id}/health` after wiring both branches.

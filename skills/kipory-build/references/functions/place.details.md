@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
 # `place.details` — Fetch a place
 
@@ -15,7 +15,7 @@ Looks up one place by its place ID, its map link, or its name, and returns what 
 - **Suggested input streams:** `place`
 - **External dependency:** Apify — Runs an Apify actor that reads the map listing. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
-- **Charged as:** `apify/maps-place` per item — a place returned. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; a step spending a stored vendor key is not charged it.
+- **Charged as:** `apify/maps-place` per item — a place returned. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
 - **Rate limit:** 30 per min in bucket `apify` — shared with `place.reviews`, `place.search`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 7 days — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 

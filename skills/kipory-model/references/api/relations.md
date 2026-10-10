@@ -1,8 +1,8 @@
 <!-- generated: kipory-skills references · source: the deployment's route manifest and OpenAPI document · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
-# Relation kinds and pairings
+# Relations and pairings
 
-The vocabulary of typed record-to-record edges: a kind, and the (typeA, typeB) pairs it admits. A pairing has no update; re-target by deleting and recreating.
+How records may link: a relation, and the (typeA, typeB) table pairs it admits. A pairing has no update; re-target by deleting and recreating.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 

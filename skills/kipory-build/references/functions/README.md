@@ -1,17 +1,17 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
 # Function catalog
 
-121 customer functions, one page each, listed under the group the catalog files them in. A step in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author a step — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+121 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
-Each line carries the handler's phase, then what a step on it spends:
+Each line carries the function's phase, then what an action on it spends:
 
-- `ingest` (77) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound steps.
+- `ingest` (77) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
 - `inline` (38) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
 - model — calls an AI model.
-- model (when it embeds) — calls an embedding model only on a run that has text to embed; the handler's page says when.
+- model (when it embeds) — calls an embedding model only on a run that has text to embed; the function's page says when.
 
 ## ai (4)
 

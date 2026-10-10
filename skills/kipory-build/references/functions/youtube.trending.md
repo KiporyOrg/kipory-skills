@@ -1,4 +1,4 @@
-<!-- generated: kipory-skills references · source: the deployment's handler catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
+<!-- generated: kipory-skills references · source: the deployment's function catalog · regenerated on every publish, so an edit here is overwritten; the versions it was generated from are in kipory-connect/references/versions.md — the deployment you are building on may serve newer ones; compare and prefer the live one -->
 
 # `youtube.trending` — Fetch trending YouTube channels
 
@@ -15,7 +15,7 @@ Reads a region's trending chart and returns the distinct channels behind those v
 - **Suggested input streams:** `regionCode`
 - **External dependency:** YouTube Data API — Reads the trending chart from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube function. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
-- **Charged as:** `youtube/trending` (not charged). A step makes no vendor charge; it is charged its compute only.
+- **Charged as:** `youtube/trending` (not charged). An action makes no vendor charge; it is charged its compute only.
 - **Rate limit:** 60 per min in bucket `youtube` — shared with `youtube.channel`, `youtube.video`
 - **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 6 hours — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
