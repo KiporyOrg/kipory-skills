@@ -2,6 +2,14 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261010.190837 — 2026-10-10
+
+Synced from the Kipory monorepo at `49ad3d596`.
+
+- changed: `skills/kipory-build/references/functions/vector.search.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261010.164625 — 2026-10-10
 
 Synced from the Kipory monorepo at `7903be2a8`.

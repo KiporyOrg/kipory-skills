@@ -7,7 +7,7 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 | Source | Version | Served live as |
 | --- | --- | --- |
 | packs | `256bb3c44408` | `version` on `GET /v1/capability-packs` |
-| functions | `1374a2aa3e1d817dcc05752d5e5f916b9db03310fc44396100a72659380a1bc3` | `version` on `GET /v1/functions` |
+| functions | `7fb24e33ef16817719376fda03101297ee5af48553778dad82399a267d7f9c56` | `version` on `GET /v1/functions` |
 | api | `91848f2f3b14` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 
 Function pages: 121 customer functions, key set `1af918c8faa9`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
