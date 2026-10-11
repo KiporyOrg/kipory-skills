@@ -2,6 +2,23 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261011.132409 — 2026-10-11
+
+Synced from the Kipory monorepo at `b45f0c33d`.
+
+Functions added: `record.link-counts`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- added: `skills/kipory-build/references/functions/record.link-counts.md`
+- changed: `skills/kipory-build/references/functions/source.unwatch.md`
+- changed: `skills/kipory-build/references/functions/source.watch.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+
 ## 1.20261011.70925 — 2026-10-11
 
 Synced from the Kipory monorepo at `3682616df`.

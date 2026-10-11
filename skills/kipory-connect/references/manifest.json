@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "d43063a79dd0",
+      "hash": "d23a06493be5",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -70,7 +70,7 @@
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
-      "hash": "71784e078f72",
+      "hash": "6f6490c41b72",
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
@@ -283,6 +283,10 @@
       "hash": "dff7d0c1180d",
       "page": "kipory-build/references/functions/record.link-assert.md"
     },
+    "record.link-counts": {
+      "hash": "a35ebfb6b8f9",
+      "page": "kipory-build/references/functions/record.link-counts.md"
+    },
     "record.link-retract": {
       "hash": "03c71ff8e5a7",
       "page": "kipory-build/references/functions/record.link-retract.md"
@@ -328,11 +332,11 @@
       "page": "kipory-build/references/functions/reddit.search.md"
     },
     "source.unwatch": {
-      "hash": "d867cd1658ff",
+      "hash": "483beea31738",
       "page": "kipory-build/references/functions/source.unwatch.md"
     },
     "source.watch": {
-      "hash": "713e6927b1d0",
+      "hash": "cc37a008ce56",
       "page": "kipory-build/references/functions/source.watch.md"
     },
     "state.read": {

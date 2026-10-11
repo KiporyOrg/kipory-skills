@@ -85,11 +85,15 @@ back as `@harbourdaily`, and is the same channel as `@harbourdaily`. A numeric i
 When **what is watched is decided by your users** — a person follows a creator, and through it a
 channel — do not write a source per follow from outside. A flow does it with two actions:
 
-- `source.watch` holds a watch on one channel for one **holder** you name — use the id of the
-  record that stands for the follow. The first holder makes the project's source for the channel; a
-  later one adds a hold; a source that was switched off is switched back on.
+- `source.watch` holds a watch on one channel for one **holder**: a record the run may write (its
+  own, or a shared one), usually the record that stands for the follow. Any other value is refused
+  (`HOLDER_NOT_WRITABLE`). The first holder makes the project's source for the channel; a later one
+  adds a hold; a source that was switched off is switched back on.
 - `source.unwatch` lets that holder go. The channel stays watched while anyone else holds it; the
   last one switches its source off (never deletes it).
+- **Deleting the holder record lets its watch go**, in the same transaction, by any path: a run's
+  `record.delete`, `DELETE /v1/records/{id}`, or the person's account being erased. You do not
+  write an unwatch for the delete.
 
 The routing stays yours, at design time: create **one** trigger on `categoryKey: "telegram"`,
 `eventKey: "message"` with **no `sourceId`**. A trigger without a source hears every source of its

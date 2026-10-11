@@ -4,7 +4,7 @@
 
 Let go of a channel's watch for one holder; the last one switches it off.
 
-Removes one holder's watch on a channel. Others' holds keep it watched; the last one switches the source off, never deleting it. A holder that held nothing changes nothing, and a failed run changes nothing.
+Removes one record's watch on a channel. Others' holds keep it watched; the last one switches the source off, never deleting it. Deleting the record does the same. A record that held nothing changes nothing, and a failed run changes nothing.
 
 - **Group:** sources · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -17,7 +17,7 @@ Removes one holder's watch on a channel. Others' holds keep it watched; the last
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `channelSlot` | string | yes | — | Slot PATH (e.g. `outlet.channel`) that resolves to the channel to let go of. ⚠️ Reading a newly watched channel starts within about a minute. It costs the runs its triggers start, one per message. Letting the last holder go stops those runs; the platform's reader stays in the channel. |
-| `holderSlot` | string | yes | — | Slot PATH (e.g. `follow.recordId`) that resolves to the holder `source.watch` was given. |
+| `holderSlot` | string | yes | — | Slot PATH (e.g. `follow.recordId`) that resolves to the id of the record `source.watch` was given. |
 | `provider` | `telegram` | yes | — | What kind of source the channel is. |
 
 ## Worked example

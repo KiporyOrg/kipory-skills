@@ -2,12 +2,12 @@
 
 # Function catalog
 
-121 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+122 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
 - `ingest` (77) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
-- `inline` (38) — runs synchronously inside the flow engine, in order.
+- `inline` (39) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
 - model — calls an AI model.
@@ -172,7 +172,7 @@ _Vectors: encode a value, store it, and find the nearest matches._
 - [`vector.search`](vector.search.md) — Search by meaning · `inline` · model (when it embeds) · `any+` → `a hit list, typed by hitShape`
 - [`vector.upsert`](vector.upsert.md) — Store search data · `ingest` · `any+` → `nothing`
 
-## records (17)
+## records (18)
 
 _Read and change the project's records and terms. Only these actions can change a record._
 
@@ -182,6 +182,7 @@ _Read and change the project's records and terms. Only these actions can change 
 - [`record.delete`](record.delete.md) — Delete records · `inline` · `record id list` → `boolean`
 - [`record.enqueue-process`](record.enqueue-process.md) — Queue for processing · `inline` · `record id` → `boolean`
 - [`record.link-assert`](record.link-assert.md) — Link two records · `inline` · `string, string` → `RelationAssertion`
+- [`record.link-counts`](record.link-counts.md) — Count a record's links · `inline` · `record ids` → `RecordLinkCount[]`
 - [`record.link-retract`](record.link-retract.md) — Remove a link · `inline` · `string, string` → `RelationRetraction`
 - [`record.links`](record.links.md) — Read a record's links · `inline` · `string` → `RecordLink[]`
 - [`record.list`](record.list.md) — List records · `inline` · `user id + cursor` → `RecordPage`

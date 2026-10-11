@@ -6,21 +6,22 @@ runs as **the run's principal**. That single difference explains most of what su
 
 ## The functions
 
-| Function                 | Does                                                          | Effect class           |
-| ------------------------ | ------------------------------------------------------------- | ---------------------- |
-| `record.create`          | writes a new record                                           | record mutation        |
-| `record.update`          | changes fields on one                                         | record mutation        |
-| `record.read`            | reads one by id                                               | read                   |
-| `record.list`            | lists them                                                    | read                   |
-| `record.query`           | finds them by fields, terms, links or meaning in one question | read                   |
-| `record.count`           | counts without reading                                        | read                   |
-| `record.links`           | reads a record's links, grouped by relation                   | read                   |
-| `record.link-assert`     | states a link                                                 | idempotent side effect |
-| `record.link-retract`    | retracts one                                                  | idempotent side effect |
-| `record.append`          | adds events to a record's stream field                        | record mutation        |
-| `record.delete`          | deletes by id                                                 | record mutation        |
-| `record.teardown`        | strips generated files and term assignments                   | idempotent side effect |
-| `record.enqueue-process` | hands the record to its processing flow                       | idempotent side effect |
+| Function                 | Does                                                                 | Effect class           |
+| ------------------------ | -------------------------------------------------------------------- | ---------------------- |
+| `record.create`          | writes a new record                                                  | record mutation        |
+| `record.update`          | changes fields on one                                                | record mutation        |
+| `record.read`            | reads one by id                                                      | read                   |
+| `record.list`            | lists them                                                           | read                   |
+| `record.query`           | finds them by fields, terms, links or meaning in one question        | read                   |
+| `record.count`           | counts without reading                                               | read                   |
+| `record.links`           | reads a record's links, grouped by relation                          | read                   |
+| `record.link-counts`     | counts the links of one relation reaching each record, from everyone | read                   |
+| `record.link-assert`     | states a link                                                        | idempotent side effect |
+| `record.link-retract`    | retracts one                                                         | idempotent side effect |
+| `record.append`          | adds events to a record's stream field                               | record mutation        |
+| `record.delete`          | deletes by id                                                        | record mutation        |
+| `record.teardown`        | strips generated files and term assignments                          | idempotent side effect |
+| `record.enqueue-process` | hands the record to its processing flow                              | idempotent side effect |
 
 `record.create`, `record.update` and `record.enqueue-process` are covered where record creation
 is taught, in `kipory-build`, and `record.query`'s clauses on its function page there. The rest are
@@ -89,6 +90,17 @@ any declared properties. Three things about it are easy to get wrong:
 
 An empty or non-text slot gives an empty list rather than an error — so an unwired slot and a record
 with no links are indistinguishable at this action.
+
+## Counting links across everyone
+
+`record.link-counts` answers "how many people follow this": for up to 200 records (one id or a list,
+from `recordIdsSlot`) it returns `{ recordId, count }` — how many current links of one relation reach
+each, from every owner's records. Numbers only: no far end, no field, no owner. It works in a run
+that acts for nobody (a schedule, a trigger), and stays right after any delete, account erasure
+included, because links go with their records. The records you ask about must be ones the run may
+write (its person's own or pool records); any other id is left out rather than counted as 0.
+A relation backed by a join table stores no links, so it is refused (`RELATION_NOT_COUNTABLE`), as
+is an unknown one (`RELATION_NOT_FOUND`).
 
 ## Deleting, and the thing that is not deleting
 
