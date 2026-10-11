@@ -31,7 +31,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 4`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 5`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
@@ -378,7 +378,7 @@ none, and an export leaves the key out for an action that names none.
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 4`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
+- **A format version other than `kipory: 5`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
 - **An action's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
   lower-case. Change the two values.
 - **A `file` use, a `derived` field family, or projection `stages`** on a table or as a

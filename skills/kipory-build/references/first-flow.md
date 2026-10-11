@@ -262,7 +262,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 
 ```json
 {
-  "kipory": 2,
+  "kipory": 5,
   "flows": {
     "summarise": {
       "label": "Summarise",
@@ -331,7 +331,7 @@ POST /v1/projects/{nodeId}/document   { version, document }
 {
   "version": "<version from the plan>",
   "document": {
-    "kipory": 2,
+    "kipory": 5,
     "flows": { "summarise": { "…": "…" } },
     "surfaces": { "…": "…" }
   }

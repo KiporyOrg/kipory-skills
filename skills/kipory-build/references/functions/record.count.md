@@ -40,7 +40,7 @@ Counts the records of one type that match its filters; the database does the cou
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | string | yes | — | The relation a row must have a link of, by key. |
+| `relationKey` | string | yes | — | The relation a row must have a link of, by key. |
 | `peerRecordIdSlot` | string | no | — | The slot holding the id of the record at the other end. Leave it out to keep rows with any link of the relation. |
 
 ### `vocabularyFilter` — each item

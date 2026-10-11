@@ -70,7 +70,7 @@ Reads a page of records of one table, newest first. Each page carries up to `lim
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | string | yes | — | The relation a row must have a link of, by key. |
+| `relationKey` | string | yes | — | The relation a row must have a link of, by key. |
 | `peerRecordIdSlot` | string | no | — | The slot holding the id of the record at the other end. Leave it out to keep rows with any link of the relation. |
 
 ### `scalars`

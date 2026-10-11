@@ -18,7 +18,7 @@ Writes one link of the relation you name, from the record in the first input to 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `actor` | string, at most 64 characters | yes | — | A label naming what is doing the stating, e.g. `citation-extractor`. It is recorded on every link this node writes. ⚠️ It decides what can be taken back: a retract node reaches ONLY links stated under the same label, and never one a person made by hand. |
-| `kind` | string | yes | — | The relation's KEY — the stable identifier chosen when the link was created, not its name. ⚠️ Only a relation whose links are stated by hand works here. One backed by a record field or a join record is refused exactly as an unknown relation is, so a refusal reveals nothing. |
+| `relationKey` | string | yes | — | The relation's KEY — the stable identifier chosen when the link was created, not its name. ⚠️ Only a relation whose links are stated by hand works here. One backed by a record field or a join record is refused exactly as an unknown relation is, so a refusal reveals nothing. |
 
 ## Worked example
 
@@ -34,7 +34,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "kind": "cites",
+  "relationKey": "cites",
   "actor": "citation-linker"
 }
 ```
@@ -64,7 +64,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "kind": "cites",
+  "relationKey": "cites",
   "actor": "citation-linker"
 }
 ```

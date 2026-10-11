@@ -2,6 +2,35 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261011.70925 — 2026-10-11
+
+Synced from the Kipory monorepo at `3682616df`.
+
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/functions/record.count.md`
+- changed: `skills/kipory-build/references/functions/record.link-assert.md`
+- changed: `skills/kipory-build/references/functions/record.link-retract.md`
+- changed: `skills/kipory-build/references/functions/record.links.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/upgrade-document.mjs`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261010.214825 — 2026-10-10
 
 Synced from the Kipory monorepo at `f99bdb19b`.

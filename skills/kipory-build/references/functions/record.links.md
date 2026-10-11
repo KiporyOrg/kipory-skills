@@ -18,8 +18,8 @@ Returns the links a record carries: what is on the other end, which way each poi
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `includeExpired` | boolean | no | `false` | Include links that have been retracted. A link is retracted by expiry rather than deletion, so history is readable — but never by accident. |
-| `kind` | string | no | — | Return only links of this one relation. Leave it unset for every relation the project declares. ⚠️ A link whose far end this run may not read is left out rather than blanked. |
 | `limit` | integer, more than 0 | no | `100` | Maximum links returned across the whole read, applied after a deterministic ordering (most recently valid first). |
+| `relationKey` | string | no | — | Return only links of this one relation. Leave it unset for every relation the project declares. ⚠️ A link whose far end this run may not read is left out rather than blanked. |
 
 ## Worked example
 
@@ -41,9 +41,9 @@ Output:
 
 ```
 [
-  { "peerRecordId": "ckwx_9z", "kind": "cites", "direction": "outgoing",
+  { "peerRecordId": "ckwx_9z", "relationKey": "cites", "direction": "outgoing",
     "properties": null },
-  { "peerRecordId": "ckwx_4k", "kind": "cites", "direction": "incoming",
+  { "peerRecordId": "ckwx_4k", "relationKey": "cites", "direction": "incoming",
     "properties": null }
 ]
 ```

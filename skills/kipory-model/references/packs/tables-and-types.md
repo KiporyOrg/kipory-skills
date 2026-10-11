@@ -904,11 +904,11 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
   sentence names the consumer that blocked it.
 
   `GET /v1/types?expand=graph` says which graph references those are before you try: each
-  type carries `usedByGraph` and `usedByGraphRefs` — the flows, actions, functions and sibling types
+  type in its `types` list carries `usedByGraph` and `usedByGraphRefs` — the flows, actions, functions and sibling types
   that name it DIRECTLY. A flow taking a type that references this one is listed under that type,
   not here. The `graph` section beside the types lists them under `references`; a validate-only delete
   (`DELETE /v1/types/{id}?validateOnly=true`) counts in `derived.blockingReferences` how many would refuse it. It resolves a reference's source
-  ids through three maps: `flowLabels` (flow id → label), `actionKeys` (action id → key) and `entryKeys` (type id → key).
+  ids through three maps: `flowLabels` (flow id → label), `actionKeys` (action id → key) and `dataTypeKeys` (type id → key).
 
 - **Deleting a table** that has records, was seeded, or carries a reserved table name (a
   platform-wide set, not something your project defines). The DELETE answers 409 `CONFLICT` for
@@ -987,7 +987,7 @@ objects whose properties are), each with `typed` — whether the reference names
 against the link you are making.** A declaration whose source points at `article` on a relation
 paired `article → note` **saves**: the save asks whether the field IS a reference and never what it
 points AT. Every link it then produces is refused at write time as `UNDECLARED_PAIR` and reported
-rather than raised, so the relation reads `0 edges` and nothing says why. `targetTableKeys` is what
+rather than raised, so the relation reads `0 links` and nothing says why. `targetTableKeys` is what
 lets an editor say so before the save instead of after it.
 
 ⚠️ **`targetTableKeys` is a LIST, and empty means untyped.** A union of two annotated references
@@ -1001,7 +1001,7 @@ values that may travel onto a link, and the bag they build is validated against 
 `propertiesDataTypeId` — so an editor offering that type has to compare the two SHAPES, not their
 spellings. A sibling `quote` that holds a `string`, pointed at a type declaring `quote` as an
 object, agrees on every name and is refused on every link as `PROPERTIES_INVALID` — reported rather
-than raised, so the relation reads `0 edges` and nothing says why.
+than raised, so the relation reads `0 links` and nothing says why.
 
 ⚠️ **`types` is a LIST, and empty means the property declares no type.** `{"type":["string","null"]}`
 is one fragment and a union names several, so this cannot collapse to one value either. Empty means

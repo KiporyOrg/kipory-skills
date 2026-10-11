@@ -151,14 +151,14 @@ Each item of `diagnostics`:
 
 ### `GET /v1/relations`
 
-List a project's relations — the named links its records can carry between tables — each with the `version` its PATCH takes. `expand` adds `relationCount`, `liveRelationCount`, `pairings` (without per-pair delete verdicts) and `readiness`. The same rows ride `GET /v1/bootstrap` (by id, live); the authored form, pairings included, is the `relations` section of `GET /v1/projects/{nodeId}/document` (by key). The links themselves: `GET /v1/records/{id}/links/{relationKey}` and `GET /v1/links?project=`.
+List a project's relations — the named links its records can carry between tables — each with the `version` its PATCH takes. `expand` adds `linkCount`, `liveLinkCount`, `pairings` (without per-pair delete verdicts) and `readiness`. The same rows ride `GET /v1/bootstrap` (by id, live); the authored form, pairings included, is the `relations` section of `GET /v1/projects/{nodeId}/document` (by key). The links themselves: `GET /v1/records/{id}/links/{relationKey}` and `GET /v1/links?project=`.
 
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project whose relations to list. Required. |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: relationCount, liveRelationCount, pairings, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: linkCount, liveLinkCount, pairings, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -187,8 +187,8 @@ Each item of `relations`:
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the relation in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `relationCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=relationCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
-| `liveRelationCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveRelationCount`. NOT `relationCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
+| `linkCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=linkCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
+| `liveLinkCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveLinkCount`. NOT `linkCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
 | `pairings` | `object[]` | no | Which table pairs this relation connects, present when you pass `expand=pairings` — and always on the create's echo. Never empty — a relation must apply to at least one pair, and the last one cannot be removed. Each pair carries its id, and — on a read of one relation — `deleteRefusal`. |
 | `readiness` | `object` | no | Whether this relation is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce a link; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying links. NOT derivable from the counts — an unpaired relation and a relation declared a minute ago both report zero. |
 
@@ -253,8 +253,8 @@ Each item of `diagnostics`:
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the relation in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `relationCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=relationCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
-| `liveRelationCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveRelationCount`. NOT `relationCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
+| `linkCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=linkCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
+| `liveLinkCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveLinkCount`. NOT `linkCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
 | `pairings` | `object[]` | no | Which table pairs this relation connects, present when you pass `expand=pairings` — and always on the create's echo. Never empty — a relation must apply to at least one pair, and the last one cannot be removed. Each pair carries its id, and — on a read of one relation — `deleteRefusal`. |
 | `readiness` | `object` | no | Whether this relation is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce a link; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying links. NOT derivable from the counts — an unpaired relation and a relation declared a minute ago both report zero. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
@@ -278,7 +278,7 @@ Each item of `touched`:
 
 ### `GET /v1/relations/{id}`
 
-Read one relation by id, with the `version` its PATCH takes. `expand=pairings` here carries each pair's `deleteRefusal` — the answer `DELETE /v1/relation-pairings/{id}` would give; `expand` also adds `relationCount`, `liveRelationCount` and the full `readiness`. Every relation of a project: `GET /v1/relations?project=` or `GET /v1/bootstrap`.
+Read one relation by id, with the `version` its PATCH takes. `expand=pairings` here carries each pair's `deleteRefusal` — the answer `DELETE /v1/relation-pairings/{id}` would give; `expand` also adds `linkCount`, `liveLinkCount` and the full `readiness`. Every relation of a project: `GET /v1/relations?project=` or `GET /v1/bootstrap`.
 
 **Path parameters**
 
@@ -290,7 +290,7 @@ Read one relation by id, with the `version` its PATCH takes. `expand=pairings` h
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: relationCount, liveRelationCount, pairings, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: linkCount, liveLinkCount, pairings, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -313,8 +313,8 @@ Read one relation by id, with the `version` its PATCH takes. `expand=pairings` h
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the relation in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `relationCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=relationCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
-| `liveRelationCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveRelationCount`. NOT `relationCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
+| `linkCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=linkCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
+| `liveLinkCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveLinkCount`. NOT `linkCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
 | `pairings` | `object[]` | no | Which table pairs this relation connects, present when you pass `expand=pairings` — and always on the create's echo. Never empty — a relation must apply to at least one pair, and the last one cannot be removed. Each pair carries its id, and — on a read of one relation — `deleteRefusal`. |
 | `readiness` | `object` | no | Whether this relation is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce a link; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying links. NOT derivable from the counts — an unpaired relation and a relation declared a minute ago both report zero. |
 
@@ -341,7 +341,7 @@ Change one relation's own attributes — label, description, direction, cardinal
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: relationCount, liveRelationCount, pairings, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: linkCount, liveLinkCount, pairings, readiness. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Request body**
 
@@ -379,8 +379,8 @@ Change one relation's own attributes — label, description, direction, cardinal
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the relation in the meantime. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `relationCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=relationCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
-| `liveRelationCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveRelationCount`. NOT `relationCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
+| `linkCount` | `integer` | no | How many links of this relation exist, present when you pass `expand=linkCount` — and on the create's echo, and on an update's echo that passes no `expand`. Deleting the relation deletes all of them, so this is the blast radius. |
+| `liveLinkCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveLinkCount`. NOT `linkCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
 | `pairings` | `object[]` | no | Which table pairs this relation connects, present when you pass `expand=pairings` — and always on the create's echo. Never empty — a relation must apply to at least one pair, and the last one cannot be removed. Each pair carries its id, and — on a read of one relation — `deleteRefusal`. |
 | `readiness` | `object` | no | Whether this relation is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce a link; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying links. NOT derivable from the counts — an unpaired relation and a relation declared a minute ago both report zero. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
@@ -419,7 +419,7 @@ Delete one relation, and with it every link under it — curated ones included �
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `GET /v1/relations/{id}?expand=relationCount`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `GET /v1/relations/{id}?expand=linkCount`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 

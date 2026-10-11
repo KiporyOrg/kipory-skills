@@ -159,7 +159,7 @@ the relation directed if one end really is the "one".
 
 ```
 POST  /v1/relations        the kind, its pairings AND its declaration — one call
-  … write records as usual; their edges are derived by the write …
+  … write records as usual; their links are derived by the write …
 GET   /v1/records/{id}/links/{relationKey}   walk one hop
 ```
 
@@ -574,10 +574,10 @@ well-typed.
 
 A relation read offers two counts, both behind `expand`, and they are not interchangeable:
 
-- **`expand=relationCount`** — every `Link` row of this relation, retracted ones included.
+- **`expand=linkCount`** — every `Link` row of this relation, retracted ones included.
   This is the **blast radius**: deleting the relation destroys every one of them, retracted or not.
   Show this in a delete confirmation.
-- **`expand=liveRelationCount`** — only the rows with `validTo IS NULL`. This is **what the project
+- **`expand=liveLinkCount`** — only the rows with `validTo IS NULL`. This is **what the project
   has right now**, and it is the number that matches what a link walk returns, because every
   ordinary read defaults to the currently-valid set.
 
@@ -588,8 +588,8 @@ correct. A curated link is retracted by EXPIRY so its history survives — so on
 gap opens on the first retraction and widens with every rewrite, and nothing about the response
 says which kind of number you are holding.
 
-⭐ **Neither is free, and neither is on by default in the same way.** `relationCount` rides the
-relation row's own aggregate; `liveRelationCount` needs a second query, so it is never in the
+⭐ **Neither is free, and neither is on by default in the same way.** `linkCount` rides the
+relation row's own aggregate; `liveLinkCount` needs a second query, so it is never in the
 default expand set and you pay for it only by naming it. Ask for what you will actually show.
 
 ## Asking whether a link is doing anything — `expand=readiness`
@@ -614,15 +614,15 @@ type with no values ticked builds no bag, so it is stored, never consulted, and 
 being written. It is worth telling somebody and it is not a problem.
 
 ⛔ **An input the read did not load produces NO verdict — never a passing one.** The reasons you get
-depend on what you asked for: `NEVER_PRODUCED` needs `expand=liveRelationCount` beside it, because
-without a live count there is nothing to judge, and `relationCount` must not stand in — it counts
+depend on what you asked for: `NEVER_PRODUCED` needs `expand=liveLinkCount` beside it, because
+without a live count there is nothing to judge, and `linkCount` must not stand in — it counts
 retracted links too, so a relation whose every link has expired would report as producing.
 ⛔ **And which ROUTE you asked matters more than which expansion.** The LIST route can only ever
 emit `NO_PAIRING` and `NEVER_PRODUCED`; the five reasons that need a per-relation read — no
 producing field, no join table, and the three properties reasons — come only from the ITEM route. So
 one link can legitimately read `unproven` on a board and `blocked` on its own page. ⚠️ For a
 `join-record` relation, `NEVER_PRODUCED` is fed by the join table's record count, not by
-`liveRelationCount`, which is structurally zero there. What you must
+`liveLinkCount`, which is structurally zero there. What you must
 NOT read is a short reason list as a clean bill of health.
 
 ⛔ **`NO_PAIRING` is reachable even though the platform refuses to create one.** A create with no

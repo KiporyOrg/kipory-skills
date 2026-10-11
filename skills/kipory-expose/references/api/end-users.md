@@ -315,7 +315,7 @@ The type that shapes the project's end-user profiles, or none. Connect one with 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `dataTypeId` | `string \| null` | yes | Type the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
+| `dataTypeKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected type's version, for optimistic locking when editing it on the types resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
@@ -342,7 +342,7 @@ Connect a type as the project's end-user profile type, or re-point to another (r
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `dataTypeId` | `string \| null` | yes | Type the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
+| `dataTypeKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected type's version, for optimistic locking when editing it on the types resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
@@ -387,7 +387,7 @@ Create a new profile type from the platform's starter shape under the name you g
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `dataTypeId` | `string \| null` | yes | Type the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
-| `entryKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
+| `dataTypeKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
 | `version` | `integer \| null` | yes | The connected type's version, for optimistic locking when editing it on the types resource. Null when unconnected. |
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |

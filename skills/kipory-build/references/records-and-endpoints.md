@@ -31,7 +31,7 @@ In a document:
 
 ```json
 {
-  "kipory": 2,
+  "kipory": 5,
   "schema": {
     "Note": {
       "definition": {
@@ -69,7 +69,7 @@ In a document:
       }
     }
   },
-  "records": {
+  "tables": {
     "note": {
       "shape": "Note",
       "ownerScope": "project",
@@ -153,7 +153,7 @@ What a flow endpoint can answer besides its bound output — and nothing else re
   - **Post-filter one page.** `record.list` (up to 100 rows, newest first) → `value.transform` `$filter(page.records, function($r){ tag in $r.tags })`. Simple and exact, but it sees one page only, so it suits a list that fits in one.
   - **Project the value into fields.** For a small closed vocabulary, store one boolean field per value (`isDesign`, `isTech`) with a `filter` use — for at most four values: a table may declare 4 boolean fields as queryable (32 text, 8 number, 8 datetime), and a fifth is refused `TABLE_QUERYABLE_INVALID`. Past four, file the values as vocabulary terms (next bullet). Map every one in `fieldFilterSlots` (`{ "isDesign": "filters.isDesign", … }`) and set every one in the transform, `{"isDesign": tag = "design", "isTech": tag = "tech"}` — each filter needs a value, so this suits "exactly this tag"; for "this tag, whatever the others" use one list action per value behind a `flow.dispatch`.
   - **File the values as vocabulary terms** (`kipory-model`). `record.list`'s `vocabularyFilter` takes fixed `{ vocabularyKey, slug }` pairs in config, not a slot, so a parameter needs one list action per term behind a `flow.dispatch`; an `record.query` `term` clause takes the slug from a slot (`slugSlot`, §9); the records API's `term=vocabulary:key` is the operator's side of the same filter.
-- **Natural-key collisions fail the whole run.** A flow's `record.create` on a project-wide table is keyed by its content, so writing identical data again converges on the same record. Writing _different_ data under a `key` field another record already holds is a `409 RECORD_NATURAL_KEY_TAKEN`, and the run is all-or-nothing: no other row it wrote is kept. There is no upsert function. <!-- absent-function: entity.upsert --> The refusal names:
+- **Natural-key collisions fail the whole run.** A flow's `record.create` on a project-wide table is keyed by its content, so writing identical data again converges on the same record. Writing _different_ data under a `key` field another record already holds is a `409 RECORD_NATURAL_KEY_TAKEN`, and the run is all-or-nothing: no other row it wrote is kept. There is no upsert function. <!-- absent-function: record.upsert --> The refusal names:
   - the refused write's `seq`, the action that staged it and the table;
   - `details.refusedRecordId` — the refused write's own id (for a create, the id it would have had, which exists nowhere);
   - for a create or an update, `details.holderRecordId` — the record that holds the key and the one to update (never the key's value).

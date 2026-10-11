@@ -96,8 +96,8 @@ The create also takes a `template` slug (`GET /v1/templates` lists them) or a wh
 (`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
 transaction — a refused one leaves no project behind.
 
-A project document exported before the data words were renamed states `kipory: 2`, one exported before the flow words were renamed states `kipory: 3`, and both are refused
-(`DOCUMENT_VERSION_UNSUPPORTED`). `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts either to version 4 in one run. It renames only the names the platform defines, never one you chose; it lists the prompts and expressions that name a renamed field, which are yours to edit; and it refuses, with the line number, a YAML mapping written on one line (`{ … }`) in a place it would have to rewrite — write that mapping out as a block and run it again.
+A project document exported before the data words were renamed states `kipory: 2`, one exported before the flow words were renamed states `kipory: 3`, one exported before the link functions named their relation `relationKey` states `kipory: 4`, and all three are refused
+(`DOCUMENT_VERSION_UNSUPPORTED`). `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to version 5 in one run. It renames only the names the platform defines, never one you chose; it lists the prompts and expressions that name a renamed field, which are yours to edit; and it refuses, with the line number, a YAML mapping written on one line (`{ … }`) in a place it would have to rewrite — write that mapping out as a block and run it again.
 
 `GET /v1/projects/address-availability?candidate=` says whether a slug is free before you send it. A
 project's address — its subdomain — can move later and its slug never does; moving it is `kipory-evolve`.

@@ -34,10 +34,10 @@ Read a project's type registry: the platform's builtin and library types and the
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `entries` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
+| `types` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
 | `graph` | `object` | no | The project's type-reference graph. Present only with `expand=graph`, because building it costs the whole graph. |
 
-Each item of `entries`:
+Each item of `types`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -286,10 +286,10 @@ Store the platform-provided types a project's flows need (idempotent), then answ
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `entries` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
+| `types` | `object[]` | yes | The types in scope, across every tier unless you filtered by `provenance`. |
 | `graph` | `object` | no | The project's type-reference graph. Present only with `expand=graph`, because building it costs the whole graph. |
 
-Each item of `entries`:
+Each item of `types`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |

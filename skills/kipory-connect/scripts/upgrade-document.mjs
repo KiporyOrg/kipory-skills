@@ -12,9 +12,9 @@
  * Without `--write` it prints the converted document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
- * It converts in two steps, and a version 2 document takes both in one run. A
- * version 3 document takes the second; a version 4 document is returned as it
- * is.
+ * It converts in three steps, and a version 2 document takes all three in one
+ * run. A version 3 document takes the last two, a version 4 document the last;
+ * a version 5 document is returned as it is.
  *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
@@ -31,6 +31,18 @@
  *   - on an eval suite, `perSkillLatency` → `perActionLatency`; in a case's
  *     assertions, `kind: skill-outcome` with its `skillKey` → `kind:
  *     action-outcome` with `actionKey`.
+ *
+ * Version 4 → 5 (a function config names a relation by key):
+ *   - in the `functionConfig` of a `record.link-assert`, `record.link-retract`
+ *     or `record.links` action, `kind` → `relationKey`;
+ *   - in a `record.list` or `record.count` action's `linkFilters`, each
+ *     entry's `kind` → `relationKey`;
+ *   - in a `vector.search` action over a terms collection (`$project.terms`,
+ *     or a name ending `.terms`), `filterSlots.facet` and `filter.facet` →
+ *     `vocabularyKey`. Over any other collection those keys are payload
+ *     fields of yours, and stay.
+ *   The action is known by its `functionKey`, and a search's collection by
+ *   its `collection`: both are read beside the key they decide.
  *
  * ⛔ A NAME IS RENAMED BY WHERE IT SITS, never by how it is spelled. Only the
  * places the platform defines are rewritten: a table's and a relation's own
@@ -63,7 +75,7 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /** The version this script converts TO. */
-const TARGET_VERSION = 4;
+const TARGET_VERSION = 5;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -487,6 +499,63 @@ const flowStringAt = (mode, key, value, sibling) => {
   return value;
 };
 
+/* ── version 4 → 5: a function config names a relation by key ─────────────
+ *
+ * Only an action's config moves, and only for the functions below; which
+ * function an action runs is its `functionKey`, read beside `functionConfig`.
+ * A terms search is told apart by its own `collection`, read beside the
+ * filter map.
+ */
+const LINK_FUNCTIONS = new Set([
+  "record.link-assert",
+  "record.link-retract",
+  "record.links",
+]);
+const LINK_FILTER_FUNCTIONS = new Set(["record.list", "record.count"]);
+/** A project's terms collection, as the platform tells one (`substrateCollectionOwner`). */
+const isTermsCollection = (name) =>
+  typeof name === "string" &&
+  name.length > ".terms".length &&
+  name.endsWith(".terms");
+
+const configKeyIn = (mode, key) => {
+  switch (mode.name) {
+    case "linkConfig":
+    case "linkFilter":
+      return key === "kind" ? "relationKey" : key;
+    case "termsFilter":
+      return key === "facet" ? "vocabularyKey" : key;
+    default:
+      return key;
+  }
+};
+const configUnder = (mode, key, sibling = noSibling) => {
+  switch (mode.name) {
+    case "root":
+      return key === "flows" ? M("rows", "flow") : UNTOUCHED;
+    case "rows":
+      return M(`${mode.parent}Row`);
+    case "flowRow":
+      return key === "actions" ? M("rows", "action") : UNTOUCHED;
+    case "actionRow": {
+      if (key !== "functionConfig") return UNTOUCHED;
+      const fn = sibling("functionKey");
+      if (LINK_FUNCTIONS.has(fn)) return M("linkConfig");
+      if (LINK_FILTER_FUNCTIONS.has(fn)) return M("listConfig");
+      return fn === "vector.search" ? M("searchConfig") : UNTOUCHED;
+    }
+    case "listConfig":
+      return key === "linkFilters" ? M("linkFilter") : UNTOUCHED;
+    case "searchConfig":
+      return (key === "filterSlots" || key === "filter") &&
+        isTermsCollection(sibling("collection"))
+        ? M("termsFilter")
+        : UNTOUCHED;
+    default:
+      return UNTOUCHED;
+  }
+};
+
 /**
  * One step of the conversion: the version it reads, the version it writes,
  * and its answers to the questions above.
@@ -513,6 +582,18 @@ const STAGES = [
     stringAt: flowStringAt,
     rewrite: (text) => text,
     needsAPerson: (text) => NAMES_A_FLOW_WORD.test(text),
+    watchedKey: () => false,
+    slotNote: () => false,
+  },
+  {
+    from: 4,
+    to: 5,
+    keyIn: configKeyIn,
+    under: configUnder,
+    textOf: () => null,
+    stringAt: (_mode, _key, value) => value,
+    rewrite: (text) => text,
+    needsAPerson: () => false,
     watchedKey: () => false,
     slotNote: () => false,
   },
@@ -598,7 +679,7 @@ const stageJson = (doc, stage, places) => {
       return value.map((item) => valueAt(item, mode, key, path, noSibling));
     }
     if (value === null || typeof value !== "object") return value;
-    return mapping(value, stage.under(mode, key), path);
+    return mapping(value, stage.under(mode, key, sibling), path);
   };
   const mapping = (value, mode, path) => {
     if (mode.name === "untouched" && mode.text === null) return value;
@@ -829,7 +910,7 @@ const stageYaml = (text, stage, notes) => {
     const key = keyOf(match);
     const sibling = (name) => siblingText(index, column, name);
     const to = keyIn(mode, key, sibling);
-    const child = under(mode, key);
+    const child = under(mode, key, sibling);
     const policy = textOf(mode, key);
     const rest = match[6];
     const value = valueOf(rest);

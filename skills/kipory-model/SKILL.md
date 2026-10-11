@@ -47,14 +47,14 @@ Activation is direction-agnostic — pointing at a superseded generation is the 
 
 ```
 POST /v1/types                        a reusable typed shape
-POST /v1/types/seed                   { project } — materialise the flow-provider entries, idempotent
+POST /v1/types/seed                   { project } — materialise the flow-provider types, idempotent
 POST /v1/tables                          key, shape, owner scope (`user` | `project`), processing flow, `uses`
 PATCH /v1/tables/{id}                    replace `uses` whole; `searchable`/`queryable`/`relations` in a body are a 422
 GET  /v1/tables/{id}?expand=uses         where each use landed, and which use kinds this deployment supports
 PATCH /v1/tables/{id} validateOnly:true  what your PATCH body would do — derived declarations, reindex, restamp, the contract a
                                                shape or flow move leaves (`derived.contract`), the verdict a `key` use gets
                                                (`derived.naturalKey`) — writing nothing
-PATCH /v1/tables/{id} definition         rewrite the shape of the entry the type points at — for every type, event and link that uses it
+PATCH /v1/tables/{id} definition         rewrite the shape of the type the table points at — for every type, event and link that uses it
 ```
 
 **A table and its processing flow name each other, so one of them goes first.** The flow's actions name the table by key and its input uses the table's shape; the table names the flow by id. Create the table without `flowId`, build the flow (`kipory-build`), then `PATCH /v1/tables/{id} { flowId, version }` — or state the shape, the table and the flow in one project document, which orders them for you. Add a `processed` field to `uses` only after the flow is bound: until then the table has no such field to name.
@@ -73,11 +73,11 @@ The builtin and library shapes are **synthesized on read**: they have no rows an
 
 ```
 POST /v1/relations                        send `declaration` and the producing field is spliced into the type in the same transaction
-POST /v1/relation-pairings                which (typeA, typeB) pairs the kind admits — seeded atomically with the kind
-GET  /v1/relations/{id}?expand=readiness,liveRelationCount  blocked · inert · unproven · ready
+POST /v1/relation-pairings                which (tableA, tableB) pairs the relation admits — seeded atomically with the relation
+GET  /v1/relations/{id}?expand=readiness,liveLinkCount  blocked · inert · unproven · ready
 ```
 
-A pairing names tables by **key**, not id: `"pairings": [{ "fromTableKey": "recipe", "toTableKey": "ingredient" }]`. The same `{ fromTableKey, toTableKey }` goes to `POST /v1/relation-pairings` with the relation's `relationKey`. A `validateOnly` create forecasts readiness without counting links, so a draft can read `ready` there. The saved relation reads `unproven` until it carries its first link — but only on a read that also asks `expand=liveRelationCount`; without it a field or curated relation with no links reads `ready`.
+A pairing names tables by **key**, not id: `"pairings": [{ "fromTableKey": "recipe", "toTableKey": "ingredient" }]`. The same `{ fromTableKey, toTableKey }` goes to `POST /v1/relation-pairings` with the relation's `relationKey`. A `validateOnly` create forecasts readiness without counting links, so a draft can read `ready` there. The saved relation reads `unproven` until it carries its first link — but only on a read that also asks `expand=liveLinkCount`; without it a field or curated relation with no links reads `ready`.
 
 Omit `declaration` and the relation is legal but produces nothing; readiness reports it `inert`. The field that feeds a relation is otherwise a `link` use on the table — `{ "kind": "link", "relation": "<key>" }` in its `uses`, `element.ref` for a list of objects — and the table's `relations` is derived from it. A pairing has no update — delete and recreate. <!-- absent: PATCH /v1/relation-pairings/{id} --> The relation's key is immutable. `producer` is `field`, `join-record` or `curated` and `cardinality` `many-to-one` or `many-to-many` — kebab, as every enum value on the wire. Every write here takes `validateOnly` (a pairing's DELETE as `?validateOnly=true`) and answers the save's own verdict, writing nothing.
 
@@ -113,7 +113,7 @@ A vocabulary whose `matching` is `exact` needs no resolver. A `semantic` one cre
 - **A schema edit cascades.** Read the tables pack on what a type change reaches before editing one that tables already reference.
 - **`expand=embedding` and `expand=vectorProgress` are refused on the tables list.** They are per-row scans; ask them on `GET /v1/tables/{id}`. On tables, `expand` is **comma-separated** (`?expand=embedding,vectorProgress`); repeating the parameter is a 422 `Expected string, received array`.
 - **An indexing failure is silent on the record and the table.** Records stay `indexState: "never"` and `vectorProgress.remaining` stops falling; neither says why. The cause is in the AI-call list: `GET /v1/ai-calls?project={nodeId}&origins=projection` — each failed embed is a row with `errorCode` (`quota-exhausted`, …); read one by id (`GET /v1/ai-calls/{id}`) for the provider's `errorMessage`. A failed embed is retried three times within about fifteen seconds, then only by the daily re-index sweep (08:00 UTC). The usual remedy is a new profile generation on another embedding model, then activate it.
-- **Readiness is the diagnostic here, not `outstandingIssues`.** That array belongs to action writes; none of the saves in this skill carry it. Re-read the vocabulary or relation with `expand=readiness` (a relation also with `liveRelationCount`, or `unproven` never shows): `blocked` cannot work (`RESOLVER_UNBOUND` on an unbound semantic vocabulary), `inert` is wired to nothing, `unproven` has never resolved — no run has filed one of its terms onto a record and applied (a preview does not count) — expected an hour after authoring, a question a year later.
+- **Readiness is the diagnostic here, not `outstandingIssues`.** That array belongs to action writes; none of the saves in this skill carry it. Re-read the vocabulary or relation with `expand=readiness` (a relation also with `liveLinkCount`, or `unproven` never shows): `blocked` cannot work (`RESOLVER_UNBOUND` on an unbound semantic vocabulary), `inert` is wired to nothing, `unproven` has never resolved — no run has filed one of its terms onto a record and applied (a preview does not count) — expected an hour after authoring, a question a year later.
 - **An embedding profile carries two numbers.** `generation` is its geometry — the `v{n}` in its collection names, minted by `POST …/generations`, never sent back. `version` is its lock, like every other row's: required on the PATCH and on `POST …/activate`, and a stale one is 409 `VERSION_CONFLICT`. Changing the model or the slots goes through a new generation and re-embeds everything; changing `defaultChunking` re-derives and re-embeds every table that inherits it, without a new generation.
 - **`uses` is sent whole.** A PATCH carrying it replaces the statement; reordering two `filter` fields moves their storage slots and re-stamps every record of the table. Read it, change it, send it back with the `version` you read — and ask the same PATCH with `validateOnly: true` first if you are not sure what it derives to.
 - **A search action left behind after activation keeps querying the superseded collection** — stale results, not an error. Read `repointedActions`.

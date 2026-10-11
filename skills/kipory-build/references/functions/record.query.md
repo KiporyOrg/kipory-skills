@@ -163,7 +163,7 @@ Asks one question across a table's stores and says, on every answer, whether it 
 
 #### Three conditions
 
-Term and edge legs ran first; their intersection was pushed into the index exactly, so `bounded` is false.
+Term and link legs ran first; their intersection was pushed into the index exactly, so `bounded` is false.
 
 Reads `{ userId }` → emits `RecordQueryPage` · 1 in → 1 out
 
@@ -225,7 +225,7 @@ Output:
 
 #### No matches
 
-The edge leg found nobody, so the semantic clause never ran: `emptiedBy` names it.
+The link leg found nobody, so the semantic clause never ran: `emptiedBy` names it.
 
 Reads `{ userId }` → emits `RecordQueryPage` · 1 in → 1 out
 
