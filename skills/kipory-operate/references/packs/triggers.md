@@ -169,7 +169,8 @@ re-judge it, so the rest of the trigger can still be edited.
 - **Every PATCH — switching `enabled` included — requires the version you last read.**
 - **A replay of an event this trigger never decided** is a 422. The decision row is what you are
   re-running; there is no backfill through the back door. A replay is also refused while the
-  trigger is **disabled** (disable means stop, and a replay is a fire), when the event no longer
+  trigger is **disabled** (disable means stop, and a replay is a fire) or **paused** (resume it
+  first), when the event no longer
   matches the trigger's **current selector**, and when that selector no longer resolves to an
   active, durable, non-run type — the same question switching `enabled` on asks.
 - **Deleting a flow a trigger binds** is refused, counting the triggers it would strand, by the
@@ -232,9 +233,14 @@ refused.
 
 `GET /v1/triggers/{id}/runs` is the debugging surface. Each row carries the `eventId`, the
 `attempt` (0 live, higher on replays), the `outcome`, a plain-words `reason` for anything that did
-not fire, and — for a fire — the invocation with its live `status` and, on an action failure, a
-`failure` naming the action (`actionName`) and phase, and a `reason` when it is one a caller may read
-(a mail refusal, `project-mail-cap-reached`). `replayOf` points a replayed row at the decision it re-ran.
+not fire, and — for a fire — the invocation with its live `status` and, once it has failed, a
+`failure`: the run's closing record, with its `class` (`logic`, `vendor`, `platform-fault`, …), its
+`owner` (who has to act), whether it is `retryable`, the `attempt` that closed it, the action that
+failed (`actionKey`, `phase`) when one did, and a `reason` when it is one a caller may read (a mail refusal,
+`project-mail-cap-reached`). Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes. While the platform is
+about to start a run again after one of its own failures, the invocation is `pending` and carries
+`waiting` — a `reason`, the `attempt` number and `notBefore` — instead; schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) says what that
+means. `replayOf` points a replayed row at the decision it re-ran.
 
 The log itself, `GET /v1/project-events`, is where you find an `eventId` to replay. Its `source`
 column says who wrote the row: `run` for a flow's own emission, or the provider for a source's —
@@ -242,6 +248,91 @@ column says who wrote the row: `run` for a flow's own emission, or the provider 
 kept for **30 days**, and both are cursor-paged: walk `after=<nextCursor>` until it is `null`.
 Each logged `event` names its project `project`, the node id every `?project=` takes; the flow's
 `event` slot carries the same envelope with the same node id under the name `projectId`.
+
+## Being told when a run fails: a trigger on a platform event
+
+Every project has the event category `platform`, with eight types the platform records itself.
+You cannot add to it, change it or emit into it; `GET /v1/event-types` lists them, and a project
+document neither creates nor prunes them. **A failure trigger is an ordinary trigger on one of
+them, bound to an ordinary flow** — one that posts to your chat, opens a ticket, writes a record.
+
+| Event                 | Recorded when                                                                 | `data` is              |
+| --------------------- | ----------------------------------------------------------------------------- | ---------------------- |
+| `run.failed`          | An unattended run failed for good — the first of an episode for its subject   | `PlatformRunFailed`    |
+| `run.failures`        | More runs of that subject failed: one summary per window                      | `PlatformRunFailures`  |
+| `run.partial`         | Runs of a subject finished having tolerated a failure: one summary per window | `PlatformRunPartial`   |
+| `health.failing`      | A subject's runs began failing for a reason that is its own                   | `PlatformHealthChange` |
+| `health.recovered`    | A failing subject ran clean again                                             | `PlatformHealthChange` |
+| `health.quiet`        | A schedule that should have run has not                                       | `PlatformHealthChange` |
+| `health.pause-warned` | A failing schedule or trigger will be paused in 24 hours                      | `PlatformHealthChange` |
+| `health.paused`       | It was paused                                                                 | `PlatformHealthChange` |
+
+An unattended run is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, or
+a record's processing. Its **subject** is what it ran for — `{ kind, key }` with `kind` one of
+`schedule`, `trigger`, `endpoint`, `table`.
+
+**What `run.failed` carries.** The run (`id`, `kind`, `flowKey`, when it started and closed,
+`attempts`), the `subject`, `closing.failure` — its `class`, its `owner`, the action and function
+that failed, a `code`, and the sentence the platform writes for that code — the subject's `health`,
+and `depth`. Ids, keys, codes and counts only: never the run's inputs, a slot's value, or what a
+vendor answered. Read those from the run itself with the caller's key.
+
+**Not every failure is an event of its own.** The first final failure of a subject is told at
+once and opens an episode. Later ones are folded into `run.failures` summaries: the first a
+minute later, then at doubling intervals up to an hour. A summary carries the `count`, a count per
+class, the commonest code, the first and last run ids, and `failedRunsPath` — the address of the
+runs themselves, already filtered to exactly the ones the summary counted: by when each failure was
+reported, leaving out runs a platform event started. Five thousand records failing in ten minutes
+are five events, not five thousand runs of the flow that hears them.
+
+**Nothing is recorded** for an attempt the platform is about to start again, for a run a person
+cancelled, for a preview, or for a synchronous call — whose caller already has the answer.
+
+**A failure trigger's flow cannot be handed its own failure.** A run started by a platform event carries that
+fact on to everything it starts — a flow it triggers, a record it queues — and none of those runs
+causes a platform event when it fails. A broken failure flow fails once per event, and stops there.
+Its failures still count: it reads `failing`, and `GET /v1/projects/{nodeId}/alerts` marks it
+`failureTrigger: true`. They are never told — no `health.failing` or `health.recovered` comes of
+them — and never bring a schedule or trigger closer to a pause.
+
+A trigger on a platform event defaults to `overlapPolicy: "allow"` — skipping a `run.failed`
+because its flow was still busy would lose the report — is never paused by the platform, and
+runs in a slot of its own, so a project whose runs fill its concurrency cap can still be told.
+
+### Prove the failure trigger before something fails
+
+`POST /v1/platform-events/test` with `{ project, type, subject: { kind, key } }` records one
+event of that type for a subject the project has. Its `data` is an example with `test: true`;
+every enabled trigger on the type fires as on a real one, and the flows they start are ordinary,
+charged runs. Recording it costs nothing, moves no health and lists no failed run. The answer
+says how many triggers listen — zero means nothing ran.
+
+### Asking instead of being told
+
+- `GET /v1/failed-runs?project=<nodeId>` — the runs whose latest close is `failed` or `partial`,
+  newest first, filterable by subject (`subjectKind` with `subjectKey`), by failure `class`, by `verdict`, and by
+  when the run closed (`from` up to `to`, which is exclusive). Cursor-paged on `after`. Each row's `closing` carries
+  the `failure` of a failed run and, for a `partial` one, `absorbed` — how many failures it
+  carried on past.
+- `GET /v1/projects/{nodeId}/alerts` — every schedule, trigger, table or endpoint that is
+  failing, quiet, about to be paused or paused, read live.
+- A plan (`POST /v1/projects/{nodeId}/document/plan`) of a project that runs schedules or
+  triggers and has no enabled trigger on `platform/run.failed` says so, as
+  `DOCUMENT_NO_FAILURE_LISTENER`. It is information and blocks nothing.
+
+### A trigger's own health, and being paused
+
+A trigger read carries `health`, `pausedAt`, `pauseReason` and `failurePolicy`, exactly as a
+schedule's does — schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) has the states and the pause rule; for a trigger the
+time is 48 hours, since it has no interval. While a trigger is paused no event is decided for it
+and nothing is recorded for those events; they are not replayed when it resumes.
+`POST /v1/triggers/{id}/resume` resumes it.
+
+With `expand=lastRun` a trigger also carries `lastRunStatus`: `running`, `succeeded`, `partial`,
+`failed`, `skipped`, `blocked` or `filtered` for the newest event that reached it, `null` when
+none has. `partial` is a run that finished having carried on past a failure it was set to
+tolerate; like a schedule's, it reads `succeeded` once the run has left the project's list of
+failed and partial runs.
 
 ## Testing a flow against a real event
 

@@ -38,6 +38,7 @@ Each item of `apiEndpoints`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Endpoint id — the address for read, patch, delete. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The endpoint's key within the project. Immutable. |
@@ -102,6 +103,7 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Endpoint id — the address for read, patch, delete. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The endpoint's key within the project. Immutable. |
@@ -147,6 +149,7 @@ Read one endpoint. `expand` takes the list's keys (`drift`, `flowLabel`, `shadow
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Endpoint id — the address for read, patch, delete. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The endpoint's key within the project. Immutable. |
@@ -195,6 +198,7 @@ Change one endpoint: its contract (method, path, parameters) and its target, bot
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Endpoint id — the address for read, patch, delete. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The endpoint's key within the project. Immutable. |

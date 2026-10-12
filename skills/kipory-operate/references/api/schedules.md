@@ -15,6 +15,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/schedules/{id}`](#get-v1-schedules-id) |  |
 | `PATCH` | [`/v1/schedules/{id}`](#patch-v1-schedules-id) |  |
 | `DELETE` | [`/v1/schedules/{id}`](#delete-v1-schedules-id) |  |
+| `POST` | [`/v1/schedules/{id}/resume`](#post-v1-schedules-id-resume) |  |
 | `GET` | [`/v1/schedules/{id}/runs`](#get-v1-schedules-id-runs) |  |
 
 ### `GET /v1/schedules`
@@ -39,6 +40,7 @@ Each item of `schedules`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
@@ -52,6 +54,9 @@ Each item of `schedules`:
 | `endsAt` | `string \| null` | yes | Nothing fires after this instant, or null for no end bound. |
 | `maxRuns` | `integer \| null` | yes | Stop after this many firings, or null for no limit. Compared against `runCount`. |
 | `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an occurrence comes due while the previous one is still running. |
+| `pausedAt` | `string \| null` | yes | When the platform paused it, or null. A paused row fires nothing until it is resumed with `POST …/{id}/resume`; `enabled` is untouched, and no write of yours sets or clears this. |
+| `pauseReason` | `string \| null` | yes | Why it was paused: `failing` (it failed for the longer of 48 hours and five of its intervals, at least five times) or `mostly-failing` (at least 95% of at least 20 runs in seven days failed). Null when it is not paused. |
+| `failurePolicy` | `"pause" \| "keep-running"` | yes | What the platform does when this row's runs keep failing. `pause`: after a day's warning it stops firing the row until someone resumes it — and only in a project with an enabled trigger on `platform` / `health.pause-warned`, since the platform pauses nothing it cannot first warn about. `keep-running`: it is never paused. |
 | `createdByUserId` | `string \| null` | yes | Who set the schedule up. History only — a schedule is owned by its project and fires as its project, so nothing at fire time reads this. Null for a schedule created by a token, or once that account is gone. |
 | `nextRunAt` | `string \| null` | yes | When it next fires, or null when it is disabled, outside its window, or has hit `maxRuns`. |
 | `lastRunAt` | `string \| null` | yes | When it last actually fired, or null if it never has. |
@@ -61,7 +66,7 @@ Each item of `schedules`:
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that this schedule's stored `inputs` do not supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"succeeded" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
+| `lastRunStatus` | `"succeeded" \| "partial" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
 | `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound — the judgement the scheduler makes when it advances a fired schedule. A disabled schedule answers `kind: "disabled"`, with `stop` saying whether it could run again. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. |
 | `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. Empty on a disabled schedule, which fires nothing. |
 | `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. Empty on a disabled schedule, which fires nothing. |
@@ -85,6 +90,7 @@ Create a schedule: a flow run on a five-field cron pattern in a timezone, with f
 | `endsAt` | `string \| null` | no | Do not fire after this instant. Pass null to clear the bound. |
 | `maxRuns` | `integer \| null` | no | Stop after this many firings. Pass null for no limit. Counted against `runCount`, which a patch does not reset. |
 | `overlapPolicy` | `"skip" \| "allow"` | no | What to do when an occurrence comes due while the previous one is still running. |
+| `failurePolicy` | `"pause" \| "keep-running"` | no | Whether the platform may pause this row if its runs keep failing: `pause` (the default) or `keep-running`. Omit to leave it alone. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
@@ -109,6 +115,7 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
@@ -122,6 +129,9 @@ Each item of `diagnostics`:
 | `endsAt` | `string \| null` | yes | Nothing fires after this instant, or null for no end bound. |
 | `maxRuns` | `integer \| null` | yes | Stop after this many firings, or null for no limit. Compared against `runCount`. |
 | `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an occurrence comes due while the previous one is still running. |
+| `pausedAt` | `string \| null` | yes | When the platform paused it, or null. A paused row fires nothing until it is resumed with `POST …/{id}/resume`; `enabled` is untouched, and no write of yours sets or clears this. |
+| `pauseReason` | `string \| null` | yes | Why it was paused: `failing` (it failed for the longer of 48 hours and five of its intervals, at least five times) or `mostly-failing` (at least 95% of at least 20 runs in seven days failed). Null when it is not paused. |
+| `failurePolicy` | `"pause" \| "keep-running"` | yes | What the platform does when this row's runs keep failing. `pause`: after a day's warning it stops firing the row until someone resumes it — and only in a project with an enabled trigger on `platform` / `health.pause-warned`, since the platform pauses nothing it cannot first warn about. `keep-running`: it is never paused. |
 | `createdByUserId` | `string \| null` | yes | Who set the schedule up. History only — a schedule is owned by its project and fires as its project, so nothing at fire time reads this. Null for a schedule created by a token, or once that account is gone. |
 | `nextRunAt` | `string \| null` | yes | When it next fires, or null when it is disabled, outside its window, or has hit `maxRuns`. |
 | `lastRunAt` | `string \| null` | yes | When it last actually fired, or null if it never has. |
@@ -131,7 +141,7 @@ Each item of `diagnostics`:
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that this schedule's stored `inputs` do not supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"succeeded" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
+| `lastRunStatus` | `"succeeded" \| "partial" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
 | `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound — the judgement the scheduler makes when it advances a fired schedule. A disabled schedule answers `kind: "disabled"`, with `stop` saying whether it could run again. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. |
 | `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. Empty on a disabled schedule, which fires nothing. |
 | `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. Empty on a disabled schedule, which fires nothing. |
@@ -157,6 +167,7 @@ Read one schedule. `expand` takes the list's keys (`timing`, `lastRun`, `drift`,
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
@@ -170,6 +181,9 @@ Read one schedule. `expand` takes the list's keys (`timing`, `lastRun`, `drift`,
 | `endsAt` | `string \| null` | yes | Nothing fires after this instant, or null for no end bound. |
 | `maxRuns` | `integer \| null` | yes | Stop after this many firings, or null for no limit. Compared against `runCount`. |
 | `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an occurrence comes due while the previous one is still running. |
+| `pausedAt` | `string \| null` | yes | When the platform paused it, or null. A paused row fires nothing until it is resumed with `POST …/{id}/resume`; `enabled` is untouched, and no write of yours sets or clears this. |
+| `pauseReason` | `string \| null` | yes | Why it was paused: `failing` (it failed for the longer of 48 hours and five of its intervals, at least five times) or `mostly-failing` (at least 95% of at least 20 runs in seven days failed). Null when it is not paused. |
+| `failurePolicy` | `"pause" \| "keep-running"` | yes | What the platform does when this row's runs keep failing. `pause`: after a day's warning it stops firing the row until someone resumes it — and only in a project with an enabled trigger on `platform` / `health.pause-warned`, since the platform pauses nothing it cannot first warn about. `keep-running`: it is never paused. |
 | `createdByUserId` | `string \| null` | yes | Who set the schedule up. History only — a schedule is owned by its project and fires as its project, so nothing at fire time reads this. Null for a schedule created by a token, or once that account is gone. |
 | `nextRunAt` | `string \| null` | yes | When it next fires, or null when it is disabled, outside its window, or has hit `maxRuns`. |
 | `lastRunAt` | `string \| null` | yes | When it last actually fired, or null if it never has. |
@@ -179,7 +193,7 @@ Read one schedule. `expand` takes the list's keys (`timing`, `lastRun`, `drift`,
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that this schedule's stored `inputs` do not supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"succeeded" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
+| `lastRunStatus` | `"succeeded" \| "partial" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
 | `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound — the judgement the scheduler makes when it advances a fired schedule. A disabled schedule answers `kind: "disabled"`, with `stop` saying whether it could run again. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. |
 | `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. Empty on a disabled schedule, which fires nothing. |
 | `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. Empty on a disabled schedule, which fires nothing. |
@@ -207,6 +221,7 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 | `endsAt` | `string \| null` | no | Do not fire after this instant. Pass null to clear the bound. |
 | `maxRuns` | `integer \| null` | no | Stop after this many firings. Pass null for no limit. Counted against `runCount`, which a patch does not reset. |
 | `overlapPolicy` | `"skip" \| "allow"` | no | What to do when an occurrence comes due while the previous one is still running. |
+| `failurePolicy` | `"pause" \| "keep-running"` | no | Whether the platform may pause this row if its runs keep failing: `pause` (the default) or `keep-running`. Omit to leave it alone. |
 | `enabled` | `boolean` | no | Switch the schedule on or off. Omit to leave it alone. Switching on re-arms `nextRunAt` forward from now through the schedule's bounds — after this patch's own timing edits — and is refused with 422 when those bounds are spent (`maxRuns` reached, `endsAt` passed). Switching off clears `nextRunAt` and never judges timing, so a spent schedule can always be stopped. On a retired project, a patch whose only change is `enabled: false` is still accepted; every other patch is refused with 409. |
 | `version` | `integer` | yes | The `version` you last read. Required here — a schedule patch is refused with 409 rather than silently overwriting a concurrent edit. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
@@ -215,6 +230,7 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
@@ -228,6 +244,9 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 | `endsAt` | `string \| null` | yes | Nothing fires after this instant, or null for no end bound. |
 | `maxRuns` | `integer \| null` | yes | Stop after this many firings, or null for no limit. Compared against `runCount`. |
 | `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an occurrence comes due while the previous one is still running. |
+| `pausedAt` | `string \| null` | yes | When the platform paused it, or null. A paused row fires nothing until it is resumed with `POST …/{id}/resume`; `enabled` is untouched, and no write of yours sets or clears this. |
+| `pauseReason` | `string \| null` | yes | Why it was paused: `failing` (it failed for the longer of 48 hours and five of its intervals, at least five times) or `mostly-failing` (at least 95% of at least 20 runs in seven days failed). Null when it is not paused. |
+| `failurePolicy` | `"pause" \| "keep-running"` | yes | What the platform does when this row's runs keep failing. `pause`: after a day's warning it stops firing the row until someone resumes it — and only in a project with an enabled trigger on `platform` / `health.pause-warned`, since the platform pauses nothing it cannot first warn about. `keep-running`: it is never paused. |
 | `createdByUserId` | `string \| null` | yes | Who set the schedule up. History only — a schedule is owned by its project and fires as its project, so nothing at fire time reads this. Null for a schedule created by a token, or once that account is gone. |
 | `nextRunAt` | `string \| null` | yes | When it next fires, or null when it is disabled, outside its window, or has hit `maxRuns`. |
 | `lastRunAt` | `string \| null` | yes | When it last actually fired, or null if it never has. |
@@ -237,7 +256,7 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that this schedule's stored `inputs` do not supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"succeeded" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
+| `lastRunStatus` | `"succeeded" \| "partial" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
 | `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound — the judgement the scheduler makes when it advances a fired schedule. A disabled schedule answers `kind: "disabled"`, with `stop` saying whether it could run again. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. |
 | `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. Empty on a disabled schedule, which fires nothing. |
 | `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. Empty on a disabled schedule, which fires nothing. |
@@ -290,6 +309,51 @@ Each item of `diagnostics`:
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
+### `POST /v1/schedules/{id}/resume`
+
+Resume a schedule the platform paused because its runs kept failing (`pausedAt` on its read). It fires again from its next occurrence after now — the occurrences that fell while it was paused are not caught up — and its failing spell is cleared, so it reads `healthy` until a run fails again. Takes no body and no `version`: paused is the platform's running state about the row, not a field of it, and resuming moves no `version`. Idempotent: a schedule that is not paused is answered as it is. Nothing else resumes one — not `enabled: true`, not a project document.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The schedule's id, as returned when it was created or listed. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
+| `id` | `string` | yes | Unique id of the schedule — what `{id}` routes address. |
+| `project` | `string` | yes | Node id of the owning project. |
+| `key` | `string` | yes | Your identifier for this schedule within the project. Permanent — a patch cannot change it. |
+| `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this schedule. |
+| `flowId` | `string` | yes | The flow this schedule runs. |
+| `inputs` | `object` | yes | Fixed inputs handed to the flow on every firing. A schedule has no caller, so these are the only inputs it ever gets. |
+| `cronPattern` | `string` | yes | Five-field cron pattern deciding when it fires. |
+| `tz` | `string` | yes | IANA timezone the pattern is read in. This is what decides behaviour across daylight-saving changes, so it is not cosmetic. |
+| `enabled` | `boolean` | yes | Whether the schedule is currently firing. Switch it with `PATCH /v1/schedules/{id}` `{enabled, version}`: switching on re-arms `nextRunAt` from now, switching off clears it. |
+| `startsAt` | `string \| null` | yes | Nothing fires before this instant, or null for no start bound. |
+| `endsAt` | `string \| null` | yes | Nothing fires after this instant, or null for no end bound. |
+| `maxRuns` | `integer \| null` | yes | Stop after this many firings, or null for no limit. Compared against `runCount`. |
+| `overlapPolicy` | `"skip" \| "allow"` | yes | What happens when an occurrence comes due while the previous one is still running. |
+| `pausedAt` | `string \| null` | yes | When the platform paused it, or null. A paused row fires nothing until it is resumed with `POST …/{id}/resume`; `enabled` is untouched, and no write of yours sets or clears this. |
+| `pauseReason` | `string \| null` | yes | Why it was paused: `failing` (it failed for the longer of 48 hours and five of its intervals, at least five times) or `mostly-failing` (at least 95% of at least 20 runs in seven days failed). Null when it is not paused. |
+| `failurePolicy` | `"pause" \| "keep-running"` | yes | What the platform does when this row's runs keep failing. `pause`: after a day's warning it stops firing the row until someone resumes it — and only in a project with an enabled trigger on `platform` / `health.pause-warned`, since the platform pauses nothing it cannot first warn about. `keep-running`: it is never paused. |
+| `createdByUserId` | `string \| null` | yes | Who set the schedule up. History only — a schedule is owned by its project and fires as its project, so nothing at fire time reads this. Null for a schedule created by a token, or once that account is gone. |
+| `nextRunAt` | `string \| null` | yes | When it next fires, or null when it is disabled, outside its window, or has hit `maxRuns`. |
+| `lastRunAt` | `string \| null` | yes | When it last actually fired, or null if it never has. |
+| `runCount` | `integer` | yes | How many times it has fired. Counted against `maxRuns`. |
+| `version` | `integer` | yes | Increments on every write. Send it back on a patch — switching `enabled` included — to be refused with 409 if someone changed the schedule in the meantime. |
+| `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that this schedule's stored `inputs` do not supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
+| `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
+| `lastRunStatus` | `"succeeded" \| "partial" \| "failed" \| "running" \| "skipped" \| "blocked"` | no | How the most recent firing went, present only when you pass `expand=lastRun`. Null when it has never fired. |
+| `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound — the judgement the scheduler makes when it advances a fired schedule. A disabled schedule answers `kind: "disabled"`, with `stop` saying whether it could run again. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. |
+| `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. Empty on a disabled schedule, which fires nothing. |
+| `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. Empty on a disabled schedule, which fires nothing. |
+
 ### `GET /v1/schedules/{id}/runs`
 
 One schedule's occurrences, newest first, walked on `after`/`before` — fired, skipped or blocked, and for a fired one its invocation's status, timing, failure and cost. The run it started is `GET /v1/runs/{runId}` via `invocation`.
@@ -325,7 +389,7 @@ Each item of `runs`:
 | `occurrenceAt` | `string` | yes | The instant this occurrence was due. |
 | `outcome` | `"fired" \| "skipped" \| "blocked"` | yes | What happened at that instant — it fired, or it was skipped or blocked without firing. |
 | `reason` | `string \| null` | yes | Why it did not fire, or null when it did. This is where a skipped occurrence explains itself. |
-| `status` | `"succeeded" \| "failed" \| "running" \| "skipped" \| "blocked"` | yes | How this occurrence went: `succeeded`, `failed` or `running` from the run it started, `skipped` or `blocked` when it did not fire. The same answer `lastRunStatus` gives for the most recent one — a fired occurrence whose run is not linked (yet, or any more) reads `running`. |
+| `status` | `"succeeded" \| "partial" \| "failed" \| "running" \| "skipped" \| "blocked"` | yes | How this occurrence went: `succeeded`, `partial` (finished, having carried on past a failure the flow was set to tolerate), `failed` or `running` from the run it started, `skipped` or `blocked` when it did not fire. The same answer `lastRunStatus` gives for the most recent one — a fired occurrence whose run is not linked (yet, or any more) reads `running`. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `invocation` | `object \| null` | yes | The run this occurrence started, or null when it did not fire at all. |
 | `timing` | `object \| null` | yes | How long it waited and how long it took, or null if it never ran. |

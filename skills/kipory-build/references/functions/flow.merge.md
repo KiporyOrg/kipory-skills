@@ -16,8 +16,8 @@ Gathers what a `flow.fan-out`'s branches produced into one or more output slots.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `failuresSlot` | string | no | — | A slot listing each branch the fan-out tolerated: its position in the list and why it failed. ⚠️ Written only when a branch was tolerated, so read it as possibly absent. Name it only when the fan-out states `maxFailedBranches` or `maxFailedShare`. |
 | `lanes` | object[], at least 1 item | yes | — | The merge lanes, in order. The first is the action's own output; the rest are extra outputs. At least one is required. |
-| `onBranchFailure` | `proceed` \| `fail` | no | `"proceed"` | What to do when a branch failed before reaching here. `proceed` merges what succeeded; `fail` fails this merge action. ⚠️ It is a whole-merge policy, not per-lane — `fail` writes no lane at all. Under `proceed`, when every branch failed each lane holds `[]`, which later actions read as absent. |
 
 ### `lanes` — each item
 

@@ -58,9 +58,13 @@ GET /v1/runs/{runId}/spend        what it cost, by action
 GET /v1/runs/{runId}/change-set   what it wrote, or would have
 ```
 
-Those reads answer 404 until the worker has started the run, so poll `GET /v1/runs/{runId}`: the run is finished when `run.closing` is non-null. `run.closing.verdict` is then `succeeded` or `failed`, or null with `run.closing.kind: "run-aborted"` when the run was ended from outside. `run.lifecycle` reads `unknown` until then and `settled` after.
+Those reads answer 404 until the worker has started the run, so poll `GET /v1/runs/{runId}`: the run is finished when `run.closing` is non-null. `run.closing.verdict` is then `succeeded`, `partial` or `failed`, or null with `run.closing.kind: "run-aborted"` when the run was ended from outside. `run.lifecycle` reads `unknown` until then and `settled` after.
 
 **`succeeded` does not mean every action got an answer.** An action whose vendor refused the call — a search, a page read, a screenshot — ends `action-applied` with an empty output, and the run still succeeds. Each such action leaves an `action-warned` row in `GET /v1/runs/{runId}/timeline` (`detail.warningKind`: `SEARCH_FAILED`, `SCRAPE_FAILED`, …) whose `detail.message` is the vendor's reason, so read the timeline for them before designing around an empty result. The run says how many it has without the log: `run.closing.warnings` lists the warnings it produced, counted by `kind` (and `warningKind` for a function's own), and is empty when there were none — check it on every run you are about to trust, the list read (`GET /v1/runs`) included. It also counts the engine's own: a value cut at the slot cap (`slot-truncated`), items a fan-out dropped (`fan-out-capped`), an action that failed under `"onFailure": "continue"` (`action-failed-continued`). `kipory-diagnose` reads a trace.
+
+**`partial` is the third verdict.** A run that carried on past a failure it was set to tolerate — an action or a sub-flow call under `"onFailure": "continue"`, a fan-out branch within `maxFailedBranches` or `maxFailedShare` — finishes, applies its changes and closes `partial`; `run.closing.absorbed { actions, calls, branches }` counts what it carried on past. Preview the failing case on purpose before relying on a tolerance: a tolerated branch or a continued call is dropped whole, and the change set shows what the run kept without it. The preview's five-branch cap also changes what a `maxFailedShare` allows, since the share is of the branches run.
+
+**A failed preview tells nobody.** The platform records a `platform` event for an unattended run that fails — a schedule's, a trigger's, an asynchronous endpoint call, a record's processing — and none for a preview. What a live failure does to the project, and how to prove the failure trigger with a test event, is `kipory-operate` ("When a run fails").
 
 ## 4. What needs ADMIN
 

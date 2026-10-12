@@ -8,6 +8,7 @@ Draws one page of a PDF as a PNG or JPEG image. Put a `slotStartsWith currentFil
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
+- **Not undone when a run fails:** `file` — The file's bytes are stored while the action runs. A later attempt of the run stores them again under its own key; a file no record keeps is removed by the platform later. Doing it twice is not harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `file` → `file`
 - **Reads:** One PDF file. Anything else fails, so route non-PDFs elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the rendered page. A retry on the same item reuses the previous render. An empty input gives an empty file back.

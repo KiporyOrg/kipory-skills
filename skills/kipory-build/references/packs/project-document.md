@@ -166,6 +166,13 @@ patch after the row. Export always states it. Omitted, a new row is created enab
 one keeps its state — so a disabled schedule, trigger or source re-created from its export comes
 back disabled.
 
+A schedule and a trigger also carry `failurePolicy` (`pause` or `keep-running`), an ordinary
+field, and — on export only — `paused: { at, reason }` when the platform has paused the row
+because its runs kept failing. `paused` is read-only: it is never planned and never applied. A
+document that states it, changes it or leaves it out changes nothing, and `enabled: true` does not
+resume a paused row; only `POST /v1/schedules/{id}/resume` or `POST /v1/triggers/{id}/resume`
+does. A row re-created from an export in another project starts unpaused.
+
 Removal is always explicit — `delete: true` on a row, or `prune: true` on a map to remove every
 row of that map you did not name. Absence alone never deletes. A `delete: true` row states nothing
 but its `id`; any other field beside it is refused `DOCUMENT_DELETE_WITH_FIELDS` on the row's path.
@@ -362,7 +369,9 @@ anything needs ADMIN.
 ## What does not travel
 
 No secret value — a secret is always a reference by purpose. No `version`, no timestamp, no
-count, no health, no run, no record, no member, no credential. A vector collection is DERIVED
+count, no health, no run, no record, no member, no credential. The event types of the `platform`
+category are every project's and are shown on export as they are; a document neither creates nor
+prunes them. A vector collection is DERIVED
 from a profile and a table's search use, so it appears under `vectors` for reading and is
 never applied. A term that is an alias or archived is not configuration and is not exported.
 Tenancy — who may open the project — is not in the document by decision. An eval suite's

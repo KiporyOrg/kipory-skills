@@ -173,10 +173,35 @@ read the one schedule you are about to show from it when the list left it `null`
 `GET /v1/schedules/{id}/runs` is the debugging surface, and there are **two** error fields on a
 run's invocation. Reach for them in this order:
 
-- **`failure`** — `{ actionName, phase, reason? }`. This is the one that tells you something: it
-  **names the action that failed** and the category of failure. Present only for an action-level failure.
-  `reason` is set only for a refusal a caller may read: a mail action's sender refusal, or
-  `project-mail-cap-reached` past the project's daily mail cap; `statusError` then names it too.
+- **`failure`** — how the run failed and whose failure it was. This is the one that tells you
+  something. It is the run's closing record, the same value `GET /v1/runs` serves as
+  `closing.failure`:
+  - `class` — one word from a closed list. `logic`: your flow's own expression, input or data rule
+    refused. `definition`: the flow cannot be run as it is stored. `limit`: a spend cap, the paying
+    account's standing or an allowance. `vendor`: a site or service the flow called. `platform-busy`,
+    `platform-interrupted`, `platform-fault`: the platform's own — no worker was free, the worker
+    stopped, or the platform itself failed. `cancelled`: it was stopped on purpose.
+  - `owner` — who has to act: `customer` (you), `vendor`, `platform` (nothing in your flow needs
+    changing) or `caller`.
+  - `retryable` — whether running it again, unchanged, could end differently.
+  - `attempt` — the attempt whose closing record this is; more than 1 when the platform started the
+    run again.
+  - `actionKey` and `functionKey`, with `phase` and `code` — the action that failed, when one did.
+    A run stopped from outside, refused before it started, or whose changes were refused names no
+    action.
+  - `reason` — set only for a refusal a caller may read: a mail action's sender refusal, or
+    `project-mail-cap-reached` past the project's daily mail cap; `statusError` then names it too.
+- **`waiting`** — set while the platform is about to start the run again. When one of the
+  platform's own failures closes an attempt (`platform-busy`, `platform-interrupted`,
+  `platform-fault`), the run is not failed: `status` goes back to `pending` and `waiting` says why
+  (`reason`), how many attempts have been made (`attempt`, at most three) and when the next may
+  start (`notBefore`). Nothing the failed attempt staged was saved, and nothing in your flow needs
+  changing. Only the third such failure is the run's, and then `failure` carries it. A failure of
+  your flow, of a vendor, or of a limit is never run again.
+  ⭐ A run started again runs the flow it first started with: an edit saved between two attempts —
+  to its own flow, or to a sub-flow that flow calls by a fixed reference — is not taken by a run
+  already under way; the next run takes it. A sub-flow chosen at run time and first reached on a
+  later attempt, types, model bindings, vocabularies and secrets are read as they are then.
 - **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary action failure
   it is the fixed string _"The flow failed to run."_ on every run, because the raw error can carry
   provider bodies and prompt fragments and is deliberately not put there. The action's own words, cut
@@ -185,11 +210,11 @@ run's invocation. Reach for them in this order:
   and a flow that produced none of its declared output reports that instead.
 
 So a schedule whose runs all read _"The flow failed to run."_ often means you are reading the wrong
-field: `failure.actionName` names the action. ⛔ **But `failure` is `null` whenever the failure happened
-before any action, or came out of the catch-all** — and that combination (generic message, no failure
-summary) is common rather than exotic. When you hit it, take the occurrence's invocation id to
-`GET /v1/runs/{runId}/timeline`: that is the per-action execution record, it says which actions ran and
-what happened to each, and unlike a flow trace it is **never sampled**.
+field: `failure.class` says whose failure it is and `failure.actionKey` names the action. `failure`
+is `null` only for a run that failed before the class was recorded. For the action's own words,
+take the occurrence's invocation id to `GET /v1/runs/{runId}/timeline`: that is the per-action
+execution record, it says which actions ran and what happened to each, and unlike a flow trace it
+is **never sampled**.
 
 Outcomes worth telling apart:
 
@@ -197,8 +222,16 @@ Outcomes worth telling apart:
 - **skipped** — with an overlap policy of `skip`, the previous fire was still going.
 - **blocked** — refused after claiming, with a reason. Usually a suspended or over-cap payer.
 
-⭐ **Count `status`, not the invocation.** Every run carries `status` — `succeeded`, `failed`,
-`running`, `skipped` or `blocked` — from the same function the list's `lastRunStatus` uses, so a
+A run that finished and kept its changes after carrying on past a failure it was set to tolerate
+closes with `closing.verdict: "partial"` on `GET /v1/runs` — a third value beside `succeeded` and
+`failed` — and `closing.absorbed { actions, calls, branches }` counts what it carried on past. Its
+invocation still reads finished; here its `status`, and the list's `lastRunStatus`, read
+`partial`. ⚠️ That word comes from the project's list of failed and partial runs
+(triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`), `GET /v1/failed-runs`), which keeps a run for a limited time: an
+occurrence old enough to have left the list reads `succeeded`.
+
+⭐ **Count `status`, not the invocation.** Every run carries `status` — `succeeded`, `partial`,
+`failed`, `running`, `skipped` or `blocked` — from the same function the list's `lastRunStatus` uses, so a
 success rate or a day strip built from it agrees with the "Last run" column. ⚠️ A fired occurrence
 whose invocation is not linked (yet, or any more) reads `running`; classifying the raw invocation
 yourself tends to call that row a failure.
@@ -302,6 +335,43 @@ A delete asks the same way: `DELETE /v1/schedules/{id}?validateOnly=true` answer
 go through, writing nothing. Nothing refuses a schedule's delete, so the verdict is `ok` for any
 schedule the id addresses. The flag is the delete's only query parameter; anything else in the
 query is refused.
+
+## When its runs keep failing: health, and being paused
+
+Every schedule read carries `health` — how its recent runs went, as one word in `state`:
+
+| `state`   | Means                                                                                          |
+| --------- | ---------------------------------------------------------------------------------------------- |
+| `healthy` | None of the below.                                                                             |
+| `failing` | Its runs fail for a reason that is its own. `failingSince` and `countedFailures` say how long. |
+| `quiet`   | An occurrence that should have run has not, for five intervals and at least an hour.           |
+| `warned`  | It will be paused at `pauseAt` unless a run succeeds first.                                    |
+| `paused`  | The platform stopped firing it. Only `resume` starts it again.                                 |
+
+Only failures that are the schedule's own count — class `logic`, `definition` or `vendor`. A run
+the platform failed, a spend cap, or a cancelled run never moves `health`, and never brings a
+schedule closer to being paused. One run that succeeds ends the failing spell.
+
+**The pause rule.** A schedule is due to be paused when it has been failing for the longer of 48
+hours and five of its own intervals, with at least five counted failures — or when at least 95%
+of at least 20 runs in seven days failed. The platform then records `platform/health.pause-warned`
+and pauses it 24 hours later if it is still failing.
+
+⚠️ **The platform pauses nothing it cannot first warn about.** In a project with no enabled
+trigger on `platform` / `health.pause-warned`, no schedule is ever paused, and each one's
+`health.pauseArmed` is `false`. A schedule that must never be paused says so itself:
+`failurePolicy: "keep-running"` on create or PATCH (default `"pause"`).
+
+**Paused is a state of its own, beside `enabled`.** The read shows `pausedAt` and `pauseReason`
+(`failing` or `mostly-failing`); nothing fires and no occurrence is recorded. Nothing you write
+sets or clears it — not `enabled: true`, not a project document, which shows `paused` on export
+and never plans it. `POST /v1/schedules/{id}/resume` (no body, no `version`) resumes it: it fires
+again from its next occurrence after now, and reads `healthy`. Pausing and resuming move no
+`version`.
+
+`health`, `pausedAt` and `pauseReason` are running state, so `GET /v1/bootstrap` leaves them out;
+read them here, or all of a project's at once from `GET /v1/projects/{nodeId}/alerts`.
+Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) says how to be told instead of asking.
 
 ## What will bite you
 

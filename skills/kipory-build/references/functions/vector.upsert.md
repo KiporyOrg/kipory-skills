@@ -8,6 +8,7 @@ Writes one point to a search collection: an id, any number of named vectors, and
 
 - **Group:** search · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
+- **Not undone when a run fails:** `vector-write` — The point is written to the search collection while the action runs, under the point id the action is given, so writing it again replaces it with the same point. Doing it twice is harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `any+` → `nothing`
 - **Reads:** The slots named in this action's config: one for the point id, one per named vector, and whichever hold the payload. An empty one leaves that vector unwritten. _(shape hint: `any+`)_
 - **Emits:** Nothing — it writes and returns. Re-running with the same point id overwrites that point. The owning tenant is always stamped on the payload so the point stays reachable.

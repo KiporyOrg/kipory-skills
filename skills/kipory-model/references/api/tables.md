@@ -38,6 +38,7 @@ Each item of `tables`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Table id — the address for every table verb. |
 | `dataTypeId` | `string` | yes | Type this table takes its data shape from. A reference — other tables, events and relations may use the same type, and renaming it does not break this reference. |
 | `dataTypeKey` | `string` | yes | Current key of that type, for display. |
@@ -134,6 +135,7 @@ Each item of `consequences`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Table id — the address for every table verb. |
 | `dataTypeId` | `string` | yes | Type this table takes its data shape from. A reference — other tables, events and relations may use the same type, and renaming it does not break this reference. |
 | `dataTypeKey` | `string` | yes | Current key of that type, for display. |
@@ -250,6 +252,7 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Table id — the address for every table verb. |
 | `dataTypeId` | `string` | yes | Type this table takes its data shape from. A reference — other tables, events and relations may use the same type, and renaming it does not break this reference. |
 | `dataTypeKey` | `string` | yes | Current key of that type, for display. |
@@ -365,6 +368,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
 | `id` | `string` | yes | Table id — the address for every table verb. |
 | `dataTypeId` | `string` | yes | Type this table takes its data shape from. A reference — other tables, events and relations may use the same type, and renaming it does not break this reference. |
 | `dataTypeKey` | `string` | yes | Current key of that type, for display. |

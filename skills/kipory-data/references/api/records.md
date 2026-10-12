@@ -166,6 +166,8 @@ Each item of `records`:
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page, so a cross-type result needs no second shape. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
+| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the action that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
+| `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
 | `owner` | `object` | yes | Whether this record belongs to the project or to one person. |
 | `fields` | `object[]` | yes | One entry per column, in the same order. |
 | `terms` | `object[]` | yes | Vocabulary the record is filed under, CAPPED on the wire — a record carrying nine terms must not set the height of every row beside it. Compare `termCount` to learn whether this is all of them. |
@@ -570,6 +572,8 @@ Each item of `records`:
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page, so a cross-type result needs no second shape. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
+| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the action that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
+| `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
 | `owner` | `object` | yes | Whether this record belongs to the project or to one person. |
 | `fields` | `object[]` | yes | One entry per column, in the same order. |
 | `terms` | `object[]` | yes | Vocabulary the record is filed under, CAPPED on the wire — a record carrying nine terms must not set the height of every row beside it. Compare `termCount` to learn whether this is all of them. |

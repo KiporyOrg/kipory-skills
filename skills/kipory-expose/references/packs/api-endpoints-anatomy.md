@@ -182,7 +182,14 @@ verified in the flow. It also answers JSON only, so it is not a link someone cli
 Three kinds:
 
 - **Invoke** — a buffered call. Synchronous returns the result and has a timeout ceiling;
-  asynchronous returns an acknowledgement immediately.
+  asynchronous returns an acknowledgement immediately. Its status read
+  (the `statusPath` its acknowledgement names) carries `output` once the run is ready and, once it has failed,
+  `error` and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
+  and `retryable` a schedule's runs carry, and the `attempt` that closed it (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes). A
+  synchronous call whose failure is the platform's own answers 503 with `Retry-After`, not 502.
+  An asynchronous run the platform closed with one of its own failures is started again, up to
+  three times: its status read answers `PENDING` with `waiting` — a `reason`, the `attempt` number and `notBefore` —
+  meanwhile, and `FAILED` only if the third attempt fails the same way.
 - **Stream** — server-sent events, naming which output slot streams as deltas, with an optional
   allowlist of events to surface. Deltas come only from a `text.generate` action with structured
   output whose text field carries the same name as that slot; any other flow streams `stage`
@@ -297,7 +304,7 @@ an endpoint you did not just write.
 | **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                                                                                                                                                                                                                                        |
 | **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**; or an action refusing what the caller sent — a `value.transform` `$assert` (with your message), a `cursor` no previous page answered                                                                                                                                                                  |
 | **502** | An action failed; response fails validation (a required output the run did not produce is the 422 below)                                                                                                                                                                                                                                                                                          |
-| **503** | `PLATFORM_DEPENDENCY_UNAVAILABLE`: an action failed because one of the platform's own vendor or model-provider accounts refused the call. The request and the flow are not at fault, nothing the run staged was written, the failed action is not charged, and `Retry-After` says when to try again                                                                                               |
+| **503** | `PLATFORM_DEPENDENCY_UNAVAILABLE`: the platform's own failure — one of its vendor or model-provider accounts refused an action's call, the engine itself failed, or the database refused the run's changes. The request and the flow are not at fault, nothing the run staged was written, a failed action is not charged, and `Retry-After` says when to try again                               |
 | **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                                                                                                                                                                                                                                            |
 
 ⭐ **How long a synchronous invoke waits is on the endpoint you read**: `syncWaitMs` is the wait the
@@ -488,6 +495,14 @@ every write asks the same way.
 
 ⛔ **Gate on `severity`, never on `code`.** The code is a deliberately open string: a rule added
 tomorrow arrives with a code your build has never heard of and a severity it has. A severity is one of three: `error` (the body will not save as it stands), `warning` (advisory, blocks nothing) and `info` (a note about something the platform left alone — a whole-project plan reports the ids it ignored this way; a row-level verdict rarely carries one).
+
+## Its health
+
+`GET /v1/api-endpoints` and `GET /v1/api-endpoints/{id}` carry `health` on each endpoint: how its
+**asynchronous** calls went — `healthy` or `failing`, with `failingSince` and `countedFailures`.
+A synchronous call is not counted: its caller already has the answer. An endpoint is never
+paused (`pauseArmed` is always `false`). Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) says how a project is told when
+an asynchronous call fails for good.
 
 ## Checklist for an endpoint that actually works
 

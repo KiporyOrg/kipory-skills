@@ -480,8 +480,49 @@ action that sets none behaves as it always has.
   same fetch is already running for another action, that run's settings apply.
 - **`onFailure`** — `fail-run` (the default): the run fails and keeps nothing it wrote, while actions
   that do not depend on this one still run. `continue`: the run carries on without this action's
-  output and reports the failure as a warning. Refused on a control action, on an action that may write
-  or reach a sub-flow, and on an action writing a slot a required flow output is bound to.
+  output and reports the failure as a warning. Allowed on an action that writes nothing, and on a
+  sub-flow call (`flow.invoke`) whatever the called flow writes: a call is a scope, and when its
+  sub-flow fails everything that flow staged is dropped, none of the call's outputs is written,
+  and its `failureSlot` holds `sub-flow-failed` with the cause's code. Refused on every other
+  control action, on an action that may write, and on an action — or a call — writing a slot a
+  required flow output is bound to.
+  ⚠️ A run that carried on past a failure does not close `succeeded`: it closes **`partial`**
+  (`closing.verdict` on `GET /v1/runs`, with `closing.absorbed` counting what it carried on past).
+  Its changes are applied and its row reads finished; an unattended one is reported to the project
+  in `platform/run.partial` summaries (triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)).
+  ⚠️ Only a failure that is the flow's or a vendor's is carried on past. One of the platform's own
+  — its class is `platform-busy`, `platform-interrupted` or `platform-fault` — a spend cap
+  (`limit`) and a cancelled run fail the run whatever the action says; the platform starts its own
+  failures again.
+- **A fan-out says how many of its branches may fail**, on its own settings: `maxFailedBranches`
+  (a whole number) or `maxFailedShare` (above 0, at most 1 — a share of the branches run, rounded
+  down). State one, never both. With neither, the first failed branch stops the fan-out: no
+  further branch starts, the ones in flight start no further action, and neither the merge nor
+  anything after it runs — the run fails.
+  A branch within the number is dropped whole. Nothing it staged is kept, the `flow.merge` that
+  closes the fan-out gathers the other branches only, and the run closes `partial`. At least one
+  branch must succeed whatever is stated: `maxFailedShare: 1` over five branches lets four fail.
+  A fan-out over an empty list fails nothing.
+  ⚠️ While a fan-out with a tolerance runs, a branch does not read what a sibling still running
+  has staged — it sees what was staged before the fan-out, its own, and what finished branches
+  kept. Two parallel branches that would each find-or-create the same record both stage a create,
+  and the run fails when its changes are applied; run them one at a time (`maxParallelBranches: 1`)
+  when branches can meet on one record.
+  ⚠️ Refused at save when a branch, or any flow a branch calls, reads or writes run state
+  (`FANOUT_TOLERANCE_SHARED_RUN_STATE`): run state is one store the whole run shares, and a
+  dropped branch cannot take back what it wrote there. The same holds for a sub-flow call set to
+  `continue` (`RUN_CONTINUE_NOT_ALLOWED`).
+  The merge may name **`failuresSlot`**: a slot that receives one `{ index, failure }` per
+  tolerated branch — the branch's position in the list, from 0, and its `ActionFailure`. It is
+  written only when a branch failed, so read it as an optional slot. Refused where the fan-out
+  states no tolerance (`FAILURE_SLOT_NEVER_WRITTEN`), as one of the merge's own lanes
+  (`FAILURE_SLOT_IS_OWN_OUTPUT`) and as the source of a required flow output
+  (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`).
+  ⚠️ `flow.merge` no longer takes `onBranchFailure`; a config that still carries it is refused
+  with `INVALID_FUNCTION_CONFIG`. What it decided is the fan-out's tolerance.
+
+<!-- field-ok: onBranchFailure — a `flow.merge` function-config key this release REMOVED, named so a reader knows what to delete -->
+
 - **`failureSlot`** — a slot the platform writes the action's failure to, as an `ActionFailure`:
   a stable `code`, the platform's sentence for it, whether a second try could answer differently,
   the failure phase, and the HTTP status when a site or vendor answered with one.

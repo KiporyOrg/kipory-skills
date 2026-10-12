@@ -1412,6 +1412,34 @@ healthier draft.**
 
 ⛔ **Gate on `severity`, never on `code`.**
 
+## A record's processing history
+
+A record read carries `processing { attempts, lastFailureClass }`: how many times the record was
+sent to processing, and the class of its last failure (`logic`, `definition`, `vendor`, `limit`,
+`platform-fault`, …; null if it never failed, and kept after a later success). `processing` is a
+reserved field name: a table cannot declare it.
+
+A **failed** record's read (`GET /v1/records`, `GET /v1/records/{id}`, `POST /v1/records/query`)
+also carries `failure` beside `status`: how its latest processing run failed, in the shape the run
+reads serve as `closing.failure`: its class, its owner, whether it is retryable, the attempt, and
+the action when one failed. It is null on a record that is not `failed`, and for a failure recorded before
+this was kept. A flow reading a record sees `processing`, not `failure`.
+
+`record.enqueue-process` on a **failed** record returns it to processing, with the replay mode
+the action states, as part of the calling run's change set — so if that run fails, the record is
+left exactly as it was. A flow that sends failed records back reads `processing.attempts` to stop
+after a few tries, and `processing.lastFailureClass` to leave alone a record whose failure was its
+own data.
+
+## A table's health
+
+`GET /v1/tables` and `GET /v1/tables/{id}` carry `health`: how the processing of the table's
+records went — `healthy` or `failing`, with `failingSince` and `countedFailures`, counting only
+runs that failed for the flow's own reasons. A table is never paused. When many records fail at
+once the project is told about the first and then in summaries, not once per record;
+triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) has the events, and `GET /v1/failed-runs?subjectKind=table&subjectKey=<key>`
+lists the runs.
+
 ## What will bite you
 
 - **Editing a shape re-fires cached work, deliberately.** A type edit bumps the version of every

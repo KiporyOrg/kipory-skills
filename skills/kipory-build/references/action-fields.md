@@ -34,6 +34,8 @@ What an action body carries, how a type is referenced, how an output is bound, a
 - **There is no position field**: execution order is derived from slot edges.
 - **A PATCH requires `version`.**
 - **`timeoutMs` is at most 120,000** (two minutes); a larger value is refused at the save with `VALIDATION_FAILED` on the field. Left out, a model call gets 60,000 unless the deployment or the action's task sets another limit: `GET /v1/flows/{id}?expand=timeLimits` shows each action's effective limit and which layer decided it. A model action that sometimes runs long takes `"timeoutMs": 120000` and `"tries": 2`.
+- **`timeoutMs` on a queued action bounds the time its job runs**, not the wait for a free worker. Waiting is not a failure: only a job no worker takes for five minutes fails its action, as the platform's own failure (`platform-busy`), and an unattended run is then started again by the platform.
+- **`onFailure: "continue"` is allowed on an action that writes nothing, and on a sub-flow call** (`flow.invoke`) whatever the called flow writes. It is refused on every other control action, on an action that may write, and on an action — or a call — writing a slot a required flow output is bound to (section 6).
 - **A feeder with no type is read as `object`.** An action whose `outputSchema` is absent and whose function types nothing feeds its readers as `object`, with a `PRODUCER_OUTPUT_UNTYPED` warning on it.
 - **Leave out what the function does not read.** `promptTemplate` is needed only by `text.generate` and `text.interpolate`. `outputSlot` is not needed by `event.emit`, `vector.upsert`, `flow.merge`, `flow.invoke`, `flow.loop-end` and `flow.dispatch`. `term.upsert` does need one, though nothing reads it: name any unused slot.
 - **`taskKey` outside the five is a 422** listing them. `extraction` is right for an action that makes no model call.
@@ -136,6 +138,9 @@ An action that fails softly, or fails with `"onFailure": "continue"`, leaves its
 }
 ```
 
+- **A run that carried on past a failure closes `partial`, not `succeeded`** (`closing.verdict` on `GET /v1/runs`; `closing.absorbed` counts what it carried on past). Its changes are applied, so a flow that continues must leave what it writes sound without the failed action.
+- **Only a failure of the flow or of a vendor is carried on past.** One of the platform's own (class `platform-busy`, `platform-interrupted`, `platform-fault`), a spend cap (`limit`) and a cancelled run fail the run whatever the action says; the platform starts its own failures again.
+- **A continuing sub-flow call is a scope.** When the flow a `flow.invoke` action calls fails, everything that flow staged is dropped, none of the call's outputs is written, and the call's `failureSlot` holds `sub-flow-failed` with the cause's code. Refused when the called flow reads or writes run state (`RUN_CONTINUE_NOT_ALLOWED`).
 - **It is written in two cases only**: the action failed and the run carried on, or its function softened a failure into a warning. An action that succeeded, was skipped, or ran and found nothing writes none.
 - **So three outcomes read apart**: output present — it worked; output absent and failure present — it failed, and `code` says how; both absent — it ran and found nothing.
 - **The value is an `ActionFailure`**: `code`, `message`, `retryable`, `phase`, and `httpStatus` when a site or vendor answered with one.
@@ -159,5 +164,5 @@ An action that fails softly, or fails with `"onFailure": "continue"`, leaves its
 - **`message` is the platform's sentence for the code**, naming at most the host and the status. The function's own text, which can name a vendor, stays in the timeline (`action-failed`, `action-warned`).
 - **`phase`** is the `action-failed` row's `detail.phase` for a failed action, and `function-soft-warning` for a softened one, which has an `action-warned` row instead.
 - **Read it like any optional slot.** In a `value.transform`: `$exists(pageFailure) ? {"state": pageFailure.code = "dns-not-found" ? "gone" : "unknown"} : {"state": "ok"}`, with `inputStreams` naming a slot that is always there beside it. As a guard: `{ "op": "slotPresent", "slot": "pageFailure" }`.
-- **A fan-out branch's failure slot is that branch's own**; a `flow.merge` lane over it collects one list of the failures.
+- **A fan-out branch's failure slot is that branch's own**; a `flow.merge` lane over it collects one list of the failures. A whole branch the fan-out tolerated is reported on the merge's `failuresSlot` instead (`patterns.md` §2).
 - **It is refused at save** on an action that can never write it — one that does not continue and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's own output (`FAILURE_SLOT_IS_OWN_OUTPUT`), and as the source of a required flow output (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`; an optional output may return it). A slot another action also writes is reported `DUPLICATE_OUTPUT_SLOT`, as two output slots are.

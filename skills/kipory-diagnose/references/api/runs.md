@@ -84,7 +84,8 @@ Each item of `runs`:
 | `runId` | `string` | yes | Heterogeneous by construction — a record-processing attempt id, a flow run's request id, or an endpoint invocation id, depending on which surface ran the flow. The same id space every other `/v1/runs/{runId}/…` route takes. |
 | `seq` | `string` | yes | The opening frame's sequence, and this row's paging cursor. A STRING because it is a 64-bit key and JSON numbers are not. |
 | `startedAt` | `string` | yes | When the opening frame was WRITTEN. ⚠️ Not exactly when the run started: the timeline writer buffers, so insertion order and start order differ by up to one batch. The list is ordered by `seq` because it is the only column monotonic with insertion — sorting these timestamps client-side would reorder runs against the cursor that pages them. |
-| `attempt` | `integer` | yes | Which attempt within the run. A streaming runner retries the whole flow under ONE run id and owns the counter. |
+| `attempt` | `integer` | yes | The attempt of the opening record this row is built from: 1, the run's first. A run the platform started again is still one row; `attempts` says how many times it ran. |
+| `attempts` | `integer` | yes | How many times this run was attempted — a COUNT, never an attempt NUMBER. More than 1 when the platform started the run again after one of its own failures; `closing.attempt` is the attempt that ended it. |
 | `flowId` | `string \| null` | yes | The root flow, where named. |
 | `flow` | `object \| null` | yes | The named flow as it stands NOW — a live read, not what the run saw. ⚠️ A flow relabelled since the run reports its NEW label here; `GET /v1/runs/{runId}/flow-snapshots` is the surface that answers what the graph looked like when it ran. ⛔ `null` means the flow is GONE, never that the run named none — `flowId` beside it is what separates the two, and a run outliving its flow is ordinary on any project that has been edited. |
 | `trigger` | `object \| null` | yes | What caused a run, in the stored vocabulary. |
@@ -94,6 +95,7 @@ Each item of `runs`:
 | `actionsStarted` | `integer` | yes | The `x`: how many actions this run has been observed to START. Counted from the log, so it is what HAPPENED — never a plan. |
 | `lifecycle` | `"in-flight" \| "settled" \| "unknown"` | yes | Whether the run is still going. ⛔ NOT from the timeline, which cannot answer it — a run with no closing frame is three facts at once (in flight, dead with its buffer, reaped). It comes from whichever row the run id belongs to: an endpoint run's INVOCATION status, or a record-processing ATTEMPT's terminal marker. ⭐ ON THE ROW rather than on the single-run response, because BOTH screens draw it: while it lived on only one, the listing said `no end recorded` about a run the run page called `running`. A run with no row in either table — a synchronous call, a preview — is `settled` once it has a closing frame (`closing` non-null) and `unknown` until then. ⚠️ `unknown` is ordinary rather than an error; a lifecycle state the platform has grown but this reader has not been taught resolves to it as well. It means `no outcome recorded`, never `finished`. |
 | `closing` | `object \| null` | yes | How a run ended, where that has been observed. |
+| `waiting` | `object \| null` | yes | Set while the platform waits to start the run again after one of its own failures. Such a run is `in-flight` and has no `closing`: the attempt that failed was not the run's end. Null otherwise. |
 
 Each item of `started`:
 
@@ -126,7 +128,6 @@ Which run this is — the flow it ran, how it was triggered, how it closed, and 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `run` | `object` | yes | The run, in the listing's own row shape, built from its EARLIEST opening frame. ⚠️ `seq` is still its paging cursor in the listing, and is published here so a caller can open the listing at this run rather than at the top. |
-| `attempts` | `integer` | yes | How many times this run was attempted — a COUNT, never an attempt NUMBER. ⛔ A retried run writes one opening frame PER ATTEMPT, so the listing draws it as several rows and every one of them addresses THIS route. Publishing one attempt's number would contradict whichever row the caller clicked; `run.attempt` is the earliest frame's and is 1 on every retried run, which is why it cannot answer this on its own. |
 
 ### `GET /v1/runs/{runId}/change-set`
 

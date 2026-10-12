@@ -58,7 +58,9 @@ Four things to know about the result:
 - The create call's `name` wins. The `name` and `description` in a template's own `project`
   section are ignored; the rest of its `project` section (config namespaces, enabled routes) applies.
 - A schedule, trigger or source lands enabled unless the template states `enabled: false` on it —
-  the same field the document carries, so an exported project's paused rows stay paused.
+  the same field the document carries, so an exported project's switched-off rows stay off. A
+  row carries `failurePolicy` across too; a `paused` marker the platform put on the source row
+  does not travel — the new project's rows start unpaused.
 - The answer carries `requires` — the secrets the project will not work without. A template never
   holds a secret value, so storing those is your next call.
 - In the project's history the whole template is ONE entry, a document apply, at the project's
