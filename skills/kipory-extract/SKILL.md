@@ -45,6 +45,7 @@ vision model read it — which is the whole reason `pdf.screenshot` exists.
 | `image.decode-qr`   | an image | what the code encodes                     | a ticket, a label, a scanned link          |
 | `file.stats`        | any file | size, content hash, last-modified         | de-duplicating, or detecting a change      |
 | `file.download-url` | any file | a signed link                             | a client has to fetch the bytes itself     |
+| `file.copy`         | any file | a new file holding the same bytes         | a record needs its own copy of a file      |
 
 ## Reading a document
 
@@ -117,6 +118,13 @@ none — the platform chunks a `search` field itself (`kipory-model`).
   the project when there is none (an API key, a public endpoint, a schedule, a trigger). A failed
   run keeps none of its files. To keep a file for good, produce it in a table's processing
   flow: it stays with the record. A preview's files live 7 days.
+- **Copy a stored file with `file.copy`, never by downloading its link.** `url.fetch-as-file` refuses
+  the platform's own `/v1/files/raw/…` links (the API's address is private, so the SSRF guard blocks
+  it). `file.copy` takes the file reference itself, reads the bytes from storage and saves them as a new
+  file, which a record's processing flow keeps like any file it produced. It copies only files of the
+  run's own project, person or preview; any other fails `FILE_OUT_OF_SCOPE`, and a reference whose
+  file is gone fails `FILE_NOT_STORED`. The copy keeps the type stored with the bytes. So keep the
+  file reference on the record next to any link you make to it.
 - **`file.read-text` fails on a file over the size cap rather than truncating it.** That is the
   intended behaviour: a silently shortened document is a wrong answer with no symptom. Check the
   size with `file.stats` first if the input is unbounded.

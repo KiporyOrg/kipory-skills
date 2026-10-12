@@ -145,6 +145,7 @@ GET /v1/eval-runs/{id}/spend                      the same for an eval run: subj
 GET /v1/nodes/{nodeId}/model-prices               what each model costs, in credits, at the project's id
 GET /v1/projects/{nodeId}/settings                the two spend ceilings, and `designSpend` consumed in the current window
 GET /v1/projects/{nodeId}/usage?window=7d          credits and events over a window, by kind and action
+GET /v1/projects/{nodeId}/usage?window=7d&flows=1  the same per flow, with what failed runs spent (`failedRuns`, `failedCredits`)
 GET /v1/ai-calls?project={nodeId}                 every model call, filterable; GET /v1/ai-calls/rollup?project= by hour or day; GET /v1/ai-calls/{id}?payload=prompt for one
 GET /v1/organizations/{nodeId}/quota              today's use of each shared vendor allowance — the ORGANISATION's id, and a key granted at the organisation
 GET /v1/credits/balance                            the wallet — on the PROJECT's host only

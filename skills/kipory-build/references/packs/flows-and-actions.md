@@ -164,6 +164,12 @@ action at level 0, where it reads nothing and skips — which is what `INPUT_STR
 above is for. Read the diagnostic for "is this wired", `canFire` for "can this ever run", and
 `level` only for "in what order".
 
+Three more things a save now says rather than lets through:
+
+- **An action that reads only optional flow inputs** warns `ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`. A caller that leaves those inputs out skips the action, so a transform written to default an input never runs. Also read a slot that always arrives, such as `runInfo`, and it runs either way.
+- **A condition whose list key is misspelled** (`{"op": "and", "conditions": [...]}`, where the key is `all`) is refused `INVALID_CONDITION`. It used to be saved as no condition at all.
+- **A `taskKey` no task names** is refused at the write, naming the five it takes. It used to be accepted and fail every live run.
+
 ## Choosing a function: two catalog reads, and they answer different questions
 
 `GET /v1/functions` is the deployment's catalog — every function, identical for every caller, and the
@@ -377,6 +383,9 @@ refused before running, an unaddressable flow is a 404, and a run that exceeds t
 fails as a timeout. But a flow that _breaks_ comes back 200 with the wreckage in the body — a
 runner crash appears as an error entry attributed to the runner, and individual action failures
 ride in the transcript. Checking only the status code will tell you a broken flow is fine.
+Each `errors` entry carries the `status` and `code` a live call would answer for it when it is
+the first; the streamed preview's `preview-error` frame carries them too for a run refused as a
+whole.
 
 Use it to prove a binding: break the binding and preview reports `missingRequiredOutput`; bind it
 and `flowOutput` fills in.
@@ -384,6 +393,10 @@ and `flowOutput` fills in.
 Preview proves one run. Which actions real runs have exercised since the flow last changed is
 `GET /v1/flows/{id}/coverage`; it names the tables the covered flows touch by key, under
 `tableKeys`.
+
+**Run as one of your app's users.** `input.principal: "end-user"` with `runAsUserId` runs the preview as that person — their `userInfo`, their records — to rehearse a response only they see. It must be sent with `apply: false`: nothing is written in their name. The user must hold records in the project, as for a suite's `runAsUserId`.
+
+**A capped fan-out says so on the run.** A preview runs at most `fanOutCap` branches. That cut is now a `fan-out-capped` warning with `cappedBy: "preview"` on the run itself, so a queued preview read at `GET /v1/runs/{id}` shows it too. Send `fanOutCap: "uncapped"` to measure a real run.
 
 ## When a write is refused with a 409
 

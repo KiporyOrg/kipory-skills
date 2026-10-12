@@ -37,6 +37,7 @@ Downloads what a URL returns and saves it as a file on the record. Returns a ref
 | `querySlots` | object | no | — | Query parameters whose value is read from a slot. An empty slot leaves the parameter out. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential. Its stored row says where in the request it goes and which hosts may receive it. ⚠️ Sent only over `https` on the default port. If the stored credential lists hosts, any other host fails before a request is made; with none listed, it goes wherever the action is addressed. |
 | `timeoutMs` | integer, more than 0 | no | `30000` | HTTP request timeout in milliseconds. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one request. |
+| `userAgent` | `kipory` \| `browser` | no | — | Who the request says it is: `kipory`, the default, or `browser` for a site that refuses Kipory's reader. |
 
 ## Worked example
 

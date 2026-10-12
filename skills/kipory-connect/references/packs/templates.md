@@ -67,6 +67,8 @@ Four things to know about the result:
   first version. Nothing records which template it came from: the project is yours from the first
   moment, and the link is deliberately not kept.
 
+A template's actions are judged as a document's are: a `taskKey` no task names, or a condition whose list key is misspelled, is refused when the project is created.
+
 ## A template on a project that already exists
 
 There is no "apply a template" call, and none is needed: a template's `document` is an ordinary

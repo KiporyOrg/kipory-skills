@@ -2,11 +2,11 @@
 
 # Function catalog
 
-122 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+123 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
-- `ingest` (77) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
+- `ingest` (78) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
 - `inline` (39) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
@@ -146,12 +146,13 @@ _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost 
 - [`youtube.trending`](youtube.trending.md) — Fetch trending YouTube channels · `ingest` · vendor key · `string` → `YoutubeTrendingChannels`
 - [`youtube.video`](youtube.video.md) — Fetch a YouTube video · `ingest` · vendor key · `string` → `YoutubeVideo`
 
-## files (10)
+## files (11)
 
 _Read what a file holds — metadata, text, transcripts — make a resized or rendered copy, or a download link._
 
 - [`audio.metadata`](audio.metadata.md) — Extract audio details · `ingest` · `file` → `AudioMetadata`
 - [`audio.transcribe`](audio.transcribe.md) — Transcribe audio · `ingest` · model · `file` → `string`
+- [`file.copy`](file.copy.md) — Copy a stored file · `ingest` · `file` → `file`
 - [`file.download-url`](file.download-url.md) — Create a download link · `inline` · `file` → `string`
 - [`file.read-text`](file.read-text.md) — Read a text file · `ingest` · `file` → `string`
 - [`file.stats`](file.stats.md) — Extract file details · `ingest` · `file` → `FileStats`

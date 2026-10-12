@@ -88,7 +88,7 @@ A capture — and a restore, which captures one of its own first — makes the s
 
 | File                        | What it answers                                                    |
 | --------------------------- | ------------------------------------------------------------------ |
-| `references/assertions.md`  | the six assertion kinds, their fields, and what each proves        |
+| `references/assertions.md`  | the seven assertion kinds, their fields, and what each proves      |
 | `references/packs/evals.md` | contract suites, scorers, runs, the contract verdict and the delta |
 | `references/api/evals.md`   | every route's fields                                               |
 

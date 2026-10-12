@@ -258,6 +258,8 @@ twice — is the only `422` this route answers; a body sent as JSON that is not 
 platform's ordinary `400`. A document that parses but breaks its schema is a `200` plan whose
 diagnostics name every broken path.
 
+A plan's `consequences` include `fields-unset`: fields the document adds to a shape that stored records already use, with the count of records holding no value for one of them, to 5,000 (they read `null` until written). An action's `taskKey` must name a task (`extraction`, `reasoning`, `summarization`, `tiebreak` or `embedding`); any other is refused at the plan, where it used to fail every live run.
+
 ## Apply a document
 
 `POST /v1/projects/{nodeId}/document` takes `{ version, document }` and makes the document the

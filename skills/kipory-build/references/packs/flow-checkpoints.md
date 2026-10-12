@@ -109,6 +109,8 @@ sent to — an embedding model on an action that generates text — is refused u
 action's run settings are held to its function's rules today. `ok: true` and empty warnings mean a
 clean restore.
 
+The dry run judges the restored graph as a save would, so it carries the save's newer findings too: the warning for an action that reads only optional inputs (`ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`), and `INVALID_CONDITION` for a condition whose list key is misspelled.
+
 ## What the platform guarantees
 
 **Restore is all-or-nothing.** In a single transaction it captures the pre-restore state, swaps

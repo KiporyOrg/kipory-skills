@@ -24,6 +24,7 @@ Reads just the head of a page — title, description, author, icon and social pr
 | `maxBytes` | integer, more than 0 | no | `65536` | Cap on bytes parsed for `<head>` meta. The function asks for a Range and truncates anyway; this is the second-line guard. |
 | `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow before giving up. ⚠️ A site that redirects more times than this is reported with the code `redirect-limit`. |
 | `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. Probe is meant to be fast. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one request. Keep it below the action's wait, or a silent site fails the action. |
+| `userAgent` | `kipory` \| `browser` | no | — | Who the request says it is: `kipory`, the default, or `browser` for a site that refuses Kipory's reader. |
 
 ## Worked example
 

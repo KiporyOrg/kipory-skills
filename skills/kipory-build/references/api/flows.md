@@ -113,7 +113,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. |
 | `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
@@ -256,7 +256,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. |
 | `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
@@ -418,7 +418,7 @@ Run the flow now, in a sandbox, and answer what happened: every action's transcr
 | `flowOutput` | `object` | yes | The flow's declared output slots, exactly as the run produced them. A slot the run did not produce stays absent; nothing is filled in, here or live. |
 | `missingRequiredOutput` | `string \| null` | yes | First required output slot the run failed to produce, or null. Non-null means a live invocation of this run would be refused (422 `FLOW_OUTPUT_MISSING`) and write nothing — so this preview discarded its writes too, even with `apply`. |
 | `transcript` | `object[]` | yes | What each action did, in execution order. |
-| `errors` | `object[]` | yes | Failures, one entry per action and branch that errored. |
+| `errors` | `object[]` | yes | Failures, one entry per action and branch that errored. The first is the one a live call answers with. |
 | `warnings` | `unknown[]` | yes | Non-fatal problems the engine noticed. The run still completed. |
 | `fanOutCaps` | `object[]` | yes | Every fan-out whose element list was truncated, and by which limit. Empty when nothing was dropped — check this before reading a branch count as the whole population. |
 | `branches` | `unknown[]` | yes | Full per-branch results — inputs, outputs, usage and failures — for deep inspection. |
@@ -452,6 +452,8 @@ Each item of `errors`:
 | `branchId` | `string \| null` | yes | Branch it failed in, or null when the action is not inside a fan-out. |
 | `phase` | `string` | yes | Stage of execution the failure happened in. |
 | `message` | `string` | yes | What went wrong. |
+| `status` | `integer \| null` | yes | The HTTP status a live call of this flow (an endpoint) would answer for this failure when it is the first. Null when the runner itself crashed. |
+| `code` | `string \| null` | yes | The error code that answer would carry, e.g. `VALIDATION_FAILED` for an `$assert` refusal. Null when the runner itself crashed. |
 
 Each item of `fanOutCaps`:
 
@@ -544,6 +546,8 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 | `fanOutCaps` | `object[]` | yes | Every fan-out whose element list was truncated. Empty when nothing was dropped. |
 | `timings` | `object` | yes | Full breakdown of where the run's wall clock went. |
 | `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself — so the failure can be attributed. |
+| `status` | `integer \| null` | no | For a run refused as a whole (a required output missing, the writes refused): the HTTP status a live call would answer, as on the JSON preview's `errors`. Null for a runner crash; absent before the run. |
+| `code` | `string \| null` | no | The error code a live call would answer beside `status`. Null for a runner crash; absent before the run. |
 | `diagnostics` | `unknown[]` | no | Per-problem detail for a draft graph that failed validation. These are the same diagnostics saving that graph would return. |
 
 Each item of `fanOutCaps`:

@@ -435,6 +435,8 @@ as proof of links.
 It is a flag on the real route rather than a sibling `/validate`, deliberately. One route is one set
 of rules, so a check that passes and a save that refuses cannot come apart.
 
+The findings and consequences these answers carry come from one list the whole design API shares, and it grows: a flow warning (`ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`) and a plan consequence (`fields-unset`) were added. Decide on a finding by its `severity`, not by a fixed list of codes.
+
 ## What the platform refuses
 
 - **A producer is required and immutable.** The create body's schema requires it, so a create

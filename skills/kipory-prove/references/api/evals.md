@@ -130,6 +130,9 @@ Each item of `assertions`:
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
 | `actionKey` | `string` | yes | Key of the action to check. |
 | `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
+| `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
+| `code` | `string` | no | The error code a live call would answer, e.g. `VALIDATION_FAILED`, `NOT_FOUND`, `CONFLICT`, `FLOW_OUTPUT_MISSING`. |
+| `messageContains` | `string` | no | Text the failing action's own error must contain — for a flow's own `$assert`, its words, which a live call answers with too. Other failures answer a caller with a generic message: assert their `status` and `code`. |
 | `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
@@ -172,6 +175,9 @@ Each item of `assertions`:
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
 | `actionKey` | `string` | yes | Key of the action to check. |
 | `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
+| `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
+| `code` | `string` | no | The error code a live call would answer, e.g. `VALIDATION_FAILED`, `NOT_FOUND`, `CONFLICT`, `FLOW_OUTPUT_MISSING`. |
+| `messageContains` | `string` | no | Text the failing action's own error must contain — for a flow's own `$assert`, its words, which a live call answers with too. Other failures answer a caller with a generic message: assert their `status` and `code`. |
 | `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
@@ -232,6 +238,9 @@ Each item of `assertions`:
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
 | `actionKey` | `string` | yes | Key of the action to check. |
 | `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
+| `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
+| `code` | `string` | no | The error code a live call would answer, e.g. `VALIDATION_FAILED`, `NOT_FOUND`, `CONFLICT`, `FLOW_OUTPUT_MISSING`. |
+| `messageContains` | `string` | no | Text the failing action's own error must contain — for a flow's own `$assert`, its words, which a live call answers with too. Other failures answer a caller with a generic message: assert their `status` and `code`. |
 | `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
@@ -305,7 +314,8 @@ Each item of `results`:
 | `caseKey` | `string` | yes | The case's stable `key`. |
 | `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run" \| "unknown"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. `unknown` — the run predates per-case recording, so the answer is not stored rather than being any of the above. |
 | `reason` | `string \| null` | yes | Why the case ended in a non-`scored` outcome. Null when it was scored. |
-| `traceId` | `string \| null` | yes | Trace this case produced, for per-action drill-down. Null means the run left no evidence, which is itself why the case could not be scored. |
+| `traceId` | `string \| null` | yes | Trace this case produced, for per-action drill-down: read it at `GET /v1/eval-runs/{id}/traces/{traceId}`. Null means the run left no evidence, which is itself why the case could not be scored. |
+| `output` | `object \| null` | yes | The flow's declared outputs as this case's run produced them — what an endpoint would have answered — kept to 8192 bytes, or to an equal share of 262144 for the run's cases when that is less (never under 1024). A slot over that is replaced, largest first, by `{"_kind": "dropped-oversized", "_bytes": <its size>, "_head": <its first characters, as JSON>}`; the whole value is in the trace. Null when the case ran nothing (`invalid`, `not-run`, a runner crash), and on a run from before outputs were kept. |
 | `platformFlowRun` | `boolean` | yes | True when this case's trace is a platform flow's run: filed under this project because this suite ran it, though the flow is not one of the project's own (the trace's own `platformFlowRun`). False without a trace. |
 | `fingerprint` | `string` | yes | Digest of the inputs this case ran with. A change here means the case itself moved, so a score difference is not necessarily a regression. |
 | `labels` | `string[]` | yes | The case's tags, copied onto the result. |
@@ -748,7 +758,8 @@ Each item of `results`:
 | `caseKey` | `string` | yes | The case's stable `key`. |
 | `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run" \| "unknown"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. `unknown` — the run predates per-case recording, so the answer is not stored rather than being any of the above. |
 | `reason` | `string \| null` | yes | Why the case ended in a non-`scored` outcome. Null when it was scored. |
-| `traceId` | `string \| null` | yes | Trace this case produced, for per-action drill-down. Null means the run left no evidence, which is itself why the case could not be scored. |
+| `traceId` | `string \| null` | yes | Trace this case produced, for per-action drill-down: read it at `GET /v1/eval-runs/{id}/traces/{traceId}`. Null means the run left no evidence, which is itself why the case could not be scored. |
+| `output` | `object \| null` | yes | The flow's declared outputs as this case's run produced them — what an endpoint would have answered — kept to 8192 bytes, or to an equal share of 262144 for the run's cases when that is less (never under 1024). A slot over that is replaced, largest first, by `{"_kind": "dropped-oversized", "_bytes": <its size>, "_head": <its first characters, as JSON>}`; the whole value is in the trace. Null when the case ran nothing (`invalid`, `not-run`, a runner crash), and on a run from before outputs were kept. |
 | `platformFlowRun` | `boolean` | yes | True when this case's trace is a platform flow's run: filed under this project because this suite ran it, though the flow is not one of the project's own (the trace's own `platformFlowRun`). False without a trace. |
 | `fingerprint` | `string` | yes | Digest of the inputs this case ran with. A change here means the case itself moved, so a score difference is not necessarily a regression. |
 | `labels` | `string[]` | yes | The case's tags, copied onto the result. |

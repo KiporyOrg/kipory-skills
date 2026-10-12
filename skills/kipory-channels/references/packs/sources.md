@@ -111,7 +111,9 @@ What holds:
 - **About a minute** before the platform starts reading a newly watched channel.
 - **What it costs** is the runs your trigger starts, one per message. Letting the last holder go
   stops them; the platform's own reader stays in the channel, which costs you nothing.
-- **A preview watches nothing.** It answers what the action would have done, marked `preview`.
+- **A preview or a suite case watches nothing**, `applyWrites: true` included. It answers what the
+  action would have done, marked `preview`. To make a watch for an existing record, run the flow
+  for real as the record's owner.
 - `GET /v1/sources` says which sources runs hold (`watchedByRuns`) and by how many (`holders`).
 
 ## What the flow receives
@@ -123,13 +125,19 @@ for a Telegram message that payload carries:
 <!-- field-ok: forwardedFrom — a field of the connector's event payload (the watcher writes it; no request carries it) -->
 <!-- field-ok: updateType — a field of the connector's event payload (the watcher writes it; no request carries it) -->
 <!-- field-ok: deletedUpstream — a field of the connector's event payload (the watcher writes it; no request carries it) -->
+<!-- field-ok: links — a field of the connector's event payload (the watcher writes it; no request carries it) -->
 
 - `channel` — the handle or id the source watches.
 - `messageId` — the message's own id in that channel.
 - `date`, and `editDate` when the message has been edited.
-- `text` — the message body, empty when there is none.
+- `text` — the message body as plain text, empty when there is none.
+- `links` — every web link in the message, in order and once each, as `{ url, text }`: a link behind
+  words gives its address and the words, a bare address gives it as `url` (with `https://` added
+  when the message left it out) and as written in `text`. Only web (`http`/`https`) links are listed. `text` above
+  keeps the words but not the address behind them.
 - `media` — one entry per attachment, each carrying its kind, its mime type, and this project's own
-  `fileId` for the copy (or null when no copy was made).
+  `fileId` for the copy (or null when no copy was made). A copy is made for a new message only,
+  never for an edit, and only for an attachment of 50 MB or less.
 - `fileIds` — the flat list of materialised file ids, for a flow that wants them without walking
   the attachments.
 - `forwardedFrom` — the origin when the message was forwarded, otherwise null.
@@ -140,6 +148,10 @@ for a Telegram message that payload carries:
   flagged, never removed.
 
 An edited message is a second event with a different id; a deleted one a third.
+
+**A copy is kept only once something claims it.** Attach it to a record (`fileIdsSlot` on
+`record.create`, or `POST /v1/files/{id}/attach`) and it lives with the record. A copy nothing
+claims is deleted after at least 7 days.
 
 ## What the platform refuses
 

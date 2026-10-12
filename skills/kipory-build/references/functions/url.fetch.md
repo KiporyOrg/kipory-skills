@@ -35,6 +35,7 @@ Reads JSON, plaintext or an XML feed. The request can carry query parameters, he
 | `responseAs` | `text` \| `json` \| `json-list` | no | — | `text`, the default, emits the body as text. `json` parses it and emits an object. `json-list` parses it and emits a list of objects. ⚠️ Pick by what the service returns: a list under `json` arrives under `value`, and anything but a list of objects fails `json-list`. A parsed value over the slot cap is replaced by an empty one. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential. Its stored row says where in the request it goes and which hosts may receive it. ⚠️ Sent only over `https` on the default port. If the stored credential lists hosts, any other host fails before a request is made; with none listed, it goes wherever the action is addressed. |
 | `timeoutMs` | integer, more than 0 | no | `15000` | Request timeout in milliseconds. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one request. |
+| `userAgent` | `kipory` \| `browser` | no | — | Who the request says it is: `kipory`, the default, or `browser` for a site that refuses Kipory's reader. |
 
 ## Worked example
 

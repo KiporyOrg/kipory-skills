@@ -39,7 +39,7 @@ deterministically.
 ```
 POST /v1/eval-suites            create — a `key`, a `label`, and the flow (`flowId`)
 POST /v1/eval-cases             add cases: the `suiteId`, a REQUIRED `key`, then a `label`, inputs,
-                                expected (if any), labels, assertions (the six kinds below: a
+                                expected (if any), labels, assertions (the seven kinds below: a
                                 `action-outcome` names its action by `actionKey`)
 POST /v1/eval-suites/{id}/run   queue a run — 202 with its `runId`, the run has NOT happened yet
                                 … with `wait: true` — 200 with the settled run (no scorers only)
@@ -76,16 +76,17 @@ it names a flow that exists. Re-key or re-point a suite you want to keep before 
 
 ### The assertions
 
-Six kinds, a closed set — unknown fields are refused, and a case carries up to 50:
+Seven kinds, a closed set — unknown fields are refused, and a case carries up to 50:
 
-| Kind                         | Asserts                                                          |
-| ---------------------------- | ---------------------------------------------------------------- |
-| `no-missing-required-output` | the flow produced everything its signature promises              |
-| `output-present`             | a named slot exists and is non-empty                             |
-| `output-matches-schema`      | a slot's value validates against its declared type               |
-| `action-outcome`             | the action `actionKey` reached applied, skipped, no-op or failed |
-| `no-errors`                  | the run produced no action errors                                |
-| `jsonata`                    | a boolean expression over the whole run result                   |
+| Kind                         | Asserts                                                                                                                                                                                |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `no-missing-required-output` | the flow produced everything its signature promises                                                                                                                                    |
+| `output-present`             | a named slot exists and is non-empty                                                                                                                                                   |
+| `output-matches-schema`      | a slot's value validates against its declared type                                                                                                                                     |
+| `action-outcome`             | the action `actionKey` reached applied, skipped, no-op or failed                                                                                                                       |
+| `no-errors`                  | the run produced no action errors                                                                                                                                                      |
+| `expect-error`               | the run was refused — optionally with `status`, `code`, `messageContains` — read off its first failure, the one a live call answers with; a 5xx or 429 there leaves the case `errored` |
+| `jsonata`                    | a boolean expression over the whole run result                                                                                                                                         |
 
 **Write `no-missing-required-output` first.** It is the highest-value assertion in the list: a
 failure means a real invocation of this flow would fail outright. If you write only one assertion
@@ -332,6 +333,13 @@ can read higher than `credits`: a case the run's deadline cut is charged there a
 ⚠️ **A case's `latencyMs` is `null` when no duration was recorded** — a case the run never started,
 or a run from before per-case outcomes were stored. A `0` is a measured zero.
 
+**A case's `output` is what its run answered** — the flow's declared outputs, what an endpoint would
+have returned — on `GET /v1/eval-runs/{id}` beside its scores, kept to 8 KB (a share of 256 KB for the run's cases when that is less, never
+under 1 KB): a slot over that is
+replaced, largest first, by `{"_kind": "dropped-oversized", "_bytes", "_head"}` (its size and,
+when there is room, its first characters); the whole value is in the case's trace. `null` when the case ran nothing (`invalid`,
+`not-run`, a runner crash) and on runs from before outputs were kept.
+
 ### A run says whether its contract held
 
 Every run carries `contract`: `verdict` is `held`, `broken`, `incomplete` or `none`, with
@@ -437,7 +445,7 @@ baseline.
 
 ## Two tiers of scorer — reach for the free one first
 
-- **Assertions** — the six kinds above: free, deterministic, sandboxed. A `jsonata` assertion also
+- **Assertions** — the seven kinds above: free, deterministic, sandboxed. A `jsonata` assertion also
   reads the case's `inputs` and `expected` (`null` when the case has none), so
   `output.answer = expected.answer` is a free check.
 - **Scorer flows** are ordinary flows that take the inputs, the expected value and the output, and

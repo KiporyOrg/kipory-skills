@@ -25,6 +25,8 @@ Searches public Telegram channels by keyword. Reads comma-separated terms from i
 | --- | --- | --- | --- | --- |
 | `maxChannels` | integer, 1 to 200 | no | `40` | Total channels to return across all search terms. Cost scales linearly. |
 | `maxChannelsPerSearchTerm` | integer, 1 to 100 | no | `10` | Per-term ceiling, so one broad term cannot consume the whole budget and crowd out the others. |
+| `minMembers` | integer, at least 1 | no | — | Keep only channels with at least this many members. A channel whose count is unknown is left out. ⚠️ Channels it leaves out were still returned by the search, and are charged. |
+| `skipScam` | boolean | no | — | Leave out channels Telegram marks as a scam or fake. |
 
 ## Worked example
 

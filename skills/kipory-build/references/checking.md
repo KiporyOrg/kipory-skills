@@ -2,6 +2,7 @@
 
 <!-- field-ok: no-end-user — an enum VALUE of the preview's principal, not a property -->
 <!-- field-ok: record-owner — an enum VALUE of the preview's principal, not a property -->
+<!-- field-ok: end-user — an enum VALUE of the preview's principal, not a property -->
 
 Five <!-- count: rows-of-next-table --> questions to ask about a flow before a caller does, cheapest first. `packs/flows-and-actions.md` has each in more depth.
 
@@ -46,7 +47,7 @@ Five <!-- count: rows-of-next-table --> questions to ask about a flow before a c
 - **An action that sends fails in a preview.** A `url.send` or `email.send` action fails rather than sending, with `apply: false` too, and the same holds in an eval run. To preview the rest, send a draft graph with that action `"enabled": false`. To keep a suite passing, put the send in a flow of its own that an event from this flow starts: a preview and an eval run withhold events, and live, a failed send then leaves this flow's writes standing. A `condition` cannot do it, since nothing a condition reads tells a preview from a live run. Prove the send with one live run. `"onFailure": "continue"` is not a way round: every save refuses it on an action that may write, and so does a draft preview.
 - **An id in a dry run's output is not proof anything was stored.** An `record.create` on a project-wide table still reports an id, and it is the id a live run with the same data will get — a record's identity is its content. The change set is the proof.
 - **`missingRequiredOutput` is non-null exactly when a live call would be refused** `422 FLOW_OUTPUT_MISSING`.
-- **Who the run acts as is `principal`**, and the two special values live on different input arms: `no-end-user` on `slots` (the run a key, a schedule or a trigger gets), `record-owner` on `record`. The default, `operator`, is a request-shaped run.
+- **Who the run acts as is `principal`**, and the special values live on different input arms: `no-end-user` and `end-user` on `slots`, `record-owner` on `record`. `no-end-user` is the run a key, a schedule or a trigger gets. `end-user` runs as the end user `runAsUserId` names — one who owns records in the project, the rule a suite's `runAsUserId` follows — and requires `apply: false`, so you can rehearse one person's call (their interests, their feed) without writing in their name. The default, `operator`, is a request-shaped run as you.
 - **Fan-out is capped at 5 branches per node.** `fanOutCap` sets that preview cap (a number or `"uncapped"`) but never lifts the action's own `maxItems`. The wall clock is 180 seconds. A capped preview proves wiring and per-element behaviour, not the merge over the real population.
 
 **To see what each action wrote, queue the preview.** The synchronous preview's `transcript` carries each action's outcome, timing and error — no slot values — and leaves no timeline and no trace. `POST /v1/flows/{id}/preview-runs` takes the same body and answers `202 { runId }`; a worker runs it, and the run is read like any other:

@@ -971,6 +971,8 @@ refused.
   optional. The update runs in a transaction, so a rejected write rolls back the whole rename
   cascade rather than leaving it half-applied.
 
+**Removing a field counts only the records that hold it.** For a table whose shape is the type you edit, a removal is refused only while some record's data still holds a value for the field (a `null` holds nothing), and the refusal says how many do. A field declared and never written can be removed. A field reached through another type's `$ref` still counts every record.
+
 ## Ask what a change would cost, before you make it
 
 `GET /v1/tables/{id}?expand=contract` derives the field vocabulary from the descriptor **as
@@ -1138,6 +1140,10 @@ in place — neither embeds anything.
 
 It runs the save's own decision phase rather than a description of it, so an answer here cannot
 disagree with the write. **EDITOR**, like the save it asks about.
+
+**A field you add is `null` on every record already stored.** A plan that adds fields to a table holding records lists a `fields-unset` consequence: the new fields, and how many stored records hold no value for one of them (counted to 5,000; past that, `lowerBound` and "At least"). A flow reading one of them gets `null` for those records until each is written. Test it with `!= null`, or backfill before the flows that read it go live.
+
+**A reindex line says when it costs nothing.** When the plan finds no `reembed`, its `reindex` line says nothing is re-embedded and no embedding credits are spent.
 
 ## Identity — the field that says two records are the same thing
 

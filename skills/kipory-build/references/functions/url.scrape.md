@@ -23,9 +23,9 @@ Loads a page in a real browser and returns it as clean markdown, together with t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `excludeTags` | string[] | no | `[]` | CSS selectors to strip from the page before the text is extracted. ⚠️ Use it for chrome the main-content pass keeps — a consent or accessibility widget sitting above the article is the common case, and the extractor can mistake it for the article. |
+| `excludeTags` | string[] | no | `[]` | CSS selectors to strip from the page before the text is extracted. ⚠️ Use it for chrome the main-content pass keeps, such as a consent banner. An accessibility widget is injected by a script, so name the article's container in includeTags instead. |
 | `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. Narrower than excludeTags; leave empty unless the article container is known and stable. |
-| `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | When the main-content pass returns fewer characters than this, scrape the whole page too and keep the longer result. 0 turns the retry off. ⚠️ A non-zero value bills a second scrape on every page that trips it. |
+| `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | When the main-content pass returns fewer characters than this, scrape the whole page too and keep the longer result. 0 turns the retry off. ⚠️ A non-zero value bills a second scrape on every page that trips it. A result that is only an accessibility overlay's notice reads the full page anyway, billed the same. |
 | `onlyMainContent` | boolean | no | `true` | Strip navigation, footers, and ads — request article body only. |
 | `timeoutMs` | integer, more than 0 | no | `30000` | How long to wait for the provider, in milliseconds. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one page read. |
 

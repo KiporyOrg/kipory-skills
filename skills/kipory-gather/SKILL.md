@@ -305,6 +305,13 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
 - **Falling through to the platform's key is silent and it succeeds.** When no node in the chain
   holds a credential for the vendor, the call runs on the platform's key at the platform's price.
   You do not get an error; you get a charge. `kipory-secrets` explains the resolution order.
+- **A site that answers 403 to Kipory may answer a browser.** `url.fetch`, `url.fetch-as-file` and
+  `url.metadata` name Kipory in their User-Agent; some news sites refuse that and serve a browser.
+  Set `userAgent: "browser"` on that action before reaching for `url.scrape`, which costs far more.
+  `headers` cannot set User-Agent.
+- **An action that stops waiting does not stop the vendor.** When an action's wait runs out, the call
+  goes on, is charged when it finishes, and its answer is saved: the failure says so, and the same
+  request asked again is charged compute only.
 - **`web.search` charges by the page of results, and a page holds about ten.** `maxResults` (up to 50) is how many results you want, and a search reads pages until it has them
   or is within a few of them, each page charged at the `apify/web-search` row of the price list.
   A page often holds seven to nine, so 20 results is two pages or three; a search reads at most
@@ -312,7 +319,16 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
   five missing is the answer). Pages are read one after another and one can take a minute or
   more. A search that runs out of time, or reads its last allowed page while five or more are
   still missing, returns what it read with a `TRUNCATED` warning, charged for those pages. `hasMore` says whether further results exist;
-  there is no setting to read "page 3 only". A search that finds nothing is charged its one page.
+  there is no setting to read "page 3 only". `maxPages` caps the pages read — `maxPages: 1` reads one
+  page and no more, whatever `maxResults` says. A search that finds nothing is charged its one page.
+  `excludeSites`, and `sites` with several hosts, are asked of the search engine itself, as far
+  as the query's 32 words allow, so a left-out host does not buy a page.
+  A search that finds nothing is kept 30 minutes, not a day: a blocked results page looks the same.
+  Past its last real match the search engine pads a page with unrelated results (popular
+  accounts, help pages). A page after the first whose results mostly share no word with your
+  query ends the search there: its off-topic results are left out and counted in `dropped`, and
+  `hasMore` is false. A result shares a word when its title, snippet or address holds a query
+  word of three letters or more (a long word matches by its stem).
   For "profiles, not posts" on one site, set `sites` and `excludeUrlContains` (`/p/`, `/reel/`)
   and raise `maxResults`: results left out were read and are charged, and `dropped` counts them.
   A search limited to one site shows no `relatedSearches`.
