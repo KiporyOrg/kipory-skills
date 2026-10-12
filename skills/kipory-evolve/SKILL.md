@@ -105,8 +105,9 @@ the class decides the sequence, and every sequence is written out once, in
 
 Some destructive changes are refused outright:
 
-- deleting a table that holds records (`TABLE_PINNED_BY_RECORDS`), or renaming it, or
-  removing a field from its shape; deleting a reserved or seeded table, whatever it holds;
+- deleting a table that holds records, or re-pointing its shape or owner scope
+  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its shape that records hold; deleting a
+  reserved or seeded table, whatever it holds;
 - deleting a flow something still references, or an action whose output later actions read;
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
 - deleting a vocabulary without `confirm=true`, or while another vocabulary nests under it;
@@ -115,6 +116,9 @@ Some destructive changes are refused outright:
 Others do not refuse. They cascade, and the response tells you what else moved:
 
 - deleting a table takes relations and voids other tables' joins;
+- renaming a table moves its records and rewrites every reference to its key, and needs ADMIN;
+- renaming a relation moves its links (each keeps its id) and rewrites every reference to its key,
+  and needs ADMIN;
 - changing a table's `search` uses queues a reindex or a billed re-embed, and its `filter` uses a
   rewrite of every record's filter columns;
 - a slot rename rewrites its readers only when you confirm it, and never the flow's outputs;
@@ -146,11 +150,11 @@ no vectors, no secret values. Deleting a table leaves the type it took its shape
 from, so the rollback re-creates the table on that same type. A schedule's or trigger's `enabled` travels: one the rollback re-creates comes back in the
 state the export recorded. What it does not restore as you left them:
 
-- **A field added since the export cannot be rolled back off a table with records.** Re-applying the
-  older shape removes the field, and a shape edit that removes a declared field from a table
-  holding any record — whether or not a record holds that field — is refused
-  `TYPE_UNSAFE_FOR_TABLE`, skipping the rows that depend on it. Keep the new field in
-  the rollback document's shape.
+- **A field added since the export cannot be rolled back off records that hold it.** Re-applying
+  the older shape removes the field, and a shape edit that removes a declared field some record
+  holds is refused `TYPE_UNSAFE_FOR_TABLE`, naming how many records hold it and skipping the
+  rows that depend on it. Keep the new field in the rollback document's shape, or remove it from
+  those records first.
 - **Links are data, not configuration.** A relation the change deleted comes back EMPTY:
   every link asserted by hand (`POST /v1/records/{id}/links/{relationKey}`) is gone for good, and
   only re-asserting it restores it. Save them (`GET /v1/links?project=<node>&relation=<key>`)

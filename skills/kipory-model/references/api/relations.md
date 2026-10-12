@@ -172,7 +172,7 @@ Each item of `relations`:
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the relation — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | The relation's key, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
+| `key` | `string` | yes | The relation's key, unique within the project. Renameable by ADMIN: its links, pairings and every reference move with it. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
@@ -201,7 +201,7 @@ Create one relation together with its first table `pairings` and, optionally, th
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the relation. |
-| `key` | `string` | yes | The relation's key, unique within the project. Permanent once created — pairings link to it by key. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
+| `key` | `string` | yes | The relation's key, unique within the project. Renameable later, with its links (`PATCH /v1/relations/{id}` with `key`). Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. Required and non-empty — `null` or a blank string is refused, in a project document's `relations` too. |
 | `minConfidence` | `number \| null` | no | Reserved; has no effect today. |
@@ -238,7 +238,7 @@ Each item of `diagnostics`:
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the relation — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | The relation's key, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
+| `key` | `string` | yes | The relation's key, unique within the project. Renameable by ADMIN: its links, pairings and every reference move with it. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
@@ -298,7 +298,7 @@ Read one relation by id, with the `version` its PATCH takes. `expand=pairings` h
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the relation — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | The relation's key, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
+| `key` | `string` | yes | The relation's key, unique within the project. Renameable by ADMIN: its links, pairings and every reference move with it. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
@@ -329,7 +329,7 @@ Each item of `pairings`:
 
 ### `PATCH /v1/relations/{id}`
 
-Change one relation's own attributes — label, description, direction, cardinality, properties type, sort order; `key` and `producer` are permanent. Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted — the link rules over every declaration of the relation included — writing nothing. The relation's pairs are added and removed through `/v1/relation-pairings`, its producing declaration through the table. Several relations at once, pairings included: the `relations` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Change one relation's own attributes — key, label, description, direction, cardinality, properties type, sort order; `producer` is permanent. A new `key` is a rename: its links keep their ids, its pairings and every reference move with it, it needs ADMIN, and the answer lists what moved and what breaks (`renames[]`). Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted — the link rules over every declaration of the relation included — writing nothing. The relation's pairs are added and removed through `/v1/relation-pairings`, its producing declaration through the table. Several relations at once, pairings included: the `relations` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -347,6 +347,8 @@ Change one relation's own attributes — label, description, direction, cardinal
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `key` | `string` | no | The relation's new key, unique within the project. Its links keep their ids, its pairings follow, and every reference to the old key is rewritten in the same transaction; external callers using the old key break (see `renames[].exposures`). Requires ADMIN. Lowercase letters and digits in words joined by single dashes, like `rock-pool`, up to 64 characters. |
+| `keepExpressions` | `string[]` | no | Actions (or eval assertions) whose expression and template candidates this rename leaves AS WRITTEN — every other candidate is changed. Each one must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
 | `label` | `string` | no | New name. Omit to leave it alone. |
 | `description` | `string` | no | New description. Omit to leave it alone. |
 | `minConfidence` | `number \| null` | no | Reserved; has no effect today. |
@@ -364,7 +366,7 @@ Change one relation's own attributes — label, description, direction, cardinal
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the relation — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
-| `key` | `string` | yes | The relation's key, unique within the project. Permanent — pairings are linked to it by key, so it cannot be renamed. |
+| `key` | `string` | yes | The relation's key, unique within the project. Renameable by ADMIN: its links, pairings and every reference move with it. |
 | `label` | `string` | yes | Human-readable name. |
 | `description` | `string` | yes | What this relationship means. |
 | `minConfidence` | `number \| null` | yes | Reserved. Nothing currently produces a confidence score, so this has no effect today. |
@@ -383,9 +385,12 @@ Change one relation's own attributes — label, description, direction, cardinal
 | `liveLinkCount` | `integer` | no | How many links of this relation are currently valid, present only when you pass `expand=liveLinkCount`. NOT `linkCount`, which also counts retracted links — retraction is by expiry, not deletion, so the two diverge as a producer rewrites its links. This is the number that matches what a read of the links returns. |
 | `pairings` | `object[]` | no | Which table pairs this relation connects, present when you pass `expand=pairings` — and always on the create's echo. Never empty — a relation must apply to at least one pair, and the last one cannot be removed. Each pair carries its id, and — on a read of one relation — `deleteRefusal`. |
 | `readiness` | `object` | no | Whether this relation is doing anything and why not, present only when you pass `expand=readiness`. `blocked` cannot produce a link; `inert` is wired to nothing; `unproven` is wired and has produced nothing; `ready` is carrying links. NOT derivable from the counts — an unpaired relation and a relation declared a minute ago both report zero. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `renames` | `object[]` | no | Feature 385 — present when the PATCH changed `key`: the relation renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
+| `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
+| `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
 
 Each item of `pairings`:
 
@@ -396,6 +401,21 @@ Each item of `pairings`:
 | `id` | `string` | yes | The pairing's own id — what `DELETE /v1/relation-pairings/{id}` takes. |
 | `deleteRefusal` | `object \| null` | no | Why removing this pair would be refused right now, in the words the delete would use; `null` when nothing about the pair stands in the way — the delete also needs the ADMIN role and a project that is not retired. Present on a read of one relation — `GET /v1/relations/{id}?expand=pairings`, the create's echo, and an update's echo when it passes `expand=pairings`; absent on the list, which would have to count every live link in the project to say it. The live links are counted when you read, so a link written afterwards can still make the delete refuse — with this same sentence. |
 
+Each item of `renames`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary"` | yes | What is renamed. |
+| `path` | `string` | yes | The document path of the row that states the rename. |
+| `from` | `string` | yes | The old key; for a field, its old path in the type. |
+| `to` | `string` | yes | The new key; for a field, its new path. |
+| `tables` | `string[]` | yes | Keys of the tables the rename reaches; for a field, every table whose shape reaches the type. |
+| `references` | `object[]` | yes | Configuration positions the rename rewrites, by document path. |
+| `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
+| `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
+| `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
+| `cost` | `object` | yes | What the rename spends (FR-042). Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+
 Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
@@ -404,6 +424,26 @@ Each item of `diagnostics`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+Each item of `leavesBehind`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
 
 ### `DELETE /v1/relations/{id}`
 
@@ -458,7 +498,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
 | `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |

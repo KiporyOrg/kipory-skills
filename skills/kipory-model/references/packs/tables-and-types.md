@@ -15,8 +15,8 @@
 
 Both are addressed by their `key`. A table's key is a **table name** — letters and digits,
 starting with a letter — and it is the value its records carry as `tableKey`; it is renameable
-only while the table holds no records and no action's configuration names it. A type's key
-is an address key (below) and renameable at any time.
+at any time, and its records move with it (below). A type's key is an address key (below) and
+renameable at any time.
 
 They are separate resources on purpose: shapes are authored once and reused, while a table
 is a thin descriptor pointing at one.
@@ -860,9 +860,15 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
 - **Reserved field names** — the identity, status, error and timestamp fields — may not be
   declared as data fields, nor collide with a derived slot
   (`TABLE_DERIVED_FIELD_RESERVED`). Names must be letter-led alphanumeric.
-- **Removing a field from a type while a referencing table has records**
-  (`TYPE_UNSAFE_FOR_TABLE`), or adding one named like a vocabulary a referencing table
-  surfaces (same code). Editing a type re-validates every table referencing it, strictest wins.
+- **Removing a field that stored records hold** (`TYPE_UNSAFE_FOR_TABLE`), or adding one named
+  like a vocabulary a referencing table surfaces (same code). A field no record holds can be
+  removed from a table full of records. The refusal names, per table, how many records hold it:
+  <!-- pack-lint: ignore-next -->
+  "900 of the 1,200 `dish` records hold `servings`". It counts nested fields (`source.url`)
+  and every table whose type includes this one, at the path those records store it under. A key
+  stored as `null` holds nothing. To drop a held field, remove it from those records first (`kipory-data`: a
+  record `merge` with `null` removes a top-level key), then from the type. Editing a type
+  re-validates every table referencing it, strictest wins.
 - **A definition that contradicts itself or carries a `$vocabularyKey` marker no extraction can
   honour.** `SCHEMA_DEFINITION_MALFORMED_CONSTRAINT`: a range no value satisfies, a negative or
   fractional count bound, an `enum` member listed twice, two `oneOf` / `anyOf` branches pinning one
@@ -964,14 +970,94 @@ refused.
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
   A reprocess is charged like a first processing and answers no action from the action-result cache.
 
-- **Re-pointing or renaming a table that already has records**, and renaming — changing the `key`
-  of — a table any flow action's configuration names (`TABLE_NAMED_BY_CONFIG`, listing the
-  flows): action configuration names a table by key, so a rename would strand it.
+- **Re-pointing a table that already has records** — a new `dataTypeId` or `ownerScope`
+  (`TABLE_PINNED_BY_RECORDS`). Renaming it is not refused; see below.
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than
   optional. The update runs in a transaction, so a rejected write rolls back the whole rename
   cascade rather than leaving it half-applied.
 
-**Removing a field counts only the records that hold it.** For a table whose shape is the type you edit, a removal is refused only while some record's data still holds a value for the field (a `null` holds nothing), and the refusal says how many do. A field declared and never written can be removed. A field reached through another type's `$ref` still counts every record.
+## Renaming a field on a table that holds records
+
+A field keeps its values when you rename it. State the rename; never remove the field and add
+another, which is a removal and is refused while records hold it.
+
+- **How:** `renameFields` maps each old field path to its new name, beside the definition as it
+  reads after the rename. Send it on the type's `PATCH /v1/types/{id}`, or on the type's row in a
+  <!-- pack-lint: ignore-next -->
+  project document. The new name is one name: the field stays under its parent (`source.url` →
+  <!-- pack-lint: ignore-next -->
+  `source.link`). A field inside a list renames the same way (`helpers[].chefId`). <!-- field-ok: chefId, url, link — example field names a project would author, not platform fields -->
+- **What moves, in one transaction:**
+  - every record of every table whose shape reaches the type, at the path that table stores it
+    under; ids are kept and each moved record's `version` moves;
+  - the table's `uses` and everything derived from it, without a re-stamp;
+  - every setting that names the field in a declared place, such as a list's filter slot;
+  - conditions, input paths, trigger filters, endpoint retry paths, eval inputs and checkpoints.
+- **What it never edits:** JSONata expressions and prompt templates. A plan lists each occurrence
+  of the old name in `renames[].candidates`, with its span and a proposed text. Settle each one in
+  the same document: change the text, or keep it by naming its action in `keepExpressions`
+  (`["<flowKey>.<actionKey>"]`, or `"<suiteKey>.<caseKey>"` for an eval assertion; a setting outside
+  an action is `"<flowKey>:outputBinding"`, `"trigger:<key>"`, `"schedule:<key>"` or
+  `"endpoint:<key>"`). Until every
+  one is settled, the apply is refused `RENAME_CANDIDATE_UNRESOLVED`.
+- **A processing flow's input slot of the same name is the flow's own word.** A table's flow
+  takes a record field as the input slot named like it, and the rename never renames a slot. Rename
+  the slot in the same document: restate the flow with the slot's new name, everywhere the flow
+  reads it, and `adoptSnapshots: true`. The plan judges the pair once both are written; left
+  alone, the field rename is refused `TABLE_FLOW_INPUT_UNMAPPED`.
+- **A row you edit in the renaming document is written in the new words.** A row you restate
+  unchanged may keep the old ones, and the rename moves them. Change a row, and every word in it
+  is judged against the project as it reads after the rename.
+- **What breaks:** anything outside the project that reads the old name. `renames[].exposures`
+  lists the kinds (record data read by field name, an endpoint's contract). There is no alias:
+  after the rename the old name answers as a name the project never had.
+- **What it costs:** no embedding. Search points keep their vectors; only their payloads are
+  rewritten after the commit.
+- **Who and when:** renaming needs ADMIN; a plan says so in `permissions.mayRename`. While the
+  words move, new runs of the project wait up to about five seconds (`renames[].pauseMs`). A run
+  that staged writes under the old name is retried; a sync endpoint call made during the move, and
+  a `/v1/records` create, edit or bulk checked before it and written after, answer `503`
+  `RENAME_SUPERSEDED` with `Retry-After: 1` and write nothing — retry it.
+- **Refused, and nothing moves:** a name the type, a reserved word or a surfaced vocabulary already
+  holds (`RENAME_NAME_TAKEN`); records holding both names (`RENAME_BOTH_NAMES_HELD`, with the
+  count); a re-stamp or stream migration still running (`RENAME_BLOCKED_BY_PENDING`); more than
+  20,000 records to move (`RENAME_TOO_LARGE`); and an old name left in a place the platform should
+  have rewritten (`RENAME_REFERENCE_REMAINS`).
+
+The inverse rename is the undo, planned and applied the same way.
+
+## Renaming a table that holds records
+
+A table's records move with its key. State the new key on the same table; never delete the table
+and create another, which is refused while it holds records.
+
+- **How:** `PATCH /v1/tables/{id}` with the new `key`, or the table's row in a project document
+  stated by its `id` under the new key (`dish` → `recipe`).
+- **What moves, in one transaction:**
+  - every record, keeping its id, with its stream events, pending vector deletions and the links
+    its fields produce; relation pairings and vocabulary bindings follow;
+  - every configuration position that names the table, such as an action's `tableKey` or a
+    `record.query` semantic clause's `likeTableKey`;
+  - every `x-record-ref` in another type, every `recordRef` in action, flow and table schemas, and
+    checkpoints and snapshots.
+- **What it never edits:** JSONata expressions and templates that spell the old key. A plan lists
+  each in `renames[].candidates`; settle each by changing it in the same document or naming its
+  action in `keepExpressions`.
+- **What breaks:** `renames[].exposures` lists it. A caller asking `/v1/records` for
+  `tableKey=<old>` gets the answer for a table that never existed — there is no alias and no
+  redirect. The project's OpenAPI component `<Old>Record` becomes `<New>Record`, and the table's
+  app page moves address.
+- **Who and when:** renaming needs ADMIN; an EDITOR's PATCH carrying `key` is refused `403`, and a
+  plan says so in `permissions.mayRename`. New runs of the project wait up to about five seconds
+  while it applies (`renames[].pauseMs`).
+- **Still frozen:** owner scope and the data-shape reference (`TABLE_PINNED_BY_RECORDS`). A refusal
+  moves nothing.
+
+The inverse rename is the undo.
+
+A relation's key renames the same way; see Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`).
+So does a vocabulary's, and the tables surfacing it name the new key; see
+Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`).
 
 ## Ask what a change would cost, before you make it
 
@@ -1083,8 +1169,8 @@ Things to hold about it:
 - A stale `version` is reported as `derived.staleVersion: true` beside an `ok` verdict, never as a
   finding: the lock is about when the write lands, not whether the draft is coherent.
 
-⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the key,
-the data shape and the owner scope; the binding can change at any point in a table's life. But a
+⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the data
+shape and the owner scope; the binding can change at any point in a table's life. But a
 re-bind re-derives the `processed` family and re-derives the table's whole `uses` against the new
 signature — every use is re-resolved and the three derived documents re-validated **before the
 write opens at all** — so one use naming a field the new signature no longer produces refuses the
@@ -1456,8 +1542,8 @@ lists the runs.
   rewritten.** The drift read is what owns the live comparison — which is why `uncaptured` matters.
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
-- **A table is named by key in function config**, not by id — which is why a rename is
-  refused while any action's config names the table (`TABLE_NAMED_BY_CONFIG`).
+- **A table is named by key in function config**, not by id — which is why a table rename
+  rewrites every action's config that names it, in the same transaction.
 - **A type lists every consumer that blocks its delete, and `usedByRelations` is one
   of them.** Alongside `usedByTables`, `usedByEventTypes`, `usedByConfigNamespaces` and
   `usedAsProfile`, a type reports the relations whose link properties it describes; a

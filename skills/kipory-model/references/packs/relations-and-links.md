@@ -167,7 +167,8 @@ Creating a relation is deliberately wide: it seeds its pairings atomically, and 
 required**, so a relation is never born without one; a seed pair states `fromTableKey` and
 `toTableKey` — tables by **key**, e.g.
 `"pairings": [{ "fromTableKey": "recipe", "toTableKey": "ingredient" }]` — the same two
-fields a pair added later carries. The key is lower-case kebab and immutable. A pair added later is
+fields a pair added later carries. The key is lower-case kebab; it can be renamed while links
+exist (see [Renaming a relation](#renaming-a-relation)). A pair added later is
 its own resource, `POST /v1/relation-pairings` with `relationKey`, `fromTableKey` and `toTableKey`;
 `GET /v1/relation-pairings?project=…&tableKey=…` lists the pairs touching one table.
 Pairings have **no update** — re-target by deleting and recreating. ⚠️ But that recipe stops working
@@ -392,7 +393,8 @@ the 201). Every other write of this family takes the same flag and answers the s
 `POST /v1/relation-pairings` (a pair already standing, a dangling table, a second pair on a
 `join-record` relation), `DELETE /v1/relation-pairings/{id}?validateOnly=true` (the pair's
 `deleteRefusal`, answered now), and `DELETE /v1/relations/{id}?validateOnly=true` (which adds
-`consequences`, below):
+`consequences`, below; a `consequences` entry is one of the kinds the project-document pack lists,
+`rename` among them):
 
 ```json
 {
@@ -520,6 +522,44 @@ Pointing a declaration at an unannotated string saves successfully and works. Re
 stronger form would have gated adoption on migrating every existing shape in a live project — so
 this is a deliberate concession, and it means a successful save does not prove your field is
 well-typed.
+
+## Renaming a relation
+
+A relation's links move with its key. State the new key on the same relation; never delete the
+relation and create another, which deletes its links.
+
+- **How:** `PATCH /v1/relations/{id}` with the new `key`, or the relation's row in a project
+  document stated by its `id` under the new key (`cooked-by` → `made-by`). A `validateOnly: true` PATCH rehearses the rename and answers the same `renames[]`, writing nothing.
+- **What moves, in one transaction:**
+  - every link, keeping its id — links are stored by relation id, so no link restamp is owed; the
+    relation's pairings follow;
+  - every configuration position that names the relation: `relationKey` on the record links,
+    link-assert, link-retract and link-counts actions, `linkFilters[].relationKey` on the record
+    list and count actions, and `clauses[].relation` on a `record.query`;
+  - every table's `uses` link entry (`{ "kind": "link", "relation": … }`), `Table.relations`
+    (`produces[].relationKey`, `joins.relationKey`), a generated link field's `x-owned-by-link`,
+    and checkpoints and snapshots.
+- **What it never edits:** JSONata expressions and templates that spell the old key. A plan lists
+  each in `renames[].candidates`; settle each by changing it in the same document or naming its
+  action in `keepExpressions` (the PATCH body takes it too).
+- **What breaks:** `renames[].exposures` lists it. A caller asking
+  `/v1/records/{id}/links/<old>` gets the answer for a relation the project never had — an empty
+  list; there is no alias and no redirect.
+- **Who and when:** renaming needs ADMIN (in the app: the relation's Rename, which offers the key to an ADMIN); an EDITOR's PATCH carrying `key` is refused `403`, and a
+  plan says so in `permissions.mayRename`. New runs of the project wait up to about five seconds
+  while it applies (`renames[].pauseMs`).
+- **Still frozen:** `producer` (`RELATION_PRODUCER_IMMUTABLE`). A refusal moves nothing.
+
+The inverse rename is the undo.
+
+### Renaming a property a relation's links carry
+
+A link property is a field of the relation's properties type, copied from the declaring field's
+element. Rename it on both in one document: `renameFields` on the properties type, and on the type
+whose list elements carry it (`"citations[].quote": "excerpt"`). Every link's `properties`, the
+relation's link filters (the stamped columns are kept, so no link restamp is owed) and a
+`record.query` link clause's `where[].property` move with it; link ids are kept. The rename is
+refused while the relation's link restamp is still running.
 
 ## What will bite you
 

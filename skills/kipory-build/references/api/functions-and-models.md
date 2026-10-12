@@ -217,7 +217,7 @@ Each item of `config`:
 | `required` | `boolean` | yes | Whether an action using this function must set the field. |
 | `default` | `string` | no | The default, JSON-ENCODED — so a string default arrives quoted, e.g. "\"auto\"". Absent when the field has no default. |
 | `description` | `string` | no | What the field does, when the function's author wrote it down. |
-| `refKind` | `"table" \| "vocabulary" \| "flow"` | no | The kind of project object this field names — a table, a vocabulary or a flow. Absent when the field names none. It is the KIND, not an instance: which one is configured per action. |
+| `refKind` | `"table" \| "vocabulary" \| "flow" \| "relation" \| "field"` | no | The kind of project object this field names — a table, a vocabulary, a flow or a relation by key, or a field of a table by path. Absent when the field names none. It is the KIND, not an instance: which one is configured per action. |
 | `caution` | `string` | no | What goes wrong if this field is set wrong, and what it costs. Absent when the field carries no such cost. |
 
 Each item of `configConstraints`:

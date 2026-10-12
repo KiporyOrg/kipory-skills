@@ -160,6 +160,15 @@ this. A document does not get to assume it: adopting re-publishes an endpoint's 
 contract to whoever already calls that route. It is a statement about this apply, like `delete` —
 never part of the row, never exported.
 
+A shape's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its definition as it
+reads after the rename, and `keepExpressions`, the actions whose expressions or templates keep the
+old name as written. Both are statements about this apply, like `adoptSnapshots`: never stored,
+never exported. The plan answers `renames[]`: what moves, the expression candidates to settle, the
+callers it breaks, and `cost` — a rename calls no model and is not charged, and embeds nothing unless
+`reembedRecords` says a table's search text names its own key. A swap or a chain (`a`→`b` with
+`b`→`a`) in one document is refused: rename one word to a free name first. The tables pack has the
+whole rule.
+
 A schedule, a trigger and a source carry `enabled`, which their create bodies do not: the row API
 switches it with a `PATCH` (`{enabled, version}`), and the document writes it through that same
 patch after the row. Export always states it. Omitted, a new row is created enabled and an existing
@@ -204,7 +213,9 @@ The answer holds the `version` the project was read at — the lock an apply pre
   which spends credits on embedding usage (billed by tokens, so it grows with the records and the
   text each holds), because what its search indexes moved. It is per table, a plan reports it (an
   apply's answer does not repeat it), and it is the one to ask a person about before applying.
-  `reindex` is not that: it says a reconcile is queued, which may find nothing to redo. A `filter`
+  `reindex` is not that: it says a reconcile is queued, which may find nothing to redo. `rename`
+  counts the stored rows a rename rewrites in place, per store; ids, embeddings and stamps are kept,
+  and the plan's `renames[]` says what else moves and what it breaks. A `filter`
   use added, removed or moved reports `restamp` — every record's filter columns are rewritten — and
   on a searchable table it also queues a `reindex` that embeds nothing.
 - `ok` — true exactly when no `error` the document introduces remains; an error carrying
@@ -236,10 +247,12 @@ pairing it has that relation's change on `relations.<kind>` as the cascade, not 
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a shape, a
-table (while it holds no records and no action's config names it), an action, an eval suite and
-an eval case, keeping the `id` under a new key is a RENAME — one update of the
-same row, and everything that named it follows; the row API renames exactly the same kinds. Every
-other key is permanent (a vocabulary, a flow, an endpoint: other rows or stored data are linked to
+table, a relation, a vocabulary, an action, an eval suite and an eval case, keeping the `id` under a new key is a
+RENAME — one update of the same row, and everything that named it follows; the row API renames
+exactly the same kinds. A table renamed this way takes its records with it, a relation its
+links and a vocabulary its terms; like a shape's `renameFields`, each needs ADMIN
+(`permissions.mayRename`) and answers `renames[]`. Every
+other key is permanent (a flow, an endpoint: other rows or stored data are linked to
 it by key), so the same move is refused on the row;
 state the new key without the `id` and remove the old one with `delete: true`. An `id` that belongs
 to no row here — the usual case when a document exported from one project is planned against another

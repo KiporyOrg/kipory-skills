@@ -75,7 +75,8 @@ is still a plain 422 — and so is one that could not put back a whole signature
 captured input or output slots are not lists, or that holds no output-binding object, is refused
 (422 `VALIDATION_FAILED`) on the dry run and on the restore, because a flow always declares both
 slot lists and holds a binding. A platform flow's restore is rehearsed the same way, with `leavesBehind` and
-`consequences` empty: they judge one project's flows, and the projects bound to a platform flow are
+`consequences` empty (a project flow's `consequences` use the kinds the project-document pack lists,
+`rename` among them; a restore itself renames nothing): they judge one project's flows, and the projects bound to a platform flow are
 held by the signature guards instead.
 
 The actions a dry run returns (`currentActions`, `restoredActions`) carry each action's `key` as it was

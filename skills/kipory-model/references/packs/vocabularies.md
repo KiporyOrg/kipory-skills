@@ -170,14 +170,15 @@ are distinguishable on purpose: one is "you choose", the other is "I want it bar
 declaring a parameter shape the platform has no default for stores nothing either way, and you must
 supply the values.
 
-Scoped by the project's `OrgNode` id. Create takes the vocabulary key (camelCase, and it is the
-identity), a label, a `cardinality` of `one` or `many`, and optionally a parent vocabulary key. A
-term attaches to the whole record: model a part inside a record as its own table with a relation.
+Scoped by the project's `OrgNode` id. Create takes the vocabulary key (camelCase, the name records
+and functions know it by), a label, a `cardinality` of `one` or `many`, and optionally a parent
+vocabulary key. A term attaches to the whole record: model a part inside a record as its own table
+with a relation.
 
-**The label is editable; nothing else about a vocabulary's shape is.** Renaming touches only the
-display string — the key is the identity, so no term, no link and no stored resolution moves. There
-is no merge: folding two vocabularies into one would destroy an identity, and that is a different
-verb with different costs.
+**The label and the key are editable; the shape is not.** Relabelling touches only the display
+string — no term, no link and no stored resolution moves. A new key is a rename, and its terms move
+with it; see [Renaming a vocabulary](#renaming-a-vocabulary). There is no merge: folding two
+vocabularies into one would destroy an identity, and that is a different verb with different costs.
 
 Resolver wiring is folded in by a later update, where **an omitted field preserves** — the
 distinction to hold when patching, because "leave it alone" and "remove it" look nearly identical in
@@ -277,7 +278,8 @@ while a project is still being assembled.
 - **Reserved keys are refused** with `VOCABULARY_KEY_INVALID` — the identity, content and metadata
   names the record shape already owns, along with `vocabularies`, `terms`, `tableKey` and the
   timestamps. A vocabulary's `key` is a **field key** — camelCase, starting lower-case — because it
-  becomes a JSON property a model reads; it is permanent.
+  becomes a JSON property a model reads. Choose it with care: it can be renamed later, but the
+  rename breaks every outside caller that spells it.
 - **Do not give a vocabulary the key of a field of a table that surfaces it**, or a key every record
   row already carries — its status, files and cost among them. A record read carries each vocabulary
   as a top-level key, so vocabulary `cuisine` beside a submitted `cuisine` would answer every row
@@ -490,6 +492,43 @@ one of them is a status a form can render under an input.
 ⚠️ **`derived` is absent when the draft is refused** — there is no binding to
 look up and no readiness to forecast. Absent and "full of defaults" are
 different claims, and only one of them is true.
+
+## Renaming a vocabulary
+
+A vocabulary's terms move with its key. State the new key on the same vocabulary; never delete the
+vocabulary and create another, which removes its terms and strips them off every record.
+
+- **How:** `PATCH /v1/vocabularies/{id}` with the new `key`, or the vocabulary's row in a project
+  document stated by its `id` under the new key (`cuisine` → `style`). Preview the document with
+  `POST /v1/projects/{nodeId}/document/plan`. A `validateOnly: true` PATCH rehearses the rename and answers the same `renames[]`, writing nothing.
+- **What moves, in one transaction:**
+  - every term, keeping its id, and every record's terms, which stay filed; child vocabularies that
+    nest under it follow;
+  - every table's `uses.vocabularies` entry, and every `$vocabularyKey` marker on a type;
+  - every function setting that names the vocabulary: `term.search`, `term.threshold-gate`,
+    `vocabulary.resolve` and `vocabulary.aggregate`, `vocabularyFields` on `text.generate`,
+    `vocabularyFilter` on `record.list` and `record.count`, a `record.query` term clause, and a
+    `vector.search` filter;
+  - nothing is re-embedded; the term search index catches up once the change commits.
+- **What it never edits:** JSONata expressions and templates that spell the old key — `$.cuisine`
+  reading a record, say, since a record read carries each vocabulary's terms under its key. A plan
+  lists each in `renames[].candidates`; settle each by changing it in the same document or naming
+  its action (`<flow>.<action>`) in `keepExpressions` (the PATCH body takes it too). One left
+  unsettled refuses the rename with `RENAME_CANDIDATE_UNRESOLVED`.
+- **Rows you edit in the same document** are written in the new words: a flow restated with a
+  change says `style`, not `cuisine`. A row restated unchanged may keep the old key, and the
+  rename moves it.
+- **What breaks:** `renames[].exposures` lists it. A caller filtering records by
+  `?term=<old>:<slug>` or asking `/vocabularies/<old>` gets the answer for a vocabulary the project
+  never had — there is no alias and no redirect. Update those callers to the new key.
+- **Who and when:** renaming needs ADMIN; an EDITOR's PATCH carrying `key` is refused `403`, and a
+  plan says so in `permissions.mayRename`. New runs of the project wait up to about five seconds
+  while it applies (`renames[].pauseMs`).
+- **Refused, and nothing moves:** `RENAME_NAME_TAKEN` when another vocabulary holds the new key, a
+  table surfacing this vocabulary has a field by that name (the term would hide the field), or
+  every record already carries it (`id`, say).
+
+The inverse rename is the undo.
 
 ## What will bite you
 

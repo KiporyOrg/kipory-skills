@@ -61,6 +61,9 @@ Four things to know about the result:
   the same field the document carries, so an exported project's switched-off rows stay off. A
   row carries `failurePolicy` across too; a `paused` marker the platform put on the source row
   does not travel — the new project's rows start unpaused.
+- A template renames nothing. `renameFields` and `keepExpressions` state a rename of words a
+  project already holds (the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)), and a new project holds
+  none.
 - The answer carries `requires` — the secrets the project will not work without. A template never
   holds a secret value, so storing those is your next call.
 - In the project's history the whole template is ONE entry, a document apply, at the project's

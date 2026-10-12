@@ -51,7 +51,7 @@ schema.
 | add a **required** field to a table with records              | narrowing   | widen → backfill → patch fixed inputs → narrow, four moves                               |
 | change the actions of a flow that processes a table's records | re-run      | the edit saves; stored records keep what the old actions wrote until each is reprocessed |
 | rename an action's output slot                                | cascade     | rehearse, then one document carrying the action, its readers and the flow binding        |
-| rename a field or a table                                     | pinned      | refused once the table has records                                                       |
+| rename a field or a table                                     | rename      | ADMIN; the records move with the new name, and callers of the old one break              |
 | change what is searchable                                     | reindex     | rehearse; a `reembed` bills per record                                                   |
 | remove anything                                               | subtractive | rehearse, expect a refusal naming dependents                                             |
 | retire a term records carry                                   | merge       | merge it into the term that survives, or archive it                                      |
@@ -238,10 +238,11 @@ GET   /v1/flows/{id}/health       whether the flow is still whole
 `adoptSnapshots: true`, and then every client of the endpoint sees the new key at once. That PATCH
 may send `outputTypeNames` alone; the inputs stay as stored (and the same the other way round).
 
-**A table's key and fields** are not renamed this way: once it has records, both are refused.
-The way round is additive: add the new field, backfill it from the old one, move every reader to
-it, and leave the old field in the shape. For a table, create the new table and move the records
-with a flow.
+**A table's key and fields** rename with their records: a table's new `key` (its PATCH, or its
+row stated by `id` under the new key in a document) or a type's `renameFields`. Both need ADMIN.
+The plan's `renames[]` lists the references rewritten, the expressions you settle (change each in
+the same document or name its action in `keepExpressions`) and the exposures: a caller still using
+the old name gets no alias. The inverse rename is the undo (the `tables-and-types` pack).
 
 ### Retiring a term records carry
 
@@ -278,26 +279,26 @@ rehearsal of its own. What to know before writing one:
   `changes` on its own path as a `delete` with `because: "cascade"`, not as `unchanged`.
 - **A plan's `changes` are not the apply's write order**, and the ids a plan shows for creates are
   from its rolled-back attempt; the apply mints its own.
-- **The table pins still hold.** A table with records, or one an action's configuration names,
-  refuses a rename (a change of its `key`), a re-pointed shape and an ownership change exactly as
-  its own PATCH does, and the finding lands on the row's path in your document.
+- **The table pins still hold.** A table with records refuses a re-pointed shape and an
+  ownership change exactly as its own PATCH does, and the finding lands on the row's path in your
+  document. A change of its `key` is a rename: its records move with it.
 
 ## Reading a refusal
 
 A refusal names what blocked it. That name is the next thing to deal with, and it is usually not the
 thing you were trying to change.
 
-| The refusal says                                      | Deal with                                                                                                                                                                                                                                                                                           |
-| ----------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the table has N existing records                      | the records, in `kipory-data` — or leave the table alone. The rule is `TABLE_PINNED_BY_RECORDS` (`details.reason`)                                                                                                                                                                                  |
-| a rename, or a field removed, on a table with records | nothing lifts it: add the new field or table beside the old one ("A rename", above)                                                                                                                                                                                                                 |
-| the table is reserved or seeded                       | nothing; it is not yours to delete, whatever it holds                                                                                                                                                                                                                                               |
-| a related row still references this flow              | whatever references it — an endpoint, a schedule (even disabled), a trigger, a table, a resolver, an invoking flow                                                                                                                                                                                  |
-| N dependents read these slots                         | re-wire those actions first, then delete                                                                                                                                                                                                                                                            |
-| assignments still exist on this term                  | merge it into the term that should survive (`POST /v1/terms/{id}/merge`) — every assignment moves and a delete then accepts the alias — or archive it to keep it on the records that have it                                                                                                        |
-| a vocabulary delete answers 409                       | if another vocabulary nests under it, delete that vocabulary first — no flag lifts that, and a vocabulary's parent cannot be changed. Otherwise send `confirm=true`, and `assignedTerms=delete` or `assignedTerms=archive` once any of its terms is assigned. Ask it with `validateOnly=true` first |
-| the event type is built in                            | nothing; a built-in event type cannot be deleted                                                                                                                                                                                                                                                    |
-| this is the last pairing                              | a relation cannot have none; delete the relation instead                                                                                                                                                                                                                                            |
+| The refusal says                         | Deal with                                                                                                                                                                                                                                                                                           |
+| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the table has N existing records         | the records, in `kipory-data` — or leave the table alone. The rule is `TABLE_PINNED_BY_RECORDS` (`details.reason`)                                                                                                                                                                                  |
+| a field removed on a table with records  | nothing lifts it: rename the field instead, or add the new one beside it ("A rename", above)                                                                                                                                                                                                        |
+| the table is reserved or seeded          | nothing; it is not yours to delete, whatever it holds                                                                                                                                                                                                                                               |
+| a related row still references this flow | whatever references it — an endpoint, a schedule (even disabled), a trigger, a table, a resolver, an invoking flow                                                                                                                                                                                  |
+| N dependents read these slots            | re-wire those actions first, then delete                                                                                                                                                                                                                                                            |
+| assignments still exist on this term     | merge it into the term that should survive (`POST /v1/terms/{id}/merge`) — every assignment moves and a delete then accepts the alias — or archive it to keep it on the records that have it                                                                                                        |
+| a vocabulary delete answers 409          | if another vocabulary nests under it, delete that vocabulary first — no flag lifts that, and a vocabulary's parent cannot be changed. Otherwise send `confirm=true`, and `assignedTerms=delete` or `assignedTerms=archive` once any of its terms is assigned. Ask it with `validateOnly=true` first |
+| the event type is built in               | nothing; a built-in event type cannot be deleted                                                                                                                                                                                                                                                    |
+| this is the last pairing                 | a relation cannot have none; delete the relation instead                                                                                                                                                                                                                                            |
 
 - **A refusal that names a rule names it the same way everywhere.** `TABLE_PINNED_BY_RECORDS`
   is the finding's `code` on the `validateOnly` verdict and in a plan, and `details.reason` on the

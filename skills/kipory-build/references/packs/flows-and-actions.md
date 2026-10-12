@@ -1026,7 +1026,9 @@ code; a flow that does not exist, or a role below the floor, is still a thrown s
 back, then judges what it leaves: `leavesBehind` lists health's findings on this
 flow and on every flow invoking it, and on the schedules, triggers and endpoints
 that start them — each with `introduced` (`false` means it was already there).
-`consequences` says what the change does to stored data. Neither decides `ok`,
+`consequences` says what the change does to stored data — including `rename`, the
+rows a rename moves in place, when the change is one (tables pack, renaming a field).
+Neither decides `ok`,
 which stays whether the PATCH itself would save; a create does not rehearse and
 carries neither. A platform flow's PATCH is rehearsed too, with both empty:
 they judge one project's flows, and a platform flow belongs to none.
