@@ -535,14 +535,15 @@ Each item of `diagnostics`:
 
 ### `POST /v1/records/query`
 
-Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `link` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` action authors, run by the same executor. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
+Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `link` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` action authors, run by the same executor. `tableKeys` in place of `tableKey` ranks several tables on one search model in one answer, each score naming its record's table; this route reads as every user, so a table that keeps each user's records apart refuses the whole query. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
 
 **Request body**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
-| `tableKey` | `string` | yes | The table the question is asked of. Every clause is validated against this table's `uses`: a field needs `filter`, a vocabulary `vocabularies`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the table. |
+| `tableKey` | `string` | no | The table the question is asked of; exactly one of `tableKey` and `tableKeys` is given. Every clause is validated against this table's `uses`: a field needs `filter`, a vocabulary `vocabularies`, a relation `link`, a stream field `stream`, and a semantic clause a `search` use somewhere on the table. |
+| `tableKeys` | `string[]` | no | Several tables to rank in one answer, 2 to 8, in place of `tableKey`. They must use one search model (`QUERY_TABLES_MODEL_MISMATCH`), every clause must be answerable by each (`QUERY_CLAUSE_UNROUTED` names the table that cannot), and the query must hold a `semantic` clause (`QUERY_TABLES_NEED_SEMANTIC`). The answer is ordered by meaning, has no cursor, and each entry of `scores` names its record's table. This route reads as every user, so a table that keeps each user's records apart refuses the whole query. |
 | `clauses` | `object[]` | yes | Every returned record satisfies ALL of these — a conjunction, never an OR. Kinds: `field` (a slot column) `{ kind, field, op, value }` with `op` one of eq/lt/lte/gt/gte/in, `in` taking a list; `term` (a vocabulary assignment) `{ kind, vocabularyKey, slug }`, `slug` being the term's key; `link` (a relation) `{ kind, relation, direction?, where?, count?, peer? }` — `direction` outgoing/incoming/either, `where` stamped link filters `{ property, op, value }`, `count` `{ op, n }`, and `peer` one hop of `field`/`term` clauses, and at most one `semantic`, on the far record; `stream` (event rows) `{ kind, field, window?, where?, count? }` — exists/none/count inside a window; and at most one `semantic` `{ kind, field?, text, topK?, minScore?, passage? }` (a phrase ranked by meaning; `minScore` leaves out records scoring below it, `passage` asks for the text of each record's best-matching part). A clause the type's `uses` did not route is 422 `QUERY_CLAUSE_UNROUTED`, with the remedy in the message. |
 | `limit` | `integer` | no | How many records come back at most. For an exact-only query this is the page size; with a semantic clause the clause's own `topK` bounds the ranking and this caps what is returned of it. |
 | `order` | `object` | no | How the answer is ordered. Omitted: closest first when the query has a `semantic` clause of its own, newest created first otherwise. `field` orders by one of the type's own date fields carrying a `filter` use, and an exact-only query pages by it; beside a `semantic` clause it re-orders the ranking, which stays bounded. A cursor belongs to the order that minted it. |
@@ -553,7 +554,7 @@ Ask a project's records one question: a conjunction of clauses — `field` (`eq`
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `records` | `object[]` | yes | The records satisfying every clause — in keyset order (newest first) for an exact-only query, in closeness order when a semantic clause ran. The same row shape the list route answers. |
+| `records` | `object[]` | yes | The records satisfying every clause — in keyset order (newest first) for an exact-only query, in closeness order when a semantic clause ran. The same row shape the list route answers. On a query of several tables (`tableKeys`) each row carries its own table's fields, and `scores` names the table of the row at each position. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
 | `paging` | `null` | yes | Always null: a query is never counted. An exact-only answer is walked by `after` / `before`; a ranking has no position to count from. |
@@ -590,6 +591,7 @@ Each item of `scores`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record's id — one of `records`. |
+| `tableKey` | `string` | no | Present on every entry of a query that named several tables (`tableKeys`): the table the record at this position belongs to. Rows of different tables carry different fields; this tells them apart. |
 | `score` | `number` | yes | How close the record's closest part is to the query: a cosine similarity, on the same scale for every table. Higher is closer; a poor match can be negative. |
 | `passage` | `object` | no | The record's best-matching part, when the clause asked (`passage: true`) and the record is indexed in more than one part. |
 | `passageStale` | `true` | no | Present in place of `passage` when the record changed after it was last indexed, so the part that was scored can no longer be quoted. |

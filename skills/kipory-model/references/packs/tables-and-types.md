@@ -711,6 +711,22 @@ fields are spread at its top level. On the clause:
   resembles a phrase or a record, never both (`QUERY_SEMANTIC_SOURCE_AMBIGUOUS`), and `passage`
   cannot be combined with a record (`QUERY_PASSAGE_WITH_LIKE_RECORD`).
 
+To rank several tables in one answer, name `tableKeys` (2 to 8 tables) in place of `tableKey`:
+
+```json
+{
+  "tableKeys": ["article", "faq"],
+  "clauses": [{ "kind": "semantic", "text": "reset my password", "topK": 20 }]
+}
+```
+
+The answer is the 20 closest records of both tables together, and each entry of `scores` carries
+the `tableKey` of its record; rows of different tables carry different fields. The tables must use
+the same embedding profile (`QUERY_TABLES_MODEL_MISMATCH`), every clause must be answerable by each
+table (`QUERY_CLAUSE_UNROUTED` names the table that cannot), and the query must hold a `semantic`
+clause (`QUERY_TABLES_NEED_SEMANTIC`). It is ordered by meaning and has no cursor. `topK` is one
+total: no table is guaranteed a place.
+
 None of the four belongs on a `peer` clause (`QUERY_PEER_SCORE_MEMBER`): a peer's phrase chooses
 which records are in reach and gives the answer no scores.
 

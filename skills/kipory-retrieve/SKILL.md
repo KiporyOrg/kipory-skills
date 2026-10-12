@@ -138,7 +138,7 @@ Six functions work below the table and are being removed: `vector.search`, `vect
 | `text.embed` then `vector.search` over a vocabulary's terms, in a resolver flow  | one `term.search` action (`kipory-model`'s `references/classification-runtime.md`) |
 | `text.chunk` → `text.embed` → `vector.upsert`, writing points by hand            | nothing: declare `search` on the type, and the platform indexes every record       |
 
-What does not carry over: searching several tables in one action (run one query per table), and the neighbouring parts or whole text of a match (the answer already carries the record).
+Several tables in one search carry over as `tableKeys` in place of `tableKey`: one ranking across tables that use the same embedding profile, each entry of `scores` naming its record's `tableKey`. What does not carry over: the neighbouring parts or whole text of a match (the answer already carries the record).
 
 `text.chunk` stays. It splits a long text into parts for an action that handles one at a time, and has nothing to do with search.
 

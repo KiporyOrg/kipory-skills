@@ -4,7 +4,7 @@
 
 Find records by their fields, terms, links, or meaning, all in one question.
 
-Returns the records of one type that satisfy every clause. Exact clauses narrow first; a `semantic` clause then ranks by meaning and adds `scores`, how close each record is. A clause's value may come from a slot. Every answer says whether it is complete.
+Returns the records satisfying every clause. Exact clauses narrow first; a `semantic` clause ranks by meaning and adds `scores`. `tableKeys` ranks several tables in one answer, each score naming its record's table. Every answer says whether it is complete.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -20,7 +20,8 @@ Returns the records of one type that satisfy every clause. Exact clauses narrow 
 | `cursorSlot` | string | no | — | The slot holding a prior answer's cursor. Absent, the first page. Only a query without a semantic clause pages. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. A semantic clause's own topK is bounded separately. |
 | `order` | union | no | — | How the answer is ordered: `created`, `meaning`, or a date field of the type. Omitted: by meaning with a semantic clause, else newest first. ⚠️ A field order needs a date field with a `filter` use, and leaves out records with no value there. Beside a semantic clause it re-orders the ranking and does not page. |
-| `tableKey` | string | yes | — | The table the question is asked of. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
+| `tableKey` | string | no | — | The table the question is asked of. Exactly one of `tableKey` and `tableKeys`. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
+| `tableKeys` | string[], 2 to 8 items | no | — | Several tables ranked in one answer, 2 to 8, in place of `tableKey`. Needs a `semantic` clause and one search model. ⚠️ The answer mixes rows of different tables, each with its own fields. Tell them apart by `scores[i].tableKey`, never by which fields a row has. The tables must use one search model. |
 | `userIdSlot` | string | no | — | On a user-owned type, the slot holding the user whose records are queried. Absent, the run's signed-in user. ⚠️ On a user-owned table an empty value fails the action rather than returning an unfiltered answer, and a run with no signed-in user and no slot fails the same way. |
 
 ### `clauses` — each item is one of
