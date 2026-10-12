@@ -66,7 +66,7 @@
       "page": "kipory-operate/references/packs/schedules.md"
     },
     "secrets": {
-      "hash": "b44ea4290f4b",
+      "hash": "c65e76bbcd53",
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
@@ -827,7 +827,7 @@
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/eval-runs/{id}/spend": {
-      "hash": "c6b3cd3c6afb",
+      "hash": "a352430a96f6",
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/eval-runs/{id}/traces/{traceId}": {
@@ -1162,7 +1162,7 @@
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}/spend": {
-      "hash": "0b50cabc6bbe",
+      "hash": "2ef3861505ff",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/runs/{runId}/timeline": {

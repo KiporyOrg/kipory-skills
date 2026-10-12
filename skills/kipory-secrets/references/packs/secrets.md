@@ -37,7 +37,7 @@ none, so with none stored and switched on a read fails `api-key-missing` and a `
 is not delivered.
 
 ⚠️ **This removes the vendor pass-through, not the whole cost of the run.** The flat per-run
-compute fee is charged either way — one charge per function invocation, metered in whole seconds of
+compute fee is charged either way — one charge per function invocation, metered in milliseconds of
 its runtime, so bringing your own key changes who the vendor invoices and does not make the run
 free. Do not try to confirm the saving by reading your charges: the suppression is a silent absence,
 deliberately not a zero-priced line, so it is invisible in a spend breakdown either way — and

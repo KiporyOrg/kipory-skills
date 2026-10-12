@@ -186,7 +186,7 @@ Three separate charges stack on one source action:
 
 1. **The vendor's own price** — Apify bills actor runs, Firecrawl bills renders, YouTube spends
    quota units. Paid by whoever's key resolved.
-2. **The platform's compute fee** — one charge per function invocation, metered in whole seconds.
+2. **The platform's compute fee** — one charge per function invocation, metered in milliseconds.
    Charged whichever key paid the vendor.
 3. **Everything downstream** — a scrape that feeds chunking, embedding and a model call has bought
    the model call too.
