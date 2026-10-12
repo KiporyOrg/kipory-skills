@@ -4,11 +4,12 @@
 
 List the videos or shorts a YouTube channel has published.
 
-Reads a public YouTube channel's uploads from its handle, channel id or channel link, newest or most viewed first, up to your bound. Switch it to shorts to list those instead. Each comes back with its title, description, thumbnail, views and an approximate time.
+Newest or most viewed first, from a handle, id or link. Each has title, description, thumbnail, views and rough time.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** channel videos, youtube uploads, latest videos
 - **Reads:** One YouTube channel handle (with or without `@`), channel id (`UC…`), or a `/@handle` or `/channel/UC…` link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`. Empty when the channel has published nothing or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -24,7 +25,7 @@ Reads a public YouTube channel's uploads from its handle, channel id or channel 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `content` | `videos` \| `shorts` | no | `"videos"` | Which of the channel's uploads to list. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many videos to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many videos to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 | `sort` | `latest` \| `popular` | no | `"latest"` | Newest first, or most viewed first. |
 
 ## Worked example

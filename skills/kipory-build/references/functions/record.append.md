@@ -4,11 +4,12 @@
 
 Add one or more events to a record's history.
 
-Writes events to a record's stream field — a list the table stores as time-stamped rows instead of inside its data. Each event's time comes from the property the stream declares. A retried run converges: the same event is not written twice.
+Writes time-stamped events to a record's stream field, not its data. A retry never writes the same event twice.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + event(s)` → `string`
+- **Also found as:** log event, history, timeline, add event
 - **Reads:** The record id, from the slot `recordIdSlot` names, and one event object or a list of them from `eventSlot`; optionally your own event ids from `eventIdSlot`. _(shape hint: `record slot + event(s)`)_
 - **Emits:** A bare string — `appended` when at least one event row was written, `unchanged` when every event already existed and the retry converged.
 
@@ -16,12 +17,12 @@ Writes events to a record's stream field — a list the table stores as time-sta
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `eventIdSlot` | string | no | — | Your own event id: one string, or a list matching the event list. Unset, the id is derived from the event. ⚠️ The identity is the record, the time AND the id: one id under another time is a second event, not a retry. Left unset, the id hashes record, time and payload, so a retry converges. |
-| `eventSlot` | string | yes | — | The slot holding one event object, or a list of them. Each carries its time under the property the stream declares. ⚠️ An event with no time under the declared property, or one that is not a datetime, fails the action. Nothing is written for the batch. |
-| `field` | string | yes | — | The field of that type declared as a stream. The events land there, never in the record's data. |
-| `recordIdSlot` | string | yes | — | The slot holding the id of the record to append to. ⚠️ The record has to be one this run can reach — the signed-in user's own, or the project's shared pool — and of the configured type. Anything else fails the action. |
+| `eventIdSlot` | string | no | — | Your own event id, or a list; empty means one is derived. ⚠️ The same id under another time counts as a second event, not a retry. |
+| `eventSlot` | string | yes | — | One event object or a list, each with its time property. ⚠️ An event with no valid time fails the action, and nothing is written. |
+| `field` | string | yes | — | The stream field of that type that receives the events. |
+| `recordIdSlot` | string | yes | — | The slot holding the id of the record to append to. ⚠️ The record must be the user's own or the project's, of this type. |
 | `tableKey` | string | yes | — | The table whose stream field receives the events. |
-| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
+| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example
 

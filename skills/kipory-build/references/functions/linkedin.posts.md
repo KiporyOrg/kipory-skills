@@ -4,11 +4,12 @@
 
 List the recent posts a company has published on LinkedIn.
 
-Reads a company's public LinkedIn posts from its page link, up to the bound you set. Each comes back with its text, link and time. Engagement counts are not part of this list; look a post up on its own for those.
+Give the company page's link. Each post has its text, link and time, without engagement counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** company updates, linkedin feed, company posts
 - **Reads:** One LinkedIn company link (`linkedin.com/company/…`). Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`, in the order the platform lists them. Empty when the company has posted nothing or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads a company's public LinkedIn posts from its page link, up to the bound you 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

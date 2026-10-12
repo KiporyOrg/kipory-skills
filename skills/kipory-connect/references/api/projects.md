@@ -13,6 +13,9 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/descriptions`](#get-v1-descriptions) |  |
 | `POST` | [`/v1/descriptions/describe`](#post-v1-descriptions-describe) |  |
 | `GET` | [`/v1/descriptions/history`](#get-v1-descriptions-history) |  |
+| `GET` | [`/v1/metadata`](#get-v1-metadata) |  |
+| `POST` | [`/v1/metadata`](#post-v1-metadata) |  |
+| `DELETE` | [`/v1/metadata/{id}`](#delete-v1-metadata-id) |  |
 | `POST` | [`/v1/projects`](#post-v1-projects) |  |
 | `GET` | [`/v1/projects/{nodeId}`](#get-v1-projects-nodeid) |  |
 | `PATCH` | [`/v1/projects/{nodeId}`](#patch-v1-projects-nodeid) |  |
@@ -122,6 +125,104 @@ Each item of `versions`:
 | `confidence` | `"high" \| "medium" \| "low"` | yes | How sure the description is, given what the platform knew. |
 | `derivedAtVersion` | `string` | yes | The structure version the description was written at. |
 | `describedAt` | `string` | yes | When it was written (ISO 8601). |
+
+### `GET /v1/metadata`
+
+Read a project's element metadata (`?project=<nodeId>`): the free key-values set on its elements — the project, flows, actions, tables, endpoints, schedules, triggers, vocabularies and event types — each with the `version` a later write takes, plus the `limits` a write is held to. Pass `element=<kind>:<id>` for one element's keys. Answered whole, not paged: it is bounded by `limits.keysPerElement` per element. Send `If-None-Match` with the last `ETag` to get 304 when nothing changed. Metadata is not configuration and nothing a flow reads: for tunables a flow reads, use `/v1/project-config`. Elements are named as `GET /v1/descriptions` names them (`elementRef`), which is also where the platform's generated description of each element is. The flow board's groups are not here: they are the platform's own key, served by `/v1/board-groups`.
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | Node id of the project whose metadata to read. |
+| `element` | `string` | no | Read one element's metadata only, as `<kind>:<id>`. An element the project does not have is 404. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `entries` | `object[]` | yes | Every key on every element of the project (or on the one element asked for), ordered by element then key. Answered whole, not paged: it is bounded by `limits.keysPerElement` times the project's elements. Metadata of an element that has been deleted is left out, and so are the platform's own `kipory.` keys. |
+| `limits` | `object` | yes | The limits a write is held to. Read them here rather than restating them. |
+
+Each item of `entries`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | Entry id — the address for a delete. |
+| `element` | `string` | yes | The element this key is on, as `<kind>:<id>` — the same ref `/v1/descriptions` answers as `elementRef`. The project itself is `project:<nodeId>`. |
+| `key` | `string` | yes | The key, unique on its element. |
+| `value` | `unknown` | yes | The value, any JSON (string, number, boolean, null, array, object), returned as written. |
+| `version` | `integer` | yes | Optimistic-lock version; pass it back to replace the value. Each key has its own, so writes to different keys never conflict. |
+| `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
+| `updatedBy` | `object \| null` | yes | Who last wrote the value; null when it was written with an API key that acts for no person. |
+
+### `POST /v1/metadata`
+
+Set one metadata key on one element — an upsert by `(project, element, key)`. Leave `version` out to create the key; to replace its value send the `version` you read (a stale or missing one is 409 `VERSION_CONFLICT`, whose `details.current` is the entry as stored). The value is any JSON. Keys starting `kipory.` are the platform's and are refused. Setting metadata is not a configuration change: it moves no structure version and no flow reads it. With `validateOnly: true` it answers whether the write would be refused, writing nothing. Read the keys and the limits with `GET /v1/metadata`; remove one with `DELETE /v1/metadata/{id}`. The flow board's groups go through `/v1/board-groups`, not here.
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | Node id of the owning project. |
+| `element` | `string` | yes | The element to set the key on, as `<kind>:<id>`; the project itself is `project:<nodeId>`. An element the project does not have is 404. |
+| `key` | `string` | yes | The key to set: 1–100 characters, a letter first, then letters, digits, `.`, `-` or `_`. Keys starting `kipory.` are the platform's and are refused here. |
+| `value` | `unknown` | yes | The value, any JSON, replacing whatever was stored. Capped at `limits.valueBytes` of `GET /v1/metadata`. |
+| `version` | `integer` | no | The version you last read. Required when the key already exists on the element — a stale value is refused with 409 `VERSION_CONFLICT`, whose `details.current` is the entry as stored. Leave it out to create the key. |
+| `validateOnly` | `boolean` | no | Check this write against the key as stored and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, an element the project does not have, a `version` the entry has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `entry` | `object` | yes | The entry as stored. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+### `DELETE /v1/metadata/{id}`
+
+Remove one metadata key, by the `id` `GET /v1/metadata` lists. Needs ADMIN on the project, as every delete does; an editor empties a value by setting it instead. Takes no `version`: a removal racing a replace goes to whichever lands last. Nothing a flow does changes. With `?validateOnly=true` it answers the verdict, writing nothing. To change a key's value instead, `POST /v1/metadata` with its `version`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The metadata entry's id, as returned when it was created or listed. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
+| `id` | `string` | yes | Id of the row that was removed. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
 
 ### `POST /v1/projects`
 
@@ -315,7 +416,8 @@ Each item of `relations`:
 | `through` | `string \| null` | yes | Set when the relation is reached through a sub-flow: the reference of the flow invoked on the way. The relation belongs to that sub-flow, not to the flow that invokes it. |
 | `switchedOff` | `boolean` | yes | True when the action, schedule, trigger or evaluation suite behind the relation is switched off. |
 | `detail` | `string \| null` | yes | A short fact the verb needs, when it has one: a schedule's cron and time zone, an endpoint's mode (sync, queued, streamed), an evaluation suite's name — or, on a relation to something that no longer exists, the name the configuration still uses for it. |
-| `unresolved` | `"missing-element" \| "type-not-stated"` | yes | Why `to` is null: `missing-element` — the configuration names something that no longer exists; `type-not-stated` — the action acts on record ids whose type the configuration does not state. Null when resolved. |
+| `unresolved` | `"missing-element" \| "type-not-stated" \| null` | yes | Why `to` is null: `missing-element` — the configuration names something that no longer exists; `type-not-stated` — the action acts on record ids whose type the configuration does not state. Null when resolved. |
+| `feeds` | `object[] \| null` | yes | On a resolved relation that starts a flow: what the starter puts into each input the flow declares, in its order, then any input it names that the flow does not declare. Null on every other relation. |
 
 Each item of `calls`:
 

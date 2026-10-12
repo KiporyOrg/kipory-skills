@@ -4,11 +4,12 @@
 
 Read a record's links, grouped by relation.
 
-Returns the links a record carries: what is on the other end, which way each points, and any properties its relation declares. Reads current state, with no model call and no queue.
+Shows the record on the other end, the direction, and the relation's properties.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `RecordLink[]`
+- **Also found as:** related records, linked records, what links here
 - **Reads:** One slot carrying the record id to read links for. An empty or non-text slot gives an empty list rather than an error. _(shape hint: `string`)_
 - **Emits:** A `RecordLink` per link, with the far end, the relation, the direction, and any declared properties. A record with no links gives an empty list.
 - **Suggested input streams:** `recordId`
@@ -17,9 +18,9 @@ Returns the links a record carries: what is on the other end, which way each poi
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeExpired` | boolean | no | `false` | Include links that have been retracted. A link is retracted by expiry rather than deletion, so history is readable — but never by accident. |
-| `limit` | integer, more than 0 | no | `100` | Maximum links returned across the whole read, applied after a deterministic ordering (most recently valid first). |
-| `relationKey` | string | no | — | Return only links of this one relation. Leave it unset for every relation the project declares. ⚠️ A link whose far end this run may not read is left out rather than blanked. |
+| `includeExpired` | boolean | no | `false` | Include links that have been retracted. |
+| `limit` | integer, more than 0 | no | `100` | Most links returned, most recently valid first. |
+| `relationKey` | string | no | — | Return only links of this relation; empty means every relation. ⚠️ A link whose far end this run may not read is left out rather than blanked. |
 
 ## Worked example
 

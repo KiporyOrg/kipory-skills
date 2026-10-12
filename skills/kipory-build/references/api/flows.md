@@ -331,7 +331,7 @@ Which actions in this flow (and the flows it invokes) actually ran, across the r
 | `coldGatedCount` | `integer` | yes | How many actions never ran but have a condition, so being cold is expected. |
 | `unknownActionIds` | `string[]` | yes | Actions seen in the run history that are no longer in the flow — usually the trace of an edit. |
 | `verdict` | `"measured" \| "not-measured"` | yes | Whether this report measured anything at all. `not-measured` is not a pass — see `reason`. |
-| `reason` | `"no-attempts" \| "vacuous-actions"` | yes | Why the verdict is `not-measured`, or null when it is `measured`. |
+| `reason` | `"no-attempts" \| "vacuous-actions" \| null` | yes | Why the verdict is `not-measured`, or null when it is `measured`. |
 | `tableKeys` | `string[]` | yes | Keys of the tables the covered flows touch. |
 | `graphChangedAt` | `string \| null` | yes | When the flow last changed. Runs from before this are excluded, because they exercised a different graph. |
 | `truncated` | `boolean` | yes | True when the read hit `attemptLimit` and covers only the most recent attempts. A truncated report is a sample, so read its counts as such. |
@@ -426,7 +426,7 @@ Run the flow now, in a sandbox, and answer what happened: every action's transcr
 | `ingestSpend` | `object` | no | Paid third-party ingest spend for this run. Absent when no ingest function ran, which is different from having spent zero. |
 | `previewSessionId` | `string` | yes | Identifies this run. Every model call and ingest job it produced is tagged with it, so it is the key for looking the run up afterwards. |
 | `traceId` | `string \| null` | yes | The persisted trace for this run, or null when none was written — either because none was requested, or because it was requested and skipped. If you asked for one and get null, `traceSkipped` says why; treat the run as having left no evidence rather than as having produced an empty one. |
-| `traceSkipped` | `object` | yes | Why `traceId` is null despite a trace being requested. Null both when a trace was written and when none was asked for. |
+| `traceSkipped` | `object \| null` | yes | Why `traceId` is null despite a trace being requested. Null both when a trace was written and when none was asked for. |
 | `totalTokensIn` | `number` | yes | Input tokens across every model call in this run. |
 | `totalTokensOut` | `number` | yes | Output tokens across every model call in this run. |
 | `latencyMs` | `number` | yes | How long the whole call took, end to end, including preparation. |
@@ -590,4 +590,4 @@ Each item of `slots`:
 | --- | --- | --- | --- |
 | `slot` | `string` | yes | The slot's name. |
 | `source` | `object` | yes | Where the shape below comes from: the action the save types the slot from, the flow's inputs, or the platform. |
-| `shape` | `object` | yes | What the slot holds, or null when nothing declares its shape. |
+| `shape` | `object \| null` | yes | What the slot holds, or null when nothing declares its shape. |

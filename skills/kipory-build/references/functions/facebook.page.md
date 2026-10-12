@@ -4,11 +4,12 @@
 
 Look up a public Facebook page's details and numbers.
 
-Reads one public Facebook page from its handle or page link: name, category, contact details, address, counts, its ad library id and whether it runs ads. A private page comes back marked private. A link to anything else is refused before anything is fetched.
+Give a handle or page link. Returns name, category, contact, address, counts, ad library id and whether it runs ads.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `FacebookPage`
+- **Also found as:** facebook business, fb page, page info
 - **Reads:** One Facebook page handle, with or without `@`, or a page link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `FacebookPage`. A bare `{}` when the page does not exist; a private page has `isPrivate` set.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads one public Facebook page from its handle or page link: name, category, con
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `withLastPost` | boolean | no | `false` | Also read when the page last posted, into lastPostAt. On, the action makes a second paid request. ⚠️ On, the action makes a second paid request, so it costs twice as much. |
+| `withLastPost` | boolean | no | `false` | Also read when the page last posted; costs a second paid request. ⚠️ On, the action makes a second paid request, so it costs twice as much. |
 
 ## Worked example
 

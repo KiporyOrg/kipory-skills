@@ -4,11 +4,12 @@
 
 List a country's most visited websites, in order.
 
-Returns the most-visited websites for one country. This ranks where the traffic comes from, not where a site is published. National rankings move slowly, so results are cached for a month.
+Ranks by where visitors come from, not where a site is published. Cached for a month.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TopSiteRanking`
+- **Also found as:** top sites, popular websites, site ranking
 - **Reads:** One country slug, like `israel` or `worldwide`. The ranking is by where the traffic comes from, not where a site is published. _(shape hint: `string`)_
 - **Emits:** `TopSiteRanking` — ranked domains with search traffic parsed to numbers. An empty ranking is treated as a SOURCE FAILURE, never cached: a country with no popular websites does not exist.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,8 +24,8 @@ Returns the most-visited websites for one country. This ranks where the traffic 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `category` | string | no | `"all"` | Narrow the ranking to one vertical, like news or finance. ⚠️ Filter here rather than on the category label each site comes back with — that label is unreliable, and national news often arrives as something else entirely. |
-| `limit` | integer, at least 100 | no | `100` | How many ranked sites to return. 100 is both the floor and the default. ⚠️ The upstream refuses anything below 100, so a smaller sample is not available at any price. Cost rises with the number you ask for. |
+| `category` | string | no | `"all"` | Narrow the ranking to one vertical, like news or finance. ⚠️ Filter here, not on each site's category label, which is unreliable. |
+| `limit` | integer, at least 100 | no | `100` | How many ranked sites to return; 100 is the minimum and default. ⚠️ Fewer than 100 is not available, and cost rises with the number asked. |
 
 ## Worked example
 

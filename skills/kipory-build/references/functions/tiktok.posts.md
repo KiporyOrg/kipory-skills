@@ -4,11 +4,12 @@
 
 List the recent videos a TikTok account has posted.
 
-Reads a public TikTok account's videos from its handle or profile link, up to the bound you set. Each comes back with its caption, time, cover and engagement counts.
+Give a handle or profile link. Each video has its caption, time, cover and engagement counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** tiktok feed, recent videos, account videos, uploads
 - **Reads:** One TikTok handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`, in the order the platform lists them. Empty when the account has posted nothing or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,8 +24,8 @@ Reads a public TikTok account's videos from its handle or profile link, up to th
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many videos to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
-| `region` | string | no | — | Two-letter country to read the account from. Set it when an account that posts comes back empty: some are shown only in their own country. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many videos to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `region` | string | no | — | Two-letter country to read from; try it when posts come back empty. |
 
 ## Worked example
 

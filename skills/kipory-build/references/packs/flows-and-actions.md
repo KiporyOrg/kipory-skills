@@ -54,6 +54,12 @@ PATCH /v1/flows/{id}               bind output slots so the flow can actually pr
 POST /v1/flows/{id}/preview        run it against real inputs and read the transcript
 ```
 
+`POST /v1/actions/batch` with `validateOnly: true` answers the batch's verdict (`ok`, `diagnostics`, `leavesBehind`)
+and writes nothing: the whole batch is run and rolled back, judged as the graph it would leave. It is
+how to check two actions that only make sense together — a "Run once per item" and the action reading
+each item — before saving them in one batch. A wiring error (an item of the wrong type) never blocks
+the save itself; the verdict reports it, and the saved batch carries it as an outstanding issue.
+
 Flows are scoped by `project`; actions are scoped by their flow (`flowId`). Individual items are
 addressed by their own id. A flow's `key` is lower-case kebab and permanent — a key outside that
 form is refused, never lower-cased for you — and its display text is `label`, editable at any time.
@@ -196,6 +202,22 @@ silently stops filtering at the moment the check broke.
 ⚠️ **`version` is the DEPLOYMENT catalog's hash and does not move when your registry does.** Editing
 a type changes the resolved types underneath an unchanged `version`, so it is not a
 sufficient cache key for this read.
+
+### Matching a customer's words to a function
+
+Each catalog row carries `searchWords` — the tasks, outcomes and everyday terms a customer uses for
+what the function does ("summarize", "followers", "scrape") — and `searchProductNames`, other
+products' names a customer may type for it ("chatgpt", "zapier"). Match a request against both, then
+the title and the glance; never repeat a product name back to the customer. `groupWord` (and each
+`groups[].word`) is the word a group is shown by. `askAi.functionKey` names the function that takes
+a free instruction as its prompt: the fallback when no function fits a request.
+
+A config field naming a table, a flow or a vocabulary (`refKind`) may carry `offerAs`, how the
+function reads with one object ("Save to {table}", "Run {flow}"): word a choice with it and the
+object's name. An event is named by two fields of one function, an `event-category` field and an
+`event` field (`event.emit`'s `category` and `event`): one choice of the project's event types sets
+both, and its `offerAs` ("Send {event}") is on the `event` field. The one field with `suggestOnMatchingType` (today `record.create`'s `tableKey`) is the
+natural next action for a value whose type is a table's type — saving it there.
 
 ## Output binding — what makes a flow produce anything
 
@@ -1236,6 +1258,27 @@ list, or else a `default` branch. An empty list is a problem with the configurat
 are chosen on its row.** `editor.inputStreams` on the function's catalog entry says that: `flow.merge`
 takes no inputs on the row while deriving nothing here, and `record.count` takes them on the row
 while naming slots in its config.
+
+### What can take a value
+
+The reverse question: for one value in a flow, which functions could take it as a new action's
+input, and how well.
+
+```
+GET /v1/actions/takers  every function, each with how it could read one value
+```
+
+Send `flowId` and `slot` (an action's output, a flow input or a platform slot). Nothing is
+persisted. Each entry of `takers` gives `fit` (`as-is`, `field` with a `path` into the value,
+`each` or `each-field` for each item of a list, `none`, or `unknown` when the function's contract
+could not be resolved) — judged the way a save judges it — and `takesBy` (`input`, `prompt` or
+`settings`). `valueKind` is what the value is (page text, a web address, an Instagram handle),
+learnt from what gives it or, for a flow input, from what reads it; each function's `kindMatch`
+grades it against what the function wants. A kind orders what to offer and never refuses: the save
+decides. For a list, `each` names the "Run once per item" function and the item's name a per-item
+save would use. To insert a new action
+between two, send `next` (the id of the action it would go before): each taker then carries `nextMatch`, how
+well what it gives meets what that action wants — prefer one that suits both sides.
 
 ### Which slots fit an action's inputs
 

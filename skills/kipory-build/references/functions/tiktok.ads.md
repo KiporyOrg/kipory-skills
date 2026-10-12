@@ -4,11 +4,12 @@
 
 List ads that match a keyword or a company, from the TikTok ad library.
 
-Reads the public TikTok ad library. Give it a keyword to search ads, or switch it to list one company's ads by name. Each ad comes back with its advertiser, video links and the dates it was shown.
+Each ad comes with its advertiser, video links and the dates it was shown.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`
+- **Also found as:** tiktok adverts, competitor ads, ad creatives
 - **Reads:** One keyword, or one company name when the action lists by company. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialAd`. Empty when the library has no matching ads.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,8 +24,8 @@ Reads the public TikTok ad library. Give it a keyword to search ads, or switch i
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `by` | `keyword` \| `company` | no | `"keyword"` | Whether the input is a keyword to search ads for, or the name of a company whose ads to list. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `by` | `keyword` \| `company` | no | `"keyword"` | Whether the input is a keyword to search or a company name. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

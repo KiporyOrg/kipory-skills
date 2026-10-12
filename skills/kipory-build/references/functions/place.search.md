@@ -4,11 +4,12 @@
 
 Find the places a map lists for a query, like a category in a town.
 
-Searches the map for a text query and returns each place found as a card: address and coordinates, category, rating, phone, website and open or closed status. Every place the search reads is charged. Results are cached for a day.
+Each place comes with address, coordinates, category, rating, phone, website and status. Each place read is charged.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceCard[]`
+- **Also found as:** places nearby, nearby, near me, local businesses, find businesses
 - **Reads:** One text query that says what and where, like a category and a town. With `locationSlot` set, the slot says where and the text only what. _(shape hint: `string`)_
 - **Emits:** A list of `PlaceCard`, each with the place ID other place actions take. Empty when the map lists nothing; a `TRUNCATED` warning means more places may exist.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,11 +24,11 @@ Searches the map for a text query and returns each place found as a card: addres
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `detail` | `summary` \| `full` | no | `"summary"` | How much of each listing to read. `full` adds usual busyness, whether the listing is claimed and the rest of one place's read. Slower. |
-| `includeClosed` | boolean | no | `true` | Keep places the map marks temporarily or permanently closed. Off leaves them out. ⚠️ A place left out was still read and is still charged, and changing this searches again. A closed place appears only while the map lists it. |
-| `language` | string, at least 2 characters | no | `"en"` | Language for names, addresses and hours, as a code like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run searches again. |
-| `locationSlot` | string, at most 512 characters | no | — | A slot holding `{ lat, lng, radiusMeters }` that bounds the search to a circle. Unset, the query text says where. ⚠️ Places read outside the circle are left out and still charged: the map searches a wider rectangle than the radius. |
-| `maxItems` | integer, 1 to 200 | no | `20` | The most places to return, up to 200, or 60 when `detail` is `full`. ⚠️ Each place the search reads is charged, so a higher bound costs more. A large search with no area wanders to nearby towns. |
+| `detail` | `summary` \| `full` | no | `"summary"` | How much of each listing to read; `full` reads more, slower. |
+| `includeClosed` | boolean | no | `true` | Keep places the map marks temporarily or permanently closed. ⚠️ A place left out is still charged, and changing this searches again. |
+| `language` | string, at least 2 characters | no | `"en"` | Language for names, addresses and hours, like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run searches again. |
+| `locationSlot` | string, at most 512 characters | no | — | A slot holding `{lat, lng, radiusMeters}`; empty lets the query say where. ⚠️ Places read outside the circle are left out and still charged: the map searches a wider rectangle than the radius. |
+| `maxItems` | integer, 1 to 200 | no | `20` | How many places to return; at most 200, or 60 on `full`. ⚠️ Each place read is charged; a large search with no area wanders to nearby towns. |
 
 ## Worked example
 

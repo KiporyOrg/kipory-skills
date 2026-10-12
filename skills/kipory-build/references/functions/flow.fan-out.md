@@ -4,11 +4,12 @@
 
 Run the next actions once for each item in a list.
 
-Starts one branch for each item of a list slot. Each branch runs the rest of the flow on its own, with its item in the output slot. Any list fans out: text, files, objects, numbers or booleans.
+Each branch runs the rest of the flow with its item in the output slot. Any list works.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]` → `T`
+- **Also found as:** for each, each item, each post, each row, per item, iterate
 - **Reads:** One list. Any kind of list — every branch carries whatever the elements are. _(shape hint: `list`)_
 - **Emits:** One downstream branch per list element. In each branch the action's `outputSlot` holds that branch's element, which is what the actions below it read.
 - **Suggested input streams:** `extractedUrls`
@@ -17,12 +18,12 @@ Starts one branch for each item of a list slot. Each branch runs the rest of the
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `branchTargetsAreDisjoint` | boolean | no | `false` | Tick this when every branch writes its own record and no two ever touch the same one. ⚠️ It lets the engine overlap branches that write records, which it otherwise cannot. Leave it off if unsure: if two branches DO hit one record, the last write wins. |
-| `dedupe` | boolean | no | `true` | Drop repeated list elements before fan-out: text compared exactly (case-sensitive), a file by its storage key, anything else by its value. |
-| `maxFailedBranches` | integer, at least 0 | no | — | How many branches may fail without failing the run. Each one is dropped whole and the run finishes `partial`. ⚠️ Set this or `maxFailedShare`, never both; with neither, the first failed branch fails the run. At least one branch must succeed. A tolerated branch keeps nothing it staged. |
-| `maxFailedShare` | number, more than 0, at most 1 | no | — | The same tolerance as a share of the branches run, rounded down: 0.2 of 10 lets 2 fail. ⚠️ The platform's own failures, a spend cap and a cancel are never tolerated. Under a tolerance a branch does not see what a sibling still running has staged. |
-| `maxItems` | integer, 1 to 100 | no | `20` | The most branches one run starts; later items are dropped. ⚠️ Above the system ceiling (100 unless the deployment changed it) the save refuses it with INVALID_FUNCTION_CONFIG. Items past `maxItems` get no branch: the run still succeeds and warns `fan-out-capped`, so split a bigger import. |
-| `maxParallelBranches` | integer, 1 to 8 | no | — | How many branches may run at once. Leave it empty to let the engine decide from what the branches touch. ⚠️ 1 forces one at a time — the only setting where a branch reliably sees what earlier ones wrote. Higher forces overlap, so two branches writing one record become a race. |
+| `branchTargetsAreDisjoint` | boolean | no | `false` | Tick when every branch writes its own record, never a shared one. ⚠️ It lets record-writing branches overlap; leave it off if unsure, since two hitting one record means the last write wins. |
+| `dedupe` | boolean | no | `true` | Drop repeated items before starting branches. ⚠️ Text is compared exactly, case included, a file by its storage key and anything else by its value. |
+| `maxFailedBranches` | integer, at least 0 | no | — | Branches that may fail; each is dropped, the run ends `partial`. ⚠️ Set this or `maxFailedShare`, not both; with neither, one failure fails the run; a tolerated branch keeps nothing it staged. |
+| `maxFailedShare` | number, more than 0, at most 1 | no | — | That tolerance as a share, rounded down: 0.2 of 10 is 2. ⚠️ Platform failures, spend caps and cancels are never tolerated; one branch must succeed; none sees a sibling's staged writes. |
+| `maxItems` | integer, 1 to 100 | no | `20` | The most branches one run starts; later items are dropped. ⚠️ Above the usual ceiling of 100 the save is refused; items past `maxItems` get no branch and warn `fan-out-capped`. |
+| `maxParallelBranches` | integer, 1 to 8 | no | — | How many branches run at once; empty lets the engine decide. ⚠️ Only 1 lets a branch reliably see earlier branches' writes; higher values can race. |
 
 ## Worked example
 

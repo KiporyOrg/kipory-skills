@@ -4,11 +4,12 @@
 
 Get the words spoken in a TikTok video.
 
-Reads the captions of one public TikTok video from its link, as text. A video with no captions returns an empty string, unless the fallback is on: it transcribes videos up to two minutes long, at a higher cost.
+Reads the video's captions. Without captions it returns empty, unless the fallback transcribes it at higher cost.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
+- **Also found as:** tiktok captions, video transcript, what they said
 - **Reads:** One TikTok video link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** The transcript as text. An empty string when the video has no captions.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,8 +24,8 @@ Reads the captions of one public TikTok video from its link, as text. A video wi
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `aiFallback` | boolean | no | `false` | Transcribe the audio when the video has no captions. Videos up to two minutes only. ⚠️ Costs 10 extra vendor credits on each video it has to transcribe. |
-| `language` | string | no | — | Two-letter language code of the captions to fetch, like en or es. Unset takes the video's own. |
+| `aiFallback` | boolean | no | `false` | Transcribe the audio when captions are missing; two minutes at most. ⚠️ Costs 10 extra vendor credits on each video it has to transcribe. |
+| `language` | string | no | — | Two-letter caption language, like en or es; empty takes the video's own. |
 
 ## Worked example
 

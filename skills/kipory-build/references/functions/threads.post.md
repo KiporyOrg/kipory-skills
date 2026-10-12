@@ -4,11 +4,12 @@
 
 Look up one Threads post and its numbers.
 
-Reads one public Threads post from its link: text, author, time and its like, reply and repost counts. A link to another site is refused before anything is fetched.
+Give the post's link. Returns text, author, time, and like, reply and repost counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`
+- **Also found as:** threads update, post details, threads link
 - **Reads:** One Threads post link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialPost`. A bare `{}` when the post does not exist or is private.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

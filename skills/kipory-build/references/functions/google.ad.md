@@ -4,11 +4,12 @@
 
 Look up one ad in the Google ad library.
 
-Reads one ad from the public Google ad library, from its library link: format, headline, text, image, destination, the regions it ran in and when it was last shown. A link to another site is refused before anything is fetched.
+Give the ad's library link. Returns format, headline, text, image, destination, regions and when it was last shown.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`
+- **Also found as:** google advert, ad details, search ad
 - **Reads:** One Google ad library link (`adstransparency.google.com/…`). Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialAd`. A bare `{}` when the library has no such ad.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

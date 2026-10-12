@@ -4,11 +4,12 @@
 
 Make retrieved text safe to put into an AI prompt.
 
-Wraps each item's text in a tagged block stamped with a per-run nonce, strips control tokens a model might read as instructions, and caps the length. This is what stops a poisoned document in a search result from giving the model orders.
+Wraps each item in a tagged block, strips control tokens and caps the length.
 
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
+- **Also found as:** clean text, prompt injection, escape text
 - **Reads:** The slot holding the items, each an object with an id field and a text field. Optionally a slot holding the nonce; without one it makes its own. _(shape hint: `any+`)_
 - **Emits:** Either a list of `{id, sanitizedText}` or one joined string. Each body is wrapped in a `<doc>` block carrying the nonce, so the model can be told it is data.
 
@@ -16,13 +17,13 @@ Wraps each item's text in a tagged block stamped with a per-run nonce, strips co
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `idField` | string | no | `"id"` | Which field on each item carries its id. It is escaped when written into the block's attribute. |
-| `itemsSlot` | string | yes | — | The slot holding the items to sanitize. Each must be an object carrying the id and text fields named below. |
-| `maxCharsPerItem` | integer, 100 to 50000 | no | `4000` | How long one item's body may be, 4000 characters by default. Anything longer is cut and the marker below appended. ⚠️ The cap is what bounds how much one poisoned item can say in the prompt. Lowering it tightens that at the cost of losing real evidence. |
-| `nonceSlot` | string | no | — | A slot holding the nonce to stamp on every block. Leave it unset and the action makes its own. ⚠️ Point it at the run's own nonce so every call in one run shares it — that is what lets the system prompt name the nonce literally. |
-| `outputShape` | `list` \| `joined` | no | `"list"` | `list` emits one entry per item; `joined` emits a single string. Pick `joined` when the next action expects flat text. |
-| `textField` | string | no | `"text"` | Which field on each item carries the body. A missing or non-text value leaves the block empty rather than dropping the item. |
-| `truncationMarker` | string | no | `" […truncated]"` | What to append to a body that hit the cap. Override it to match a project's wording. |
+| `idField` | string | no | `"id"` | Which field on each item carries its id. |
+| `itemsSlot` | string | yes | — | The slot holding the items, each with the fields named below. |
+| `maxCharsPerItem` | integer, 100 to 50000 | no | `4000` | Most characters per item, 4000 by default; longer text is cut. ⚠️ A lower cap limits what a poisoned item can say but loses real evidence. |
+| `nonceSlot` | string | no | — | A slot holding the nonce to stamp; unset, one is made. ⚠️ Point it at the run's nonce so every call in the run shares it. |
+| `outputShape` | `list` \| `joined` | no | `"list"` | `list` gives one entry per item; `joined` gives a single string. |
+| `textField` | string | no | `"text"` | Which field on each item carries its text. |
+| `truncationMarker` | string | no | `" […truncated]"` | Text appended to a body cut at the cap. |
 
 ## Worked example
 

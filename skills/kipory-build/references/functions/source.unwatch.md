@@ -4,11 +4,12 @@
 
 Let go of a channel's watch for one holder; the last one switches it off.
 
-Removes one record's watch on a channel. Others' holds keep it watched; the last one switches the source off, never deleting it. Deleting the record does the same. A record that held nothing changes nothing, and a failed run changes nothing.
+Removes one record's watch. The last one switches the source off, never deletes it; deleting the record does the same.
 
 - **Group:** sources · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `channel and holder` → `SourceUnwatch`
+- **Also found as:** unfollow channel, unsubscribe, stop watching, release watch
 - **Reads:** The channel, from the slot `channelSlot` names, and the holder, from `holderSlot` — the same holder `source.watch` was given. _(shape hint: `channel and holder`)_
 - **Emits:** A `SourceUnwatch` — the watch as this action left it. A flow preview changes nothing and says what it would have done.
 
@@ -16,10 +17,10 @@ Removes one record's watch on a channel. Others' holds keep it watched; the last
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `channelSlot` | string | yes | — | Slot PATH (e.g. `outlet.channel`) that resolves to the channel to let go of. ⚠️ Reading a newly watched channel starts within about a minute. It costs the runs its triggers start, one per message. Letting the last holder go stops those runs; the platform's reader stays in the channel. |
-| `holderSlot` | string | yes | — | Slot PATH (e.g. `follow.recordId`) that resolves to the id of the record `source.watch` was given. |
+| `channelSlot` | string | yes | — | The slot path holding the channel to let go, e.g. `outlet.channel`. ⚠️ Starts within a minute and costs one triggered run per message, until the last holder lets go. |
+| `holderSlot` | string | yes | — | The slot path to the id of the record `source.watch` was given. |
 | `provider` | `telegram` | yes | — | What kind of source the channel is. |
-| `userIdSlot` | string | no | — | Slot PATH to the person whose record held the watch, when a schedule or trigger runs the flow for nobody. |
+| `userIdSlot` | string | no | — | The slot holding the person whose record held the watch. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example
 

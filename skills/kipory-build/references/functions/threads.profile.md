@@ -4,11 +4,12 @@
 
 Look up a Threads account's details and numbers.
 
-Reads one public Threads account from its handle or profile link: name, bio, avatar, whether it is verified, and its follower count. A link to another site is refused before anything is fetched.
+Give a handle or profile link. Returns name, bio, avatar, verified flag and follower count.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`
+- **Also found as:** threads account, follower count, threads bio
 - **Reads:** One Threads handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialProfile`. A bare `{}` when the account does not exist or is private.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

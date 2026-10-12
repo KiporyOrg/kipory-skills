@@ -4,11 +4,12 @@
 
 List the accounts a TikTok account follows.
 
-Reads the public list of accounts one TikTok account follows, from its handle or profile link, up to the bound you set. Each account comes back with its handle, name, bio and counts.
+Give a handle or profile link. Each account comes with handle, name, bio and counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile[]`
+- **Also found as:** followed accounts, following list, who they follow
 - **Reads:** One TikTok handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialProfile`. Empty when the list is hidden or the account cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads the public list of accounts one TikTok account follows, from its handle or
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 500 | no | `50` | How many accounts to return, up to 500. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 500 | no | `50` | How many accounts to return, up to 500. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

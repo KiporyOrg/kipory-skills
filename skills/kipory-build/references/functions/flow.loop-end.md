@@ -4,11 +4,12 @@
 
 End a loop: stop when the condition holds, or go round again.
 
-Closes a `flow.loop`. After each round it checks the stop condition; if it does not hold and the cap allows, its outputs become the next round's carry slots. Afterwards the flow sees the escape slots and the output slot, which holds the last carried value.
+After each round, the outputs become the next round's carry slots. Afterwards, only escape slots and the output slot remain.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the loop's own slots` → `nothing`
+- **Also found as:** stop loop, loop result, repeat until done
 - **Reads:** The slots the stop condition looks at, and the ones fed back as the next pass's carry. _(shape hint: `the loop's own slots`)_
 - **Emits:** The loop's result, plus anything named as escaping it. Everything else inside the loop is discarded when the region closes.
 
@@ -16,10 +17,10 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `carryMap` | object | no | `{}` | As `{ bodySlot: carrySlot }`: after each pass, the body slot's value becomes that carry slot (the one the opener seeds) for the next pass. ⚠️ Every key must be a slot an action inside the loop writes — any other key is refused (`LOOP_CARRY_REFERENCES_UNKNOWN_SLOT`). |
-| `escapeSlots` | object | no | `{}` | Which slots outlive the loop, as `{ innerSlot: outerSlot }`: each inner slot's last-pass value is published under the outer name. ⚠️ Everything else inside the loop is discarded when the region closes: a slot not listed here is gone for every later action. |
-| `outputSlot` | string | yes | — | The outside-the-loop slot receiving the last pass's value of the FIRST `carryMap` key. Mirrors the action's `outputSlot`; the save writes both. |
-| `until` | union | yes | — | When to stop. It is checked after each pass, against what that pass produced. |
+| `carryMap` | object | no | `{}` | Maps each body slot to the carry slot it feeds next pass. ⚠️ Every key must be a slot an action inside the loop writes; others are refused. |
+| `escapeSlots` | object | no | `{}` | Inner slots kept after the loop, each under an outer name. ⚠️ Any slot not listed here is gone for every action after the loop. |
+| `outputSlot` | string | yes | — | The slot outside the loop holding the first carry slot's last value. |
+| `until` | union | yes | — | When to stop, checked after each pass. |
 
 ### `until` — one of
 
@@ -29,7 +30,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotEquals` | yes | — | Holds when the value equals `value`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 | `value` | string \| number \| boolean | yes | — | The value to equal. |
 
 **`op: slotIn`**
@@ -38,7 +39,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotIn` | yes | — | Holds when the value equals one of `values`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 | `values` | (string \| number \| boolean)[], at least 1 item | yes | — | The accepted values, at least one. |
 
 **`op: slotPresent`**
@@ -47,7 +48,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotPresent` | yes | — | Holds when the slot, or the field at `path`, has a value. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 
 **`op: slotMatches`**
 
@@ -55,7 +56,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotMatches` | yes | — | Holds when the text matches the regular expression. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 | `pattern` | string | yes | — | A JavaScript regular expression. |
 
 **`op: slotStartsWith`**
@@ -64,7 +65,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotStartsWith` | yes | — | Holds when the text starts with `prefix`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 | `prefix` | string | yes | — | The text the value must start with. |
 
 **`op: slotContains`**
@@ -73,16 +74,16 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotContains` | yes | — | Holds when the text contains `text`, case-sensitive. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 | `text` | string | yes | — | The text the value must contain. |
 
 **`op: listEmpty`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `op` | `listEmpty` | yes | — | Holds when the list has no items. A missing value counts as empty. |
+| `op` | `listEmpty` | yes | — | Holds when the list is empty or missing. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 
 **`op: slotGt`**
 
@@ -90,7 +91,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotGt` | yes | — | Holds when the field is greater than `value`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `path` | string | yes | — | A dotted path to the field that is tested. |
 | `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotLt`**
@@ -99,7 +100,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotLt` | yes | — | Holds when the field is less than `value`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `path` | string | yes | — | A dotted path to the field that is tested. |
 | `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotGte`**
@@ -108,7 +109,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotGte` | yes | — | Holds when the field is greater than or equal to `value`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `path` | string | yes | — | A dotted path to the field that is tested. |
 | `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotLte`**
@@ -117,7 +118,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotLte` | yes | — | Holds when the field is less than or equal to `value`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `path` | string | yes | — | A dotted path to the field that is tested. |
 | `value` | number | yes | — | The number the field is compared with. |
 
 **`op: slotAfter`**
@@ -126,7 +127,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotAfter` | yes | — | Holds when the value is an instant later than `value`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 | `value` | string | yes | — | A date and time with an offset, such as `2026-09-07T12:00:00Z`. |
 
 **`op: slotBefore`**
@@ -135,7 +136,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotBefore` | yes | — | Holds when the value is an instant earlier than `value`. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | no | — | A dotted path to one field of the slot's value. Leave it out to test the whole value. |
+| `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
 | `value` | string | yes | — | A date and time with an offset, such as `2026-09-07T12:00:00Z`. |
 
 **`op: slotIsTruthy`**
@@ -144,7 +145,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotIsTruthy` | yes | — | Holds when the field is truthy: not empty, zero, false or null. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `path` | string | yes | — | A dotted path to the field that is tested. |
 
 **`op: slotIsFalsy`**
 
@@ -152,7 +153,7 @@ Closes a `flow.loop`. After each round it checks the stop condition; if it does 
 | --- | --- | --- | --- | --- |
 | `op` | `slotIsFalsy` | yes | — | Holds when the field is falsy: empty, zero, false, null or missing. |
 | `slot` | string | yes | — | The slot whose value is tested. |
-| `path` | string | yes | — | A dotted path to the field of the slot's value that is tested. |
+| `path` | string | yes | — | A dotted path to the field that is tested. |
 
 **`op: not`**
 

@@ -4,11 +4,12 @@
 
 Read an audio file's length, format, and tags.
 
-Reads an audio file's header and tags and returns whatever they carried — the length, the format, and the track details when the file has them. A file with no tags still gets the technical fields; an unreadable one gets nothing.
+A file with no tags still gets the technical fields; an unreadable one gets nothing.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `AudioMetadata`
+- **Also found as:** audio length, duration, song details, audio info
 - **Reads:** One audio file. A non-audio mime fails rather than being guessed at. _(shape hint: `file`)_
 - **Emits:** An `AudioMetadata`. Every field is independently optional, so a file with no tags still returns its length and format. An empty object means nothing was readable.
 - **Suggested input streams:** `currentFile`
@@ -18,7 +19,7 @@ Reads an audio file's header and tags and returns whatever they carried — the 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `duration` | boolean | no | `true` | Scan further into the file for its length when the header does not carry one. It costs a little more work on those formats. |
+| `duration` | boolean | no | `true` | Scan further for the length when the header lacks it. |
 
 ## Worked example
 

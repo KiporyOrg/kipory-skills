@@ -4,11 +4,12 @@
 
 Tell which language a text is written in.
 
-Names the language a text is written in, as a two-letter code. No model, no network. Where the writing system belongs to one language it answers from that alone; otherwise it guesses statistically, and it returns nothing rather than a wrong guess.
+Answers with a two-letter code, or nothing rather than a wrong guess. No model is called.
 
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
+- **Also found as:** which language, language code, identify language
 - **Reads:** One string — a title, a body, a message. Links, handles and digits are stripped first: they are Latin whatever the language around them. _(shape hint: `string`)_
 - **Emits:** A two-letter language code, or an empty string when it could not tell. Deprecated and placeholder codes are normalised, so a stored value is usable or honestly unknown.
 - **Suggested input streams:** `text`
@@ -17,11 +18,11 @@ Names the language a text is written in, as a two-letter code. No model, no netw
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `minAccuracy` | number, 0 to 1 | no | `0.15` | How clearly the statistical guess must lead the next most likely language, from 0 (any lead) to 1 (no rival). ⚠️ A headline leads by less than a paragraph does, so raising this mostly turns short inputs into unknowns. It does not apply where the writing system already answered or narrowed the choice. |
-| `minLetters` | integer, at least 0 | no | `12` | How many letters the text needs before a statistical guess is made. Shorter text is unknown unless its writing system answers. ⚠️ A single word reads as several languages at once. Lower it only for text where one or two words are all there is, and expect wrong answers on names and brands. |
-| `minMinorityScriptShare` | number, 0 to 1 | no | `0.25` | How much of the text one non-Latin writing system needs to answer on its own, even without dominating. ⚠️ It exists for titles a Latin brand name drags down — a Hebrew outlet whose name ends in Latin is still Hebrew. Only applies when exactly one non-Latin script is present. |
-| `minScriptMargin` | number, at least 1 | no | `1.08` | How far ahead of the runner-up the winner must be, when the writing system has narrowed the language to a family. ⚠️ Languages sharing a writing system score close together, so the bar is a ratio just above 1. Set it to 1 to accept whatever ranks first. |
-| `minScriptShare` | number, 0 to 1 | no | `0.6` | How much of the text must be in one writing system before that alone decides the language. Counted after links and handles are stripped. ⚠️ Only writing systems used by essentially one language can decide this way. Cyrillic, Arabic, Devanagari and Latin always fall through to the statistical guess. |
+| `minAccuracy` | number, 0 to 1 | no | `0.15` | How clearly the guess must lead its rival, from 0 to 1. ⚠️ Raising it mostly turns short text, like headlines, into unknown. |
+| `minLetters` | integer, at least 0 | no | `12` | Letters needed before a guess; shorter text is usually unknown. ⚠️ Lowering it lets single words through, with wrong answers on names and brands. |
+| `minMinorityScriptShare` | number, 0 to 1 | no | `0.25` | Share one non-Latin writing system needs to decide, even as a minority. ⚠️ Applies only when the text has exactly one non-Latin writing system. |
+| `minScriptMargin` | number, at least 1 | no | `1.08` | How far the winner must lead languages sharing its writing system. ⚠️ It is a ratio just above 1; 1 accepts whatever ranks first. |
+| `minScriptShare` | number, 0 to 1 | no | `0.6` | Share of the text one writing system needs to decide alone. ⚠️ Only writing systems used by one language decide; Cyrillic, Arabic, Devanagari and Latin never do. |
 
 ## Worked example
 

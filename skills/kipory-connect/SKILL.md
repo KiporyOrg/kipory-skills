@@ -84,6 +84,8 @@ The bootstrap read returns nine sections <!-- count: bootstrap-sections --> — 
 
 The platform also writes a plain-language description of each element of a project. `GET /v1/descriptions?project={nodeId}` reads the newest of each, with `describer` saying whether it is switched on, how far it has described and how its last run ended. `GET /v1/descriptions/history?project={nodeId}&element=<elementRef>` pages one element's earlier ones (`elementRef` is on each row of the first read). `POST /v1/descriptions/describe { project }` (EDITOR) asks for a run now, at no charge; it answers 202 either way, and `enqueued: false` with a `reason` means none started. An element's own authored `description` is on the element's route, not here. The three routes are on `references/api/projects.md`.
 
+You can also keep your own notes on any element as metadata: free key-values such as who owns a flow or the ticket an endpoint was built for. `POST /v1/metadata { project, element, key, value }` (EDITOR) sets one key; `element` is the same `elementRef`, and `value` is any JSON. Leave `version` out to create the key and send the `version` you read to replace it; a stale one is 409 `VERSION_CONFLICT` with the stored entry in `details.current`. `GET /v1/metadata?project={nodeId}` reads every key with the `limits` a write is held to (add `&element=<elementRef>` for one element), and `DELETE /v1/metadata/{id}` (ADMIN) removes one. Metadata is not configuration: no flow reads it and setting it changes nothing the project does. Keys starting `kipory.` are the platform's and are refused. The three routes are on `references/api/projects.md`.
+
 **If you must create the project** you need `owner` at the parent organisation node:
 
 ```
@@ -144,7 +146,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
 | `references/conventions.md`                  | the rules every design resource shares: hosts, ids, roles, `expand=`, `version`, readiness, errors, paging, streams, preview |
 | `references/glossary.md`                     | the words that collide — agent skill, action, function, record, term, event, preview — and which meaning the API uses        |
-| `references/api/projects.md`                 | create, lifecycle, address, settings, history, the generated descriptions                                                    |
+| `references/api/projects.md`                 | create, lifecycle, address, settings, history, the generated descriptions, element metadata                                  |
 | `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                |
 | `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                    |
 | `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                               |

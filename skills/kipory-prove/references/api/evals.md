@@ -832,7 +832,7 @@ Each item of `runs`:
 | `startedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `finishedAt` | `string \| null` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `durationMs` | `integer \| null` | yes | Total wall clock. Null while the run is still going. |
-| `triggeredBy` | `"config-change" \| "code-change" \| "manual"` | yes | What asked for this run. ⚠️ Null means NOT RECORDED — a run from before this was kept. It does NOT mean someone pressed Run: reading absence as manual would invent a person for every historical sweep fire, which is the one distinction this field exists to draw. |
+| `triggeredBy` | `"config-change" \| "code-change" \| "manual" \| null` | yes | What asked for this run. ⚠️ Null means NOT RECORDED — a run from before this was kept. It does NOT mean someone pressed Run: reading absence as manual would invent a person for every historical sweep fire, which is the one distinction this field exists to draw. |
 | `subjectCheckpointId` | `string \| null` | yes | Snapshot of the flow under test at the time it ran. What makes a later comparison meaningful — if this differs between two runs, they measured different flows. |
 | `scorerCheckpointIds` | `string[]` | yes | Snapshots of the grading flows. A change here also makes two runs incomparable, since the graders themselves moved. |
 | `codeVersion` | `object` | yes | Platform build the run executed on. |
@@ -873,7 +873,7 @@ One suite's scores over its recent runs, oldest first, each point saying whether
 | --- | --- | --- | --- |
 | `points` | `object[]` | yes | Points oldest first, so the series reads left to right. Check each point's `comparableWithPrevious` before connecting it to the last. |
 | `numericSeries` | `object[]` | yes | Every pooled numeric series measured in at least one point, in the order first met reading the points oldest first, each with the producer its values share across the whole window. Empty when no point carries a numeric aggregate. |
-| `emptyReason` | `"never-run" \| "categorical-only" \| "nothing-measured"` | yes | Why `numericSeries` is empty, or null when it is not. `never-run` — no settled run in the window; `categorical-only` — the runs measured verdicts and no number, which is a suite working as authored; `nothing-measured` — the runs produced no score of either kind, which is a coverage failure to look into. |
+| `emptyReason` | `"never-run" \| "categorical-only" \| "nothing-measured" \| null` | yes | Why `numericSeries` is empty, or null when it is not. `never-run` — no settled run in the window; `categorical-only` — the runs measured verdicts and no number, which is a suite working as authored; `nothing-measured` — the runs produced no score of either kind, which is a coverage failure to look into. |
 | `truncated` | `boolean` | yes | True when runs exist OLDER than the first point here — the series is a window, not the suite's whole history. Distinguishes a genuinely new suite from one whose earlier runs fell outside `limit`. |
 
 Each item of `points`:
@@ -896,7 +896,7 @@ Each item of `numericSeries`:
 | --- | --- | --- | --- |
 | `name` | `string` | yes | Score name of the series. |
 | `actionKey` | `string \| null` | yes | Key of the action the series describes, or null for a run-level one. With `name`, the series' identity — the same pair each point's aggregate carries. |
-| `source` | `"scorer-flow" \| "assertion" \| "system"` | yes | Who produced every score in this series across the whole window: `scorer-flow` — a grading flow; `assertion` — a deterministic check on the case; `system` — the platform's own reading of latency, tokens or cost. Null when the window pools more than one producer — two points name different ones, or one point's own aggregate already pooled two. |
+| `source` | `"scorer-flow" \| "assertion" \| "system" \| null` | yes | Who produced every score in this series across the whole window: `scorer-flow` — a grading flow; `assertion` — a deterministic check on the case; `system` — the platform's own reading of latency, tokens or cost. Null when the window pools more than one producer — two points name different ones, or one point's own aggregate already pooled two. |
 
 ### `GET /v1/eval-suites/trend`
 
@@ -922,5 +922,5 @@ Each item of `suites`:
 | `suiteId` | `string` | yes | The suite this series belongs to. |
 | `points` | `object[]` | yes | Oldest first, exactly as `/:id/trend` orders them. EMPTY when the suite has no settled run — which is an answer, not a gap. |
 | `numericSeries` | `object[]` | yes | Every pooled numeric series measured in at least one point, in the order first met reading the points oldest first, each with the producer its values share across the whole window. Empty when no point carries a numeric aggregate. |
-| `emptyReason` | `"never-run" \| "categorical-only" \| "nothing-measured"` | yes | Why `numericSeries` is empty, or null when it is not. `never-run` — no settled run in the window; `categorical-only` — the runs measured verdicts and no number, which is a suite working as authored; `nothing-measured` — the runs produced no score of either kind, which is a coverage failure to look into. |
+| `emptyReason` | `"never-run" \| "categorical-only" \| "nothing-measured" \| null` | yes | Why `numericSeries` is empty, or null when it is not. `never-run` — no settled run in the window; `categorical-only` — the runs measured verdicts and no number, which is a suite working as authored; `nothing-measured` — the runs produced no score of either kind, which is a coverage failure to look into. |
 | `truncated` | `boolean` | yes | True when runs exist older than the first point. False on an empty series, where it means the suite has never run rather than that its history fits. |

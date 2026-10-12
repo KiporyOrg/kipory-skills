@@ -4,11 +4,12 @@
 
 Clear a record's generated files and terms so it can be processed again.
 
-Removes what a processing run generated for a record — its generated files, its term assignments, or both. Submitted inputs are untouched. Running it twice, or on a record that has nothing to strip, does no harm.
+Submitted inputs are untouched, and running it twice does no harm.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id` → `object`
+- **Also found as:** reset record, clear derived data, clean up record
 - **Reads:** The record id, from the slot `recordIdSlot` names. The owner comes from the run, so a record owned by anyone else matches nothing. _(shape hint: `record id`)_
 - **Emits:** One count per target actually run. A target you did not ask for is absent, so a reader can tell 'not asked' from 'nothing to delete'.
 
@@ -17,8 +18,8 @@ Removes what a processing run generated for a record — its generated files, it
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to strip. |
-| `targets` | string[], at least 1 item | no | `["files","terms"]` | Which stores to clear: generated files, term assignments, or both. Both by default. ⚠️ Files you submitted are never touched, only ones a run generated. Search vectors are not a target — the record is re-projected when it next turns ready. |
-| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
+| `targets` | string[], at least 1 item | no | `["files","terms"]` | Which to clear: generated files, term assignments, or both (default). ⚠️ Search vectors are kept; the record is re-projected when it next turns ready. |
+| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example
 

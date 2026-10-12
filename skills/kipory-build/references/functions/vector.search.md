@@ -4,11 +4,12 @@
 
 Find the stored items closest in meaning to a query.
 
-Finds the nearest points in a collection. The query is one of three things, and only one may be set: text to embed here, a vector an earlier action made, or a record whose own vectors are used. An empty collection returns an empty list.
+Query by text, a vector, or a record's own vectors; set only one. An empty collection returns an empty list.
 
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `a hit list, typed by hitShape`
+- **Also found as:** semantic search, similar items, nearest neighbours, find similar
 - **Reads:** One slot holding the query: a vector from `text.embed` or `text.embed-sparse`, the text to search for, or the id of a record to find neighbours of. _(shape hint: `any+`)_
 - **Emits:** `TermHit` (default), `GenericHit`, `CandidateHit` or `RecordHit` per `hitShape`, best first, capped at `topK`. A `RecordHit` holds matched chunks, not the record's text, unless `expand: "record"` merged it.
 - **Suggested input streams:** `vector`
@@ -19,35 +20,35 @@ Finds the nearest points in a collection. The query is one of three things, and 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `chunksPerRecord` | integer, 1 to 20 | no | — | How many chunks to return for each record. Record mode only, and applied before the chunks are transferred. ⚠️ A different unit from `topK`, which caps RECORDS. One shared cap could not express twenty records with three chunks each. |
-| `collection` | string | yes | — | Which collection to search, by its full `collectionName` (`{project slug}.{name}`, as `GET /v1/vector-collections` lists it), not the short `name`. |
-| `expand` | `none` \| `neighbors` \| `record` | no | — | How much context to return around each match. Record mode only. ⚠️ `neighbors` adds the chunks either side, outside the per-record cap and marked unmatched. `record` replaces a record's chunks with its whole text once enough of it matched. |
-| `expandMergeThreshold` | integer, at least 1 | no | — | Return a record's whole text instead of its chunks once MORE than this many of its chunks matched. Required with record expansion. ⚠️ A record merges only when its matched chunks EXCEED this, and the minimum is 1, so a one-chunk match never merges — read those with `record.read` on `hits[].recordId`. Keep it below `chunksPerRecord`. |
-| `expandNeighborRadius` | integer, 1 to 5 | no | — | How many chunks either side of a match to include. Neighbour expansion only. ⚠️ Each record's chunk count grows by up to twice this per matched chunk, so a large radius is a whole-record read by another name — and record expansion does that in one read. |
-| `expandRecordMaxBytes` | integer, 1 to 262144 | no | — | How many bytes of a merged record's text to return. Record expansion only. ⚠️ A truncated record is reported on the hit rather than shortened quietly — a silently cut document handed to a model is a wrong answer with no symptom. |
-| `expandRecordTextField` | string | no | — | Which field of the record holds the text to return. Required with record expansion. ⚠️ Named rather than inferred from what was embedded: the embedded form is often synthesised or shortened, and returning that instead would be a subtly wrong answer. |
-| `filter` | object | no | — | Optional payload filter. Fields are operator-controlled. For a term vocabulary, a vocabulary / status / parent-term filter within the single terms collection. |
-| `filterSlots` | object | no | — | A map of filter key to the slot supplying its value at run time; on a terms search, `vocabularyKey`, `parentTermId` or `status`. ⚠️ An empty value filters for the key being unset; a list matches any of its values. A key cannot be filtered here and statically at once — saving is refused. |
-| `hitShape` | `term` \| `generic` \| `candidate` \| `record` | no | `"term"` | What each hit looks like, and how the search is run. Each mode requires its own companion fields. |
-| `hybrid` | boolean | no | — | Also search the collection's sparse vectors and fuse the two result sets. Record mode only, off by default. ⚠️ Fusion moves the score onto a rank-derived scale, so anything comparing scores across searches sees a different scale the moment this is on. Ignored when the query is already a vector. |
-| `idPayloadField` | string | no | — | Which payload field supplies each hit's id. Candidate mode only; unset uses the raw point id. ⚠️ A point's own id is a UUID the store requires, not the record id. Set this to the record-id key when a later action has to read or cite the record. |
-| `includeTableKeys` | string[], at least 1 item | no | — | Which tables may appear in the results. Required in candidate mode. Several values search across all of them. |
-| `maxSourceChunks` | integer, 1 to 40 | no | — | How many chunks of the source record to use as queries. Similar-to-record searches only. ⚠️ The cost is chunks times slots, so a long record drives it. When the cap bites the action warns — a silently truncated query is a silently worse result. |
-| `queryRecordIdSlot` | string | no | — | The slot holding a record id to find neighbours of. Record mode only, and one query source at a time. ⚠️ It searches with the record's own stored vectors, so nothing is embedded and a tuned threshold keeps meaning. An unindexed record fails rather than returning an empty list. |
-| `queryTextSlot` | string | no | — | The slot holding the query text. Record mode only, and one query source at a time. ⚠️ The text is embedded with the model the target collection was built with. Prefer this over embedding upstream: a different model of the same size scores meaninglessly and errors nowhere. |
-| `queryVectorSlot` | string | no | — | The slot holding the query vector. Dense or sparse, and a dotted path reaches into an object slot. |
-| `scoreThreshold` | number | no | — | A lower bound on the score, applied by the store on every query. Leave it off for recall, set it for precision. ⚠️ The score is cosine similarity and is legitimately NEGATIVE for a poor match — it is not bounded to 0..1. With `hybrid` on it still cuts the dense results on that scale, before fusion. |
-| `topK` | integer, 1 to 200 | no | `5` | Top-K candidates to return, descending by score. Default 5; hard cap at 200 to keep tiebreak prompts bounded. |
-| `vectorName` | string | no | — | Which named vector to search. A text query needs a dense one; `hybrid` reaches the sparse one itself. Outside `record` mode, unset searches the default. ⚠️ Required for a sparse-vector query, and in `record` mode for a text or vector query (by record, `vectorNames` instead). A name the collection lacks fails at run time, not save. |
-| `vectorNames` | string[], at least 1 item | no | — | Which named vectors to search: one search per name, merged by each point's best score. For candidate mode, and for record mode with `queryRecordIdSlot`. |
+| `chunksPerRecord` | integer, 1 to 20 | no | — | How many chunks to return for each record, in record mode. ⚠️ `topK` caps records; this caps chunks within each record. |
+| `collection` | string | yes | — | The collection's full `collectionName`, not its short `name`. |
+| `expand` | `none` \| `neighbors` \| `record` | no | — | How much context to return around each match, in record mode. ⚠️ `neighbors` adds the chunks either side; `record` returns the whole text once enough matched. |
+| `expandMergeThreshold` | integer, at least 1 | no | — | Return a record's whole text once more than this many chunks matched. ⚠️ A one-chunk match never merges; keep this below `chunksPerRecord`. |
+| `expandNeighborRadius` | integer, 1 to 5 | no | — | How many chunks either side of a match to include. ⚠️ A large radius reads nearly whole records; record expansion does that in one read. |
+| `expandRecordMaxBytes` | integer, 1 to 262144 | no | — | How many bytes of a merged record's text to return. ⚠️ A cut record is marked as truncated on its hit. |
+| `expandRecordTextField` | string | no | — | Which record field holds the text to return. ⚠️ Name the original text field, not the embedded form, which is often shortened. |
+| `filter` | object | no | — | Payload values a result must match. |
+| `filterSlots` | object | no | — | Filter keys mapped to their value slots; terms take `vocabularyKey`, `parentTermId`, `status`. ⚠️ An empty value matches an unset key; a list matches any of its values. |
+| `hitShape` | `term` \| `generic` \| `candidate` \| `record` | no | `"term"` | What each hit looks like, and how the search is run. |
+| `hybrid` | boolean | no | — | Also search sparse vectors and merge both results, in record mode. ⚠️ Turning this on puts scores on a different scale. |
+| `idPayloadField` | string | no | — | Which payload field gives each hit's id; empty uses the point id. ⚠️ Set this to the record-id key when a later action reads the record. |
+| `includeTableKeys` | string[], at least 1 item | no | — | Which tables may appear in the results; required in candidate mode. |
+| `maxSourceChunks` | integer, 1 to 40 | no | — | How many of the source record's chunks to search with. ⚠️ Cost grows with chunks times vector names; the action warns when the cap bites. |
+| `queryRecordIdSlot` | string | no | — | The slot holding a record id to find neighbours of. ⚠️ Uses the record's stored vectors; an unindexed record fails. |
+| `queryTextSlot` | string | no | — | The slot holding the query text, in record mode only. ⚠️ The text is embedded with the collection's own model. |
+| `queryVectorSlot` | string | no | — | The slot holding the query vector, dense or sparse. |
+| `scoreThreshold` | number | no | — | The lowest score a result may have; empty keeps every result. ⚠️ Scores can be negative for a poor match; they are not 0 to 1. |
+| `topK` | integer, 1 to 200 | no | `5` | How many results to return, best first; default 5, at most 200. |
+| `vectorName` | string | no | — | Which named vector to search; outside `record` mode, empty means the default. ⚠️ Required for a sparse query, and for a text or vector query in `record` mode. |
+| `vectorNames` | string[], at least 1 item | no | — | Which named vectors to search, merged by each point's best score. |
 
 ### `filter`
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `parentTermId` | string \| null | no | — | Keep only candidates under this parent term. `null` searches the roots. |
-| `vocabularyKey` | string | no | — | Which vocabulary to search within. All vocabularies share one collection, so this scopes the search rather than choosing a collection. |
-| `status` | `active` \| `archived` \| `READY` \| null | no | — | Which term statuses to include. Unset, a terms collection searches active ones, plus candidates of a vocabulary that mints them; `null` searches every status. |
+| `parentTermId` | string \| null | no | — | Keep only candidates under this parent term; `null` searches the roots. |
+| `vocabularyKey` | string | no | — | Which vocabulary to search within. |
+| `status` | `active` \| `archived` \| `READY` \| null | no | — | Which term statuses to include; `null` includes every status. |
 
 ## Worked example
 

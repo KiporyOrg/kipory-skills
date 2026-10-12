@@ -4,11 +4,12 @@
 
 Get the words spoken in a video posted on X.
 
-Reads what is said in the video of one public X post, from the post's link, and returns it as text. Works on videos up to two minutes long. A video with no speech returns an empty string.
+Give the post's link. Works on videos up to two minutes; no speech returns an empty string.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
+- **Also found as:** tweet video transcript, x video captions, x transcript
 - **Reads:** One X post link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** The transcript as text. An empty string when nothing is said.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

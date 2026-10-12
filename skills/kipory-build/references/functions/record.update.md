@@ -4,11 +4,12 @@
 
 Change an existing record's data.
 
-Changes a record's data: on a per-user type only the user's own record, on a project type any record. Merges by default, or replaces. Can clear derived output, set a status, attach files, and require a status first. Returns whether a row changed.
+Merges or replaces the data; can also clear derived output, set a status and attach files.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + data/derived patches` → `boolean`
+- **Also found as:** edit record, change record, change a row, modify, set field
 - **Reads:** The record id, from the slot `recordIdSlot` names, plus whichever patch slots you wire: the new data, the new derived output, and file ids to attach. _(shape hint: `record slot + data/derived patches`)_
 - **Emits:** A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `record.delete`).
 
@@ -16,16 +17,16 @@ Changes a record's data: on a per-user type only the user's own record, on a pro
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. Off by default. ⚠️ Used when the next run should regenerate derived output from scratch. Cannot be combined with `derivedSlot`. |
-| `dataSlot` | string | no | — | The slot holding the new fields. Leave it unset to leave the record's data alone. ⚠️ When it is set but resolves to something that is not an object, the patch is empty and the write does nothing. |
-| `derivedSlot` | string | no | — | The slot holding new derived output. Written under the same merge-or-replace mode as the data. Leave it unset to leave derived alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
-| `failIfPreconditionUnmet` | boolean | no | `false` | What happens when nothing matched. Off, the action reports that nothing changed; on, it fails with a conflict. |
-| `fileIdsSlot` | string | no | — | The slot holding file ids to attach to the record in the same write. ⚠️ A file must be owned by whoever owns the record — the user, or the project for a project type — and attached nowhere else. This is how an edited event brings its media along. |
-| `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) shallow-merges each provided patch over the record's existing column value; `replace` overwrites. Applies to BOTH `data` and `derived`. ⚠️ In `merge`, a key set to `null` is removed from the record. |
-| `recordIdSlot` | string | yes | — | The slot holding the id of the record to patch. ⚠️ On a per-user type only the user's own record is patched — another id, or a run with no user, changes nothing and reports no error. Any run reaches a project type's records. |
-| `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record's current status is this one. Leave it unset to write to any record that is not being deleted. |
-| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Flip the record to this processing status, clearing any earlier error. Leave it unset to leave the status alone. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` action does that. |
-| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
+| `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derivedSlot`. |
+| `dataSlot` | string | no | — | The slot holding the new fields; empty leaves the data alone. ⚠️ If it holds something other than an object, nothing is written. |
+| `derivedSlot` | string | no | — | The slot holding new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
+| `failIfPreconditionUnmet` | boolean | no | `false` | Fail with a conflict when nothing matched, instead of reporting no change. |
+| `fileIdsSlot` | string | no | — | The slot holding file ids to attach to the record. ⚠️ A file must belong to the record's owner and be attached nowhere else. |
+| `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) merges over existing values; `replace` overwrites them. ⚠️ In `merge`, a key set to `null` is removed from the record. |
+| `recordIdSlot` | string | yes | — | The slot holding the id of the record to patch. ⚠️ On a per-user type, another user's id changes nothing and reports no error. |
+| `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record currently has this status. |
+| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Set the record to this status, clearing any earlier error. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` action does that. |
+| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example
 

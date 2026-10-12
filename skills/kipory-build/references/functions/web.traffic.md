@@ -4,11 +4,12 @@
 
 Look up a website's visits, ranking, and audience by country.
 
-Looks up one site's traffic profile. The URL is reduced to its bare domain, which is echoed back. The audience breakdown says where a site's visitors are — a different question from `web.rankings`.
+The address is cut to its bare domain. The audience shows where a site's visitors are.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SiteTrafficMetrics`
+- **Also found as:** visitors, site visits, website traffic stats, monthly visits
 - **Reads:** One site URL, reduced to its bare domain. Numbers are monthly, so results are cached for a week by default. _(shape hint: `string`)_
 - **Emits:** A `SiteTrafficMetrics`. Every metric can be null — the upstream hides data for small sites — while `domain` echoes the normalised host. Empty when the domain is unknown.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

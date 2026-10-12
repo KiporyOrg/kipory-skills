@@ -4,11 +4,12 @@
 
 Make the stable id a record's search data is stored under.
 
-Turns a record id into the point id its vectors are stored under. The same record id always gives the same point id. A missing or non-string id fails loudly rather than addressing the wrong point.
+The same record id always gives the same point id. A missing or non-text id fails.
 
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `string`
+- **Also found as:** vector id, point id, embedding id
 - **Reads:** One slot holding a record id. A missing or empty id fails the action rather than inventing a point. _(shape hint: `any`)_
 - **Emits:** The point id this record's vectors are stored under. Same record, same id every time, so a re-run overwrites rather than duplicating. Wire it into `vector.upsert` or `vector.fetch`.
 
@@ -16,7 +17,7 @@ Turns a record id into the point id its vectors are stored under. The same recor
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `recordIdSlot` | string | yes | — | The slot holding the record id, either a name or a dotted path into an object slot. |
+| `recordIdSlot` | string | yes | — | The record id's slot, or a dotted path into an object slot. |
 
 ## Worked example
 

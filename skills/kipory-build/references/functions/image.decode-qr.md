@@ -4,11 +4,12 @@
 
 Read the QR codes in an image and return what they say.
 
-Looks for a QR code in an image and emits what it encodes. By default only web links are kept, since a QR can also hold wifi details or plain text. Nothing found gives an empty list rather than an error.
+By default only web links are kept. Nothing found gives an empty list, not an error.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string[]`
+- **Also found as:** qr code, barcode, scan code, read qr
 - **Reads:** One image — JPEG, PNG, WebP, HEIC, TIFF and the rest. Something that is not an image comes back empty rather than failing the action. _(shape hint: `file`)_
 - **Emits:** What a QR code in the image encodes — web links only, unless you turn `requireUrl` off. Empty when there was no code or the image could not be read.
 - **Suggested input streams:** `currentFile`
@@ -18,7 +19,7 @@ Looks for a QR code in an image and emits what it encodes. By default only web l
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `requireUrl` | boolean | no | `true` | Keep only payloads that are web links. A QR code can also hold wifi details, a contact card, or plain text. |
+| `requireUrl` | boolean | no | `true` | Keep only web links, dropping wifi details, contacts or plain text. |
 
 ## Worked example
 

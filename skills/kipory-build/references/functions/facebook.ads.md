@@ -2,13 +2,14 @@
 
 # `facebook.ads` — Fetch Facebook ads
 
-List the ads a company or one page runs, or ads that match a keyword, from the Facebook ad library.
+List ads by company, page or keyword from the Facebook ad library.
 
-Reads the public Facebook ad library, which also covers Instagram. Give it a company name, or one page's ad library id, to list its ads, or switch it to keyword search. Each ad comes back with its advertiser, copy, media links, destination and run dates.
+Also covers Instagram. Each ad comes with its advertiser, copy, media links, destination and run dates.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`
+- **Also found as:** facebook adverts, meta ads, competitor ads
 - **Reads:** One company name; or one keyword, or one page's ad library id, when the action is set to it. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialAd`. Empty when the library has no matching ads.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,10 +24,10 @@ Reads the public Facebook ad library, which also covers Instagram. Give it a com
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `activeOnly` | boolean | no | `false` | Return only ads that are still running. Off returns ended ads too. |
-| `by` | `company` \| `keyword` \| `page` | no | `"company"` | What the input is: a company name, a keyword to search ad copy for, or a page's ad library id. ⚠️ A company name matches every advertiser that shares it. A page's ad library id, which a facebook.page action returns as adLibraryId, lists that page's ads only. |
-| `country` | string | no | — | Two-letter country code to limit the ads to, like US or DE. Unset reads all countries. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `activeOnly` | boolean | no | `false` | Return only ads still running; off returns ended ads too. |
+| `by` | `company` \| `keyword` \| `page` | no | `"company"` | What the input is: company name, keyword, or page's ad library id. ⚠️ A company name matches every advertiser sharing it; a page's ad library id lists only that page's ads. |
+| `country` | string | no | — | Two-letter country code, like US or DE; empty reads all countries. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

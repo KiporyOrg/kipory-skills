@@ -4,11 +4,12 @@
 
 Find YouTube videos that match a search.
 
-Searches public YouTube videos for a keyword or phrase and returns the matches, by relevance or by views, up to the bound you set. Each comes back with its title, channel, thumbnail, length, view count and an approximate time.
+Sorted by relevance or views. Each video has title, channel, thumbnail, length, view count and rough time.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** find youtube videos, youtube results, video search
 - **Reads:** One search phrase. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`. Empty when nothing matches.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,9 +24,9 @@ Searches public YouTube videos for a keyword or phrase and returns the matches, 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many videos to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many videos to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 | `sort` | `relevance` \| `popular` | no | `"relevance"` | Most relevant first, or most viewed first. |
-| `uploaded` | `today` \| `this_week` \| `this_month` \| `this_year` | no | — | Only videos uploaded within this window. Unset searches all time. |
+| `uploaded` | `today` \| `this_week` \| `this_month` \| `this_year` | no | — | Only videos uploaded within this window; empty searches all time. |
 
 ## Worked example
 

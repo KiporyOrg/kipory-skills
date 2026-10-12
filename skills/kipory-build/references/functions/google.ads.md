@@ -4,11 +4,12 @@
 
 List the ads a company runs, from the Google ad library.
 
-Reads the Google ad library for one advertiser, named by its website domain. Each ad comes back with its advertiser, format and the dates it was shown. Its image and text are left out unless you ask for them, at a much higher cost.
+Name the advertiser by its website domain. Image and text are left out unless asked for, at much higher cost.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`
+- **Also found as:** google adverts, competitor ads, search ads
 - **Reads:** One website domain, like `nike.com`, or a link on that site. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialAd`. Empty when the library has no ads for the domain.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,10 +24,10 @@ Reads the Google ad library for one advertiser, named by its website domain. Eac
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `country` | string | no | — | Two-letter country code to limit the ads to, like US or DE. Unset reads all countries. |
-| `details` | boolean | no | `false` | Also return each ad's image, and its text and destination where the library gives them. ⚠️ Costs 25 vendor credits per request instead of 1. |
-| `format` | `text` \| `image` \| `video` | no | — | Return only ads of one format. Unset returns all. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `country` | string | no | — | Two-letter country code, like US or DE; empty reads all countries. |
+| `details` | boolean | no | `false` | Also return each ad's image, plus text and destination where given. ⚠️ Costs 25 vendor credits per request instead of 1. |
+| `format` | `text` \| `image` \| `video` | no | — | Return only ads of this format; empty returns all. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 Pull the text and document details out of a PDF.
 
-Reads a PDF once and returns both its embedded text and whatever its own metadata carried. A scan has no text layer, so its text is empty; a locked file says so with a flag. Anything that is not a PDF fails.
+A scan has no text, so its text is empty. A locked file is flagged, and non-PDFs fail.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `PdfDocument`
+- **Also found as:** read a pdf, pdf text, parse pdf, pdf to text
 - **Reads:** One PDF file. A non-PDF mime fails rather than being guessed at — route them elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A `PdfDocument`. Empty text: with `pageCount`, a scan; with `isEncrypted`, locked; with neither, unreadable or missing — warns `PDF_PARSE_FAILED`, uncached. No file named: empty, no warning.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -19,7 +20,7 @@ Reads a PDF once and returns both its embedded text and whatever its own metadat
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxPages` | integer, more than 0 | no | — | Limit TEXT extraction to the first N pages. Unset = all pages. Metadata (pageCount, Info-dict fields) always reflects the whole document regardless of the cap. |
+| `maxPages` | integer, more than 0 | no | — | Read text from this many first pages; empty means all. |
 
 ## Worked example
 

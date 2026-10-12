@@ -4,11 +4,12 @@
 
 Pull every piece of text that matches a pattern.
 
-Runs a JavaScript regular expression over every text input wired in and returns the matches with duplicates removed. Use a capture group when you need only part of each match, such as a URL's id, a hashtag, a chapter timestamp or an embedded code.
+Duplicates are removed by default. Use a capture group to keep only part of each match, such as an id.
 
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string+` → `string[]`
+- **Also found as:** regex, find emails, find links, pattern match, extract
 - **Reads:** Reads any number of `string` slots — every configured stream is concatenated and scanned by the configured regex. _(shape hint: `string+`)_
 - **Emits:** An ordered, optionally deduped list of regex matches (or a configured capturing group) drawn from the concatenation of every wired text input stream.
 - **Suggested input streams:** `inputText`
@@ -18,9 +19,9 @@ Runs a JavaScript regular expression over every text input wired in and returns 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `dedupe` | boolean | no | `true` | When true (default), repeat matches are dropped while preserving the first-occurrence order. |
-| `flags` | string[] | no | `["i"]` | Regex flags: `i` ignores case, `m` makes `^`/`$` match per line, `s` lets `.` match newlines, `u` enables Unicode. Every match is returned. |
-| `group` | integer, at least 0 | no | `0` | Which capturing group to take from each match. 0 takes the whole match. A match missing that group is skipped. |
-| `pattern` | string | no | `"[\\s\\S]+"` | JavaScript regex source applied to the concatenated input text. Every match is extracted, not only the first. |
+| `flags` | string[] | no | `["i"]` | Regular expression flags, such as `i` to ignore case. |
+| `group` | integer, at least 0 | no | `0` | Which capture group to take; 0 takes the whole match. |
+| `pattern` | string | no | `"[\\s\\S]+"` | The regular expression, run over all wired-in text. |
 
 ## Worked example
 

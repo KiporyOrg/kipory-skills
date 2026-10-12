@@ -4,11 +4,12 @@
 
 Look up a YouTube video's details, numbers, and thumbnail.
 
-Takes a video URL or id and returns what YouTube knows about it. You pick which parts to fetch, and each costs one unit of the daily quota. Useful as a cheap check before paying for a transcript.
+Takes a video link or id. Each part costs one daily quota unit.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeVideo`
+- **Also found as:** video views, video stats, youtube link
 - **Reads:** One string naming a video — a full URL in any of its forms, or a bare video id. Anything unrecognisable is dropped without a call. _(shape hint: `string`)_
 - **Emits:** A `YoutubeVideo`. Which fields arrive depends on the parts you asked for, and every one is optional. Empty when it could not be read — missing, private, or refused.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Takes a video URL or id and returns what YouTube knows about it. You pick which 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `parts` | string[], at least 1 item | no | `["snippet","contentDetails","statistics"]` | Which parts of the video to fetch. Snippet, content details and statistics by default — enough for a cheap check. ⚠️ Each part costs one quota unit per call, against a daily pool. |
+| `parts` | string[], at least 1 item | no | `["snippet","contentDetails","statistics"]` | Which parts to fetch; snippet, content details and statistics by default. ⚠️ Each part costs one quota unit per call, against a daily pool. |
 
 ## Worked example
 

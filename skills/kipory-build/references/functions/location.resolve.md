@@ -4,11 +4,12 @@
 
 Turn a map point into a place: city, region, and country.
 
-Turns one pair of coordinates into a place — city, region, country. A coordinate the provider cannot place comes back empty. Answers are cached per coordinate, so repeats are free.
+A point it cannot place comes back empty. Answers are cached, so repeats are free.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `Location` → `Place`
+- **Also found as:** reverse geocode, coordinates to place, latitude longitude, gps
 - **Reads:** One `Location` — a latitude and a longitude, and nothing else. Coordinates it cannot use come back empty without a call. _(shape hint: `object`)_
 - **Emits:** A `Place`, with every field optional because coverage varies. Empty when the provider found nothing. A provider failure throws instead, so the action fails rather than reporting a blank.
 - **External dependency:** OpenStreetMap — Reverse-geocodes through Nominatim, the public OpenStreetMap endpoint. Free, unkeyed and rate-limited by courtesy — answers are cached per coordinate so repeats cost nothing.
@@ -19,8 +20,8 @@ Turns one pair of coordinates into a place — city, region, country. A coordina
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string, at least 2 characters | no | `"en"` | Preferred language for place names. A single tag like `en`, or a priority list. `en` by default. ⚠️ The provider falls back to the local name when it has no translation. Changing this changes the cache key, so the next run re-fetches everything. |
-| `provider` | `osm` \| `mapbox` \| `google` | no | `"osm"` | Reverse-geocoding provider. Only "osm" is implemented in v1; "mapbox" and "google" are reserved enum slots that throw when selected. |
+| `language` | string, at least 2 characters | no | `"en"` | Language tag for place names, like `en`, or a priority list. ⚠️ Changing this makes the next run fetch every place again. |
+| `provider` | `osm` \| `mapbox` \| `google` | no | `"osm"` | Which service looks up places; only `osm` works today. |
 
 ## Worked example
 

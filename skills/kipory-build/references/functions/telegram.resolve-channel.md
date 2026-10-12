@@ -4,11 +4,12 @@
 
 Look up a public Telegram channel: its name, members, description, and picture.
 
-Looks up a public Telegram channel from its handle. A recent lookup is reused; otherwise the request is queued and this waits for an answer. When the lookup does not succeed, you get the reason rather than nothing.
+A recent answer is reused; otherwise it waits for a fresh one. A failed lookup returns the reason.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelResolution`
+- **Also found as:** telegram group, channel info, telegram profile
 - **Reads:** One handle — `@name`, `name`, or a `t.me` link. An invite link is not a handle and cannot be resolved. _(shape hint: `string`)_
 - **Emits:** A `TelegramChannelResolution`. The channel is present exactly when the lookup succeeded, so gate on it; otherwise the reason comes back in its place.
 - **Suggested input streams:** `handle`
@@ -18,8 +19,8 @@ Looks up a public Telegram channel from its handle. A recent lookup is reused; o
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `freshnessMinutes` | number | no | `360` | How fresh a cached answer has to be to be reused. Older than this and the action asks again. |
-| `maxWaitMs` | number | no | `25000` | How long to wait for a fresh answer before giving up. Waiting longer costs the run, not the channel. |
+| `freshnessMinutes` | number | no | `360` | Minutes a saved answer stays fresh enough to reuse. |
+| `maxWaitMs` | number | no | `25000` | Milliseconds to wait for a fresh answer before giving up. |
 | `pollIntervalMs` | number | no | `1000` | How often to check whether the answer has arrived. |
 
 ## Worked example

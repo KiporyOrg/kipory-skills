@@ -4,11 +4,12 @@
 
 Find the terms of a vocabulary closest in meaning to a phrase.
 
-Returns the terms of one vocabulary closest in meaning to a phrase, best first, each with a similarity score. Use it to check whether a value already has a term before coining one, or to offer the nearest terms for a typed phrase.
+Results come best first, each with a similarity score. Use it to check for a term before coining one.
 
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `phrase + vocabulary` → `TermHit[]`
+- **Also found as:** similar terms, find term, synonym, closest tag
 - **Reads:** Reads the phrase from `textSlot`, and the vocabulary and a parent term from their slots when those are set. _(shape hint: `phrase + vocabulary`)_
 - **Emits:** A list of `TermHit`, best first, at most `topK`: each term's id, slug and closeness. Empty when the phrase is empty or the vocabulary has no terms.
 - **Suggested input streams:** `text`, `vocabulary`, `parentTermId`
@@ -18,12 +19,12 @@ Returns the terms of one vocabulary closest in meaning to a phrase, best first, 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `minScore` | number, -1 to 1 | no | — | Leave out terms whose similarity score is below this. A poor match scores below zero, so a negative value is allowed. |
-| `parentTermIdSlot` | string | no | — | The slot holding a parent term's id, to search only under it. Set and empty, it reads top-level terms; left out, every level. |
-| `status` | `active` \| `archived` \| `candidate` \| `any` | no | — | Which terms to read by status. Left out: active terms, plus candidates when the vocabulary coins them. `any`: every status. |
-| `textSlot` | string | yes | — | The slot holding the phrase to search for. An empty phrase answers no terms and calls no model. |
-| `topK` | integer, 1 to 200 | no | `5` | How many terms come back at most, best first: 1 to 200. Default 5. |
-| `vocabularyKey` | string | no | — | Which vocabulary's terms to search. Give this or `vocabularySlot`, not both. |
+| `minScore` | number, -1 to 1 | no | — | Leave out terms scoring below this; it may be negative. |
+| `parentTermIdSlot` | string | no | — | The slot holding a parent term's id, to search only under it. |
+| `status` | `active` \| `archived` \| `candidate` \| `any` | no | — | Which terms to read by status; `any` reads every status. |
+| `textSlot` | string | yes | — | The slot holding the phrase to search; empty finds nothing. |
+| `topK` | integer, 1 to 200 | no | `5` | How many terms come back, 1 to 200; default 5. |
+| `vocabularyKey` | string | no | — | Which vocabulary to search; give this or `vocabularySlot`, not both. |
 | `vocabularySlot` | string | no | — | The slot holding the vocabulary's key, in place of `vocabularyKey`. |
 
 ## Worked example

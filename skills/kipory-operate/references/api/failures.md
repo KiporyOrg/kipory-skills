@@ -118,7 +118,7 @@ Each item of `alerts`:
 | `silencedUntil` | `string \| null` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `silenceId` | `string \| null` | yes | The active silence's id, so it can be lifted without a second call. Null when the alert is not silenced. |
 | `inhibitedBy` | `string \| null` | yes | The fingerprint of the alert suppressing this one, when that is why it is suppressed — a root cause hiding its symptoms. Null otherwise. |
-| `suppressedBy` | `"inhibited" \| "silenced" \| "acknowledged"` | yes | The ONE reason this alert is not demanding attention, or null when it is. A suppressed alert is still firing — it is hidden, not resolved. |
+| `suppressedBy` | `"inhibited" \| "silenced" \| "acknowledged" \| null` | yes | The ONE reason this alert is not demanding attention, or null when it is. A suppressed alert is still firing — it is hidden, not resolved. |
 | `scope` | `object \| null` | yes | The node `scopeNodeId` names, resolved to its name, or null when the condition is installation-wide. |
 
 Each item of `sources`:

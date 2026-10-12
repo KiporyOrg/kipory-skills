@@ -4,11 +4,12 @@
 
 Look up one Reddit post and its numbers.
 
-Reads one public Reddit post from its link: title, text, author, subreddit, time, score and comment count. A link to another site is refused before anything is fetched.
+Give the post's link. Returns title, text, author, subreddit, time, score and comment count.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`
+- **Also found as:** reddit thread, post details, reddit link
 - **Reads:** One Reddit post link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialPost`. A bare `{}` when the post does not exist or was removed.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

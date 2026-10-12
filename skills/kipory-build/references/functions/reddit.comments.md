@@ -4,11 +4,12 @@
 
 List the comments on a Reddit post.
 
-Reads the top-level comments on one public Reddit post from its link, up to the bound you set, each with the replies the thread shows under it. Every comment comes back with its text, author, time and score.
+Top-level comments with the replies the thread shows. Each has its text, author, time and score.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`
+- **Also found as:** reddit replies, thread comments, discussion
 - **Reads:** One Reddit post link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialComment`. Empty when the post has no comments or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads the top-level comments on one public Reddit post from its link, up to the 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

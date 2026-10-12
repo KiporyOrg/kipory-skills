@@ -4,11 +4,12 @@
 
 Find public Telegram channels that match your search words.
 
-Searches public Telegram channels by keyword. Reads comma-separated terms from its first input, and a per-term ceiling stops one broad term using the whole budget. `telegram.resolve-channel` goes the other way, from a known handle to that one channel.
+Takes comma-separated search terms. A per-term limit stops one broad term using the whole budget.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelSearchResults`
+- **Also found as:** find telegram channels, telegram groups, channel search
 - **Reads:** One string of comma-separated search terms. The terms are sorted for the cache key, so the same set in any order shares one entry. _(shape hint: `string`)_
 - **Emits:** `TelegramChannelSearchResults` — candidate channels, deduped by username. A bare `{}` when nothing matches.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,9 +24,9 @@ Searches public Telegram channels by keyword. Reads comma-separated terms from i
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxChannels` | integer, 1 to 200 | no | `40` | Total channels to return across all search terms. Cost scales linearly. |
-| `maxChannelsPerSearchTerm` | integer, 1 to 100 | no | `10` | Per-term ceiling, so one broad term cannot consume the whole budget and crowd out the others. |
-| `minMembers` | integer, at least 1 | no | — | Keep only channels with at least this many members. A channel whose count is unknown is left out. ⚠️ Channels it leaves out were still returned by the search, and are charged. |
+| `maxChannels` | integer, 1 to 200 | no | `40` | Total channels to return across all terms; cost grows with it. |
+| `maxChannelsPerSearchTerm` | integer, 1 to 100 | no | `10` | The most channels one search term may return. |
+| `minMembers` | integer, at least 1 | no | — | Keep channels with at least this many members; unknown counts drop out. ⚠️ Channels it leaves out were still returned by the search, and are charged. |
 | `skipScam` | boolean | no | — | Leave out channels Telegram marks as a scam or fake. |
 
 ## Worked example

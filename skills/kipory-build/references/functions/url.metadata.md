@@ -4,11 +4,12 @@
 
 Read a web page's title, description, icon, and preview image.
 
-Reads just the head of a page — title, description, author, icon and social preview — without downloading the body. A site that cannot be reached is reported in the result, with a reason code, and does not fail the action.
+Reads only the page head, not the body. An unreachable site is reported in the result instead of failing.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `UrlMeta`
+- **Also found as:** page title, link preview, open graph, favicon
 - **Reads:** One URL — the page to read. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** A `UrlMeta`; an unreachable site does not fail the action and carries `failure` instead of a status. Only `&amp;` `&lt;` `&gt;` `&quot;` `&#39;` `&apos;` are decoded.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -21,10 +22,10 @@ Reads just the head of a page — title, description, author, icon and social pr
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxBytes` | integer, more than 0 | no | `65536` | Cap on bytes parsed for `<head>` meta. The function asks for a Range and truncates anyway; this is the second-line guard. |
+| `maxBytes` | integer, more than 0 | no | `65536` | Most bytes of the page head to read. |
 | `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow before giving up. ⚠️ A site that redirects more times than this is reported with the code `redirect-limit`. |
-| `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. Probe is meant to be fast. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one request. Keep it below the action's wait, or a silent site fails the action. |
-| `userAgent` | `kipory` \| `browser` | no | — | Who the request says it is: `kipory`, the default, or `browser` for a site that refuses Kipory's reader. |
+| `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. ⚠️ Limits the one request; keep it below the action's own `timeoutMs` or a silent site fails it. |
+| `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
 
 ## Worked example
 

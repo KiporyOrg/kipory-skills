@@ -4,11 +4,12 @@
 
 Create a new record of the type you choose.
 
-Creates a record of one of the project's types. On a per-user type the record belongs to the run's user (a run with no user is refused); on a project type, to the project. With a processing flow it stays pending until an `record.enqueue-process` action.
+A per-user type's record belongs to the run's user, a project type's to the project.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`
+- **Also found as:** save, save to table, store, add a row, insert, new record, spreadsheet
 - **Reads:** The new record's fields, from the slot `dataSlot` names, and optional uploaded file ids to attach. Fields off the type's shape fail the action, each named, as through the API. _(shape hint: `submission object`)_
 - **Emits:** A `RecordCreate` — the new record's id and what it was created as. A retry under the same key reuses that id rather than minting another.
 
@@ -16,10 +17,10 @@ Creates a record of one of the project's types. On a per-user type the record be
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `dataSlot` | string | yes | — | Slot PATH (e.g. `submission`) that resolves to the new record's submitted `data` object. A non-object resolves to an empty `{}`. |
-| `fileIdsSlot` | string | no | — | The slot holding uploaded file ids to attach to the new record. ⚠️ Each file must belong to the record's owner (the run's user, or the project — a key's uploads are project files), be fully uploaded, and be attached nowhere else, or the create fails. |
-| `tableKey` | string | yes | — | The table to create a record in. Must be one defined in this project. |
-| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
+| `dataSlot` | string | yes | — | The slot holding the new record's data object. |
+| `fileIdsSlot` | string | no | — | The slot holding uploaded file ids to attach to the new record. ⚠️ Each file must be the owner's, fully uploaded, and attached nowhere else. |
+| `tableKey` | string | yes | — | The table to create a record in. |
+| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 List the comments on a TikTok video.
 
-Reads the comments on one public TikTok video from its link, up to the bound you set. Each comes back with its text, author, time and like count.
+Give the video's link. Each comment has its text, author, time and like count.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`
+- **Also found as:** tiktok replies, video comments, comment section
 - **Reads:** One TikTok video link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialComment`. Empty when the video has no comments or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads the comments on one public TikTok video from its link, up to the bound you
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

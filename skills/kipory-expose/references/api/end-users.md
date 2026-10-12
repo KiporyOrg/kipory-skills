@@ -128,7 +128,7 @@ Each item of `providerStatus`:
 | `provider` | `string` | yes | The provider's id, as it is keyed in `providers`. |
 | `credential` | `object` | yes | How this provider's own credential resolves for this project, by the same walk sign-in uses. Metadata only; nothing is decrypted. |
 | `signIn` | `"shared-app" \| "own-app" \| "refused"` | yes | What a sign-in through this provider does right now. `shared-app`: it goes through Kipory's application. `own-app`: through yours. `refused`: every one is turned away — the provider is off, Apple has no bundle id, or Google is set to your own application and no active credential resolves for it (it never falls back to Kipory's). Apple set to your own application still signs people in without its key; the key is what lets Kipory capture and later revoke the Apple grant. |
-| `refusal` | `"provider-off" \| "no-bundle-id" \| "no-credential"` | yes | Why `signIn` is `refused`; null whenever it is not. `provider-off`: the provider is switched off for this project. `no-bundle-id`: Apple has no bundle id to verify an identity token against. `no-credential`: the provider is set to your own application and no active credential for it resolves. |
+| `refusal` | `"provider-off" \| "no-bundle-id" \| "no-credential" \| null` | yes | Why `signIn` is `refused`; null whenever it is not. `provider-off`: the provider is switched off for this project. `no-bundle-id`: Apple has no bundle id to verify an identity token against. `no-credential`: the provider is set to your own application and no active credential for it resolves. |
 
 ### `PUT /v1/projects/{nodeId}/auth-config`
 
@@ -167,7 +167,7 @@ Each item of `providerStatus`:
 | `provider` | `string` | yes | The provider's id, as it is keyed in `providers`. |
 | `credential` | `object` | yes | How this provider's own credential resolves for this project, by the same walk sign-in uses. Metadata only; nothing is decrypted. |
 | `signIn` | `"shared-app" \| "own-app" \| "refused"` | yes | What a sign-in through this provider does right now. `shared-app`: it goes through Kipory's application. `own-app`: through yours. `refused`: every one is turned away — the provider is off, Apple has no bundle id, or Google is set to your own application and no active credential resolves for it (it never falls back to Kipory's). Apple set to your own application still signs people in without its key; the key is what lets Kipory capture and later revoke the Apple grant. |
-| `refusal` | `"provider-off" \| "no-bundle-id" \| "no-credential"` | yes | Why `signIn` is `refused`; null whenever it is not. `provider-off`: the provider is switched off for this project. `no-bundle-id`: Apple has no bundle id to verify an identity token against. `no-credential`: the provider is set to your own application and no active credential for it resolves. |
+| `refusal` | `"provider-off" \| "no-bundle-id" \| "no-credential" \| null` | yes | Why `signIn` is `refused`; null whenever it is not. `provider-off`: the provider is switched off for this project. `no-bundle-id`: Apple has no bundle id to verify an identity token against. `no-credential`: the provider is set to your own application and no active credential for it resolves. |
 
 Each item of `diagnostics`:
 

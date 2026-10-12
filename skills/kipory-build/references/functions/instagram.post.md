@@ -4,11 +4,12 @@
 
 Look up one Instagram post or reel and its numbers.
 
-Reads one public Instagram post or reel from its link: caption, author, time, media links and engagement counts. A link to another site is refused before anything is fetched.
+Give the post's link. Returns its caption, author, time, media links and engagement counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`
+- **Also found as:** ig post, instagram reel, post details
 - **Reads:** One Instagram post or reel link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialPost`. A bare `{}` when the post does not exist or is private.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

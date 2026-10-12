@@ -152,7 +152,7 @@ _Read what a file holds — metadata, text, transcripts — make a resized or re
 
 - [`audio.metadata`](audio.metadata.md) — Extract audio details · `ingest` · `file` → `AudioMetadata`
 - [`audio.transcribe`](audio.transcribe.md) — Transcribe audio · `ingest` · model · `file` → `string`
-- [`file.copy`](file.copy.md) — Copy a stored file · `ingest` · `file` → `file`
+- [`file.copy`](file.copy.md) — Copy a file · `ingest` · `file` → `file`
 - [`file.download-url`](file.download-url.md) — Create a download link · `inline` · `file` → `string`
 - [`file.read-text`](file.read-text.md) — Read a text file · `ingest` · `file` → `string`
 - [`file.stats`](file.stats.md) — Extract file details · `ingest` · `file` → `FileStats`

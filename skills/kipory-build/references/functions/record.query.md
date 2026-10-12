@@ -4,11 +4,12 @@
 
 Find records by their fields, terms, links, or meaning, all in one question.
 
-Returns the records satisfying every clause. Exact clauses narrow first; a `semantic` clause ranks by meaning and adds `scores`. `tableKeys` ranks several tables in one answer, each score naming its record's table. Every answer says whether it is complete.
+Exact clauses narrow first; `semantic` ranks by meaning, over every table in `tableKeys`. Every answer says whether it is complete.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the slots its clauses name` → `RecordQueryPage`
+- **Also found as:** look up, lookup, find a record, find records, filter records, search records, search rows
 - **Reads:** The slots its clauses name for the values they compare against; optionally a cursor from `cursorSlot`; and on a user-owned type the user id from `userIdSlot`. _(shape hint: `the slots its clauses name`)_
 - **Emits:** A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.
 
@@ -16,13 +17,13 @@ Returns the records satisfying every clause. Exact clauses narrow first; a `sema
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clauses` | union[], 1 to 16 items | yes | — | Records match all clauses — field, term, link, stream, at most one semantic. A value may come from a slot: `valueSlot`, `slugSlot`, `textSlot`, `fromSlot`, `toSlot`. ⚠️ A semantic clause makes the answer a ranking of at most topK records, with no cursor. If a value named by a slot is missing the action is skipped; an empty list answers no records. |
-| `cursorSlot` | string | no | — | The slot holding a prior answer's cursor. Absent, the first page. Only a query without a semantic clause pages. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
-| `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. A semantic clause's own topK is bounded separately. |
-| `order` | union | no | — | How the answer is ordered: `created`, `meaning`, or a date field of the type. Omitted: by meaning with a semantic clause, else newest first. ⚠️ A field order needs a date field with a `filter` use, and leaves out records with no value there. Beside a semantic clause it re-orders the ranking and does not page. |
-| `tableKey` | string | no | — | The table the question is asked of. Exactly one of `tableKey` and `tableKeys`. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
-| `tableKeys` | string[], 2 to 8 items | no | — | Several tables ranked in one answer, 2 to 8, in place of `tableKey`. Needs a `semantic` clause and one search model. ⚠️ The answer mixes rows of different tables, each with its own fields. Tell them apart by `scores[i].tableKey`, never by which fields a row has. The tables must use one search model. |
-| `userIdSlot` | string | no | — | On a user-owned type, the slot holding the user whose records are queried. Absent, the run's signed-in user. ⚠️ On a user-owned table an empty value fails the action rather than returning an unfiltered answer, and a run with no signed-in user and no slot fails the same way. |
+| `clauses` | union[], 1 to 16 items | yes | — | Records must match every clause; a value may come from a slot. ⚠️ A semantic clause returns at most topK records, with no further pages. |
+| `cursorSlot` | string | no | — | The slot holding a prior answer's cursor; empty for the first page. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
+| `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. |
+| `order` | union | no | — | Order by `created`, `meaning`, or a date field of the type. ⚠️ A field order leaves out records with no value in that field. |
+| `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
+| `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
+| `userIdSlot` | string | no | — | The slot holding whose records to query; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the action on user-owned tables. |
 
 ### `clauses` — each item is one of
 
@@ -31,10 +32,10 @@ Returns the records satisfying every clause. Exact clauses narrow first; a `sema
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `field` | yes | — | A condition on a field the type routes with `filter`. |
-| `field` | string | yes | — | A field of the table that carries a `filter` use. Any other field is refused. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | `eq`, `lt`, `lte`, `gt`, `gte` take one value; `in` takes a list (OR within the clause). |
-| `value` | union | no | — | One scalar, or a list for `in`. Dates as ISO 8601 strings. |
-| `valueSlot` | string | no | — | The slot whose run-time value is compared against, in place of `value`: one scalar, or a list for `in`. |
+| `field` | string | yes | — | A field of the table with a `filter` use. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | Each operator takes one value; `in` takes a list. |
+| `value` | union | no | — | One value, or a list for `in`; dates as ISO 8601. |
+| `valueSlot` | string | no | — | A slot holding the value to compare, instead of `value`. |
 
 `value` — one of: `string | number | boolean`; `(string | number | boolean)[]`, 1 to 1000 items.
 
@@ -43,29 +44,29 @@ Returns the records satisfying every clause. Exact clauses narrow first; a `sema
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `term` | yes | — | An assignment of a vocabulary term, by slug. |
-| `vocabularyKey` | string | yes | — | A vocabulary the table surfaces in `uses.vocabularies`. Any other vocabulary is refused. |
-| `slug` | string | no | — | The term, by slug. An alias resolves to its canonical term, one hop. |
-| `slugSlot` | string | no | — | The slot whose run-time value is the term's slug, in place of `slug`. |
+| `vocabularyKey` | string | yes | — | A vocabulary the table lists in `uses.vocabularies`. |
+| `slug` | string | no | — | The term, by slug; an alias counts as its term. |
+| `slugSlot` | string | no | — | A slot holding the term's slug, instead of `slug`. |
 
 **`kind: link`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `link` | yes | — | A relation a `link` use declares, optionally narrowed by its link filters, a count and one hop of peer clauses. |
-| `relation` | string | yes | — | A relation a `link` use declares: on a field of this table, or, asked `incoming` or `either`, of a table pointing at it. |
-| `direction` | `outgoing` \| `incoming` \| `either` | no | — | Which end the record is on. Omitted: `outgoing`. |
+| `kind` | `link` | yes | — | A relation a `link` use declares, with optional filters and a count. |
+| `relation` | string | yes | — | A relation a `link` use declares, from or to this table. |
+| `direction` | `outgoing` \| `incoming` \| `either` | no | — | Which end the record is on; default `outgoing`. |
 | `where` | object[], 1 to 16 items | no | — | Clauses on the relation's declared link filters, ANDed. |
-| `count` | object | no | — | Keep records whose number of matching links compares so. Omitted: at least one. |
-| `peer` | union[], 1 to 16 items | no | — | Clauses on the PEER record's own uses — `field`, `term`, and at most one `semantic` — one hop. |
+| `count` | object | no | — | How many matching links to require; default at least one. |
+| `peer` | union[], 1 to 16 items | no | — | Clauses on the linked record, one hop away. |
 
 `where` — each item:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `property` | string | yes | — | A declared link filter of the relation, or a declared stream filter of the field. |
+| `property` | string | yes | — | A declared link filter, or stream filter of the field. |
 | `op` | `eq` \| `ne` \| `in` \| `lt` \| `lte` \| `gt` \| `gte` | yes | — | How the stamped value compares. |
-| `value` | string | no | — | The value compared against, as a string; `in` takes up to 1000 comma-separated members. |
-| `valueSlot` | string | no | — | The slot whose run-time value is compared against, in place of `value`: text, or a list for `in`. |
+| `value` | string | no | — | The value to compare, as text; `in` takes up to 1000. |
+| `valueSlot` | string | no | — | A slot holding the text to compare, instead of `value`. |
 
 `count`:
 
@@ -86,7 +87,7 @@ Returns the records satisfying every clause. Exact clauses narrow first; a `sema
 | --- | --- | --- | --- | --- |
 | `kind` | `stream` | yes | — | A field the type routes with `stream`: event rows inside a window. |
 | `field` | string | yes | — | A field of the type that carries a `stream` use. |
-| `window` | object | no | — | The time window on the event's own `at`. Omitted or open-ended: bounded to the stream's retention. |
+| `window` | object | no | — | The time window on the event's `at`; default the stream's retention. |
 | `where` | object[], 1 to 16 items | no | — | Clauses on the stream's declared filters, ANDed. |
 | `count` | union | no | — | `exists` (default), `none` (no matching event), or a comparison on the count. |
 
@@ -96,17 +97,17 @@ Returns the records satisfying every clause. Exact clauses narrow first; a `sema
 | --- | --- | --- | --- | --- |
 | `from` | string | no | — | Inclusive start of the window, ISO 8601. |
 | `fromSlot` | string | no | — | The slot holding the window's start, in place of `from`. |
-| `to` | string | no | — | Inclusive end of the window, ISO 8601. Omitted: now. |
+| `to` | string | no | — | Inclusive end of the window, ISO 8601; default now. |
 | `toSlot` | string | no | — | The slot holding the window's end, in place of `to`. |
 
 `where` — each item:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `property` | string | yes | — | A declared link filter of the relation, or a declared stream filter of the field. |
+| `property` | string | yes | — | A declared link filter, or stream filter of the field. |
 | `op` | `eq` \| `ne` \| `in` \| `lt` \| `lte` \| `gt` \| `gte` | yes | — | How the stamped value compares. |
-| `value` | string | no | — | The value compared against, as a string; `in` takes up to 1000 comma-separated members. |
-| `valueSlot` | string | no | — | The slot whose run-time value is compared against, in place of `value`: text, or a list for `in`. |
+| `value` | string | no | — | The value to compare, as text; `in` takes up to 1000. |
+| `valueSlot` | string | no | — | A slot holding the text to compare, instead of `value`. |
 
 `count` — one of:
 
@@ -125,16 +126,16 @@ Returns the records satisfying every clause. Exact clauses narrow first; a `sema
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `semantic` | yes | — | A phrase ranked by meaning against the type's search index. At most one per query, counting the one a link's peer may hold. |
-| `field` | string | no | — | A field carrying a `search` use, to rank on that field's role. Omitted: the type's default search role. |
+| `kind` | `semantic` | yes | — | A phrase ranked by meaning; at most one per query. |
+| `field` | string | no | — | A field with a `search` use to rank on. |
 | `text` | string, at most 8000 characters | no | — | The phrase to resemble. |
 | `textSlot` | string | no | — | The slot whose run-time value is the phrase, in place of `text`. |
-| `likeRecordId` | string | no | — | A record to resemble, in place of a phrase. The answer ranks the records closest to it, leaves it out, and calls no model. |
-| `likeTableKey` | string | no | — | The table of the record to resemble, when it is not the queried table. Both tables must use the same search model. |
-| `likeRecordIdSlot` | string | no | — | The slot whose run-time value is the id of the record to resemble, in place of `likeRecordId`. |
-| `topK` | integer, 1 to 200 | no | — | How many to rank. Omitted: 50. |
-| `minScore` | number, -1 to 1 | no | — | Leave out records scoring below this, from −1 to 1. It removes from the `topK` ranking and never reaches past it. |
-| `passage` | boolean | no | — | `true`: each entry of `scores` also carries the text of the record's best-matching part, when it is indexed in several parts. |
+| `likeRecordId` | string | no | — | A record to resemble instead of a phrase; it is left out. |
+| `likeTableKey` | string | no | — | The table of the record to resemble, if not the queried one. |
+| `likeRecordIdSlot` | string | no | — | A slot holding the id of the record to resemble. |
+| `topK` | integer, 1 to 200 | no | — | How many to rank; default 50. |
+| `minScore` | number, -1 to 1 | no | — | Leave out records scoring below this, from −1 to 1. |
+| `passage` | boolean | no | — | `true` also returns the text of each record's best-matching part. |
 
 ### `order` — one of
 
@@ -148,14 +149,14 @@ Returns the records satisfying every clause. Exact clauses narrow first; a `sema
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `by` | `meaning` | yes | — | Closest first. Needs a `semantic` clause of the query's own. |
+| `by` | `meaning` | yes | — | Closest first; needs a `semantic` clause. |
 
 **`by: field`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `by` | `field` | yes | — | By one of the table's own date fields. |
-| `field` | string | yes | — | A date field of the table that carries a `filter` use. A record with no value there is left out. |
+| `field` | string | yes | — | A date field with a `filter` use; empty dates are left out. |
 | `direction` | `asc` \| `desc` | no | `"desc"` | `desc` (latest first, the default) or `asc`. |
 
 ## Worked example

@@ -4,11 +4,12 @@
 
 Turn text into numbers that capture its meaning, for search by meaning.
 
-Runs one string through an embedding model and returns the vector. Text that arrives empty is skipped without a call, so an action that only sometimes has something to embed costs nothing when it does not. The same text and model return a cached vector.
+Empty text is skipped at no cost, and the same text and model return a cached vector.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Vector`
+- **Also found as:** embed, embedding, semantic vector, meaning vector
 - **Reads:** One string. Empty or missing returns an empty vector without calling the model; anything that is not a string is a shape error. _(shape hint: `string`)_
 - **Emits:** A `Vector`. Empty when the input was empty, which is how a later write leaves that vector alone. The same text and model hit the cache.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -21,7 +22,7 @@ Runs one string through an embedding model and returns the vector. Text that arr
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `model` | string | no | `""` | The model to embed with, by catalog id (e.g. openai/text-embedding-3-large). Leave empty for the project's embedding default. ⚠️ The model decides how long the vector is, and that length has to match the room the search index reserves for it. Changing the model means embedding everything again and rebuilding the index. |
+| `model` | string | no | `""` | The embedding model by catalog id; empty uses the project's default. ⚠️ Changing the model means embedding everything again and rebuilding the search index. |
 
 ## Worked example
 

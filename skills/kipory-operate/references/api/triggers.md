@@ -102,7 +102,7 @@ Each item of `triggers`:
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
+| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered" \| null` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 
 ### `POST /v1/triggers`
 
@@ -172,7 +172,7 @@ Each item of `diagnostics`:
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
+| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered" \| null` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 
 ### `GET /v1/triggers/{id}`
 
@@ -219,7 +219,7 @@ Read one trigger. `expand` takes the list's keys (`lastRun`, `drift`, `flowLabel
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
+| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered" \| null` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 
 ### `PATCH /v1/triggers/{id}`
 
@@ -276,7 +276,7 @@ Change a trigger — the event it listens to, its filter, flow and inputs, name,
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
+| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered" \| null` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -387,7 +387,7 @@ Resume a trigger the platform paused because its runs kept failing (`pausedAt` o
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `uncoveredInputSlots` | `string[] \| null` | no | Input slots the bound flow requires (every declared slot not typed `optional`) that neither this trigger's stored `inputs` nor the two reserved slots supply, present only when you pass `expand=drift`. An empty array means it can still fire. **Null means the answer could not be determined — the flow is missing or belongs to another project — and reading that as healthy is the one wrong conclusion this field invites.** |
 | `flowLabel` | `object \| null` | no | Identity of the bound flow, present only when you pass `expand=flowLabel`. Null when the flow no longer exists. |
-| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered"` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
+| `lastRunStatus` | `"running" \| "succeeded" \| "partial" \| "failed" \| "skipped" \| "blocked" \| "filtered" \| null` | no | How the most recent event went for this trigger, present only when you pass `expand=lastRun`. Null when no event has reached it yet. |
 
 ### `GET /v1/triggers/{id}/runs`
 

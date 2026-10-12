@@ -4,11 +4,12 @@
 
 Read a place's map listing: address, hours, rating, and contact.
 
-Looks up one place by its place ID, its map link, or its name, and returns what the listing says: address, coordinates, categories, rating, phone, website, claimed or not, hours and busyness. A name returns the best match only. Listings are cached for a week.
+Give a place ID, map link or name; a name returns the best match. Listings are cached for a week.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceCard`
+- **Also found as:** phone number, opening hours, business hours, contact details, business address
 - **Reads:** One place: a place ID, a full map link, or a name with its city. A name returns the best match only. _(shape hint: `string`)_
 - **Emits:** `PlaceCard` — one place's listing. A place the map does not know comes back empty, and that answer is cached.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,8 +24,8 @@ Looks up one place by its place ID, its map link, or its name, and returns what 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string, at least 2 characters | no | `"en"` | Language for the place's name, hours and descriptions, as a code like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run fetches every place again. |
-| `maxImages` | integer, 0 to 20 | no | `0` | How many photo links to include, up to 20. 0 includes none. |
+| `language` | string, at least 2 characters | no | `"en"` | Language for names, hours and descriptions, like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run fetches every place again. |
+| `maxImages` | integer, 0 to 20 | no | `0` | How many photo links to include, up to 20; 0 includes none. |
 
 ## Worked example
 

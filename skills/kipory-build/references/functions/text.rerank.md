@@ -4,11 +4,12 @@
 
 Sort documents by how well they answer a question.
 
-Scores every candidate together with the query rather than comparing two vectors separately. More accurate than the search that produced them, and far too slow to run over a whole collection. Each result carries the id it was given, so nothing matches on position.
+More accurate than the search that found them, but too slow for a whole collection.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `a question + documents` → `RerankHit[]`
+- **Also found as:** rank results, sort by relevance, reorder, best match
 - **Reads:** Two slots you name: the text to match against, and the documents to score. Each document carries its own id. _(shape hint: `a question + documents`)_
 - **Emits:** A `list<RerankHit>`, best first and capped at `topN`. Empty when either slot was empty; when the scorer cannot answer, the candidates come back in the order they arrived.
 - **Softens these failures:** `vendor-unavailable`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -22,12 +23,12 @@ Scores every candidate together with the query rather than comparing two vectors
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `documentItemsSlot` | string | yes | — | The slot holding the documents to score. Each one carries its own id, which comes back on the result. |
-| `maxDocumentChars` | integer, 100 to 500000 | no | `50000` | How long a single document may be. A longer one is rejected rather than quietly cut short. |
-| `maxDocuments` | integer, 1 to 1000 | no | `100` | How many documents to score at most. Anything past this is dropped before scoring, with a warning. ⚠️ Cost is billed per hundred documents scored, so raising this past the default multiplies what every call costs. |
-| `model` | string | no | `"cohere/rerank-v3.5"` | Which re-ranking model to score with, by its catalog id (creator/slug, as GET /v1/ai-models lists it). The default is the stable multilingual one. |
+| `documentItemsSlot` | string | yes | — | The slot holding the documents to score, each with its own id. |
+| `maxDocumentChars` | integer, 100 to 500000 | no | `50000` | Most characters per document; longer ones are rejected, not cut. |
+| `maxDocuments` | integer, 1 to 1000 | no | `100` | Most documents to score; extras are dropped with a warning. ⚠️ Cost is billed per hundred documents scored, so raising this past the default multiplies what every call costs. |
+| `model` | string | no | `"cohere/rerank-v3.5"` | Which re-ranking model scores, by catalog id; default is the multilingual one. |
 | `queryStreams` | string | yes | — | The slot holding the text to match against. |
-| `topN` | integer, 1 to 100 | no | `10` | How many results to return, best first. It cannot be higher than the number of documents scored. ⚠️ Saving is refused when this is higher than the number of documents scored — otherwise the extra rows would silently never arrive. |
+| `topN` | integer, 1 to 100 | no | `10` | How many results to return, best first, up to the documents scored. ⚠️ Saving is refused when this exceeds the number of documents scored. |
 
 ## Worked example
 

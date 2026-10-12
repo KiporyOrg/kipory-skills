@@ -4,11 +4,12 @@
 
 Recall a value saved earlier in this run.
 
-Returns empty when nothing has written the cell yet, so a read that runs too early looks exactly like a cell holding nothing. Put it after the writes it depends on.
+Empty when nothing has written it yet, so place it after the writes it depends on.
 
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `none` → `string, or string[] for an append or union cell`
+- **Also found as:** remember, previous value, stored value, last run
 - **Reads:** No slots. It returns whatever the named cell holds, or empty if nothing has written it. _(shape hint: `none`)_
 - **Emits:** The current value of a named run-state cell, materialized into this action's output slot (a string for set/add cells, a list for append/union cells).
 
@@ -16,7 +17,7 @@ Returns empty when nothing has written the cell yet, so a read that runs too ear
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `key` | string | yes | — | The run-state cell name to read. A fixed literal; its value is surfaced into this action's output slot for downstream actions. |
+| `key` | string | yes | — | Name of the saved value to read. |
 
 ## Worked example
 

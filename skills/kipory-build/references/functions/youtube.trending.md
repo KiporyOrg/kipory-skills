@@ -4,11 +4,12 @@
 
 List the channels behind a region's trending YouTube videos.
 
-Reads a region's trending chart and returns the distinct channels behind those videos. This is what is hot right now, not what is biggest — a catalogue has to accumulate it across runs.
+Shows what is hot right now, not what is biggest. Collect it across runs to build a catalogue.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeTrendingChannels`
+- **Also found as:** popular channels, top youtubers, trending chart
 - **Reads:** One two-letter region code, like `US` or `DE` — the same shape a user's profile region uses. _(shape hint: `string`)_
 - **Emits:** A `YoutubeTrendingChannels`. One flat list however much was read, so a channel trending in two categories arrives once with a higher count. Empty when the region returns nothing.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,9 +24,9 @@ Reads a region's trending chart and returns the distinct channels behind those v
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeChannelDetails` | boolean | no | — | Also look up each channel to add its declared country and subscriber count. Off by default. ⚠️ Costs two extra quota units per 50 channels. The country is self-declared and often missing — absent means unknown, never 'not from this region', and nothing here filters on it. |
-| `maxResults` | integer, 1 to 200 | no | `50` | How many trending videos to read in total before reducing them to channels. A page holds 50. ⚠️ Each page past the first costs another quota unit. The chart stops when it runs out, so a high value permits a big read rather than guaranteeing one. |
-| `videoCategoryIds` | string[], at least 1 item | no | — | Read only these video categories — for example news, or news and sport. Leave it empty for the whole chart. ⚠️ Each category is a separate call costing one quota unit. An unfiltered chart is mostly whatever is popular that day, so name the categories you want. Ids are region-specific. |
+| `includeChannelDetails` | boolean | no | — | Also look up each channel's declared country and subscriber count. ⚠️ Costs two extra quota units per 50 channels; the country is often missing. |
+| `maxResults` | integer, 1 to 200 | no | `50` | How many trending videos to read in total; a page holds 50. ⚠️ Each page past the first costs another quota unit. |
+| `videoCategoryIds` | string[], at least 1 item | no | — | Read only these video categories; empty reads the whole chart. ⚠️ Each category costs one quota unit, and category ids differ by region. |
 
 ## Worked example
 

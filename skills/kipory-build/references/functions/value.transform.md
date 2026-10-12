@@ -4,11 +4,12 @@
 
 Reshape or combine values with a short expression.
 
-Runs an expression over the slots and writes what it returns. Nothing is fetched and no model is called. Use it for computation — walking, sorting, reshaping — even when the result is a string; for prose with holes use Fill a template.
+Nothing is fetched and no model is called. For prose with holes, use Fill a template.
 
 - **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
+- **Also found as:** pick a field, map fields, compute, format value, calculate, convert
 - **Reads:** Every slot the expression names, and the action's inputs must list exactly those. A name inside a projection counts too, so reach into items through `$map` and a variable. _(shape hint: `any+`)_
 - **Emits:** Whatever the expression evaluates to — usually an object built from several slots, a list zipped from parallel lists, or a copy of a slot with fields added.
 
@@ -16,7 +17,7 @@ Runs an expression over the slots and writes what it returns. Nothing is fetched
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `expression` | string | yes | — | The expression to evaluate. Bare names refer to slots; dotted paths reach into an object slot. $humanDate and the other template filters are available. ⚠️ The result must fit the output type; under the default object, text, an object (fields may nest) or a list of either. `$now`, `$millis`, `$random`, `$shuffle`, `$eval` are refused. An else-less conditional emits nothing. |
+| `expression` | string | yes | — | The expression to run; bare names refer to slots. ⚠️ The result must fit the output type; `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused. |
 
 ## Worked example
 

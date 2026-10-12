@@ -4,11 +4,12 @@
 
 Fill a text template with values from earlier actions.
 
-Fills the `{{slot}}` references in a template from the run's slots and writes the text to this action's output slot. No model is called. Use it for prose with holes; work that walks a list, sorts, filters or reshapes belongs in Reshape values.
+No model is called. To walk, sort, filter or reshape a list, use Reshape values.
 
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `string`
+- **Also found as:** template, format text, combine text, message text
 - **Reads:** Any slots you wire in — text verbatim, a list joined with commas, an object's fields via `{{slot.field}}`. A slot nothing has written yet fills in as empty. _(shape hint: `any+`)_
 - **Emits:** The interpolated prompt template. Every `{{slot}}` reference is replaced by the slot bag's current value; the result is written to the action's output slot verbatim.
 

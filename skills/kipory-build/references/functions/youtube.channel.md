@@ -4,11 +4,12 @@
 
 Look up a YouTube channel's details and numbers.
 
-Takes a channel URL, a handle, or a channel id and returns what YouTube knows about it. You pick which parts to fetch, and each part costs one unit of the daily quota.
+Takes a channel link, handle or id. Each part you fetch costs one unit of the daily quota.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeChannel`
+- **Also found as:** subscriber count, channel stats, youtuber
 - **Reads:** One string naming a channel — a full URL, a handle, or a raw channel id. All three normalise to the same cache entry. _(shape hint: `string`)_
 - **Emits:** A `YoutubeChannel`. Which fields arrive depends on the parts you asked for, and every one is optional. Empty when it could not be read — missing, private, or refused.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,9 +24,9 @@ Takes a channel URL, a handle, or a channel id and returns what YouTube knows ab
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `listUploads` | boolean | no | `false` | Also list the channel's most recent uploads, and set lastPostAt to the newest. ⚠️ Costs one extra quota unit, because it takes a second call to the uploads playlist. |
-| `parts` | string[], at least 1 item | no | `["snippet","statistics"]` | Which parts of the channel to fetch. Snippet and statistics by default. ⚠️ Each part costs one quota unit per call, against a daily pool. Branding and localizations are rarely read and make the cached row much bigger. |
-| `uploadsLimit` | integer, 1 to 50 | no | `20` | How many recent uploads to list (1–50, single playlistItems page). Only used when listUploads is on. |
+| `listUploads` | boolean | no | `false` | Also list recent uploads, and set lastPostAt to the newest. ⚠️ Costs one extra quota unit, because it takes a second call to the uploads playlist. |
+| `parts` | string[], at least 1 item | no | `["snippet","statistics"]` | Which parts to fetch; snippet and statistics by default. ⚠️ Each part costs one quota unit per call, from a daily pool. |
+| `uploadsLimit` | integer, 1 to 50 | no | `20` | How many recent uploads to list, up to 50. |
 
 ## Worked example
 

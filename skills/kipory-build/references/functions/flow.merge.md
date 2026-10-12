@@ -4,11 +4,12 @@
 
 Gather the results of parallel branches into one list.
 
-Gathers what a `flow.fan-out`'s branches produced into one or more output slots. Each lane reads its own source slots, branch by branch, and reduces them into its own output slot with its own strategy. Actions after the merge run once, on the gathered values.
+Each lane gathers its own slots from every branch with its own strategy. Actions after the merge run once.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `T[]+` → `T[]`
+- **Also found as:** merge branches, join branches, combine results, collect results
 - **Reads:** The per-branch slots you list. The kind they carry — text, files, objects, numbers or booleans — chooses the reducer, not the strategy. _(shape hint: `any+`)_
 - **Emits:** The branches' values reduced into one list. `concat` keeps everything; `dedup-concat` drops repeats, keeping the first of each.
 
@@ -16,17 +17,17 @@ Gathers what a `flow.fan-out`'s branches produced into one or more output slots.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `failuresSlot` | string | no | — | A slot listing each branch the fan-out tolerated: its position in the list and why it failed. ⚠️ Written only when a branch was tolerated, so read it as possibly absent. Name it only when the fan-out states `maxFailedBranches` or `maxFailedShare`. |
-| `lanes` | object[], at least 1 item | yes | — | The merge lanes, in order. The first is the action's own output; the rest are extra outputs. At least one is required. |
+| `failuresSlot` | string | no | — | Lists each branch the fan-out tolerated: its position and why it failed. ⚠️ Absent unless a branch was tolerated, so read it as optional; name it only with `maxFailedBranches` or `maxFailedShare`. |
+| `lanes` | object[], at least 1 item | yes | — | The merge lanes in order; the first is the action's own output. |
 
 ### `lanes` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `sourceSlots` | string[], at least 1 item | yes | — | The slots this lane reads from each branch that reaches the merge. |
-| `outputSlot` | string | yes | — | The post-merge slot this lane writes. Unique across lanes. The first lane's is also the action's own `outputSlot`. |
-| `strategy` | `concat` \| `list-union` \| `dedup-concat` | yes | — | How this lane combines what the branches contributed. It follows the shape they carry, not the name you pick. |
-| `derivedShape` | union | no | — | The shape this lane produces, worked out when you save. Metadata only; the runtime ignores it. |
+| `outputSlot` | string | yes | — | The slot this lane writes, unique across lanes. |
+| `strategy` | `concat` \| `list-union` \| `dedup-concat` | yes | — | How the lane combines branch values, following their shape, not its name. |
+| `derivedShape` | union | no | — | This lane's shape, worked out on save; the runtime ignores it. |
 
 `derivedShape` — one of:
 
@@ -34,43 +35,43 @@ Gathers what a `flow.fan-out`'s branches produced into one or more output slots.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape, defined once in the project's types and reused by id. |
-| `dataTypeId` | string | yes | — | Id of the type this points at. It has to already exist, and one that something still points at cannot be deleted. |
+| `kind` | `ref` | yes | — | A named shape from the project's types, by id. |
+| `dataTypeId` | string | yes | — | The id of an existing type this points at. |
 
 **`derivedShape` › `kind: list`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `list` | yes | — | An array of values. |
-| `element` | any `derivedShape` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `element` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
 
 **`derivedShape` › `kind: optional`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `optional` | yes | — | A value that may be absent altogether. |
-| `inner` | any `derivedShape` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `inner` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
 
 **`derivedShape` › `kind: union`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `union` | yes | — | One of several alternative shapes. An action may READ a union; what it writes has to be one concrete shape. |
-| `members` | a list of `derivedShape` alternatives, at least 2 items | yes | — | The alternatives — at least two, since a single-member union is just that member. |
+| `kind` | `union` | yes | — | One of several shapes; an action writes only one. |
+| `members` | a list of `derivedShape` alternatives, at least 2 items | yes | — | The alternatives, at least two. |
 
 **`derivedShape` › `kind: record`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `record` | yes | — | A map from string keys to values. Only the values are typed; the keys are always strings and are not constrained. |
-| `valueType` | any `derivedShape` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `kind` | `record` | yes | — | A map from text keys to values of one type. |
+| `valueType` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
 
 **`derivedShape` › `kind: recordRef`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
-| `tableKey` | string | yes | — | Which table the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+| `kind` | `recordRef` | yes | — | One stored record, given by its id. |
+| `tableKey` | string | yes | — | Which table the id refers to. |
 
 ## Worked example
 

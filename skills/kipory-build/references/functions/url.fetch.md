@@ -4,11 +4,12 @@
 
 Download the text behind a web address.
 
-Reads JSON, plaintext or an XML feed. The request can carry query parameters, headers, a body and a stored credential named in `secret`. A read may repeat and is cached, so a POST must change nothing. A 4xx or a refused address fails the action.
+Reads JSON, plain text or an XML feed. A 4xx answer or a refused address fails the action.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
+- **Also found as:** http, api call, json, rest api, get request, download text
 - **Reads:** One URL to fetch. Anything that is not `http` or `https`, resolves to a private address, or does not resolve at all is refused as a blocked request. _(shape hint: `string`)_
 - **Emits:** The body as text, or parsed: an object under `json`, a list of objects under `json-list`. Empty, with a warning, on no URL or a 5xx; another non-2xx fails.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -22,20 +23,20 @@ Reads JSON, plaintext or an XML feed. The request can carry query parameters, he
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `bodyAs` | `json` \| `form` \| `text` | no | — | How the body is sent: `json` (the default), `form` (an object of plain values, URL-encoded) or `text` (a string, as it is). ⚠️ Under `json` a string is sent quoted, as a JSON string. To send text you built yourself, use `text` and set `contentType`. |
+| `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
 | `bodySlot` | string, at most 4096 characters | no | — | The slot holding the request body, built by an earlier action. |
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
-| `headerSlots` | object | no | — | Request headers whose value is read from a slot. An empty slot leaves the header out. |
-| `headers` | object | no | — | Request headers with fixed values. A credential does not go here: store it and name it in `secret`. |
-| `maxBytes` | integer, more than 0 | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body under it can still exceed the slot cap (500 000 characters unless the deployment set another): its text is cut to fit, ends in `[TRUNCATED]`, and the run warns `slot-truncated`. |
+| `headerSlots` | object | no | — | Headers read from slots; an empty slot leaves one out. |
+| `headers` | object | no | — | Headers with fixed values; put a credential in `secret` instead. |
+| `maxBytes` | integer, more than 0 | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body too long for its slot is cut to fit and ends in `[TRUNCATED]`. |
 | `maxRedirects` | integer, 0 to 10 | no | `3` | Maximum HTTP redirect hops to follow. |
-| `method` | `GET` \| `POST` | no | — | GET, the default, or POST for a service that answers a query only by POST. ⚠️ A POST here is a read: it may be sent several times and is answered from the cache. Use it only where it changes nothing. |
-| `query` | object | no | — | Query parameters with fixed values, appended to the address. One the address already carries is kept, not replaced. |
-| `querySlots` | object | no | — | Query parameters whose value is read from a slot. An empty slot leaves the parameter out. |
-| `responseAs` | `text` \| `json` \| `json-list` | no | — | `text`, the default, emits the body as text. `json` parses it and emits an object. `json-list` parses it and emits a list of objects. ⚠️ Pick by what the service returns: a list under `json` arrives under `value`, and anything but a list of objects fails `json-list`. A parsed value over the slot cap is replaced by an empty one. |
-| `secret` | string, at most 128 characters | no | — | The name of a stored request credential. Its stored row says where in the request it goes and which hosts may receive it. ⚠️ Sent only over `https` on the default port. If the stored credential lists hosts, any other host fails before a request is made; with none listed, it goes wherever the action is addressed. |
-| `timeoutMs` | integer, more than 0 | no | `15000` | Request timeout in milliseconds. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one request. |
-| `userAgent` | `kipory` \| `browser` | no | — | Who the request says it is: `kipory`, the default, or `browser` for a site that refuses Kipory's reader. |
+| `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that only answers POST. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
+| `query` | object | no | — | Query parameters with fixed values, added to the address. |
+| `querySlots` | object | no | — | Query parameters read from slots; an empty slot leaves one out. |
+| `responseAs` | `text` \| `json` \| `json-list` | no | — | `text` (default), `json` for an object, or `json-list` for a list. ⚠️ Under `json` a list arrives under `value`; `json-list` fails on anything but a list of objects. |
+| `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; if the credential lists hosts, any other host fails. |
+| `timeoutMs` | integer, more than 0 | no | `15000` | Request timeout in milliseconds. ⚠️ This limits the one request, not the action's own `timeoutMs` run setting. |
+| `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
 
 ## Worked example
 

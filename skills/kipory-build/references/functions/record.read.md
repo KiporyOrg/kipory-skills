@@ -4,11 +4,12 @@
 
 Read records so later actions can use their text, files, and details.
 
-Reads records by id. Takes a list of ids from an earlier action and returns the requested fields in the order the ids came in. On a user-owned type it keeps only the signed-in user's records.
+Returns records in the order of the ids given; on user-owned types, only the user's own.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `RecordRead[]`
+- **Also found as:** get record, load record, fetch record by id
 - **Reads:** A list of ids from the slot `idsSlot` names — plain ids or a vector search's candidates. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_
 - **Emits:** A `RecordRead` per record, its submitted and processed fields flattened to the top level. In the order asked, deduplicated; unresolved ids drop.
 
@@ -16,21 +17,21 @@ Reads records by id. Takes a list of ids from an earlier action and returns the 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. With `failIfEmpty`, this is how a soft-deleted record reads as missing. ⚠️ A row missing the key matches neither choice, so the table has to always write it. |
-| `failIfEmpty` | boolean | no | `false` | Fail the action when nothing resolves, instead of returning an empty list. Turn it on for a read that should answer not-found. ⚠️ Off by default, because a list read treats missing ids as ordinary. Leaving it off on a single-id read turns a missing record into a confusing downstream failure instead of a clean one. |
-| `fields` | string[] | no | `[]` | Which of the table's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A name the table does not declare is ignored, and a list of only unknown names falls back to emitting every field rather than blanking the row. |
-| `idsSlot` | string | yes | — | The slot holding a list of ids — plain ids, a vector search's candidate objects, or a path into either (`hits[].recordId`). ⚠️ It must hold a list: a lone id, or a path to one (`created.recordId`), reads nothing — wrap it as `[recordId]` in a `value.transform`. A bare field off a list reads nothing too. |
-| `include` | object | no | `{}` | Extra dimensions per row. Terms come back by default; files, links and cost are opt-in. None appears in the action's output type. ⚠️ Turning on files signs a download URL for every file on the record. Links come back grouped by relation, with one property bag per time the pair was named. |
-| `scalars` | object | no | `{}` | Opt-in scalar fields. `statusError` adds the failure summary (string\|null); `fileCount` adds the attached-file count. |
-| `tableKey` | string | yes | — | The table to read. Required: only rows of this one table are ever returned. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Ids belonging to anyone else are dropped from the result. ⚠️ On a user-owned type an empty value fails the action rather than reading across users; a project-wide type ignores it. A dropped id is silent — the list simply comes back shorter. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A row missing the key matches neither choice, so the table has to always write it. |
+| `failIfEmpty` | boolean | no | `false` | Fail when nothing is found instead of returning an empty list. ⚠️ Without it, a missing record fails later actions in a confusing way. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ Unknown field names are ignored. |
+| `idsSlot` | string | yes | — | The slot holding a list of ids, or a path like `hits[].recordId`. ⚠️ A lone id reads nothing; wrap it as `[recordId]` in a `value.transform`. |
+| `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
+| `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
+| `tableKey` | string | yes | — | The table to read. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
+| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id; others' ids are dropped. ⚠️ On a user-owned type, an empty value fails the action; dropped ids are silent. |
 
 ### `dataNullChecks` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `path` | string | yes | — | A dotted path inside the record's `data`. |
-| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows where the path is null; `isNotNull` keeps rows where it holds a value. |
+| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps null values at the path; `isNotNull` keeps set ones. |
 
 ### `include`
 

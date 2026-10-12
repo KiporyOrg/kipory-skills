@@ -4,14 +4,15 @@
 
 Store an item's search data so it can be found by meaning or keywords.
 
-Writes one point to a search collection: an id, any number of named vectors, and a payload. Writes nothing back into the flow and runs every time, since a cached result would replay nothing. Slots that arrive empty are skipped rather than erroring.
+Writes an id, named vectors and a payload, and returns nothing. Runs every time; empty slots are skipped.
 
 - **Group:** search · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **Not undone when a run fails:** `vector-write` — The point is written to the search collection while the action runs, under the point id the action is given, so writing it again replaces it with the same point. Doing it twice is harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `any+` → `nothing`
+- **Also found as:** save embedding, index vectors, store vectors
 - **Reads:** The slots named in this action's config: one for the point id, one per named vector, and whichever hold the payload. An empty one leaves that vector unwritten. _(shape hint: `any+`)_
-- **Emits:** Nothing — it writes and returns. Re-running with the same point id overwrites that point. The owning tenant is always stamped on the payload so the point stays reachable.
+- **Emits:** Nothing — the point is saved. The action needs no `outputSlot`; leave it out. A repeat with the same point id overwrites that point.
 - **Rate limit:** 600 per min in bucket `vector.upsert`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 30 s; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
@@ -19,12 +20,12 @@ Writes one point to a search collection: an id, any number of named vectors, and
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `collection` | string | yes | — | Which collection to write into. It must already exist, with room for the vector names configured below. ⚠️ The write needs a signed-in user. A run a key or a schedule starts, and a project-scoped record's processing run, fail on this action. |
-| `payloadObjectSlot` | string | no | — | A slot holding an object whose keys become the payload. Use it when an earlier action has already shaped that object. ⚠️ Mutually exclusive with the per-field map — pick one. A key the store will not accept is skipped with a warning; a non-object value writes no payload at all. |
-| `payloadSlots` | object | no | — | A map of payload key to the slot holding its value. Use plain identifiers for the keys. ⚠️ Mutually exclusive with the bulk object slot — pick one. A key containing a dot breaks the filter syntax that reads it later. |
-| `pointIdSlot` | string | yes | — | The slot holding the point id. Usually a record id, or another id stable across re-runs. |
-| `sparseVectorSlots` | object | no | — | A map of sparse vector name to the slot holding it. Leave one empty to write nothing for that name. ⚠️ A name cannot appear here and in the dense map at once — one slot on the collection is either dense or sparse, and saving is refused. |
-| `vectorSlots` | object | no | `{}` | A map of vector name to the slot holding it. Leave one empty to write nothing for that name. |
+| `collection` | string | yes | — | Which collection to write into; it must already exist. ⚠️ Needs a signed-in user; a run started by a key or schedule fails here. |
+| `payloadObjectSlot` | string | no | — | A slot holding an object whose keys become the payload. ⚠️ Use this or the per-key map, not both; a non-object writes no payload. |
+| `payloadSlots` | object | no | — | Payload keys mapped to their slots; use plain identifiers as keys. ⚠️ Use this or the object slot, not both; a key with a dot breaks later filters. |
+| `pointIdSlot` | string | yes | — | The slot holding the point id, usually a record id. |
+| `sparseVectorSlots` | object | no | — | Sparse vector names mapped to their slots; an empty slot writes nothing. ⚠️ A name cannot be in both the dense and sparse maps. |
+| `vectorSlots` | object | no | `{}` | Vector names mapped to their slots; an empty slot writes nothing. |
 
 ## Worked example
 

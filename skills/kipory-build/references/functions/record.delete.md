@@ -4,11 +4,12 @@
 
 Delete one or more records.
 
-Deletes records by id: the signed-in user's own and the project's pool records, only the pool when the run has no user, never another user's. A record still processing is marked and goes on its own; the rest go at once. Deleting twice is harmless.
+Deletes the user's own and the project's records, never another user's. Deleting twice is harmless.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `record-mutation`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id list` → `boolean`
+- **Also found as:** remove records, erase, delete rows
 - **Reads:** A list of record ids, from the slot `idsSlot` names. A single delete passes a one-element list. _(shape hint: `record id list`)_
 - **Emits:** True when at least one record was removed or accepted for deletion, false when every id was already gone or belonged to another user.
 
@@ -16,8 +17,8 @@ Deletes records by id: the signed-in user's own and the project's pool records, 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `idsSlot` | string | yes | — | The slot holding the list of record ids to delete. A single delete passes a one-element list. ⚠️ Reaches the user's own and the project's pool records, so another user's id deletes nothing. At most 200 ids; an oversize list fails before anything is touched. |
-| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
+| `idsSlot` | string | yes | — | The slot holding the list of record ids to delete. ⚠️ At most 200 ids; a longer list fails before anything is deleted. |
+| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example
 

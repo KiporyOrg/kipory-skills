@@ -4,12 +4,13 @@
 
 Download a web address and save it as a file.
 
-Downloads what a URL returns and saves it as a file on the record. Returns a reference to it. Deleting or reprocessing the record reclaims the bytes.
+Keeps the file on the record and returns a reference to it.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **Not undone when a run fails:** `file` — The file's bytes are stored while the action runs. A later attempt of the run stores them again under its own key; a file no record keeps is removed by the platform later. Doing it twice is not harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `string` → `file`
+- **Also found as:** download, download file, save file from url, attachment
 - **Reads:** One URL — the thing to download. Anything that is not `http` or `https`, or that resolves to a private address, is refused. _(shape hint: `string`)_
 - **Emits:** A `FileRef` for the downloaded bytes, saved to storage. An empty one when the URL is missing, or when a soft failure turns a failed download into a warning.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,21 +24,21 @@ Downloads what a URL returns and saves it as a file on the record. Returns a ref
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `allowedMimePatterns` | string[] | no | — | Content types to accept, as regular expressions. A response matching none of them fails the action. Leave it empty to accept anything. |
-| `bodyAs` | `json` \| `form` \| `text` | no | — | How the body is sent: `json` (the default), `form` (an object of plain values, URL-encoded) or `text` (a string, as it is). ⚠️ Under `json` a string is sent quoted, as a JSON string. To send text you built yourself, use `text` and set `contentType`. |
+| `allowedMimePatterns` | string[] | no | — | Content types to accept, as regular expressions; empty accepts anything. |
+| `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
 | `bodySlot` | string, at most 4096 characters | no | — | The slot holding the request body, built by an earlier action. |
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
-| `failureMode` | `hard` \| `soft` | no | `"hard"` | What happens when the download fails. `hard` fails the action; `soft` returns an empty file reference and lets the flow carry on. ⚠️ A bad URL, a private address, or a storage failure stays hard either way — `soft` covers a download that could not happen, including a site whose name no longer resolves. |
-| `headerSlots` | object | no | — | Request headers whose value is read from a slot. An empty slot leaves the header out. |
-| `headers` | object | no | — | Request headers with fixed values. A credential does not go here: store it and name it in `secret`. |
-| `maxBytes` | integer, more than 0 | no | `25000000` | Hard cap on the downloaded response size. Larger responses fail the function rather than silently truncate. |
-| `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow. SSRF re-validates the host on every hop to defeat DNS rebinding. |
-| `method` | `GET` \| `POST` | no | — | GET, the default, or POST for a service that returns a file only to a POST. ⚠️ A POST here is a read: it may be sent several times and is answered from the cache. Use it only where it changes nothing. |
-| `query` | object | no | — | Query parameters with fixed values, appended to the address. One the address already carries is kept, not replaced. |
-| `querySlots` | object | no | — | Query parameters whose value is read from a slot. An empty slot leaves the parameter out. |
-| `secret` | string, at most 128 characters | no | — | The name of a stored request credential. Its stored row says where in the request it goes and which hosts may receive it. ⚠️ Sent only over `https` on the default port. If the stored credential lists hosts, any other host fails before a request is made; with none listed, it goes wherever the action is addressed. |
-| `timeoutMs` | integer, more than 0 | no | `30000` | HTTP request timeout in milliseconds. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one request. |
-| `userAgent` | `kipory` \| `browser` | no | — | Who the request says it is: `kipory`, the default, or `browser` for a site that refuses Kipory's reader. |
+| `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the action; `soft` returns an empty file and continues. ⚠️ A bad address, private address or storage failure fails the action even under `soft`. |
+| `headerSlots` | object | no | — | Headers read from slots; an empty slot leaves one out. |
+| `headers` | object | no | — | Headers with fixed values; put a credential in `secret` instead. |
+| `maxBytes` | integer, more than 0 | no | `25000000` | Largest download in bytes; a bigger one fails. |
+| `maxRedirects` | integer, 0 to 10 | no | `5` | How many redirects to follow at most. |
+| `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that needs it. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
+| `query` | object | no | — | Query parameters with fixed values, added to the address. |
+| `querySlots` | object | no | — | Query parameters read from slots; an empty slot leaves one out. |
+| `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; if the credential lists hosts, any other host fails. |
+| `timeoutMs` | integer, more than 0 | no | `30000` | HTTP request timeout in milliseconds. ⚠️ This limits the one request, not the action's own `timeoutMs` run setting. |
+| `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
 
 ## Worked example
 

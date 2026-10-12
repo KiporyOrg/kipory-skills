@@ -4,11 +4,12 @@
 
 Make a link anyone can use to download a file.
 
-Makes a signed link to a file that anything can read from: a browser, a model's tool call, an action with no storage access. It never expires unless you turn that off and set a lifetime. Nothing is fetched; the link is signed locally.
+Anything can read the link, such as a browser or a model. It never expires unless you set a lifetime.
 
 - **Group:** files · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
+- **Also found as:** share file, file link, signed url, public link
 - **Reads:** One file. Any kind — nothing is opened, inspected or transformed; only a link to it is signed. _(shape hint: `file`)_
 - **Emits:** A signed link, non-expiring by default; it works for as long as the file exists. Bind its lifetime with the fields below. An empty string when there is no file.
 - **Suggested input streams:** `currentFile`
@@ -18,8 +19,8 @@ Makes a signed link to a file that anything can read from: a browser, a model's 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `neverExpires` | boolean | no | `true` | When on (default), the URL never expires — possession alone grants read access indefinitely. Turn off to bound the lifetime via ttlSeconds. ⚠️ A link works only while its file exists. A file produced in an endpoint, schedule or trigger run is removed at least 7 days after it was produced; give that link 7 days or less. |
-| `ttlSeconds` | integer, more than 0, at most 604800 | no | `300` | Lifetime of the signed capability URL in seconds when neverExpires is off. Default 5 min; capped at 7 days. Ignored while neverExpires is on. |
+| `neverExpires` | boolean | no | `true` | When on, the link never expires; turn off to set a lifetime. ⚠️ Files from endpoint, schedule or trigger runs may be removed after 7 days; give their links 7 days or less. |
+| `ttlSeconds` | integer, more than 0, at most 604800 | no | `300` | Link lifetime in seconds when it expires; at most 7 days. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 Look up a person's public LinkedIn profile.
 
-Reads one person's public LinkedIn profile from its link: name, about text, photo, location and follower count, as a signed-out visitor sees them. A link to another site is refused before anything is fetched.
+Give the profile link. Returns name, about text, photo, location and follower count as a signed-out visitor sees them.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`
+- **Also found as:** person profile, resume, cv, work history
 - **Reads:** One LinkedIn profile link (`linkedin.com/in/…`). Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialProfile`. A bare `{}` when the profile does not exist or is not public.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

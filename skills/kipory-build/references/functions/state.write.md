@@ -4,11 +4,12 @@
 
 Save a value for later actions in this run, or add to one.
 
-The cell is shared across the whole run, sub-flows included, so two branches writing one name contend for it. That is why only `set` depends on order. It emits a marker, so a later read can be ordered after this write.
+The value is shared across the whole run, sub-flows included. Only `set` depends on order.
 
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `string`
+- **Also found as:** remember for later, keep value, store state, persist value, next run
 - **Reads:** Reads one input value and accumulates it into the configured run-state cell. `set` overwrites, `add` sums, `append` builds a list, `union` builds a deduplicated set. _(shape hint: `any`)_
 - **Emits:** A marker saying the write happened. Wire it into a later read to put that read after this write.
 
@@ -16,8 +17,8 @@ The cell is shared across the whole run, sub-flows included, so two branches wri
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `key` | string | yes | — | Which cell to write. A fixed name chosen here, not a slot reference and not computed while running. |
-| `op` | `set` \| `add` \| `append` \| `union` | yes | — | How the value combines into the cell: overwrite, sum, append to a list, or add to a set. |
+| `key` | string | yes | — | A fixed name for the saved value. |
+| `op` | `set` \| `add` \| `append` \| `union` | yes | — | How the value combines: overwrite, sum, append, or add to a set. |
 
 ## Worked example
 

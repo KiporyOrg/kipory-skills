@@ -74,7 +74,7 @@ Each item of `calls`:
 | `provider` | `string` | yes | The vendor that served it. |
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
-| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown"` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown` rather than passed through, so a client can switch on this exhaustively. |
+| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown` rather than passed through, so a client can switch on this exhaustively. |
 | `action` | `object \| null` | yes | Null for a call no action made. |
 | `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
 | `record` | `object \| null` | yes | The record this call was processing, null when it was processing none. A call with no action and no flow can be most of a busy project's traffic (`origin: projection`), and the record is the only thing that says WHAT such a call was for. ⚠️ THE NAME IS BEST-EFFORT AND MAY BE NULL: it is read from `derived.title`, then `data.title`, then a truncated `data.text`, which are CONVENTIONS a table is free to mean something else by. A null name is not a missing record — the id is still the handle. |
@@ -110,7 +110,7 @@ One model call in full — the list's row plus its action, flow, record, cost an
 | `provider` | `string` | yes | The vendor that served it. |
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
-| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown"` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown` rather than passed through, so a client can switch on this exhaustively. |
+| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown` rather than passed through, so a client can switch on this exhaustively. |
 | `action` | `object \| null` | yes | Null for a call no action made. |
 | `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
 | `record` | `object \| null` | yes | The record this call was processing. ⛔ NO ADDRESS COMES WITH IT — unlike `flow`, which carries a key because it has a page. A record is named so a reader recognises it, and the id is what they can search on; it is not a link. |
@@ -129,7 +129,7 @@ One model call in full — the list's row plus its action, flow, record, cost an
 | `userId` | `string \| null` | yes | The end user the call was made on behalf of. |
 | `redactedPatternCounts` | `object` | yes | Pattern name → how many matches were removed before the PROMPT and the RESPONSE were stored. ⚠️ SPARSE: a pattern that matched nothing is absent rather than zero. An empty map is a MEASURED fact — the map is written on every row. ⛔ IT DOES NOT COVER `errorMessage`: the redactor runs over a provider's error text too and its counts are discarded, so a stored message may carry a `[REDACTED:…]` marker this map does not account for. |
 | `stored` | `object` | yes | What was kept, how big it is, and where it went. |
-| `payload` | `object` | yes | ⛔ NULL MEANS THE CALLER DID NOT ASK, which is none of the four absences inside the object. Send `payload=prompt` or `payload=response` to get one. |
+| `payload` | `object \| null` | yes | ⛔ NULL MEANS THE CALLER DID NOT ASK, which is none of the four absences inside the object. Send `payload=prompt` or `payload=response` to get one. |
 
 ### `GET /v1/ai-calls/rollup`
 
@@ -168,7 +168,7 @@ The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures
 | `actions` | `object[]` | yes | One row per action that made a call in the window, so a client can place a single call against its own action's distribution without a read per row. Absent entirely for a window with no calls. |
 | `models` | `object[]` | yes | Every provider/model pair present in the window, with the model and provider narrowings RELEASED so the control that applied one can still undo it. Every other filter still applies. |
 | `excluded` | `object` | yes | What the default origin view dropped, counted — the figure the call list deliberately cannot supply. |
-| `unmeasurable` | `"failures" \| "all"` | yes | A window the platform cannot vouch for. `failures` — the calls are counted but their outcomes are not trustworthy. `all` — nothing here should be read as a measurement. `null` — these figures stand. ⛔ NOT an error: the figures beside it are the best the platform has, and this says they are a floor rather than a fact. |
+| `unmeasurable` | `"failures" \| "all" \| null` | yes | A window the platform cannot vouch for. `failures` — the calls are counted but their outcomes are not trustworthy. `all` — nothing here should be read as a measurement. `null` — these figures stand. ⛔ NOT an error: the figures beside it are the best the platform has, and this says they are a floor rather than a fact. |
 
 Each item of `buckets`:
 

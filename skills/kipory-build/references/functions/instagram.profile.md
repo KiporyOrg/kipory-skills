@@ -4,11 +4,12 @@
 
 Look up an Instagram account's details and numbers.
 
-Reads one public Instagram account from its handle or profile link: name, bio, whether it is verified or private, its link, category and business contact, its counts, and when it last posted. A link to another site is refused before anything is fetched.
+Give a handle or profile link. Returns name, bio, verified and private flags, category, contact, counts and last post time.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`
+- **Also found as:** ig profile, instagram account, follower count, bio
 - **Reads:** One Instagram handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialProfile`. A bare `{}` when the account does not exist.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

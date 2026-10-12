@@ -4,11 +4,12 @@
 
 Look up a TikTok account's details and numbers.
 
-Reads one public TikTok account from its handle or profile link: name, bio, avatar, whether it is verified, and its follower, following and video counts. A link to another site is refused before anything is fetched.
+Give a handle or profile link. Returns name, bio, avatar, verified flag, and follower, following and video counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`
+- **Also found as:** tiktok account, creator profile, tiktok bio
 - **Reads:** One TikTok handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialProfile`. A bare `{}` when the account does not exist.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

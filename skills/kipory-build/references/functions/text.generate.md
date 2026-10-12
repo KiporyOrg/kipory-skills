@@ -4,11 +4,12 @@
 
 Send your prompt to an AI model and return its answer.
 
-Fills the action's prompt with the slots wired into it and sends it to a model. Returns text, or a structured value when the action declares an output shape. A file wired in is attached to the prompt, which needs a model that reads images.
+Returns text, or a structured value when the action declares an output shape. Wired-in files need an image-reading model.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `the action's outputSchema`
+- **Also found as:** summarize, summarise, summary, translate, rewrite, write, draft, reply, ask ai, prompt, ai, shorten, simplify, paraphrase
 - **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_
 - **Emits:** The model's answer — text, or a structured value when the action declares an output shape.
 - **External dependency:** a model provider — Whichever provider hosts the model this action is set to. The key is resolved per model.
@@ -19,17 +20,17 @@ Fills the action's prompt with the slots wired into it and sends it to a model. 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `modelSlot` | string | no | — | Names a slot holding the model to use, picked while the flow runs. Leave it empty to use the model set on this action. ⚠️ The model named while the flow runs has to be one that is enabled and can generate text. An unknown or disabled one fails the run — nothing falls back to the action's own model. |
-| `outputs` | object[] | no | — | Extra slots this action writes besides its main answer: exactly one entry, for the vocabulary values, when `vocabularyFields` is set, and none otherwise. |
-| `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How hard the model thinks first. Costs time and tokens. ⚠️ Also part of the cache key, and higher settings are what dominate both the time and the token bill on models that reason. |
-| `temperature` | number, 0 to 2 | no | — | How much the answer may vary. Empty means the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
-| `vocabularyFields` | object[] | no | — | Which fields of the answer are vocabulary values, so they can be resolved into terms. |
+| `modelSlot` | string | no | — | A slot naming the model to use; empty uses this action's model. ⚠️ An unknown or disabled model fails the run; nothing falls back to this action's model. |
+| `outputs` | object[] | no | — | One extra slot for the vocabulary values when `vocabularyFields` is set. |
+| `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How hard the model thinks first; costs time and tokens. ⚠️ Higher settings cost the most time and tokens on reasoning models. |
+| `temperature` | number, 0 to 2 | no | — | How much the answer may vary; empty uses the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
+| `vocabularyFields` | object[] | no | — | Which answer fields hold vocabulary values to resolve into terms. |
 
 ### `outputs` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `slot` | string | yes | — | The slot the extra value is written to. A later action reads it by this name. |
+| `slot` | string | yes | — | The name a later action reads the extra value by. |
 | `schema` | union | yes | — | The type of the value in that slot, as a schema reference. |
 
 `schema` — one of:
@@ -38,43 +39,43 @@ Fills the action's prompt with the slots wired into it and sends it to a model. 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape, defined once in the project's types and reused by id. |
-| `dataTypeId` | string | yes | — | Id of the type this points at. It has to already exist, and one that something still points at cannot be deleted. |
+| `kind` | `ref` | yes | — | A named shape from the project's types, by id. |
+| `dataTypeId` | string | yes | — | The id of an existing type this points at. |
 
 **`schema` › `kind: list`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `list` | yes | — | An array of values. |
-| `element` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `element` | any `schema` alternative | yes | — | The shape at this position, one level in. |
 
 **`schema` › `kind: optional`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `optional` | yes | — | A value that may be absent altogether. |
-| `inner` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `inner` | any `schema` alternative | yes | — | The shape at this position, one level in. |
 
 **`schema` › `kind: union`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `union` | yes | — | One of several alternative shapes. An action may READ a union; what it writes has to be one concrete shape. |
-| `members` | a list of `schema` alternatives, at least 2 items | yes | — | The alternatives — at least two, since a single-member union is just that member. |
+| `kind` | `union` | yes | — | One of several shapes; an action writes only one. |
+| `members` | a list of `schema` alternatives, at least 2 items | yes | — | The alternatives, at least two. |
 
 **`schema` › `kind: record`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `record` | yes | — | A map from string keys to values. Only the values are typed; the keys are always strings and are not constrained. |
-| `valueType` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `kind` | `record` | yes | — | A map from text keys to values of one type. |
+| `valueType` | any `schema` alternative | yes | — | The shape at this position, one level in. |
 
 **`schema` › `kind: recordRef`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
-| `tableKey` | string | yes | — | Which table the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+| `kind` | `recordRef` | yes | — | One stored record, given by its id. |
+| `tableKey` | string | yes | — | Which table the id refers to. |
 
 ### `vocabularyFields` — each item
 

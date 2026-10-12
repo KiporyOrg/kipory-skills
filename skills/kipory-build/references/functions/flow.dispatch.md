@@ -4,11 +4,12 @@
 
 Send a value down the first branch whose rule it matches.
 
-Sends the input down one of several branches, choosing the first rule that matches. What gets matched is set by `matchOn` — the value, its host, or a named field — while the original input is what travels on.
+What gets matched is set by `matchOn`, but the original input is what travels on.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string | file | object` → `the input, unchanged`
+- **Also found as:** branch, if, condition, switch, route, otherwise
 - **Reads:** One slot. What gets matched is decided by `matchOn`; the match is the routing decision, not the payload. _(shape hint: `string | file | object`)_
 - **Emits:** The original input, forwarded to exactly one branch — the first rule that matches, or the default. With no default, an unmatched input is skipped.
 - **Suggested input streams:** `inputValue`
@@ -17,11 +18,11 @@ Sends the input down one of several branches, choosing the first rule that match
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `default` | object | no | — | Fallback branch invoked when no explicit rule matches. When omitted, unmatched inputs are silently skipped. |
-| `flags` | string[] | no | `["i"]` | Regex flags for every rule: `i` ignores case, `m` makes `^`/`$` match per line, `s` lets `.` match newlines, `u` enables Unicode. ⚠️ Glob patterns ignore these flags and always ignore case. |
-| `matchOn` | union | no | `"value"` | What the rules are tested against: the value itself, the host of a URL, or a named field of an object. ⚠️ The ORIGINAL input is forwarded, whatever is matched — a file in stays a file out. The branch slots take the action's output type, text unless you set it. |
-| `patternSyntax` | `regex` \| `glob` | no | `"regex"` | How the rule patterns are written. `regex` is full JavaScript regex; `glob` allows `*` and treats the rest literally. |
-| `rules` | object[] | no | `[]` | Ordered pattern → output-slot rules; the first match wins. Leave it empty only beside a `default`: with neither, every input is skipped. |
+| `default` | object | no | — | Branch for input no rule matches; empty means it is skipped. |
+| `flags` | string[] | no | `["i"]` | Regex flags for every rule, such as `i` to ignore case. ⚠️ Glob patterns ignore these flags and always ignore case. |
+| `matchOn` | union | no | `"value"` | What rules test: the value, a URL's host, or a named field. ⚠️ The original input is forwarded, and branch slots take the output type, text unless set. |
+| `patternSyntax` | `regex` \| `glob` | no | `"regex"` | How patterns are written: full regex, or glob with `*` wildcards. |
+| `rules` | object[] | no | `[]` | Pattern rules in order; the first match wins. |
 
 ### `default`
 
@@ -38,13 +39,13 @@ Sends the input down one of several branches, choosing the first rule that match
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `field` | string | yes | — | Name of the string field read off the object-shaped input as the matchable. |
+| `field` | string | yes | — | Name of the object's text field to match against. |
 
 ### `rules` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `pattern` | string | yes | — | The pattern to test. A JavaScript regex, or a glob when the syntax above says so. |
+| `pattern` | string | yes | — | The pattern to test, as a regex or a glob. |
 | `outputSlot` | string | yes | — | The slot the input is forwarded to when this rule matches. |
 
 ## Worked example

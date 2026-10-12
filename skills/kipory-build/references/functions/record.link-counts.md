@@ -4,11 +4,12 @@
 
 Count how many links reach each record, from everyone.
 
-Counts the current links of one relation that reach each record, across everyone's records, and returns numbers only. Use it for "how many people follow this". Records this run may not write are left out.
+Counts one relation's current links reaching each record, across everyone's records. Returns numbers only, for records this run may write.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record ids` → `RecordLinkCount[]`
+- **Also found as:** count followers, how many links, link count
 - **Reads:** The record ids, from the slot `recordIdsSlot` names: one id or a list of up to 200. More than 200 fails the action. _(shape hint: `record ids`)_
 - **Emits:** A `RecordLinkCount` per record this run may write, with how many current links of the relation reach it. A record no link reaches counts 0.
 
@@ -16,8 +17,8 @@ Counts the current links of one relation that reach each record, across everyone
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `direction` | `incoming` \| `outgoing` \| `either` | no | `"incoming"` | Count links pointing at the record (`incoming`), from it (`outgoing`), or both. |
-| `recordIdsSlot` | string | yes | — | Slot PATH (e.g. `page.creatorIds`) that resolves to one record id or a list of up to 200. ⚠️ A count says how many people's records link here, never whose. A small number on a niche record can still hint at who; show it only where that is fine. |
+| `direction` | `incoming` \| `outgoing` \| `either` | no | `"incoming"` | Links pointing at the record (`incoming`), from it (`outgoing`), or both. |
+| `recordIdsSlot` | string | yes | — | The slot path to one record id or up to 200. ⚠️ A count says how many link here, never whose; on a niche record a small one can still hint. |
 | `relationKey` | string | yes | — | The relation whose links are counted, by key. |
 
 ## Worked example

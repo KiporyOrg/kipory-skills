@@ -4,11 +4,12 @@
 
 List the recent posts a public Facebook page has published.
 
-Reads a public Facebook page's posts from its handle or page link, newest first, up to the bound you set. Each comes back with its text, time, link, counts, and a video link when it has one. Posts arrive three to a paid request.
+Newest first, from a handle or page link. Each post has its text, time, link, counts and any video link.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** facebook feed, fb posts, page updates
 - **Reads:** One Facebook page handle, with or without `@`, or a page link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`, newest first. Empty when the page has posted nothing or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads a public Facebook page's posts from its handle or page link, newest first,
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 30 | no | `3` | How many posts to return, up to 30. Posts arrive 3 to a paid request, so 3 is one request and 30 is ten. ⚠️ Posts arrive three to a paid request, so every three posts cost one more request. |
+| `maxItems` | integer, more than 0, at most 30 | no | `3` | How many posts to return, up to 30, 3 per paid request. ⚠️ Posts arrive three to a paid request, so every three posts cost one more request. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 Look up one TikTok video's details and numbers.
 
-Reads one public TikTok video from its link: caption, author, time, cover, a link to the video file and its engagement counts. A link to another site is refused before anything is fetched.
+Give the video's link. Returns caption, author, time, cover, video file link and engagement counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`
+- **Also found as:** tiktok clip, video details, tiktok link
 - **Reads:** One TikTok video link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialPost`. A bare `{}` when the video does not exist or is private.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

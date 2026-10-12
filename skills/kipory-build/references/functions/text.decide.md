@@ -4,11 +4,12 @@
 
 Answer typed questions about a value: yes/no, pick one, or score.
 
-The cheapest model action: its model returns values, not text, and one call answers every question. Each field of the output type is one question: a probability (yes/no), one of a set, or a number with levels. Plain text and yes/no fields are refused.
+One call answers every output field as a probability, an option or a number. Text and yes/no fields are refused.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any` → `the action's outputSchema`
+- **Also found as:** classify, categorize, categorise, answer a question, yes or no, label, score, sentiment, spam check, detect
 - **Reads:** The value to judge — text, or a JSON object or list. Every question is answered against the same value.
 - **Emits:** The action's output type, each field answered: a chance of yes, a chosen option, or a score. Optionally a `DecisionConfidence` too. Empty when the input was empty.
 - **Suggested input streams:** `state`
@@ -21,14 +22,14 @@ The cheapest model action: its model returns values, not text, and one call answ
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `model` | string | no | `"typesafe/jev-latest"` | Which decision model answers, by its catalog id (creator/slug, as GET /v1/ai-models lists it). ⚠️ Only a decision model can answer. A chat model is refused when the action saves. |
-| `outputs` | object[] | no | — | One extra slot for how sure the model was of each answer. Type it DecisionConfidence; leave it out to write the answers alone. ⚠️ Every question gets an answer: an option such as `unknown` is one more option, not a refusal to answer. To catch a guess, compare this slot's `lowest` in a later action's condition. |
+| `model` | string | no | `"typesafe/jev-latest"` | Which decision model answers, by its catalog id. ⚠️ Only a decision model can answer; a chat model is refused on save. |
+| `outputs` | object[] | no | — | An extra slot for how sure the model was, typed `DecisionConfidence`. ⚠️ Every question gets an answer, so check this slot's `lowest` in a later condition to catch guesses. |
 
 ### `outputs` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `slot` | string | yes | — | The slot the extra value is written to. A later action reads it by this name. |
+| `slot` | string | yes | — | The name a later action reads the extra value by. |
 | `schema` | union | yes | — | The type of the value in that slot, as a schema reference. |
 
 `schema` — one of:
@@ -37,43 +38,43 @@ The cheapest model action: its model returns values, not text, and one call answ
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape, defined once in the project's types and reused by id. |
-| `dataTypeId` | string | yes | — | Id of the type this points at. It has to already exist, and one that something still points at cannot be deleted. |
+| `kind` | `ref` | yes | — | A named shape from the project's types, by id. |
+| `dataTypeId` | string | yes | — | The id of an existing type this points at. |
 
 **`schema` › `kind: list`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `list` | yes | — | An array of values. |
-| `element` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `element` | any `schema` alternative | yes | — | The shape at this position, one level in. |
 
 **`schema` › `kind: optional`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `optional` | yes | — | A value that may be absent altogether. |
-| `inner` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `inner` | any `schema` alternative | yes | — | The shape at this position, one level in. |
 
 **`schema` › `kind: union`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `union` | yes | — | One of several alternative shapes. An action may READ a union; what it writes has to be one concrete shape. |
-| `members` | a list of `schema` alternatives, at least 2 items | yes | — | The alternatives — at least two, since a single-member union is just that member. |
+| `kind` | `union` | yes | — | One of several shapes; an action writes only one. |
+| `members` | a list of `schema` alternatives, at least 2 items | yes | — | The alternatives, at least two. |
 
 **`schema` › `kind: record`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `record` | yes | — | A map from string keys to values. Only the values are typed; the keys are always strings and are not constrained. |
-| `valueType` | any `schema` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `kind` | `record` | yes | — | A map from text keys to values of one type. |
+| `valueType` | any `schema` alternative | yes | — | The shape at this position, one level in. |
 
 **`schema` › `kind: recordRef`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
-| `tableKey` | string | yes | — | Which table the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+| `kind` | `recordRef` | yes | — | One stored record, given by its id. |
+| `tableKey` | string | yes | — | Which table the id refers to. |
 
 ## Worked example
 

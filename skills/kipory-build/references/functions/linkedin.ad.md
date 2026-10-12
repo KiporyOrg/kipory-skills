@@ -4,11 +4,12 @@
 
 Look up one ad in the LinkedIn ad library.
 
-Reads one ad from the public LinkedIn ad library, from its library link: advertiser, headline, copy, image, destination, run dates and who it was shown to. A link to another site is refused before anything is fetched.
+Give the ad's library link. Returns advertiser, headline, copy, image, destination, run dates and who it was shown to.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`
+- **Also found as:** linkedin advert, sponsored post, linkedin ad details
 - **Reads:** One LinkedIn ad library link (`linkedin.com/ad-library/detail/…`). Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialAd`. A bare `{}` when the library has no such ad.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

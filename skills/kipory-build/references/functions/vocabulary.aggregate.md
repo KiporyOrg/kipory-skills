@@ -4,11 +4,12 @@
 
 Count a user's records by term, as a list or a browsable tree.
 
-Counts a user's records per term and groups them by vocabulary, rolling merged terms into the one they point at. Comes back as a flat catalog per vocabulary, or as a nested browse tree. Use it to answer what someone has, rather than searching it.
+Merged terms count toward the term they point at. Use it to show what someone has, not to search.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `VocabularyAggregate`
+- **Also found as:** count per term, tag counts, group by tag, vocabulary counts
 - **Reads:** The user id, from the slot `userIdSlot` names. Every count is scoped to that user. Everything else is settings on the action. _(shape hint: `string`)_
 - **Emits:** A `VocabularyAggregate` — the user's terms grouped per vocabulary with counts — or a `VocabularyTree` when `shape` is `tree`. A user with no terms gets an empty result.
 
@@ -16,10 +17,10 @@ Counts a user's records per term and groups them by vocabulary, rolling merged t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxEntriesPerVocabulary` | integer, 1 to 1000 | no | `200` | Most entries per vocabulary group, or per tree level. 200 by default, between 1 and 1000. ⚠️ Entries are sorted by count first, so when a group runs past the cap the highest-count terms are the ones that survive. |
-| `shape` | `aggregate` \| `tree` | no | `"aggregate"` | Which shape comes out: `aggregate` (the default) for a flat catalog per vocabulary, or `tree` for a nested browse tree. ⚠️ Under `tree` the per-vocabulary cap becomes a per-level cap — categories, then a category's types, then a type's subtypes. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Every count is scoped to that user; another user's records never contribute. ⚠️ This value is mandatory: an empty one fails the action rather than counting across users. |
-| `vocabularies` | string[] | no | — | Which vocabularies to include. Leave it empty for every vocabulary the user has terms in. Any project vocabulary is accepted. ⚠️ Under `shape: tree` this is not a filter but the ordered list of levels, outermost first. |
+| `maxEntriesPerVocabulary` | integer, 1 to 1000 | no | `200` | Most entries per vocabulary or tree level, 1 to 1000, default 200. ⚠️ Entries sort by count, so the highest-count terms survive the cap. |
+| `shape` | `aggregate` \| `tree` | no | `"aggregate"` | `aggregate` (default) gives a flat list per vocabulary; `tree` a browse tree. ⚠️ Under `tree` the per-vocabulary cap becomes a per-level cap — categories, then a category's types, then a type's subtypes. |
+| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id; only their records count. ⚠️ This value is mandatory: an empty one fails the action rather than counting across users. |
+| `vocabularies` | string[] | no | — | Which vocabularies to include; empty means all the user has terms in. ⚠️ Under `shape: tree` this is not a filter but the ordered list of levels, outermost first. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 Get the words spoken in a YouTube video.
 
-Takes a bare 11-character video id, usually the `id` field of `youtube.video`. Reads both automatic and manual captions, and you can name the caption language. A URL is refused, not parsed: put `youtube.video` before it and wire its `id` in.
+Takes an 11-character video id, not a link. Reads automatic and manual captions.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
+- **Also found as:** youtube captions, subtitles, what was said
 - **Reads:** One bare video id. A full URL is refused — parse it with `youtube.video` first. Anything else is dropped without a call. _(shape hint: `string`)_
 - **Emits:** The transcript as text — plain prose, or lines prefixed with timestamps when you ask for them. An empty string when the video has no captions.
 - **Softens these failures:** `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,10 +24,10 @@ Takes a bare 11-character video id, usually the `id` field of `youtube.video`. R
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `fallback` | boolean | no | `true` | If the chosen vendor errors, is rate-limited, has no key or refuses the platform's key, try the others. Empty answers do not fall back. ⚠️ A fallback is billed by the vendor that answered, which may be the platform's when yours failed. Your own key refused by the chosen vendor does not fall back: the action fails. |
+| `fallback` | boolean | no | `true` | If the chosen vendor fails, try the other vendors. ⚠️ A fallback bills the vendor that answered; a refused key of your own fails the action. |
 | `includeTimestamps` | boolean | no | `false` | When true, prefix each line with its start timestamp; otherwise return prose. |
-| `lang` | string | no | — | ISO language code (e.g. 'en', 'es'). Unset = the provider picks the default track. |
-| `provider` | `supadata` \| `scrapecreators` | no | `"supadata"` | Which vendor does the work: supadata or scrapecreators. Each spends its own key and bills at its own rate. "supadata" when left unset. |
+| `lang` | string | no | — | Caption language code, like `en`; empty takes the default track. |
+| `provider` | `supadata` \| `scrapecreators` | no | `"supadata"` | Which vendor does the work; each bills at its own rate. |
 
 ## Worked example
 

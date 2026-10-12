@@ -4,11 +4,12 @@
 
 Find Threads posts that match a search.
 
-Searches public Threads posts for a keyword or phrase and returns the matches. Threads returns one page of at most ten results to a signed-out visitor.
+Threads returns at most ten results to a signed-out visitor.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** find threads posts, threads topic, threads discussions
 - **Reads:** One search phrase. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`. Empty when nothing matches.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Searches public Threads posts for a keyword or phrase and returns the matches. T
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 10 | no | `10` | The most posts to return, up to 10. This read is one request whatever the bound. |
+| `maxItems` | integer, more than 0, at most 10 | no | `10` | How many posts to return, up to 10. |
 
 ## Worked example
 

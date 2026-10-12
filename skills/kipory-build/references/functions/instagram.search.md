@@ -4,11 +4,12 @@
 
 Find popular Instagram posts on a topic.
 
-Reads the popular posts and reels Instagram shows a signed-out visitor for a topic, up to the bound you set, each with its caption, author, link and play count. It is Instagram's own pick for the topic, not every post that mentions the words.
+Returns Instagram's own pick for the topic, with caption, author, link and play count; not every matching post.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** instagram hashtag, ig search, find instagram posts
 - **Reads:** One topic or phrase. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`. Empty when nothing matches.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads the popular posts and reels Instagram shows a signed-out visitor for a top
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

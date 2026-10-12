@@ -13,6 +13,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/ai-models`](#get-v1-ai-models) |  |
 | `GET` | [`/v1/functions`](#get-v1-functions) |  |
 | `GET` | [`/v1/functions/{key}`](#get-v1-functions-key) |  |
+| `POST` | [`/v1/functions/missed-searches`](#post-v1-functions-missed-searches) |  |
 | `GET` | [`/v1/nodes/{nodeId}/model-prices`](#get-v1-nodes-nodeid-model-prices) |  |
 | `GET` | [`/v1/nodes/{nodeId}/routing`](#get-v1-nodes-nodeid-routing) |  |
 | `PUT` | [`/v1/nodes/{nodeId}/routing/{modelId}`](#put-v1-nodes-nodeid-routing-modelid) |  |
@@ -62,7 +63,7 @@ Each item of `models`:
 | `canReason` | `boolean` | yes | The model can spend hidden reasoning tokens before it answers. The `reasoning` task may only bind to a model where this is true. |
 | `reasoningEfforts` | `string[]` | yes | The effort levels the vendor accepts for that reasoning, in the vendor's own words (`low`, `medium`, `high`, …). Empty when the model has no dial, including models that reason at a fixed depth. |
 | `embeddingDimensions` | `integer \| null` | yes | Output dimension count. Non-null exactly on embedding models. |
-| `embeddingDistance` | `"Cosine" \| "Dot" \| "Euclid"` | yes | Distance metric the embedding space was trained for. An embedding profile derives its collection geometry from this and `embeddingDimensions`, so null means the row is not yet complete enough to bind a profile to. |
+| `embeddingDistance` | `"Cosine" \| "Dot" \| "Euclid" \| null` | yes | Distance metric the embedding space was trained for. An embedding profile derives its collection geometry from this and `embeddingDimensions`, so null means the row is not yet complete enough to bind a profile to. |
 | `status` | `string` | yes | `active`, or `deprecated` when the vendor has announced a retirement. A model this deployment has decided to stop serving is absent from the catalog rather than labelled here. |
 | `deprecatedAt` | `string \| null` | yes | The retirement date the vendor published, as `YYYY-MM-DD` — possibly in the future. Non-null means: still runnable and still referenced by existing actions, but going away — migrate off it. A model that is no longer usable at all is absent from this catalog rather than dated here. Null when the vendor has announced nothing. |
 | `successorModelId` | `string \| null` | yes | What to migrate to, once somebody has named one — an id from this same catalog. Null when no successor has been chosen, which is the usual state even for a deprecated model. |
@@ -85,6 +86,8 @@ Every function this deployment runs — what each reads, emits and accepts as co
 | `hashes` | `object` | yes | One content hash per function key, over what `GET /v1/functions/{key}` answers. A function's hash moves only when that function changes, so a cached copy of one function can be checked without re-reading the rest. |
 | `functions` | `object[]` | yes | Every function this deployment registers, sorted by key. With `?project=`, each also carries `inputContract`, `variadicInputContract`, `staticOutputSchema`, `contractUnresolved`, `configDefaults`, `configDefaultsValid` and `freeFormInput`, resolved against that project's types; without it those are absent. |
 | `groups` | `object[]` | yes | Every picker group, IN DISPLAY ORDER, with the one sentence that says what it is for. Order is meaningful: it runs roughly from what a flow produces toward what it is plumbed with. |
+| `valueKinds` | `object[]` | yes | The whole closed list of value kinds, each with its words, its parent and the type it sits on. Every kind named anywhere in this response is one of these. |
+| `askAi` | `object` | yes | The function for free instructions, named by the platform. |
 
 Each item of `functions`:
 
@@ -100,6 +103,9 @@ Each item of `functions`:
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What an action editor must ask the operator for this function: which work surface to show, whether a prompt and a model are required, and where this function's inputs and output slot come from. Always fully populated — a function that declares nothing is served the platform defaults, so a client never applies a default of its own. |
 | `glance` | `object` | yes | What goes in, what the action does, what comes out — in plain words. |
+| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`, so one row can be drawn on its own. |
+| `searchWords` | `string[]` | yes | The words a customer types for what this function does — tasks, outcomes, everyday terms. Match them to find a function by intent; they may be shown. |
+| `searchProductNames` | `string[]` | yes | Other products' names a customer may type for what this function does ("chatgpt"). Match them; never show them. Empty when none. |
 | `essentials` | `object[]` | yes | The settings that matter, in reading order: every required one, then those that change the result. Empty when none is worth a card. |
 | `emits` | `string` | no | What it produces, in prose. |
 | `reads` | `string` | no | What it consumes, in prose. |
@@ -122,19 +128,30 @@ Each item of `functions`:
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` functions; an inline or control function runs in the pipeline with neither. |
 | `run` | `object` | yes | How an action using this function is run: what its time limit bounds, where the default comes from, and any limit the function keeps whatever the action says. Always present. |
 | `inputContract` | `object[] \| null` | no | The structural bound on each input position, resolved against this project's registry. Position N bounds `inputStreams[N]`. Null means the function declares no contract — every position is unconstrained. Distinguish that from `contractUnresolved` below, which means the function DOES declare one and it could not be computed. |
-| `variadicInputContract` | `object` | no | The bound every input position must satisfy, for a function that takes any number of same-shaped inputs. Null when the function is not variadic. Mutually exclusive with `inputContract` in practice. |
-| `staticOutputSchema` | `object` | no | What this function emits in this project BEFORE any wiring — its output resolver asked with no inputs and no config. Null for a function whose output type mirrors an input (it cannot be known until wired) and for one that writes no output slot at all. |
+| `variadicInputContract` | `object \| null` | no | The bound every input position must satisfy, for a function that takes any number of same-shaped inputs. Null when the function is not variadic. Mutually exclusive with `inputContract` in practice. |
+| `staticOutputSchema` | `object \| null` | no | What this function emits in this project BEFORE any wiring — its output resolver asked with no inputs and no config. Null for a function whose output type mirrors an input (it cannot be known until wired) and for one that writes no output slot at all. |
 | `contractUnresolved` | `boolean` | no | True when a declared resolver THREW while being asked — a dangling library type, normally a platform defect. The three fields above are null in that case for a different reason than 'not declared', and a picker must not silently stop filtering: say the check could not run. |
 | `configDefaults` | `unknown` | no | The function's config with every default applied — what an action gets if it sends no `functionConfig` at all. Shaped by `config` above. |
 | `configDefaultsValid` | `boolean` | no | Whether those defaults actually satisfy the function's own config schema. False means the function declares a required field with no default, so an action using it MUST send config; it is not an error. |
-| `freeFormInput` | `object` | no | How this function takes slot references through its config rather than through input positions. Null for the ordinary positional function. |
+| `freeFormInput` | `object \| null` | no | How this function takes slot references through its config rather than through input positions. Null for the ordinary positional function. |
 
 Each item of `groups`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The group this sentence is about. |
+| `word` | `string` | yes | The word the group is shown by ("Tables"); typing it finds the group's functions. |
 | `note` | `string` | yes | What this group is for, in one sentence, at any size. |
+
+Each item of `valueKinds`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `"text" \| "long-text" \| "search-phrase" \| "language-code" \| "country-code" \| "region-code" \| "email-address" \| "handle" \| "id" \| "record-id" \| "user-id" \| "video-id" \| "place-id" \| "web-address" \| "file-address" \| "image-address" \| "post-link" \| "profile-link" \| "ad-link" \| "date" \| "file" \| "image" \| "audio" \| "video" \| "document" \| "number" \| "count" \| "money" \| "boolean"` | yes | A value kind's key, one of the catalog's `valueKinds`. |
+| `words` | `string` | yes | What an author reads: `a web address`. |
+| `parent` | `"text" \| "long-text" \| "search-phrase" \| "language-code" \| "country-code" \| "region-code" \| "email-address" \| "handle" \| "id" \| "record-id" \| "user-id" \| "video-id" \| "place-id" \| "web-address" \| "file-address" \| "image-address" \| "post-link" \| "profile-link" \| "ad-link" \| "date" \| "file" \| "image" \| "audio" \| "video" \| "document" \| "number" \| "count" \| "money" \| "boolean" \| null` | yes | The kind this one is a case of; `null` for a root. |
+| `base` | `"string" \| "file" \| "number" \| "boolean" \| "object" \| "list"` | yes | The type the kind sits on; a child sits on its parent's. |
+| `scoped` | `boolean` | yes | Whether the kind takes a network (an Instagram handle). |
 
 ### `GET /v1/functions/{key}`
 
@@ -162,6 +179,9 @@ Any authenticated caller; the answer is the same for everyone.
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What an action editor must ask the operator for this function: which work surface to show, whether a prompt and a model are required, and where this function's inputs and output slot come from. Always fully populated — a function that declares nothing is served the platform defaults, so a client never applies a default of its own. |
 | `glance` | `object` | yes | What goes in, what the action does, what comes out — in plain words. |
+| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`, so one row can be drawn on its own. |
+| `searchWords` | `string[]` | yes | The words a customer types for what this function does — tasks, outcomes, everyday terms. Match them to find a function by intent; they may be shown. |
+| `searchProductNames` | `string[]` | yes | Other products' names a customer may type for what this function does ("chatgpt"). Match them; never show them. Empty when none. |
 | `essentials` | `object[]` | yes | The settings that matter, in reading order: every required one, then those that change the result. Empty when none is worth a card. |
 | `emits` | `string` | no | What it produces, in prose. |
 | `reads` | `string` | no | What it consumes, in prose. |
@@ -217,7 +237,9 @@ Each item of `config`:
 | `required` | `boolean` | yes | Whether an action using this function must set the field. |
 | `default` | `string` | no | The default, JSON-ENCODED — so a string default arrives quoted, e.g. "\"auto\"". Absent when the field has no default. |
 | `description` | `string` | no | What the field does, when the function's author wrote it down. |
-| `refKind` | `"table" \| "vocabulary" \| "flow" \| "relation" \| "field"` | no | The kind of project object this field names — a table, a vocabulary, a flow or a relation by key, or a field of a table by path. Absent when the field names none. It is the KIND, not an instance: which one is configured per action. |
+| `refKind` | `"table" \| "vocabulary" \| "flow" \| "relation" \| "field" \| "event" \| "event-category"` | no | The kind of project object this field names — a table, a vocabulary, a flow or a relation by key, a field of a table by path, or one half of an event (`event-category` and `event`, two fields of one function that together name one of the project's events). Absent when the field names none. It is the KIND, not an instance: which one is configured per action. |
+| `offerAs` | `string` | no | How this function reads with one object of `refKind`, its name in the placeholder: "Save to {table}", "Run {flow}". Offered as a choice when adding an action. Absent on a field that names none. |
+| `suggestOnMatchingType` | `true` | no | Set on the one table field whose `offerAs` is suggested for a table whose records have the added value's type. Absent elsewhere. |
 | `caution` | `string` | no | What goes wrong if this field is set wrong, and what it costs. Absent when the field carries no such cost. |
 
 Each item of `configConstraints`:
@@ -235,6 +257,25 @@ Each item of `configOutputSlots`:
 | --- | --- | --- | --- |
 | `kind` | `"name" \| "record-keys" \| "record-values"` | yes | How slot names sit at `path`: the value itself (a string, an object's member, or each list item's member), the KEYS of a map there, or its VALUES. |
 | `path` | `string` | yes | The config setting, or `setting.member` for a member of an object or of each item of a list. |
+
+### `POST /v1/functions/missed-searches`
+
+Record a search on a flow's add list that ended with nothing chosen, or with "Ask AI to …": the phrase, the value kind and how it ended. Requires EDITOR on the flow, which is not kept. A phrase of fewer than three letters or digits is refused; the same phrase, value kind and ending again within an hour is accepted and not kept twice; a caller records at most 30 a minute, and past 5000 kept in 24 hours across all callers a record is accepted and not kept. Staff read them with `GET /v1/functions/missed-searches`; matching a request to a function is `GET /v1/functions` (`searchWords`).
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow whose add list was searched. Checked for EDITOR and not kept. |
+| `phrase` | `string` | yes | What was typed: at least 3 letters or digits, no NUL. Kept lowercased, with one space between words, trimmed, its first 200 characters; the same phrase, value kind and ending again within an hour is not kept twice. |
+| `valueKind` | `"text" \| "long-text" \| "search-phrase" \| "language-code" \| "country-code" \| "region-code" \| "email-address" \| "handle" \| "id" \| "record-id" \| "user-id" \| "video-id" \| "place-id" \| "web-address" \| "file-address" \| "image-address" \| "post-link" \| "profile-link" \| "ad-link" \| "date" \| "file" \| "image" \| "audio" \| "video" \| "document" \| "number" \| "count" \| "money" \| "boolean" \| null` | yes | The value kind's key the list was opened for (`long-text`), or null. |
+| `ending` | `"nothing" \| "ask-ai"` | yes | How the search ended: `nothing` chosen, or "Ask AI to …" (`ask-ai`). |
+
+**Response `202`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `recorded` | `true` | yes | Accepted. Kept anonymously, unless the same search was kept within the last hour. |
 
 ### `GET /v1/nodes/{nodeId}/model-prices`
 
@@ -419,7 +460,7 @@ Bind a task kind to a model at this node; every project beneath it follows unles
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `modelId` | `string` | yes | A `modelId` from `GET /v1/ai-models`. It must be enabled, and its capability class must suit the task — an embedding model cannot serve `extraction`, and the `reasoning` task additionally requires a model whose `canReason` is true. |
-| `reasoningEffort` | `"low" \| "medium" \| "high"` | no | How much hidden reasoning the model may spend before answering, or null for the platform's own default for this task. ⚠️ Only OpenAI reasoning models read it; other vendors ignore it. It rides on this binding and inherits with it, so a node that sets a model sets the effort that goes with it. |
+| `reasoningEffort` | `"low" \| "medium" \| "high" \| null` | no | How much hidden reasoning the model may spend before answering, or null for the platform's own default for this task. ⚠️ Only OpenAI reasoning models read it; other vendors ignore it. It rides on this binding and inherits with it, so a node that sets a model sets the effort that goes with it. |
 
 **Response `200`**
 

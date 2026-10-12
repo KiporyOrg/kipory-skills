@@ -4,12 +4,13 @@
 
 Make an image smaller and return the new file.
 
-Shrinks an image to fit inside a maximum width and height, for thumbnails, previews or tidying an upload. A file that is not an image fails, so put a `slotStartsWith currentFile.mime image/` condition or a `flow.dispatch` on the file's type before it.
+Fits within the maximum width and height. A file that is not an image fails, so check the type first.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **Not undone when a run fails:** `file` — The file's bytes are stored while the action runs. A later attempt of the run stores them again under its own key; a file no record keeps is removed by the platform later. Doing it twice is not harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `file` → `file`
+- **Also found as:** thumbnail, shrink, smaller image, compress image
 - **Reads:** One image file. A non-image input throws, so route those elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the resized image. A retry on the same item reuses the previous encode. An empty input gives an empty file back.
 - **Suggested input streams:** `currentFile`
@@ -19,14 +20,14 @@ Shrinks an image to fit inside a maximum width and height, for thumbnails, previ
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `autoOrient` | boolean | no | `true` | Apply the rotation recorded in the file's metadata before resizing. Phone photos usually need this. |
-| `fit` | `inside` \| `cover` \| `contain` | no | `"inside"` | How the image meets the box. `inside` keeps the aspect ratio, `cover` crops to fill, `contain` letterboxes to fill. |
-| `format` | `preserve` \| `jpeg` \| `webp` \| `png` | no | `"preserve"` | What to encode the output as. `preserve` keeps the input's format where it can, and otherwise converts. |
+| `autoOrient` | boolean | no | `true` | Apply the photo's recorded rotation before resizing. |
+| `fit` | `inside` \| `cover` \| `contain` | no | `"inside"` | How the image fits the box: keep ratio, crop, or letterbox. |
+| `format` | `preserve` \| `jpeg` \| `webp` \| `png` | no | `"preserve"` | Output format; `preserve` keeps the input's format where it can. |
 | `maxHeight` | integer, more than 0 | no | `256` | Maximum output height in pixels. |
-| `maxInputBytes` | integer, more than 0 | no | `50000000` | Hard cap on the input file size before decoding. Prevents OOM on hostile or accidental huge uploads. |
-| `maxInputPixels` | integer, more than 0 | no | `50000000` | How big a source image may be before it is refused, counted as width times height. ⚠️ It bails BEFORE decoding, which is the point — raise it for real panoramas, lower it to keep a hostile file from being opened. |
+| `maxInputBytes` | integer, more than 0 | no | `50000000` | Largest input file to accept, in bytes. |
+| `maxInputPixels` | integer, more than 0 | no | `50000000` | Largest source image allowed, as width times height. ⚠️ Checked before decoding; raise it for real panoramas, lower it to block hostile files. |
 | `maxWidth` | integer, more than 0 | no | `256` | Maximum output width in pixels. |
-| `quality` | integer, 1 to 100 | no | `80` | Encoder quality (1-100). Applies to jpeg + webp output formats; ignored for png (lossless). |
+| `quality` | integer, 1 to 100 | no | `80` | Quality from 1 to 100 for jpeg and webp; png ignores it. |
 
 ## Worked example
 

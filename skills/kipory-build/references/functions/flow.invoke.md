@@ -4,11 +4,12 @@
 
 Run another flow, passing values in and taking results back.
 
-Runs another saved flow inside this one. The input slots you map are handed to the sub-flow as its starting values, and the output slots you map come back to this flow. Nothing else crosses between the two.
+Only the slots you map cross between the two flows, in and out.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the parent slots its inputs name` → `nothing`
+- **Also found as:** call a flow, subflow, reuse a flow, run flow
 - **Reads:** Reads the parent slots its `inputs` rows name. A save fills `inputStreams` from them. _(shape hint: `the parent slots its inputs name`)_
 - **Emits:** Whatever `outputs` copies back from the sub-flow, into the parent slots it names. The action writes no slot of its own.
 
@@ -16,9 +17,9 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | union[] | no | `[]` | Which parent slots to pass into the sub-flow, and where each one lands. Only these cross the boundary. |
-| `outputs` | object[] | no | `[]` | Which sub-flow outputs to copy back, and into which parent slots. Leave it empty for side effects only. ⚠️ Each row also carries `derivedShape`, the sub-flow output's type. The platform derives it on every save — a single action save and a project document alike — so never state it. |
-| `targetFlowId` | string | yes | — | The saved flow this action runs, never its own flow. A project document names it `target`, by key. |
+| `inputs` | union[] | no | `[]` | Parent slots to pass in, and where each one lands. |
+| `outputs` | object[] | no | `[]` | Sub-flow outputs to copy back, and the parent slots receiving them. ⚠️ Each row's `derivedShape` is filled in on every save, so never set it. |
+| `targetFlowId` | string | yes | — | The saved flow to run, never this flow itself. |
 
 ### `inputs` — each item is one of
 
@@ -29,13 +30,13 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 | `kind` | `slot` | yes | — | Pass a parent slot's value into the sub-flow. |
 | `parentSlot` | string | yes | — | The parent slot to read. |
 | `subFlowSlot` | string | yes | — | The sub-flow input slot the value lands in. |
-| `path` | object | no | — | A path into the parent slot's value, to pass one part of it. |
+| `path` | object | no | — | A path into the parent slot's value, to pass part of it. |
 
 `path`:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `segments` | union[] | yes | — | Steps applied in order, each operating on the result of the last. An empty list takes the value whole. |
+| `segments` | union[] | yes | — | Parts applied in order; an empty list takes the whole value. |
 
 `path` › `segments` — each item is one of:
 
@@ -44,7 +45,7 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `field` | yes | — | Step into a named property of an object. |
-| `name` | string | yes | — | Property to read. May also name a dynamic key, so dots and hyphens are allowed after the first character. |
+| `name` | string | yes | — | The property to read. |
 
 **`path` › `segments` › `kind: first`**
 
@@ -69,7 +70,7 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `pluck` | yes | — | Read one property from EVERY element of a list, producing a list of those values rather than a single one. |
+| `kind` | `pluck` | yes | — | Read one property from every item of a list. |
 | `name` | string | yes | — | Property to read from each element. |
 
 **`path` › `segments` › `kind: wrap`**
@@ -92,7 +93,7 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 | --- | --- | --- | --- | --- |
 | `subFlowSlot` | string | yes | — | The sub-flow slot to copy back. |
 | `parentSlot` | string | yes | — | The parent slot it is written to. |
-| `derivedShape` | union | no | — | The type of the copied value. A save fills it from the sub-flow; leave it out. |
+| `derivedShape` | union | no | — | The copied value's type, filled in on save; leave it out. |
 
 `derivedShape` — one of:
 
@@ -100,43 +101,43 @@ Runs another saved flow inside this one. The input slots you map are handed to t
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape, defined once in the project's types and reused by id. |
-| `dataTypeId` | string | yes | — | Id of the type this points at. It has to already exist, and one that something still points at cannot be deleted. |
+| `kind` | `ref` | yes | — | A named shape from the project's types, by id. |
+| `dataTypeId` | string | yes | — | The id of an existing type this points at. |
 
 **`derivedShape` › `kind: list`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `list` | yes | — | An array of values. |
-| `element` | any `derivedShape` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `element` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
 
 **`derivedShape` › `kind: optional`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `optional` | yes | — | A value that may be absent altogether. |
-| `inner` | any `derivedShape` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `inner` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
 
 **`derivedShape` › `kind: union`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `union` | yes | — | One of several alternative shapes. An action may READ a union; what it writes has to be one concrete shape. |
-| `members` | a list of `derivedShape` alternatives, at least 2 items | yes | — | The alternatives — at least two, since a single-member union is just that member. |
+| `kind` | `union` | yes | — | One of several shapes; an action writes only one. |
+| `members` | a list of `derivedShape` alternatives, at least 2 items | yes | — | The alternatives, at least two. |
 
 **`derivedShape` › `kind: record`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `record` | yes | — | A map from string keys to values. Only the values are typed; the keys are always strings and are not constrained. |
-| `valueType` | any `derivedShape` alternative | yes | — | The shape at this position — the same set of shapes, one level in. |
+| `kind` | `record` | yes | — | A map from text keys to values of one type. |
+| `valueType` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
 
 **`derivedShape` › `kind: recordRef`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `recordRef` | yes | — | A pointer to one stored record. The value on the wire is that record's id. |
-| `tableKey` | string | yes | — | Which table the id refers to. Makes the reference filterable. The target is never checked, so a deleted record leaves it pointing at nothing. |
+| `kind` | `recordRef` | yes | — | One stored record, given by its id. |
+| `tableKey` | string | yes | — | Which table the id refers to. |
 
 ## Worked example
 

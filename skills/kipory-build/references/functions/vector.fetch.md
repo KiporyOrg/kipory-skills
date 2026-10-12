@@ -4,11 +4,12 @@
 
 Read the stored meaning numbers for an item.
 
-Reads one point's stored vectors by id and returns them as an object keyed by vector name. A name the point does not carry is left out rather than set to null. Naming one as required turns its absence into an error instead.
+Returns an object keyed by vector name. Names the point lacks are left out, not set to null.
 
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `Record<string, number[]>`
+- **Also found as:** stored vectors, read embedding, vector by id
 - **Reads:** One input slot, read via `freeFormInput` from the `pointIdSlot` config path: the point id to retrieve. _(shape hint: `string`)_
 - **Emits:** An object keyed by vector name. A name the point does not carry is left out, so the result mirrors what is actually stored.
 
@@ -16,10 +17,10 @@ Reads one point's stored vectors by id and returns them as an object keyed by ve
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `collection` | string | yes | — | Target collection to read the point from. The collection must exist; a missing one surfaces as VECTOR_FETCH_QDRANT_ERROR. |
-| `pointIdSlot` | string | yes | — | The slot holding the point id to read. Usually the output of an action that derives it from a record id. |
-| `requiredVectorNames` | string[] | no | `[]` | Which of the names above must be there. A missing one fails the action instead of returning a half-empty result. |
-| `vectorNames` | string[], at least 1 item | yes | — | Which stored vectors to read back. A name the point does not carry is simply left out of the result. |
+| `collection` | string | yes | — | The collection to read from; it must exist. |
+| `pointIdSlot` | string | yes | — | The slot holding the point id to read. |
+| `requiredVectorNames` | string[] | no | `[]` | Names that must be present, or the action fails. |
+| `vectorNames` | string[], at least 1 item | yes | — | Which stored vectors to read back; missing ones are left out. |
 
 ## Worked example
 

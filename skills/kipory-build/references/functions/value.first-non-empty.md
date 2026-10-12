@@ -4,11 +4,12 @@
 
 Take the first value that is filled in, from a list you rank.
 
-Hands the chosen value on exactly as it arrived, without converting it. So the candidates can be of different kinds, a URL string first and a file second, and the winner reaches later actions unchanged.
+The chosen value passes on unchanged, so candidates can be of different kinds.
 
 - **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `the first input's type`
+- **Also found as:** first non empty, fallback, default value, coalesce
 - **Reads:** Reads any number of root slots — useful for mixed display fallbacks such as URL string first, FileRef second. The action's inputs must list each root `inputs` names. _(shape hint: `any+`)_
 - **Emits:** The first populated value from a priority-ordered list of slot paths, preserving the selected value's runtime shape.
 
@@ -16,9 +17,9 @@ Hands the chosen value on exactly as it arrived, without converting it. So the c
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | string[], at least 1 item | yes | — | The slots to try, in the order you want them tried. Each is a slot name or a path into an object slot. |
-| `mimePrefixes` | string[] | no | `[]` | Only used when valueKind is `file`. Optional MIME prefixes to accept, for example `image/`. Empty means every non-empty FileRef is eligible. |
-| `valueKind` | `any` \| `string` \| `file` | no | `"any"` | `any` preserves the first populated runtime value. `string` only accepts non-empty strings. `file` only accepts non-empty FileRefs or FileRef list members. |
+| `inputs` | string[], at least 1 item | yes | — | The slots to try, in order. |
+| `mimePrefixes` | string[] | no | `[]` | For files, accepted type prefixes such as `image/`; empty accepts all. |
+| `valueKind` | `any` \| `string` \| `file` | no | `"any"` | Which values count: any, non-empty text only, or files only. |
 
 ## Worked example
 

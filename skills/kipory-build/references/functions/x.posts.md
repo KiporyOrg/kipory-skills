@@ -4,11 +4,12 @@
 
 Read the posts from an X post, profile, or search link.
 
-Reads one X URL — a post, a profile, or a search — into a list of posts, each with its text, author, time, media and engagement counts.
+Each post comes with its text, author, time, media and engagement counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `XPost[]`
+- **Also found as:** tweets, twitter posts, x feed
 - **Reads:** One X URL — a single post, a profile, or a search. Results are cached for a day by default. _(shape hint: `string`)_
 - **Emits:** A list of `XPost`, in the order the source gave them. An empty list when the source returns nothing.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,10 +24,10 @@ Reads one X URL — a post, a profile, or a search — into a list of posts, eac
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `fallback` | boolean | no | `true` | If the chosen vendor errors, is rate-limited, has no key or refuses the platform's key, try the others. Empty answers do not fall back. ⚠️ A fallback is billed by the vendor that answered, which may be the platform's when yours failed. Your own key refused by the chosen vendor does not fall back: the action fails. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to pull for a profile or search URL, up to 100. A single-post URL returns one regardless. ⚠️ This bound is required, not a nicety — without it a single pasted link would pull everything the source will give, up to hundreds of posts. |
-| `provider` | `apify` \| `twitterapi` \| `scrapecreators` | no | `"apify"` | Which vendor does the work: apify or twitterapi or scrapecreators. Each spends its own key and bills at its own rate. "apify" when left unset. |
-| `sort` | `Latest` \| `Top` \| `Latest + Top` | no | `"Latest"` | Result ordering for profile/search scrapes. 'Top' surfaces high-engagement posts; 'Latest' the most recent. |
+| `fallback` | boolean | no | `true` | If the chosen vendor fails, try the other vendors. ⚠️ A fallback bills the vendor that answered; a refused key of your own fails the action. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts a profile or search link returns, up to 100. ⚠️ Without this bound one pasted link would pull hundreds of posts. |
+| `provider` | `apify` \| `twitterapi` \| `scrapecreators` | no | `"apify"` | Which vendor does the work; each bills at its own rate. |
+| `sort` | `Latest` \| `Top` \| `Latest + Top` | no | `"Latest"` | Order for profile or search links: `Top` for engagement, `Latest` for newest. |
 
 ## Worked example
 

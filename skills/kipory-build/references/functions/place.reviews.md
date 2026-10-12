@@ -4,11 +4,12 @@
 
 Read what people wrote about a place on the map.
 
-Returns one place's reviews — text, stars, date, photos and the owner's reply — newest first by default. Takes a place ID or a map link, not a name. Reviewer names and profiles are left out unless asked for. Cached for a day.
+Give a place ID or map link, not a name. Newest first by default; cached for a day.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceReviews`
+- **Also found as:** ratings, customer reviews, star rating, business reviews
 - **Reads:** One place: a place ID or a full map link. A name alone returns nothing, with a warning. _(shape hint: `string`)_
 - **Emits:** `PlaceReviews` — the place and its reviews. A place with no reviews comes back empty, and that answer is cached.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,12 +24,12 @@ Returns one place's reviews — text, stars, date, photos and the owner's reply 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeReviewerDetails` | boolean | no | `false` | Include each reviewer's name, profile link and photo, and the review's own link. ⚠️ A reviewer's name, profile and photo are personal data. Turn this on only when the project has a lawful reason to hold them. |
+| `includeReviewerDetails` | boolean | no | `false` | Include each reviewer's name, profile link and photo, and the review's link. ⚠️ Reviewer names, profiles and photos are personal data; turn this on only with a lawful reason. |
 | `language` | string, at least 2 characters | no | `"en"` | Language for translated review text, as a code like `en` or `de`. |
-| `maxReviews` | integer, 1 to 1000 | no | `100` | How many reviews to return, up to 1000. Each one is charged. ⚠️ Every review returned is charged, and a larger pull takes longer. Ask for what the flow will read. |
-| `origin` | `all` \| `google` | no | `"all"` | `all` includes reviews the map shows from other review sites; `google` keeps only its own. |
+| `maxReviews` | integer, 1 to 1000 | no | `100` | How many reviews to return, up to 1000; each one is charged. ⚠️ Every review returned is charged, and a larger pull takes longer. |
+| `origin` | `all` \| `google` | no | `"all"` | `all` adds reviews from other review sites; `google` keeps only its own. |
 | `since` | string | no | — | Return only reviews published on or after this date, like `2026-09-01`. |
-| `sort` | `newest` \| `most-relevant` \| `highest` \| `lowest` | no | `"newest"` | Which reviews come first: the newest, the most relevant, or the highest or lowest rated. |
+| `sort` | `newest` \| `most-relevant` \| `highest` \| `lowest` | no | `"newest"` | Which reviews come first: newest, most relevant, highest or lowest rated. |
 
 ## Worked example
 

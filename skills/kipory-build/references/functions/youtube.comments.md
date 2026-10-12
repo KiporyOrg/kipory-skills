@@ -4,11 +4,12 @@
 
 List the comments on a YouTube video.
 
-Reads the top-level comments on one public YouTube video, from its link or its video id, most liked or newest first, up to the bound you set. Each comes back with its text, author, like count, how many replies it has and an approximate time.
+Top-level comments, most liked or newest first. Each has its text, author, likes, reply count and rough time.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`
+- **Also found as:** youtube replies, video comments, comment section
 - **Reads:** One YouTube video link, or a bare video id. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialComment`. Empty when comments are off or the video cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads the top-level comments on one public YouTube video, from its link or its v
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 | `sort` | `top` \| `newest` | no | `"top"` | Most liked first, or newest first. |
 
 ## Worked example

@@ -4,11 +4,12 @@
 
 Find Instagram accounts by a name or a phrase.
 
-Runs Instagram's own account search for a name or phrase and returns the accounts in its order, each with handle, name, link and picture. The first ten also carry bio, category, private and verified flags, and follower, following and post counts.
+Accounts come in Instagram's order. The first ten also carry bio, category, flags and counts.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile[]`
+- **Also found as:** find instagram accounts, ig accounts, influencers
 - **Reads:** One name or phrase. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialProfile`. Empty when nothing matches.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Runs Instagram's own account search for a name or phrase and returns the account
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | The most accounts to return, up to 100. This read is one request whatever the bound. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many accounts to return, up to 100. |
 
 ## Worked example
 

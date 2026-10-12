@@ -4,11 +4,12 @@
 
 Turn speech in an audio file into text.
 
-Turns spoken audio into plain text. Leaving the model empty inherits the project's transcription setting, so which service runs and what it costs is a project decision rather than this action's. The same file, model and language reuse the previous transcript.
+Leaving the model empty uses the project's transcription setting. The same file, model and language reuse the previous transcript.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
+- **Also found as:** speech to text, transcription, voice to text, dictation, subtitles
 - **Reads:** One audio file. A non-audio mime fails, and a file over the size cap is refused before anything is sent. _(shape hint: `file`)_
 - **Emits:** The spoken words as plain text. Empty when there is no file. The same file, model and language reuse the previous transcript.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -21,9 +22,9 @@ Turns spoken audio into plain text. Leaving the model empty inherits the project
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string, at least 2 characters, at most 5 characters | no | — | ISO 639-1 language hint (e.g. 'en', 'es'). Auto-detect when omitted; setting explicitly improves accuracy on short clips. |
-| `maxBytes` | integer, more than 0 | no | `25000000` | Reject files larger than this before calling the provider. Default 25 MB matches OpenAI's hard cap on Whisper requests; tune down for cost ceilings. |
-| `model` | string | no | `""` | Which model transcribes, by its catalog id (creator/slug, as GET /v1/ai-models lists it — e.g. openai/whisper-1). Leave it empty to use the project's transcription setting. |
+| `language` | string, at least 2 characters, at most 5 characters | no | — | Language code such as `en`; empty means detect it automatically. |
+| `maxBytes` | integer, more than 0 | no | `25000000` | Largest file to send, in bytes; bigger files are refused. |
+| `model` | string | no | `""` | Which model transcribes; empty uses the project's transcription setting. |
 
 ## Worked example
 

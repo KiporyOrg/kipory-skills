@@ -4,11 +4,12 @@
 
 Look up one ad in the TikTok ad library.
 
-Reads one ad from the public TikTok ad library, from its link or its id: title, video link, landing page, the countries it ran in and, where given, its brand and engagement. A link to another site is refused before anything is fetched.
+Give the ad's link or id. Returns title, video link, landing page, countries, and brand and engagement where given.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`
+- **Also found as:** tiktok advert, ad details, creative
 - **Reads:** One TikTok ad library or Creative Center link, or the ad's numeric id. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialAd`. A bare `{}` when the library has no such ad.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

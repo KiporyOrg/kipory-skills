@@ -4,12 +4,13 @@
 
 Take a picture of a web page.
 
-Renders a web page in full and saves the picture as a PNG or JPEG file. Returns a reference to that file. A fresh screenshot is a paid request; a repeat for the same record within a day is reused.
+Saves the page as a PNG or JPEG. Each fresh shot is paid; repeats within a day are reused.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
 - **Not undone when a run fails:** `file` — The file's bytes are stored while the action runs. A later attempt of the run stores them again under its own key; a file no record keeps is removed by the platform later. Doing it twice is not harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `string` → `file`
+- **Also found as:** website screenshot, capture page, page image
 - **Reads:** One URL — the page to capture. Anything that is not `http` or `https` is refused before the request goes out. _(shape hint: `string`)_
 - **Emits:** A `FileRef` for the captured image — PNG by default, JPEG when you ask for it. An empty one when there was no URL to capture.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -24,11 +25,11 @@ Renders a web page in full and saves the picture as a PNG or JPEG file. Returns 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `format` | `png` \| `jpeg` | no | `"png"` | Output image format. PNG is lossless; JPEG is smaller and accepts a quality knob. |
-| `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality (1-100). Only used when format is jpeg; ignored for png. 85 is a sensible default for screenshots. |
-| `maxBytes` | integer, more than 0 | no | `10000000` | Hard cap on the persisted image size. Larger responses fail the function rather than silently truncate. |
-| `timeoutMs` | integer, more than 0 | no | `60000` | How long to wait for the provider, in milliseconds. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one page read. |
-| `viewportWidth` | integer, more than 0 | no | `1280` | Viewport width in CSS pixels. Height is implicit — the function always renders a full-page capture. |
+| `format` | `png` \| `jpeg` | no | `"png"` | Image format: PNG is lossless, JPEG is smaller. |
+| `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality from 1 to 100; used only for JPEG. |
+| `maxBytes` | integer, more than 0 | no | `10000000` | Largest image in bytes; a bigger one fails. |
+| `timeoutMs` | integer, more than 0 | no | `60000` | How long to wait for the provider, in milliseconds. ⚠️ This limits the one page read, not the action's own `timeoutMs` run setting. |
+| `viewportWidth` | integer, more than 0 | no | `1280` | Page width in CSS pixels; the whole page height is captured. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 Read a text file and return what it says.
 
-Reads a text file and emits its contents. Anything that is not text fails rather than being mangled — a PDF has its own action, and an image or a sound file goes straight to a model that can read it.
+Anything that is not text fails rather than being mangled; PDFs have their own action.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string`
+- **Also found as:** open text file, csv text, file contents, txt
 - **Reads:** One text file. Anything binary fails rather than being decoded into nonsense. _(shape hint: `file`)_
 - **Emits:** The file's contents as text. A file over the size cap fails before decoding — nothing is ever silently cut short. Empty when there is no file.
 - **Suggested input streams:** `currentFile`
@@ -20,7 +21,7 @@ Reads a text file and emits its contents. Anything that is not text fails rather
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxBytes` | integer, more than 0 | no | `5000000` | How large a file may be. A bigger one fails rather than being cut short. |
+| `maxBytes` | integer, more than 0 | no | `5000000` | Largest file to read, in bytes; a bigger one fails. |
 
 ## Worked example
 

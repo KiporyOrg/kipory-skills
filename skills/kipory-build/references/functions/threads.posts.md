@@ -4,11 +4,12 @@
 
 List the recent posts a Threads account has published.
 
-Reads a public Threads account's recent posts from its handle or profile link, in the order the platform lists them. Threads shows a signed-out visitor only the most recent twenty to thirty, so the list can be shorter than your bound.
+Threads shows a signed-out visitor only the latest twenty to thirty posts, so the list can be shorter.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** threads feed, account posts, recent threads
 - **Reads:** One Threads handle, with or without `@`, or a profile link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`, in the order the platform lists them. Empty when the account has posted nothing or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,7 +24,7 @@ Reads a public Threads account's recent posts from its handle or profile link, i
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 30 | no | `20` | The most posts to return, up to 30. This read is one request whatever the bound. |
+| `maxItems` | integer, more than 0, at most 30 | no | `20` | How many posts to return, up to 30. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 Run a flow once for each person, as that person.
 
-Starts one run of another flow per person: everyone in the project, the people linked to a record, or a list. Each run acts for its person and the project pays. Runs start once this run saves, so a failed run starts nobody.
+Each run acts for its person; the project pays. They start once this run saves; a failed run starts nobody.
 
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own start, so a new run starts everyone's runs again.
 - **I/O:** `people and inputs` → `PeopleStartResult`
+- **Also found as:** for each person, run for everyone, per user, start flow for people, everyone's own run
 - **Reads:** The people, from `people`, and what every run starts with, from `inputs`. A run that acts for a person, or a set over the limit, fails the action. _(shape hint: `people and inputs`)_
 - **Emits:** A `PeopleStartResult` — how many people the start named. A preview starts nobody and says how many it would have.
 
@@ -16,9 +17,9 @@ Starts one run of another flow per person: everyone in the project, the people l
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | union[] | no | `[]` | What every person's run starts with: slots of this run, or fixed text, each landing in an input of the target flow. |
-| `people` | union | yes | — | Whose runs to start. ⚠️ Only from a run that acts for nobody — a schedule, a trigger, an API key. Started runs act for one person each, and cannot start more. |
-| `targetFlowId` | string | yes | — | The flow each person's run runs. A project document names it `target`, by key. |
+| `inputs` | union[] | no | `[]` | What every run starts with: this run's slots or fixed text. |
+| `people` | union | yes | — | Whose runs to start. ⚠️ Only from a run that acts for nobody — a schedule, trigger or API key; started runs cannot start more. |
+| `targetFlowId` | string | yes | — | The flow each person's run runs. ⚠️ A project document names it `target`, by key. |
 
 ### `inputs` — each item is one of
 
@@ -29,13 +30,13 @@ Starts one run of another flow per person: everyone in the project, the people l
 | `kind` | `slot` | yes | — | Pass a parent slot's value into the sub-flow. |
 | `parentSlot` | string | yes | — | The parent slot to read. |
 | `subFlowSlot` | string | yes | — | The sub-flow input slot the value lands in. |
-| `path` | object | no | — | A path into the parent slot's value, to pass one part of it. |
+| `path` | object | no | — | A path into the parent slot's value, to pass part of it. |
 
 `path`:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `segments` | union[] | yes | — | Steps applied in order, each operating on the result of the last. An empty list takes the value whole. |
+| `segments` | union[] | yes | — | Parts applied in order; an empty list takes the whole value. |
 
 `path` › `segments` — each item is one of:
 
@@ -44,7 +45,7 @@ Starts one run of another flow per person: everyone in the project, the people l
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `field` | yes | — | Step into a named property of an object. |
-| `name` | string | yes | — | Property to read. May also name a dynamic key, so dots and hyphens are allowed after the first character. |
+| `name` | string | yes | — | The property to read. |
 
 **`path` › `segments` › `kind: first`**
 
@@ -69,7 +70,7 @@ Starts one run of another flow per person: everyone in the project, the people l
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `pluck` | yes | — | Read one property from EVERY element of a list, producing a list of those values rather than a single one. |
+| `kind` | `pluck` | yes | — | Read one property from every item of a list. |
 | `name` | string | yes | — | Property to read from each element. |
 
 **`path` › `segments` › `kind: wrap`**
@@ -99,15 +100,15 @@ Starts one run of another flow per person: everyone in the project, the people l
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `linked` | yes | — | The people who own a record linked to one record. |
-| `relationId` | string | yes | — | The relation whose links name the people: their records sit at its near end, the record at its far end. |
-| `recordIdSlot` | string | yes | — | Slot PATH to the id of the record the people are linked to. |
+| `relationId` | string | yes | — | The relation from the people's records, its near end, to the record. |
+| `recordIdSlot` | string | yes | — | Slot PATH to the id of the record the people link to. |
 
 **`kind: list`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `list` | yes | — | A list of people an earlier action produced. |
-| `userIdsSlot` | string | yes | — | Slot PATH to a list of person ids. Ids that do not belong to the project are dropped. |
+| `userIdsSlot` | string | yes | — | Slot PATH to a person-id list; ids outside the project are dropped. |
 
 ## Worked example
 

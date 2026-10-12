@@ -4,11 +4,12 @@
 
 Remove a link this flow made earlier.
 
-Takes back the link of the relation you name between the record in the first input and the record in the second. The link is expired, not deleted, so who stated it and when both survive.
+Expires the link between the first and second inputs' records, keeping who stated it and when.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string, string` → `RelationRetraction`
+- **Also found as:** unlink, disconnect records, delete link
 - **Reads:** Two slots: the record the link runs FROM, then the one it runs TO. The same pair the assert node was given, in the same order. _(shape hint: `string, string`)_
 - **Emits:** A `RelationRetraction`: `retracted` when a link was expired, `not-found` when this actor had nothing to take back. Finding nothing is an ordinary answer, not a failure.
 - **Suggested input streams:** `sourceRecordId`, `targetRecordId`
@@ -17,9 +18,9 @@ Takes back the link of the relation you name between the record in the first inp
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `actor` | string, at most 64 characters | yes | — | A label naming what stated the links, e.g. `citation-extractor`. This node reaches only links recorded under it. ⚠️ It decides what can be taken back: a retract node reaches ONLY links stated under the same label, and never one a person made by hand. |
-| `relationKey` | string | yes | — | The relation's KEY — the stable identifier chosen when the link was created, not its name. ⚠️ Only a relation whose links are stated by hand works here. One backed by a record field or a join record is refused exactly as an unknown relation is, so a refusal reveals nothing. |
-| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
+| `actor` | string, at most 64 characters | yes | — | The label the links were saved under; only those are removed. ⚠️ Removing links reaches only this label's links, never ones made by hand. |
+| `relationKey` | string | yes | — | The relation's key, not its name. ⚠️ Only a relation whose links are stated by hand works; others are refused. |
+| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example
 

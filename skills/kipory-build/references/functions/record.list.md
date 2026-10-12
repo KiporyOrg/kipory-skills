@@ -4,11 +4,12 @@
 
 List a user's records, newest first, one page at a time.
 
-Reads a page of records of one table, newest first. Each page carries up to `limit` rows and a cursor for the next one. Filter by status, date, vocabulary, declared field, or link. Use it to answer questions about the whole catalog.
+Each page carries a cursor for the next. Filter by status, date, vocabulary, field or link.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id + cursor` → `RecordPage`
+- **Also found as:** all records, browse records, page of rows, table rows
 - **Reads:** The user id, from the slot `userIdSlot` names. To read past the first page, wire the previous page's cursor into `cursorSlot`. Everything else is settings on the action. _(shape hint: `user id + cursor`)_
 - **Emits:** A `RecordPage`: the rows, newest first, each record's submitted and processed fields flattened to the top level, and a cursor when more remain.
 
@@ -16,43 +17,43 @@ Reads a page of records of one table, newest first. Each page carries up to `lim
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 moment; no slot fills it. For a run-relative window, filter by `runInfo.now` in a `value.transform`. |
-| `createdBefore` | string | no | — | Keep only rows created at or before this moment. It has to be at or after `createdAfter`. |
-| `cursorSlot` | string | no | — | The slot holding the cursor from a previous page. Leave it unset for the first page. ⚠️ A cursor that has been edited or truncated fails the action; an absent one simply starts over from the newest row. |
-| `dataContainsPath` | string | no | — | Keep only rows whose list at this path inside `data` contains what `dataContainsSlot` carries. Set both or neither. ⚠️ No index can serve a filter on a path inside `data`, so this one reads every row of the table before narrowing. |
-| `dataContainsSlot` | string | no | — | The slot carrying the object to look for in that list — for example `{ source: <recordId> }`. ⚠️ If the slot is missing the action is skipped, never run unfiltered. A value that is not an object fails the action. |
-| `dataEqualsPath` | string | no | — | Keep only rows whose value at this path inside `data` equals what `dataEqualsSlot` carries. Set both or neither. ⚠️ No index can serve a filter on a path inside `data`, so this one reads every row of the table before narrowing. |
-| `dataEqualsSlot` | string | no | — | The slot carrying the value to compare — text, a number, or true/false. Pairs with `dataEqualsPath`. ⚠️ If the slot is missing the action is skipped, never run unfiltered. A value that is not text, a number or true/false fails the action. |
-| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled — for example, to hide rows whose `deletedAt` is set. ⚠️ A row missing the key matches neither choice, so the table has to always write it. And no index can serve a `data` path, so this reads every row. |
-| `fieldFilterSlots` | object | no | — | A map of queryable field to the slot carrying its value. One value matches exactly, a list matches any of them. ⚠️ If any slot is missing the action is skipped, never run without that filter; an empty list matches no rows. Ranges belong in `fieldFilters`. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on fields the table declared queryable. These are the fast ones, and the only ones that support ranges like `gte` and `lt`. ⚠️ A field the table never declared queryable is refused when the action runs. A date window on a domain date belongs here, not in `createdAfter`, which bounds insert time. |
-| `fields` | string[] | no | `[]` | Which of the table's fields each row carries. Leave it empty for all of them. `id`, `createdAt`, `updatedAt` and `status` always come back. ⚠️ A whole page has one size budget, and an over-budget page fails the action. Narrow this to a summary slice when the type has long text columns, or lower `limit`. |
-| `include` | object | no | `{}` | Extra dimensions per row. Terms come back by default; files, links and cost are opt-in. None appears in the action's output type. ⚠️ Turning on files signs a download URL for every file on every row, so keep the page small when you do. |
-| `limit` | integer, 1 to 100 | no | `50` | Page size: how many rows come back. 1..100, 50 by default. `limitSlot` overrides it while the flow runs. ⚠️ A page that was cut says so only by carrying `nextCursor`: absent, the list is complete; present, rows were left out and nothing else says it. |
-| `limitSlot` | string | no | — | A slot that sets the page size while the flow runs, the way an API's `?limit=` would. It overrides the `limit` setting. ⚠️ A value outside 1 to 100, or one that is not a whole number, is ignored — the `limit` setting applies instead, and nothing reports that it was dropped. |
-| `linkFilters` | object[], at least 1 item | no | — | Keep only rows that carry a link. Each entry names a relation and, optionally, a slot naming the record on the other end. ⚠️ The only filter that reads the link graph, not the row. If an entry's slot is missing the action is skipped, never widened to every link of that relation. |
-| `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest-first) or `asc`. Applies to both the sort field and the `id` tiebreaker so pagination stays stable. |
-| `scalars` | object | no | `{}` | Opt-in scalar fields. `statusError` adds the failure summary (string\|null); `fileCount` adds the attached-file count. |
-| `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order the page by when a row was created or when it was last changed. Created is the default. |
-| `sortField` | string | no | — | Order the page by one of the table's own queryable fields instead. It replaces `sort`; the direction still comes from `order`. ⚠️ Rows with no value for the field are left out of the page entirely, and the field has to be a date — any other kind is refused when the action runs. |
-| `statuses` | string[], at least 1 item | no | — | Keep only rows with one of these statuses. Leave it empty to allow every status. A catalog summary usually keeps just `READY`. |
-| `tableKey` | string | yes | — | The table to list. Required: the page only ever returns rows of this one table. ⚠️ A row carries every field the type declares. One the record does not hold is `null`, not absent, so `$exists` is true for it: test `!= null`. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id. Only user-owned types filter by it, yet its slot is an input on every type. ⚠️ On a user-owned type an empty value fails the action. Key, schedule and trigger runs have none, so an action also reading an absent filter or cursor slot is skipped, not unfiltered. |
-| `vocabularyFilter` | object[], at least 1 item | no | — | Keep rows tagged with all these vocabulary–term pairs. Fixed in config, never read from a slot: per-request terms need `flow.dispatch` into one list action each. ⚠️ In a vocabulary with nested terms, a term slug alone matches that slug under every parent. Add `parentSlug` to narrow it to one branch. |
+| `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 date. |
+| `createdBefore` | string | no | — | Keep only rows created at or before this date. |
+| `cursorSlot` | string | no | — | The slot holding a previous page's cursor; empty for the first page. ⚠️ An edited or truncated cursor fails the action. |
+| `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContainsSlot`. ⚠️ This reads every row of the table before narrowing. |
+| `dataContainsSlot` | string | no | — | The slot holding the object to look for in that list. ⚠️ If the slot is missing the action is skipped; a non-object fails it. |
+| `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEqualsSlot`. ⚠️ This reads every row of the table before narrowing. |
+| `dataEqualsSlot` | string | no | — | The slot holding the value to compare: text, number or true/false. ⚠️ If the slot is missing the action is skipped; a wrong kind fails it. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A row missing the key matches neither choice, and every row is read. |
+| `fieldFilterSlots` | object | no | — | Each queryable field with the slot carrying its value or list. ⚠️ If a slot is missing the action is skipped; an empty list matches nothing. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A field the table never declared queryable is refused when the action runs. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the action; narrow the fields or lower `limit`. |
+| `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
+| `limit` | integer, 1 to 100 | no | `50` | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows that a page was cut short. |
+| `limitSlot` | string | no | — | A slot that sets the page size while the flow runs. ⚠️ A value outside 1 to 100 or not whole is silently ignored. |
+| `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ If an entry's slot is missing, the action is skipped. |
+| `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
+| `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
+| `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order by when a row was created (default) or last changed. |
+| `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
+| `statuses` | string[], at least 1 item | no | — | Keep only rows with these statuses; empty allows every status. |
+| `tableKey` | string | yes | — | The table to list. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
+| `userIdSlot` | string | no | `"userInfo.userId"` | The signed-in user's id slot; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the action. |
+| `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
 
 ### `dataNullChecks` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `path` | string | yes | — | A dotted path inside the record's `data`. |
-| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows where the path is null; `isNotNull` keeps rows where it holds a value. |
+| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps null values at the path; `isNotNull` keeps set ones. |
 
 ### `fieldFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `field` | string | yes | — | A field the table declares queryable. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison. `in` takes a list; every other one takes one value. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison; `in` takes a list, the others one value. |
 | `value` | union | yes | — | The value to compare with, or the list for `in`. |
 
 `value` — one of: `string`; `number`; `boolean`; `(string | number)[]`, at least 1 item.
@@ -71,7 +72,7 @@ Reads a page of records of one table, newest first. Each page carries up to `lim
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `relationKey` | string | yes | — | The relation a row must have a link of, by key. |
-| `peerRecordIdSlot` | string | no | — | The slot holding the id of the record at the other end. Leave it out to keep rows with any link of the relation. |
+| `peerRecordIdSlot` | string | no | — | The record at the other end; empty means any link. |
 
 ### `scalars`
 

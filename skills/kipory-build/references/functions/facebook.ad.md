@@ -4,11 +4,12 @@
 
 Look up one ad in the Facebook ad library.
 
-Reads one ad from the public Facebook ad library, from its library link or its id: advertiser, copy, media links, destination, run dates and whether it is still running. A link to another site is refused before anything is fetched.
+Give it the ad's library link or id. Returns advertiser, copy, media, destination, run dates and whether it still runs.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`
+- **Also found as:** facebook advert, meta ad, ad library
 - **Reads:** One Facebook ad library link, or the ad's numeric id. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A `SocialAd`. A bare `{}` when the library has no such ad.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).

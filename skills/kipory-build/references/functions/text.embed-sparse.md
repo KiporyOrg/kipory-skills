@@ -4,11 +4,12 @@
 
 Turn text into numbers that capture its keywords, for keyword search.
 
-Computes a sparse, BM25-style vector for one text, the exact-word counterpart to `text.embed`. Empty text gives an empty vector rather than an error. No model, no network; the same text, tokenizer and language always give the same vector.
+Empty text gives an empty vector. No model is called; the same text and settings always give the same vector.
 
 - **Group:** search · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SparseVector`
+- **Also found as:** keyword vector, sparse embedding, bm25, keywords
 - **Reads:** One string — usually the same text you embed densely, or any text whose exact words matter. Empty or missing returns an empty vector without doing any work. _(shape hint: `string`)_
 - **Emits:** A `SparseVector` of term weights. The search index supplies the rest of the score at query time. Empty when the input was empty.
 - **Suggested input streams:** `inputText`
@@ -17,8 +18,8 @@ Computes a sparse, BM25-style vector for one text, the exact-word counterpart to
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `language` | string, at least 2 characters, at most 8 characters | no | `"en"` | Which language's rules to tokenise by. Today's tokeniser reads the tag without branching on it; future ones will. ⚠️ It is part of the cache key, so changing it changes how terms map to dimensions. |
-| `tokenizer` | `naive-bm25` | no | `"naive-bm25"` | How the text is cut into terms and weighted. Today there is one mode: split on word boundaries, lowercase, weight by frequency. |
+| `language` | string, at least 2 characters, at most 8 characters | no | `"en"` | The text's language; today it does not change the result. ⚠️ It is part of the cache key, so changing it changes how terms map to dimensions. |
+| `tokenizer` | `naive-bm25` | no | `"naive-bm25"` | How text is split into terms; only word boundaries today. |
 
 ## Worked example
 

@@ -21,6 +21,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/actions/input-options`](#get-v1-actions-input-options) |  |
 | `POST` | [`/v1/actions/interpolate`](#post-v1-actions-interpolate) |  |
 | `POST` | [`/v1/actions/preview`](#post-v1-actions-preview) |  |
+| `GET` | [`/v1/actions/takers`](#get-v1-actions-takers) |  |
 
 ### `GET /v1/actions`
 
@@ -95,7 +96,7 @@ Create one action in a flow. Leave out what the platform works out: the inputs a
 | `promptTemplate` | `string \| null` | no | Prompt body, with inputs interpolated. Only a function that reads a prompt (`text.generate`, `text.interpolate`) needs it; omit it (or send null) for every other function. |
 | `systemPrompt` | `string \| null` | no | System-role instruction sent alongside `promptTemplate`. |
 | `taskKey` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak"` | no | Task this action bills and resolves its model under. One of the writable pipeline tasks. Omit it and the action starts on `extraction` — change it with a PATCH. It decides the model only for a function whose model follows its task, but every action still bills under it, and a function whose catalog entry says `run.timeLimitFromTask` takes this task's time limit when the action sets no `timeoutMs`. |
-| `outputSchema` | `object` | no | Schema the action's output must conform to. Omit it or send null and a new action takes the type its function emits (`record.create` → `RecordCreate`); a function that emits none of its own, such as `text.generate`, is left with no constraint. |
+| `outputSchema` | `object \| null` | no | Schema the action's output must conform to. Omit it or send null and a new action takes the type its function emits (`record.create` → `RecordCreate`); a function that emits none of its own, such as `text.generate`, is left with no constraint. |
 | `inputSchemas` | `object[]` | no | The type of each input, POSITIONALLY ALIGNED with the `inputStreams` you send. Omit it (or send `[]`) and the platform types each input from what feeds it — the earlier action's output, the flow input, the platform slot — through its path. Send it only to state a type on purpose; a stated type is kept and checked. A non-empty list must be the same length as `inputStreams`. |
 | `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
 | `inputProjectionNames` | `string \| null[] \| null` | no | Names each input is exposed under inside the prompt, POSITIONALLY ALIGNED with `inputStreams`. Null at a position uses the source slot's own name. |
@@ -386,7 +387,7 @@ Each item of `outstandingIssues`:
 
 ### `POST /v1/actions/batch`
 
-Create, change and delete several actions of ONE flow in one transaction, validated as the graph they leave; a blocking error rolls all of it back. An action's input types may come from another action of the same body. One action: `POST /v1/actions` or `PATCH /v1/actions/{id}`. Several flows, or other kinds of configuration with them: the project document (`POST /v1/projects/{nodeId}/document`).
+Create, change and delete several actions of ONE flow in one transaction, validated as the graph they leave; a blocking error rolls all of it back. An action's input types may come from another action of the same body. With `validateOnly: true` it answers the batch's verdict, the whole batch run and rolled back, writing nothing. One action: `POST /v1/actions` or `PATCH /v1/actions/{id}`. Several flows, or other kinds of configuration with them: the project document (`POST /v1/projects/{nodeId}/document`).
 
 **Request body**
 
@@ -396,6 +397,7 @@ Create, change and delete several actions of ONE flow in one transaction, valida
 | `creates` | `object[]` | no | Actions to add. |
 | `updates` | `object[]` | no | Actions to change. Each carries its own `version`, so one stale item refuses the whole batch. |
 | `deletes` | `object[]` | no | Actions to remove. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` an update has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
 
 **Response `200`**
 
@@ -405,6 +407,11 @@ Create, change and delete several actions of ONE flow in one transaction, valida
 | `updated` | `object[]` | yes | Actions that were changed. |
 | `deletedIds` | `string[]` | yes | Ids of the actions removed. |
 | `outstandingIssues` | `object[]` | yes | Warnings about the resulting graph. The batch applied — anything blocking would have rolled the whole transaction back instead. |
+| `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
+| `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
 
 Each item of `created`:
 
@@ -480,6 +487,35 @@ Each item of `outstandingIssues`:
 | `message` | `string` | yes | What is wrong, in prose. |
 | `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
 
+Each item of `diagnostics`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+
+Each item of `leavesBehind`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Each item of `consequences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The document path of the row that causes it. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
+| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
+| `message` | `string` | yes | One line, safe to show a person. |
+
 ### `GET /v1/actions/condition-operators`
 
 Which condition operator can test which kind of value — the table an action's `condition` is checked against at save and evaluated by at run time. The same for every caller of a deployment.
@@ -515,7 +551,7 @@ Every slot an action could read in a flow, each checked against what its functio
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `picker` | `"row" \| "config" \| "prompt"` | yes | Where this action's inputs are chosen. `row` — picked for the action itself. `config` — the action's settings name them. `prompt` — the prompt's placeholders name the action's TEXT inputs. `bounds` and `candidates` are filled for `row`, and for a `prompt` or `config` action whose `attaches` is set — otherwise never for `config`, whose settings are where its slots are named. |
-| `attaches` | `"files" \| "positional"` | yes | What this action takes beside the inputs named in its prompt or its settings, or null for nothing. `files` — a file-shaped input is built into what the model is sent without any placeholder naming it, so `bounds` describes what may be attached, `candidates` judges every slot against it, and `count` is null: any number, none required. `positional` — the action reads its first `count` inputs by position, and they are chosen for the action itself: `bounds` has one entry per position, `candidates` judges every slot against them, and the chosen slots lead the action's `inputStreams`, ahead of the ones its settings name. |
+| `attaches` | `"files" \| "positional" \| null` | yes | What this action takes beside the inputs named in its prompt or its settings, or null for nothing. `files` — a file-shaped input is built into what the model is sent without any placeholder naming it, so `bounds` describes what may be attached, `candidates` judges every slot against it, and `count` is null: any number, none required. `positional` — the action reads its first `count` inputs by position, and they are chosen for the action itself: `bounds` has one entry per position, `candidates` judges every slot against them, and the chosen slots lead the action's `inputStreams`, ahead of the ones its settings name. |
 | `count` | `integer \| null` | yes | How many inputs the action takes, or null for any number. For `attaches: positional`, how many are chosen for the action itself. |
 | `bounds` | `object[]` | yes | What each input must hold. With a `count`, one entry per position, in order. Without one, a single entry every position shares. |
 | `actionScopedTo` | `object \| null` | yes | The fan-out or loop the action runs inside, as it is saved. Null when it runs outside both, or is not saved yet. |
@@ -526,7 +562,7 @@ Each item of `bounds`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `rule` | `"contract" \| "file" \| "list" \| "none" \| "unresolved"` | yes | `contract` — the function declares the shape. `list` — a fan-out's one input, a list of any item type; `words` says what else it must be. `file` — something the action ATTACHES (see `attaches`): a slot holding a file or a list of files, or a field inside one that does. `none` — the function declares nothing. `unresolved` — it declares a shape that could not be read, so no slot was checked against it. |
-| `wants` | `object` | yes | The declared shape, for a `contract`; otherwise null. |
+| `wants` | `object \| null` | yes | The declared shape, for a `contract`; otherwise null. |
 | `words` | `string \| null` | yes | What the input must hold, in words, when no declared shape says it — `a list that is always there` for a fan-out. Null otherwise. |
 
 Each item of `candidates`:
@@ -535,7 +571,7 @@ Each item of `candidates`:
 | --- | --- | --- | --- |
 | `slot` | `string` | yes | The slot's name. Store it as this position's `inputStreams` entry. |
 | `source` | `object` | yes | Where the value comes from: an earlier action, the flow's own inputs, or the platform. |
-| `shape` | `object` | yes | What the slot holds, or null when nothing declares it. |
+| `shape` | `object \| null` | yes | What the slot holds, or null when nothing declares it. |
 | `suggested` | `boolean` | yes | The function suggests a slot of this name. |
 | `scopedTo` | `object \| null` | yes | The fan-out or loop this slot exists inside — it has a value only within that action's branch or body. Null outside both. |
 | `unreachable` | `object \| null` | yes | Why wiring this slot would leave the flow broken, whatever its shape — it would make actions wait for each other in a circle, or mix a fan-out's or loop's values with values from outside it. The save does not refuse such wiring: it keeps it and reports it as an outstanding issue, and the flow's health reports an error until it is resolved; the flow still runs, wrongly. Null when nothing stands in the way. Judged as if the slot were the action's only input — beside the ones its settings already name, for `attaches: positional`. |
@@ -589,3 +625,38 @@ Run ONE action's prompt against slot values you type — for `text.generate` it 
 | `tokensIn` | `number \| null` | yes | Tokens sent. NULL MEANS NO MODEL WAS CALLED, which is a different thing from a call that used zero. |
 | `tokensOut` | `number \| null` | yes | Tokens returned. Null when no model was called. |
 | `latencyMs` | `number` | yes | How long the preview took, in milliseconds. |
+
+### `GET /v1/actions/takers`
+
+For one value in a flow — an action's output, a flow input or a platform slot — how each function could take it as a new action's input: as it is, through one of its fields, or once per item of a list; and how well what the value is (its value kind) meets what each function wants, which orders what to offer and never refuses anything. The forward question, every value one action could read: `GET /v1/actions/input-options`. Every slot of a flow, typed: `GET /v1/flows/{id}/scope`.
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow the value is in. |
+| `slot` | `string` | yes | The value: an action's output, a flow input or a platform slot, by name. |
+| `next` | `string` | no | The id of an action of the flow that reads the value — the one a new action would go before. With it, each taker also says how well what it gives meets what that action wants (`nextMatch`). |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `slot` | `string` | yes | The value asked about. |
+| `shape` | `object \| null` | yes | Its type, as a wire on it is typed; null when nothing says. |
+| `valueKind` | `object \| null` | yes | What the value is, as a value kind; null when unknown. |
+| `kindFrom` | `"producer" \| "field" \| "readers" \| "unknown"` | yes | Where the kind was learnt: the function that gives it, a field of it, what reads it (a flow input), or nowhere. |
+| `takers` | `object[]` | yes | Every function in the catalog, once, sorted by key. |
+| `each` | `object \| null` | yes | Present when the value is a list: how a per-item taker is saved — a "Run once per item" over the list, giving the item, and the function reading it, in one batch. |
+
+Each item of `takers`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `functionKey` | `string` | yes | The function, by its catalog key. |
+| `fit` | `"as-is" \| "field" \| "each" \| "each-field" \| "none" \| "unknown"` | yes | How a new action on this function could read the value, as the save would judge it: `as-is`; through a stored `path` (`field`) — one of its fields, or the save's adapter: a list's first item, or one value as a one-item list; once per item of a list, with a "Run once per item" before it (`each`), or through a path into each item (`each-field`); `none`; `unknown` when the function's input contract could not be resolved. |
+| `path` | `object \| null` | yes | For `field`, the path the input reads the value through — a field, a list's first item (`first`), or the value wrapped as a one-item list (`wrap`); for `each-field`, the same inside each item. Null otherwise. |
+| `label` | `string \| null` | yes | The name such an input is exposed under, as the platform mints it; null without a path. |
+| `takesBy` | `"input" \| "prompt" \| "settings"` | yes | How an action on this function names the values it reads: as an input it is wired to, by a placeholder in its prompt, or in one of its settings. |
+| `kindMatch` | `"exact" \| "broader" \| "narrower" \| "any" \| "unknown" \| "other"` | yes | How well what the value is meets what the function wants, as value kinds. It orders what to offer first and never changes `fit`. |
+| `nextMatch` | `"exact" \| "broader" \| "narrower" \| "any" \| "unknown" \| "other"` | no | With `next`: how well what this function gives meets what that action wants at the input reading the value. Orders; never refuses. |

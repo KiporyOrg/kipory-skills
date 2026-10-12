@@ -4,11 +4,12 @@
 
 List the posts in a subreddit.
 
-Reads the posts of one public subreddit from its name or link, in the order you choose, up to the bound you set. Each comes back with its title, text, author, time, score and comment count.
+Give the subreddit's name or link. Each post has its title, text, author, time, score and comment count.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`
+- **Also found as:** subreddit feed, reddit feed, community posts
 - **Reads:** One subreddit name, with or without `r/`, or a subreddit link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialPost`. Empty when the subreddit has no posts or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,9 +24,9 @@ Reads the posts of one public subreddit from its name or link, in the order you 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many posts to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 | `sort` | `hot` \| `new` \| `top` \| `rising` \| `best` | no | `"hot"` | Which listing of the subreddit to read. |
-| `timeframe` | `all` \| `day` \| `week` \| `month` \| `year` | no | `"all"` | How far back a top listing looks. Other listings ignore it. |
+| `timeframe` | `all` \| `day` \| `week` \| `month` \| `year` | no | `"all"` | How far back a top listing looks; others ignore it. |
 
 ## Worked example
 

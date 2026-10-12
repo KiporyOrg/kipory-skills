@@ -4,11 +4,12 @@
 
 List the comments on an Instagram post or reel.
 
-Reads the comments on one public Instagram post or reel from its link, up to the bound you set. Each comes back with its text, author, time and like count. Replies are left out unless you ask for them, which costs far more per request.
+Each comment has its text, author, time and likes. Replies cost far more and are off unless asked for.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`
+- **Also found as:** ig comments, post replies, comment section
 - **Reads:** One Instagram post or reel link. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialComment`. Empty when the post has no comments or cannot be read.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,8 +24,8 @@ Reads the comments on one public Instagram post or reel from its link, up to the
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeReplies` | boolean | no | `false` | Also return the first replies under each comment. Slower. ⚠️ Costs 15 vendor credits per request instead of 1, whether or not any replies come back. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `includeReplies` | boolean | no | `false` | Also return the first replies under each comment; slower. ⚠️ Costs 15 vendor credits per request instead of 1, whether or not any replies come back. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many comments to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

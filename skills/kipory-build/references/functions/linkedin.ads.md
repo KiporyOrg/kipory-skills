@@ -2,13 +2,14 @@
 
 # `linkedin.ads` — Fetch LinkedIn ads
 
-List the ads a company runs, or ads that match a keyword, from the LinkedIn ad library.
+List a company's ads, or ads matching a keyword, from the LinkedIn ad library.
 
-Reads the public LinkedIn ad library. Give it a company name to list that company's ads, or switch it to keyword search. Each ad comes back with its advertiser, copy, image, destination and run dates.
+Each ad comes with its advertiser, copy, image, destination and run dates.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`
+- **Also found as:** linkedin adverts, b2b ads, linkedin ad library
 - **Reads:** One company name, or one keyword when the action searches by keyword. Results are cached for a day. _(shape hint: `string`)_
 - **Emits:** A list of `SocialAd`. Empty when the library has no matching ads.
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,8 +24,8 @@ Reads the public LinkedIn ad library. Give it a company name to list that compan
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `by` | `company` \| `keyword` | no | `"company"` | Whether the input is a company whose ads to list, or a keyword to search ad copy for. |
-| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. Each page read is one request, and a list stops after 25 pages. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
+| `by` | `company` \| `keyword` | no | `"company"` | Whether the input is a company name or a keyword to search. |
+| `maxItems` | integer, more than 0, at most 100 | no | `20` | How many ads to return, up to 100. ⚠️ Each page read is a separate paid request, so a higher bound costs more. |
 
 ## Worked example
 

@@ -4,11 +4,12 @@
 
 Read an image's size and the camera details stored in it.
 
-Dimensions come back for any image format that can be read; the tags only for the narrower set that carries them — so an image can legitimately have dimensions and no tags. It returns whatever was there and never fails on a file that downloaded.
+Tags come back only for formats that carry them. It never fails on a file that downloaded.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `FileMetadata`
+- **Also found as:** exif, photo location, camera details, image size
 - **Reads:** One image file. The type is not checked — anything that is not a readable image comes back with only its `byteSize`. _(shape hint: `file`)_
 - **Emits:** A `FileMetadata`, every field optional. A corrupt image never fails — it comes back as `{ byteSize }` alone; one without EXIF still has its dimensions and format.
 - **Suggested input streams:** `currentFile`
@@ -18,8 +19,8 @@ Dimensions come back for any image format that can be read; the tags only for th
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `includeRawDebug` | boolean | no | `true` | Include a small curated raw debug object for fields that help troubleshoot parser output without storing everything the parser returned. |
-| `segments` | string[], at least 1 item | no | `["tiff","exif","gps","iptc","xmp"]` | Metadata segment families to parse with the metadata parser. Default: TIFF + EXIF + GPS + IPTC + XMP. |
+| `includeRawDebug` | boolean | no | `true` | Also include a small raw object for troubleshooting. |
+| `segments` | string[], at least 1 item | no | `["tiff","exif","gps","iptc","xmp"]` | Metadata kinds to read; default TIFF, EXIF, GPS, IPTC and XMP. |
 
 ## Worked example
 

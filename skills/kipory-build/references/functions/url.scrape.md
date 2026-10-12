@@ -4,11 +4,12 @@
 
 Read a web page and return its main text and details.
 
-Loads a page in a real browser and returns it as clean markdown, together with the page's metadata. Handles pages that need scripts to render. Results are cached for a day by default.
+Loads the page in a real browser, so script-built pages work. Results are cached for a day by default.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `ScrapedPage`
+- **Also found as:** scrape, scrape website, crawl, read website, website text
 - **Reads:** One URL — the page to scrape. Anything that is not `http` or `https` is refused before a call is spent; an empty slot emits an empty result. _(shape hint: `string`)_
 - **Emits:** A `ScrapedPage` — the rendered body as markdown, plus its metadata. Empty, with a `SCRAPE_FAILED` or `RATE_LIMITED` warning rather than a failed run, when the page could not be rendered.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
@@ -23,11 +24,11 @@ Loads a page in a real browser and returns it as clean markdown, together with t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `excludeTags` | string[] | no | `[]` | CSS selectors to strip from the page before the text is extracted. ⚠️ Use it for chrome the main-content pass keeps, such as a consent banner. An accessibility widget is injected by a script, so name the article's container in includeTags instead. |
-| `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. Narrower than excludeTags; leave empty unless the article container is known and stable. |
-| `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | When the main-content pass returns fewer characters than this, scrape the whole page too and keep the longer result. 0 turns the retry off. ⚠️ A non-zero value bills a second scrape on every page that trips it. A result that is only an accessibility overlay's notice reads the full page anyway, billed the same. |
+| `excludeTags` | string[] | no | `[]` | CSS selectors to strip from the page before the text is extracted. ⚠️ For chrome the main-content pass keeps, like a consent banner; for script-injected widgets, use includeTags. |
+| `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. ⚠️ Narrower than `excludeTags`: leave it empty unless the article's container is known and stable. |
+| `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | Below this many characters, also read the whole page; 0 is off. ⚠️ Non-zero bills a second scrape on each page that trips it, keeping the longer; so does an overlay-only result. |
 | `onlyMainContent` | boolean | no | `true` | Strip navigation, footers, and ads — request article body only. |
-| `timeoutMs` | integer, more than 0 | no | `30000` | How long to wait for the provider, in milliseconds. ⚠️ Shares its name with the action's own `timeoutMs` run setting and is not it: this one, inside `functionConfig`, bounds the one page read. |
+| `timeoutMs` | integer, more than 0 | no | `30000` | How long to wait for the provider, in milliseconds. ⚠️ This limits the one page read, not the action's own `timeoutMs` run setting. |
 
 ## Worked example
 
