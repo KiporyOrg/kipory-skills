@@ -951,9 +951,14 @@ rewrite touches.
 ⛔ **An illegal rename comes back as a 200 with `refusals`, not an error.** You asked what would
 happen; "it would be refused, because another action already writes that name" is the answer. Read
 `legal`. The refusals are the new name colliding with another action's output, either name being a
-flow input, provider or engine slot, and **no action in the flow producing the old name at all**. A
-name outside the slot grammar never gets that far: the body refuses it with a 422 naming
-`outputSlot`, as the save would.
+flow input, provider or engine slot, **no action in the flow producing the old name at all**, and
+(`EXPRESSION_NOT_REWRITABLE`) a reader's expression the rename cannot rewrite, which the message names
+with the reason; edit that expression by hand, then rename. A name outside the slot grammar never gets
+that far: the body refuses it with a 422 naming `outputSlot`, as the save would.
+
+A rename keeps how each expression spells the slot (bare, `` `backticked` ``, or `"quoted"`), and
+several renames confirmed in one save apply together: swapping two of an action's output slots swaps
+every reader's references rather than folding them into one name.
 
 ⚠️ **`reports` is filled in even when the rename is refused** — what the OLD name is wired to stays
 useful when the NEW name is unavailable. Rendering it only on `legal: true` throws away the half you

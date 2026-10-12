@@ -2,6 +2,14 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261012.103736 — 2026-10-12
+
+Synced from the Kipory monorepo at `fb004370a`.
+
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261012.100701 — 2026-10-12
 
 Synced from the Kipory monorepo at `f47408a46`.
