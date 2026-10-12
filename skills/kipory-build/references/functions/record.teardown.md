@@ -18,6 +18,7 @@ Removes what a processing run generated for a record — its generated files, it
 | --- | --- | --- | --- | --- |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to strip. |
 | `targets` | string[], at least 1 item | no | `["files","terms"]` | Which stores to clear: generated files, term assignments, or both. Both by default. ⚠️ Files you submitted are never touched, only ones a run generated. Search vectors are not a target — the record is re-projected when it next turns ready. |
+| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
 
 ## Worked example
 

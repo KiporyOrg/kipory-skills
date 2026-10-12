@@ -21,6 +21,7 @@ Writes events to a record's stream field — a list the table stores as time-sta
 | `field` | string | yes | — | The field of that type declared as a stream. The events land there, never in the record's data. |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to append to. ⚠️ The record has to be one this run can reach — the signed-in user's own, or the project's shared pool — and of the configured type. Anything else fails the action. |
 | `tableKey` | string | yes | — | The table whose stream field receives the events. |
+| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
 
 ## Worked example
 

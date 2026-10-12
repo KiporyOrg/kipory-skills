@@ -1513,8 +1513,9 @@ reserved field name: a table cannot declare it.
 
 A **failed** record's read (`GET /v1/records`, `GET /v1/records/{id}`, `POST /v1/records/query`)
 also carries `failure` beside `status`: how its latest processing run failed, in the shape the run
-reads serve as `closing.failure`: its class, its owner, whether it is retryable, the attempt, and
-the action when one failed. It is null on a record that is not `failed`, and for a failure recorded before
+reads serve as `closing.failure`: its class, its owner, whether it is retryable, the attempt, the
+action when one failed, and a `reason` when the refusal is one a caller may read (such as
+`project-mail-cap-reached`). It is null on a record that is not `failed`, and for a failure recorded before
 this was kept. A flow reading a record sees `processing`, not `failure`.
 
 `record.enqueue-process` on a **failed** record returns it to processing, with the replay mode

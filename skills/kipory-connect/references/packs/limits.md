@@ -94,15 +94,16 @@ is retried for about ten minutes with the same `Idempotency-Key` header, so the 
 may see a request twice; a 3xx or 4xx is final. The flow never sees the answer and no read
 reports whether the delivery happened — so a write whose result the flow needs is out of reach.
 So is a request the platform would have to sign, or exchange a token for. An address that
-resolves to a private network is refused. In a preview or an eval run a `url.send` action fails
-rather than sending.
+resolves to a private network is refused. In a preview or an eval run a `url.send` action checks
+the request and answers `true` with a `PREVIEWED_NOT_SENT` warning, sending nothing.
 
-<!-- absent: email-is-the-only-outbound-handler -->
+<!-- absent: email-and-push-are-the-only-outbound-senders -->
 
-**Email is the only built-in channel.** `email.send` is the one function that delivers a message to
-a person. There is no SMS, push-notification or chat function; a service that sends those through
-an HTTP API is reached with `url.send` and a stored key. A client that must be told something
-subscribes to the project's events through an endpoint, or polls one.
+**Email and push are the built-in channels.** `email.send` delivers a message to a person's inbox
+and `push.send` a notification to the devices their app registered, with the project's own Apple
+and Google keys. There is no SMS or chat function; a service that sends those through an HTTP API
+is reached with `url.send` and a stored key. A client that must be told something subscribes to the
+project's events through an endpoint, or polls one.
 
 **An endpoint answers JSON or server-sent events — never a page.** A flow cannot serve HTML, an
 image or a file at a URL of the project. A file a flow produced is handed out as a signed
@@ -144,6 +145,25 @@ in `GET /v1/runs/{runId}/timeline`, counted by kind under `warnings` in the run'
 warning — an action downstream sees only what was stored. Where a cut would be wrong for the
 product, cut deliberately first: bound the text in a transform and mark the record, page the
 list, or fan out in batches.
+
+### Pushes and runs started per person
+
+`push.send` notifies people on the devices their app registered, and `flow.start-per-person`
+runs a flow once for each person, as that person, on the project's bill. Each has limits a
+deployment may set otherwise; these are the defaults.
+
+| Limit                                     | Default                   | At the limit                                                                                               |
+| ----------------------------------------- | ------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| People one `push.send` names              | 1,000                     | The action fails `PUSH_RECIPIENTS_TOO_MANY`, in a preview too                                              |
+| Device deliveries per project per UTC day | 50,000                    | Checked when the action runs; past it the action fails, and a device past it is logged `projectCapReached` |
+| Alert pushes one person receives per hour | 10                        | The excess is dropped and logged `personRateLimited`; background pushes do not count                       |
+| Devices one person registers per project  | 10                        | The least recently seen is removed                                                                         |
+| One rendered push                         | 4,096 bytes               | The action fails, naming the size and the limit, in a preview too                                          |
+| People one `flow.start-per-person` starts | 10,000                    | The action fails `PEOPLE_SET_TOO_LARGE` and starts nobody                                                  |
+| Started runs a project runs at once       | as many as its other runs | The rest wait their turn; they never take the slots of the project's other runs                            |
+
+What each push did, per device, is `GET /v1/pushes?project={nodeId}`, kept 30 days. A started run
+whose person has left the project by the time it runs ends `NOT_A_MEMBER` and is not charged.
 
 ---
 

@@ -158,6 +158,12 @@ How it behaves:
 - `url.send` reads it when the request is delivered, after the run. A secret removed or narrowed by
   then fails that delivery, the run has already finished, and no read reports it.
 
+The push keys are named the same way: an `apns_key` or `fcm_service_account` is stored under the
+app's bundle id or package name (an `apns_key` may add `:sandbox` or `:production`), read when a push
+reaches a device of that app, and not listed by `GET /v1/secrets/resolution`. Saving one asks Apple
+or Google once and answers `check { outcome, detail?, at }`: `accepted`, `refused` (stored anyway;
+pushes with it will not arrive until it is replaced) or `no-answer`. A refusal never fails the save.
+
 ## Address by node, not by project
 
 Every sibling design resource scopes by project because every one of them belongs to a project. A

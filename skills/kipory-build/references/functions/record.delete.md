@@ -17,6 +17,7 @@ Deletes records by id: the signed-in user's own and the project's pool records, 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `idsSlot` | string | yes | — | The slot holding the list of record ids to delete. A single delete passes a one-element list. ⚠️ Reaches the user's own and the project's pool records, so another user's id deletes nothing. At most 200 ids; an oversize list fails before anything is touched. |
+| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
 
 ## Worked example
 

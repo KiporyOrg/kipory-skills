@@ -190,7 +190,8 @@ run's invocation. Reach for them in this order:
     A run stopped from outside, refused before it started, or whose changes were refused names no
     action.
   - `reason` — set only for a refusal a caller may read: a mail action's sender refusal, or
-    `project-mail-cap-reached` past the project's daily mail cap; `statusError` then names it too.
+    `project-mail-cap-reached` past the project's daily mail cap, or `project-push-cap-reached` past
+    its daily push allowance; `statusError` then names it too.
 - **`waiting`** — set while the platform is about to start the run again. When one of the
   platform's own failures closes an attempt (`platform-busy`, `platform-interrupted`,
   `platform-fault`), the run is not failed: `status` goes back to `pending` and `waiting` says why

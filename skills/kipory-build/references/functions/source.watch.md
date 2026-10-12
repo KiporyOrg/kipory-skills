@@ -19,6 +19,7 @@ Holds a watch on one channel for a record, usually the follow. The first holder 
 | `channelSlot` | string | yes | — | Slot PATH (e.g. `outlet.channel`) that resolves to the channel to watch, in the form the source kind takes. ⚠️ Reading a newly watched channel starts within about a minute. It costs the runs its triggers start, one per message. Letting the last holder go stops those runs; the platform's reader stays in the channel. |
 | `holderSlot` | string | yes | — | Slot PATH (e.g. `follow.recordId`) to the id of the record that holds the watch — a record this run may write. ⚠️ Use the record whose life the watch should share — the follow, not the run. Only that record releases it, by an unwatch or by being deleted. |
 | `provider` | `telegram` | yes | — | What kind of source to watch. Only kinds a run may watch on demand are offered. |
+| `userIdSlot` | string | no | — | Slot PATH to the person whose own record holds the watch, when a schedule or trigger runs the flow; it ends with their account. |
 
 ## Worked example
 

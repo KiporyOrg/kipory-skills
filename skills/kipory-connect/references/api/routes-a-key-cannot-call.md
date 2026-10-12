@@ -60,6 +60,12 @@ A node's member roster lists people, which is a signed-in person's surface. Your
 - `PATCH /v1/nodes/{…}/members/{…}`
 - `POST /v1/nodes/{…}/members`
 
+A device belongs to a signed-in person in the project; a key acts for the project and holds no device.
+
+- `DELETE /v1/devices/{…}`
+- `GET /v1/devices`
+- `POST /v1/devices`
+
 A person's first-project path. A key creates a project with `POST /v1/projects` and an explicit `parentNodeId`.
 
 - `POST /v1/me/projects`

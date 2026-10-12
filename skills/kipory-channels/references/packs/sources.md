@@ -94,6 +94,12 @@ channel — do not write a source per follow from outside. A flow does it with t
 - **Deleting the holder record lets its watch go**, in the same transaction, by any path: a run's
   `record.delete`, `DELETE /v1/records/{id}`, or the person's account being erased. You do not
   write an unwatch for the delete.
+- **From a schedule or a trigger, name the person.** Such a run acts for nobody, so on its own it
+  may hold only with a shared record, which no account deletion removes. Set `userIdSlot` to the
+  follow's owner and `holderSlot` to the follow: the watch is then held by that person's own record
+  and ends when their account is deleted. In a run that acts for a person, `userIdSlot` may name
+  only that person; a name the run may not use answers `HOLDER_NOT_WRITABLE`, and an unwatch with
+  it lets nothing go.
 
 The routing stays yours, at design time: create **one** trigger on `categoryKey: "telegram"`,
 `eventKey: "message"` with **no `sourceId`**. A trigger without a source hears every source of its

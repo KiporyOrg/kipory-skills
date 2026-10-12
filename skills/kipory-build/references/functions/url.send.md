@@ -95,7 +95,7 @@ true
 
 #### In a preview
 
-The action fails, on purpose. A preview shows what a flow would do; sending would make showing and doing one.
+It succeeds and sends nothing. The delivery's checks still run; a warning names the method and host.
 
 Reads `string` → emits `boolean` · 1 in → 1 out
 
@@ -118,5 +118,5 @@ https://hooks.harbour.example/notices
 Output:
 
 ```
-Error: ctx.outbound.stage: "flow preview" does not send requests.
+true
 ```

@@ -19,6 +19,7 @@ Creates a record of one of the project's types. On a per-user type the record be
 | `dataSlot` | string | yes | — | Slot PATH (e.g. `submission`) that resolves to the new record's submitted `data` object. A non-object resolves to an empty `{}`. |
 | `fileIdsSlot` | string | no | — | The slot holding uploaded file ids to attach to the new record. ⚠️ Each file must belong to the record's owner (the run's user, or the project — a key's uploads are project files), be fully uploaded, and be attached nowhere else, or the create fails. |
 | `tableKey` | string | yes | — | The table to create a record in. Must be one defined in this project. |
+| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
 
 ## Worked example
 

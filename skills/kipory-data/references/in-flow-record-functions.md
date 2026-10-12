@@ -110,6 +110,14 @@ and never another user's. It returns true when at least one record was removed, 
 every id was already gone or out of reach** — the same answer for "already deleted" and "not
 yours". It never tells you which.
 
+Every writer here takes an optional `userIdSlot`, the two link functions included. In a run that
+acts for nobody — a schedule, a trigger — it names the person the write is for: a create is owned
+by them; an update, delete, append or teardown reaches their records and the pool; a link may join
+their records and the pool. The person
+must be an active member of the project (`PERSON_NOT_IN_PROJECT` otherwise, with one answer
+whatever the reason). In a run that acts for a person it may name only that person
+(`PERSON_NOT_THE_RUNS`). Without it, each writer behaves as above.
+
 `record.teardown` is the one people reach for when they mean "reprocess this". It strips a record's
 **generated** files and its term assignments — `targets` defaults to both — and leaves the record
 itself alone. Files that were submitted rather than generated are not touched. It reports one count

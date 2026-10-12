@@ -93,6 +93,25 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → record.up
 }
 ```
 
+### A run for each person
+
+A run that acts for nobody — a schedule, a trigger, an API key — cannot write a person's own records. To do something for each person, start a flow once per person with `flow.start-per-person`: `targetFlowId` (in a document: `target`), the same `inputs[]` rows as `flow.invoke`, and `people`:
+
+- `{ "kind": "project" }` — everyone in the project;
+- `{ "kind": "linked", "relationId": …, "recordIdSlot": … }` — the people who own a record linked to one record (the followers of a feed), each once;
+- `{ "kind": "list", "userIdsSlot": … }` — ids an earlier action produced; ids that are not in the project are dropped.
+
+Each run acts for its person, so the target flow writes that person's records, and the project pays. The runs start once the starting run saves, so a failed run starts nobody, and a start replayed after a crash starts nobody twice. The action answers a `PeopleStartResult` — how many, never who. A preview starts nobody and answers `preview: true`. It refuses in a run that already acts for a person (`START_NEEDS_NO_PERSON`) and a set over the limit (`PEOPLE_SET_TOO_LARGE`).
+
+**A few named people, without a run each.** When a schedule or a trigger only writes a record for each of a few people it already holds the ids of, a record writer can name the person itself: `record.create`, `record.update`, `record.delete`, `record.append`, `record.teardown`, `record.enqueue-process`, `record.link-assert` and `record.link-retract` take an optional `userIdSlot`, and so do `source.watch` and `source.unwatch`, so a schedule can hold a channel with a person's own follow and the watch ends with their account. In a run that acts for nobody the write then acts for that person — a create is owned by them, an update or delete reaches their records and the pool, never another person's — and a person who is not an active member of the project fails the action `PERSON_NOT_IN_PROJECT`. In a run that acts for a person, `userIdSlot` may name only that person (`PERSON_NOT_THE_RUNS`). `record.enqueue-process` for a named person is paid by the project. Saving a flow that a schedule or trigger runs, which writes a person's record with no `userIdSlot`, carries the warning `NO_PERSON_WRITES_PERSON_RECORDS`: that write fails every time the schedule runs.
+
+**A schedule writes each person's inbox, then pushes.** The usual shape for "every morning, tell each follower what is new":
+
+1. a schedule runs `morning`, which starts `digest` once per person: `flow.start-per-person` with `people: { "kind": "linked", … }` over the follow relation;
+2. `digest` runs as that person: it reads what is new for them, writes their `alert` records with `record.create`, and ends with `push.send` (`recipient` left as the run's own person) whose title and body come from those records.
+
+Each person's run writes only their own records, a person who left the project before their run starts is skipped, and a preview of `morning` starts nobody.
+
 ## 4. Loop
 
 **Shape:** `flow.loop` (opener) → the body → `flow.loop-end` (closer).

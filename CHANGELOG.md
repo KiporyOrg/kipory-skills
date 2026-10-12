@@ -2,6 +2,55 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261012.193440 — 2026-10-12
+
+Synced from the Kipory monorepo at `baab55f83`.
+
+Functions added: `flow.start-per-person`, `push.send`.
+
+Routes added: `DELETE /v1/devices/{id}`, `GET /v1/devices/`, `GET /v1/pushes/`, `POST /v1/devices/`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/checking.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- changed: `skills/kipory-build/references/functions/email.send.md`
+- added: `skills/kipory-build/references/functions/flow.start-per-person.md`
+- added: `skills/kipory-build/references/functions/push.send.md`
+- changed: `skills/kipory-build/references/functions/record.append.md`
+- changed: `skills/kipory-build/references/functions/record.create.md`
+- changed: `skills/kipory-build/references/functions/record.delete.md`
+- changed: `skills/kipory-build/references/functions/record.enqueue-process.md`
+- changed: `skills/kipory-build/references/functions/record.link-assert.md`
+- changed: `skills/kipory-build/references/functions/record.link-retract.md`
+- changed: `skills/kipory-build/references/functions/record.teardown.md`
+- changed: `skills/kipory-build/references/functions/record.update.md`
+- changed: `skills/kipory-build/references/functions/source.unwatch.md`
+- changed: `skills/kipory-build/references/functions/source.watch.md`
+- changed: `skills/kipory-build/references/functions/url.send.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/api/routes-a-key-cannot-call.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- added: `skills/kipory-diagnose/references/api/pushes.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-expose/references/sign-in.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-operate/references/packs/credits.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+- changed: `skills/kipory-secrets/references/api/secrets.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20261012.184736 — 2026-10-12
 
 Synced from the Kipory monorepo at `58c6be344`.

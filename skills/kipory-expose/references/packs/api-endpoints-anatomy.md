@@ -185,7 +185,8 @@ Three kinds:
   asynchronous returns an acknowledgement immediately. Its status read
   (the `statusPath` its acknowledgement names) carries `output` once the run is ready and, once it has failed,
   `error` and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
-  and `retryable` a schedule's runs carry, and the `attempt` that closed it (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes). A
+  and `retryable` a schedule's runs carry, the `attempt` that closed it, and a `reason` when the refusal is one a
+  caller may read, such as `project-push-cap-reached` (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). A
   synchronous call whose failure is the platform's own answers 503 with `Retry-After`, not 502.
   An asynchronous run the platform closed with one of its own failures is started again, up to
   three times: its status read answers `PENDING` with `waiting` — a `reason`, the `attempt` number and `notBefore` —

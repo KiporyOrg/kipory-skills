@@ -143,6 +143,12 @@ The signed-in person's own account lives under `/v1/me` on the project host. The
 
 A session that came from the own-domain exchange is scoped to its project: it reads and edits the account and the profile, and is refused `403 SESSION_SCOPED_TO_PROJECT` on the account-wide acts — the sessions list, ending a session, unlinking a provider, deleting the account.
 
+<!-- key-unreachable-ok: POST /v1/devices — the person's own app calls it with their session -->
+<!-- key-unreachable-ok: GET /v1/devices — the person's own app lists its devices with their session -->
+<!-- key-unreachable-ok: DELETE /v1/devices/{id} — the person's own app stops a device with their session -->
+
+**Push devices.** An app that wants pushes registers the device on the project host with the person's own session, `POST /v1/devices` with `pushService` (`apns` or `fcm`), `token`, `appId` and, for iOS, `environment`. Call it at every launch and whenever the operating system hands the app a new token: registering again refreshes the device rather than adding one. `GET /v1/devices` lists the person's own devices in this project and `DELETE /v1/devices/{id}` stops one. A key cannot register a device. Signing out, or ending the session with `DELETE /v1/me/sessions/{id}`, removes every device that session registered, so register again after the next sign-in; leaving the project and deleting the account remove them too (`kipory-channels` for what a flow does with them).
+
 The `auth` and `account` groups can be switched off per project (route enablement, in the skill's main page); `GET /v1/coded-routes` lists both groups in full, and the project host's `GET /v1/openapi.json` has each body.
 
 ## The end-user profile

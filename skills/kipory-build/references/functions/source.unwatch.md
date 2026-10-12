@@ -19,6 +19,7 @@ Removes one record's watch on a channel. Others' holds keep it watched; the last
 | `channelSlot` | string | yes | — | Slot PATH (e.g. `outlet.channel`) that resolves to the channel to let go of. ⚠️ Reading a newly watched channel starts within about a minute. It costs the runs its triggers start, one per message. Letting the last holder go stops those runs; the platform's reader stays in the channel. |
 | `holderSlot` | string | yes | — | Slot PATH (e.g. `follow.recordId`) that resolves to the id of the record `source.watch` was given. |
 | `provider` | `telegram` | yes | — | What kind of source the channel is. |
+| `userIdSlot` | string | no | — | Slot PATH to the person whose record held the watch, when a schedule or trigger runs the flow for nobody. |
 
 ## Worked example
 

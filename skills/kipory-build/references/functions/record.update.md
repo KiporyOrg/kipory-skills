@@ -25,6 +25,7 @@ Changes a record's data: on a per-user type only the user's own record, on a pro
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to patch. ⚠️ On a per-user type only the user's own record is patched — another id, or a run with no user, changes nothing and reports no error. Any run reaches a project type's records. |
 | `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record's current status is this one. Leave it unset to write to any record that is not being deleted. |
 | `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Flip the record to this processing status, clearing any earlier error. Leave it unset to leave the status alone. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` action does that. |
+| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
 
 ## Worked example
 

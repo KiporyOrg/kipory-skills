@@ -41,10 +41,11 @@ Each item of `secrets`:
 | `id` | `string` | yes | The secret's id — what you rotate or delete by. |
 | `node` | `string` | yes | The node this secret is attached to. |
 | `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
-| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a function reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: an action names its purpose, and that read does not list it. Unique within a node and type. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a function reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: an action names its purpose, and that read does not list it. So are the push keys: an `apns_key` or `fcm_service_account` purpose is the app's bundle id or package name (an `apns_key` may add `:sandbox` or `:production`), read when a push reaches a device of that app. Unique within a node and type. |
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
+| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`), on a save: what Apple or Google said when asked once with this key. A refusal never fails the save. |
 
 ### `POST /v1/secrets`
 
@@ -66,10 +67,11 @@ Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is 
 | `id` | `string` | yes | The secret's id — what you rotate or delete by. |
 | `node` | `string` | yes | The node this secret is attached to. |
 | `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
-| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a function reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: an action names its purpose, and that read does not list it. Unique within a node and type. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a function reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: an action names its purpose, and that read does not list it. So are the push keys: an `apns_key` or `fcm_service_account` purpose is the app's bundle id or package name (an `apns_key` may add `:sandbox` or `:production`), read when a push reaches a device of that app. Unique within a node and type. |
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
+| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`), on a save: what Apple or Google said when asked once with this key. A refusal never fails the save. |
 
 ### `PUT /v1/secrets/{id}`
 
@@ -94,10 +96,11 @@ Rotate a stored credential: replace its value in full. It never re-enables a swi
 | `id` | `string` | yes | The secret's id — what you rotate or delete by. |
 | `node` | `string` | yes | The node this secret is attached to. |
 | `type` | `string` | yes | Which kind of secret this is, from the catalog — e.g. "oauth_client". It decides which fields the value must carry. |
-| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a function reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: an action names its purpose, and that read does not list it. Unique within a node and type. |
+| `purpose` | `string` | yes | The second half of the vault's lookup key, `(type, purpose)` — e.g. "google". A credential is handed out only when something in this deployment looks up exactly this pair: sign-in reads `(oauth_client, google)` and `(apple_signin, apple)`, a function reads the service it calls. A purpose nothing reads is stored and never used — `GET /v1/secrets/resolution` lists every pair a stored credential can answer, so one absent from it is never handed out. A request credential (`http_credential`) is the exception: an action names its purpose, and that read does not list it. So are the push keys: an `apns_key` or `fcm_service_account` purpose is the app's bundle id or package name (an `apns_key` may add `:sandbox` or `:production`), read when a push reaches a device of that app. Unique within a node and type. |
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
+| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`), on a save: what Apple or Google said when asked once with this key. A refusal never fails the save. |
 
 ### `PATCH /v1/secrets/{id}`
 

@@ -87,7 +87,7 @@ true
 
 #### In a preview
 
-The action fails, on purpose. A preview shows what a flow would do; sending would make showing and doing one.
+It succeeds and sends nothing. Every real check still runs; a warning says one message would have gone.
 
 Reads `{ to, subject, body }` → emits `boolean` · 1 in → 1 out
 
@@ -111,5 +111,5 @@ Input:
 Output:
 
 ```
-"flow preview does not send mail"
+true
 ```

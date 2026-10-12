@@ -19,6 +19,7 @@ Puts an existing record back on the processing queue. It only triggers — it do
 | `mode` | `full` \| `from-cache` | no | `"full"` | How much of the previous run to reuse. `full` re-runs every action; `from-cache` replays the ones that have not changed. ⚠️ Only use `from-cache` when the earlier derived state is still there — replaying an action whose output was torn down produces nothing. |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to queue. ⚠️ Scoped to the signed-in user, so an id owned by anyone else queues nothing and reports no error. |
 | `replay` | `resume` \| `rerun` \| `clean` | no | `"resume"` | What a re-run carries over. Every action runs again under each value; `clean` also strips what the last attempt produced. ⚠️ `resume` and `rerun` behave the same: a record run applies its writes at the end, so no finished action is skipped. `clean` deletes generated files, including ones from an action that is now switched off. |
+| `userIdSlot` | string | no | — | Slot PATH to the person to write for, when a schedule or trigger runs the flow for nobody. |
 
 ## Worked example
 

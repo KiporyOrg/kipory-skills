@@ -2,12 +2,12 @@
 
 # Function catalog
 
-123 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+125 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
 - `ingest` (78) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
-- `inline` (39) — runs synchronously inside the flow engine, in order.
+- `inline` (41) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
 - model — calls an AI model.
@@ -196,14 +196,15 @@ _Read and change the project's records and terms. Only these actions can change 
 - [`vocabulary.aggregate`](vocabulary.aggregate.md) — Count records by term · `inline` · `string` → `VocabularyAggregate`
 - [`vocabulary.resolve`](vocabulary.resolve.md) — Pick terms for a record · `inline` · model · `record context` → `TermResolution[]`
 
-## outbound (2)
+## outbound (3)
 
 _Reach a person or a system outside the platform. Nothing is sent until the run's changes are saved._
 
 - [`email.send`](email.send.md) — Send an email · `inline` · `recipient, subject, body` → `boolean`
+- [`push.send`](push.send.md) — Send a push notification · `inline` · `people and text` → `PushSendResult`
 - [`url.send`](url.send.md) — Send a request · `inline` · `string` → `boolean`
 
-## flow (9)
+## flow (10)
 
 _Steer the run: branch, loop, call another flow, keep state between actions._
 
@@ -214,6 +215,7 @@ _Steer the run: branch, loop, call another flow, keep state between actions._
 - [`flow.loop`](flow.loop.md) — Start a loop · `control` · `the starting values` → `string`
 - [`flow.loop-end`](flow.loop-end.md) — End a loop · `control` · `the loop's own slots` → `nothing`
 - [`flow.merge`](flow.merge.md) — Gather branch results · `control` · `T[]+` → `T[]`
+- [`flow.start-per-person`](flow.start-per-person.md) — Start a flow for each person · `inline` · `people and inputs` → `PeopleStartResult`
 - [`state.read`](state.read.md) — Recall a saved value · `inline` · `none` → `string, or string[] for an append or union cell`
 - [`state.write`](state.write.md) — Save a value for later · `inline` · `any` → `string`
 

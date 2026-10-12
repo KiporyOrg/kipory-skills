@@ -166,10 +166,10 @@ for `url.fetch` to do that, because a read is cached and may be sent several tim
   4xx is final: a redirect is not followed. A new run of the same input stages a new request;
   name an `idempotencyKeySlot` so the receiving system can recognise that repeat too.
   <!-- field-ok: idempotencyKeySlot — a `url.send` config field, listed on the function's reference page -->
-- **In a preview or an eval run the action fails rather than sending.** To preview the rest of the
-  flow, guard the action with a condition over a slot the preview's inputs leave empty;
-  `"onFailure": "continue"` is refused on it (`RUN_CONTINUE_NOT_ALLOWED`), as on any action that may
-  write. Prove the send with one live run.
+- **In a preview or an eval run the action checks and does not send.** It answers `true` with a
+  `PREVIEWED_NOT_SENT` warning naming the method and host, and the rest of the flow runs. A secret
+  that is not stored fails it as `api-key-missing`, and an address outside the secret's hosts fails
+  it as the delivery would. Prove the delivery with one live run.
 - **Nothing reports the delivery.** The action's `true` means staged. No run read, timeline or
   spend read says whether the request left or what it was answered: a wrong host, a private
   address, a credential that does not list the host, a credential removed since and a 4xx all

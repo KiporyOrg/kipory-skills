@@ -309,7 +309,7 @@ What the projects under this organization spent over a window, by kind, model, p
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
@@ -359,7 +359,7 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | The kind of work that was charged. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
@@ -412,7 +412,7 @@ What one project spent over a window, by kind of billable work — split by kind
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
@@ -462,7 +462,7 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | The kind of work that was charged. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
@@ -504,7 +504,7 @@ The project's statement — every charge under the same window and narrowings as
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
@@ -531,7 +531,7 @@ Each item of `events`:
 | `id` | `string` | yes | The charge's id. |
 | `occurredAt` | `string` | yes | When the work happened — the instant the window ranges on and the statement is ordered by. |
 | `createdAt` | `string` | yes | When the charge was recorded. Later than `occurredAt` for a retried or backfilled row. |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | yes | What kind of work was charged for. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | What kind of work was charged for. |
 | `actor` | `"request" \| "design" \| "system" \| "holding" \| "public"` | yes | Whose work: `request` an end user's, `public` a call to a public endpoint, made with no credential and paid by the project, `design` design-time, `system` the platform's own, which charges nobody; `holding` what the project stores — files and vectors — charged by the daily held tick with no end user behind it. |
 | `credits` | `integer` | yes | What the project was charged for this event, in credits. `0` is a measured charge — a free or platform-actor row — not an absence. |
 | `actionId` | `string \| null` | yes | The action row that spent it, or null outside any action. ⚠️ Ids fragment on every flow edit; `actionName` is the key that totals. |
@@ -566,7 +566,7 @@ The statement of `GET /v1/projects/{nodeId}/usage/events` as CSV, newest first, 
 | `from` | `string` | no | The instant a custom span starts, INCLUSIVE — e.g. `2026-09-01T00:00:00Z`. Only with `window=custom`, where it is required. |
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
-| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank"` | no | Narrow to one kind of work. |
+| `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |

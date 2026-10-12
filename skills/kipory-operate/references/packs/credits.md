@@ -152,8 +152,8 @@ by paging this one. It answers a question about one caller, however broad that c
 Events carry the charge you incurred and never the platform's own vendor cost: you see what you
 were charged, not what it cost us to serve you.
 
-Filtering is by event type (a lowercase kebab word — `llm-call`, `embedding`, `function-run`, …),
-request id, and a time range: `from` is an inclusive instant, `to` an exclusive one.
+Filtering is by event type (a lowercase kebab word — `llm-call`, `embedding`, `function-run`,
+`push-delivery` for one push delivered to one device, …), request id, and a time range: `from` is an inclusive instant, `to` an exclusive one.
 
 ## The statement walks in both directions and refuses to number itself
 
