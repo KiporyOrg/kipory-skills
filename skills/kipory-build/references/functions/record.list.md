@@ -27,7 +27,7 @@ Each page carries a cursor for the next. Filter by status, date, vocabulary, fie
 | `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A row missing the key matches neither choice, and every row is read. |
 | `fieldFilterSlots` | object | no | — | Each queryable field with the slot carrying its value or list. ⚠️ If a slot is missing the action is skipped; an empty list matches nothing. |
 | `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A field the table never declared queryable is refused when the action runs. |
-| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the action; narrow the fields or lower `limit`. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the action; a run warns from half the limit and a save when one is likely. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
 | `limit` | integer, 1 to 100 | no | `50` | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows that a page was cut short. |
 | `limitSlot` | string | no | — | A slot that sets the page size while the flow runs. ⚠️ A value outside 1 to 100 or not whole is silently ignored. |
