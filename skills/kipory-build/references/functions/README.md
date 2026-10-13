@@ -200,7 +200,7 @@ _Read and change the project's records and terms. Only these actions can change 
 
 _Reach a person or a system outside the platform. Nothing is sent until the run's changes are saved._
 
-- [`email.send`](email.send.md) — Send an email · `inline` · `recipient, subject, body` → `boolean`
+- [`email.send`](email.send.md) — Send an email · `inline` · `recipient, subject, body` → `string`
 - [`push.send`](push.send.md) — Send a push notification · `inline` · `people and text` → `PushSendResult`
 - [`url.send`](url.send.md) — Send a request · `inline` · `string` → `boolean`
 

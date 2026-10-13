@@ -433,8 +433,9 @@ checking.
 In either mode a run reads its own writes one way only: an action that reads a record by id sees what
 an earlier action of the same case wrote, and a list, query, count or search does not.
 
-Whatever `applyWrites` says: files land in a sandbox prefix, a send is checked and not sent — an
-`email.send` or `url.send` action answers `true` with a `PREVIEWED_NOT_SENT` warning, and a check a live
+Whatever `applyWrites` says: files land in a sandbox prefix, a send is checked and not sent — a
+`url.send` action answers `true` and an `email.send` action answers the string `preview-not-sent`, not a
+message id, each with a `PREVIEWED_NOT_SENT` warning, and a check a live
 run would fail still fails the case — and an
 emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
 published, so no trigger starts. In an applying suite, records and terms are not isolated, and

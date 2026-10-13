@@ -251,7 +251,7 @@ Each logged `event` names its project `project`, the node id every `?project=` t
 
 ## Being told when a run fails: a trigger on a platform event
 
-Every project has the event category `platform`, with eight types the platform records itself.
+Every project has the event category `platform`, with nine types the platform records itself.
 You cannot add to it, change it or emit into it; `GET /v1/event-types` lists them, and a project
 document neither creates nor prunes them. **A failure trigger is an ordinary trigger on one of
 them, bound to an ordinary flow** — one that posts to your chat, opens a ticket, writes a record.
@@ -266,6 +266,7 @@ them, bound to an ordinary flow** — one that posts to your chat, opens a ticke
 | `health.quiet`        | A schedule that should have run has not                                       | `PlatformHealthChange` |
 | `health.pause-warned` | A failing schedule or trigger will be paused in 24 hours                      | `PlatformHealthChange` |
 | `health.paused`       | It was paused                                                                 | `PlatformHealthChange` |
+| `mail.failed`         | A message a run sent was refused, failed for good, or was returned            | `PlatformMailFailed`   |
 
 An unattended run is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, or
 a record's processing. Its **subject** is what it ran for — `{ kind, key }` with `kind` one of
@@ -284,6 +285,19 @@ class, the commonest code, the first and last run ids, and `failedRunsPath` — 
 runs themselves, already filtered to exactly the ones the summary counted: by when each failure was
 reported, leaving out runs a platform event started. Five thousand records failing in ten minutes
 are five events, not five thousand runs of the flow that hears them.
+
+**What `mail.failed` carries.** One event per message, the first time it rests on `refused` (the
+platform will not send it), `failed` (every try failed, or it never reached the delivery queue) or
+`bounced` (the recipient's server returned it; only on a deployment that reads its returned mail): `messageId` — the id the `email.send` action
+answered — the `runId` and `actionId` that sent it, the `recipient`, the `status`, a `reason`, the
+`fault` (`platform`, `sender` or `recipient`: whose failure it is), the sentence the platform writes
+for the reason, the relay's `replyCode` or the returned notice's `bounceStatus` when there is one,
+`at`, and `messagePath` — the address of the message's record. The recipient's address is the one
+part of a message an event holds: never the subject, the body or the reply-to. A try that will be
+repeated and a message the relay accepted record nothing; read those from
+`GET /v1/mail-messages?project=<nodeId>`. It is about a message, not a subject: it moves no health,
+changes nothing about the run that sent the message, and a message sent by a flow that a platform
+event started records no event when it fails — read that one from its record.
 
 **Nothing is recorded** for an attempt the platform is about to start again, for a run a person
 cancelled, for a preview, or for a synchronous call — whose caller already has the answer.
@@ -305,7 +319,8 @@ runs in a slot of its own, so a project whose runs fill its concurrency cap can 
 event of that type for a subject the project has. Its `data` is an example with `test: true`;
 every enabled trigger on the type fires as on a real one, and the flows they start are ordinary,
 charged runs. Recording it costs nothing, moves no health and lists no failed run. The answer
-says how many triggers listen — zero means nothing ran.
+says how many triggers listen — zero means nothing ran. For `mail.failed` the `subject` is still
+required and is not used: any subject of a valid kind is accepted.
 
 ### Asking instead of being told
 

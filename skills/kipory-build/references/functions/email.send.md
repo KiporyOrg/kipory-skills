@@ -8,10 +8,10 @@ Recipient, subject and body come from slots. It sends only after the run saves, 
 
 - **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own message, so a new run of the same input sends it again.
-- **I/O:** `recipient, subject, body` → `boolean`
+- **I/O:** `recipient, subject, body` → `string`
 - **Also found as:** mail, notify by email, email someone, send message, newsletter
 - **Reads:** The recipient — any address, project member or not — plus subject and body, each from the slot its setting names. The sending address is a setting, not a slot. _(shape hint: `recipient, subject, body`)_
-- **Emits:** `true` once the message is queued — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the action fails (`project-mail-cap-reached`).
+- **Emits:** The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the action fails (`project-mail-cap-reached`).
 
 ## Config
 
@@ -26,13 +26,13 @@ Recipient, subject and body come from slots. It sends only after the run saves, 
 
 ## Worked example
 
-Sends one message that earlier actions put together. It goes out after the run saves everything else, so a flow that fails later sends nothing.
+Sends one message earlier actions put together and answers its id. It leaves after the run saves; a flow that fails later sends nothing.
 
 #### Run succeeds
 
-`true` means the run now owes this message. It leaves once the run finishes and its changes are saved.
+The run now owes this message. It leaves once the run saves; the id reads what happened to it.
 
-Reads `{ to, subject, body }` → emits `boolean` · 1 in → 1 out
+Reads `{ to, subject, body }` → emits `string` · 1 in → 1 out
 
 Action settings (`functionConfig`):
 
@@ -54,14 +54,14 @@ Input:
 Output:
 
 ```
-true
+"7c1f0c9e-3b52-4a5e-9d0a-2f6b8e41a7d3"
 ```
 
 #### Run fails later
 
-The action succeeded and nothing is sent. A failed run discards what it staged, and this was staged.
+The action succeeded and nothing is sent: a failed run discards what it staged. The id names no message.
 
-Reads `{ to, subject, body }` → emits `boolean` · 1 in → 1 out
+Reads `{ to, subject, body }` → emits `string` · 1 in → 1 out
 
 Action settings (`functionConfig`):
 
@@ -83,14 +83,14 @@ Input:
 Output:
 
 ```
-true
+"7c1f0c9e-3b52-4a5e-9d0a-2f6b8e41a7d3"
 ```
 
 #### In a preview
 
 It succeeds and sends nothing. Every real check still runs; a warning says one message would have gone.
 
-Reads `{ to, subject, body }` → emits `boolean` · 1 in → 1 out
+Reads `{ to, subject, body }` → emits `string` · 1 in → 1 out
 
 Action settings (`functionConfig`):
 
@@ -112,5 +112,5 @@ Input:
 Output:
 
 ```
-true
+"preview-not-sent"
 ```

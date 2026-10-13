@@ -45,6 +45,8 @@ POST /v1/flows/{id}/preview-runs                   { input, apply: false } → 2
 
 A product call that came back 4xx may never have started a run at all — a bad credential, a body the contract refused, a limit. Every 4xx a product endpoint answered is logged apart: `GET /v1/rejected-requests?project={nodeId}`, narrowed by `class` (`auth`, `validation`, `not-found`, `limit`, `other`) or `endpointKey`, newest first and cursor-paged (walk `after=<nextCursor>` until it is `null`); each row's `credential` is `api-key`, `session` or `none`. A refusal raised by the run itself — `422 FLOW_OUTPUT_MISSING`, an `$assert` — is listed there too, and its `requestId` is the run's id: try it on `GET /v1/runs/{runId}/timeline` before concluding no run started.
 
+A run that sends mail closes when its message is committed, not when it is delivered, so a run can read `succeeded` while a message it sent never went. `messages` on `GET /v1/runs/{runId}` counts the messages the run committed (`owed`) and how many of them were refused, failed or bounced (`failed`). `GET /v1/mail-messages?project={nodeId}&run={runId}` lists them, newest first and cursor-paged: each row carries its `status` (`queued`, `retrying`, `sent`, `refused`, `failed`, `bounced`) and, once it failed or is being retried, the `reason`, whose `fault` it is (`platform`, `sender` or `recipient`) and the reason in a sentence (`message`). `sent` means the mail relay accepted the message, which is not proof it reached an inbox. `GET /v1/mail-messages/{id}` reads one message by its id. A row says who the message was for and never holds its subject or body.
+
 **Read how the run closed before its actions.** `closing` on `GET /v1/runs/{runId}` (and on each row of `GET /v1/runs`) is the run's one closing record:
 
 - **`closing.verdict` has three values.** `succeeded`; `failed` — nothing it wrote was kept; `partial` — it finished and kept its changes after carrying on past a failure it was set to tolerate, and `closing.absorbed { actions, calls, branches }` counts those: actions under `"onFailure": "continue"`, sub-flow calls under it, and fan-out branches within the fan-out's tolerance. A tolerated branch or a continued sub-flow call is dropped whole: nothing it staged is applied.
@@ -113,6 +115,7 @@ Values are truncated at write time — embeddings reduced to a head marker, long
 | `references/api/runs.md`              | the runs list, one run, actions, the timeline stream, change set, snapshots, the activity stream |
 | `references/api/traces.md`            | the trace list and one trace                                                                     |
 | `references/api/rejected-requests.md` | the product endpoint calls that answered 4xx — by class, by endpoint                             |
+| `references/api/mail-messages.md`     | what happened to each message a run sent — by run, by status, one by id                          |
 
 The failed-runs list, the alerts read and the test event are in `kipory-operate`'s `references/api/failures.md`.
 

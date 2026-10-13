@@ -115,7 +115,7 @@ Each item of `starters`:
 
 ### `GET /v1/runs/{runId}`
 
-Which run this is — the flow it ran, how it was triggered, how it closed, and its retry attempts. Each sibling answers one aspect: `…/timeline` (what executed, no values), `…/trace` (the values, when sampled), `…/change-set` (what it wrote), `…/flow-snapshots` (the flow as it ran), `…/spend` (what it cost). 404 for an id you cannot see.
+Which run this is — the flow it ran, how it was triggered, how it closed, and its retry attempts. Each sibling answers one aspect: `…/timeline` (what executed, no values), `…/trace` (the values, when sampled), `…/change-set` (what it wrote), `…/flow-snapshots` (the flow as it ran), `…/spend` (what it cost). `messages` counts the messages the run committed to send and how many of them were refused, failed or bounced; a message's delivery never changes how the run closed. List them at `GET /v1/mail-messages?project=&run=`. 404 for an id you cannot see.
 
 **Path parameters**
 
@@ -128,6 +128,7 @@ Which run this is — the flow it ran, how it was triggered, how it closed, and 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `run` | `object` | yes | The run, in the listing's own row shape, built from its EARLIEST opening frame. ⚠️ `seq` is still its paging cursor in the listing, and is published here so a caller can open the listing at this run rather than at the top. |
+| `messages` | `object` | yes | The run's messages, counted. List them at `GET /v1/mail-messages?project=&run=`. |
 
 ### `GET /v1/runs/{runId}/change-set`
 

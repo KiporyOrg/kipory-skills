@@ -2,6 +2,26 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261013.51623 — 2026-10-13
+
+Synced from the Kipory monorepo at `b4f8decfd`.
+
+Routes added: `GET /v1/mail-messages/`, `GET /v1/mail-messages/{id}`.
+
+- changed: `skills/kipory-build/references/checking.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- changed: `skills/kipory-build/references/functions/email.send.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- added: `skills/kipory-diagnose/references/api/mail-messages.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+
 ## 1.20261012.224403 — 2026-10-12
 
 Synced from the Kipory monorepo at `9d7688339`.
