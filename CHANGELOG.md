@@ -2,6 +2,12 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261013.163536 — 2026-10-13
+
+Synced from the Kipory monorepo at `aa35c802a`.
+
+- changed: `skills/kipory-expose/references/consumer.md`
+
 ## 1.20261013.152723 — 2026-10-13
 
 Synced from the Kipory monorepo at `954c98dca`.
