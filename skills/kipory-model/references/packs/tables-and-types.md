@@ -877,7 +877,7 @@ typed, among the guides they follow" is one action.
 - 422 `QUERY_CLAUSE_TOO_BROAD` — the first exact clause selected more than a million records
   before any other clause could narrow it. Add a narrower clause the planner will run first — a
   term, or a field equality — rather than reordering yours: the order is the planner's.
-- 503 `VECTOR_INDEX_UNREADABLE` — the meaning index could not be reached, or was never provisioned
+- 503 `VECTOR_INDEX_UNREADABLE` — the meaning index could not be reached, or was never provisioned. With `details.reason: "index-not-built"` the table's index is still being built (a search sent right after the table became searchable): send the same search again shortly.
   for the table. Nothing partial comes back; a query with no semantic clause is unaffected.
 
 **Paging.** Only a query WITHOUT a semantic clause pages: on the route, pass back `nextCursor` as
