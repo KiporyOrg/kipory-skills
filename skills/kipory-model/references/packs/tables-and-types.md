@@ -703,6 +703,16 @@ EXACTLY when it holds at most 25 000 records, so a record satisfying every claus
 by the ranking. Above that the ranking runs first and the exact clauses narrow it — a bounded
 answer, and the answer says so.
 
+**Which fields each record carries.** A row carries every field of the table unless `fields`
+names the ones you read: `"fields": ["title", "startsAt"]`. In a `record.query` action the names
+are the table's fields, and `id`, `createdAt`, `updatedAt`, `status` and `processing` always come back; a name
+the table does not have is refused when the flow is saved. In the body of
+`POST /v1/records/query` the names are the row's columns (the fields with a `filter` use), and a
+name that is not one is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`. The list changes nothing else:
+the same records, order, cursor, `scores` and passages. Name the fields whenever the table has
+long ones — an action's answer has one size limit, and a page of whole records can pass it. With
+`tableKeys`, a name is one any of the tables has, and each row carries the ones its own table has.
+
 **How close each record is.** An answer ranked by the query's own `semantic` clause carries
 `scores` beside `records`: one `{ id, score }` per returned record, in the records' order. The
 score is the similarity of the record's closest part to the query — higher is closer, a poor

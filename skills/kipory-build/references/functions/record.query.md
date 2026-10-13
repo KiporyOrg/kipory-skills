@@ -20,6 +20,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `clauses` | union[], 1 to 16 items | yes | — | Records must match every clause; a value may come from a slot. ⚠️ A semantic clause returns at most topK records, with no further pages. |
 | `cursorSlot` | string | no | — | The slot holding a prior answer's cursor; empty for the first page. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the action; with `tableKeys`, each row carries its own table's named fields. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. |
 | `order` | union | no | — | Order by `created`, `meaning`, or a date field of the type. ⚠️ A field order leaves out records with no value in that field. |
 | `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
@@ -311,7 +312,11 @@ Action settings (`functionConfig`):
       "valueSlot": "runInfo.now"
     }
   ],
-  "limit": 20
+  "limit": 20,
+  "fields": [
+    "title",
+    "startsAt"
+  ]
 }
 ```
 
@@ -326,7 +331,7 @@ Output:
 ```
 {
   "records": [
-    { "id": "ckwx2a", "title": "Ridge walk at dawn", "summary": "Six hours, moderate", "text": null, "comment": null, "createdAt": "2026-06-20T07:00:00.000Z", "updatedAt": "2026-06-20T07:00:05.000Z", "status": "READY" }
+    { "id": "ckwx2a", "title": "Ridge walk at dawn", "startsAt": "2026-06-27T04:30:00.000Z", "createdAt": "2026-06-20T07:00:00.000Z", "updatedAt": "2026-06-20T07:00:05.000Z", "status": "READY" }
     /* …up to 19 more, newest-first… */
   ],
   "bounded": false,
