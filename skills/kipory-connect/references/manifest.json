@@ -66,7 +66,7 @@
       "page": "kipory-operate/references/packs/schedules.md"
     },
     "secrets": {
-      "hash": "2cb51f10cfb9",
+      "hash": "f5344b197ded",
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
@@ -1204,11 +1204,11 @@
       "page": "kipory-operate/references/api/schedules.md"
     },
     "GET /v1/secrets/": {
-      "hash": "bc7b41c4b13a",
+      "hash": "4470fe3086fd",
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "GET /v1/secrets/catalog": {
-      "hash": "6d69bad3ed6a",
+      "hash": "cc5f34ab0f74",
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "GET /v1/secrets/resolution": {
@@ -1622,7 +1622,7 @@
       "page": "kipory-operate/references/api/schedules.md"
     },
     "POST /v1/secrets/": {
-      "hash": "c91afe162b98",
+      "hash": "0f9efef81d3a",
       "page": "kipory-secrets/references/api/secrets.md"
     },
     "POST /v1/sources/": {
@@ -1697,7 +1697,7 @@
       "page": "kipory-data/references/api/records.md"
     },
     "PUT /v1/secrets/{id}": {
-      "hash": "d84f56d42afc",
+      "hash": "ea3dc6be1d45",
       "page": "kipory-secrets/references/api/secrets.md"
     }
   }

@@ -22,11 +22,14 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 The credentials a node stores itself (`?node=`) — metadata only, never a value. Requires **VIEWER**. Whether one actually resolves there, including an ancestor's, is `GET /v1/secrets/resolution?node=`; the types you can store are `GET /v1/secrets/catalog`.
 
+A switched-on push key carries its recorded `check`. A verdict is recorded per project: a project's own keys carry theirs, and for a key stored on an organization pass `?project=` (a project you hold **VIEWER** on) to read the verdict recorded in that project.
+
 **Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `node` | `string` | yes | The node whose secrets to list. |
+| `project` | `string` | no | The node id of a project whose recorded push-key verdicts to put on the rows as `check`. For a key stored on an organization, whose verdict is recorded per project. Left out, a project's own list carries its own. |
 
 **Response `200`**
 
@@ -45,7 +48,7 @@ Each item of `secrets`:
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
-| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`), on a save: what Apple or Google said when asked once with this key. A refusal never fails the save. |
+| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`). On a save: what Apple or Google said when asked once with this key; a refusal never fails the save. On a list: the verdict recorded in a project about a switched-on key, with `at` the moment it was recorded. `refused` comes from a save or a delivery and carries the service's `detail`; `accepted` comes from a save, or from the delivery that cleared a refusal, and carries none. A key whose save got no answer carries no `check`, however many pushes it delivers, until one is refused. |
 
 ### `POST /v1/secrets`
 
@@ -71,7 +74,7 @@ Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is 
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
-| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`), on a save: what Apple or Google said when asked once with this key. A refusal never fails the save. |
+| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`). On a save: what Apple or Google said when asked once with this key; a refusal never fails the save. On a list: the verdict recorded in a project about a switched-on key, with `at` the moment it was recorded. `refused` comes from a save or a delivery and carries the service's `detail`; `accepted` comes from a save, or from the delivery that cleared a refusal, and carries none. A key whose save got no answer carries no `check`, however many pushes it delivers, until one is refused. |
 
 ### `PUT /v1/secrets/{id}`
 
@@ -100,7 +103,7 @@ Rotate a stored credential: replace its value in full. It never re-enables a swi
 | `publicMeta` | `object` | yes | The fields of this secret that are NOT secret, in the clear — an OAuth client id, say. Empty when the type declares none. Still tenant data even though it is readable. |
 | `status` | `"active" \| "disabled"` | yes | Whether this secret is currently usable. Disabling keeps the stored value and stops it being handed out, so it is reversible in a way deleting is not. |
 | `updatedAt` | `string` | yes | When the secret was last rotated or changed. |
-| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`), on a save: what Apple or Google said when asked once with this key. A refusal never fails the save. |
+| `check` | `object` | no | Push keys only (`apns_key`, `fcm_service_account`). On a save: what Apple or Google said when asked once with this key; a refusal never fails the save. On a list: the verdict recorded in a project about a switched-on key, with `at` the moment it was recorded. `refused` comes from a save or a delivery and carries the service's `detail`; `accepted` comes from a save, or from the delivery that cleared a refusal, and carries none. A key whose save got no answer carries no `check`, however many pushes it delivers, until one is refused. |
 
 ### `PATCH /v1/secrets/{id}`
 
@@ -162,6 +165,8 @@ Each item of `types`:
 | `label` | `string` | yes | A human-readable name for the type. |
 | `purposeLabel` | `string` | yes | What this type calls its purpose, for a form label. |
 | `purposePlaceholder` | `string` | no | An example purpose for this type. |
+| `use` | `"sign-in" \| "service" \| "request" \| "push" \| "platform" \| "other"` | yes | What reads a secret of this type: `sign-in` a sign-in provider, `service` a function calling a vendor (on the system root, Kipory's own account with that vendor), `request` an action naming it, `push` a push to a device, `platform` Kipory itself (a project's own is never read), `other` nothing the platform runs. |
+| `purposeSuffix` | `object` | no | The endings this type's purpose may take, when it has any: an `apns_key` purpose may end `:sandbox` or `:production`. |
 | `fields` | `object[]` | yes | The fields a secret of this type carries; one marked `optional` may be left out. |
 
 ### `GET /v1/secrets/resolution`

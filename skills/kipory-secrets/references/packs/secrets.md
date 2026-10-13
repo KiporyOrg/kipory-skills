@@ -164,6 +164,19 @@ reaches a device of that app, and not listed by `GET /v1/secrets/resolution`. Sa
 or Google once and answers `check { outcome, detail?, at }`: `accepted`, `refused` (stored anyway;
 pushes with it will not arrive until it is replaced) or `no-answer`. A refusal never fails the save.
 
+`GET /v1/secrets?node=` carries the verdict recorded about a switched-on push key as `check`, with
+`at` the moment it was recorded:
+
+- `refused` comes from a save or from a delivery, with the service's `detail`.
+- `accepted` comes from a save, or from the delivery that cleared a refusal. A delivery that simply
+  works records nothing, so a key whose save got `no-answer` carries no `check` however many pushes
+  it delivers. No `check` is not a failed key.
+- A verdict is recorded per project. A project's own list carries its own; for a key stored on an
+  organization, add `&project=<the project's node>` to read the verdict recorded in that project.
+- Replacing a key or switching it off forgets its verdicts.
+
+In the operator UI a human does all of this on the project's Secrets page, under Push keys.
+
 ## Address by node, not by project
 
 Every sibling design resource scopes by project because every one of them belongs to a project. A
