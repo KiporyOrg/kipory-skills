@@ -220,7 +220,7 @@ Each item of `diagnostics`:
 
 ### `DELETE /v1/embedding-profiles/{id}`
 
-Delete one profile generation. Refused (409) while a searchable table uses it, or while it still owns provisioned collections (the rollback path of the generation that superseded it) — the list publishes that refusal per profile as `deleteRefusal`. With `?validateOnly=true` it answers whether it would be, writing nothing. A whole key, every generation: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+Delete one profile generation, together with the search indexes it owns (`indexesRemoved`). Refused (409) while a searchable table uses it — the list publishes that refusal per profile as `deleteRefusal`. Deleting an older generation gives up the way back to it. With `?validateOnly=true` it answers whether it would be refused, and warns when indexes would be removed, writing nothing. A whole key, every generation: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 
@@ -240,6 +240,7 @@ Delete one profile generation. Refused (409) while a searchable table uses it, o
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+| `indexesRemoved` | `integer` | yes | How many search indexes this generation owned and the delete removed with it. 0 when it never held a table's records. `DELETE …?validateOnly=true` names the same number in a warning before anything is removed. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

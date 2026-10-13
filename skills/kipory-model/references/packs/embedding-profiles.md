@@ -148,14 +148,18 @@ moves away from, so activating the superseded generation restores the previous s
 losslessly. That is what makes the reindex window acceptable: it is recoverable, even though it is
 not invisible.
 
+**Deleting a generation removes its index.** A generation no table uses can be deleted, and the
+delete removes the search indexes it owns with it; the answer says how many (`indexesRemoved`), and
+`DELETE …?validateOnly=true` warns of the same number first and removes nothing. Deleting the
+superseded generation therefore gives up that instant rollback: a table moved back to it later is
+indexed again from its records. A profile whose tables are all gone is deleted the same way.
+
 ## What the platform refuses
 
-- **Deleting a profile still named by a searchable table**, and again while the generation
-  still owns a built index (`EMBEDDING_PROFILE_HAS_COLLECTIONS`). You do not have to discover either by trying: every profile
-  carries `deleteRefusal` — the delete's own code and sentence, or null — and the listing adds
-  `canDelete`, which also folds in the ADMIN role the delete needs and whether the project is
-  retired. A superseded generation nothing declares against is the case that catches people: its
-  usage count is zero and it is still refused.
+- **Deleting a profile still named by a searchable table.** You do not have to discover it by
+  trying: every profile carries `deleteRefusal` — the delete's own code and sentence, or null —
+  and the listing adds `canDelete`, which also folds in the ADMIN role the delete needs and whether
+  the project is retired.
 - **A model with no recorded distance metric.** Defaulting to a common one is tempting and wrong,
   for the reason at the top of this pack.
 - **A new generation that changes neither the model nor `keywords`.**

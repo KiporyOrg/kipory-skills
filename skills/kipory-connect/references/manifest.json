@@ -14,7 +14,7 @@
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embedding-profiles": {
-      "hash": "a30adaeef29a",
+      "hash": "3db3de9d8f13",
       "page": "kipory-model/references/packs/embedding-profiles.md"
     },
     "evals": {
@@ -581,7 +581,7 @@
       "hash": "1ce2c6d6d655"
     },
     "DELETE /v1/embedding-profiles/{id}": {
-      "hash": "94cbe58580fb",
+      "hash": "40833b04ee67",
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "DELETE /v1/eval-cases/{id}": {
