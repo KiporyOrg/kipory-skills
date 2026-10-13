@@ -195,6 +195,17 @@ Three kinds:
   allowlist of events to surface. Deltas come only from a `text.generate` action with structured
   output whose text field carries the same name as that slot; any other flow streams `stage`
   frames and then its `result`, with no deltas at all.
+  - **`surfaceEvents` is a list of `{ "categoryKey": "…", "eventKey": "…" }` objects**, one per event
+    type the stream may carry. A bare string is refused, and so is a pair the project's events do
+    not register.
+  - **A surfaced event reaches the client as it is emitted**, not at the end: one emitted in a
+    sub-flow or in a fan-out branch arrives while the run is still going. That is what makes a
+    stream of partial results possible.
+  - **Actions that do not depend on each other run together and finish together.** The run moves on
+    only when every action started together has finished, so a quick action's event waits for a
+    slow sibling started beside it, and `stage` frames arrive in the same groups. To show a fast
+    result before a slow one, put them in separate branches of a `flow.fan-out`, with
+    `maxParallelBranches` set above 1.
 - **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
 
 **An endpoint answers JSON or server-sent events, and nothing else.** A buffered invoke answers

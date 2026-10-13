@@ -146,6 +146,25 @@ warning — an action downstream sees only what was stored. Where a cut would be
 product, cut deliberately first: bound the text in a transform and mark the record, page the
 list, or fan out in batches.
 
+### How often a credential may call the API
+
+Calls are counted per minute, per credential, apart from what a run spends.
+
+| Caller                                   | A minute, unless the deployment set another | Counted per     |
+| ---------------------------------------- | ------------------------------------------- | --------------- |
+| An API key, on any `/v1` route           | 1,200                                       | key             |
+| A signed-in session                      | 1,200                                       | person          |
+| The sign-in routes (`/v1/auth/*`)        | 20                                          | network address |
+| A stored file's link (`/v1/files/raw/*`) | 600                                         | network address |
+| A public endpoint (`auth: "none"`)       | 20, and the endpoint's own `publicRpm`      | network address |
+
+Past the ceiling a call answers 429 `RATE_LIMITED`. Its `details` carry `limit`, `windowMs` (what
+is left of the minute) and `retryAfterSeconds`, and the response headers say the same: when to retry, how many calls remain
+and when the count resets. Nothing was run and nothing is charged: wait the
+seconds it names and send the call again. Two scripts sharing one key share one count, so a backfill
+that reads a record a call meets it first: read a page with `GET /v1/records`, or write many with
+`POST /v1/records/bulk`.
+
 ### Pushes and runs started per person
 
 `push.send` notifies people on the devices their app registered, and `flow.start-per-person`

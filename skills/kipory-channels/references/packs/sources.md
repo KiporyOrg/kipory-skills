@@ -220,9 +220,11 @@ save"; anything else is exactly what lands.
 
 - **A source nothing listens to still costs its connection** and, for Telegram, a media copy per
   message. The list shows `listening: 0`.
-- **`enabled: true` with health `unknown` means no watcher shard owns the channel.** The platform's
-  own Telegram accounts are what read channels; nothing on your row provisions them, and no call of
-  yours changes it. Tell the human the deployment's operator has to assign the channel to a watcher.
+- **`enabled: true` with health `unknown` means no platform reader has picked the channel up yet**, and
+  the health's `detail` says so. A new source reads `unknown` for a short while before its first
+  `live`. The platform's own Telegram accounts are what read channels; nothing on your row provisions
+  them, and no call of yours changes it. If it lasts more than a few minutes, tell the human the
+  deployment's operator has to look.
 - **A disabled source writes nothing, and switching it back on later does not catch up.** The events that
   arrived in between were never recorded; there is nothing to replay.
 - **`version` is required on every write** — every patch, switching `enabled` included. A stale one is a 409;
