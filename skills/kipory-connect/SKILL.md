@@ -98,8 +98,26 @@ The create also takes a `template` slug (`GET /v1/templates` lists them) or a wh
 (`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
 transaction — a refused one leaves no project behind.
 
-A project document exported before the data words were renamed states `kipory: 2`, one exported before the flow words were renamed states `kipory: 3`, one exported before the link functions named their relation `relationKey` states `kipory: 4`, and all three are refused
-(`DOCUMENT_VERSION_UNSUPPORTED`). `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to version 5 in one run. It renames only the names the platform defines, never one you chose; it lists the prompts and expressions that name a renamed field, which are yours to edit; and it refuses, with the line number, a YAML mapping written on one line (`{ … }`) in a place it would have to rewrite — write that mapping out as a block and run it again.
+A project document you hold can be one the platform refuses: one exported before the data words
+were renamed states `kipory: 2`, one exported before the flow words were renamed states
+`kipory: 3`, one exported before the link functions named their relation `relationKey` states
+`kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, and
+all four are refused (`DOCUMENT_VERSION_UNSUPPORTED`).
+`node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
+version 6 in one run, and a second run changes nothing:
+
+- **It renames only the names the platform defines**, never one you chose, and lists the prompts
+  and expressions that name a renamed field, which are yours to edit.
+- **Slot and collection names go.** A search model under `vectors.profiles` loses `denseSlots` and
+  `sparseSlot` and states `keywords` — `true` where it named a sparse slot, `false` where it named
+  none; a `search` use loses `role`; `vectors.collections` is removed. Each removal is listed.
+- **An action whose function the catalog does not have is left as written and listed** — one that
+  searched, wrote or read a collection, or made an embedding. What it becomes is your decision:
+  `record.query` with a `semantic` clause, `term.search`, or no action (`kipory-retrieve`). The plan
+  refuses the document until each is rebuilt or removed.
+
+It refuses, with the line number, a YAML mapping written on one line (`{ … }`) in a place it would
+have to rewrite — write that mapping out as a block, or convert the file to JSON, and run it again.
 
 `GET /v1/projects/address-availability?candidate=` says whether a slug is free before you send it. A
 project's address — its subdomain — can move later and its slug never does; moving it is `kipory-evolve`.

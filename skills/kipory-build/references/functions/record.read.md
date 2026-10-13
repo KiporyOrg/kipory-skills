@@ -10,7 +10,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `RecordRead[]`
 - **Also found as:** get record, load record, fetch record by id
-- **Reads:** A list of ids from the slot `idsSlot` names — plain ids or a vector search's candidates. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_
+- **Reads:** A list of ids from the slot `idsSlot` names — plain ids or objects carrying an `id`. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_
 - **Emits:** A `RecordRead` per record, its submitted and processed fields flattened to the top level. In the order asked, deduplicated; unresolved ids drop.
 
 ## Config
@@ -51,13 +51,13 @@ Returns records in the order of the ids given; on user-owned types, only the use
 
 ## Worked example
 
-Reads the full record behind each id a search returned, so a later action can work with the real text instead of ids.
+Reads the full record behind each id an earlier action produced, so a later action can work with the real text instead of ids.
 
-#### From a search
+#### From a ranked list
 
-Four hits in, three rows out: an action reads ONE table, and the `answer` is not it.
+Four ids in, three rows out: an action reads ONE table, and the fourth id belongs to another.
 
-Reads `list<CandidateHit>` → emits `RecordRead[]` · 1 in → 1 out
+Reads `list<{ id }>` → emits `RecordRead[]` · 1 in → 1 out
 
 Action settings (`functionConfig`):
 
@@ -72,10 +72,10 @@ Input:
 
 ```
 [
-  { "id": "ckwx4j2nq0001oj5qhdz9pq6y", "score": 0.91, "matchedVector": "vec.content",       "tableKey": "item"   },
-  { "id": "ckwx4j2nq0002oj5q…",        "score": 0.84, "matchedVector": "vec.user-language", "tableKey": "item"   },
-  { "id": "ckwx4j2nq0003oj5q…",        "score": 0.78, "matchedVector": "vec.content",       "tableKey": "item"   },
-  { "id": "ckwx4j2nq0004oj5q…",        "score": 0.71, "matchedVector": "vec.user-language", "tableKey": "answer" }
+  { "id": "ckwx4j2nq0001oj5qhdz9pq6y", "relevance": 0.91 },
+  { "id": "ckwx4j2nq0002oj5q…",        "relevance": 0.84 },
+  { "id": "ckwx4j2nq0003oj5q…",        "relevance": 0.78 },
+  { "id": "ckwx4j2nq0004oj5q…",        "relevance": 0.71 }
 ]
 ```
 
@@ -122,9 +122,9 @@ Output:
 
 #### Nothing to read
 
-The upstream search found nothing. The function skips the database entirely and returns an empty list.
+The action upstream found nothing. The function skips the database entirely and returns an empty list.
 
-Reads `list<CandidateHit>` → emits `RecordRead[]` · 1 in → 1 out
+Reads `list<{ id }>` → emits `RecordRead[]` · 1 in → 1 out
 
 Action settings (`functionConfig`):
 

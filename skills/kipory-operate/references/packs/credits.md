@@ -42,7 +42,7 @@ call, and it is the wallet, which `status` summarises. For an end-user session t
 apply.
 
 ⚠️ **A key's design-time calls meet a different second gate.** Flow previews,
-`POST /v1/actions/preview`, eval runs and `POST /v1/vector-collections/{name}/search` are bounded
+`POST /v1/actions/preview` and eval runs are bounded
 by the project's design-time ceiling (`402 DESIGN_SPEND_CAP_EXCEEDED`), which the balance does not
 show: read `designSpend` on `GET /v1/projects/{nodeId}/settings` for what the current window has
 consumed, and `designSpendCapCredits` and `designSpendCapPeriod` beside it for the ceiling. A

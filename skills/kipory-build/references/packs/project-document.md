@@ -31,7 +31,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 5`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 6`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
@@ -118,9 +118,12 @@ and the new shape together, so removing a field along with the uses that name it
 `uses` left out, the stored declarations are judged against the new shape, and a field they still
 name cannot be removed. Every other table shaped by the same type is judged on its stored
 declarations either way. A table's `uses` names each field's use as the table API does — `filter`,
-`key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or
-`system`, and `uses.search` carries no `stages`: a search slot reads exactly one field the record
-stores, and a profile under `vectors` defaults only `defaultChunking`.
+`key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or `system`, and
+`uses.search` carries no `stages`: a `search` use is `{ "kind": "search" }`, reads exactly one field
+the record stores and takes no `role` — a table's `search` fields are indexed in the order the
+document marks them, at most the profile's `searchFieldsPerTable` of them. A profile under
+`vectors` states its `modelId`, `keywords` (whether exact words are indexed too) and
+`defaultChunking`, and nothing else about the index: no slot name, no collection.
 
 ## Plan a document before applying it
 
@@ -386,9 +389,10 @@ anything needs ADMIN.
 No secret value — a secret is always a reference by purpose. No `version`, no timestamp, no
 count, no health, no run, no record, no member, no credential. The event types of the `platform`
 category are every project's and are shown on export as they are; a document neither creates nor
-prunes them. A vector collection is DERIVED
-from a profile and a table's search use, so it appears under `vectors` for reading and is
-never applied. A term that is an alias or archived is not configuration and is not exported.
+prunes them. Where a table's search index
+is held is the platform's own bookkeeping: `vectors` carries profiles and nothing else, an export
+names no collection and no slot, and a `collections` map there is refused as an unknown
+member. A term that is an alias or archived is not configuration and is not exported.
 Tenancy — who may open the project — is not in the document by decision. An eval suite's
 `runAsUserId` is a person, not configuration: an export leaves it out, a document that states it is
 refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}`).
@@ -402,11 +406,23 @@ none, and an export leaves the key out for an action that names none.
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 5`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again.
+- **A format version other than `kipory: 6`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
+  convert a `kipory: 2`, `3`, `4` or `5` file you hold with the document upgrade script that comes
+  with `kipory-connect`. Version 6 is the one whose search models name no slot and whose
+  `search` uses carry no `role`; the script makes that change on the way (next item).
 - **An action's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
   lower-case. Change the two values.
 - **A `file` use, a `derived` field family, or projection `stages`** on a table or as a
-  profile default — none exists. Remove them; a search slot reads one stored field.
+  profile default — none exists. Remove them; a `search` use reads one stored field.
+- **A profile's slot names, a `search` use's `role`, or a `collections` map under `vectors`** — each
+  is an unknown member. On the profile, state `keywords` in place of the slot names: `true` where
+  it named a sparse slot, `false` where it named none. Remove `role`,
+  keeping the table's `search` fields in the order they held, and remove the `collections` map
+  whole. The document upgrade script that comes with `kipory-connect` makes these three changes
+  when it converts a file you hold to version 6. It leaves an action whose function the catalog
+  does not have — one that searched, wrote or read a collection, or made an embedding — as written
+  and lists it: rebuild that action as `record.query` with a `semantic` clause or as `term.search`,
+  or remove it.
 - **A vocabulary `binding`** — a term attaches to the whole record. Remove the field.
 - **A flow's own `tests`** — `DOCUMENT_FLOW_TESTS_MOVED`. A flow's cases live under
   `evals.<suite>.cases`.

@@ -4,7 +4,7 @@
 
 Sort documents by how well they answer a question.
 
-More accurate than the search that found them, but too slow for a whole collection.
+More accurate than the search that found them, but too slow for a whole table.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`

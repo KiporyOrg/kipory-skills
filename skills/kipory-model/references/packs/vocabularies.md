@@ -507,8 +507,7 @@ vocabulary and create another, which removes its terms and strips them off every
   - every table's `uses.vocabularies` entry, and every `$vocabularyKey` marker on a type;
   - every function setting that names the vocabulary: `term.search`, `term.threshold-gate`,
     `vocabulary.resolve` and `vocabulary.aggregate`, `vocabularyFields` on `text.generate`,
-    `vocabularyFilter` on `record.list` and `record.count`, a `record.query` term clause, and a
-    `vector.search` filter;
+    `vocabularyFilter` on `record.list` and `record.count`, and a `record.query` term clause;
   - nothing is re-embedded; the term search index catches up once the change commits.
 - **What it never edits:** JSONata expressions and templates that spell the old key — `$.cuisine`
   reading a record, say, since a record read carries each vocabulary's terms under its key. A plan

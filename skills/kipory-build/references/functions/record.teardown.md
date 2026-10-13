@@ -18,7 +18,7 @@ Submitted inputs are untouched, and running it twice does no harm.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to strip. |
-| `targets` | string[], at least 1 item | no | `["files","terms"]` | Which to clear: generated files, term assignments, or both (default). ⚠️ Search vectors are kept; the record is re-projected when it next turns ready. |
+| `targets` | string[], at least 1 item | no | `["files","terms"]` | Which to clear: generated files, term assignments, or both (default). ⚠️ The search index is kept; the record is indexed again when it next turns ready. |
 | `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example

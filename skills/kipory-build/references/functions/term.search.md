@@ -13,7 +13,7 @@ Results come best first, each with a similarity score. Use it to check for a ter
 - **Reads:** Reads the phrase from `textSlot`, and the vocabulary and a parent term from their slots when those are set. _(shape hint: `phrase + vocabulary`)_
 - **Emits:** A list of `TermHit`, best first, at most `topK`: each term's id, slug and closeness. Empty when the phrase is empty or the vocabulary has no terms.
 - **Suggested input streams:** `text`, `vocabulary`, `parentTermId`
-- **Rate limit:** 300 per min in bucket `ai-embed` — shared with `text.embed`, `vector.search`
+- **Rate limit:** 300 per min in bucket `ai-embed`, counted per project and host addressed — shared with `record.query`
 
 ## Config
 

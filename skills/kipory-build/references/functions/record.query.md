@@ -12,6 +12,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 - **Also found as:** look up, lookup, find a record, find records, filter records, search records, search rows
 - **Reads:** The slots its clauses name for the values they compare against; optionally a cursor from `cursorSlot`; and on a user-owned type the user id from `userIdSlot`. _(shape hint: `the slots its clauses name`)_
 - **Emits:** A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.
+- **Rate limit:** 300 per min in bucket `ai-embed`, counted per project and host addressed — shared with `term.search`
 
 ## Config
 
@@ -218,7 +219,7 @@ Output:
     "clauses": [
       { "clause": 0, "store": "term-store", "index": "RecordTerm_termId_recordId_idx", "rank": 1, "candidates": 412, "freshness": "transactional" },
       { "clause": 1, "store": "link-store", "index": "Link_eText0_idx", "rank": 3, "candidates": 37, "freshness": "transactional" },
-      { "clause": 2, "store": "vector-index", "index": "kipory_proj_a1b2_person", "rank": 9, "candidates": 1, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 } }
+      { "clause": 2, "store": "vector-index", "index": "person.bio", "rank": 9, "candidates": 1, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 } }
     ],
     "pushdown": { "ids": 37, "cap": 25000, "mode": "exact" }
   }
@@ -390,7 +391,7 @@ Output:
   "bounded": { "bound": 50, "reason": "peer-top-k" },
   "explanation": {
     "clauses": [
-      { "clause": 0, "store": "vector-index", "index": "kipory_proj_a1b2_outing", "rank": 9, "candidates": 50, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 }, "operands": [{ "path": "peer.0.text", "slot": "request.q" }] },
+      { "clause": 0, "store": "vector-index", "index": "outing.description", "rank": 9, "candidates": 50, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 }, "operands": [{ "path": "peer.0.text", "slot": "request.q" }] },
       { "clause": 0, "store": "link-store", "index": "Link_validity_idx", "rank": 3, "candidates": 14, "freshness": "transactional", "operands": [{ "path": "peer.0.text", "slot": "request.q" }] }
     ],
     "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }

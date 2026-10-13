@@ -10,11 +10,11 @@
       "page": "kipory-build/references/packs/authoring-order.md"
     },
     "credits": {
-      "hash": "b86176b9011a",
+      "hash": "ff2f90c466a5",
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embedding-profiles": {
-      "hash": "75673774e5c5",
+      "hash": "a30adaeef29a",
       "page": "kipory-model/references/packs/embedding-profiles.md"
     },
     "evals": {
@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "6fde30ab67c6",
+      "hash": "3e7f3b984575",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "c06cede7f406",
+      "hash": "1f75c85260ea",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -74,11 +74,11 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
-      "hash": "7e22b2e11ba2",
+      "hash": "f7062d082dce",
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
-      "hash": "ab27c2237923",
+      "hash": "6234e8080d55",
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
@@ -86,7 +86,7 @@
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
-      "hash": "2806ba106823",
+      "hash": "9286a6359cb4",
       "page": "kipory-model/references/packs/vocabularies.md"
     }
   },
@@ -148,7 +148,7 @@
       "page": "kipory-build/references/functions/flow.fan-out.md"
     },
     "flow.invoke": {
-      "hash": "10193947a70f",
+      "hash": "052e8dd2e79f",
       "page": "kipory-build/references/functions/flow.invoke.md"
     },
     "flow.loop": {
@@ -312,15 +312,15 @@
       "page": "kipory-build/references/functions/record.list.md"
     },
     "record.query": {
-      "hash": "bc6887b873ea",
+      "hash": "583aa2be02e5",
       "page": "kipory-build/references/functions/record.query.md"
     },
     "record.read": {
-      "hash": "382fad05db6d",
+      "hash": "6f965e83a207",
       "page": "kipory-build/references/functions/record.read.md"
     },
     "record.teardown": {
-      "hash": "68700fe56b79",
+      "hash": "4547b2afe80d",
       "page": "kipory-build/references/functions/record.teardown.md"
     },
     "record.update": {
@@ -372,15 +372,15 @@
       "page": "kipory-build/references/functions/telegram.stats.md"
     },
     "term.search": {
-      "hash": "a1241e1d11f4",
+      "hash": "30d9a9e5cd30",
       "page": "kipory-build/references/functions/term.search.md"
     },
     "term.threshold-gate": {
-      "hash": "2af6ced0d494",
+      "hash": "959af1daf74d",
       "page": "kipory-build/references/functions/term.threshold-gate.md"
     },
     "term.upsert": {
-      "hash": "0e96c9080052",
+      "hash": "8315c018507e",
       "page": "kipory-build/references/functions/term.upsert.md"
     },
     "text.chunk": {
@@ -395,14 +395,6 @@
       "hash": "44a28945e404",
       "page": "kipory-build/references/functions/text.detect-language.md"
     },
-    "text.embed": {
-      "hash": "1e905cebb0c0",
-      "page": "kipory-build/references/functions/text.embed.md"
-    },
-    "text.embed-sparse": {
-      "hash": "9830a70864ef",
-      "page": "kipory-build/references/functions/text.embed-sparse.md"
-    },
     "text.extract": {
       "hash": "03721bebdb8f",
       "page": "kipory-build/references/functions/text.extract.md"
@@ -416,7 +408,7 @@
       "page": "kipory-build/references/functions/text.interpolate.md"
     },
     "text.rerank": {
-      "hash": "2cd47eb1c311",
+      "hash": "c5b77cf94084",
       "page": "kipory-build/references/functions/text.rerank.md"
     },
     "text.sanitize": {
@@ -514,22 +506,6 @@
     "value.transform": {
       "hash": "a14e385fc07c",
       "page": "kipory-build/references/functions/value.transform.md"
-    },
-    "vector.fetch": {
-      "hash": "82f1518fa55a",
-      "page": "kipory-build/references/functions/vector.fetch.md"
-    },
-    "vector.point-id": {
-      "hash": "8229d318aca2",
-      "page": "kipory-build/references/functions/vector.point-id.md"
-    },
-    "vector.search": {
-      "hash": "22973d67a528",
-      "page": "kipory-build/references/functions/vector.search.md"
-    },
-    "vector.upsert": {
-      "hash": "1750e8524f78",
-      "page": "kipory-build/references/functions/vector.upsert.md"
     },
     "vocabulary.aggregate": {
       "hash": "085434e26252",
@@ -829,11 +805,11 @@
       "hash": "3241329e2c6a"
     },
     "GET /v1/embedding-profiles/": {
-      "hash": "d2610b53b8b6",
+      "hash": "1c16b09480b4",
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "GET /v1/embedding-profiles/{id}": {
-      "hash": "41a517d3b7ce",
+      "hash": "77bfe56b2433",
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "GET /v1/eval-cases/": {
@@ -1056,7 +1032,7 @@
       "page": "kipory-operate/references/api/project-config.md"
     },
     "GET /v1/project-document/example": {
-      "hash": "36f017316ea5",
+      "hash": "26881a63a358",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/project-document/schema": {
@@ -1252,11 +1228,11 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "GET /v1/tables/": {
-      "hash": "b6910550a179",
+      "hash": "89e4257b48e5",
       "page": "kipory-model/references/api/tables.md"
     },
     "GET /v1/tables/{id}": {
-      "hash": "77c6528de495",
+      "hash": "1fb3faf0a26f",
       "page": "kipory-model/references/api/tables.md"
     },
     "GET /v1/templates/": {
@@ -1303,18 +1279,6 @@
       "hash": "56f9d0a6485d",
       "page": "kipory-expose/references/api/end-users.md"
     },
-    "GET /v1/vector-collections/": {
-      "hash": "522909e420f3",
-      "page": "kipory-model/references/api/embedding-profiles.md"
-    },
-    "GET /v1/vector-collections/{name}": {
-      "hash": "eb80f4222b3c",
-      "page": "kipory-model/references/api/embedding-profiles.md"
-    },
-    "GET /v1/vector-collections/{name}/points": {
-      "hash": "3414457b0652",
-      "page": "kipory-model/references/api/embedding-profiles.md"
-    },
     "GET /v1/vocabularies/": {
       "hash": "f0a96f9ab542",
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
@@ -1336,7 +1300,7 @@
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "PATCH /v1/embedding-profiles/{id}": {
-      "hash": "ee334982f9b9",
+      "hash": "76ae583ce730",
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "PATCH /v1/eval-cases/{id}": {
@@ -1410,11 +1374,11 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "PATCH /v1/tables/{id}": {
-      "hash": "121ab96eef4d",
+      "hash": "4bb291058c1a",
       "page": "kipory-model/references/api/tables.md"
     },
     "PATCH /v1/terms/{id}": {
-      "hash": "13febff05ea9",
+      "hash": "761382daa9ae",
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PATCH /v1/triggers/{id}": {
@@ -1434,7 +1398,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/actions/": {
-      "hash": "2c15833cec35",
+      "hash": "ee8f2181843e",
       "page": "kipory-build/references/api/actions.md"
     },
     "POST /v1/actions/batch": {
@@ -1471,15 +1435,15 @@
       "hash": "3b0a471f3279"
     },
     "POST /v1/embedding-profiles/": {
-      "hash": "f12cc373eebe",
+      "hash": "fa545d2d5507",
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "POST /v1/embedding-profiles/{id}/activate": {
-      "hash": "c4eba3e17732",
+      "hash": "dbdce78b8d14",
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "POST /v1/embedding-profiles/{id}/generations": {
-      "hash": "34d5c2ba6bf3",
+      "hash": "64338448b88a",
       "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "POST /v1/eval-cases/": {
@@ -1583,11 +1547,11 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/projects/{nodeId}/document": {
-      "hash": "23f5b117fcde",
+      "hash": "35319485073d",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/document/plan": {
-      "hash": "dcc2e048137c",
+      "hash": "c7f142537132",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/ingest/cache/bust": {
@@ -1666,7 +1630,7 @@
       "page": "kipory-channels/references/api/sources.md"
     },
     "POST /v1/tables/": {
-      "hash": "48cada052682",
+      "hash": "5ee5404ba2dc",
       "page": "kipory-model/references/api/tables.md"
     },
     "POST /v1/terms/{id}/merge": {
@@ -1692,10 +1656,6 @@
     "POST /v1/types/seed": {
       "hash": "5981bbd21160",
       "page": "kipory-model/references/api/types.md"
-    },
-    "POST /v1/vector-collections/{name}/search": {
-      "hash": "a3fab57a905d",
-      "page": "kipory-model/references/api/embedding-profiles.md"
     },
     "POST /v1/vocabularies/": {
       "hash": "d6b535bb9174",

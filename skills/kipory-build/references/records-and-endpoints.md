@@ -31,7 +31,7 @@ In a document:
 
 ```json
 {
-  "kipory": 5,
+  "kipory": 6,
   "schema": {
     "Note": {
       "definition": {

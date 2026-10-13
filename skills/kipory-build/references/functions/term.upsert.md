@@ -4,7 +4,7 @@
 
 Save resolved terms and link them to their records.
 
-Matches existing terms, creates the rest and writes their vectors. A preview run writes nothing.
+Matches existing terms, creates the rest and indexes them for search. A preview run writes nothing.
 
 - **Group:** records · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`

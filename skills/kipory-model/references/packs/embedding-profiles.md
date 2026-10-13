@@ -7,14 +7,28 @@
 
 ## What it is
 
-Where a project's RECORD vector space is defined. A profile names a dense embedding model and an
-ordered set of named vector slots — and it may also declare a **sparse** slot, which is worth
-deciding deliberately: declaring one makes every record carry sparse vectors, and every `semantic`
-query clause — in `record.query`, `POST /v1/records/query` and the records list's `mode=semantic` —
-then fuses keyword rank with meaning on its own; a `vector.search` action reads them only with
-`hybrid: true`. Declare one when exact words (names, codes) must be findable, and know that a fused
-score is derived from rank, not a cosine. The **geometry** — how many dimensions, and which distance
-metric — is **derived** from the model and returned read-only.
+A project's search model: what its tables are indexed with when a field is marked `search`. A
+profile is three choices and nothing else — the embedding **model**, whether each record's **exact
+words** are indexed too (`keywords`), and how text is split (`defaultChunking`). You never name
+where a field is stored: a table marks fields `search`, and the platform keeps each one in its own
+place in the index.
+
+`keywords` is worth deciding deliberately. With it on, every `semantic` query clause — in
+`record.query`, `POST /v1/records/query` and the records list's `mode=semantic` — fuses keyword rank
+with meaning on its own. Turn it on when exact words (names, codes, rare terms) must be findable,
+and know two things: fusion decides the order, while each record's `score` stays the cosine of its
+closest part, so a record a literal match lifted can rank above one that scores higher; and the
+exact words indexed are those of one field per table — the first one marked `search`. `keywords` is required on create;
+say `false` for meaning alone.
+
+A profile read also tells you `searchFieldsPerTable`: how many fields of one table on it may be
+marked `search`. A new profile allows 4; a profile reads the number it was created with (1 on an
+older one), and that number does not move. Marking one field
+more is refused at the table save with `USES_SEARCH_FIELDS_OVER_LIMIT`, whose issue carries `limit`
+and `marked`.
+
+The **geometry** — how many dimensions, and which distance metric — is **derived** from the model
+and returned read-only.
 
 A profile is also **the default way records enter the space**: `defaultChunking` (required on
 create). Chunking has exactly two shapes: `{ "kind": "whole" }` is one point per record, and
@@ -44,7 +58,7 @@ training produce meaningless similarity scores with nothing anywhere reporting a
   different profiles live in different physical collections by construction, so **no single query
   can search both.** Reach for one only when a table genuinely needs a different model, and know
   that you are partitioning your own search.
-- **Not for changing an existing space.** The model and the slot set are not editable — see below.
+- **Not for changing an existing space.** The model and `keywords` are not editable — see below.
 
 Embedding is the model binding that works this way, because it is the one baked into every vector
 you have already written: every other kind of model choice is stateless, so swapping it just changes
@@ -53,7 +67,7 @@ the next call.
 ⚠️ **A project has a SECOND vector space, and no profile defines it.** Vocabulary-term vectors live
 in a single system-wide space with one shared model, deliberately, so that terms stay comparable
 across every project — a per-project model there would write incomparable vectors. It has its own
-collection, no profile names it, and **activating a profile generation does not reindex it**. So the
+index, no profile names it, and **activating a profile generation does not reindex it**. So the
 whole of vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) — semantic resolution, seeded vocabularies, term matching —
 operates outside everything on this page. Its model is the platform's `substrate-embedding` task,
 read at the platform root: a project cannot move it. Binding that task anywhere below the root is
@@ -72,15 +86,15 @@ generation plus activate.
 ## The sequence
 
 ```
-POST  /v1/embedding-profiles               create — model + slots + defaultChunking; geometry is derived
+POST   /v1/embedding-profiles                  create — modelId, keywords, defaultChunking; geometry is derived
 PATCH  /v1/embedding-profiles/{id}             label, isDefault, defaultChunking — with `version`
-POST   /v1/embedding-profiles/{id}/generations mint the next generation (free, inert)
+POST   /v1/embedding-profiles/{id}/generations mint the next generation — another modelId or keywords (free, inert)
 POST   /v1/embedding-profiles/{id}/activate    repoint declarations and reindex (expensive) — `{ version }`
 DELETE /v1/embedding-profiles/{id}             one generation; `?validateOnly=true` asks first
 ```
 
-**Two numbers, and they are not the same thing.** `generation` is the geometry's number — the
-`v{n}` in every collection name, allocated by the mint, never sent back. `version` is the row's
+**Two numbers, and they are not the same thing.** `generation` is the number of the model-and-
+`keywords` pair the index was built with, allocated by the mint, never sent back. `version` is the row's
 optimistic lock: send the value you read on the PATCH and on activate, and either is refused with
 409 `VERSION_CONFLICT` if someone changed the profile since. A missing `version` is a 422, never a
 last-writer-wins save.
@@ -88,13 +102,12 @@ last-writer-wins save.
 An activation answers `touched`: every table it re-pointed, each with the version it holds
 now. Update the copies you hold, or the next PATCH to one of them is refused as stale.
 
-Reading a profile — one, or the project's list with the default first — gives you the derived
-geometry and how many tables use it. Ask for the collections expansion to see the physical
-collections your declarations actually imply — each names the tables landing in it by key,
-under `tableKeys`.
+Reading a profile — one, or the project's list with the default first — gives you its model,
+`keywords`, `searchFieldsPerTable`, the derived geometry and how many tables use it. It names
+no slot and no collection, and takes no `expand`.
 
 Updating a profile in place covers its label, whether it is the default, and `defaultChunking`.
-Everything that defines the vector space — the model, the slots — moves through a new generation instead.
+What defines a generation — the model, and `keywords` — moves through a new generation instead.
 
 ⚠️ **Changing `defaultChunking` is not a geometry change, and it is not free either.** No generation
 is minted; instead every table on the profile that does NOT override the default is
@@ -109,30 +122,28 @@ recorded distance is refused rather than stored half-usable.
 
 Because the two halves cost completely different things, and collapsing them would hide that.
 
-- **Minting is free and inert.** It creates the next generation of the same key, taking the current
-  generation's values for anything you do not override. It takes no lock: it writes a new row and
-  leaves the one it starts from untouched. No declaration points at it, so no collection
-  is provisioned and nothing is reindexed. It is refused if nothing about the vector space would
-  actually change.
+- **Minting is free and inert.** It creates the next generation of the same key from `modelId`,
+  `keywords` or both, taking the current generation's value for the one you leave out. It takes no
+  lock: it writes a new row and leaves the one it starts from untouched. No declaration points at
+  it, so nothing is provisioned and nothing is reindexed. A mint that changes neither the model nor
+  `keywords` is refused (`EMBEDDING_PROFILE_GENERATION_UNCHANGED`): a label is a PATCH.
 - **Activating is the expensive half.** It repoints every searchable declaration on that key onto
-  the generation, moves the default, and enqueues the reindex. The new collections start **empty**, so
-  searches return less while it drains. ⚠️ It also **rewrites the stored collection name inside your
-  saved vector actions** and reports which ones in `repointedActions` — an action left behind would keep
-  querying the superseded collection and return stale results rather than an error, so this is a
-  silent mutation of your flows that you want to read back.
+  the generation, moves the default, and enqueues the reindex. The new generation's index starts
+  **empty**, so searches return less while it drains. It answers the profile, `movedTables` and
+  `touched`, and changes no flow: no action names where a table is indexed.
 
 Do not collapse them to save a round trip. The split is what makes the costly half a deliberate
 act.
 
 Activation is idempotent — activating what everything already points at is a no-op, not a
-conflict. It is refused when a declaration would be invalid under the target, most often because
-the target dropped a slot that a declaration fills. ⚠️ And it takes an optimistic lock over
-**every** table descriptor it moves, all-or-nothing, beside the profile's own `version` you send: a
+conflict. It is refused when a declaration would be invalid under the target — a field that no
+longer exists, or a target whose model no longer resolves. ⚠️ And it takes an optimistic lock over **every**
+table descriptor it moves, all-or-nothing, beside the profile's own `version` you send: a
 concurrent edit to the profile or to any table in the set fails the whole activation with a
 version conflict. Re-read and retry rather than assuming a partial
 move landed.
 
-**Activation is also the rollback.** It is direction-agnostic and never drops the collections it
+**Activation is also the rollback.** It is direction-agnostic and never drops the index it
 moves away from, so activating the superseded generation restores the previous state instantly and
 losslessly. That is what makes the reindex window acceptable: it is recoverable, even though it is
 not invisible.
@@ -140,14 +151,18 @@ not invisible.
 ## What the platform refuses
 
 - **Deleting a profile still named by a searchable table**, and again while the generation
-  still owns provisioned collections. You do not have to discover either by trying: every profile
+  still owns a built index (`EMBEDDING_PROFILE_HAS_COLLECTIONS`). You do not have to discover either by trying: every profile
   carries `deleteRefusal` — the delete's own code and sentence, or null — and the listing adds
   `canDelete`, which also folds in the ADMIN role the delete needs and whether the project is
   retired. A superseded generation nothing declares against is the case that catches people: its
   usage count is zero and it is still refused.
 - **A model with no recorded distance metric.** Defaulting to a common one is tempting and wrong,
   for the reason at the top of this pack.
-- **A new generation that changes nothing** about the vector space.
+- **A new generation that changes neither the model nor `keywords`.**
+- **A slot name or a collection name.** A profile's create and mint take a model and `keywords`,
+  and a `search` use takes no `role`: any member naming a place in the index is refused as an
+  unknown member, on the route and in a project document, and so is a `collections` map under a
+  document's `vectors`.
 
 ## Asking before you write — `validateOnly`
 
@@ -178,18 +193,20 @@ refused.
 - ⚠️ **The PATCH dry run does not check your `version`.** The lock is checked by the save alone, so
   a verdict of `ok: true` can still meet a 409 when someone saved in between.
 - **Generation numbers are never reused.** They are allocated above every generation the key has
-  ever had, including ones whose profile row is gone but whose collections were provisioned. A reused
-  number would resolve to a physical collection that already holds points at a geometry nothing
-  re-checked.
+  ever had, including ones whose profile row is gone but whose index was built. A reused number
+  would resolve to an index that already holds entries at a geometry nothing re-checked.
 - **The active generation is derived, not stored.** It is whichever generation the declarations
   point at — not the newest, and not the one marked default. A key whose tables are all
   non-searchable has _no_ active generation, which is honest: nothing is serving.
-- **The key is immutable and appears in the physical collection name** — which is why it is
-  lower-case kebab. Renames go through the label instead. Renaming the key itself would rename
-  every collection derived from it.
-- **The slot set belongs to the profile, not to the tables using it.** Adding a slot forces
-  a reindex across the group either way; putting it here makes that cost an explicit new generation
-  rather than a side effect of adding one table.
+- **The key is immutable**, and lower-case kebab. Renames go through the label instead.
+- **`searchFieldsPerTable` belongs to the profile, not to the tables using it**, and it is fixed
+  when the profile is created. A table that needs more searched fields than its profile allows
+  needs a profile created now — a different profile, so a different index.
+- **A field keeps its place in the index, and the table is still embedded again.** Unmarking one
+  `search` field and marking another does not move the fields that stayed, so a search that names
+  one keeps ranking on it. But marking or unmarking ANY `search` field changes the table's index
+  declaration: every record of the table is embedded again — all its `search` fields — and billed.
+  Send the table save with `validateOnly: true` first.
 - **A null geometry is a real state, not an error.** It means the profile's model no longer
   resolves, or resolves without the facts geometry needs. The read reports it rather than failing,
   so you can see and fix it — but a profile in that state is not going to serve a search.

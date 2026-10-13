@@ -26,7 +26,7 @@ Public: no credential needed.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kipory` | `5` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
+| `kipory` | `6` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
 | `schema` | `object` | no | Shapes, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `tables` | `object` | no | Tables, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
@@ -116,7 +116,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.actions.classify`. |
 | `kind` | `"create" \| "update" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "actions" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "flows" \| "actions" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
@@ -199,7 +199,7 @@ Each item of `changes`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | Where the row stands in the document, e.g. `tables.Member` or `flows.intake.actions.classify`. |
 | `kind` | `"create" \| "update" \| "delete" \| "unchanged" \| "derived" \| "skipped"` | yes | What applying the document does to this row. `unchanged`: the row already says what the document says. `derived`: the platform derives this row and a document never writes it. `skipped`: not attempted, because a row it depends on was refused — see `because`. |
-| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "derived-collections" \| "flows" \| "actions" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
+| `resource` | `"project-settings" \| "project-config" \| "route-enablement" \| "types" \| "embedding-profiles" \| "flows" \| "actions" \| "vocabularies" \| "terms" \| "tables" \| "relations" \| "relation-pairings" \| "event-types" \| "api-endpoints" \| "sources" \| "triggers" \| "schedules" \| "eval-suites" \| "eval-cases"` | yes | The kind of row. |
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |

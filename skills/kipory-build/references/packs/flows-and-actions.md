@@ -350,7 +350,7 @@ indistinguishable from success — so to rehearse a flow safely, preview it.
 
 ⚠️ **Whose corpus a preview reads is the seam that wastes an afternoon.** A preview from a signed-in
 session runs as **you**; a preview from an API key or an internal token runs as a stable sentinel.
-Neither of those owns your end users' records, so a `vector.search` over a user-scoped table comes
+Neither of those owns your end users' records, so a `record.query` over a user-scoped table comes
 back **empty** — not an error, just nothing. Every action downstream then behaves as though the corpus
 were empty, and the flow looks broken when it is fine. Judge such a flow on the actions _above_ the
 search, or give the run a real end user to act as. Two settings do that:
@@ -506,7 +506,7 @@ action that sets none behaves as it always has.
 - **`tries`, `tryDelayMs`** — the number of tries including the first (1–5), and a fixed wait between
   them. They REPLACE the function's own queue attempts rather than adding to them, and apply to actions
   that run as queued jobs — the functions whose catalog `phase` is `ingest`: fetches, file
-  readers, model calls (`text.generate`, `text.decide`, `text.embed`) and `term.upsert`. An action
+  readers, model calls (`text.generate`, `text.decide`) and `term.upsert`. An action
   that runs in the flow itself is tried once. Only a failure a second try can
   fix is tried again — never a missing API key, a blocked web address, bad input or a used-up quota.
   ⚠️ An action that sets `tries` has every try's model or vendor call charged; on the function's own
@@ -578,7 +578,7 @@ action that sets none behaves as it always has.
 
 ## Asking about an action you have not saved
 
-32 <!-- count: editor-inputs-from-config --> functions do not take their inputs
+28 <!-- count: editor-inputs-from-config --> functions do not take their inputs
 from the action row: they name them INSIDE their own configuration. `value.transform` — the most-used function there is — names them
 inside a JSONata expression, so writing the expression IS writing the action's input list, and there
 is nothing to pick from a list.
@@ -999,8 +999,7 @@ confirm, and read what came back.
 
 A **slot bag** maps slot names to values, and the value union is closed and untagged: string,
 boolean, number, list of strings, list of numbers, list of booleans, a file reference, a list of
-file references, an object, or a list of objects. A file reference is exactly a key, a name and a MIME type. A list of numbers
-is the dense-vector shape. The declared _schema_ of a slot lives on the action, not inside the
+file references, an object, or a list of objects. A file reference is exactly a key, a name and a MIME type. The declared _schema_ of a slot lives on the action, not inside the
 value.
 
 - **Single versus multiple is the union, not a flag.** List variants are the multiple ones, and
@@ -1079,9 +1078,9 @@ Three things worth knowing about that array:
 
 - **A save can break several rules at once**, and they are kept separate rather than merged,
   because the detail shapes are per-rule and do not compose.
-- **`details` is where the actionable part lives.** `VECTOR_SEARCH_FILTER_SLOT_UNDECLARED` does
-  not merely say a slot is undeclared — it carries the full set of roots the flow _does_ offer,
-  so you can correct the config in one step instead of guessing.
+- **`details` is where the actionable part lives.** `INPUT_STREAM_DANGLING_SLOT` does not merely
+  say an action reads a slot nothing writes — it carries every slot name the flow _does_ offer, so
+  you can correct the action in one move instead of guessing.
 - **`actionId` says which row a refusal is about**, and on a batch write or a document apply the blocking
   diagnostics can belong to several different actions. Do not assume a refusal is about the one
   you think you were editing.

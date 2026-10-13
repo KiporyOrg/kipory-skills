@@ -191,7 +191,7 @@ Back to the parent:
 
 #### Pass in only
 
-The sub-flow run here: Embed & store in vector DB.
+The sub-flow run here: Save the article & tag it.
 
 Reads `mapped slots` → emits `nothing` · 2→0 slots mapped
 
@@ -203,13 +203,13 @@ Action settings (`functionConfig`):
   "inputs": [
     {
       "kind": "slot",
-      "parentSlot": "currentChunk",
-      "subFlowSlot": "text"
+      "parentSlot": "currentArticle",
+      "subFlowSlot": "article"
     },
     {
       "kind": "slot",
-      "parentSlot": "collectionId",
-      "subFlowSlot": "namespace"
+      "parentSlot": "sourceUrl",
+      "subFlowSlot": "url"
     }
   ],
   "outputs": []
@@ -218,8 +218,8 @@ Action settings (`functionConfig`):
 
 Input:
 
-- `currentChunk → text` — into the sub-flow
-- `collectionId → namespace` — into the sub-flow
+- `currentArticle → article` — into the sub-flow
+- `sourceUrl → url` — into the sub-flow
 
 Back to the parent:
 

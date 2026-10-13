@@ -27,10 +27,6 @@ nothing. With no `status` it reads active terms, plus candidates when the vocabu
 so a second record proposing the same thing reuses the candidate instead of coining its twin.
 Its function page in `kipory-build` has the whole configuration.
 
-A resolver flow built from `text.embed` and `vector.search` still runs today and stops when those
-two functions are removed in the next release: replace the pair with one `term.search` action that
-writes the same output slot, and leave the rest of the flow as it is.
-
 `term.threshold-gate` compares the top candidate's score against the vocabulary's two thresholds.
 Its output has two kinds: `resolved`, carrying the finished `resolution` whose `outcome` is `match`
 or `create-new`, and `tiebreak`, carrying nothing. By score:

@@ -139,7 +139,7 @@ The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlo
 }
 ```
 
-The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`action-fields.md` §2 lists what each does). A `field` segment needs the action's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search functions type their own output: leave `outputSchema` out and the new action takes that type, or state the same type yourself. On `POST /v1/actions` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `record.create` → `RecordCreate` (with `recordId`), `record.read` → a list of `RecordRead`, `record.list` → `RecordPage`, `vector.search` → a list of the hit its `hitShape` names (`RecordHit` for `record`). `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
+The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`action-fields.md` §2 lists what each does). A `field` segment needs the action's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search functions type their own output: leave `outputSchema` out and the new action takes that type, or state the same type yourself. On `POST /v1/actions` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `record.create` → `RecordCreate` (with `recordId`), `record.read` → a list of `RecordRead`, `record.list` → `RecordPage`, `term.search` → a list of `TermHit`. `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
 
 ## 4. Check the whole flow
 
@@ -262,7 +262,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 
 ```json
 {
-  "kipory": 5,
+  "kipory": 6,
   "flows": {
     "summarise": {
       "label": "Summarise",
@@ -309,7 +309,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 }
 ```
 
-A document action is filled as a single create is. `functionKey` and `functionConfig` are required (`null` or `{}` where a function takes no settings). `description`, `condition`, `enabled` and `outputSchema` may be left out: a new action starts on `null`, `null`, `true` and the type its function emits, and a held action keeps its own. Leaving `outputSchema` out is not the same as stating `null`. A stated `null` is saved as "no type": once another action reads that slot the plan and health warn `PRODUCER_OUTPUT_UNTYPED`, and on a `flow.merge` action — whose type the save always derives from what it merges — a stated `null` re-plans as an `update` every time. The rest: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a function that names its inputs, `promptTemplate` and `taskKey` left out keep a held action's values (a new action starts on `""` and `extraction`), and `outputSlot` needed by every function except `event.emit`, `vector.upsert` and the control functions whose outputs live in config (`term.upsert` needs one too, though its slot holds only an empty marker). The flow's `actions` map is stated whole — an action you leave out of it is removed.
+A document action is filled as a single create is. `functionKey` and `functionConfig` are required (`null` or `{}` where a function takes no settings). `description`, `condition`, `enabled` and `outputSchema` may be left out: a new action starts on `null`, `null`, `true` and the type its function emits, and a held action keeps its own. Leaving `outputSchema` out is not the same as stating `null`. A stated `null` is saved as "no type": once another action reads that slot the plan and health warn `PRODUCER_OUTPUT_UNTYPED`, and on a `flow.merge` action — whose type the save always derives from what it merges — a stated `null` re-plans as an `update` every time. The rest: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a function that names its inputs, `promptTemplate` and `taskKey` left out keep a held action's values (a new action starts on `""` and `extraction`), and `outputSlot` needed by every function except `event.emit` and the control functions whose outputs live in config (`term.upsert` needs one too, though its slot holds only an empty marker). The flow's `actions` map is stated whole — an action you leave out of it is removed.
 
 An **exported** document states every action's `outputSchema` and `inputSchemas`, and a stated `inputSchemas` is kept and checked, not re-typed. So giving a type to an action that had none also means removing `inputSchemas` from each action that reads its slot (or restating it): a reader that still states `object` for that input is refused `NOMINAL_MISMATCH`.
 
@@ -331,7 +331,7 @@ POST /v1/projects/{nodeId}/document   { version, document }
 {
   "version": "<version from the plan>",
   "document": {
-    "kipory": 5,
+    "kipory": 6,
     "flows": { "summarise": { "…": "…" } },
     "surfaces": { "…": "…" }
   }

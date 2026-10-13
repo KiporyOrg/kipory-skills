@@ -2,6 +2,59 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261013.90820 — 2026-10-13
+
+Synced from the Kipory monorepo at `be7537a27`.
+
+Functions removed: `text.embed`, `text.embed-sparse`, `vector.fetch`, `vector.point-id`, `vector.search`, `vector.upsert`.
+
+Routes removed: `GET /v1/vector-collections/`, `GET /v1/vector-collections/{name}`, `GET /v1/vector-collections/{name}/points`, `POST /v1/vector-collections/{name}/search`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/action-fields.md`
+- changed: `skills/kipory-build/references/api/actions.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- changed: `skills/kipory-build/references/functions/flow.invoke.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- changed: `skills/kipory-build/references/functions/record.read.md`
+- changed: `skills/kipory-build/references/functions/record.teardown.md`
+- changed: `skills/kipory-build/references/functions/term.search.md`
+- changed: `skills/kipory-build/references/functions/term.threshold-gate.md`
+- changed: `skills/kipory-build/references/functions/term.upsert.md`
+- removed: `skills/kipory-build/references/functions/text.embed-sparse.md`
+- removed: `skills/kipory-build/references/functions/text.embed.md`
+- changed: `skills/kipory-build/references/functions/text.rerank.md`
+- removed: `skills/kipory-build/references/functions/vector.fetch.md`
+- removed: `skills/kipory-build/references/functions/vector.point-id.md`
+- removed: `skills/kipory-build/references/functions/vector.search.md`
+- removed: `skills/kipory-build/references/functions/vector.upsert.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/upgrade-document.mjs`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/embedding-profiles.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/classification-runtime.md`
+- changed: `skills/kipory-model/references/packs/embedding-profiles.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/packs/credits.md`
+- changed: `skills/kipory-operate/references/spend.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+
 ## 1.20261013.63336 — 2026-10-13
 
 Synced from the Kipory monorepo at `fa4e26e7d`.

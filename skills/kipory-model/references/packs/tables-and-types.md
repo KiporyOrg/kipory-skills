@@ -205,7 +205,7 @@ _keep the current value_, which is a real answer. On a create there is nothing t
 is not an answer at all.
 
 ⚠️ What a pool table cannot use in this version is what needs a signed-in user: the
-`record.teardown` and `vector.upsert` actions fail on a run with none, `vocabulary.aggregate` never
+`record.teardown` action fails on a run with none, `vocabulary.aggregate` never
 counts pool records, and `userInfo` is absent. A pool record is torn down by
 `POST /v1/records/{id}/reprocess`, or by `record.enqueue-process` with `replay: clean` — both
 strip the record's generated files and terms before the run. What does work on a pool table:
@@ -234,8 +234,8 @@ its fields is derived from it. Per field, a list of what the field is **for**:
   stamped from the record's submitted data and nothing stamps it when flow output lands. To
   filter, order or count on a value the flow computes, declare it as an optional submitted field
   and have the flow write it into the record with `record.update`.
-- `search` — the vector index; `{ "kind": "search", "role"? }`, the text is embedded (the derived
-  `searchable` document).
+- `search` — the meaning index; `{ "kind": "search" }`, the field's text is embedded and a
+  `semantic` clause can rank on it by naming the field (the derived `searchable` document).
 - `link` — the link store; `{ "kind": "link", "relation", "element"? }`, the field holds a record
   id, or is a list of objects whose `element.ref` does (the derived `relations` document).
   `element.filters` names the sibling properties to carry on the link and filter on — see
@@ -299,8 +299,8 @@ stored statement.
 
 ⭐ **The read tells you where each use landed: `GET /v1/tables/{id}?expand=uses`.**
 `usesRouting` carries `supported` — the use kinds THIS deployment has a reader for — then per field,
-per use, the store it routed to and the physical handle it got (the slot column for `filter`, the
-profile slots for `search`, the producer key for `link`), and the surfaced vocabularies with their
+per use, the store it routed to and what it got there (the slot column for a `filter` use; for a
+`search` use, whether the field is `indexed` and its `chunking`; the producer key for `link`), and the surfaced vocabularies with their
 positions. Offer exactly the kinds `supported` lists — every word in the vocabulary has a reader
 today, so the list is the deployment's statement, not a promise.
 
@@ -311,7 +311,8 @@ today, so the list is the deployment's statement, not a promise.
 that way — an object cannot be filtered, a number or a file cannot be a key), `USES_TWO_KEYS`,
 `USES_KEY_NOT_SUBMITTED` (a `key` on a field that is not submitted data, such as a flow output),
 `USES_SEARCH_NO_TEXT`, `USES_SEARCH_SETTINGS` (a `search` use with no `search` settings, or the
-reverse), `USES_VOCABULARY_UNKNOWN`, `USES_VOCABULARY_SHADOWS_FIELD` (a surfaced vocabulary's key is
+reverse), `USES_SEARCH_FIELDS_OVER_LIMIT` (more fields marked `search` than the profile's
+`searchFieldsPerTable`; the issue carries `limit` and `marked`), `USES_VOCABULARY_UNKNOWN`, `USES_VOCABULARY_SHADOWS_FIELD` (a surfaced vocabulary's key is
 also a field name of the table), `USES_RELATION_UNKNOWN`, `USES_MARKER_DISAGREES` (the type already
 marks the field as a reference to a different table), and for `element.filters` on a `link`:
 `LINK_FILTER_NOT_FILTERABLE`, `LINK_FILTER_BUDGET_EXCEEDED`, `LINK_FILTER_TYPE_CONFLICT` (below).
@@ -320,37 +321,50 @@ Nothing is written on a refusal — not the statement, not a projection, not a m
 ## Making a table searchable
 
 Marking a text field `search` and naming an embedding profile (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) in
-`uses.search` is the **only** way a table gets vectors. The `searchable` document you read back is
-derived from that: which fields fill which vector slots (a `search` use fills the profile's default
-role — its first dense slot, plus the sparse slot if it has one — unless `role` names another dense
-slot), how they are chunked (the profile's `defaultChunking`, unless `uses.search.chunking`
-overrides it), and which fields travel with each point (every `filter` field, and only those).
+`uses.search` is the **only** way a table is indexed for search by meaning. A `search` use is
+`{ "kind": "search" }` and nothing else: it takes no `role`, and sending one is refused as an
+unknown member. Each field marked `search` is indexed on its own, and a `semantic` clause ranks on
+one of them by naming it in `field`. A clause that names no `field` ranks on the table's default
+search field — the first field marked `search` when the table was first saved, kept until that field
+is unmarked — which the table read shows as `searchable.defaultField`. Name `field` on any table
+with more than one `search` field. A table may mark as many as its profile's
+`searchFieldsPerTable`; one more is refused `USES_SEARCH_FIELDS_OVER_LIMIT`. A clause names a field
+by name alone, so two `search` fields that share a name across families are refused
+`USES_SEARCH_FIELD_NAME_SHARED`.
 
-Nothing physical happens when you save. The collection is **derived** from the project, the
-profile and its generation, the owner scope and the isolation group, then provisioned in the
-background. Nobody names a collection.
+A field keeps its place in the index across saves that leave it marked, so a search that names it
+keeps ranking on it. That does not make the change free: marking or unmarking ANY `search` field
+changes the table's index declaration, and every record of the table is embedded again — all its
+`search` fields, not only the one you changed — and billed. Send the save with `validateOnly: true`
+first: `derived.effects.reembed: true` says the save would do it.
 
-Three consequences that catch people out, and only two of them fail _silently_:
+The `searchable` document you read back is derived from that: the profile, how the text is chunked
+(the profile's `defaultChunking`, unless `uses.search.chunking` overrides it), and which fields
+travel with each entry (every `filter` field, and only those). `?expand=uses` says per `search`
+field whether it is `indexed` and its `chunking`. Neither names where a field is stored.
+
+Nothing physical happens when you save. The index is **derived** from the project, the profile and
+its generation, the owner scope and the isolation group, then built in the background. Nobody
+names it.
+
+Three consequences that catch people out, and only the last two are _silent_:
 
 - ⚠️ **A field must carry `filter` to be filtered on** — see below. Only those get an index.
-  ⭐ This one is **loud**: a `vector.search` filter naming an undeclared key is refused at save
-  `VECTOR_SEARCH_PLAN_INVALID`, whose `details.issues[]` carry `SEARCH_FILTER_KEY_UNDECLARED` or
-  `SEARCH_FILTER_KEY_NOT_FILTERABLE` and name the fix — so read the refusal as the platform
-  naming the fix rather than as a broken search. An action's `filter` and `filterSlots` keys are the field's own name
-  (`title`), never the stored payload key. (The records list is different: a condition beside
-  a meaning-based search there is answered by the **record store** first, and the ranking runs
-  over what it kept — so a `filter` field the points do not carry still narrows, exactly.)
-- ⚠️ **The tenant key is the scope key, not the user id.** Filtering by user id against a derived
-  collection matches nothing, silently. The scope key holds the user for a user-scoped table, the
-  project for a pool table, and the session for a preview write. A `vector.search` action over a
-  user-scoped table's collection must carry `filterSlots: { "scopeKey": "userInfo.userId" }` — that
-  provider slot and no other — or the save refuses it `VECTOR_SEARCH_SCOPE_KEY_FILTER_MISSING`; a
-  pool table's collection needs none.
+  ⭐ This one is **loud**: a `field` clause of a query naming a field with no `filter` use is
+  refused `QUERY_CLAUSE_UNROUTED`, at the action's save and on the route — so read the refusal as
+  the platform naming the fix rather than as a broken search. A clause names the field by its own
+  name (`title`), never a stored key. (The records list answers a condition beside a
+  meaning-based search the same way: the **record store** narrows first, and the ranking runs
+  over what it kept.)
+- ⚠️ **A search reads one owner's records, and no clause states which.** A query over a
+  user-scoped table reads as the run's signed-in user (or the user an action's `userIdSlot` names); a
+  pool table reads the project's records. A run with no end user behind it — a preview from an API
+  key — finds none of a user-scoped table's records and answers an empty list, not an error.
 - **Turning searchable off does not delete the points immediately.** A background pass notices and
   removes them later.
 
 ⚠️ **Moving the derived searchable declaration re-embeds every existing record, and re-embedding
-costs credits.** Marking a different field `search`, changing its role, changing the profile, or
+costs credits.** Marking or unmarking a field `search`, changing the profile, or
 changing the chunking — on the table, OR on the profile's default that this table inherits — makes
 every stored record's points stale, and the background reconcile re-runs each record's projection,
 embedding calls included. The save itself is instant; the spend arrives record by record as the
@@ -384,15 +398,15 @@ attaching either to routine reads.
 **A `search` use needs text, and the platform says so before it derives anything.** `search` on a
 number, a date, a boolean, a file, an object or a list of objects is refused `USES_SEARCH_NO_TEXT`
 with a remedy: have the table's processing flow write the text into a text field (for a file,
-extract its text), and search that field. The refusal is the point: such a slot would render every
+extract its text), and search that field. The refusal is the point: such a field would render every
 record to an empty string, skip each one as having no content, and leave the table looking
 searchable while indexing nothing at all.
 
 The refusal is about the field's **shape**: a record that happens to be empty is reported per
 record, which is a fact about data rather than about the declaration.
 
-**A search slot reads exactly one field.** There is no way to compose several fields into one
-slot. To search text built from more than one field, have the table's processing flow write the
+**A `search` field is one field.** There is no way to compose several fields into one indexed
+text. To search text built from more than one field, have the table's processing flow write the
 combined text into a field of its own, and mark that field `search`.
 
 The contract read carries the same answer per field, so you can ask before declaring. It is a
@@ -437,7 +451,7 @@ Things to know before you declare one:
   and nothing is re-embedded. Until a record's rewrite lands, a filter on the new field that is
   pushed into the vector store does not match that record — `expand=vectorProgress` counts the
   records still waiting, the same way it counts a re-embed. The only billed change on a searchable
-  table is moving the searchable declaration itself (a content slot, or the profile); see "Making a
+  table is moving the searchable declaration itself (a searched field, the chunking, or the profile); see "Making a
   table searchable".
 - **The window is readable: `GET /v1/tables/{id}?expand=restamp`.** The section carries
   `pending` (the restamp has not converged yet), `startedAt` (when the pending run began, null

@@ -31,7 +31,7 @@ The two made the same accept and reject decisions. These are one deployment's me
 - "Is this the same thing as that?" is a probability, not prose: one `text.decide` field, compared against a threshold where you branch.
 - `text.decide` runs on a decision model, not a chat model, named in `functionConfig.model` (default `typesafe/jev-latest`). An action save refuses it (`FUNCTION_MODEL_UNUSABLE`) when the catalog does not hold that model or it is not a decision model. Read `GET /v1/ai-models?type=decision` and name one it lists; an empty list means the action cannot run on this deployment.
 
-The other model functions answer no question of yours: `text.embed` turns text into a vector and `text.rerank` orders a list by relevance (`kipory-retrieve`), `audio.transcribe` reads speech (`kipory-extract`).
+The other model functions answer no question of yours: `text.rerank` orders a list by relevance (`kipory-retrieve`), `audio.transcribe` reads speech (`kipory-extract`). Embedding is not an action: a `semantic` clause of `record.query` and `term.search` embed their own phrase, and the platform embeds records from a table's `search` use.
 
 ## 2. Writing a `text.decide` question
 
@@ -112,10 +112,10 @@ The slot holds:
 A task-driven action's model resolves in this order: `text.generate`'s `modelSlot` at run time → the action's `modelId` → the binding for the action's `taskKey` on the nearest node that has one (the project, or an ancestor) → the environment → the code default. Omitting `modelId` inherits, and inheriting is a real answer.
 
 - **`taskKey` is one of five on an action**: `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`. Omitted, a new action starts on `extraction`.
-- **Some functions name their model in `functionConfig`, not through the action's task.** `text.decide` and `text.rerank` carry `model` with a fixed default. `text.embed`, `audio.transcribe` and `vocabulary.resolve` carry an optional `model`; left empty they take the project's embedding, transcription and extraction model.
+- **Some functions name their model in `functionConfig`, not through the action's task.** `text.decide` and `text.rerank` carry `model` with a fixed default. `audio.transcribe` and `vocabulary.resolve` carry an optional `model`; left empty they take the project's transcription and extraction model.
 - **Pinning `modelId` opts an action out of the project's next model change, silently.** Omit it to inherit through `taskKey`. An unrecognised `modelId` is refused at the write.
 - **A `text.generate` action's `modelSlot` naming an unknown or disabled model fails the run** with no fallback.
-- **Changing `text.embed`'s model invalidates every stored vector** and needs an index rebuild. `model` is a catalog id (`creator/slug`); the account that serves it is not part of the config.
+- **The model records are searched with is not an action setting.** It belongs to the table's embedding profile, and changing it is a new profile generation that re-embeds every record (`kipory-model`). A function's `model` is a catalog id (`creator/slug`); the account that serves it is not part of the config.
 
 Three reads say what is there:
 

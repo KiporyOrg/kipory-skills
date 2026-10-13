@@ -4,17 +4,19 @@
  * the platform serves.
  *
  * The platform reads exactly one document version. A document exported before
- * a rename is refused with `DOCUMENT_VERSION_UNSUPPORTED`; this script rewrites
- * it locally, so nothing you hold is lost. It needs Node 20 and nothing else.
+ * a rename, or before search models stopped naming their slots, is refused
+ * with `DOCUMENT_VERSION_UNSUPPORTED`; this script rewrites it locally, so
+ * nothing you hold is lost. It needs Node 20 and nothing else.
  *
  *   node upgrade-document.mjs <file.kipory.yaml|file.json> [--write]
  *
  * Without `--write` it prints the converted document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
- * It converts in three steps, and a version 2 document takes all three in one
- * run. A version 3 document takes the last two, a version 4 document the last;
- * a version 5 document is returned as it is.
+ * It converts in four steps, and a version 2 document takes all four in one
+ * run. A version 3 document takes the last three, a version 4 document the
+ * last two, a version 5 document the last; a version 6 document is returned
+ * as it is.
  *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
@@ -44,6 +46,22 @@
  *   The action is known by its `functionKey`, and a search's collection by
  *   its `collection`: both are read beside the key they decide.
  *
+ * Version 5 → 6 (the search words: a document names no vector slot and no
+ * collection):
+ *   - a search model under `vectors.profiles` loses `denseSlots` and
+ *     `sparseSlot` and states `keywords`: `true` where it named a sparse slot,
+ *     `false` where it named none;
+ *   - a `search` use of a table's field loses `role`;
+ *   - `vectors.collections` is removed, and `vectors` with it when nothing
+ *     else is under it.
+ * Each of these is listed on stderr.
+ *
+ * It does NOT rebuild an action on a function that no longer exists
+ * (`vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`,
+ * `text.embed`, `text.embed-sparse`): what the action becomes is your
+ * decision. Each is left as written and listed on stderr — rebuild it as
+ * `record.query` with a `semantic` clause or as `term.search`, or remove it.
+ *
  * ⛔ A NAME IS RENAMED BY WHERE IT SITS, never by how it is spelled. Only the
  * places the platform defines are rewritten: a table's and a relation's own
  * settings, a flow's and an action's own settings, a function's config, a
@@ -67,15 +85,15 @@
  * YAML is converted line by line, since YAML cannot be parsed without a
  * dependency. A construct that cannot be converted safely that way — a
  * `{ … }` mapping written on one line, an anchor, a `?` key — in a place that
- * is rewritten is REFUSED with its line number rather than guessed at: write
- * it out as an indented block, or convert the file to JSON, and run the
- * script again.
+ * is rewritten, or holding a member that is removed, is REFUSED with its line
+ * number rather than guessed at: write it out as an indented block, or
+ * convert the file to JSON, and run the script again.
  */
 import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /** The version this script converts TO. */
-const TARGET_VERSION = 5;
+const TARGET_VERSION = 6;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -597,6 +615,21 @@ const STAGES = [
     watchedKey: () => false,
     slotNote: () => false,
   },
+  {
+    // Renames nothing: the search words are removals, made after every step
+    // has run (`searchWordsJson`, `searchWordsYaml`), so this step only moves
+    // the version. Every conversion ends with it.
+    from: 5,
+    to: 6,
+    keyIn: (_mode, key) => key,
+    under: () => UNTOUCHED,
+    textOf: () => null,
+    stringAt: (_mode, _key, value) => value,
+    rewrite: (text) => text,
+    needsAPerson: () => false,
+    watchedKey: () => false,
+    slotNote: () => false,
+  },
 ];
 const CONVERTS = `this script converts version ${STAGES.map((stage) => stage.from).join(" or ")} to ${TARGET_VERSION}`;
 /** The steps a document stating `version` still has to take, or null for a version not read. */
@@ -617,8 +650,12 @@ const textAt = (stage, mode, key, value, sibling) => {
 const versionOf = (stated) =>
   typeof stated === "string" && /^\d+$/.test(stated) ? Number(stated) : stated;
 
-/** A structured document (parsed JSON), converted. `notes` collects free text to review. */
-export function upgradeJson(doc, notes = []) {
+/**
+ * A structured document (parsed JSON), converted. `notes` collects the places
+ * a person must edit, `dropped` the members that were removed. A version 6
+ * document is returned as it is, the same object.
+ */
+export function upgradeJson(doc, notes = [], dropped = []) {
   if (doc === null || typeof doc !== "object" || Array.isArray(doc)) {
     throw new Error("not a project document: expected an object");
   }
@@ -647,7 +684,10 @@ export function upgradeJson(doc, notes = []) {
       `${path.join(".")}${extra === "" ? "" : ` (${extra})`}`,
   );
   notes.splice(0, notes.length, ...new Set([...notes, ...said]));
-  return out;
+  // Version 5 → 6, which every conversion ends with: the search words.
+  const searched = searchWordsJson(out, notes, dropped);
+  notes.splice(0, notes.length, ...new Set(notes));
+  return searched;
 }
 
 /** The keys down to a place, as `stage` renames them. */
@@ -705,6 +745,143 @@ const stageJson = (doc, stage, places) => {
   return out;
 };
 
+/* ── the search words ─────────────────────────────────────────────────────
+ *
+ * Version 6: a document names no vector slot and no collection. This runs
+ * once every step has, on a document already in version 5's names (the
+ * places it reads did not move from 5 to 6), so every older version takes
+ * one path.
+ */
+
+/** Functions the platform no longer has. An action on one is the author's to rebuild. */
+const REMOVED_FUNCTIONS = new Set([
+  "vector.search",
+  "vector.upsert",
+  "vector.fetch",
+  "vector.point-id",
+  "text.embed",
+  "text.embed-sparse",
+]);
+const removedFunctionNote = (at, key) =>
+  `${at} (the function \`${key}\` no longer exists: rebuild the action as \`record.query\` with a \`semantic\` clause or as \`term.search\`, or remove it)`;
+const SLOT_MEMBERS = ["denseSlots", "sparseSlot"];
+const profileDropped = (at, members, keywords, stated) =>
+  `${at}: ${members.map((m) => `\`${m}\``).join(" and ")} dropped; ${
+    stated
+      ? `\`keywords: ${keywords}\` stays as stated`
+      : `it states \`keywords: ${keywords}\``
+  }`;
+const keywordsDisagree = (at, keywords) =>
+  `${at}: states \`keywords: ${keywords}\` and a \`sparseSlot\` that says otherwise. Remove one of the two and run this again.`;
+const roleDropped = (at, table) =>
+  `${at}: \`role\` dropped from a \`search\` use of table \`${table}\``;
+const COLLECTIONS_DROPPED = "`collections` dropped: a document carries none";
+const VECTORS_DROPPED = "`vectors` dropped: nothing else was under it";
+
+const isMap = (value) =>
+  value !== null && typeof value === "object" && !Array.isArray(value);
+/** `map` with each value passed through `fn`; `map` itself when none changed. */
+const mapValues = (map, fn) => {
+  const out = {};
+  let same = true;
+  for (const [key, value] of Object.entries(map)) {
+    out[key] = fn(value, key);
+    if (out[key] !== value) same = false;
+  }
+  return same ? map : out;
+};
+const mapItems = (list, fn) => {
+  const out = list.map(fn);
+  return out.every((item, index) => item === list[index]) ? list : out;
+};
+/** `map` with `key` holding `fn` of what it holds, when `holds` says it is the kind expected. */
+const within = (map, key, holds, fn) => {
+  if (!isMap(map) || !holds(map[key])) return map;
+  const value = fn(map[key]);
+  return value === map[key] ? map : { ...map, [key]: value };
+};
+
+function searchWordsJson(doc, notes, dropped) {
+  const profile = (row, where) => {
+    if (!isMap(row)) return row;
+    const old = SLOT_MEMBERS.filter((member) => Object.hasOwn(row, member));
+    if (old.length === 0) return row;
+    const keywords =
+      typeof row.sparseSlot === "string" && row.sparseSlot.trim() !== "";
+    const stated = Object.hasOwn(row, "keywords");
+    if (stated && Object.hasOwn(row, "sparseSlot") && row.keywords !== keywords)
+      throw new Error(keywordsDisagree(where, JSON.stringify(row.keywords)));
+    const out = {};
+    for (const [key, value] of Object.entries(row)) {
+      if (!old.includes(key)) out[key] = value;
+      else if (key === old[0] && !stated) out.keywords = keywords;
+    }
+    dropped.push(profileDropped(where, old, out.keywords, stated));
+    return out;
+  };
+  const vectors = (section) => {
+    const kept = within(section, "profiles", isMap, (profiles) =>
+      mapValues(profiles, (row, key) =>
+        profile(row, `vectors.profiles.${key}`),
+      ),
+    );
+    if (!Object.hasOwn(kept, "collections")) return kept;
+    const { collections: _collections, ...rest } = kept;
+    dropped.push(`vectors.collections: ${COLLECTIONS_DROPPED}`);
+    return rest;
+  };
+  const table = (row, key) =>
+    within(row, "uses", isMap, (uses) =>
+      within(uses, "fields", Array.isArray, (fields) =>
+        mapItems(fields, (field, index) =>
+          within(field, "uses", Array.isArray, (list) =>
+            mapItems(list, (use, position) => {
+              if (
+                !isMap(use) ||
+                use.kind !== "search" ||
+                !Object.hasOwn(use, "role")
+              )
+                return use;
+              const { role: _role, ...rest } = use;
+              dropped.push(
+                roleDropped(
+                  `tables.${key}.uses.fields[${index}].uses[${position}]`,
+                  key,
+                ),
+              );
+              return rest;
+            }),
+          ),
+        ),
+      ),
+    );
+  if (isMap(doc.flows)) {
+    for (const [flowKey, flow] of Object.entries(doc.flows)) {
+      if (!isMap(flow) || !isMap(flow.actions)) continue;
+      for (const [actionKey, action] of Object.entries(flow.actions)) {
+        if (isMap(action) && REMOVED_FUNCTIONS.has(action.functionKey))
+          notes.push(
+            removedFunctionNote(
+              `flows.${flowKey}.actions.${actionKey}`,
+              action.functionKey,
+            ),
+          );
+      }
+    }
+  }
+  const out = within(
+    within(doc, "vectors", isMap, vectors),
+    "tables",
+    isMap,
+    (tables) => mapValues(tables, table),
+  );
+  if (!isMap(out.vectors) || Object.keys(out.vectors).length > 0) return out;
+  if (out.vectors === doc.vectors) return out; // written empty: the author's
+  const { vectors: _vectors, ...rest } = out;
+  dropped.push(`vectors: ${VECTORS_DROPPED}`);
+  return rest;
+}
+
 /* ── YAML, line by line ─────────────────────────────────────────────────── */
 
 /** `indent - - key: rest`, with the key plain, single- or double-quoted. */
@@ -752,12 +929,48 @@ const isStringScalar = (value) =>
   !/^[{[&*!|>]/.test(value) &&
   !/^(~|null|Null|NULL|true|false|-?\d+(\.\d+)?)$/.test(value);
 
+const keyOf = (match) => match[2] ?? match[3] ?? match[4];
+const columnOf = (match) => match[1].length;
+const valueOf = (rest) => rest.replace(/\s+#.*$/, "").trim();
+/** A one-line scalar without its quotes. */
+const unquote = (value) => {
+  const bare = /^(["'])(.*)\1$/.exec(value);
+  return bare === null ? value : bare[2];
+};
+
+/**
+ * The value of the key `name` in the mapping holding line `index` (its keys at
+ * `column`), or null when it has none. A mapping that is a list item starts on
+ * its `- ` line and ends before the next one, so the scan stops at both.
+ */
+const siblingValue = (lines, index, column, name) => {
+  const scan = (step) => {
+    // The item's own first line has nothing of this mapping above it.
+    if (step === -1 && indentOf(lines[index]) < column) return null;
+    for (let i = index + step; i >= 0 && i < lines.length; i += step) {
+      const line = lines[i];
+      if (line.trim() === "" || /^\s*#/.test(line)) continue;
+      const indent = indentOf(line);
+      const match = KEY_LINE.exec(line);
+      const at = match === null ? indent : columnOf(match);
+      // Going down, a shallower line (the next item's dash included) ends it.
+      if (step === 1 && indent < column) return null;
+      if (match !== null && at === column && keyOf(match) === name)
+        return valueOf(match[6]);
+      // Going up, the item's first line is the last one to look at.
+      if (step === -1 && indent < column) return null;
+    }
+    return null;
+  };
+  return scan(-1) ?? scan(1);
+};
+
 /**
  * A YAML document, converted line by line: the indentation says where each
  * key sits, and the same rules as the JSON path say what it becomes. Comments
- * and layout are kept.
+ * and layout are kept. A version 6 document is returned as it is.
  */
-export function upgradeYaml(text, notes = []) {
+export function upgradeYaml(text, notes = [], dropped = []) {
   const stated = text
     .slice(text.charCodeAt(0) === 0xfeff ? 1 : 0)
     .split(/\r?\n/)
@@ -774,8 +987,19 @@ export function upgradeYaml(text, notes = []) {
     throw new Error(`${CONVERTS}; the document states ${version}`);
   }
   // Each step keeps every line where it is, so a line number one step lists
-  // still names that line after the next.
-  return stages.reduce((held, stage) => stageYaml(held, stage, notes), text);
+  // still names that line after the next — the search words too, which
+  // remove lines only once every number is said.
+  const renamed = stages.reduce(
+    (held, stage) => stageYaml(held, stage, notes),
+    text,
+  );
+  const bom = renamed.charCodeAt(0) === 0xfeff ? renamed[0] : "";
+  const eol = renamed.includes("\r\n") ? "\r\n" : "\n";
+  const lines = renamed.slice(bom.length).split(/\r?\n/);
+  // Version 5 → 6, which every conversion ends with: the search words.
+  const out = searchWordsYaml(lines, notes, dropped);
+  notes.splice(0, notes.length, ...new Set(notes));
+  return out === lines ? renamed : `${bom}${out.join(eol)}`;
 }
 
 /** One step over a YAML document. */
@@ -785,9 +1009,6 @@ const stageYaml = (text, stage, notes) => {
   const eol = text.includes("\r\n") ? "\r\n" : "\n";
   const lines = text.slice(bom.length).split(/\r?\n/);
   const versionLine = lines.findIndex((line) => TOP_VERSION.test(line));
-  const keyOf = (match) => match[2] ?? match[3] ?? match[4];
-  const columnOf = (match) => match[1].length;
-  const valueOf = (rest) => rest.replace(/\s+#.*$/, "").trim();
   /**
    * The text the mapping holding line `index` (its keys at `column`) holds
    * under the key `name`, or undefined when it holds none there. A mapping
@@ -979,10 +1200,296 @@ const stageYaml = (text, stage, notes) => {
   return `${bom}${out.join(eol)}`;
 };
 
+/**
+ * Each line of a YAML text as structure: `null` for a blank line, a comment or
+ * a document marker; `{ body: true }` for a line inside a scalar; otherwise
+ * where the line sits — its indentation, the column of its key (or of its
+ * list item), the key (`null` for a list item that is no mapping), its value,
+ * and the keys above it with its own last.
+ */
+const outline = (lines) => {
+  const stack = [];
+  let scalar = null; // the column a block scalar's body is deeper than
+  let quoted = null; // the quote a multi-line quoted scalar is waiting for
+  return lines.map((line, index) => {
+    if (quoted !== null) {
+      if (closesQuote(line, quoted)) quoted = null;
+      return { body: true };
+    }
+    if (line.trim() === "" || /^\s*#/.test(line)) return null;
+    const indent = indentOf(line);
+    if (scalar !== null) {
+      if (indent > scalar) return { body: true };
+      scalar = null;
+    }
+    if (/^\s*\t/.test(line)) refuse(index + 1, "a tab is used for indentation");
+    if (/^(---|\.\.\.)(\s|$)|^%[A-Z]/.test(line)) return null;
+    const match = KEY_LINE.exec(line);
+    const item = match ?? /^(\s*(?:-\s+)*)(.*)$/.exec(line);
+    const dashed = item[1].trim() !== "";
+    const column = match !== null || dashed ? item[1].length : indent;
+    while (stack.length > 0 && stack[stack.length - 1].column >= column)
+      stack.pop();
+    const key = match === null ? null : keyOf(match);
+    const value = valueOf(match === null ? item[2] : match[6]);
+    const path = stack.map((entry) => entry.key);
+    if (key !== null) {
+      path.push(key);
+      stack.push({ column, key });
+    }
+    if (BLOCK_SCALAR.test(value)) scalar = key === null ? indent : column;
+    else quoted = opensQuote(value);
+    return { indent, column, dashed, key, value, path, match };
+  });
+};
+
+const pathIs = (path, pattern) =>
+  path.length === pattern.length &&
+  pattern.every((part, index) => part === "*" || part === path[index]);
+const USES_OF_A_FIELD = ["tables", "*", "uses", "fields", "uses"];
+const NULL_SCALAR = /^(~|null|Null|NULL)?$/;
+
+/**
+ * The search words, line by line: the same removals as `searchWordsJson`,
+ * made where the indentation says the member sits. Returns `lines` itself
+ * when nothing is removed.
+ */
+function searchWordsYaml(lines, notes, dropped) {
+  const rows = outline(lines);
+  const gone = new Set();
+  const put = new Map();
+  /** A value that is one whole `{ … }` or `[ … ]` on its line. */
+  const closedFlow = (value) => {
+    const bare = unquoted(value);
+    const count = (chars) =>
+      [...bare].filter((char) => chars.includes(char)).length;
+    return (
+      /^[{[]/.test(bare) && /[}\]]$/.test(bare) && count("{[") === count("}]")
+    );
+  };
+  /** The last line of what the key on line `index` holds. */
+  const blockEnd = (index) => {
+    const { column, value } = rows[index];
+    let end = index;
+    let inside = true; // whether the last line of structure seen was held
+    for (let i = index + 1; i < lines.length; i += 1) {
+      const row = rows[i];
+      if (row === null) continue;
+      if (row.body !== true) {
+        inside =
+          row.indent > column ||
+          (value === "" && row.indent === column && row.dashed);
+        if (!inside) break;
+      }
+      if (inside) end = i;
+    }
+    return end;
+  };
+  const remove = (from, to = from) => {
+    for (let i = from; i <= to; i += 1) gone.add(i);
+  };
+  /** Remove the key on line `index` with everything it holds, or refuse. */
+  const removeMember = (index) => {
+    const { value, key } = rows[index];
+    const end = blockEnd(index);
+    if (value === "") return remove(index, end);
+    if (/^[{[]/.test(value) && !closedFlow(value))
+      refuse(
+        index + 1,
+        `\`${key}\` is a mapping or list left open on its line`,
+      );
+    if (/^[&*!|>]/.test(value) || opensQuote(value) !== null || end > index)
+      refuse(
+        index + 1,
+        `\`${key}\` is written with an anchor, a tag or a value that runs over several lines`,
+      );
+    return remove(index);
+  };
+  const one = (index) => rows[index].match;
+  const names = (words) => new RegExp(`(^|[\\s{,\\["'])(${words})["']?\\s*:`);
+
+  const open = (index) =>
+    refuse(index + 1, "a mapping or list is left open on its line");
+  /** Whether `path` is on the way to a field's uses, or is them. */
+  const towardsUses = (path) =>
+    path.length <= USES_OF_A_FIELD.length &&
+    pathIs(path, USES_OF_A_FIELD.slice(0, path.length));
+
+  rows.forEach((row, index) => {
+    if (row === null || row.body === true || gone.has(index)) return;
+    const { key, value, path } = row;
+    const flow = /^[{[]/.test(value);
+
+    /* vectors: profiles' slot names, and the collections. */
+    if (path[0] === "vectors" && key !== null) {
+      if (/^[&*!]/.test(value) && path.length <= 3)
+        refuse(index + 1, "an anchor, alias or tag is used under `vectors`");
+      if (
+        flow &&
+        path.length <= 3 &&
+        !pathIs(path, ["vectors", "collections"])
+      ) {
+        if (!closedFlow(value)) open(index);
+        if (names("denseSlots|sparseSlot|collections").test(value))
+          refuse(index + 1, "a mapping is written on one line");
+      }
+      if (pathIs(path, ["vectors", "collections"])) {
+        removeMember(index);
+        dropped.push(
+          `line ${index + 1} (vectors.collections): ${COLLECTIONS_DROPPED}`,
+        );
+      }
+      if (pathIs(path, ["vectors", "profiles", "*"]) && value === "") {
+        const members = new Map();
+        for (let i = index + 1; i < rows.length; i += 1) {
+          const child = rows[i];
+          if (child === null || child.body === true) continue;
+          if (child.indent <= row.column) break;
+          if (child.key !== null && child.path.length === 4)
+            members.set(child.key, i);
+        }
+        const old = SLOT_MEMBERS.filter((member) => members.has(member));
+        if (old.length > 0) {
+          const where = `vectors.profiles.${key}`;
+          let keywords = false;
+          if (members.has("sparseSlot")) {
+            const line = members.get("sparseSlot");
+            const slot = rows[line].value;
+            if (
+              /^[{[&*!|>]/.test(slot) ||
+              opensQuote(slot) !== null ||
+              blockEnd(line) > line
+            )
+              refuse(
+                line + 1,
+                "`sparseSlot` is not written as one plain value",
+              );
+            keywords = !NULL_SCALAR.test(slot) && unquote(slot).trim() !== "";
+          }
+          const stated = members.has("keywords")
+            ? rows[members.get("keywords")].value
+            : null;
+          if (
+            stated !== null &&
+            members.has("sparseSlot") &&
+            unquote(stated).toLowerCase() !== String(keywords)
+          )
+            throw new Error(
+              keywordsDisagree(
+                `line ${members.get("keywords") + 1} (${where})`,
+                stated,
+              ),
+            );
+          const first = Math.min(...old.map((member) => members.get(member)));
+          for (const member of old) removeMember(members.get(member));
+          if (stated === null) {
+            gone.delete(first);
+            put.set(
+              first,
+              `${one(first)[1]}keywords${one(first)[5]} ${keywords}`,
+            );
+          }
+          dropped.push(
+            profileDropped(
+              `line ${first + 1} (${where})`,
+              old,
+              stated ?? keywords,
+              stated !== null,
+            ),
+          );
+        }
+      }
+    }
+
+    /* tables: a `search` use's role. */
+    if (path[0] === "tables") {
+      if (flow && towardsUses(path)) {
+        if (!closedFlow(value)) open(index);
+        if (names("role").test(value))
+          refuse(index + 1, "a mapping is written on one line");
+      }
+      if (pathIs(path, [...USES_OF_A_FIELD, "role"])) {
+        const kind = siblingValue(lines, index, row.column, "kind");
+        if (kind !== null && unquote(kind) === "search") {
+          if (
+            value === "" ||
+            /^[{[&*!|>]/.test(value) ||
+            opensQuote(value) !== null ||
+            blockEnd(index) > index
+          )
+            refuse(index + 1, "`role` is not written as one plain value");
+          if (row.indent < row.column) {
+            // `- role: x` opens the item: the next key takes the dash.
+            const next = rows.findIndex(
+              (r, i) =>
+                i > index && r !== null && r.body !== true && !gone.has(i),
+            );
+            const lead = one(index)[1];
+            if (
+              next === -1 ||
+              rows[next].column !== row.column ||
+              rows[next].key === null ||
+              lines[next].slice(0, lead.length).trim() !== ""
+            )
+              refuse(
+                index + 1,
+                "`role` opens a list item the script cannot re-open",
+              );
+            put.set(next, `${lead}${lines[next].slice(lead.length)}`);
+          }
+          remove(index);
+          dropped.push(roleDropped(`line ${index + 1}`, path[1]));
+        }
+      }
+    }
+
+    /* flows: an action on a function that no longer exists. */
+    if (
+      pathIs(path, ["flows", "*", "actions", "*", "functionKey"]) &&
+      REMOVED_FUNCTIONS.has(unquote(value))
+    )
+      notes.push(
+        removedFunctionNote(
+          `line ${index + 1} (flows.${path[1]}.actions.${path[3]})`,
+          unquote(value),
+        ),
+      );
+  });
+
+  /* `vectors` with nothing left under it goes too: a key with no value is null. */
+  const section = rows.findIndex(
+    (row) =>
+      row !== null &&
+      row.body !== true &&
+      row.key === "vectors" &&
+      row.path.length === 1,
+  );
+  if (section !== -1 && rows[section].value === "" && gone.size > 0) {
+    const kept = rows.some(
+      (row, i) =>
+        i > section &&
+        row !== null &&
+        row.body !== true &&
+        row.path[0] === "vectors" &&
+        row.path.length > 1 &&
+        !gone.has(i),
+    );
+    const lost = [...gone].some((i) => rows[i]?.path?.[0] === "vectors");
+    if (!kept && lost) {
+      remove(section);
+      dropped.push(`line ${section + 1} (vectors): ${VECTORS_DROPPED}`);
+    }
+  }
+  if (gone.size === 0 && put.size === 0) return lines;
+  return lines.flatMap((line, index) =>
+    gone.has(index) ? [] : [put.get(index) ?? line],
+  );
+}
+
 /** Convert a document given as text: JSON when it starts as JSON, YAML otherwise. */
-export function upgradeDocumentText(text, notes = []) {
+export function upgradeDocumentText(text, notes = [], dropped = []) {
   const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
-  if (!/^\s*[{[]/.test(body)) return upgradeYaml(text, notes);
+  if (!/^\s*[{[]/.test(body)) return upgradeYaml(text, notes, dropped);
   let parsed;
   try {
     parsed = JSON.parse(body);
@@ -991,7 +1498,7 @@ export function upgradeDocumentText(text, notes = []) {
       `the file starts like JSON and does not parse as JSON: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  const converted = upgradeJson(parsed, notes);
+  const converted = upgradeJson(parsed, notes, dropped);
   return converted === parsed
     ? text
     : `${JSON.stringify(converted, null, 2)}\n`;
@@ -1019,9 +1526,10 @@ if (isMain) {
   }
   const [file] = files;
   const notes = [];
+  const dropped = [];
   let converted;
   try {
-    converted = upgradeDocumentText(readFileSync(file, "utf8"), notes);
+    converted = upgradeDocumentText(readFileSync(file, "utf8"), notes, dropped);
   } catch (error) {
     console.error(
       `upgrade-document: ${error instanceof Error ? error.message : String(error)}`,
@@ -1030,10 +1538,18 @@ if (isMain) {
   }
   if (flags.includes("--write")) writeFileSync(file, converted);
   else process.stdout.write(converted);
+  if (dropped.length > 0) {
+    console.error(
+      [
+        `upgrade-document: ${dropped.length} member(s) a document no longer carries were removed:`,
+        ...dropped.map((line) => `  ${line}`),
+      ].join("\n"),
+    );
+  }
   if (notes.length > 0) {
     console.error(
       [
-        `upgrade-document: ${notes.length} place(s) name a renamed field in text this script does not rewrite. Check each by hand:`,
+        `upgrade-document: ${notes.length} place(s) this script does not rewrite — text that names a renamed field, or an action on a function that no longer exists. Edit each by hand:`,
         ...notes.map((note) => `  ${note}`),
       ].join("\n"),
     );

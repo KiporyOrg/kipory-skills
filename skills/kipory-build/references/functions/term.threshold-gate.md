@@ -18,7 +18,7 @@ High scores reuse the matching term, low ones coin a new term, and the rest go t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `candidatesSlot` | string | no | — | Slot path containing the descending similarity candidates from `vector.search`. |
+| `candidatesSlot` | string | no | — | Slot path containing the descending similarity candidates from `term.search`. |
 | `parentTermIdSlot` | string | no | — | Optional slot path containing the resolved parent term id for hierarchical vocabularies. |
 | `proposalLabelSlot` | string | no | — | The slot holding the proposed label; empty uses the slug. |
 | `proposalSlugSlot` | string | no | — | The slot holding the slug for a newly created term. |
