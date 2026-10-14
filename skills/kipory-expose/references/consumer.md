@@ -77,8 +77,8 @@ The 402 codes in the table have **opposite remedies** — the wallet needs credi
 
 ## Headers worth knowing
 
-- `Idempotency-Key` — a string of your choosing, one per logical operation; ignored, not truncated, over 255 characters. What a second call with the same key gets depends on the target, and nothing here expires:
-  - **Async `flow.invoke`**: the first call's acknowledgement again — the same `id`, with its current `status` — and no second run. The match is per caller (the same signed-in user, or the same project for an API key) and on the key alone: the same key on a different endpoint or body still returns the earlier invocation.
+- `Idempotency-Key` — a string of your choosing, one per logical operation; ignored, not truncated, over 255 characters. What a second call with the same key gets depends on the target:
+  - **Async `flow.invoke`**: the first call's acknowledgement again — the same `id`, with its current `status` — and no second run. The match is per caller (the same signed-in user, or the same project for an API key) and on the key alone: the same key on a different endpoint or body still returns the earlier invocation. It holds while the run's history is kept — 90 days unless the deployment's operator changed it; after that the invocation reads 404 and the same key starts a new run.
   - **Sync `flow.invoke`**: no stored answer. The flow runs again and the response is the new run's. What the key buys is convergence: a per-user record an `record.create` action writes takes the same id as the first call's when the key, the user, the action and the data are the same, so the retry lands on that record instead of making a second one, and a charge the first call already recorded for the same action is not taken twice. A project-owned record is identified by its data alone, with or without a key. Two cases never converge: a per-user create inside a `flow.fan-out` branch (a retry writes a second record there), and a retry made after the flow was edited.
   - **`flow.stream`**: as sync; each retry attempt (`retry`) runs under its own key derived from yours, so attempt two never converges on attempt one.
 

@@ -217,7 +217,8 @@ redirect and no file download — hand a file out as a link from a `file.downloa
 see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
 
 **A retry is made safe with an `Idempotency-Key` header.** On an asynchronous invoke a second call
-with the same key gets the first call's acknowledgement and starts no second run. On a synchronous
+with the same key gets the first call's acknowledgement and starts no second run, while the run's
+history is kept (90 days unless the deployment changed it). On a synchronous
 invoke or a stream the flow runs again, and what converges is what it writes: a per-user record a
 create action writes takes the same id as the first call's, and a charge already recorded for the
 same action is not taken twice.

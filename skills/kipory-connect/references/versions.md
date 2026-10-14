@@ -6,8 +6,8 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `0e100991afbc` | `version` on `GET /v1/capability-packs` |
+| packs | `148bd488a334` | `version` on `GET /v1/capability-packs` |
 | functions | `597a778dd15f3181f6f9ce4a7a515fa354fb3e31c4c747108f35a28bb45c48f6` | `version` on `GET /v1/functions` |
-| api | `420423cf9a29` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| api | `04370ba4ad36` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 
 Function pages: 119 customer functions, key set `245016404d14`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
