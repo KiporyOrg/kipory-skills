@@ -877,7 +877,7 @@ typed, among the guides they follow" is one action.
 - 422 `QUERY_CLAUSE_TOO_BROAD` — the first exact clause selected more than a million records
   before any other clause could narrow it. Add a narrower clause the planner will run first — a
   term, or a field equality — rather than reordering yours: the order is the planner's.
-- 503 `VECTOR_INDEX_UNREADABLE` — the meaning index could not be reached, or was never provisioned. With `details.reason: "index-not-built"` the table's index is still being built (a search sent right after the table became searchable): send the same search again shortly.
+- 503 `VECTOR_INDEX_UNREADABLE` — the meaning index could not be reached, or was never provisioned. With `details.reason: "index-not-built"` the index is not ready for this search yet: either the table just became searchable, or the field you named was just marked `search` and the index has not taken it on. Send the same search again shortly.
 - 503 `EMBEDDING_MODEL_UNAVAILABLE` — the embedding model did not answer the phrase (it failed or timed out), so nothing was searched by meaning. Send the same search again shortly. In a flow, the same failure is one `onFailure: "continue"` on the `record.query` action carries the run past.
   for the table. Nothing partial comes back; a query with no semantic clause is unaffected.
 

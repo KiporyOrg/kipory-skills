@@ -22,8 +22,7 @@ exact words indexed are those of one field per table — the first one marked `s
 say `false` for meaning alone.
 
 A profile read also tells you `searchFieldsPerTable`: how many fields of one table on it may be
-marked `search`. A new profile allows 4; a profile reads the number it was created with (1 on an
-older one), and that number does not move. Marking one field
+marked `search`. It is 4 on every profile, whenever it was created. Marking one field
 more is refused at the table save with `USES_SEARCH_FIELDS_OVER_LIMIT`, whose issue carries `limit`
 and `marked`.
 
@@ -143,16 +142,17 @@ concurrent edit to the profile or to any table in the set fails the whole activa
 version conflict. Re-read and retry rather than assuming a partial
 move landed.
 
-**Activation is also the rollback.** It is direction-agnostic and never drops the index it
-moves away from, so activating the superseded generation restores the previous state instantly and
-losslessly. That is what makes the reindex window acceptable: it is recoverable, even though it is
-not invisible.
+**Activation is also the rollback, and a rollback is a second reindex.** It is direction-agnostic:
+activating the superseded generation points every table back at it. But a record's entries leave
+the old index as the record is indexed into the new one, so the old index empties while the new
+one fills. Going back embeds the records that had already moved again, and bills them again. Only
+a rollback made before the reindex reached a record finds that record still in the old index.
 
 **Deleting a generation removes its index.** A generation no table uses can be deleted, and the
 delete removes the search indexes it owns with it; the answer says how many (`indexesRemoved`), and
 `DELETE …?validateOnly=true` warns of the same number first and removes nothing. Deleting the
-superseded generation therefore gives up that instant rollback: a table moved back to it later is
-indexed again from its records. A profile whose tables are all gone is deleted the same way.
+superseded generation gives up even the partial rollback above: it can no longer be activated, and
+going back to its model means minting a new generation, which indexes every record again. A profile whose tables are all gone is deleted the same way.
 
 ## What the platform refuses
 
@@ -203,14 +203,15 @@ refused.
   point at — not the newest, and not the one marked default. A key whose tables are all
   non-searchable has _no_ active generation, which is honest: nothing is serving.
 - **The key is immutable**, and lower-case kebab. Renames go through the label instead.
-- **`searchFieldsPerTable` belongs to the profile, not to the tables using it**, and it is fixed
-  when the profile is created. A table that needs more searched fields than its profile allows
-  needs a profile created now — a different profile, so a different index.
+- **`searchFieldsPerTable` is the same on every profile.** A second profile is never the way to
+  mark more fields: it allows the same number, and moving a table to it embeds every record again.
 - **A field keeps its place in the index, and the table is still embedded again.** Unmarking one
   `search` field and marking another does not move the fields that stayed, so a search that names
   one keeps ranking on it. But marking or unmarking ANY `search` field changes the table's index
   declaration: every record of the table is embedded again — all its `search` fields — and billed.
-  Send the table save with `validateOnly: true` first.
+  Send the table save with `validateOnly: true` first. Until the index takes on a newly marked
+  field, a search naming it answers 503 with `details.reason: "index-not-built"`; send it again
+  shortly.
 - **A null geometry is a real state, not an error.** It means the profile's model no longer
   resolves, or resolves without the facts geometry needs. The read reports it rather than failing,
   so you can see and fix it — but a profile in that state is not going to serve a search.

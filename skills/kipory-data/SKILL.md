@@ -143,7 +143,7 @@ GET /v1/projects/{nodeId}/ingest/summary?window=7d   what the ingest workers fet
 - **A record FAILURE on the processing stream is a `status` frame, not an `error` frame.** `error` is transport only. A clean `close` then `done` after `status: "failed"` is a stream that worked and a run that did not.
 - **The stream ends on its own.** A terminal snapshot closes at once; a live one closes with `close { lifetime }` after a bounded, jittered window. Reconnect and re-read the snapshot; there is no cursor.
 - **Cache bust spends money and is ADMIN.** `POST /v1/projects/{nodeId}/ingest/cache/bust` makes the next run re-fetch against a vendor budget; `deleted: 0` is a success, and an unknown `functionKey` deletes nothing rather than everything.
-- **Semantic search can 503 through no fault of yours.** `VECTOR_INDEX_UNREADABLE` means the collection was never provisioned, the profile is gone, or the store is unreachable — see `kipory-model` for the embedding profile.
+- **Semantic search can 503 through no fault of yours.** `VECTOR_INDEX_UNREADABLE` means the meaning index was never built, the profile is gone, or the index could not be reached; with `details.reason: "index-not-built"` the index is still taking on the table or a newly marked field, so send the search again shortly — see `kipory-model` for the embedding profile.
 
 ## References
 
