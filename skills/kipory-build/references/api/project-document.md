@@ -120,6 +120,7 @@ Each item of `changes`:
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
+| `expressionParts` | `object` | no | On an action whose function takes a JSONata expression (`value.transform`): the size of each expression the document states, in parts, by its `functionConfig` field. An expression may have at most 1,000 parts; from 800 the plan also warns `JSONATA_EXPRESSION_NEAR_LIMIT`. Absent on other rows and on an expression that does not parse. |
 
 Each item of `consequences`:
 
@@ -203,6 +204,7 @@ Each item of `changes`:
 | `key` | `string` | yes | The row's key. |
 | `id` | `string \| null` | yes | The row's id: known for an existing row, filled in for a create once it has been written, null for a create that was not reached. On a plan, a create's id comes from the rehearsal the plan rolls back, so it is not the id an apply gives the row — read those from the apply's `document`. |
 | `because` | `string` | no | On `skipped`: the document path of the refused row this one depends on. On a `delete` you did not state: `cascade` — a row your document removes takes this one along. |
+| `expressionParts` | `object` | no | On an action whose function takes a JSONata expression (`value.transform`): the size of each expression the document states, in parts, by its `functionConfig` field. An expression may have at most 1,000 parts; from 800 the plan also warns `JSONATA_EXPRESSION_NEAR_LIMIT`. Absent on other rows and on an expression that does not parse. |
 
 Each item of `consequences`:
 

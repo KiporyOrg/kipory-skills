@@ -45,8 +45,8 @@ file holding only the header answers `{ "total": 0, "valid": [], "rejected": [] 
 
 Why it is written this way:
 
-- **Every row is reached through a variable** (`$r.sku`, never a bare `sku`). A bare name at the
-  start of a path is read as a slot name, and the save would add `sku` to the action's inputs.
+- **Every row is reached through a variable** (`$r.sku`, never a bare `sku`). A bare name in the
+  lambda body is read as a slot name, and the save would add `sku` to the action's inputs.
 - **`valid` and `rejected` are wrapped in `[ … ]`.** JSONata returns a one-item sequence as the bare
   item; without the brackets a file with exactly one valid row yields an object, and a list-typed
   `outputSchema` fails the action at run time.

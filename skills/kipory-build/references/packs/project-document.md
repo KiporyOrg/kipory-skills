@@ -140,7 +140,10 @@ once after, and so are the schedules, triggers and endpoints that start those fl
 their own saves run. A finding the document causes carries `introduced: true`; one already there
 carries `introduced: false`. Only an introduced error makes `ok` false and refuses the apply, so an
 `ok` plan leaves no flow with an error it did not name, and a broken project can be repaired one
-document at a time.
+document at a time. That holds inside a flow the document writes too: only the actions it changes
+are judged by the write, so an action it leaves as stored is never refused for an error it already
+had (a rule a release added included); an action it does change is refused for one, said once at
+that action as already stored.
 
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
@@ -198,7 +201,9 @@ The answer holds the `version` the project was read at — the lock an apply pre
   deletes in reverse. It is complete even when a refusal stopped the attempt early, because it
   comes from comparing your document with the project, not from the attempt. A create's `id` in a
   plan comes from the attempt the plan rolls back, so it is not the id the apply will give the row:
-  take ids from the apply's `document`.
+  take ids from the apply's `document`. An action row whose function takes a JSONata expression
+  carries `expressionParts`: each stated expression's size in parts, beside the 1,000-part limit
+  (`JSONATA_EXPRESSION_NEAR_LIMIT` warns from 800).
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
   (`tables.member.shape`), never a path in some row's request body. Gate on `severity` and
   `introduced`: a finding about the state the document leaves carries `introduced` — `false` when

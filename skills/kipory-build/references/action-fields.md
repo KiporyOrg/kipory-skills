@@ -37,7 +37,7 @@ What an action body carries, how a type is referenced, how an output is bound, a
 - **`timeoutMs` on a queued action bounds the time its job runs**, not the wait for a free worker. Waiting is not a failure: only a job no worker takes for five minutes fails its action, as the platform's own failure (`platform-busy`), and an unattended run is then started again by the platform.
 - **`onFailure: "continue"` is allowed on an action that writes nothing, and on a sub-flow call** (`flow.invoke`) whatever the called flow writes. It is refused on every other control action, on an action that may write, and on an action — or a call — writing a slot a required flow output is bound to (section 6).
 - **A feeder with no type is read as `object`.** An action whose `outputSchema` is absent and whose function types nothing feeds its readers as `object`, with a `PRODUCER_OUTPUT_UNTYPED` warning on it.
-- **Leave out what the function does not read.** `promptTemplate` is needed only by `text.generate` and `text.interpolate`. `outputSlot` is not needed by `event.emit`, `flow.merge`, `flow.invoke`, `flow.loop-end` and `flow.dispatch`. `term.upsert` does need one, though nothing reads it: name any unused slot.
+- **Leave out what the function does not read.** `promptTemplate` is needed only by `text.generate` and `text.interpolate`. `outputSlot` is left out for `event.emit` and `term.upsert`, which write nothing (a named one is refused `OUTPUT_SLOT_WRITES_NOTHING`), and for `flow.merge`, `flow.invoke`, `flow.loop-end` and `flow.dispatch`, whose outputs are in their config.
 - **`taskKey` outside the five is a 422** listing them. `extraction` is right for an action that makes no model call.
 - **For merge, invoke, dispatch and loop-end the row's `outputSlot` is a mirror**, not the truth: their real outputs are in config — lanes, output maps, branches, escape slots. `flow.invoke` writes no primary slot at all.
 
@@ -108,7 +108,7 @@ The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the pla
 Two things catch people:
 
 - **Provider slots count.** `record.list` and `record.read` default `userIdSlot` to `userInfo.userId`, so the save adds `userInfo` to their inputs itself, even on a project-wide table a key calls — leave `inputStreams` out, or include it in a list you send. A prompt reading `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo` (schema `ProjectInfo`).
-- **In JSONata, every bare name that starts a path is read as a slot**, including a field name inside a projection and the word `undefined`. `patterns.md` ("`value.transform`") has the rule, the way round it and the five refused functions.
+- **In JSONata, only a name at the top of an expression is read as a slot**: inside `[…]` or after a `.` it is a field of each item (`$$.name` reads the slot there), and a top-level `undefined` is a slot too. `patterns.md` ("`value.transform`") has the rule, the way round it and the five refused functions.
 
 ## 5. When an action runs
 

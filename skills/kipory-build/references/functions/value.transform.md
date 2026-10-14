@@ -10,14 +10,14 @@ Nothing is fetched and no model is called. For prose with holes, use Fill a temp
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `object`
 - **Also found as:** pick a field, map fields, compute, format value, calculate, convert
-- **Reads:** Every slot the expression names, and the action's inputs must list exactly those. A name inside a projection counts too, so reach into items through `$map` and a variable. _(shape hint: `any+`)_
+- **Reads:** Every slot named at the top of the expression; the inputs list exactly those. Inside `[…]` or after a `.` a name is an item's field; `$$.name` reads a slot. _(shape hint: `any+`)_
 - **Emits:** Whatever the expression evaluates to — usually an object built from several slots, a list zipped from parallel lists, or a copy of a slot with fields added.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `expression` | string | yes | — | The expression to run; bare names refer to slots. ⚠️ The result must fit the output type; `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused. |
+| `expression` | string | yes | — | The expression to run; a name at its top is a slot. ⚠️ The result must fit the output type; `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused. |
 
 ## Worked example
 

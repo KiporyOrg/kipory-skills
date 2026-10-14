@@ -889,9 +889,10 @@ and a type you give is kept for that input wherever the platform places it.
   only when there is no signed-in user: a present provider counts like any other input, and
   `projectInfo` and `runInfo` are always present, so an action reading one beside a real slot runs at
   once. Guard such an action with `slotPresent` on the real slot.
-- **In JSONata, a bare name at the start of any path is a slot** — inside a projection too, so
-  `docs.{"id": id}` reads a slot called `id`. Reach into items through a bound variable:
-  `$map(docs, function($d){ {"id": $d.id} })`. The same rule makes `undefined` a slot, since
+- **In JSONata, a bare name at the top of an expression is a slot**; inside a predicate `[…]`,
+  after a `.` (`docs.{"id": id}`) or in a group-by, it is a field of each item and not an input.
+  A lambda body written at the top counts as the top. To read a slot from inside a predicate, write `$$.name`
+  (`records[at > $$.runInfo.now]`). The same rule makes a top-level `undefined` a slot, since
   JSONata has no such literal: to emit nothing, write a conditional with no else
   (`$count(text) > 0 ? {"text": text}`). The action then stores no slot: a `slotPresent` guard reads
   it as absent and another expression sees the name unbound. `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused with
