@@ -2,6 +2,16 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261014.93727 — 2026-10-14
+
+Synced from the Kipory monorepo at `79b3787de`.
+
+- changed: `skills/kipory-build/references/functions/email.send.md`
+- changed: `skills/kipory-build/references/functions/push.send.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+
 ## 1.20261014.82910 — 2026-10-14
 
 Synced from the Kipory monorepo at `2f52b2300`.

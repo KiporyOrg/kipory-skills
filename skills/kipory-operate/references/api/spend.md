@@ -293,7 +293,7 @@ Each item of `resources`:
 
 ### `GET /v1/organizations/{nodeId}/usage`
 
-What the projects under this organization spent over a window, by kind, model, project, person or key, with the paying wallet's state, runway and the ceiling nearest to refusing work. `window=custom` takes `from`/`to` instants (`to` exclusive). Requires **ADMIN**. The wallet's movements are `GET /v1/organizations/{nodeId}/ledger`; one project's view is `GET /v1/projects/{nodeId}/usage`; your own spend is `GET /v1/credits/balance`.
+What the projects under this organization spent over a window, by project, kind, action, model, function, provider, end user or key, with the paying wallet's state, runway and the ceiling nearest to refusing work. `window=custom` takes `from`/`to` instants (`to` exclusive). Requires **ADMIN**. The wallet's movements are `GET /v1/organizations/{nodeId}/ledger`; one project's view is `GET /v1/projects/{nodeId}/usage`; your own spend is `GET /v1/credits/balance`.
 
 **Path parameters**
 
@@ -313,10 +313,11 @@ What the projects under this organization spent over a window, by kind, model, p
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
+| `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 | `project` | `string` | no | Narrow to one project, by its OrgNode id — the key a breakdown by project hands back. A node outside this organization's subtree is refused with a 404. |
-| `by` | `"project" \| "kind" \| "action" \| "model" \| "function" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the project, which is the split only this height can show. |
+| `by` | `"project" \| "kind" \| "action" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the project, which is the split only this height can show. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 
 **Response `200`**
@@ -396,7 +397,7 @@ Each item of `hours`:
 
 ### `GET /v1/projects/{nodeId}/usage`
 
-What one project spent over a window, by kind of billable work — split by kind, action, model, function, user or key, with the prior period on `compare=1`, its caps and its payer. `window=custom` takes `from`/`to` instants (`to` exclusive). The charges behind the figure are `GET /v1/projects/{nodeId}/usage/events`; model calls alone are `GET /v1/ai-calls`; one run's cost by action is `GET /v1/runs/{runId}/spend`; the whole organization is `GET /v1/organizations/{nodeId}/usage`.
+What one project spent over a window, by kind of billable work — split by kind, action, model, function, provider, user or key, with the prior period on `compare=1`, its caps and its payer. `window=custom` takes `from`/`to` instants (`to` exclusive). The charges behind the figure are `GET /v1/projects/{nodeId}/usage/events`; model calls alone are `GET /v1/ai-calls`; one run's cost by action is `GET /v1/runs/{runId}/spend`; the whole organization is `GET /v1/organizations/{nodeId}/usage`.
 
 **Path parameters**
 
@@ -416,9 +417,10 @@ What one project spent over a window, by kind of billable work — split by kind
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
+| `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
-| `by` | `"kind" \| "action" \| "model" \| "function" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work, which is the split the other spend pages cannot show. |
+| `by` | `"kind" \| "action" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work, which is the split the other spend pages cannot show. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 | `flows` | `"1"` | no | Pass `1` to also split the window's credits by the flow whose runs spent them, as `flows`. Under the same scope and narrowing as every other figure here. `flows` is null without it. |
 
@@ -508,6 +510,7 @@ The project's statement — every charge under the same window and narrowings as
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
+| `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 | `after` | `string` | no | The page OLDER than this row — pass back the `nextCursor` you were given. Omit for the newest page. |
@@ -570,6 +573,7 @@ The statement of `GET /v1/projects/{nodeId}/usage/events` as CSV, newest first, 
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
+| `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 

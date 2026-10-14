@@ -12,6 +12,7 @@ Recipient, subject and body come from slots. It sends only after the run saves, 
 - **Also found as:** mail, notify by email, email someone, send message, newsletter
 - **Reads:** The recipient — any address, project member or not — plus subject and body, each from the slot its setting names. The sending address is a setting, not a slot. _(shape hint: `recipient, subject, body`)_
 - **Emits:** The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the action fails (`project-mail-cap-reached`).
+- **External dependency:** Kipory mail — Delivered by Kipory's own mail service from the sending address; no key of the project's own.
 
 ## Config
 

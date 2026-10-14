@@ -12,6 +12,7 @@ Reaches every device the people registered, once the run saves; a failed run not
 - **Also found as:** push notification, notify, alert phone, send to phone, mobile notification
 - **Reads:** The people, from `recipient`, and the title, body and data, from their slots. A payload over the services' size limit fails the action. _(shape hint: `people and text`)_
 - **Emits:** A `PushSendResult` — how many people and devices the push addressed. A preview sends nothing and says what it would have.
+- **External dependency:** Apple and Google push — Delivered through Apple's and Google's push services, with the push keys the project stores for its apps.
 
 ## Config
 
