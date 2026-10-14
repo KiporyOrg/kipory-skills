@@ -1,7 +1,8 @@
 {
-  "source": "6dfaf73ed91fe6dad25d6e5c7998500aa8e5c770",
+  "source": "5b9ce76610a76dcf3dcf55c6dea991e6b199a68c",
   "since": "2026-08-13",
   "history": [
+    {"sha":"5b9ce76610a7","skills":"The platform review's subsystems findings are fixed: deleted means gone for files and AI-call text, uploads and file reads have limits, mail outages page staff, and channel media, re-watches, pushes and relation links behave (#3474)"},
     {"sha":"6dfaf73ed91f","skills":"Every limit a customer meets is one catalog entry: staff set it per platform, organization or project without a deploy, customers read it on a Limits tab, and every refusal names it (394) (#3476)"},
     {"sha":"92ab27bfe418","skills":"Runs that said succeeded with wrong data now fail or keep what they had: model answers are never cut short, lists over the slot limit fail, a failed reprocess keeps its card, record.update refuses invalid fields (#3471)"},
     {"sha":"67f0428a13e6","skills":"The docs findings of the platform review are fixed: a quick start that reaches a running stack, shorter builder skills, skills that say when they are ahead of the deployment, and restated numbers pinned to the code (#3472)"},
@@ -1000,7 +1001,6 @@
     {"sha":"8131e9bc02b1"},
     {"sha":"2eb363229af1"},
     {"sha":"4bd2bdee796f"},
-    {"sha":"e06d5578ae4c"},
-    {"sha":"232cfe8374b3"}
+    {"sha":"e06d5578ae4c"}
   ]
 }

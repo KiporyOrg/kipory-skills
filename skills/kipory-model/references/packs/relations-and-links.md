@@ -584,11 +584,16 @@ refused while the relation's link restamp is still running.
   producer before reading its properties. A shape that
   changed the first time a second occurrence arrived would break every reader exactly when the
   data got interesting.
-- **Materialising links for records written _before_ the declaration is a platform-side backfill**,
-  not something you can trigger over the API. New writes need nothing. ⚠️ And a backfill is not
-  insert-only — it reconciles, so re-pointing a declaration at a different field and backfilling
-  **removes** the old field's links. That is usually what is meant and never what the word
-  suggests.
+- **Records written _before_ the declaration get their links after the save, on their own.** A
+  save that declares a producer — a table PATCH whose `uses` gains or re-points a `link`, a relation
+  created with a `declaration`, a new pairing, a document that does any of these — builds that
+  relation's links for the records the table already holds, in the background, seconds to minutes
+  after the save answers. New writes need nothing. ⚠️ It is not insert-only — it reconciles that one
+  relation, so re-pointing a declaration at a different field **removes** the old field's links,
+  and dropping a declaration removes the links it produced. A link you asserted yourself is never
+  touched. ⚠️ It is best-effort: past 500,000 records, or when a deploy interrupts it, some links
+  stay missing, and saving the same declaration again does not restart it. If a relation's links
+  are still short of what the field values say, ask Kipory support to run the backfill.
 - **The minimum-confidence value is inert.** No producer emits confidence, so nothing reads it.
   <!-- absent: relations-min-confidence-inert -->
 - ⛔ **There is no way to hide a relation, and no way to pause one.** Every relation the project has

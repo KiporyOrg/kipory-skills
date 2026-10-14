@@ -176,7 +176,7 @@ Resolve a signed file URL: a 302 to a short-lived storage URL for the bytes. The
 
 ### `POST /v1/files/upload-url`
 
-Ask for somewhere to put a file: answers the file's id and a presigned URL to PUT the bytes to, then `POST /v1/files/{id}/confirm`. Without `project` the file is yours. With `project` (EDITOR, api host only) the project owns it, so it outlives your account and any run of the project can read it — at most 25 MB.
+Ask for somewhere to put a file: answers the file's id and a presigned URL to PUT the bytes to, then `POST /v1/files/{id}/confirm`. Send the file's exact `size`: the URL takes exactly that many bytes. Without `project` the file is yours, at most 100 MB. With `project` (EDITOR, api host only) the project owns it, so it outlives your account and any run of the project can read it — at most 25 MB.
 
 **Request body**
 
@@ -184,7 +184,7 @@ Ask for somewhere to put a file: answers the file's id and a presigned URL to PU
 | --- | --- | --- | --- |
 | `fileName` | `string` | yes | The file's name, kept for display. |
 | `contentType` | `string` | yes | The file's MIME type. It is recorded and served back on download, so getting it wrong makes the file arrive as the wrong kind. |
-| `size` | `integer` | yes | The file's size in bytes, so quota can be checked up front. With `project`, at most 25000000 — a claim the confirm step measures again. |
+| `size` | `integer` | yes | The exact size in bytes of what you will PUT: at most 100000000, or 25000000 with `project`. The upload URL takes exactly this many bytes; a PUT of any other length is refused by storage (403). |
 | `project` | `string` | no | Put the file into this PROJECT (its node id) rather than into your own files: the stored object belongs to the project, so it outlives your account and any run of the project can read it. Needs EDITOR on the project, and is refused on a project's own host — a project's end users upload their own files. Omitted, the file is yours. |
 
 **Response `200`**
