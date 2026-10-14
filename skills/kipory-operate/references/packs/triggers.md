@@ -238,6 +238,7 @@ not fire, and — for a fire — the invocation with its live `status` and, once
 `owner` (who has to act), whether it is `retryable`, the `attempt` that closed it, the action that
 failed (`actionKey`, `phase`) when one did, and a `reason` when it is one a caller may read (a mail refusal,
 `recipient-not-an-address` among them — the mail action was given a recipient that is no email address —
+`more-than-one-recipient` — it was given a list of recipients —
 `project-mail-cap-reached`, `project-push-cap-reached`). Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes. While the platform is
 about to start a run again after one of its own failures, the invocation is `pending` and carries
 `waiting` — a `reason`, the `attempt` number and `notBefore` — instead; schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) says what that

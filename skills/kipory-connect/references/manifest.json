@@ -2,7 +2,7 @@
   "$note": "Generated: one content hash per item the reference pages were built from, and the page that documents it. The deployment serves the same hashes live; scripts/sync.mjs in this skill compares them and names the items that differ. Regenerated on every publish, so an edit here is overwritten.",
   "packs": {
     "api-endpoints-anatomy": {
-      "hash": "0c644588e6dd",
+      "hash": "0a9cf38a9cce",
       "page": "kipory-expose/references/packs/api-endpoints-anatomy.md"
     },
     "authoring-order": {
@@ -62,7 +62,7 @@
       "page": "kipory-model/references/packs/relations-and-links.md"
     },
     "schedules": {
-      "hash": "e8ba71ff377a",
+      "hash": "7029ff808abe",
       "page": "kipory-operate/references/packs/schedules.md"
     },
     "secrets": {
@@ -74,7 +74,7 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
-      "hash": "f09185f08c0f",
+      "hash": "b93d814b1d78",
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
@@ -82,7 +82,7 @@
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
-      "hash": "f18cf04b0005",
+      "hash": "9d6971c02ffc",
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
@@ -946,7 +946,7 @@
       "page": "kipory-data/references/api/records.md"
     },
     "GET /v1/mail-messages/": {
-      "hash": "f8e4bef4eedd",
+      "hash": "f72bcf55edcb",
       "page": "kipory-diagnose/references/api/mail-messages.md"
     },
     "GET /v1/mail-messages/{id}": {

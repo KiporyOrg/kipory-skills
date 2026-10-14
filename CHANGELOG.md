@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261014.50824 — 2026-10-14
+
+Synced from the Kipory monorepo at `d67597bc5`.
+
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/references/api/mail-messages.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+
 ## 1.20261013.171057 — 2026-10-13
 
 Synced from the Kipory monorepo at `4c8e9082f`.
