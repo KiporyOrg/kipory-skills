@@ -19,6 +19,7 @@ A per-user type's record belongs to the run's user, a project type's to the proj
 | --- | --- | --- | --- | --- |
 | `dataSlot` | string | yes | — | The slot holding the new record's data object. |
 | `fileIdsSlot` | string | no | — | The slot holding uploaded file ids to attach to the new record. ⚠️ Each file must be the owner's, fully uploaded, and attached nowhere else. |
+| `onKeyTaken` | `refuse` \| `skip` | no | — | What to do when another record already holds the natural key. ⚠️ With `skip`, a key another record holds writes nothing and answers that record; one run claiming a key twice fails. |
 | `tableKey` | string | yes | — | The table to create a record in. |
 | `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 

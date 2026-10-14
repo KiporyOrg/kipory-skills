@@ -185,7 +185,8 @@ Three kinds:
   asynchronous returns an acknowledgement immediately. Its status read
   (the `statusPath` its acknowledgement names) carries `output` once the run is ready and, once it has failed,
   `error` and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
-  and `retryable` a schedule's runs carry, the `attempt` that closed it, and a `reason` when the refusal is one a
+  and `retryable` a schedule's runs carry, the `attempt` that closed it, the `cause` and `refusedWrite` when its
+  changes were refused when they were saved, and a `reason` when the refusal is one a
   caller may read, such as `project-push-cap-reached`, or `recipient-not-an-address` for a mail action given a
   recipient that is no email address, or `more-than-one-recipient` for one given a list (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). A
   synchronous call whose failure is the platform's own answers 503 with `Retry-After`, not 502.

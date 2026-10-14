@@ -188,7 +188,20 @@ run's invocation. Reach for them in this order:
     run again.
   - `actionKey` and `functionKey`, with `phase` and `code` — the action that failed, when one did.
     A run stopped from outside, refused before it started, or whose changes were refused names no
-    action.
+    action; `cause` then says what closed it instead.
+  - `cause` — what closed the run when no action failed, such as: a stop (`shutdown`, `watchdog`,
+    `worker-crash`, `deadline`, `cancelled`), a fault of the platform (`engine-error`), a flow that
+    cannot run as stored (`flow-unresolved`, `definition-drift`), or its changes refused when they
+    were saved: `precondition-conflict` (a record it read was written by another run meanwhile —
+    a scheduled run is started again), `natural-key-collision` (a record it wrote carries a key
+    another record already holds), `unique-violation`, `write-refused` (a write the platform
+    refused, such as a person's own record written by a run that acts for nobody),
+    `bound-exceeded`.
+  - `refusedWrite` — with a refused save, what it can name of the write: `actionKey` (the action
+    that wrote it) and, for a create, `tableKey`; on `natural-key-collision` the `holderRecordId`
+    that already holds the key; on `precondition-conflict` the `recordId` another run wrote and the
+    `readByActionKey` whose read went stale. The key's value is never named — read that record for
+    it. The run's `run-finished` row in `GET /v1/runs/{runId}/timeline` carries the same `failure`.
   - `reason` — set only for a refusal a caller may read: a mail action's sender refusal, or
     `recipient-not-an-address` for a mail recipient that is no email address, or
     `more-than-one-recipient` for a mail recipient that is a list, or
