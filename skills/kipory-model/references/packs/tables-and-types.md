@@ -208,7 +208,8 @@ is not an answer at all.
 `record.teardown` action fails on a run with none, `vocabulary.aggregate` never
 counts pool records, and `userInfo` is absent. A pool record is torn down by
 `POST /v1/records/{id}/reprocess`, or by `record.enqueue-process` with `replay: clean` — both
-strip the record's generated files and terms before the run. What does work on a pool table:
+strip the record's terms before the run, and replace its processed fields and generated files
+only when the run succeeds. What does work on a pool table:
 
 - **File-producing functions** (`pdf.screenshot`, `image.resize`, `url.fetch-as-file`) run in a
   pool table's processing flow; the files they produce are project files.

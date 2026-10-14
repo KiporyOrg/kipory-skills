@@ -400,7 +400,7 @@ Watch one record's processing live, as Server-Sent Events: a `snapshot` of where
 
 ### `POST /v1/records/{id}/reprocess`
 
-Re-run the record's processing flow from a clean slate: its derived output, generated files, vocabularies and vector points are swept and produced again. Answers 202 once a worker has been asked; the record reads `pending` until it runs. The run is charged like the record's first processing, with nothing reused from the cache, and so is every run it queues. An edit (`PATCH`) never re-runs the flow — this is the gesture that does.
+Re-run the record's processing flow from a clean slate: its derived output, generated files, vocabularies and vector points are produced again. Its vocabularies are removed before the run; its processed fields and generated files stay until the run succeeds, so a run that fails leaves them as they were. Answers 202 once a worker has been asked; the record reads `pending` until it runs. The run is charged like the record's first processing, with nothing reused from the cache, and so is every run it queues. An edit (`PATCH`) never re-runs the flow — this is the gesture that does.
 
 **Path parameters**
 

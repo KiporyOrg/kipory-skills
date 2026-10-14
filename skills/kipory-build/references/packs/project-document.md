@@ -406,7 +406,9 @@ refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}
 
 An action's `failureSlot` is optional in a document. Stated, it is the slot the action's failure is
 written to (flows and actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`), "How an action runs"); left out, the action has
-none, and an export leaves the key out for an action that names none.
+none, and an export leaves the key out for an action that names none. So is its `onOversize` (`cut` or
+`fail`): left out, a result over the slot limit gets the platform's default, and an export leaves the
+key out for an action that states none.
 
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:

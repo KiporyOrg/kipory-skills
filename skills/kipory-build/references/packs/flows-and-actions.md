@@ -470,8 +470,8 @@ than binding a reference to nothing. State the type in the same document to copy
 ⚠️ **An unrecognised `modelId` is refused at the write.** A graph copied from a deployment with a
 model the target does not have fails there rather than silently falling back.
 
-⚠️ **The run settings travel with the action** — `timeoutMs`, `tries`, `tryDelayMs`, `onFailure` and
-`reuseResultsForMinutes`, in the document. Checkpoints and run
+⚠️ **The run settings travel with the action** — `timeoutMs`, `tries`, `tryDelayMs`, `onFailure`,
+`onOversize` and `reuseResultsForMinutes`, in the document. Checkpoints and run
 flow-snapshots record them only for anything captured since each was added, so there an absent value
 means "this record does not say", NOT "the run had none". Do not read an older snapshot as evidence
 about a deadline, and expect restoring an older checkpoint to clear one. The restore preview shows the
@@ -562,13 +562,28 @@ action that sets none behaves as it always has.
   a stable `code`, the platform's sentence for it, whether a second try could answer differently,
   the failure phase, and the HTTP status when a site or vendor answered with one.
   It is written when the action failed and the run carried on, or when its function softened a
-  failure into a warning; an action that succeeded, was skipped or ran and found nothing writes none,
-  so "output absent, failure absent" still means it found nothing. A later action reads it as any
-  optional slot. Refused at save on an action that can never write it — one that does not continue
-  and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's
+  failure into a warning; an action that succeeded uncut, was skipped or ran and found nothing writes
+  none, so "output absent, failure absent" still means it found nothing. A later action reads it as
+  any optional slot. On an action that says `onOversize: "cut"` (below) and whose result was cut, it
+  holds `code: "value-cut"` beside the cut value — the one failure-slot value that comes with an
+  output.
+  Refused at save on an action that can never write it — one that does not continue, does not say
+  `onOversize: "cut"`, and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's
   own output (`FAILURE_SLOT_IS_OWN_OUTPUT`), and as the source of a required flow output
   (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`). `null` clears it. The codes a function softens are on its
   catalog entry, `run.softFailureCodes`.
+- **`onOversize`** — what happens when the action's result is over the slot limit (500,000
+  characters; a list measured as JSON). `cut`: a text keeps its start and ends `[TRUNCATED]`, a list
+  keeps its first elements, and the action succeeds with a `slot-truncated` warning — and its
+  `failureSlot`, when it names one, holds `value-cut` (unless the action's own softened failure already
+  holds it), so a later action can tell a whole list from a
+  cut one. `fail`: the action fails, naming the slot and both sizes, and nothing is written. `null`
+  (the default) cuts a text and fails a list; a list or text its action will not let be cut warns
+  `slot-near-limit` from half the limit. An object or a file reference cannot be cut
+  and always fails. ⚠️ A cut list is not the list the action read: an action computing a total or a
+  ranking over it computes on the rows that were kept, which is why a list fails by default. Choose
+  `cut` only where the first elements are enough, and otherwise narrow the read — name the fields a
+  row carries, or ask for fewer rows — so it fits.
 - **`reuseResultsForMinutes`** — how long a result the action saved stays reusable: null is the
   function's own period, `0` always runs fresh and saves nothing. It is checked when a result is
   READ, so a result another action with identical settings saved counts only within this action's own

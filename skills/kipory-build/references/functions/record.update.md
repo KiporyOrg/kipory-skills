@@ -18,7 +18,7 @@ Merges or replaces the data; can also clear derived output, set a status and att
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derivedSlot`. |
-| `dataSlot` | string | no | — | The slot holding the new fields; empty leaves the data alone. ⚠️ If it holds something other than an object, nothing is written. |
+| `dataSlot` | string | no | — | The slot holding the new fields; empty leaves the data alone. ⚠️ Nothing is written when it is not an object, or when a field it writes breaks its table's type. |
 | `derivedSlot` | string | no | — | The slot holding new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
 | `failIfPreconditionUnmet` | boolean | no | `false` | Fail with a conflict when nothing matched, instead of reporting no change. |
 | `fileIdsSlot` | string | no | — | The slot holding file ids to attach to the record. ⚠️ A file must belong to the record's owner and be attached nowhere else. |

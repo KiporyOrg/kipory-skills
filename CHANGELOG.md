@@ -2,6 +2,27 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261014.200401 — 2026-10-14
+
+Synced from the Kipory monorepo at `92ab27bfe`.
+
+- changed: `skills/kipory-build/references/api/actions.md`
+- changed: `skills/kipory-build/references/checking.md`
+- changed: `skills/kipory-build/references/functions/record.enqueue-process.md`
+- changed: `skills/kipory-build/references/functions/record.update.md`
+- changed: `skills/kipory-build/references/functions/text.generate.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-diagnose/references/reading-the-timeline.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+
 ## 1.20261014.191844 — 2026-10-14
 
 Synced from the Kipory monorepo at `67f0428a1`.

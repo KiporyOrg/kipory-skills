@@ -11,7 +11,7 @@ Returns text, or a structured value when the action declares an output shape. Wi
 - **I/O:** `any+` → `the action's outputSchema`
 - **Also found as:** summarize, summarise, summary, translate, rewrite, write, draft, reply, ask ai, prompt, ai, shorten, simplify, paraphrase
 - **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_
-- **Emits:** The model's answer — text, or a structured value when the action declares an output shape.
+- **Emits:** The model's answer: text, or a value of the declared shape. An answer missing that shape, length bounds included, is never repaired; it fails the try.
 - **External dependency:** a model provider — Whichever provider hosts the model this action is set to. The key is resolved per model.
 - **Rate limit:** 60 per min in bucket `text.generate`
 - **Queue:** 2 attempts, exponential from 1 s; waits up to 2 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)

@@ -187,6 +187,7 @@ run's invocation. Reach for them in this order:
   - `attempt` — the attempt whose closing record this is; more than 1 when the platform started the
     run again.
   - `actionKey` and `functionKey`, with `phase` and `code` — the action that failed, when one did.
+    `code` is never `value-cut`: that one marks a cut result in a failure slot, not a failure.
     A run stopped from outside, refused before it started, or whose changes were refused names no
     action; `cause` then says what closed it instead.
   - `cause` — what closed the run when no action failed, such as: a stop (`shutdown`, `watchdog`,
