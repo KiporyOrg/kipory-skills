@@ -40,11 +40,13 @@ Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL`
 
 Its first line names the bundle that ran: `skills bundle <version> — <directory>`. Several versions of these skills can sit side by side on one machine (a plugin cache keeps old ones), and each copy of the script compares its own pages, so a run from an older copy reports every layer as differing. If the directory on that line is not the one this skill was loaded from, run the script from this skill's directory.
 
-| Exit | Means                                                                                                                                    |
-| ---- | ---------------------------------------------------------------------------------------------------------------------------------------- |
-| `0`  | every layer was compared and is current                                                                                                  |
-| `1`  | at least one layer differs. It does not mean the others matched: a layer marked `not compared` can sit beside it, so read every line     |
-| `2`  | nothing differs, and something could not be compared — the deployment was unreachable, or a layer could not be read; the line says which |
+Then a `skills` line says whether these skills are ahead of the deployment. They are published when a change to them merges into the platform's code, and a deployment rolls later, so a skill can describe behaviour your deployment does not run yet. The line names each skill change merged after the deployment's build, and reads ✓ when the deployment runs them all — including a build newer than these skills, which is the usual case. Until the deployment rolls the changes it names, where a refusal contradicts what a skill says about one of them, the deployment is right. `not known` on that line changes no exit code.
+
+| Exit | Means                                                                                                                                                                                               |
+| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `0`  | every layer was compared and is current                                                                                                                                                             |
+| `1`  | at least one layer differs, or these skills carry changes the deployment does not run yet. It does not mean the others matched: a layer marked `not compared` can sit beside it, so read every line |
+| `2`  | nothing differs, and something could not be compared — the deployment was unreachable, or a layer could not be read; the line says which                                                            |
 
 Without `KIPORY_API_KEY` the function catalog cannot be read, so the best outcome is exit 2. Under a layer that differs it prints one line per pack, function or route:
 
@@ -54,7 +56,7 @@ Without `KIPORY_API_KEY` the function catalog cannot be read, so the best outcom
 
 Each `changed` or `removed` line names the bundled page that documents the item, when it has one, as a path from the directory that holds these skills (`kipory-build/references/functions/…`); an `added` item has no page. Read those items live; the rest of the layer is what the deployment serves. A deployment too old to serve per-item hashes gets `which items differ: not known`, and then the whole layer is read live. A difference does not say which side is newer — a deployment older than these files is ordinary — and either way **the deployment wins**.
 
-Keep the `sha` you read. A deployment is rolled while you work — several times a day on a busy one — and a roll can change the function catalog, the model catalog and the task bindings your actions inherit. When something that worked starts failing with no edit of yours, read `/health` again first: a different `sha` means re-run `scripts/sync.mjs`, update these skills from their source if it reports a difference, and re-read the page for whatever failed before changing your own work.
+Keep the `sha` you read. A deployment is rolled while you work — several times a day on a busy one — and a roll can change the function catalog, the model catalog and the task bindings your actions inherit. When something that worked starts failing with no edit of yours, read `/health` again first: a different `sha` means re-run `scripts/sync.mjs`, update these skills from their source if it reports a layer that differs (not when its `skills` line says they are ahead — then updating changes nothing, and the deployment wins until it rolls), and re-read the page for whatever failed before changing your own work.
 
 **2. Prove the key is alive, and ask it what it holds.**
 
@@ -160,21 +162,21 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 
 ## References
 
-| File                                         | What it answers                                                                                                              |
-| -------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
-| `references/conventions.md`                  | the rules every design resource shares: hosts, ids, roles, `expand=`, `version`, readiness, errors, paging, streams, preview |
-| `references/glossary.md`                     | the words that collide — agent skill, action, function, record, term, event, preview — and which meaning the API uses        |
-| `references/api/projects.md`                 | create, lifecycle, address, settings, history, the generated descriptions, element metadata                                  |
-| `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                |
-| `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                    |
-| `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                               |
-| `references/api/templates.md`                | the project templates a create can start from                                                                                |
-| `references/packs/templates.md`              | when to start a project from a shipped template                                                                              |
-| `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                              |
-| `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                |
-| `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                       |
-| `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                         |
-| `scripts/sync.mjs`                           | compares the bundled snapshot with the live deployment and names the packs, functions and routes that differ                 |
+| File                                         | What it answers                                                                                                                                         |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/conventions.md`                  | the rules every design resource shares: hosts, ids, roles, `expand=`, `version`, readiness, errors, paging, streams, preview                            |
+| `references/glossary.md`                     | the words that collide — agent skill, action, function, record, term, event, preview — and which meaning the API uses                                   |
+| `references/api/projects.md`                 | create, lifecycle, address, settings, history, the generated descriptions, element metadata                                                             |
+| `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                                           |
+| `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                                               |
+| `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                                                          |
+| `references/api/templates.md`                | the project templates a create can start from                                                                                                           |
+| `references/packs/templates.md`              | when to start a project from a shipped template                                                                                                         |
+| `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                                                         |
+| `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                                           |
+| `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                                                  |
+| `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                                                    |
+| `scripts/sync.mjs`                           | compares the bundled snapshot with the live deployment and names the packs, functions and routes that differ, and the skill changes it does not run yet |
 
 ## Your first flow
 

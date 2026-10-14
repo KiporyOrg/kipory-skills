@@ -63,12 +63,12 @@ Each action, and the run, carries `uncharged`: how many of its `events` the plat
 
 ### A run the platform started again
 
-An unattended run — a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, a record's processing — whose attempt ended on one of the platform's own failures (`platform-busy`, `platform-interrupted`, `platform-fault`) is started again under the same run id, up to three attempts in all (`SKILL.md`, "When a run fails"). The later attempt runs the actions again:
+An unattended run — a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, a record's processing — whose attempt ended on one of the platform's own failures (`platform-busy`, `platform-interrupted`, `platform-fault`) is started again under the same run id, up to three attempts <!-- count: run-attempts --> in all (`references/when-a-run-fails.md`). The later attempt runs the actions again:
 
 - **Compute is charged once per action per run**, however often the action is repeated.
 - **A model or vendor call that is really made again is charged again**, as any call is. One a cache answers costs nothing more.
 - **`repeatedByPlatform { credits, lines }` on `GET /v1/runs/{runId}/spend` is that share**: what the attempts after the first charged — calls made again, plus actions the first attempt never reached. It is included in `credits` and `byAction`, not added to them, and reads `{ credits: 0, lines: 0 }` on a run never started again.
-- ⚠️ **The worst case is three attempts**: a run whose worker is lost twice can pay for the same model or vendor call three times. A schedule occurrence's `creditCost` includes it. Budget from `/spend`, not from one clean run.
+- ⚠️ **The worst case is three attempts <!-- count: run-attempts -->**: a run whose worker is lost on every attempt but the last can pay for the same model or vendor call three times <!-- count: run-attempts -->. A schedule occurrence's `creditCost` includes it. Budget from `/spend`, not from one clean run.
 
 ## What each kind of run costs, and where to read it
 

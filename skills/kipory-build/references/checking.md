@@ -66,7 +66,7 @@ Those reads answer 404 until the worker has started the run, so poll `GET /v1/ru
 
 **`partial` is the third verdict.** A run that carried on past a failure it was set to tolerate — an action or a sub-flow call under `"onFailure": "continue"`, a fan-out branch within `maxFailedBranches` or `maxFailedShare` — finishes, applies its changes and closes `partial`; `run.closing.absorbed { actions, calls, branches }` counts what it carried on past. Preview the failing case on purpose before relying on a tolerance: a tolerated branch or a continued call is dropped whole, and the change set shows what the run kept without it. The preview's five-branch cap also changes what a `maxFailedShare` allows, since the share is of the branches run.
 
-**A failed preview tells nobody.** The platform records a `platform` event for an unattended run that fails — a schedule's, a trigger's, an asynchronous endpoint call, a record's processing — and none for a preview. What a live failure does to the project, and how to prove the failure trigger with a test event, is `kipory-operate` ("When a run fails").
+**A failed preview tells nobody.** The platform records a `platform` event for an unattended run that fails — a schedule's, a trigger's, an asynchronous endpoint call, a record's processing — and none for a preview. What a live failure does to the project, and how to prove the failure trigger with a test event, is `kipory-operate`'s `references/when-a-run-fails.md`.
 
 ## 4. What needs ADMIN
 

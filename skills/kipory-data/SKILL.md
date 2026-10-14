@@ -120,30 +120,26 @@ GET /v1/projects/{nodeId}/ingest/summary?window=7d   what the ingest workers fet
 
 ## What will bite you
 
-- **A per-user table refuses a key's run.** `record.create` on a table whose owner scope is per-user raises a 403 naming the wrong credential. A key's runs are project-owned; only a signed-in end user's run writes person-owned records. By hand, `POST /v1/records` writes one when the body names its owner in `userId` (an active end user of the project; refused on a project-scoped table) — add a `requestId`, a UUID of your own, so a resend converges on one record instead of two. Read user ids from `GET /v1/users?project=<node>` (VIEWER), which lists the project's end users as `id`, `name` and `email`.
-- **A pool record's identity is its content.** For a project-scoped table the record id derives from (project, table, data), so the same payload from two runs, two schedules or a retry converges on one record — and that convergence is a success, not an error. It also means a record deleted and created again with the same data comes back under the same id. Two _different_ payloads claiming one natural key are refused whatever the order — in a flow (sync endpoint) as `409 RECORD_NATURAL_KEY_TAKEN`; on `POST /v1/records` the same `409 RECORD_NATURAL_KEY_TAKEN` (unless it asked `onKeyTaken: "update"`). Nothing was written: send the create again with `onKeyTaken: "update"` to update the record that holds the key, or look the holder up with `?key=` and PATCH it. Values are trimmed before comparison, so `"tomato "` collides with `"tomato"`.
-- **A natural-key collision inside a flow discards the whole run.** The staged writes are checked only when the run's change set applies, and every other write of that run is dropped too, the new rows with it.
-  - A sync endpoint answers `409 RECORD_NATURAL_KEY_TAKEN` with `details.seq` (the refused write's position in `GET /v1/runs/{runId}/change-set`), `details.actionId` (the action that staged it), `details.tableKey` (for a create), `details.refusedRecordId` (the refused write's own id) and `details.holderRecordId` (the record that holds the key).
-  - On any endpoint the run's change set reads `rejected`, `rejection.reason: "transaction-failed"`, with `rejection.cause.kind: "natural-key-collision"` and the same identifiers. The key's **value** is never echoed — find it from the staged write `seq` names.
-  - There is no upsert mode inside a flow (over HTTP, `POST /v1/records` and the bulk take `onKeyTaken: "update"`). A flow importing rows that may have changed looks each one up first — `record.list` with `fieldFilterSlots` on the key field (the field needs a `filter` use as well as `key`) — then `record.update` with the found id in `recordIdSlot`, and `record.create` only when nothing was found (a `slotPresent` / `listEmpty` condition on each).
-- **A record is `ready` or `pending` depending on its table, and who queues it depends on who wrote it.** A table with no processing flow creates records `ready`. A table bound to a processing flow creates them `pending`, and something must hand each one to the queue. `POST /v1/records` does that itself (`queued: true` in its answer). A flow that **creates** records with `record.create` does not: that flow — the writer, not the processing flow — must follow the create with an `record.enqueue-process` action, or the rows sit `pending` until the watchdog finalises them `failed`. `GET /v1/tables/{id}?expand=processingGaps` names flows that create without queuing.
-- **A processed field sits in a different place on each read.**
-  - _The one-record read_ keeps them apart: under `record`, `data` is what was sent and `derived` is what the processing flow produced (`null` means never produced). The whole submission is only here.
-  - _The list's rows_ carry neither in full. A row's `fields` holds one `{ key, family, value }` entry per **column** — the table's submitted fields with a `filter` use — and nothing else; every other field is named in `contract.undeclaredFields`. A value the processing flow computes becomes a column only when the field is a submitted one the flow writes back with `record.update` (`kipory-build`'s `references/records-and-endpoints.md`, roll-ups): a `filter` use on a processed field is refused at save.
-  - _Inside a flow_, an `record.read` or `record.list` row has both spread top-level beside `id` and `status` — `$row.body`, not `$row.derived.body` — and a submitted field wins a name clash.
-- **`paging` on the records list is nullable, and null is normal.** An unnarrowed corpus over the count threshold, a literal `q` search, any semantic ranking, or a read by `id` declines to count; `declinedCountReason` says which. A search still answers `nextCursor` — whether there is more — so walk it; a filter, not a phrase, brings a total back. Do not compute page numbers yourself.
-- **A read that runs past the 4 s budget is a 422 `QUERY_TOO_BROAD`, not a 500.** A very short phrase over a large table is the usual cause; add a filter or a longer phrase and ask again.
-- **`terms` on a row is capped at two chips.** `termCount` is the real number. The cap keeps the first two, so an empty `terms` array means the record has no terms; a short one is the cap artefact — read `termCount`.
-- **`null` means not measured, never zero** — on `hitRate`, `unindexedCount`, `quotaDay`, and every null in the ingest summary.
-- **An unknown relation answers 200 with no links**, not 404. An empty traversal is not proof of no links; check the relation exists.
-- **`upload-url` promises nothing about bytes.** The row exists `pending-upload` before any PUT, is swept within a day if never confirmed, and `confirm` answers 409 until the object is in storage. A landed object over 25,000,000 bytes is a 413 and the row stays pending.
-- **`confirm` does not attach.** A confirmed file has `record: null` until a flow or `POST /v1/files/{id}/attach` claims it. That is ordinary, not an error.
-- **A record's terms are added to, never replaced, by a run.** A second run that resolves a one-value vocabulary to a different term fails when its writes apply and drops everything it wrote; `POST /v1/records/{id}/reprocess` strips the terms first, so it is safe. `kipory-model`'s `references/classification-runtime.md` has the symptom and the remedies.
-- **The default file listing hides flow output.** `scope` defaults to `sent-in`; produced files are under `scope=produced` or `scope=all`, and `totals.hiddenByScope` counts what you are not seeing.
-- **A record FAILURE on the processing stream is a `status` frame, not an `error` frame.** `error` is transport only. A clean `close` then `done` after `status: "failed"` is a stream that worked and a run that did not.
-- **The stream ends on its own.** A terminal snapshot closes at once; a live one closes with `close { lifetime }` after a bounded, jittered window. Reconnect and re-read the snapshot; there is no cursor.
-- **Cache bust spends money and is ADMIN.** `POST /v1/projects/{nodeId}/ingest/cache/bust` makes the next run re-fetch against a vendor budget; `deleted: 0` is a success, and an unknown `functionKey` deletes nothing rather than everything.
-- **Semantic search can 503 through no fault of yours.** `VECTOR_INDEX_UNREADABLE` means the meaning index was never built, the profile is gone, or the index could not be reached; with `details.reason: "index-not-built"` the index is still taking on the table or a newly marked field, so send the search again shortly — see `kipory-model` for the embedding profile.
+Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
+
+- A per-user table refuses a key's run.
+- A pool record's identity is its content.
+- A natural-key collision inside a flow discards the whole run.
+- A record is `ready` or `pending` depending on its table, and who queues it depends on who wrote it.
+- A processed field sits in a different place on each read.
+- `paging` on the records list is nullable, and null is normal.
+- A read that runs past the 4 s budget is a 422 `QUERY_TOO_BROAD`, not a 500.
+- `terms` on a row is capped at two chips.
+- `null` means not measured, never zero
+- An unknown relation answers 200 with no links
+- `upload-url` promises nothing about bytes.
+- `confirm` does not attach.
+- A record's terms are added to, never replaced, by a run.
+- The default file listing hides flow output.
+- A record FAILURE on the processing stream is a `status` frame, not an `error` frame.
+- The stream ends on its own.
+- Cache bust spends money and is ADMIN.
+- Semantic search can 503 through no fault of yours.
 
 ## References
 
@@ -154,6 +150,7 @@ GET /v1/projects/{nodeId}/ingest/summary?window=7d   what the ingest workers fet
 | `references/api/ingest.md`               | the summary's vocabulary — outcomes, cache, quota — and the bust call                                                                                                                                     |
 | `references/csv-import.md`               | a worked CSV parse for a `value.transform`, and what goes wrong around a file import                                                                                                                      |
 | `references/in-flow-record-functions.md` | the same work from inside a flow: counting, reading and stating links, appending to a stream, deleting, re-running a record and its three `replay` modes, and the owner scoping that differs from a route |
+| `references/pitfalls.md`                 | each trap of reading and writing data, with what happens and what to do                                                                                                                                   |
 
 The function that writes a record is `record.create`; its config and worked example are in `kipory-build` under `references/functions/`.
 

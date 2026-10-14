@@ -79,6 +79,18 @@ quietly working around it.
 | Store any credential a flow needs, without it being readable back          | Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)                                              |
 | Call an outside API with a stored key, or tell an outside system something | Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — what a flow can reach; Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`) |
 
+### What the packs leave to the agent skills
+
+The step-by-step procedure for some work is taught only by the agent skills in
+[KiporyOrg/kipory-skills](https://github.com/KiporyOrg/kipory-skills), which `/llms.txt` also
+links: signing a product's own users in (`kipory-expose`), sending mail from a flow
+(`kipory-channels`), working out why a run did what it did from its timeline, change set and trace
+(`kipory-diagnose`), importing, correcting and reprocessing records by hand (`kipory-data`),
+answering from a project's own records (`kipory-retrieve`), bringing data in from outside
+(`kipory-gather`) and turning a file into text or images (`kipory-extract`). The packs above still
+hold the judgment for the parts they name. The agent skills carry procedure; these packs carry
+judgment, and both defer to the live system for facts.
+
 ## The packs
 
 - **Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`)** — start here for anything new. The eight-step walk

@@ -2,6 +2,35 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261014.191844 — 2026-10-14
+
+Synced from the Kipory monorepo at `67f0428a1`.
+
+- changed: `README.md`
+- changed: `skills/kipory-build/references/checking.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/sync.mjs`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- added: `skills/kipory-data/references/pitfalls.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- added: `skills/kipory-diagnose/references/pitfalls.md`
+- added: `skills/kipory-diagnose/references/reading-the-timeline.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- added: `skills/kipory-gather/references/pitfalls.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- added: `skills/kipory-operate/references/pitfalls.md`
+- changed: `skills/kipory-operate/references/spend.md`
+- added: `skills/kipory-operate/references/when-a-run-fails.md`
+
 ## 1.20261014.180227 — 2026-10-14
 
 Synced from the Kipory monorepo at `270f9e4d9`.

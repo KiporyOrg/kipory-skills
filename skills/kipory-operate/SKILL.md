@@ -38,7 +38,7 @@ POST   /v1/schedules/{id}/resume            resume a schedule the platform pause
 - On a retired project a PATCH of `{enabled: false, version}` alone is still accepted.
 - **A fire has no end user.** `userInfo` is absent, so a per-user table refuses and an action reading `userInfo` beside a real slot waits for that slot. Preview with `principal: "no-end-user"` to see the run a fire makes (`kipory-build`'s `references/checking.md`). A trigger's fire is the same.
 
-Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked` — its own `status` (`succeeded`, `partial`, `failed`, `running`, `skipped`, `blocked`: count this one), its `invocation` with `id`, `status` (`pending`, `processing`, `ready`, `failed`, `deleting`), `statusError` (a short, deliberately generic message), `failure` — how the run failed and whose failure it was: `class`, `owner`, `retryable`, and the action (`actionKey`, `functionKey`, `phase`, `code`) when one action is to blame — `waiting` while the platform is about to start the run again, and `creditCost` where null is not zero. "When a run fails" below has the classes. **The invocation's `id` is the run id**: take it to `GET /v1/runs/{runId}/timeline` for the ordered, never-sampled timeline (`kipory-diagnose`).
+Each occurrence in `runs` carries its `outcome` — `fired`, `skipped`, `blocked` — its own `status` (`succeeded`, `partial`, `failed`, `running`, `skipped`, `blocked`: count this one), its `invocation` with `id`, `status` (`pending`, `processing`, `ready`, `failed`, `deleting`), `statusError` (a short, deliberately generic message), `failure` — how the run failed and whose failure it was: `class`, `owner`, `retryable`, and the action (`actionKey`, `functionKey`, `phase`, `code`) when one action is to blame — `waiting` while the platform is about to start the run again, and `creditCost` where null is not zero. `references/when-a-run-fails.md` has the classes. **The invocation's `id` is the run id**: take it to `GET /v1/runs/{runId}/timeline` for the ordered, never-sampled timeline (`kipory-diagnose`).
 
 ## Triggers
 
@@ -72,43 +72,40 @@ POST /v1/platform-events/test              { project, type, subject: { kind, key
 
 An **unattended run** is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call or a record's processing: nobody is waiting on the answer. `references/packs/triggers.md` ("Being told when a run fails") and `references/packs/schedules.md` ("health, and being paused") have the detail; `references/api/failures.md` the fields.
 
+Each of these is explained in [references/when-a-run-fails.md](references/when-a-run-fails.md). Read the entry before you rely on the thing it names:
+
 **Being told**
 
-- **A failed run cannot report itself.** It keeps nothing it wrote, and an `event.emit` it reached is never recorded, so no action of a flow can announce that flow's own failure. The platform records the failure for it, as an event in the project's `platform` category.
-- **Nine `platform` event types, and they are the platform's.** `run.failed`, `run.failures`, `run.partial`, `health.failing`, `health.recovered`, `health.quiet`, `health.pause-warned`, `health.paused`, and `mail.failed`: one message a run sent was refused, failed or bounced. Every project has them; you cannot add to the category, change it or emit into it, and a project document neither creates nor prunes them.
-- **The failure trigger is an ordinary trigger on one of them, bound to an ordinary flow**: `POST /v1/triggers` with `categoryKey: "platform"`, `eventKey: "run.failed"` and a flow that posts to your chat (`url.send`), mails someone (`email.send`) or writes a record. The flow reads `event.data`: the run (`id`, `kind`, `flowKey`, `attempts`), its `subject` (`{ kind, key }`, `kind` one of `schedule`, `trigger`, `endpoint`, `table`), `closing.failure` (class, owner, the action, a `code` and the platform's sentence for it; when no action failed, the `cause` that closed the run and, for a save that was refused, the `refusedWrite`) and the subject's `health`. Ids, keys, codes and counts only — never an input or a slot's value; read those from the run.
-- **Listen to `run.failures` as well.** Only the first final failure of a subject is a `run.failed`. Later ones are folded into `run.failures` summaries — the first a minute later, then at doubling intervals up to an hour — each with a `count`, a count per class and `failedRunsPath`, the failed-runs list filtered to exactly what it counted. Five thousand records failing in ten minutes are five events.
-- **Nothing is recorded** for an attempt the platform is about to start again, a run a person cancelled, a preview, or a synchronous call, whose caller already has the answer.
-- **A failure trigger's flow is never handed its own failure.** A run started by a platform event, and everything that run starts, causes no platform event when it fails. A broken failure flow fails once per event and stops; its trigger reads `failing`, and the alerts read marks it `failureTrigger: true`. Such a trigger defaults to `overlapPolicy: "allow"`, is never paused, and runs in a slot of its own.
-- **Prove the failure trigger before something fails.** `POST /v1/platform-events/test` records one event of the type, with example `data` carrying `test: true`, for a subject the project has. Every enabled trigger on the type fires, and the flows they start are ordinary, charged runs. The answer says how many triggers listen: zero means nothing ran.
-- ⚠️ **Nothing is mailed.** The platform sends no mail about a failing, quiet, warned, paused or recovered schedule, trigger, table or endpoint. A project that wires no trigger on a `platform` event is told nothing, and nothing of its is ever paused. It learns only what it asks for: `health` on each schedule, trigger, table and endpoint read, the alerts read, the failed-runs list, and `lastRunStatus`. A document plan of a project that runs schedules or triggers with no enabled trigger on `platform/run.failed` says so as `DOCUMENT_NO_FAILURE_LISTENER` — information, blocking nothing.
+- A failed run cannot report itself.
+- Nine `platform` event types, and they are the platform's.
+- The failure trigger is an ordinary trigger on one of those `platform` events, bound to an ordinary flow
+- Listen to `run.failures` as well.
+- Nothing is recorded for an attempt about to run again, a cancelled run, a preview or a synchronous call
+- A failure trigger's flow is never handed its own failure.
+- Prove the failure trigger before something fails.
+- ⚠️ Nothing is mailed.
 
 **Health, and being paused**
 
-- **Every schedule and trigger read carries `health`**, one word in `state`: `healthy`, `failing` (with `failingSince` and `countedFailures`), `quiet` (a schedule whose occurrence should have run and has not, for five intervals and at least an hour), `warned` (it will be paused at `pauseAt`) or `paused`. A table and an endpoint carry `healthy` or `failing` and are never paused; an endpoint counts its asynchronous calls only.
-- **Only the subject's own failures count** — class `logic`, `definition` or `vendor`. A run the platform failed, a spend cap or a cancelled run never moves `health`. One run that succeeds ends the failing spell.
-- **The pause rule.** A schedule is due to be paused when it has been failing for the longer of 48 hours and five of its own intervals, with at least five counted failures — or when at least 95% of at least 20 runs in seven days failed. For a trigger the time is 48 hours. The platform then records `health.pause-warned`, and pauses it 24 hours later if it is still failing.
-- ⚠️ **Pausing needs a listener.** In a project with no enabled trigger on `platform` / `health.pause-warned`, nothing is ever paused and each row reads `health.pauseArmed: false`. A row that must never be paused states `failurePolicy: "keep-running"` on create or PATCH (the default is `"pause"`).
-- **Paused is a state of its own, beside `enabled`.** The read shows `pausedAt` and `pauseReason` (`failing` or `mostly-failing`). Nothing fires, and no occurrence or decision is recorded; a paused trigger's events are not replayed when it resumes. `enabled: true` does not clear it, and neither does a project document — only `POST /v1/schedules/{id}/resume` or `POST /v1/triggers/{id}/resume`. `GET /v1/bootstrap` leaves `health`, `pausedAt` and `pauseReason` out: read the row, or the alerts read.
+- Every schedule and trigger read carries `health`
+- Only the subject's own failures count
+- The pause rule.
+- ⚠️ Pausing needs a listener.
+- Paused is a state of its own, beside `enabled`.
 
 **Whose failure it is**
 
-- **A failed run's closing record names a `class` and an `owner`** — `failure` on a schedule's or trigger's run, `closing.failure` on `GET /v1/runs` and each row of the failed-runs list.
-
-  `logic`: your flow's own expression, input or data rule refused. `definition`: the flow cannot be run as it is stored. `limit`: a spend cap, the paying account's standing or an allowance. `vendor`: a site or service the flow called. `platform-busy`, `platform-interrupted`, `platform-fault`: the platform's own — no worker was free, the worker stopped, or the platform itself failed. `cancelled`: it was stopped on purpose.
-
-  `owner` says who has to act: `customer` (you), `vendor`, `platform` (nothing in your flow needs changing) or `caller`. `retryable` says whether running it again, unchanged, could end differently.
-
-- **Waiting for a worker is not a failure.** A queued action's time limit counts the time its job runs, not the wait for a free worker. Only a job no worker takes for five minutes fails its action — class `platform-busy`, no compute charged — and that is one of the failures the platform runs again.
-- **The platform runs its own failures again.** When an attempt of an unattended run closes `platform-busy`, `platform-interrupted` or `platform-fault`, the run is not failed: it keeps its run id, its `status` goes back to `pending`, and `waiting { reason, attempt, notBefore }` says why and when the next attempt may start. At most three attempts; only the third such failure is the run's. A failure of your flow, of a vendor or of a limit is never run again, and neither is a synchronous call.
-- ⚠️ **What a run started again repeats, and charges.** It runs its actions again from the start. Nothing the failed attempt staged was saved, so no record is written twice. An action's compute is charged once per run however often it is repeated; a model or vendor call that is really made again is charged again, and one a cache answers is not. The worst case is three attempts: a paid call can be charged three times. `repeatedByPlatform` on `GET /v1/runs/{runId}/spend` says how much of a run's cost came from this (`references/spend.md`).
-- **A run started again runs the flow it first started with.** A flow edit saved between two attempts is not taken by a run already under way — neither in its own flow nor in a sub-flow that flow calls by a fixed reference; the next run takes it. Not held back: a sub-flow chosen at run time and first reached on a later attempt, types, model bindings, vocabularies and secrets — a later attempt reads those as they are then.
-- **A deployment of the platform lets runs finish.** A worker that is being replaced takes no new run and lets the ones it holds finish, for up to five minutes. A run still going after that is interrupted (`platform-interrupted`) and started again as above. ⚠️ Meanwhile no record's processing and no asynchronous run — an endpoint call, a schedule's occurrence, a trigger's fire — is picked up for up to six minutes: they wait in the queue and are not failed.
+- A failed run's closing record names a `class` and an `owner`
+- Waiting for a worker is not a failure.
+- The platform runs its own failures again.
+- ⚠️ What a run started again repeats, and charges.
+- A run started again runs the flow it first started with.
+- A deployment of the platform lets runs finish.
 
 **`partial`, and the list**
 
-- **A run that carried on past a failure closes `partial`**, a third result beside `succeeded` and `failed`: an action set to `"onFailure": "continue"`, a sub-flow call set to it, or a fan-out branch within the fan-out's tolerance failed (`kipory-build`'s `references/patterns.md`). Its changes are applied and its invocation reads finished; `closing.verdict` is `partial` and `closing.absorbed { actions, calls, branches }` counts what it carried on past. A schedule's or trigger's `status` and `lastRunStatus` read `partial`, and the project is told in `platform/run.partial` summaries.
-- **`GET /v1/failed-runs?project={nodeId}` is the list a summary points at**: unattended runs whose latest close is `failed` or `partial`, newest first. Filter by `subjectKind` with `subjectKey`, by `class`, by `verdict`, and by when the run closed (`from`, and `to`, which is exclusive); walk `after=<nextCursor>`. A run the platform is about to start again is not on it, nor is a cancelled one. It keeps a run for a limited time, and a `partial` occurrence old enough to have left it reads `succeeded`.
+- A run that carried on past a failure closes `partial`
+- `GET /v1/failed-runs?project={nodeId}` is the list a summary points at
 
 ## Events
 
@@ -169,27 +166,29 @@ A machine caller has no statement of its own: `GET /v1/credits/events` scopes to
 
 ## What will bite you
 
-- **The balance read 404s on the api host.** Group `usage` is served on the project's host only, and a project may switch that group off. A key reads the wallet with `perUserSpendCap` null — there is no person to cap. The read stays available while the wallet refuses calls, deliberately.
-- **The wallet may not be the project's.** `payer` on the balance names the node that holds it; `payer.own: false` means the project draws on a node above it and shares that balance. A negative `creditsRemaining` under `status: active` is spent headroom, not an error. `wallet: "member"` is a signed-in member's own wallet where the project turned `memberWallets` on; a key always reads `node`.
-- **Five 402 codes, five remedies.** <!-- count: api-402-codes --> `BALANCE_BELOW_SOFT_CAP`, `USER_SPEND_CAP_EXCEEDED`, `DESIGN_SPEND_CAP_EXCEEDED`, `MEMBER_WALLET_EMPTY`, and `PUBLIC_ENDPOINT_UNAVAILABLE` — what a public endpoint answers, with no `details`, when the wallet or the project's public spend cap refuses it. Branch on `code`; `references/spend.md` has what refused, the `details` each carries and the remedy. No call adds credits: for the first, tell the human which wallet (`payer.name`, `payer.nodeId`) needs credit from the deployment's operator.
-- **A refusing wallet stops more than the call.** Reads still answer, a queued job is refused when a worker takes it, a schedule or trigger fire is recorded `blocked`, and a run in flight has its remaining actions skipped (`references/spend.md`).
-- **Both ceilings live on project settings and are ADMIN.** `null` means no ceiling and `0` means block everything — opposites (`references/spend.md`).
-- **`credits: 0` on `/spend` is a price only when `uncharged` is 0.** Otherwise the platform paid for that work, and the same action has a price in a charged run (`references/spend.md`).
-- **A reprocess is charged** like the record's first processing, as is every run it queues through `record.enqueue-process` (`references/spend.md`; `kipory-data` owns the reprocess itself).
-- **An empty `/spend` is not a zero.** A run that spent nothing, one that failed before its first billable operation and one too old to be tied to its charges all answer an empty `byAction` (`references/spend.md`).
-- **A schedule's `key` never changes** and is not on the patch body — sending it is a 422. Rename through `label`; a blank string is a 422, `null` clears.
-- **`runs` is one page, newest first.** `limit` goes to 200; walk older occurrences or decisions with `after=<nextCursor>` until `nextCursor` is `null`. A full page says nothing about whether more exist — only the cursor does.
-- **Choose `overlapPolicy` deliberately.** `allow` on a flow slower than its interval runs copies of itself concurrently. On a trigger, omitting it means `skip` for your own events — and `skip` records the second of two events that arrive together as `skipped`, running nothing for it. Use `allow` for a trigger whose every event must be acted on (a notification, a per-record write); keep `skip` for a flow that re-syncs state, where one run covers them all.
-- **A paused schedule or trigger is not a disabled one.** `enabled: true` beside `pausedAt` fires nothing; resume it ("When a run fails").
-- **A trigger never catches up.** Enabling one, or creating one, reacts to events recorded from then on; earlier events are in `GET /v1/project-events` and only a decision the trigger already took can be replayed. There is no backfill, on purpose.
-- **A trigger's `skip` overlap looks at its 20 most recent fires, not only the last.** Any of their runs still `pending` or `processing` — or a fire under five minutes old whose run is not linked yet — holds the next event back as `skipped`. A run stuck in `processing` skips every later event of that type until it terminates (skipped events are not fires, so it never ages out of those 20); the decision log shows the rows. `allow` on a flow that emits its own trigger type runs until the platform's chain-depth cap blocks it, and the decision log says `blocked` with why.
-- **A trigger's filter reads a payload field as `{ "op": "slotEquals", "slot": "data", "path": "source", "value": "telegram" }`.** `path` walks: `author.profile.id` descends into objects (a key that itself contains a dot still matches, longest key first) and `items[0].kind` reads a list item, as in an action condition. A path that reads nothing reads as absent — `slotEquals` on it is false, with no error — so a misspelled path records every event as `filtered`.
-- **Seeded event types cannot be deleted (409) but can be patched.** A platform-installed event's label, scope and payload binding are all changeable, and nothing stops you.
-- **A type's `status` does not gate emitting.** A retired type still fires; removing the emit action is the way to stop it. An event type carries two version numbers: `payloadVersion` for its shape and `version` for the lock.
-- **Config `version` is required when the namespace exists and ignored on create.** A stale one is a 409; re-read and reconcile. Two replacements, at two levels: the POST's `data` replaces the namespace's whole override map, and inside it an override replaces its whole top-level field, never merging into the default.
-- **`usage` defaults to seven days and excludes platform-paid work**; `window=custom` takes `from` and `to` as RFC 3339 instants, `to` exclusive (`references/spend.md`).
-- **Previews and eval runs start no trigger of their own — a processing handoff still does.** An `event.emit` during a preview or an eval run is checked and dropped: it is never recorded in `GET /v1/project-events` and starts nothing. To test the trigger half, feed `GET /v1/triggers/{id}/sample` to a preview of the triggered flow. But an `record.enqueue-process` action hands the record to its processing flow, which runs live once the write applies, and that flow's events publish and start every matching trigger like any live run's (`kipory-prove`).
-- **Model prices and vendor prices are reads; the compute rate and the held-storage rates are not.** `GET /v1/nodes/{nodeId}/model-prices` and `GET /v1/nodes/{nodeId}/vendor-prices` quote in credits before anything is spent; measure the other two from the charges on `/spend` (`references/spend.md`).
+Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
+
+- The balance read 404s on the api host.
+- The wallet may not be the project's.
+- Five 402 codes, five remedies. <!-- count: api-402-codes -->
+- A refusing wallet stops more than the call.
+- Both ceilings live on project settings and are ADMIN.
+- `credits: 0` on `/spend` is a price only when `uncharged` is 0.
+- A reprocess is charged
+- An empty `/spend` is not a zero.
+- A schedule's `key` never changes
+- `runs` is one page, newest first.
+- Choose `overlapPolicy` deliberately.
+- A paused schedule or trigger is not a disabled one.
+- A trigger never catches up.
+- A trigger's `skip` overlap looks at its 20 most recent fires, not only the last.
+- A trigger's filter reads a payload field as `{ "op": "slotEquals", "slot": "data", "path": "source", "value": "telegram" }`.
+- Seeded event types cannot be deleted (409) but can be patched.
+- A type's `status` does not gate emitting.
+- Config `version` is required when the namespace exists and ignored on create.
+- `usage` defaults to seven days and excludes platform-paid work
+- Previews and eval runs start no trigger of their own — a processing handoff still does.
+- Model prices and vendor prices are reads; the compute rate and the held-storage rates are not.
 
 ## References
 
@@ -203,6 +202,8 @@ A machine caller has no statement of its own: `GET /v1/credits/events` scopes to
 | `references/packs/credits.md`                                                                  | the balance, member wallets, the per-person statement, and the gate `status` does not show                                                                                                                                                                                                                        |
 | `references/api/failures.md`                                                                   | the failed-runs list, the test event and the alerts read                                                                                                                                                                                                                                                          |
 | `references/api/schedules.md` · `triggers.md` · `events.md` · `project-config.md` · `spend.md` | every route's fields. Project settings are in `kipory-connect`'s `references/api/projects.md`, the member routes in `kipory-expose`'s `references/api/end-users.md`, model prices in `kipory-build`'s `references/api/functions-and-models.md`, an eval run's spend in `kipory-prove`'s `references/api/evals.md` |
+| `references/when-a-run-fails.md`                                                               | being told of a failure, health and pausing, whose failure it is, `partial` runs                                                                                                                                                                                                                                  |
+| `references/pitfalls.md`                                                                       | each trap of operating a project, with what happens and what to do                                                                                                                                                                                                                                                |
 
 ## Then
 

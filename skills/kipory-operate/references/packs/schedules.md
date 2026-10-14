@@ -210,9 +210,9 @@ run's invocation. Reach for them in this order:
 - **`waiting`** — set while the platform is about to start the run again. When one of the
   platform's own failures closes an attempt (`platform-busy`, `platform-interrupted`,
   `platform-fault`), the run is not failed: `status` goes back to `pending` and `waiting` says why
-  (`reason`), how many attempts have been made (`attempt`, at most three) and when the next may
+  (`reason`), how many attempts have been made (`attempt`, at most 3 <!-- count: run-attempts -->) and when the next may
   start (`notBefore`). Nothing the failed attempt staged was saved, and nothing in your flow needs
-  changing. Only the third such failure is the run's, and then `failure` carries it. A failure of
+  changing. Only the last attempt's failure is the run's, and then `failure` carries it. A failure of
   your flow, of a vendor, or of a limit is never run again.
   ⭐ A run started again runs the flow it first started with: an edit saved between two attempts —
   to its own flow, or to a sub-flow that flow calls by a fixed reference — is not taken by a run

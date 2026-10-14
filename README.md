@@ -102,7 +102,7 @@ What stands behind them: on every build of the monorepo, each skill's frontmatte
 
 ## Versions
 
-`VERSION` and `CHANGELOG.md` are written by the publish job; every publish is also a git tag. `kipory-connect/references/versions.md` carries the content hashes that matter for correctness.
+`VERSION`, `CHANGELOG.md` and `SOURCE.json` are written by the publish job; every publish is also a git tag. `SOURCE.json` names the platform commit the bundle was published from and the merges before it, so the sync script in `kipory-connect` can say which skill changes a deployment does not run yet. `kipory-connect/references/versions.md` carries the content hashes that matter for correctness.
 
 ## License
 

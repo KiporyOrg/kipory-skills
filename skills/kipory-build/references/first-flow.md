@@ -74,7 +74,7 @@ POST /v1/flows
 
 ## 2. Add the action
 
-An action's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "dataTypeId": "<id>" }`, where the id is the built-in `string` type's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/types?project={nodeId}&key=string` answers the same id as `entries[0].id`. It is per project; do not reuse one from another project's export by hand.
+An action's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "dataTypeId": "<id>" }`, where the id is the built-in `string` type's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/types?project={nodeId}&key=string` answers the same id as `types[0].id`. It is per project; do not reuse one from another project's export by hand.
 
 ```
 POST /v1/actions

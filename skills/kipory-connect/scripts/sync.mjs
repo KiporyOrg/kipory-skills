@@ -17,6 +17,16 @@
 // document. The script prints the names that differ, so only those pages need
 // a live read — the rest of the layer is what the deployment serves.
 //
+// Hashes cover the generated pages only. The hand-written SKILL.md text is
+// published when a change to these skills merges on the platform's main
+// branch, and a deployment rolls later, so these skills can describe behaviour
+// the deployment does not run yet. SOURCE.json, beside VERSION, records the
+// commit the bundle was published from and the merges before it; the script
+// finds the deployment's build (`sha` on GET /health) among them and names each
+// skill change merged after it. A build it does not find is newer than the
+// source — the skills publish only when they change — unless it is older than
+// every recorded merge.
+//
 // Usage (from any directory — it finds versions.md beside itself):
 //   KIPORY_BASE_URL=https://api.example.com [KIPORY_API_KEY=…] node <this skill>/scripts/sync.mjs
 //
@@ -30,7 +40,8 @@
 // with the bundled page that documents it, as a path from the directory that
 // holds these skills — then what to do. Exit 0: every layer was compared and
 // nothing bundled differs from the deployment. Exit 1: something differs — the
-// lines say which layer to read live instead; a layer that could not be
+// lines say which layer to read live instead, or which skill changes the
+// deployment does not run yet; a layer that could not be
 // compared is still listed as `not compared`, so exit 1 does not mean the
 // other layers matched. Exit 2: nothing differs and something could not be
 // compared — the deployment was unreachable, a layer could not be read (a
@@ -286,7 +297,75 @@ console.log(
   `deployment ${baseUrl} — build ${health.json?.sha ?? "(unstamped)"}`,
 );
 
+// Whether these skills describe code the deployment does not run yet: its
+// build's place among the merges SOURCE.json records. Unknown changes no exit
+// code — a bundle published before SOURCE.json existed is not a fault.
+const source = (() => {
+  try {
+    return JSON.parse(
+      readFileSync(resolve(skillsDir, "..", "SOURCE.json"), "utf8"),
+    );
+  } catch {
+    return undefined;
+  }
+})();
+const build = typeof health.json?.sha === "string" ? health.json.sha : "";
+const lag = (() => {
+  const history = Array.isArray(source?.history) ? source.history : undefined;
+  if (history === undefined)
+    return {
+      unknown:
+        "this bundle has no SOURCE.json, so it cannot say which code it describes",
+    };
+  if (build === "") return { unknown: "the deployment reports no build" };
+  // Seven hex digits name one commit in practice; fewer could match several.
+  if (build.length < 7)
+    return {
+      unknown: `the deployment's build "${build}" is too short to place among the merges this bundle records`,
+    };
+  const at = history.findIndex(
+    (h) =>
+      typeof h?.sha === "string" &&
+      (build.startsWith(h.sha) || h.sha.startsWith(build)),
+  );
+  if (at === -1) return { newer: true };
+  return {
+    ahead: history.slice(0, at).filter((h) => typeof h?.skills === "string"),
+  };
+})();
+const sourceSha =
+  typeof source?.source === "string" ? source.source.slice(0, 12) : "?";
+const AHEAD_LISTED = 20;
 const differs = [];
+if (lag.newer) {
+  const caveat =
+    typeof source?.since === "string"
+      ? `unless it was built before ${source.since}, the date of the oldest of the ${source.history.length} merges this bundle records`
+      : `unless it is older than all ${source.history.length} merges this bundle records`;
+  console.log(
+    `  ${"skills".padEnd(9)} source ${sourceSha}   ✓ the deployment's build is newer than these skills' source, so it runs every skill change in them — ${caveat}`,
+  );
+} else if (lag.ahead === undefined) {
+  console.log(
+    `  ${"skills".padEnd(9)} source ${sourceSha}   not known — ${lag.unknown}`,
+  );
+} else if (lag.ahead.length === 0) {
+  console.log(
+    `  ${"skills".padEnd(9)} source ${sourceSha}   ✓ the deployment runs every skill change in this bundle`,
+  );
+} else {
+  console.log(
+    `  ${"skills".padEnd(9)} source ${sourceSha}   ✗ AHEAD of the deployment by ${lag.ahead.length} skill change(s) — merged after its build:`,
+  );
+  for (const h of lag.ahead.slice(0, AHEAD_LISTED))
+    console.log(`${" ".repeat(12)}${h.sha}  ${h.skills}`);
+  if (lag.ahead.length > AHEAD_LISTED)
+    console.log(
+      `${" ".repeat(12)}… and ${lag.ahead.length - AHEAD_LISTED} more`,
+    );
+  differs.push("skills");
+}
+
 const uncompared = [];
 // label → how many items were named under a layer that differs; absent when
 // the items could not be compared.
@@ -394,6 +473,11 @@ LAYERS.forEach((layer, i) =>
 // later, so an older deployment is the ordinary case. Either way the
 // deployment is what will answer your calls.
 console.log("\nwhat to do:");
+if (differs.includes("skills")) {
+  console.log(
+    `  ${"skills".padEnd(9)} the changes listed are in these skills and not yet on the deployment: where a refusal contradicts what a skill says about them, the deployment is right until it rolls them — or use the bundle whose source it runs (CHANGELOG.md names each version's source)`,
+  );
+}
 for (const layer of LAYERS) {
   if (!differs.includes(layer.label)) continue;
   // Only a full item-by-item comparison narrows the advice: without one, the

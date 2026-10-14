@@ -162,14 +162,13 @@ table cannot declare it.
 
 - **Do not send back what the platform is already running again.** A processing run that ended on
   one of the platform's own failures (`platform-busy`, `platform-interrupted`, `platform-fault`)
-  is started again by the platform, up to three attempts, and the record stays `PENDING`
+  is started again by the platform, up to three attempts <!-- count: run-attempts -->, and the record stays `PENDING`
   meanwhile; only a run that failed for good leaves it failed. Waiting for a free worker is not a
   failure either.
 - **A record's failed processing is reported to the project**, not to the flow that queued it: the
   first failure of a table as a `platform/run.failed` event and later ones in summaries, and the
   runs are listed on `GET /v1/failed-runs?project={nodeId}&subjectKind=table&subjectKey=<table key>`.
-  The table's `health` reads `failing`; a table is never paused (`kipory-operate`, "When a
-  run fails").
+  The table's `health` reads `failing`; a table is never paused (`kipory-operate`'s `references/when-a-run-fails.md`).
 - **The records a `platform` event's flow queues tell nobody.** A record queued by a run that a `platform` event
   started causes no `platform` event when its processing fails.
 
