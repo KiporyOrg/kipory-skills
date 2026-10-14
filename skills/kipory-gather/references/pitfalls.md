@@ -41,8 +41,8 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
   and can be charged after the preview returns, so its cost may be missing from that preview's
   totals. A fetch on your own vendor key is never charged, and a platform-paid preview reports $0.
 - **The cache is the design, not an optimisation.** A repeated call inside the cache window makes
-  no vendor call, pays no vendor price and returns the same answer — the action still pays its
-  one-second compute minimum (`kipory-operate` has the billing detail). So a flow that re-runs is
+  no vendor call, pays no vendor price and returns the same answer — the action still pays
+  compute for the milliseconds it ran (`kipory-operate` has the billing detail). So a flow that re-runs is
   cheap, and a source that changed inside the window is one your flow cannot see. The windows differ by an order of magnitude across
   this table: rankings hold for a month, trending for six hours.
 - **"Nothing found" is saved like any answer.** A failed

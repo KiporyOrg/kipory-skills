@@ -17,7 +17,7 @@ Shows what is hot right now, not what is biggest. Collect it across runs to buil
 - **External dependency:** YouTube Data API — Reads the trending chart from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube function. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
 - **Charged as:** `youtube/trending` (not charged). An action makes no vendor charge; it is charged its compute only.
-- **Rate limit:** 60 per min in bucket `youtube` — shared with `youtube.channel`, `youtube.video`
+- **Rate limit:** 60 per min in bucket `youtube`, counted per project — shared with `youtube.channel`, `youtube.video`
 - **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 6 hours — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

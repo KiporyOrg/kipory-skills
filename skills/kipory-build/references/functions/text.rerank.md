@@ -16,7 +16,7 @@ More accurate than the search that found them, but too slow for a whole table.
 - **Suggested input streams:** `query`, `documents`
 - **External dependency:** Cohere — Re-scores candidates through Cohere's rerank API. Uses a Cohere API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `cohere` (vendor: Cohere); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 600 per min in bucket `cohere`
+- **Rate limit:** 600 per min in bucket `cohere`, counted per project
 - **Queue:** 2 attempts, exponential from 1 s 500 ms; waits up to 1 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

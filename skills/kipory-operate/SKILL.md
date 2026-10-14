@@ -145,8 +145,11 @@ GET /v1/projects/{nodeId}/usage?window=7d          credits and events over a win
 GET /v1/projects/{nodeId}/usage?window=7d&flows=1  the same per flow, with what failed runs spent (`failedRuns`, `failedCredits`)
 GET /v1/ai-calls?project={nodeId}                 every model call, filterable; GET /v1/ai-calls/rollup?project= by hour or day; GET /v1/ai-calls/{id}?payload=prompt for one
 GET /v1/organizations/{nodeId}/quota              today's use of each shared vendor allowance — the ORGANISATION's id, and a key granted at the organisation
+GET /v1/projects/{nodeId}/limits                  every limit the project meets: the number in force, the default, and how much is used where counted
 GET /v1/credits/balance                            the wallet — on the PROJECT's host only
 ```
+
+A call or a run refused at a limit names it: `details.limitKey` on the error, `limitKey` on the run's `closing` failure. Look the key up in `GET /v1/projects/{nodeId}/limits`. Only Kipory changes a limit's number; to ask for more, name the key.
 
 `references/spend.md` is the full statement: what an action is charged, what a cache hit, a preview, an eval run and a reprocess cost, model prices, the balance's fields, member wallets and the 402 codes. The short version:
 

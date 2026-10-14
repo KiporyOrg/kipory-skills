@@ -203,7 +203,7 @@ units a call includes and the fewest it bills. Where a function offers more than
 compare them there before the first run; the default is not always the cheapest for a small read.
 
 The cache is what makes this bearable. A re-run inside the window makes no vendor call and pays no
-vendor price; the action still pays its one-second compute minimum, and whatever runs downstream of
+vendor price; the action still pays compute for the milliseconds it ran, and whatever runs downstream of
 it is charged on its own terms. That is why the windows are long for slow-moving facts and short
 for fast-moving ones. `kipory-operate` owns the billing detail and the read of what a project
 actually spent — use it rather than estimating from this page.

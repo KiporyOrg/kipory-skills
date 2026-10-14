@@ -17,6 +17,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/organizations/{nodeId}/ledger`](#get-v1-organizations-nodeid-ledger) |  |
 | `GET` | [`/v1/organizations/{nodeId}/quota`](#get-v1-organizations-nodeid-quota) |  |
 | `GET` | [`/v1/organizations/{nodeId}/usage`](#get-v1-organizations-nodeid-usage) |  |
+| `GET` | [`/v1/projects/{nodeId}/limits`](#get-v1-projects-nodeid-limits) |  |
 | `GET` | [`/v1/projects/{nodeId}/usage`](#get-v1-projects-nodeid-usage) |  |
 | `GET` | [`/v1/projects/{nodeId}/usage/events`](#get-v1-projects-nodeid-usage-events) |  |
 | `GET` | [`/v1/projects/{nodeId}/usage/events.csv`](#get-v1-projects-nodeid-usage-events-csv) |  |
@@ -394,6 +395,46 @@ Each item of `hours`:
 | `weekday` | `integer` | yes | ISO weekday in UTC — 1 is Monday, 7 is Sunday. |
 | `hour` | `integer` | yes | The UTC hour, 0–23. |
 | `events` | `integer` | yes | Events in that weekday-hour over the whole window. |
+
+### `GET /v1/projects/{nodeId}/limits`
+
+Every limit the project meets, in one read: the number in force for this project (`applied`), the platform's default, what happens at it, and — where the platform counts it — how much is used now (`used`) and when the count starts again (`resetsAt`). A refusal at a limit carries its `key` as `details.limitKey`.
+Spend limits are on `GET /v1/projects/{nodeId}/settings`; what the project spent is `GET /v1/projects/{nodeId}/usage`. Only Kipory changes a limit's number.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `limits` | `object[]` | yes | Every limit the project meets, grouped by `section`. |
+
+Each item of `limits`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The limit's stable key, e.g. `mail.messages-per-day`. A refusal at this limit names it as `details.limitKey`. |
+| `section` | `"requests" \| "runs" \| "mail-and-push" \| "functions" \| "files" \| "kept-for" \| "design" \| "account"` | yes | The group it is listed under. |
+| `title` | `string` | yes | What is limited, in a few words. |
+| `description` | `string` | yes | What happens at the limit. |
+| `unit` | `string` | yes | What is counted: `requests`, `messages`, `bytes`, `days`, `per-thousand-runs`, … |
+| `period` | `object` | yes | The span the limit is counted over. |
+| `scope` | `"key" \| "person" \| "address" \| "project" \| "organization" \| "endpoint" \| "run" \| "action" \| "process" \| "installation"` | yes | What one count is kept for. `process` means each api process counts on its own; the number is not multiplied by how many there are. |
+| `atLimit` | `"refused" \| "waits" \| "cut" \| "dropped" \| "deleted"` | yes | `refused` — the call or action fails; `waits` — it waits its turn; `cut` — the excess is cut off; `dropped` — the excess is dropped; `deleted` — the thing kept is deleted. |
+| `refusal` | `string` | no | The error code or run reason a refusal at this limit carries. |
+| `valueNote` | `string` | no | Said beside the number where the number alone misleads. |
+| `applied` | `integer \| null` | yes | The number in force; null is no limit. |
+| `appliedUnknown` | `boolean` | no | True when the numbers Kipory set could not be read; `applied` is then the default. |
+| `default` | `integer \| null` | yes | The standard, before Kipory sets another for the platform, an organization or this project (that one is `applied`); null is no limit until one is set. |
+| `defaultDerived` | `string` | no | For a default the platform computes from its own deployment: how. `default` is then today's computed number. |
+| `setAt` | `"platform" \| "organization" \| "project"` | no | Where `applied` was set, when it is not the default: for this deployment, your organization, or this project. |
+| `settableBy` | `"kipory" \| "you" \| "nobody"` | yes | Who may change it: Kipory staff, you (on the element it belongs to), or nobody. |
+| `used` | `integer` | no | How much of it is used now, where the platform counts it. Absent — never 0 — where nothing counts it. May pass `applied`: a refused attempt is counted too. |
+| `resetsAt` | `string` | no | When the count starts again, where it does. |
 
 ### `GET /v1/projects/{nodeId}/usage`
 

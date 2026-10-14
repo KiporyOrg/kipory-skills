@@ -454,6 +454,7 @@ Each item of `errors`:
 | `message` | `string` | yes | What went wrong. |
 | `status` | `integer \| null` | yes | The HTTP status a live call of this flow (an endpoint) would answer for this failure when it is the first. Null when the runner itself crashed. |
 | `code` | `string \| null` | yes | The error code that answer would carry, e.g. `VALIDATION_FAILED` for an `$assert` refusal. Null when the runner itself crashed. |
+| `limitKey` | `string` | no | The limit that stopped the run, when one did (phase `limit-reached`) — a key of `GET /v1/projects/{nodeId}/limits`. |
 
 Each item of `fanOutCaps`:
 

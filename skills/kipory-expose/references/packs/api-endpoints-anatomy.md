@@ -188,7 +188,8 @@ Three kinds:
   and `retryable` a schedule's runs carry, the `attempt` that closed it, the `cause` and `refusedWrite` when its
   changes were refused when they were saved, and a `reason` when the refusal is one a
   caller may read, such as `project-push-cap-reached`, or `recipient-not-an-address` for a mail action given a
-  recipient that is no email address, or `more-than-one-recipient` for one given a list (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). A
+  recipient that is no email address, or `more-than-one-recipient` for one given a list, and a `limitKey` when a limit
+  refused it (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). A
   synchronous call whose failure is the platform's own answers 503 with `Retry-After`, not 502.
   An asynchronous run the platform closed with one of its own failures is run again, up to
   3 attempts <!-- count: run-attempts --> in all: its status read answers `PENDING` with `waiting` — a `reason`, the `attempt` number and `notBefore` —

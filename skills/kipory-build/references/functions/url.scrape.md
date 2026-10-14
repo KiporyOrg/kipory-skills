@@ -17,7 +17,7 @@ Loads the page in a real browser, so script-built pages work. Results are cached
 - **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
 - **Charged as:** `firecrawl/scrape` per call. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
-- **Rate limit:** 10 per min in bucket `firecrawl` — shared with `url.screenshot`
+- **Rate limit:** 10 per min in bucket `firecrawl`, counted per project — shared with `url.screenshot`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

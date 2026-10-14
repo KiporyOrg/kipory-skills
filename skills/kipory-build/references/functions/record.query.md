@@ -12,7 +12,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 - **Also found as:** look up, lookup, find a record, find records, filter records, search records, search rows
 - **Reads:** The slots its clauses name for the values they compare against; optionally a cursor from `cursorSlot`; and on a user-owned type the user id from `userIdSlot`. _(shape hint: `the slots its clauses name`)_
 - **Emits:** A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.
-- **Rate limit:** 300 per min in bucket `ai-embed`, counted per project and host addressed — shared with `term.search`
+- **Rate limit:** 300 per min in bucket `ai-embed`, counted per project — shared with `term.search`
 
 ## Config
 

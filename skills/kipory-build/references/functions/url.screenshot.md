@@ -18,7 +18,7 @@ Saves the page as a PNG or JPEG. Each fresh shot is paid; repeats within a day a
 - **External dependency:** Firecrawl — Renders the page in a headless browser and captures a full-page screenshot via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
 - **Charged as:** `firecrawl/screenshot` per call. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
-- **Rate limit:** 10 per min in bucket `firecrawl` — shared with `url.scrape`
+- **Rate limit:** 10 per min in bucket `firecrawl`, counted per project — shared with `url.scrape`
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 2 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

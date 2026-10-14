@@ -13,7 +13,7 @@ A point it cannot place comes back empty. Answers are cached, so repeats are fre
 - **Reads:** One `Location` — a latitude and a longitude, and nothing else. Coordinates it cannot use come back empty without a call. _(shape hint: `object`)_
 - **Emits:** A `Place`, with every field optional because coverage varies. Empty when the provider found nothing. A provider failure throws instead, so the action fails rather than reporting a blank.
 - **External dependency:** OpenStreetMap — Reverse-geocodes through Nominatim, the public OpenStreetMap endpoint. Free, unkeyed and rate-limited by courtesy — answers are cached per coordinate so repeats cost nothing.
-- **Rate limit:** 60 per min in bucket `location.resolve`
+- **Rate limit:** 60 per min in bucket `location.resolve`, counted per project
 - **Queue:** 2 attempts, exponential from 5 s; waits up to 1 min; cache 7 days — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

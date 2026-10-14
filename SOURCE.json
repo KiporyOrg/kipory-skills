@@ -1,7 +1,8 @@
 {
-  "source": "92ab27bfe4184db217cb87f706c7a20dd2ec3fcc",
+  "source": "6dfaf73ed91fe6dad25d6e5c7998500aa8e5c770",
   "since": "2026-08-13",
   "history": [
+    {"sha":"6dfaf73ed91f","skills":"Every limit a customer meets is one catalog entry: staff set it per platform, organization or project without a deploy, customers read it on a Limits tab, and every refusal names it (394) (#3476)"},
     {"sha":"92ab27bfe418","skills":"Runs that said succeeded with wrong data now fail or keep what they had: model answers are never cut short, lists over the slot limit fail, a failed reprocess keeps its card, record.update refuses invalid fields (#3471)"},
     {"sha":"67f0428a13e6","skills":"The docs findings of the platform review are fixed: a quick start that reaches a running stack, shorter builder skills, skills that say when they are ahead of the deployment, and restated numbers pinned to the code (#3472)"},
     {"sha":"270f9e4d9da6","skills":"A failed run names what closed it and the write that was refused; a skipped key, an apply-at-save update and a dropped search read keep the run's work (#3473)"},
@@ -1000,7 +1001,6 @@
     {"sha":"2eb363229af1"},
     {"sha":"4bd2bdee796f"},
     {"sha":"e06d5578ae4c"},
-    {"sha":"232cfe8374b3"},
-    {"sha":"d88638c0383d"}
+    {"sha":"232cfe8374b3"}
   ]
 }

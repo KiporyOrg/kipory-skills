@@ -15,7 +15,7 @@ Reads only the page head, not the body. An unreachable site is reported in the r
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
-- **Rate limit:** 120 per min in bucket `url.metadata`
+- **Rate limit:** 120 per min in bucket `url.metadata`, counted per project
 - **Queue:** 2 attempts, exponential from 1 s; waits up to 30 s; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

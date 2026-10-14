@@ -12,7 +12,7 @@ none of those: it is queued, retried, cached, rate-limited against a **shared** 
 by somebody who is not this platform.
 
 **The fact most people get wrong: the rate limits are shared across functions, not per function.**
-Every Apify-backed source draws on one budget of 30 calls a minute, and every social-platform read
+Every Apify-backed source draws on your project's one budget of 30 calls a minute, and every social-platform read
 on one ScrapeCreators budget of 120. A flow that searches the web and reads X posts in the same
 fan-out competes with itself, and the ceiling arrives at a number neither function's own page
 mentions.
@@ -97,7 +97,7 @@ on YouTube's list reads it is approximate, worked out from "2 years ago". The
 text of an X post arrives as plain text (`->`, `&`), with no `&gt;` or `&amp;`
 to undo.
 
-The Apify functions share `apify` at 30 a minute. Three <!-- count: functions-in-bucket-youtube --> share `youtube` at 60 a minute **and a single
+Each budget is counted per project. The Apify functions share `apify` at 30 a minute. Three <!-- count: functions-in-bucket-youtube --> share `youtube` at 60 a minute **and a single
 daily quota measured in units, not calls** — a heavy day of channel reads can exhaust what a later
 video read needed. `url.scrape` and `url.screenshot` share `firecrawl` at **10 a minute**, the
 tightest budget here by a wide margin, and both are the slow kind of action: they render a page in a

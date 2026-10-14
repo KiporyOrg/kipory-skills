@@ -17,7 +17,7 @@ Takes an 11-character video id, not a link. Reads automatic and manual captions.
 - **External dependency:** Supadata or ScrapeCreators — Each action picks its vendor (`provider`): Supadata, the default, or ScrapeCreators. Each vendor uses its own API key: the project's own, stored in its secrets, or Kipory's. With `fallback` on — the default — a vendor that fails hands the video to the other; a video with no captions is an answer and is not retried elsewhere, and a key the chosen vendor refuses fails the action.
 - **Credential:** one per vendor the action's `provider` names, each resolved from the secrets vault and falling through to the platform's own key when no node holds one: `supadata` (the default) — type `api_key`, purpose `supadata`; `scrapecreators` — type `api_key`, purpose `scrapecreators`.
 - **Charged as:** with `provider: "supadata"` (the default): `supadata/transcript` per call · with `provider: "scrapecreators"`: `scrapecreators/credit` per item — one of the vendor's own credits, as each response reports them — an answer served from the vendor's cache takes none; a request takes 1, and an action makes one request. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it. An action answered by another vendor through `fallback` is charged that vendor's rows, not its chosen one's.
-- **Rate limit:** 30 per min in bucket `supadata`
+- **Rate limit:** 30 per min in bucket `supadata`, counted per project
 - **Queue:** 2 attempts, exponential from 2 s; waits up to 2 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config

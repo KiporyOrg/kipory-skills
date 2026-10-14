@@ -15,7 +15,7 @@ One call answers every output field as a probability, an option or a number. Tex
 - **Suggested input streams:** `state`
 - **External dependency:** TypeSafe AI — Answers through TypeSafe's decision model, Jev. Uses a TypeSafe AI API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `typesafe` (vendor: TypeSafe AI); falls through to the platform's own key when no node holds one.
-- **Rate limit:** 600 per min in bucket `typesafe`
+- **Rate limit:** 600 per min in bucket `typesafe`, counted per project
 - **Queue:** 2 attempts, exponential from 1 s; waits up to 1 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
