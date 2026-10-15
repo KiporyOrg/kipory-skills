@@ -597,7 +597,7 @@ Each item of `slots`:
 
 ### `GET /v1/flows/{id}/value-recording`
 
-Whether every run this flow starts records its values (inputs, each action's output, the result), and until when. A run of it called from another flow (`flow.invoke`) records them only when its caller's run does; otherwise a production run records them only when sampled. Set it with `PATCH /v1/flows/{id}/value-recording`; a run's values are `GET /v1/runs/{runId}/trace`.
+Whether every run this flow starts records its values (inputs, each action's output, the result), and until when. A run of this flow called from another flow (`flow.invoke`) records them only when its caller's run does; outside a window a production run records them only when sampled. No run records them while this project's recording is turned off by Kipory staff (`blockedByProject`). A change reaches runs this api serves at once, and scheduled, async and record runs within 30 seconds. Set it with `PATCH /v1/flows/{id}/value-recording`; a run's values are `GET /v1/runs/{runId}/trace`.
 
 **Path parameters**
 
@@ -609,12 +609,13 @@ Whether every run this flow starts records its values (inputs, each action's out
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `until` | `string \| null` | yes | Every run this flow starts records its values until this instant, whatever the sampling; `null` when the sampling decides. |
+| `until` | `string \| null` | yes | Every run this flow starts records its values until this instant, unless `blockedByProject` says otherwise; `null` when the sampling decides. |
 | `maxDays` | `number` | yes | How far ahead `until` may be, in days: how long recorded values are kept (`kept-for.trace-days`). |
+| `blockedByProject` | `"all" \| "request-runs" \| "record-runs" \| null` | yes | Runs that record nothing whatever `until` says, because Kipory staff turned recording off for this project: `all`; `request-runs`, the runs a call, a schedule or a trigger starts; `record-runs`, the runs a record change starts. `null` when none. |
 
 ### `PATCH /v1/flows/{id}/value-recording`
 
-Record the values of every run this flow starts until `until`, or stop with `null`. `until` is at most as far ahead as recorded values are kept (`kept-for.trace-days`); a time a few minutes past that is cut to it, a later one is 422. A run of this flow called from another flow (`flow.invoke`) records them only when its caller's run does; otherwise production runs record them only when sampled. Takes no `version`: one field, and the last setting is the intent. Changes no run's outcome and does not count as an edit of the flow. Read it with `GET /v1/flows/{id}/value-recording`.
+Record the values of every run this flow starts until `until`, or stop with `null`. `until` is at most as far ahead as recorded values are kept (`kept-for.trace-days`); a time a few minutes past that is cut to it, a later one is 422. A run of this flow called from another flow (`flow.invoke`) records them only when its caller's run does; outside a window a production run records them only when sampled. No run records them while this project's recording is turned off by Kipory staff (`blockedByProject`). A change reaches runs this api serves at once, and scheduled, async and record runs within 30 seconds. The answer is the stored window, `blockedByProject` included. Takes no `version`: one field, and the last setting is the intent. Changes no run's outcome and does not count as an edit of the flow; the project's History records who changed it, for which flow and until when (`GET /v1/projects/{nodeId}/history`, `valueRecording`). A change moves the project's `structureVersion`, so a project document read before it is refused (409) on apply until it is read again. Read it with `GET /v1/flows/{id}/value-recording`.
 
 **Path parameters**
 
@@ -626,11 +627,12 @@ Record the values of every run this flow starts until `until`, or stop with `nul
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `until` | `string \| null` | yes | Record the values of every run this flow starts until this instant: later than now and at most as far ahead as values are kept (`kept-for.trace-days`). `null` stops. |
+| `until` | `string \| null` | yes | Record the values of every run this flow starts until this instant (an ISO 8601 time; an offset is taken and the answer is in UTC): later than now and at most as far ahead as values are kept (`kept-for.trace-days`). `null` stops. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `until` | `string \| null` | yes | Every run this flow starts records its values until this instant, whatever the sampling; `null` when the sampling decides. |
+| `until` | `string \| null` | yes | Every run this flow starts records its values until this instant, unless `blockedByProject` says otherwise; `null` when the sampling decides. |
 | `maxDays` | `number` | yes | How far ahead `until` may be, in days: how long recorded values are kept (`kept-for.trace-days`). |
+| `blockedByProject` | `"all" \| "request-runs" \| "record-runs" \| null` | yes | Runs that record nothing whatever `until` says, because Kipory staff turned recording off for this project: `all`; `request-runs`, the runs a call, a schedule or a trigger starts; `record-runs`, the runs a record change starts. `null` when none. |

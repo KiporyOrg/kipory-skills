@@ -476,6 +476,7 @@ Each item of `actions`:
 | `resources` | `string[]` | yes | The distinct resources this action touched, for summarising it. ⛔ A summary derived from these may name KINDS and COUNTS and nothing else. No column records what the operator did. |
 | `preview` | `object[]` | yes | The first few changes, for the row's own line. Bounded by the route; read `changeCount` for the real total and the detail route for all of them. |
 | `document` | `object \| null` | yes | Set when this action was ONE project-document apply: what the document's plan counted. NULL for every other action. |
+| `valueRecording` | `object \| null` | yes | Set when this action turned a flow's "record every run" on until a time, or stopped it (`PATCH /v1/flows/{id}/value-recording`): the flow and the new end. NULL for every other action. Such an action changes no configuration, so its `changeCount` is 0 — this field is what it did. |
 
 ### `GET /v1/projects/{nodeId}/history/{structureVersion}`
 
@@ -502,6 +503,7 @@ One applied action and every row it changed. The list is `GET /v1/projects/{node
 | --- | --- | --- | --- |
 | `structureVersion` | `string` | yes | The project configuration version this action produced, as a decimal string. Compare for equality and display it; do not parse it to a number — it is a 64-bit value and JSON cannot carry one. |
 | `document` | `object \| null` | yes | Set when this action was ONE project-document apply: what the document's plan counted. NULL for every other action. |
+| `valueRecording` | `object \| null` | yes | Set when this action turned a flow's "record every run" on until a time, or stopped it (`PATCH /v1/flows/{id}/value-recording`): the flow and the new end. NULL for every other action. Such an action changes no configuration, so its `changeCount` is 0 — this field is what it did. |
 | `at` | `string` | yes | When the action was applied. Shared by every change in it. |
 | `actor` | `object` | yes | Who applied this action. Resolved the same way as on the list. |
 | `changes` | `object[]` | yes | Every recorded change of this action, in a stable order that approximates the order they were written in. ⛔ Every RECORDED one: read `elidedCount` before concluding this is all of them. |

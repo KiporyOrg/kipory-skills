@@ -1,7 +1,9 @@
 {
-  "source": "cc5397fee59c698cc93f91ce979ddc3642e28a49",
+  "source": "c1eb3e3245719863ba0da7838d533e17a95819f7",
   "since": "2026-08-13",
   "history": [
+    {"sha":"c1eb3e324571","skills":"Run pages after the #3484 review: ↑/↓ move between actions, stopped and partial runs, failed inputs follow recording, a recording toggle in History, a fast waterfall (#3493)"},
+    {"sha":"205b24d5df18"},
     {"sha":"cc5397fee59c","skills":"Queuing a record queues it, the runs list finds sub-flow and eval runs, and a timeline row names the fan-out item it ran for (#3489)"},
     {"sha":"5ccbf6e7ce72","skills":"397 follow-ups: Shipped with nothing owed, and the upgrade notes say your scripts must read `types` (#3490)"},
     {"sha":"bbab8a133489","skills":"A fetched page is decoded by the character set it declares, so a windows-1255 feed reads as Hebrew instead of mojibake (F-132) (#3491)"},
@@ -999,8 +1001,6 @@
     {"sha":"9710a37d4df2"},
     {"sha":"8b5632f2fded","skills":"The traces were written, indexed and project-scoped, and had no door (#2476)"},
     {"sha":"9a1373e5f06c"},
-    {"sha":"ffdb09d30b7e"},
-    {"sha":"6101298b5e15"},
-    {"sha":"cbdce468375b","skills":"A manifest records that someone ran a command; only the public repo knows (#2471)"}
+    {"sha":"ffdb09d30b7e"}
   ]
 }
