@@ -2,6 +2,28 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261015.123140 — 2026-10-15
+
+Synced from the Kipory monorepo at `cc5397fee`.
+
+- changed: `skills/kipory-build/references/functions/record.create.md`
+- changed: `skills/kipory-build/references/functions/record.enqueue-process.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-diagnose/references/pitfalls.md`
+- changed: `skills/kipory-diagnose/references/reading-the-timeline.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/pitfalls.md`
+- changed: `skills/kipory-plan/references/build-sheet-example.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+
 ## 1.20261015.122809 — 2026-10-15
 
 Synced from the Kipory monorepo at `5ccbf6e7c`.

@@ -94,4 +94,4 @@ A capture — and a restore, which captures one of its own first — makes the s
 
 ## Then
 
-`kipory-operate` once the flow is worth running unattended, and for what a run cost. `kipory-build` for the checkpoint before a risky edit and the fix after a broken contract. `kipory-evolve` before deleting or changing a flow a suite measures. `kipory-diagnose` when a case fails and you need to see what an action actually emitted — an eval run keeps its traces attached at `GET /v1/eval-runs/{id}/traces/{traceId}`.
+`kipory-operate` once the flow is worth running unattended, and for what a run cost. `kipory-build` for the checkpoint before a risky edit and the fix after a broken contract. `kipory-evolve` before deleting or changing a flow a suite measures. `kipory-diagnose` when a case fails and you need to see what an action actually emitted — an eval run keeps its traces attached at `GET /v1/eval-runs/{id}/traces/{traceId}`, and a case's `runId` opens its run: `GET /v1/runs/{runId}/timeline` has its warnings and each action's outcome, even for a case that passed.

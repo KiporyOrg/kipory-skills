@@ -1,7 +1,8 @@
 {
-  "source": "5ccbf6e7ce72615aa7b4d8855bed96cdb6611a01",
+  "source": "cc5397fee59c698cc93f91ce979ddc3642e28a49",
   "since": "2026-08-13",
   "history": [
+    {"sha":"cc5397fee59c","skills":"Queuing a record queues it, the runs list finds sub-flow and eval runs, and a timeline row names the fan-out item it ran for (#3489)"},
     {"sha":"5ccbf6e7ce72","skills":"397 follow-ups: Shipped with nothing owed, and the upgrade notes say your scripts must read `types` (#3490)"},
     {"sha":"bbab8a133489","skills":"A fetched page is decoded by the character set it declares, so a windows-1255 feed reads as Hebrew instead of mojibake (F-132) (#3491)"},
     {"sha":"e6b0bcfd9f1e","skills":"Docs catch-up, and the four docs rulings built: refusal-code page (395), spec status words (396), `types` in the document (397), builder-facing API notes (398) (#3477)"},
@@ -1000,7 +1001,6 @@
     {"sha":"9a1373e5f06c"},
     {"sha":"ffdb09d30b7e"},
     {"sha":"6101298b5e15"},
-    {"sha":"cbdce468375b","skills":"A manifest records that someone ran a command; only the public repo knows (#2471)"},
-    {"sha":"349286e553bb"}
+    {"sha":"cbdce468375b","skills":"A manifest records that someone ran a command; only the public repo knows (#2471)"}
   ]
 }

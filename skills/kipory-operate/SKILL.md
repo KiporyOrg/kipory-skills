@@ -182,6 +182,7 @@ Each of these is a trap with its explanation and remedy in [references/pitfalls.
 - A schedule's `key` never changes
 - `runs` is one page, newest first.
 - Choose `overlapPolicy` deliberately.
+- A schedule's run keeps the flows it started with.
 - A paused schedule or trigger is not a disabled one.
 - A trigger never catches up.
 - A trigger's `skip` overlap looks at its 20 most recent fires, not only the last.

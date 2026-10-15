@@ -126,16 +126,19 @@ reader can tell "not asked" from "nothing to delete".
 
 ## Running a record's processing flow again
 
-Two actions, for any record the run can reach — a pool record on a run with no user included:
+One action, for any record the run can reach — a pool record on a run with no user included:
 
 ```
-record.update (setStatus: PENDING, clearDerived: true) → make the record processable again
-record.enqueue-process (replay: clean)                 → queue the processing flow
+record.enqueue-process (replay: clean) → set the record pending and queue its processing flow
 ```
 
-The enqueue only queues: the worker processes a record that is `PENDING` and skips any other, so
-without the status reset a `READY` record stays as it was. It answers `false`, with no error, for
-an id the run cannot reach.
+The enqueue sets a `READY` or `FAILED` record back to `PENDING` itself, in the calling run's
+change set, so no `record.update` with `setStatus` is needed before it. It answers `false`, with no
+error, for an id the run cannot reach and for a record being processed or deleted — a parent whose
+own run is under way is not queued again, so a flow that must catch every change reads the answer
+and tries the next time. A processing flow that queues a record whose own flow queues back is a
+loop: each run processes, and is billed, again, until the action in the ninth record run of the
+chain fails `RECORD_HANDOFF_DEPTH_EXCEEDED` rather than queue a tenth.
 
 `replay` says what the new run keeps from the last one. Every mode runs every action again, against
 the flow as it is now — a flow edited since the record last ran is not a reason for refusal.
@@ -148,9 +151,11 @@ the flow as it is now — a flow edited since the record last ran is not a reaso
 
 `resume` and `rerun` behave the same on a record run; only `clean` differs.
 
-**A failed record needs no status reset.** `record.enqueue-process` on a record whose processing
-failed returns it to processing, with the replay mode the action states, as part of the calling
-run's change set — so if the calling run fails, the record is left exactly as it was.
+**A failed or ready record needs no status reset.** `record.enqueue-process` on a record whose
+processing failed or finished returns it to processing, with the replay mode the action states, as
+part of the calling run's change set — so if the calling run fails, the record is left exactly as
+it was. A pending record is queued as it stands. A record being processed or deleted is not
+queued: the action answers `false`, so a flow can tell it apart from a record that was queued.
 
 **A flow that sends failed records back reads `processing`.** Every record read, and every record
 a flow reads, carries `processing { attempts, lastFailureClass }`: how many times the record was

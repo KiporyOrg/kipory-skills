@@ -1567,9 +1567,12 @@ were refused when they were saved), and a `reason` when the refusal is one a cal
 that is no email address, or `more-than-one-recipient` when it was given a list), and a `limitKey` when a limit refused it. It is null on a record that is not `failed`, and for a failure recorded before
 this was kept. A flow reading a record sees `processing`, not `failure`.
 
-`record.enqueue-process` on a **failed** record returns it to processing, with the replay mode
-the action states, as part of the calling run's change set — so if that run fails, the record is
-left exactly as it was. A flow that sends failed records back reads `processing.attempts` to stop
+`record.enqueue-process` on a **failed** or **ready** record returns it to processing, with the
+replay mode the action states, as part of the calling run's change set — so if that run fails, the
+record is left exactly as it was. A pending record is queued as it stands; one being processed or
+deleted is not queued, and the action answers `false`. A record run that queues a record is one
+link of a chain: after eight record runs in a row each queuing the next, the action fails
+(`RECORD_HANDOFF_DEPTH_EXCEEDED`), so two tables whose processing flows queue each other stop. A flow that sends failed records back reads `processing.attempts` to stop
 after a few tries, and `processing.lastFailureClass` to leave alone a record whose failure was its
 own data.
 

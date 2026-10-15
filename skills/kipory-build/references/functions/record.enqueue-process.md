@@ -4,14 +4,14 @@
 
 Send an existing record back through its processing flow.
 
-It does not change the record's status, and fails if the table has no processing flow.
+A ready or failed record is set pending and processed again. One being processed or deleted is not queued: false.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
-- **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each call pushes a new processing job, so a new run processes the record again whenever it is pending by then, as it is when the flow resets its status before this action.
+- **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each call sets the record pending and pushes a new processing job, so every new run processes the record again.
 - **I/O:** `record id` → `boolean`
 - **Also found as:** reprocess, process later, queue record
 - **Reads:** The record id, from the slot `recordIdSlot` names. Everything else is settings on the action. _(shape hint: `record id`)_
-- **Emits:** A bare boolean — `true` once the record's bound processing flow was queued; `false` when the record is absent / owned by another user (no-op).
+- **Emits:** A bare boolean — `true` once the record's processing flow was queued; `false` when the record is absent, another user's, being processed or being deleted.
 
 ## Config
 
@@ -24,11 +24,11 @@ It does not change the record's status, and fails if the table has no processing
 
 ## Worked example
 
-Puts an existing record back on the processing queue. It only triggers; it changes nothing itself.
+Puts an existing record back on the processing queue; a ready or failed record becomes pending again.
 
 #### Queued
 
-The record is pending and its type binds a flow, so it goes on the queue.
+The record is ready and its type binds a flow, so it is set pending and goes on the queue.
 
 Reads `object` → emits `boolean` · 1 in → 1 out
 

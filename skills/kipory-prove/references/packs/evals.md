@@ -340,6 +340,14 @@ replaced, largest first, by `{"_kind": "dropped-oversized", "_bytes", "_head"}` 
 when there is room, its first characters); the whole value is in the case's trace. `null` when the case ran nothing (`invalid`,
 `not-run`, a runner crash) and on runs from before outputs were kept.
 
+**A case's `runId` opens its run.** Each live invocation of the subject is a flow run of its own,
+listed by `GET /v1/runs` with `source.kind: eval` (its `targetId` is the eval run). `runId` names the
+first one, whose trace `traceId` names: `GET /v1/runs/{runId}/timeline` has each action's outcome and
+warnings, a passing case's too, and `…/change-set` what it staged. Its cost is on the eval run's
+spend, not its own. `null` when no run answered and on results from before runs were kept. A
+repeat is a run of its own and is not named on the case; a control arm, which runs the baseline's
+frozen graph, makes no run.
+
 ### A run says whether its contract held
 
 Every run carries `contract`: `verdict` is `held`, `broken`, `incomplete` or `none`, with
