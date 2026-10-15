@@ -58,8 +58,11 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `window` | `"24h" \| "7d" \| "30d"` | no | Narrow to runs STARTED in this window. ⭐ THE SAME VOCABULARY the calls, ingestion and usage surfaces take, so a drill-through from one of them carries its window across without a translation table and a reader who narrowed there is never silently re-widened here. ⚠️ IT FILTERS, IT DOES NOT ORDER: the page is still a keyset on `seq`, and a bound on `at` does not change which column the cursor walks. Ranges on the OPENER's `at` — when the run started — which is what a reader means by a run being 'in' a window. Counted in whole slices, as usage counts it: `24h` from the top of the hour 23 hours before the current one, `7d` and `30d` from 00:00 UTC that many days back counting today. ⛔ NOT VALID WITH `since` or `until` (400): a preset and an explicit range are two answers to one question. |
 | `since` | `string` | no | Only runs STARTED at or after this instant — the explicit form of `window`, for a range no preset names. Ranges on the opener's `at`, like `window`, and filters without changing the cursor. |
 | `until` | `string` | no | Only runs started STRICTLY BEFORE this instant. Omit it for up to now. Refused (400) at or before `since`: that range is empty by construction. |
-| `tally` | `"hour" \| "day"` | no | Also answer how many runs STARTED in each hour or day of the range, as `started`. ⛔ NEEDS A LOWER BOUND (`window` or `since`): refused (400) without one, since an unbounded range has no first slice. Counted on the same instant and under the same `flowKey` as the list, so the slices sum to `total`. Not moved by the cursor. |
-| `starters` | `"1"` | no | Also answer how many runs each starter began in the range, as `starters`: one row per schedule, trigger and endpoint, and one for all records together, each with its runs, how many failed and when it last began one. It is how one endpoint's calls are counted. ⛔ NEEDS A LOWER BOUND (`window` or `since`), as `tally` does. Counted under the same range and `flowKey` as the list. Not moved by the cursor. |
+| `tally` | `"hour" \| "day"` | no | Also answer how many runs STARTED in each hour or day of the range, as `started`. ⛔ NEEDS A LOWER BOUND (`window` or `since`): refused (400) without one, since an unbounded range has no first slice. Counted on the same instant and under the same `flowKey` as the list, but before `outcome` and `source`: the slices sum to every run in the range, which is `total` only when neither is sent. Not moved by the cursor. |
+| `starters` | `"1"` | no | Also answer how many runs each starter began in the range, as `starters`: one row per schedule, trigger and endpoint, and one for all records together, each with its runs, how many failed and when it last began one. It is how one endpoint's calls are counted. ⛔ NEEDS A LOWER BOUND (`window` or `since`), as `tally` does. Counted under the same range and `flowKey` as the list, before `outcome` and `source`. Not moved by the cursor. |
+| `outcome` | `"running" \| "failed" \| "partial" \| "warned" \| "succeeded" \| "other"` | no | Only runs that ended this way. ⛔ NEEDS A LOWER BOUND (`window` or `since`), as `tally` does: how a run ended is on its closing record, so the range is read whole and the matches paged. A range holding too many runs to read is refused (400): narrow it. Pages with the same cursors as the unfiltered list. |
+| `source` | `"schedule" \| "trigger" \| "endpoint" \| "record" \| "request" \| "public" \| "preview" \| "unknown"` | no | Only runs this kind of starter began, as each row's `source.kind` says. ⛔ NEEDS A LOWER BOUND, and is refused (400) over too many runs, as `outcome` is. |
+| `outcomes` | `"1"` | no | Also answer how many runs in the range ended each way, as `outcomes`. ⛔ NEEDS A LOWER BOUND. Counted under `flowKey` and `source` but not `outcome`, so each count says what picking that outcome would list. Not moved by the cursor. |
 | `order` | `"desc" \| "asc"` | no | Which way the list runs by start (insertion `seq`): `desc` (the default) is newest first, `asc` oldest first. |
 
 **Response `200`**
@@ -74,8 +77,9 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the previous page along `order`. `null` on page one. ⛔ MEASURED, NEVER INFERRED FROM THE REQUEST. It was once taken from `after !== undefined` — 'a caller that passed a cursor came from somewhere' — which is true of a caller who walked here and false of every other way of arriving, and is the reasoning `/files` shipped and withdrew after it drew the newer control inert on every jumped page. It is an existence probe now, in both directions. |
 | `since` | `string \| null` | yes | The lower bound the list was read from — the instant `window` resolved to, or the `since` sent — or `null` when neither was asked, so a reader states the range the list was read over rather than re-deriving it from a label and a clock that may differ. |
 | `until` | `string \| null` | yes | The `until` sent, or `null` for up to now. |
-| `started` | `object[] \| null` | yes | Runs started per slice of the range, oldest first, when `tally` was sent. Every slice is PRESENT, a quiet one with zero, so the shape is not compressed. `null` when `tally` was not sent — never an empty list for a range that was not counted. |
-| `starters` | `object[] \| null` | yes | Runs by what started them over the range, most runs first, when `starters=1` was sent. A call to an endpoint is `request` (it answered in the same request), `endpoint` (it answers later) or `public` (no credential), each with the endpoint's key as `targetId`: sum the three for one endpoint's calls. Runs that processed a record are ONE row, `record` with `targetId: null`: which record is on the list's own rows. A starter that began no run in the range has NO row. `null` when `starters` was not sent, or when the count did not finish within its time budget — never an empty list for a range not counted. |
+| `started` | `object[] \| null` | yes | Runs started per slice of the range, oldest first, when `tally` was sent, counting every run in the range before `outcome` and `source`. Every slice is PRESENT, a quiet one with zero, so the shape is not compressed. `null` when `tally` was not sent — never an empty list for a range that was not counted. |
+| `starters` | `object[] \| null` | yes | Runs by what started them over the range, most runs first, when `starters=1` was sent, before `outcome` and `source`. A call to an endpoint is `request` (it answered in the same request), `endpoint` (it answers later) or `public` (no credential), each with the endpoint's key as `targetId`: sum the three for one endpoint's calls. Runs that processed a record are ONE row, `record` with `targetId: null`: which record is on the list's own rows. A starter that began no run in the range has NO row. `null` when `starters` was not sent, or when the count did not finish within its time budget — never an empty list for a range not counted. |
+| `outcomes` | `object \| null` | yes | Runs in the range by how they ended (see `outcome`), when `outcomes=1` was sent. `null` when it was not sent, or when the range holds too many runs to read. |
 
 Each item of `runs`:
 
@@ -115,7 +119,7 @@ Each item of `starters`:
 
 ### `GET /v1/runs/{runId}`
 
-Which run this is — the flow it ran, how it was triggered, how it closed, and its retry attempts. Each sibling answers one aspect: `…/timeline` (what executed, no values), `…/trace` (the values, when sampled), `…/change-set` (what it wrote), `…/flow-snapshots` (the flow as it ran), `…/spend` (what it cost). `messages` counts the messages the run committed to send and how many of them were refused, failed or bounced; a message's delivery never changes how the run closed. List them at `GET /v1/mail-messages?project=&run=`. 404 for an id you cannot see.
+Which run this is — the project it belongs to (`project`, its node id), the flow it ran, how it was triggered, how it closed, and its retry attempts. Each sibling answers one aspect: `…/timeline` (what executed, no values), `…/trace` (the values, when sampled), `…/change-set` (what it wrote), `…/flow-snapshots` (the flow as it ran), `…/spend` (what it cost). `failedInputs` is what each failed action of a record run received, kept with the run's attempt whatever the sampling. `messages` counts the messages the run committed to send and how many of them were refused, failed or bounced; a message's delivery never changes how the run closed. List them at `GET /v1/mail-messages?project=&run=`. 404 for an id you cannot see.
 
 **Path parameters**
 
@@ -127,8 +131,19 @@ Which run this is — the flow it ran, how it was triggered, how it closed, and 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `project` | `string \| null` | yes | The project the run belongs to, as its node id. `null` when the project could not be resolved. |
 | `run` | `object` | yes | The run, in the listing's own row shape, built from its EARLIEST opening frame. ⚠️ `seq` is still its paging cursor in the listing, and is published here so a caller can open the listing at this run rather than at the top. |
 | `messages` | `object` | yes | The run's messages, counted. List them at `GET /v1/mail-messages?project=&run=`. |
+| `adjacent` | `object` | yes | The runs of the same root flow either side of this one, in the listing's order. Both `null` on a run that names no flow. |
+| `failedInputs` | `object[]` | yes | What each failed action of a record run received, exactly as it ran — kept with the run's attempt whatever the sampling, unlike `…/trace`; an earlier attempt of a retried run ages out. Empty for a request or scheduled run, and for an action that failed before its function was called. |
+
+Each item of `failedInputs`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `actionId` | `string` | yes | The action that failed. |
+| `branchId` | `string \| null` | yes | The fan-out branch it failed in; `null` outside one. |
+| `values` | `object` | yes | Each output name the action read → the value it received. Long values are cut and secret-named fields read `[redacted]`; `__omitted` counts fields dropped for size. |
 
 ### `GET /v1/runs/{runId}/change-set`
 

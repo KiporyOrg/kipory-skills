@@ -2,6 +2,18 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261015.22947 — 2026-10-15
+
+Synced from the Kipory monorepo at `bb3f9f019`.
+
+Routes added: `GET /v1/flows/{id}/value-recording`, `PATCH /v1/flows/{id}/value-recording`.
+
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+
 ## 1.20261015.712 — 2026-10-15
 
 Synced from the Kipory monorepo at `1300cb66a`.

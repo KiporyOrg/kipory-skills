@@ -21,6 +21,8 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `POST` | [`/v1/flows/{id}/preview-runs`](#post-v1-flows-id-preview-runs) |  |
 | `POST` | [`/v1/flows/{id}/preview/stream`](#post-v1-flows-id-preview-stream) |  |
 | `GET` | [`/v1/flows/{id}/scope`](#get-v1-flows-id-scope) |  |
+| `GET` | [`/v1/flows/{id}/value-recording`](#get-v1-flows-id-value-recording) |  |
+| `PATCH` | [`/v1/flows/{id}/value-recording`](#patch-v1-flows-id-value-recording) |  |
 
 ### `GET /v1/flows`
 
@@ -592,3 +594,43 @@ Each item of `slots`:
 | `slot` | `string` | yes | The slot's name. |
 | `source` | `object` | yes | Where the shape below comes from: the action the save types the slot from, the flow's inputs, or the platform. |
 | `shape` | `object \| null` | yes | What the slot holds, or null when nothing declares its shape. |
+
+### `GET /v1/flows/{id}/value-recording`
+
+Whether every run this flow starts records its values (inputs, each action's output, the result), and until when. A run of it called from another flow (`flow.invoke`) records them only when its caller's run does; otherwise a production run records them only when sampled. Set it with `PATCH /v1/flows/{id}/value-recording`; a run's values are `GET /v1/runs/{runId}/trace`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `until` | `string \| null` | yes | Every run this flow starts records its values until this instant, whatever the sampling; `null` when the sampling decides. |
+| `maxDays` | `number` | yes | How far ahead `until` may be, in days: how long recorded values are kept (`kept-for.trace-days`). |
+
+### `PATCH /v1/flows/{id}/value-recording`
+
+Record the values of every run this flow starts until `until`, or stop with `null`. `until` is at most as far ahead as recorded values are kept (`kept-for.trace-days`); a time a few minutes past that is cut to it, a later one is 422. A run of this flow called from another flow (`flow.invoke`) records them only when its caller's run does; otherwise production runs record them only when sampled. Takes no `version`: one field, and the last setting is the intent. Changes no run's outcome and does not count as an edit of the flow. Read it with `GET /v1/flows/{id}/value-recording`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `until` | `string \| null` | yes | Record the values of every run this flow starts until this instant: later than now and at most as far ahead as values are kept (`kept-for.trace-days`). `null` stops. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `until` | `string \| null` | yes | Every run this flow starts records its values until this instant, whatever the sampling; `null` when the sampling decides. |
+| `maxDays` | `number` | yes | How far ahead `until` may be, in days: how long recorded values are kept (`kept-for.trace-days`). |

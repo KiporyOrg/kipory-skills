@@ -920,6 +920,10 @@
       "hash": "a534e3c06dd0",
       "page": "kipory-diagnose/references/api/traces.md"
     },
+    "GET /v1/flows/{id}/value-recording": {
+      "hash": "bcac470fad56",
+      "page": "kipory-build/references/api/flows.md"
+    },
     "GET /v1/functions/": {
       "hash": "dc5a918983a8",
       "page": "kipory-build/references/api/functions-and-models.md"
@@ -1164,11 +1168,11 @@
       "page": "kipory-expose/references/api/route-enablement.md"
     },
     "GET /v1/runs/": {
-      "hash": "d16b5d722c3f",
+      "hash": "8f27400ec244",
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}": {
-      "hash": "cf1a143ea74d",
+      "hash": "589ace64bff0",
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}/change-set": {
@@ -1325,6 +1329,10 @@
     },
     "PATCH /v1/flows/{id}": {
       "hash": "513d71d2801b",
+      "page": "kipory-build/references/api/flows.md"
+    },
+    "PATCH /v1/flows/{id}/value-recording": {
+      "hash": "d2da8f14ebc5",
       "page": "kipory-build/references/api/flows.md"
     },
     "PATCH /v1/keys/{id}": {
