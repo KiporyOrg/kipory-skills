@@ -170,9 +170,10 @@ action at level 0, where it reads nothing and skips — which is what `INPUT_STR
 above is for. Read the diagnostic for "is this wired", `canFire` for "can this ever run", and
 `level` only for "in what order".
 
-Three more things a save now says rather than lets through:
+Four more things a save now says rather than lets through:
 
 - **An action that reads only optional flow inputs** warns `ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`. A caller that leaves those inputs out skips the action, so a transform written to default an input never runs. Also read a slot that always arrives, such as `runInfo`, and it runs either way.
+- **A required output that every writer may leave unwritten** warns `FLOW_REQUIRED_OUTPUT_MAY_BE_MISSING`: the writer has a condition, answers a test with no `else`, is a dispatch branch, or reads only slots that may each be missing or an empty list (an empty list counts as absent to an action's inputs), so on such a run it is skipped and the run fails with the output missing. A list written straight to the output is fine: `[]` is a value. For a writer skipped for want of inputs the same fix holds: also read `runInfo`.
 - **A condition whose list key is misspelled** (`{"op": "and", "conditions": [...]}`, where the key is `all`) is refused `INVALID_CONDITION`. It used to be saved as no condition at all.
 - **A `taskKey` no task names** is refused at the write, naming the five it takes. It used to be accepted and fail every live run.
 

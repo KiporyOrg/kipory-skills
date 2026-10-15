@@ -6,7 +6,7 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `7077f857afcb` | `version` on `GET /v1/capability-packs` |
+| packs | `05018fc86096` | `version` on `GET /v1/capability-packs` |
 | functions | `597a778dd15f3181f6f9ce4a7a515fa354fb3e31c4c747108f35a28bb45c48f6` | `version` on `GET /v1/functions` |
 | api | `cc94ee19b8a6` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 
