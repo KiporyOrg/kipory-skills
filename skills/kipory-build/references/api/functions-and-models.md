@@ -37,7 +37,7 @@ The AI models this deployment supports and what each can do, optionally narrowed
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `models` | `object[]` | yes | Every model this deployment supports, ordered by `modelId` so a diff between two reads is stable. Models an operator has disabled are absent, not listed as unavailable. |
+| `models` | `object[]` | yes | Every model this deployment supports, ordered by `modelId`. Models an operator has disabled are absent, not listed as unavailable. |
 
 Each item of `models`:
 
@@ -47,7 +47,7 @@ Each item of `models`:
 | `creator` | `string` | yes | Who made the model — `openai`, `anthropic`, `meta`. Not necessarily an account this deployment holds: a model reached through a gateway has a creator the platform has no relationship with. |
 | `displayName` | `string` | yes | Human label for a picker, e.g. “GPT-4o mini”. |
 | `description` | `string \| null` | yes | When to reach for this model, when the catalog row says. Null when no guidance has been written. |
-| `offers` | `object[]` | yes | Where this deployment can obtain the model. A model served by its creator and by a gateway lists both; the platform chooses, and the choice does not change what the model is or what you write. Replaces the single `provider` field, which could not describe a model reachable more than one way. What each provider CHARGES is deliberately absent — see the pricing surface for what you pay. |
+| `offers` | `object[]` | yes | Where this deployment can obtain the model. A model served by its creator and by a gateway lists both; the platform chooses, and the choice does not change what the model is or what you write. What you pay is `GET /v1/nodes/{nodeId}/model-prices`. |
 | `type` | `"chat" \| "embedding" \| "transcription" \| "rerank" \| "decision"` | yes | Capability class. Determines which actions can run on the model, and whether the embedding fields below are populated. |
 | `contextWindow` | `integer \| null` | yes | Total token budget the model accepts (prompt + completion). Null when the vendor declares none in tokens — audio models are priced per minute and have no token budget. |
 | `maxOutputTokens` | `integer \| null` | yes | Maximum completion tokens. Null when undeclared, and always null on embedding and rerank models, which produce no completion. |
@@ -59,7 +59,7 @@ Each item of `models`:
 | `supportsVideo` | `boolean` | yes | Accepts video file inputs — `video` is among `inputModalities`. |
 | `supportsJson` | `boolean` | yes | Supports structured output — required to give a generation action an output schema. |
 | `supportsFunctionCalling` | `boolean` | yes | Supports provider-side tool/function calling. |
-| `supportsTemperature` | `boolean` | yes | The model accepts a `temperature`. FALSE means the platform REMOVES any temperature set on an action before the call — the model is not asked for one and no error is raised — so a surface offering the setting should say so rather than report a value that will be discarded. |
+| `supportsTemperature` | `boolean` | yes | The model accepts a `temperature`. FALSE means the platform REMOVES any temperature set on an action before the call — the model is not asked for one and no error is raised. |
 | `canReason` | `boolean` | yes | The model can spend hidden reasoning tokens before it answers. The `reasoning` task may only bind to a model where this is true. |
 | `reasoningEfforts` | `string[]` | yes | The effort levels the vendor accepts for that reasoning, in the vendor's own words (`low`, `medium`, `high`, …). Empty when the model has no dial, including models that reason at a fixed depth. |
 | `embeddingDimensions` | `integer \| null` | yes | Output dimension count. Non-null exactly on embedding models. |
@@ -98,12 +98,12 @@ Each item of `functions`:
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this function, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers functions under, so a reader meets one vocabulary rather than two. |
+| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to — one of `groups[]`. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this function executes. It constrains where an action using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What an action editor must ask the operator for this function: which work surface to show, whether a prompt and a model are required, and where this function's inputs and output slot come from. Always fully populated — a function that declares nothing is served the platform defaults, so a client never applies a default of its own. |
 | `glance` | `object` | yes | What goes in, what the action does, what comes out — in plain words. |
-| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`, so one row can be drawn on its own. |
+| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`. |
 | `searchWords` | `string[]` | yes | The words a customer types for what this function does — tasks, outcomes, everyday terms. Match them to find a function by intent; they may be shown. |
 | `searchProductNames` | `string[]` | yes | Other products' names a customer may type for what this function does ("chatgpt"). Match them; never show them. Empty when none. |
 | `essentials` | `object[]` | yes | The settings that matter, in reading order: every required one, then those that change the result. Empty when none is worth a card. |
@@ -115,10 +115,10 @@ Each item of `functions`:
 | `externalDep` | `object` | no | An outside service this function depends on, when it needs one. |
 | `followsTaskModel` | `boolean` | yes | True when the model this function runs on is decided by the action's `taskKey` binding, so changing that binding moves this action. False when the function uses no model at all, or picks one a task binding cannot move. |
 | `attachesFiles` | `boolean` | yes | True when this function attaches a file-shaped input to what the model is sent — no `{{placeholder}}` names it, and the action's prompt is not where it is wired. False when a file input is refused outright, and for every function that calls no model. |
-| `templateFilters` | `object[]` | yes | The `{{slot\|filter}}` suffixes this function's templates may use, sorted by name and already narrowed to what its own save would accept. A function that caches its results omits the clock-reading filters, because a cached answer would keep a phrase like "5 years ago" long after it stopped being true. |
+| `templateFilters` | `object[]` | yes | The `{{slot\|filter}}` suffixes this function's templates may use, sorted by name and already narrowed to what its own save would accept. A function that caches its results omits the clock-reading filters. |
 | `config` | `object[]` | yes | The settings an action using this function can tune. Empty for functions with nothing to configure. |
-| `configConstraints` | `object[]` | no | Rules about SEVERAL config settings at once, which no single field carries. Absent means this function declares none. A form reads these to draw a pair as one unit BEFORE it is broken, and to mark a setting the current config makes inert; the platform evaluates the same list, so a refusal and the drawing cannot disagree. |
-| `configOutputSlots` | `object[]` | no | Where this function's config names the slots the action WRITES. Absent means the config names none and the action's own output slot is the whole answer. A form reads these to draw those settings as slot NAMES — which a rename has to carry across every action that reads them — rather than as free text. |
+| `configConstraints` | `object[]` | no | Rules about SEVERAL config settings at once, which no single field carries. Absent means this function declares none. The platform checks the same list when an action is saved. |
+| `configOutputSlots` | `object[]` | no | Where this function's config names the slots the action WRITES. Absent means the config names none and the action's own output slot is the whole answer. ⚠️ Each value there is a slot NAME other actions read, not free text. |
 | `io` | `object` | yes | Input and output as comparable tokens, beside the prose in `reads` / `emits`. |
 | `rateLimit` | `object` | no | How fast it may call upstream, and whose allowance that spends. Absent means it declares no limit and counts into no bucket -- which is NOT the same as being free. |
 | `credential` | `object` | no | The secret-vault credential this function resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU function, and ALSO of the AI ones: a model call runs on the platform's own key for its provider, and no project can bring one. For a function whose vendor is chosen per action, the DEFAULT vendor's -- see `providers`. |
@@ -174,12 +174,12 @@ Any authenticated caller; the answer is the same for everyone.
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
 | `icon` | `string` | yes | A name for the glyph that stands for this function, authored beside it on its own descriptor. An OPEN vocabulary: a client resolves it through a table with a fallback and must render something for a name it does not know. |
-| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to -- the same taxonomy the flow editor offers functions under, so a reader meets one vocabulary rather than two. |
+| `group` | `"ai" \| "text" \| "sources" \| "files" \| "search" \| "records" \| "outbound" \| "flow" \| "utility"` | yes | The picker group it belongs to — one of `groups[]`. |
 | `phase` | `"ingest" \| "inline" \| "control"` | yes | When in a run this function executes. It constrains where an action using it can sit in a flow. |
 | `effectClass` | `"read" \| "idempotent-side-effect" \| "record-mutation"` | yes | What kind of effect running it has — whether it writes anything durable, and what. Whether a re-run repeats the write is `run.retry`. |
 | `editor` | `object` | yes | What an action editor must ask the operator for this function: which work surface to show, whether a prompt and a model are required, and where this function's inputs and output slot come from. Always fully populated — a function that declares nothing is served the platform defaults, so a client never applies a default of its own. |
 | `glance` | `object` | yes | What goes in, what the action does, what comes out — in plain words. |
-| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`, so one row can be drawn on its own. |
+| `groupWord` | `string` | yes | The word this function's group is shown by ("Tables" for `records`), the same as on `groups[]`. |
 | `searchWords` | `string[]` | yes | The words a customer types for what this function does — tasks, outcomes, everyday terms. Match them to find a function by intent; they may be shown. |
 | `searchProductNames` | `string[]` | yes | Other products' names a customer may type for what this function does ("chatgpt"). Match them; never show them. Empty when none. |
 | `essentials` | `object[]` | yes | The settings that matter, in reading order: every required one, then those that change the result. Empty when none is worth a card. |
@@ -191,10 +191,10 @@ Any authenticated caller; the answer is the same for everyone.
 | `externalDep` | `object` | no | An outside service this function depends on, when it needs one. |
 | `followsTaskModel` | `boolean` | yes | True when the model this function runs on is decided by the action's `taskKey` binding, so changing that binding moves this action. False when the function uses no model at all, or picks one a task binding cannot move. |
 | `attachesFiles` | `boolean` | yes | True when this function attaches a file-shaped input to what the model is sent — no `{{placeholder}}` names it, and the action's prompt is not where it is wired. False when a file input is refused outright, and for every function that calls no model. |
-| `templateFilters` | `object[]` | yes | The `{{slot\|filter}}` suffixes this function's templates may use, sorted by name and already narrowed to what its own save would accept. A function that caches its results omits the clock-reading filters, because a cached answer would keep a phrase like "5 years ago" long after it stopped being true. |
+| `templateFilters` | `object[]` | yes | The `{{slot\|filter}}` suffixes this function's templates may use, sorted by name and already narrowed to what its own save would accept. A function that caches its results omits the clock-reading filters. |
 | `config` | `object[]` | yes | The settings an action using this function can tune. Empty for functions with nothing to configure. |
-| `configConstraints` | `object[]` | no | Rules about SEVERAL config settings at once, which no single field carries. Absent means this function declares none. A form reads these to draw a pair as one unit BEFORE it is broken, and to mark a setting the current config makes inert; the platform evaluates the same list, so a refusal and the drawing cannot disagree. |
-| `configOutputSlots` | `object[]` | no | Where this function's config names the slots the action WRITES. Absent means the config names none and the action's own output slot is the whole answer. A form reads these to draw those settings as slot NAMES — which a rename has to carry across every action that reads them — rather than as free text. |
+| `configConstraints` | `object[]` | no | Rules about SEVERAL config settings at once, which no single field carries. Absent means this function declares none. The platform checks the same list when an action is saved. |
+| `configOutputSlots` | `object[]` | no | Where this function's config names the slots the action WRITES. Absent means the config names none and the action's own output slot is the whole answer. ⚠️ Each value there is a slot NAME other actions read, not free text. |
 | `io` | `object` | yes | Input and output as comparable tokens, beside the prose in `reads` / `emits`. |
 | `rateLimit` | `object` | no | How fast it may call upstream, and whose allowance that spends. Absent means it declares no limit and counts into no bucket -- which is NOT the same as being free. |
 | `credential` | `object` | no | The secret-vault credential this function resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU function, and ALSO of the AI ones: a model call runs on the platform's own key for its provider, and no project can bring one. For a function whose vendor is chosen per action, the DEFAULT vendor's -- see `providers`. |
@@ -224,7 +224,7 @@ Each item of `config`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `name` | `string` | yes | The config field's name. A nested object surfaces as one field of type `object` rather than being flattened; its own fields arrive in `members`. |
+| `name` | `string` | yes | The config field's name. A nested object surfaces as one field of type `object`; its own fields arrive in `members`. |
 | `type` | `string` | yes | A compact type label — `string`, `number`, `boolean`, `string[]`, `object`, `object[]`, `enum` (see `enumValues`), `union` for a field that takes one of several shapes and `union[]` for a list whose items each do (see `options`), or a `\|`-joined list of plain types such as `string \| number \| boolean`. Any of them ends in ` \| null` when the field may be null, as in `enum \| null`; a list whose items take several types reads `(string \| number)[]`. |
 | `members` | `object[]` | no | The fields inside, in the order the function declares them — an `object`'s own fields, or the fields of each item of an `object[]`, nullable or not. Absent when the object has no fixed fields, such as a map from names to slots. |
 | `options` | `object[]` | no | The shapes a `union` or `union \| null` field may take, or each item of a `union[]` one, one per alternative, in declared order. A fixed value arrives as `value` and an object as its `members`; an alternative that is neither carries both absent. |
@@ -285,7 +285,7 @@ What each model in the catalog costs at this node — the price a call made here
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode to price the catalog for. Prices come from the platform's price rules, which are platform-wide today; the node is the address so a tenant's own price needs no route change. A project's id is its node id. |
+| `nodeId` | `string` | yes | The node to price the catalog for. Prices are the same at every node today. A project's id is its node id. |
 
 **Response `200`**
 
@@ -301,8 +301,8 @@ Each item of `prices`:
 | --- | --- | --- | --- |
 | `modelId` | `string` | yes | The model this price is for — an id from `GET /v1/ai-models`. |
 | `operation` | `string` | yes | The billable operation — `tokens-in`, `tokens-out`, `embed-tokens`, `transcribe-minutes` or `rerank`. A model bills the ones its TYPE declares, never the ones that happen to carry a non-zero rate. |
-| `unit` | `"million-tokens" \| "minute" \| "search"` | yes | What `credits` is the price OF. Token operations quote a million tokens because a per-token figure in credits is a fraction nobody can read; audio quotes a minute and rerank a search. |
-| `credits` | `number \| null` | yes | The charged price in credits (1 credit = 1 µUSD) for one `unit`. Always a POSITIVE integer or null; zero is never published. Null means no single per-unit figure describes this address — nothing prices it (the charge path's `PRICE_NO_MATCH`), the price is zero with no rule choosing that (which the coverage report grades as an unpriced address, not a free tier), the price carries a unit allowance or floor the charge applies, or the rate is too small to word at this unit. None of them is a claim that the operation is free. |
+| `unit` | `"million-tokens" \| "minute" \| "search"` | yes | What `credits` is the price OF. Token operations quote a million tokens, audio a minute and rerank a search. |
+| `credits` | `number \| null` | yes | The charged price in credits (1 credit = 1 µUSD) for one `unit`. Always a POSITIVE integer or null; zero is never published. Null means no single per-unit figure describes this address — nothing prices it, the price is zero with no rule choosing that, the price carries a unit allowance or floor the charge applies, or the rate is too small to word at this unit. None of them is a claim that the operation is free. |
 
 Each item of `tiers`:
 
@@ -319,7 +319,7 @@ Which provider account each model's calls go to at this node — the nearest rou
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode. ⚠️ A node id, not a project id. |
+| `nodeId` | `string` | yes | The node. ⚠️ A node id, not a project id. |
 
 **Response `200`**
 
@@ -346,7 +346,7 @@ Set this node's routing policy for one model — the provider order and failover
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode. ⚠️ A node id, not a project id. |
+| `nodeId` | `string` | yes | The node. ⚠️ A node id, not a project id. |
 | `modelId` | `string` | yes | The model, `creator/slug` — URL-encode the slash. |
 
 **Request body**
@@ -381,7 +381,7 @@ Clear this node's own routing policy for one model, answering `{id: <modelId>, d
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode. ⚠️ A node id, not a project id. |
+| `nodeId` | `string` | yes | The node. ⚠️ A node id, not a project id. |
 | `modelId` | `string` | yes | The model, `creator/slug` — URL-encode the slash. |
 
 **Response `200`**
@@ -411,7 +411,7 @@ Which model each AI task kind resolves to at this node, and which layer decided 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
+| `nodeId` | `string` | yes | The node whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
 
 **Response `200`**
 
@@ -419,8 +419,8 @@ Which model each AI task kind resolves to at this node, and which layer decided 
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The node these bindings were resolved at. |
 | `nodeName` | `string` | yes | That node's display name. |
-| `nodeKind` | `string` | yes | That node's kind, UPPERCASE — `SYSTEM` \| `ORGANIZATION` \| `PROJECT`, the Prisma enum verbatim. ⚠️ NOT the lowercase `orgNodeKind` vocabulary the bootstrap and `/v1/nodes` surfaces send; the two spell the same three values differently, so a comparison written against the wrong one is always false and every row silently reads as unbound. ⚠️ And `isSystemRoot` is the field that answers “is this the platform layer”, not this one — see there. |
-| `isSystemRoot` | `boolean` | yes | Whether this node is the tree's root — the PLATFORM layer, whose bindings every project inherits unless something nearer overrides them. ⭐ It is stated rather than derived because a client cannot compute it: the root is the node with no parent, and `parentId` is not on this response. Deriving it from `nodeKind` or from a `decidedAt.depth` is the mistake this field exists to prevent. |
+| `nodeKind` | `string` | yes | That node's kind, UPPERCASE, as written — `SYSTEM` \| `ORGANIZATION` \| `PROJECT`. ⚠️ NOT the lowercase `orgNodeKind` vocabulary the bootstrap and `/v1/nodes` surfaces send; the two spell the same three values differently, so a comparison written against the wrong one is always false and every row silently reads as unbound. ⚠️ And `isSystemRoot` is the field that answers “is this the platform layer”, not this one. |
+| `isSystemRoot` | `boolean` | yes | Whether this node is the tree's root — the PLATFORM layer, whose bindings every project inherits unless something nearer overrides them. ⭐ Read this; do not derive it from `nodeKind` or from a `decidedAt.depth`. |
 | `tasks` | `object[]` | yes | Every task kind in the taxonomy, in declaration order — including the ones this node has not bound, which carry what they inherit. |
 | `generationTimeLimitMs` | `integer` | yes | What an AI generation call stops at when neither its action nor its task sets a limit. The DEPLOYMENT's, at every node — it does not inherit down the tree and this node cannot change it. |
 
@@ -430,14 +430,14 @@ Each item of `tasks`:
 | --- | --- | --- | --- |
 | `task` | `string` | yes | The task kind — what an action names in `taskKey` to select a model by role rather than by id. |
 | `modelId` | `string` | yes | The model an action with this `taskKey` actually runs on. |
-| `offer` | `object \| null` | yes | WHERE the model is obtained for this task: one model as served by one provider. Replaces the bare `provider` field, which could not say what the provider calls the model. ⛔ `null` MEANS NOTHING SERVES IT: a binding names `modelId` and every offer of that model is switched off, so an AI call following this task FAILS rather than running on some other model. Rebind or clear the task on `decidedAt`, or enable an offer of the model. |
+| `offer` | `object \| null` | yes | WHERE the model is obtained for this task: one model as served by one provider. ⛔ `null` MEANS NOTHING SERVES IT: a binding names `modelId` and every offer of that model is switched off, so an AI call following this task FAILS rather than running on some other model. Rebind or clear the task on `decidedAt`, or enable an offer of the model. |
 | `failover` | `"none" \| "on-exhaustion"` | yes | Whether a call following this task may be retried through the model's next offer when the first account is out of quota or credit — the nearest routing policy's (`/v1/nodes/{nodeId}/routing`), `none` without one. |
 | `retirement` | `object \| null` | yes | The model is on its way out — move this binding before its sunset. Null for a model in service. |
-| `source` | `"node" \| "environment" \| "code-default"` | yes | WHICH layer decided, and the reason this read exists. `node` — a binding on the ownership tree, and `decidedAt` says which node set it. `environment` — a deployment env var. `code-default` — the platform's built-in, which means nobody has bound this task anywhere. |
+| `source` | `"node" \| "environment" \| "code-default"` | yes | WHICH layer decided. `node` — a binding on the ownership tree, and `decidedAt` says which node set it. `environment` — a deployment env var. `code-default` — the platform's built-in, which means nobody has bound this task anywhere. |
 | `decidedAt` | `object \| null` | yes | The node that decided, or null when no binding on the chain answered and the env var or the built-in supplied the model. Present exactly when `source` is `node`. |
-| `reasoningEffort` | `string \| null` | yes | The reasoning-effort override the deciding binding carried, or null when it carried none. ⚠️ It inherits on the SAME walk as the model and comes off the SAME row, so the pair cannot disagree. |
-| `assignableToAction` | `boolean` | yes | Whether an action may name this task in `taskKey`. The taxonomy is wider than what an action can select, so offering the whole list in a picker would let an author pick a task the write refuses. ⚠️ THREE of the eight come back false today — `transcription` and `rerank`, resolved by their functions directly, plus `substrate-embedding`. Filter on THIS FIELD rather than on a remembered list of exceptions. |
-| `timeLimitMs` | `integer \| null` | yes | The per-call time limit this task's AI calls get when an action sets none of its own, or null when none is configured — an AI generation call then stops at `generationTimeLimitMs`, and an embed, rerank or transcribe call at its function's own wait. ⛔ THE DEPLOYMENT'S, AND THE ONE SETTING HERE THAT DOES NOT INHERIT — it is read from the system root alone, because a deadline spends a shared worker's time rather than the tenant's own. A write that sets one on a project is refused. |
+| `reasoningEffort` | `string \| null` | yes | The reasoning-effort override the deciding binding carried, or null when it carried none. ⚠️ It always comes from the same binding as the model. |
+| `assignableToAction` | `boolean` | yes | Whether an action may name this task in `taskKey`. The taxonomy is wider than what an action can select. ⚠️ THREE of the eight come back false today — `transcription` and `rerank`, resolved by their functions directly, plus `substrate-embedding`. Filter on THIS FIELD rather than on a remembered list of exceptions. |
+| `timeLimitMs` | `integer \| null` | yes | The per-call time limit this task's AI calls get when an action sets none of its own, or null when none is configured — an AI generation call then stops at `generationTimeLimitMs`, and an embed, rerank or transcribe call at its function's own wait. ⛔ THE DEPLOYMENT'S, AND THE ONE SETTING HERE THAT DOES NOT INHERIT. A write that sets one on a project is refused. |
 | `callable` | `boolean` | yes | Whether a call following this task would be served on this deployment: a switched-on account serves the model AND the deployment holds that account's key. False on an inherited row means the binding above cannot run here — bind the task at this node. Configuration only: whether that account is answering calls right now is `serving`. |
 | `inherited` | `object \| null` | yes | Present when `boundHere` is true and the node has a parent: what the task would resolve to without this node's binding. Null otherwise — an inherited row already IS that answer. |
 | `boundHere` | `boolean` | yes | Whether THIS node carries the binding — equivalently, `decidedAt` is this node at depth 0. False means the value is inherited from an ancestor (or, when `source` is not `node`, from an env var or the platform's built-in) and clearing it here would change nothing. |
@@ -452,7 +452,7 @@ Bind a task kind to a model at this node; every project beneath it follows unles
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
+| `nodeId` | `string` | yes | The node whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
 | `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding"` | yes | The pipeline task kind this binding is for. |
 
 **Request body**
@@ -468,8 +468,8 @@ Bind a task kind to a model at this node; every project beneath it follows unles
 | --- | --- | --- | --- |
 | `nodeId` | `string` | yes | The node these bindings were resolved at. |
 | `nodeName` | `string` | yes | That node's display name. |
-| `nodeKind` | `string` | yes | That node's kind, UPPERCASE — `SYSTEM` \| `ORGANIZATION` \| `PROJECT`, the Prisma enum verbatim. ⚠️ NOT the lowercase `orgNodeKind` vocabulary the bootstrap and `/v1/nodes` surfaces send; the two spell the same three values differently, so a comparison written against the wrong one is always false and every row silently reads as unbound. ⚠️ And `isSystemRoot` is the field that answers “is this the platform layer”, not this one — see there. |
-| `isSystemRoot` | `boolean` | yes | Whether this node is the tree's root — the PLATFORM layer, whose bindings every project inherits unless something nearer overrides them. ⭐ It is stated rather than derived because a client cannot compute it: the root is the node with no parent, and `parentId` is not on this response. Deriving it from `nodeKind` or from a `decidedAt.depth` is the mistake this field exists to prevent. |
+| `nodeKind` | `string` | yes | That node's kind, UPPERCASE, as written — `SYSTEM` \| `ORGANIZATION` \| `PROJECT`. ⚠️ NOT the lowercase `orgNodeKind` vocabulary the bootstrap and `/v1/nodes` surfaces send; the two spell the same three values differently, so a comparison written against the wrong one is always false and every row silently reads as unbound. ⚠️ And `isSystemRoot` is the field that answers “is this the platform layer”, not this one. |
+| `isSystemRoot` | `boolean` | yes | Whether this node is the tree's root — the PLATFORM layer, whose bindings every project inherits unless something nearer overrides them. ⭐ Read this; do not derive it from `nodeKind` or from a `decidedAt.depth`. |
 | `tasks` | `object[]` | yes | Every task kind in the taxonomy, in declaration order — including the ones this node has not bound, which carry what they inherit. |
 | `generationTimeLimitMs` | `integer` | yes | What an AI generation call stops at when neither its action nor its task sets a limit. The DEPLOYMENT's, at every node — it does not inherit down the tree and this node cannot change it. |
 
@@ -479,14 +479,14 @@ Each item of `tasks`:
 | --- | --- | --- | --- |
 | `task` | `string` | yes | The task kind — what an action names in `taskKey` to select a model by role rather than by id. |
 | `modelId` | `string` | yes | The model an action with this `taskKey` actually runs on. |
-| `offer` | `object \| null` | yes | WHERE the model is obtained for this task: one model as served by one provider. Replaces the bare `provider` field, which could not say what the provider calls the model. ⛔ `null` MEANS NOTHING SERVES IT: a binding names `modelId` and every offer of that model is switched off, so an AI call following this task FAILS rather than running on some other model. Rebind or clear the task on `decidedAt`, or enable an offer of the model. |
+| `offer` | `object \| null` | yes | WHERE the model is obtained for this task: one model as served by one provider. ⛔ `null` MEANS NOTHING SERVES IT: a binding names `modelId` and every offer of that model is switched off, so an AI call following this task FAILS rather than running on some other model. Rebind or clear the task on `decidedAt`, or enable an offer of the model. |
 | `failover` | `"none" \| "on-exhaustion"` | yes | Whether a call following this task may be retried through the model's next offer when the first account is out of quota or credit — the nearest routing policy's (`/v1/nodes/{nodeId}/routing`), `none` without one. |
 | `retirement` | `object \| null` | yes | The model is on its way out — move this binding before its sunset. Null for a model in service. |
-| `source` | `"node" \| "environment" \| "code-default"` | yes | WHICH layer decided, and the reason this read exists. `node` — a binding on the ownership tree, and `decidedAt` says which node set it. `environment` — a deployment env var. `code-default` — the platform's built-in, which means nobody has bound this task anywhere. |
+| `source` | `"node" \| "environment" \| "code-default"` | yes | WHICH layer decided. `node` — a binding on the ownership tree, and `decidedAt` says which node set it. `environment` — a deployment env var. `code-default` — the platform's built-in, which means nobody has bound this task anywhere. |
 | `decidedAt` | `object \| null` | yes | The node that decided, or null when no binding on the chain answered and the env var or the built-in supplied the model. Present exactly when `source` is `node`. |
-| `reasoningEffort` | `string \| null` | yes | The reasoning-effort override the deciding binding carried, or null when it carried none. ⚠️ It inherits on the SAME walk as the model and comes off the SAME row, so the pair cannot disagree. |
-| `assignableToAction` | `boolean` | yes | Whether an action may name this task in `taskKey`. The taxonomy is wider than what an action can select, so offering the whole list in a picker would let an author pick a task the write refuses. ⚠️ THREE of the eight come back false today — `transcription` and `rerank`, resolved by their functions directly, plus `substrate-embedding`. Filter on THIS FIELD rather than on a remembered list of exceptions. |
-| `timeLimitMs` | `integer \| null` | yes | The per-call time limit this task's AI calls get when an action sets none of its own, or null when none is configured — an AI generation call then stops at `generationTimeLimitMs`, and an embed, rerank or transcribe call at its function's own wait. ⛔ THE DEPLOYMENT'S, AND THE ONE SETTING HERE THAT DOES NOT INHERIT — it is read from the system root alone, because a deadline spends a shared worker's time rather than the tenant's own. A write that sets one on a project is refused. |
+| `reasoningEffort` | `string \| null` | yes | The reasoning-effort override the deciding binding carried, or null when it carried none. ⚠️ It always comes from the same binding as the model. |
+| `assignableToAction` | `boolean` | yes | Whether an action may name this task in `taskKey`. The taxonomy is wider than what an action can select. ⚠️ THREE of the eight come back false today — `transcription` and `rerank`, resolved by their functions directly, plus `substrate-embedding`. Filter on THIS FIELD rather than on a remembered list of exceptions. |
+| `timeLimitMs` | `integer \| null` | yes | The per-call time limit this task's AI calls get when an action sets none of its own, or null when none is configured — an AI generation call then stops at `generationTimeLimitMs`, and an embed, rerank or transcribe call at its function's own wait. ⛔ THE DEPLOYMENT'S, AND THE ONE SETTING HERE THAT DOES NOT INHERIT. A write that sets one on a project is refused. |
 | `callable` | `boolean` | yes | Whether a call following this task would be served on this deployment: a switched-on account serves the model AND the deployment holds that account's key. False on an inherited row means the binding above cannot run here — bind the task at this node. Configuration only: whether that account is answering calls right now is `serving`. |
 | `inherited` | `object \| null` | yes | Present when `boundHere` is true and the node has a parent: what the task would resolve to without this node's binding. Null otherwise — an inherited row already IS that answer. |
 | `boundHere` | `boolean` | yes | Whether THIS node carries the binding — equivalently, `decidedAt` is this node at depth 0. False means the value is inherited from an ancestor (or, when `source` is not `node`, from an env var or the platform's built-in) and clearing it here would change nothing. |
@@ -501,14 +501,14 @@ Stop binding a task at this node. The task then falls to the nearest binding abo
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
+| `nodeId` | `string` | yes | The node whose bindings to read — a project (its id), an organization, or the root, whose bindings are the platform's defaults. |
 | `task` | `"embedding" \| "extraction" \| "reasoning" \| "summarization" \| "tiebreak" \| "transcription" \| "rerank" \| "substrate-embedding"` | yes | The pipeline task kind this binding is for. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The task whose binding at this node was cleared — a binding is keyed by its task under the node. |
+| `id` | `string` | yes | The task whose binding at this node was cleared. |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `bindings` | `object` | yes | The node's bindings after the clear — what `GET /v1/nodes/{nodeId}/task-models` now answers, including what the cleared task falls to. |
 
@@ -520,7 +520,7 @@ What each paid fetch costs at this node — the price a source function's vendor
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The OrgNode to price the catalog for. Prices come from the platform's price rules, which are platform-wide today; the node is the address so a tenant's own price needs no route change. A project's id is its node id. |
+| `nodeId` | `string` | yes | The node to price the catalog for. Prices are the same at every node today. A project's id is its node id. |
 
 **Response `200`**
 

@@ -3,7 +3,7 @@
 # Capability pack — Relations & links
 
 > **Source of truth for facts:** endpoint paths & request shapes → live `GET /v1/openapi.json`.
-> The declaration half rides on the table, so its shape is the table schema. This pack
+> The declaration half rides on the table, so its wire form is the table's. This pack
 > carries judgment, not field lists.
 
 ## Read this first
@@ -37,7 +37,7 @@ it and governs everything that can happen to it afterwards — see
 Three things are authored and one is derived:
 
 - **A relation** is the definition of a kind of link: a key, a label, a direction, a producer,
-  optionally a cardinality, and optionally a shape for the link's properties.
+  optionally a cardinality, and optionally a type for the link's properties.
 - **A pairing** declares that a relation applies between two specific tables. The triple of
   relation, from and to _is_ the row — which is why there is nothing to update on one.
 - **A `link` use on the table** names, on a field, **which relation its reference feeds** —
@@ -147,7 +147,7 @@ write path plans one source's links at a time. `many-to-one` is the closest ther
 
 The pair-sorting a symmetric relation does is why: the degree count runs on the STORED `source`,
 which after the swap is whichever record id happens to sort lower — so the limit would fall on an
-arbitrary half of the pair. Two records with the same shape of data would get different limits. Make
+arbitrary half of the pair. Two records with the same data would get different limits. Make
 the relation directed if one end really is the "one".
 
 - **Which producer.** `field` means the link is a projection of stored data — the field is the
@@ -227,7 +227,7 @@ The generated property is exactly what a `recordRef` compiles to, as a list:
     },
     "required": ["ref"],
     // Open, so a properties type declared later has somewhere to put its
-    // values without reshaping a field whose records already hold data.
+    // values without changing a field whose records already hold data.
     "additionalProperties": true,
   },
   "x-owned-by-link": "<the kind's key>",
@@ -243,7 +243,7 @@ a scalar string (one target) and an array of objects read through an `element` s
 link usually means many, so a generated field is the element form. Write records against the
 element shape, or your links are silently absent.
 
-`x-owned-by-link` names **which** link decides the field's shape, which is what a reader needs in
+`x-owned-by-link` names **which** link decides the field's definition, which is what a reader needs in
 order to go and change it. ⚠️ It is not a lock — nothing refuses a later hand-edit of the property,
 and a field-level permission is not built.
 
@@ -262,7 +262,7 @@ and must not collide with one of the reserved system field names every record al
 Both come back as `VALIDATION_FAILED` carrying
 `TABLE_CONTRACT_UNDERIVABLE`. ⚠️ It is the same rule, and the same refusal, that guards a
 field added through `PATCH /v1/types/{id}` — the create checks it explicitly rather than
-inheriting it, because it writes the shape inside its own transaction. A name like `$%^` was
+inheriting it, because it writes the type inside its own transaction. A name like `$%^` was
 accepted and written before that was closed.
 
 ⛔ **It is additive and refuses a name that is taken.** A property that already exists is never
@@ -451,7 +451,7 @@ The findings and consequences these answers carry come from one list the whole d
 - **A declaration may only point at a field-producer relation** (`RELATION_PRODUCER_MISMATCH`), and
   only at a relation the project has (`RELATION_NOT_FOUND`; from a `link` use,
   `USES_RELATION_UNKNOWN` inside a `TABLE_USES_INVALID` refusal).
-- **A `link` on a field whose shape cannot hold a record id** — a number, a date, a list of objects
+- **A `link` on a field that cannot hold a record id** — a number, a date, a list of objects
   with no string property — is refused at the vocabulary (`USES_ILLEGAL_FOR_SHAPE`), with the remedy
   in the response.
 - **Cardinality only where a producer can enforce it** (`RELATION_CARDINALITY_NOT_APPLICABLE`) — a
@@ -519,7 +519,7 @@ link — silently, per the rule below that a bad reference never fails a record 
 
 ⚠️ **But a plain-string field is a WARNING, not a refusal** (`RELATION_SOURCE_FIELD_UNTYPED`).
 Pointing a declaration at an unannotated string saves successfully and works. Requiring the
-stronger form would have gated adoption on migrating every existing shape in a live project — so
+stronger form would have gated adoption on migrating every existing type in a live project — so
 this is a deliberate concession, and it means a successful save does not prove your field is
 well-typed.
 

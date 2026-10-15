@@ -50,7 +50,7 @@ Each item of `profiles`:
 | `searchFieldsPerTable` | `integer` | yes | How many fields of one table on this profile may be marked `search`. Marking more is refused with `USES_SEARCH_FIELDS_OVER_LIMIT`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
-| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
+| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves. |
 | `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -71,14 +71,14 @@ Declare a search model: a new profile key at generation 1, with an embedding mod
 | `modelId` | `string` | yes | Id of the embedding model to use — one `GET /v1/ai-models?type=embedding` lists. Pick the model, not the dimensions or the distance metric — both come from it. |
 | `keywords` | `boolean` | yes | Also index each record's exact words, so a search by meaning also weighs a literal match — useful for names, codes and rare terms. Required: say `false` for meaning alone. Changing it later takes a new generation and an activation. |
 | `isDefault` | `boolean` | no | Make this the profile used when a searchable declaration names none. Setting it moves the default off whichever profile currently holds it. |
-| `defaultChunking` | `object` | yes | The chunking every table on this profile inherits. Required: a profile is a vector space AND the default way records enter it. Exactly one of `{ kind: "whole" }` (one point per record) or `{ kind: "chunks", tokens, overlap }` (pieces of `tokens` tokens, each repeating `overlap` tokens of the previous; `overlap` below `tokens`). |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `defaultChunking` | `object` | yes | The chunking every table on this profile inherits. Required. Exactly one of `{ kind: "whole" }` (one point per record) or `{ kind: "chunks", tokens, overlap }` (pieces of `tokens` tokens, each repeating `overlap` tokens of the previous; `overlap` below `tokens`). |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -86,10 +86,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 **Response `201`**
 
@@ -107,7 +107,7 @@ Each item of `diagnostics`:
 | `searchFieldsPerTable` | `integer` | yes | How many fields of one table on this profile may be marked `search`. Marking more is refused with `USES_SEARCH_FIELDS_OVER_LIMIT`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
-| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
+| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves. |
 | `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -148,7 +148,7 @@ Read one embedding profile generation: its model, whether exact words are indexe
 | `searchFieldsPerTable` | `integer` | yes | How many fields of one table on this profile may be marked `search`. Marking more is refused with `USES_SEARCH_FIELDS_OVER_LIMIT`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
-| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
+| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves. |
 | `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -172,7 +172,7 @@ Change a profile's label, whether it is the project default, or the chunking its
 | `isDefault` | `boolean` | no | Make this the project's default profile. Anything that defines a generation — the model, `keywords` — is refused here and needs a new generation instead (`POST /v1/embedding-profiles/{id}/generations`). |
 | `defaultChunking` | `object` | no | Change the chunking every non-overriding type on this profile inherits. Re-derives and re-indexes each of them; not a geometry change, so no new generation. |
 | `version` | `integer` | yes | The profile's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the profile changed since, so a concurrent edit is never silently overwritten. |
-| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -190,14 +190,14 @@ Change a profile's label, whether it is the project default, or the chunking its
 | `searchFieldsPerTable` | `integer` | yes | How many fields of one table on this profile may be marked `search`. Marking more is refused with `USES_SEARCH_FIELDS_OVER_LIMIT`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
-| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
+| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves. |
 | `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `rederive` | `object` | no | Present when `defaultChunking` changed: which inheriting tables followed. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -213,10 +213,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `DELETE /v1/embedding-profiles/{id}`
 
@@ -232,7 +232,7 @@ Delete one profile generation, together with the search indexes it owns (`indexe
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -241,7 +241,7 @@ Delete one profile generation, together with the search indexes it owns (`indexe
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `indexesRemoved` | `integer` | yes | How many search indexes this generation owned and the delete removed with it. 0 when it never held a table's records. `DELETE …?validateOnly=true` names the same number in a warning before anything is removed. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -249,10 +249,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `POST /v1/embedding-profiles/{id}/activate`
 
@@ -303,13 +303,13 @@ Mint the next generation of this profile's key — a new, INERT row with another
 | `modelId` | `string` | no | Embedding model for the new generation. Omit to keep the current one. |
 | `keywords` | `boolean` | no | Whether the new generation also indexes each record's exact words. Omit to keep the current setting. |
 | `label` | `string \| null` | no | Display text for the new generation. Omit to keep the current one. |
-| `validateOnly` | `boolean` | no | Check this new generation against the one it starts from and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this new generation against the one it starts from and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -317,10 +317,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 **Response `201`**
 
@@ -338,7 +338,7 @@ Each item of `diagnostics`:
 | `searchFieldsPerTable` | `integer` | yes | How many fields of one table on this profile may be marked `search`. Marking more is refused with `USES_SEARCH_FIELDS_OVER_LIMIT`. |
 | `isDefault` | `boolean` | yes | Whether new searchable declarations in this project use this profile when none is named. At most one profile per project is the default. |
 | `defaultChunking` | `object` | yes | How records on this profile are split into points unless a table's `uses.search.chunking` overrides it. Changing it re-derives and re-indexes every table on the profile that does not override. |
-| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves — a real state to surface, not an error. |
+| `geometry` | `object \| null` | yes | The vector shape this profile writes, derived from its model. Null when the model no longer resolves. |
 | `usedByTableCount` | `integer` | yes | How many searchable tables point at this profile. Deleting a profile that is still in use is refused. |
 | `deleteRefusal` | `object \| null` | yes | Why deleting this profile would be refused right now, in the delete's own words — or null when nothing about the profile stands in the way. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired, which the listing's `canDelete` folds in. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |

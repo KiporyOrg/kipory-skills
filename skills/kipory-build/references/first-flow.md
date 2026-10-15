@@ -69,7 +69,7 @@ POST /v1/flows
 - A signature entry is an object — `{ typeName, slot?, isList?, required? }` — never a bare string, and the body is strict. `typeName` is a registered type's key; `string`, `number`, `boolean` and the other built-ins resolve without being declared. An unknown key is a 422.
 - `slot` omitted derives one from the type name. Name it: slot names are letters and digits, starting with a letter.
 - An input is required unless you say `"required": false` (and then its `type` arrives wrapped as `{ "kind": "optional", … }`). An output is **not** required unless you say `"required": true` — and only a required output makes preview report it missing, so say it.
-- `key` is permanent — lower-case kebab, refused (never folded) otherwise; `label` is display text you can change any time. `outputBinding` is accepted here too, but only its shape is checked while the flow has no actions; step 3 binds it once the action exists.
+- `key` is permanent — lower-case kebab, refused (never folded) otherwise; `label` is display text you can change any time. `outputBinding` is accepted here too, but only its keys are checked while the flow has no actions; step 3 binds it once the action exists.
 - `validateOnly: true` on the same body answers a verdict with the slot names it would store, and writes nothing.
 
 ## 2. Add the action
@@ -99,7 +99,7 @@ POST /v1/actions
 
 - `inputStreams` names the slots this action reads — here the flow's own input slot. `inputSchemas` is optional: left out, each input is typed from what feeds it (here the flow's `text` slot). Sent, it is positional and must be the same length; a mismatch is refused before anything else is checked. For a prompt action you may leave `inputStreams` out too — the save reads `{{text}}` from the prompt. Typing from what feeds an input needs the feeder to have a type, so state `outputSchema` on every action a later action reads — `text.generate` and `text.decide` derive none of their own. A feeder whose `outputSchema` is `null` still feeds its readers: they read it as `object`, nothing checks what they take from it, and the plan and health warn `PRODUCER_OUTPUT_UNTYPED` on that action.
 - `promptTemplate` fills `{{text}}` from the slot of that name.
-- `outputSchema` set to the built-in `string` makes `text.generate` return plain text. Any other shape switches it to structured output parsed into that shape. `text.generate` derives no output shape of its own, so state it.
+- `outputSchema` set to the built-in `string` makes `text.generate` return plain text. Any other type switches it to structured output parsed into that type. `text.generate` derives no output type of its own, so state it.
 - `functionConfig` for `text.generate` is optional throughout (`temperature`, `reasoningEffort`, `modelSlot`, …); `{}` takes the defaults. See `functions/text.generate.md`.
 - `taskKey` decides the model: this action runs on whatever model the project binds to `summarization` (`GET /v1/nodes/{nodeId}/task-models` at the project's id). It is one of `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`; omitted, a single create starts the action on `extraction`. Do not set `modelId` unless you mean to pin this one action.
 - An action whose function sends no prompt — `value.transform`, `record.create`, `url.fetch` — leaves `promptTemplate` out; it is stored as `""`.
@@ -139,7 +139,7 @@ The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlo
 }
 ```
 
-The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`action-fields.md` §2 lists what each does). A `field` segment needs the action's `outputSchema` to be a shape that declares that field; into the builtin `object` it is refused. The record and search functions type their own output: leave `outputSchema` out and the new action takes that type, or state the same type yourself. On `POST /v1/actions` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `record.create` → `RecordCreate` (with `recordId`), `record.read` → a list of `RecordRead`, `record.list` → `RecordPage`, `term.search` → a list of `TermHit`. `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
+The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`action-fields.md` §2 lists what each does). A `field` segment needs the action's `outputSchema` to be a type that declares that field; into the builtin `object` it is refused. The record and search functions type their own output: leave `outputSchema` out and the new action takes that type, or state the same type yourself. On `POST /v1/actions` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `record.create` → `RecordCreate` (with `recordId`), `record.read` → a list of `RecordRead`, `record.list` → `RecordPage`, `term.search` → a list of `TermHit`. `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
 
 ## 4. Check the whole flow
 
@@ -260,9 +260,9 @@ curl -sS -X POST "$INVOKE_URL" \
 
 State steps 1, 2, 3 and 6 as one document. Inside a document everything is addressed by **key**: a schema reference is `{ "kind": "ref", "ref": "string" }` instead of a type id, an action is keyed by its key, and the endpoint's `flow` is the flow's key.
 
-```json
+```json kipory:request=project-document
 {
-  "kipory": 6,
+  "kipory": 7,
   "flows": {
     "summarise": {
       "label": "Summarise",
@@ -331,7 +331,7 @@ POST /v1/projects/{nodeId}/document   { version, document }
 {
   "version": "<version from the plan>",
   "document": {
-    "kipory": 6,
+    "kipory": 7,
     "flows": { "summarise": { "…": "…" } },
     "surfaces": { "…": "…" }
   }

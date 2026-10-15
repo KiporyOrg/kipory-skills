@@ -118,7 +118,7 @@ How the project's end users sign in: which providers are on, the redirect allowl
 | --- | --- | --- | --- |
 | `stored` | `object \| null` | yes | What you saved, verbatim. Null when this project has never set a config — and ALSO null when what it saved failed to parse, so null alone does not distinguish never-set from broken. Read `malformed` to tell them apart. |
 | `effective` | `object` | yes | What is actually in force right now. Equal to `stored` when that is valid, and the platform default otherwise. This is the one to read when asking how sign-in currently behaves. |
-| `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it — sign-in keeps working, which is exactly why the change goes unnoticed. |
+| `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
 
 Each item of `providerStatus`:
@@ -145,7 +145,7 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `authConfig` | `object \| null` | yes | The whole document, REPLACING whatever is stored — this is not a merge, so a provider you omit becomes disabled. Send null to clear the config and go back to the platform default. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -153,9 +153,9 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 | --- | --- | --- | --- |
 | `stored` | `object \| null` | yes | What you saved, verbatim. Null when this project has never set a config — and ALSO null when what it saved failed to parse, so null alone does not distinguish never-set from broken. Read `malformed` to tell them apart. |
 | `effective` | `object` | yes | What is actually in force right now. Equal to `stored` when that is valid, and the platform default otherwise. This is the one to read when asking how sign-in currently behaves. |
-| `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it — sign-in keeps working, which is exactly why the change goes unnoticed. |
+| `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write WOULD have computed. Present whenever the document was accepted; absent when it was refused, and absent when the body clears the config. |
@@ -173,10 +173,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `GET /v1/projects/{nodeId}/members`
 
@@ -192,14 +192,14 @@ One page of the people who use the project — its end users — with their stan
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `standing` | `"active" \| "suspended"` | no | Show only seats in this standing. Omitted means every standing — an unfiltered roster, not just the healthy part of it. |
+| `standing` | `"active" \| "suspended"` | no | Show only seats in this standing. Omitted means every standing. |
 | `q` | `string` | no | Case-insensitive substring over the member's email and name. A member who set no name is matched on their email alone. |
 | `sort` | `"joined-at" \| "name" \| "last-seen-at"` | no | The ordering. Omitted is `joined-at` — when the seat was created. `name` and `last-seen-at` are the person's and may be null: a member with none sits LAST in both directions. The response echoes it. |
 | `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Omitted is `desc`. A cursor is bound to the `sort` and `order` it was minted under: replayed under another it is refused with a 400, never reinterpreted. |
 | `limit` | `integer` | no | Rows per page. |
 | `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
 | `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
-| `page` | `integer` | no | Jump to this page, 1-based. Resolved as an OFFSET and therefore approximate while rows are arriving — walking with `after`/`before` is exact and is what the response's cursors are for. Past the last page it CLAMPS to the last one rather than answering empty: an out-of-range page is a URL somebody typed, and an empty list reads as an empty collection. Refused together with `after` or `before`. |
+| `page` | `integer` | no | Jump to this page, 1-based. Approximate while rows are arriving; walking with `after`/`before` is exact. Past the last page it CLAMPS to the last one. Refused together with `after` or `before`. |
 
 **Response `200`**
 
@@ -208,18 +208,18 @@ One page of the people who use the project — its end users — with their stan
 | `members` | `object[]` | yes | This page of seats. |
 | `paging` | `object` | yes | Where this page sits in the whole roster. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the page that follows these in the ordering (with the same `sort` and `order`). NULL means there is nothing further; a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page that precedes these in the ordering (with the same `sort` and `order`). NULL means this is the first page — measured, never inferred from whether the request carried a cursor. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page that precedes these in the ordering (with the same `sort` and `order`). NULL means this is the first page. |
 | `sort` | `"joined-at" \| "name" \| "last-seen-at"` | yes | The ordering this page was read with — the `sort` sent, or `joined-at`. |
 | `order` | `"asc" \| "desc"` | yes | Which way it ran — the `order` sent, or `desc`. |
 | `atCeiling` | `integer \| null` | yes | Seats across the WHOLE roster, every standing, whose spend in the current window has reached the project's per-person ceiling — the members the spend gate is refusing now. Null when the project sets no ceiling, which is not the same as nobody at it. |
-| `standingCounts` | `object` | yes | How many seats each standing holds, across the WHOLE roster rather than this page — the filter chips' counts. They sum to the unfiltered total; a chip whose count came from the filtered page would report the narrowing it is offering to apply. |
+| `standingCounts` | `object` | yes | How many seats each standing holds, across the WHOLE roster rather than this page. They sum to the unfiltered total. |
 
 Each item of `members`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `user` | `object` | yes | The person on the seat. |
-| `role` | `"viewer" \| "editor" \| "admin" \| "owner"` | yes | The seat's role. ⚠️ Effectively a constant on a project node: every end-user seat is `editor` by O-001, so a roster that draws this as a column draws one value. |
+| `role` | `"viewer" \| "editor" \| "admin" \| "owner"` | yes | The seat's role. ⚠️ Effectively a constant on a project node: every end-user seat is `editor`. |
 | `billing` | `"node" \| "self"` | yes | The seat's billing flag. `node` is the default. Every member's usage settles to the project's payer whatever this says: no member has a wallet of their own. |
 | `standing` | `"active" \| "suspended"` | yes | What this member's SEAT is doing. Their account's own status is `user.status`. |
 | `joinedAt` | `string` | yes | When the seat was created. The list's default ordering key. |
@@ -237,7 +237,7 @@ Grant a member credits in their wallet in this project, moved out of the wallet 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id. |
+| `nodeId` | `string` | yes | The project's node id. |
 | `userId` | `string` | yes | The member's user id. |
 
 **Request body**
@@ -245,7 +245,7 @@ Grant a member credits in their wallet in this project, moved out of the wallet 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `amountCredits` | `integer` | yes | How many credits to move into this member's wallet in the project, out of the wallet the project is paid from. |
-| `reason` | `string` | yes | Why. Written on both ledger entries of the transfer — the only record of why the two balances moved. |
+| `reason` | `string` | yes | Why. Written on both ledger entries of the transfer. |
 | `idempotencyKey` | `string` | no | Makes a double-submit resolve to the existing grant instead of a second one. Omitted, every call is a fresh grant. |
 
 **Response `200`**
@@ -262,7 +262,7 @@ One member's wallet in this project: its balance and its history, newest first, 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `nodeId` | `string` | yes | The project's OrgNode id. |
+| `nodeId` | `string` | yes | The project's node id. |
 | `userId` | `string` | yes | The member's user id. |
 
 **Query**
@@ -280,7 +280,7 @@ One member's wallet in this project: its balance and its history, newest first, 
 | `balanceCredits` | `integer` | yes | What the wallet holds now, in credits. Can be below zero by the overshoot of the last charge. |
 | `open` | `boolean` | yes | Whether the wallet is open. A closed wallet belonged to a member who left, or to a project that turned member wallets off: its balance went back and its history stays. |
 | `entries` | `object[]` | yes | Newest first: the member's charges (`usage-debit`), and the grants, expiries and returns (`transfer`, each naming the wallet on the other side). |
-| `paging` | `null` | yes | Always null: the walk is on the cursors, which are exact and measured. |
+| `paging` | `null` | yes | Always null: walk by `nextCursor` and `prevCursor`. |
 | `nextCursor` | `string \| null` | yes | Pass as `after` for the next older page; null at the end. |
 | `prevCursor` | `string \| null` | yes | Pass as `before` for the next newer page; null at the start. |
 
@@ -296,7 +296,7 @@ Each item of `entries`:
 | `causeRef` | `string` | yes | What caused the movement — the charge's id for a `usage-debit`, or an operator movement's own reference. |
 | `counterparty` | `object \| null` | yes | The other wallet of a `transfer`: where the credits went (a negative amount) or came from (a positive one). Null on every other movement. |
 | `actor` | `string` | yes | Who changed it — `user:<id>`, an operator email, or `system:<slug>`. |
-| `actorPerson` | `object \| null` | yes | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator, since operators are who change a wallet. Shown to the organization's admins on the terms the member roster already names platform staff to them. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
+| `actorPerson` | `object \| null` | yes | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
 | `before` | `object \| null` | yes | The fields before the change, as strings. `null` on creation. |
 | `after` | `object` | yes | The fields after the change, as strings. |
 
@@ -380,7 +380,7 @@ Create a new profile type from the platform's starter shape under the name you g
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `key` | `string` | yes | The new type's key. Required: the platform no longer picks one for you. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `key` | `string` | yes | The new type's key. Required. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
 
 **Response `200`**
 
@@ -433,7 +433,7 @@ One end user's profile in a project (`?project=`), with the shape it is validate
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `project` | `string` | yes | Which project's profile to read, as its node id. REQUIRED: a profile belongs to a (user, project) pair, so one person can hold several and asking for 'their profile' without naming a project has no answer. |
+| `project` | `string` | yes | Which project's profile to read, as its node id. REQUIRED: a profile belongs to a (user, project) pair. |
 
 **Response `200`**
 
@@ -473,7 +473,7 @@ Change fields of one end user's profile in a project (`?project=`), validated ag
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `project` | `string` | yes | Which project's profile to read, as its node id. REQUIRED: a profile belongs to a (user, project) pair, so one person can hold several and asking for 'their profile' without naming a project has no answer. |
+| `project` | `string` | yes | Which project's profile to read, as its node id. REQUIRED: a profile belongs to a (user, project) pair. |
 
 **Request body**
 

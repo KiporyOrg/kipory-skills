@@ -36,7 +36,7 @@ GET /v1/capability-packs    → 200, the pack index and a `version`
 
 `/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error.
 
-Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare functions) in the environment. It compares three layers bundled with these skills — the packs, the function catalog and the API pages — against what this deployment serves, and writes nothing.
+Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare functions) in the environment. It compares four layers bundled with these skills — the packs, the function catalog, the API pages and the refusal-code page — against what this deployment serves, and writes nothing.
 
 Its first line names the bundle that ran: `skills bundle <version> — <directory>`. Several versions of these skills can sit side by side on one machine (a plugin cache keeps old ones), and each copy of the script compares its own pages, so a run from an older copy reports every layer as differing. If the directory on that line is not the one this skill was loaded from, run the script from this skill's directory.
 
@@ -103,13 +103,19 @@ transaction — a refused one leaves no project behind.
 A project document you hold can be one the platform refuses: one exported before the data words
 were renamed states `kipory: 2`, one exported before the flow words were renamed states
 `kipory: 3`, one exported before the link functions named their relation `relationKey` states
-`kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, and
-all four are refused (`DOCUMENT_VERSION_UNSUPPORTED`).
+`kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, one
+exported before a type was called a type in the document states `kipory: 6`, and all five are
+refused (`DOCUMENT_VERSION_UNSUPPORTED`).
 `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
-version 6 in one run, and a second run changes nothing:
+version 7 in one run, and a second run changes nothing:
 
 - **It renames only the names the platform defines**, never one you chose, and lists the prompts
   and expressions that name a renamed field, which are yours to edit.
+- **`schema` becomes `types`, a table's and a config namespace's `shape` becomes `type`** — nothing
+  else named `shape` or `schema` moves: not a function's config, not an action's `outputSchema`,
+  not a property of one of your types, not a table or action you named `shape`. A version 7
+  document that still holds one of the old keys is refused with `DOCUMENT_KEY_RENAMED` at that
+  key; rename it, or set its version back to 6 and run the script.
 - **Slot and collection names go.** A search model under `vectors.profiles` loses `denseSlots` and
   `sparseSlot` and states `keywords` — `true` where it named a sparse slot, `false` where it named
   none; a `search` use loses `role`; `vectors.collections` is removed. Each removal is listed.
@@ -155,7 +161,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 
 - **Silence about the node id.** Nothing at mint time tells the key its grant. Read `GET /v1/grant` at turn zero, not at the first 403.
 - **`parentNodeId` omitted on create** — defaults to the platform organisation, refuses, and reads like an auth failure.
-- **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider shapes are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/types/seed`.
+- **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider types are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/types/seed`.
 - **A retired project stops its own keys.** A key granted at the project answers `401` to every call, reads included, until the project is restored. A key granted at the organisation above still reads it, and a write naming it answers 409 — except the restore and the purge, switching off a schedule, trigger or source, and deleting a secret.
 - **A declared query string is strict.** On a route whose reference lists query parameters, an unlisted key or value — `expand` on a resource that has none, an `expand` value that resource does not offer, a typo — is a 422. A route whose reference lists no query parameters ignores any you send, so a misspelled flag there is silent — except a DELETE, which refuses any query key it does not list (422) and deletes nothing.
 - **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.
@@ -173,6 +179,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | `references/api/templates.md`                | the project templates a create can start from                                                                                                           |
 | `references/packs/templates.md`              | when to start a project from a shipped template                                                                                                         |
 | `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                                                         |
+| `references/refusal-codes.md`                | every refusal code once: what it means, what to do, where it appears                                                                                    |
 | `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                                           |
 | `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                                                  |
 | `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                                                    |
@@ -180,7 +187,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 
 ## Your first flow
 
-`kipory-build`'s `references/first-flow.md` is one small product built end to end — a flow, its one action, its output binding, a preview, the endpoint, and the call a client makes — with every body exact, then the same project as one document. Read it before authoring anything on a new project; it is the shape every other skill assumes you know.
+`kipory-build`'s `references/first-flow.md` is one small product built end to end — a flow, its one action, its output binding, a preview, the endpoint, and the call a client makes — with every body exact, then the same project as one document. Read it before authoring anything on a new project; it is the layout every other skill assumes you know.
 
 ## Then
 

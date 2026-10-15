@@ -4,9 +4,11 @@
 //
 // The content hashes every generated reference page was built from are recorded
 // once, in `references/versions.md` beside this script. The deployment serves
-// all three live: `version` on `GET /v1/capability-packs` and on
-// `GET /v1/functions`, and `info["x-kipory-surface-version"]` on
-// `GET /v1/openapi.json` for the API pages. When they match, the bundled copy is exactly what the
+// all four live: `version` on `GET /v1/capability-packs` and on
+// `GET /v1/functions`, and `info["x-kipory-surface-version"]` (the API pages)
+// and `info["x-kipory-refusal-codes-version"]` (the refusal-code page,
+// `references/refusal-codes.md`) on `GET /v1/openapi.json`. When they match,
+// the bundled copy is exactly what the
 // deployment would return; when they differ, the deployment moved (or these
 // files are older than it) and the live one wins.
 //
@@ -96,7 +98,7 @@ if (!baseUrl) {
 
 const versionsFile = resolve(referencesDir, "versions.md");
 // manifest.json is the per-item companion:
-// { packs | functions | api: { <name>: { hash, page? } } }.
+// { packs | functions | api | codes: { <name>: { hash, page? } } }.
 const manifestFile = resolve(referencesDir, "manifest.json");
 // One row per layer: where the deployment serves its version, and what to do
 // when it differs from the bundled one.
@@ -167,6 +169,24 @@ const LAYERS = [
       "read a route's fields on GET /v1/openapi.json before sending a body; treat references/api/ as a sketch",
     itemAdvice:
       "read the routes listed above on GET /v1/openapi.json before sending a body; every other route in references/api/ is as the deployment serves it",
+  },
+  {
+    // One item, the refusal-code page. A deployment older than the served
+    // version has no such field: that is "cannot compare", never "identical".
+    label: "codes",
+    path: "/v1/openapi.json",
+    withKey: false,
+    pick: (json) => json?.info?.["x-kipory-refusal-codes-version"],
+    items: (json) => {
+      const version = json?.info?.["x-kipory-refusal-codes-version"];
+      return typeof version === "string"
+        ? { "refusal-codes": version }
+        : undefined;
+    },
+    advice:
+      "references/refusal-codes.md is older or newer than the deployment's codes: a code you do not find there is undocumented, not retired — read the refusal's message and details for it",
+    itemAdvice:
+      "references/refusal-codes.md is older or newer than the deployment's codes: a code you do not find there is undocumented, not retired — read the refusal's message and details for it",
   },
 ];
 function isHashMap(value) {
@@ -450,11 +470,18 @@ const report = ({ label }, result, local) => {
   }
 };
 
-// The three reads are independent; `get` never rejects, so neither does this.
+// The reads are independent; `get` never rejects, so neither does this. Two
+// layers read the same document, so each path is fetched once.
+const fetched = new Map();
+const getOnce = (path, withKey) => {
+  const key = `${withKey} ${path}`;
+  if (!fetched.has(key)) fetched.set(key, get(path, withKey));
+  return fetched.get(key);
+};
 const results = await Promise.all(
   LAYERS.map(async (layer) => {
     if (layer.withKey && !apiKey) return { error: "set KIPORY_API_KEY" };
-    const res = await get(layer.path, layer.withKey);
+    const res = await getOnce(layer.path, layer.withKey);
     return res.error
       ? { error: res.error }
       : {

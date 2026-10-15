@@ -2,6 +2,88 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261015.103000 — 2026-10-15
+
+Synced from the Kipory monorepo at `e6b0bcfd9`.
+
+- changed: `README.md`
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/action-fields.md`
+- changed: `skills/kipory-build/references/api/actions.md`
+- changed: `skills/kipory-build/references/api/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/functions/audio.transcribe.md`
+- changed: `skills/kipory-build/references/packs/authoring-order.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-channels/references/api/managed-email-addresses.md`
+- changed: `skills/kipory-channels/references/api/sources.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/bootstrap.md`
+- changed: `skills/kipory-connect/references/api/platform-reads.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/glossary.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/project-provisioning.md`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- added: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/sync.mjs`
+- changed: `skills/kipory-connect/scripts/upgrade-document.mjs`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/api/files.md`
+- changed: `skills/kipory-data/references/api/ingest.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-data/references/csv-import.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/api/mail-messages.md`
+- changed: `skills/kipory-diagnose/references/api/pushes.md`
+- changed: `skills/kipory-diagnose/references/api/rejected-requests.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-diagnose/references/api/traces.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-expose/references/sign-in.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/embedding-profiles.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/embedding-profiles.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/events.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/api/schedules.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-operate/references/api/triggers.md`
+- changed: `skills/kipory-operate/references/packs/events.md`
+- changed: `skills/kipory-operate/references/packs/project-config.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-operate/references/pitfalls.md`
+- changed: `skills/kipory-plan/references/build-sheet-example.md`
+- changed: `skills/kipory-plan/references/packs/planning-protocol.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+
 ## 1.20261015.65403 — 2026-10-15
 
 Synced from the Kipory monorepo at `53dca092d`.

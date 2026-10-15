@@ -80,17 +80,17 @@ answer, and is not retried on the second vendor. The fallback is billed as in ¹
 your own Supadata key does not stop the platform's ScrapeCreators key being spent
 unless you store both or set `fallback: false`.
 
-The social-platform reads return shared shapes — `SocialProfile`, `SocialPost`,
+The social-platform reads return shared types — `SocialProfile`, `SocialPost`,
 `SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
 a flow built for one platform is re-pointed at another by changing the action's
 function. `x.posts`, `youtube.video`, `youtube.channel` and `facebook.page` return those
-shapes with typed fields of their own added (`XPost`, `YoutubeVideo`, `YoutubeChannel`,
+types with typed fields of their own added (`XPost`, `YoutubeVideo`, `YoutubeChannel`,
 `FacebookPage`): a
 path over a shared field carries across platforms, a path over an added one does
 not. The transcript reads return text. Every list read takes a `maxItems`
 bound; on a read that pages, each page is one paid request.
 
-A time on a shared shape — `postedAt` on a post or a comment, `createdAt` on a
+A time on a shared type — `postedAt` on a post or a comment, `createdAt` on a
 profile, `startedAt` and `endedAt` on an ad — is an ISO 8601 time in UTC, like
 `2026-03-13T08:00:00.000Z`, whichever platform it came from. It is absent when the platform gave no time that can be read as one;
 on YouTube's list reads it is approximate, worked out from "2 years ago". The

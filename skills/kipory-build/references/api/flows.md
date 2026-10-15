@@ -60,7 +60,7 @@ Each item of `flows`:
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 
 ### `POST /v1/flows`
 
@@ -77,8 +77,8 @@ Create a flow — its key, label and typed signature (`inputTypeNames`, `outputT
 | `description` | `string \| null` | no | Optional prose about what the flow is for. Whitespace is trimmed before the length limit applies. |
 | `inputTypeNames` | `object[]` | yes | The flow's inputs, as registered type names. |
 | `outputTypeNames` | `object[]` | yes | The flow's outputs, as registered type names. |
-| `outputBinding` | `object` | no | Which action output feeds each flow output. Usually omitted at creation — the flow has no actions yet, so only the shape is checked; wire it up once the actions exist. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `outputBinding` | `object` | no | Which action output feeds each flow output. Usually omitted at creation — the flow has no actions yet, so only its form is checked; wire it up once the actions exist. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -95,19 +95,19 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -116,7 +116,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -138,7 +138,7 @@ Each item of `consequences`:
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 
 ### `GET /v1/flows/{id}`
 
@@ -174,7 +174,7 @@ Read one flow — its signature, binding, action count and `version` (the lock `
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 
 ### `PATCH /v1/flows/{id}`
 
@@ -195,9 +195,9 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 | `inputTypeNames` | `object[]` | no | Replacement input signature. Omit to leave it alone — it may be sent without `outputTypeNames`, and the outputs then stay as stored. Changing it re-validates every action in the flow. |
 | `outputTypeNames` | `object[]` | no | Replacement output signature. Omit to leave it alone — it may be sent without `inputTypeNames`, and the inputs then stay as stored. Changing it re-validates the whole flow. |
 | `outputBinding` | `object` | no | Rewire which action output feeds each flow output. Can be sent on its own once the actions exist, or together with `outputTypeNames` (and `inputTypeNames`, if they change too) to rewrite the signature at once. Without it, a signature change carries the stored binding, pruned to the outputs that remain. Either way the graph is re-validated in full before anything is saved. |
-| `adoptSnapshots` | `boolean` | no | Opt in to re-publishing the request and response contract of any live endpoint this flow serves. Off by default, because that changes what a running route promises its callers — an explicit decision, not a side effect of editing a flow. |
+| `adoptSnapshots` | `boolean` | no | Opt in to re-publishing the request and response contract of any live endpoint this flow serves — it changes what a running route promises its callers. Off by default. |
 | `version` | `integer` | yes | The flow's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the flow changed since — another patch, a checkpoint restore, or a project document apply — so a concurrent edit is never silently overwritten. |
-| `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored flow and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -217,7 +217,7 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
-| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows: the deployment's task limits and generation default move it without bumping `structureVersion`, which is why the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
+| `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
@@ -238,19 +238,19 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -259,7 +259,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -277,7 +277,7 @@ Delete a flow and every action in it (`deletedActionCount` says how many); its c
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -287,7 +287,7 @@ Delete a flow and every action in it (`deletedActionCount` says how many); its c
 | `id` | `string` | yes | Id of the row that was removed. |
 | `deletedActionCount` | `integer` | yes | How many actions went with the flow. Deleting a flow deletes everything inside it. |
 | `deletedContractSuiteCount` | `integer` | yes | How many `<flowKey>-contract` eval suites went with the flow, with their cases and runs. For a platform flow, this counts the contract suites over it in every project. Other eval suites over the flow are kept; their runs fail until they name another flow. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the delete would find, from the reads it decides on. Nothing here has happened. |
@@ -296,14 +296,14 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `GET /v1/flows/{id}/coverage`
 
-Which actions in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — read from the per-attempt record every processing run already writes (the actions it applied and the actions that failed), no test needed. An aggregate over a SAMPLE of at most `attemptLimit` recent attempts (default 500), with `truncated` when more exist: a report, not a log, so it takes no cursor, and a larger `attemptLimit` widens the sample. It measures execution, not correctness: whether each action's output is right is what an eval suite over the flow judges (`POST /v1/eval-suites/{id}/run`; `wait: true` answers in the same call). The attempts' traces: `GET /v1/flows/{id}/traces`; is the graph itself sound: `GET /v1/flows/{id}/health`.
+Which actions in this flow (and the flows it invokes) actually ran, across the record-processing attempts since the graph last changed — no test needed. An aggregate over a SAMPLE of at most `attemptLimit` recent attempts (default 500), with `truncated` when more exist: a report, not a log, so it takes no cursor, and a larger `attemptLimit` widens the sample. It measures execution, not correctness: whether each action's output is right is what an eval suite over the flow judges (`POST /v1/eval-suites/{id}/run`; `wait: true` answers in the same call). The attempts' traces: `GET /v1/flows/{id}/traces`; is the graph itself sound: `GET /v1/flows/{id}/health`.
 
 **Path parameters**
 
@@ -315,7 +315,7 @@ Which actions in this flow (and the flows it invokes) actually ran, across the r
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `attemptLimit` | `integer` | no | Cap on how many recent attempts to read. The response echoes it and sets `truncated`, so a bounded read can never be mistaken for a complete one. |
+| `attemptLimit` | `integer` | no | Cap on how many recent attempts to read. The response echoes it and sets `truncated` when more exist. |
 
 **Response `200`**
 
@@ -335,7 +335,7 @@ Which actions in this flow (and the flows it invokes) actually ran, across the r
 | `verdict` | `"measured" \| "not-measured"` | yes | Whether this report measured anything at all. `not-measured` is not a pass — see `reason`. |
 | `reason` | `"no-attempts" \| "vacuous-actions" \| null` | yes | Why the verdict is `not-measured`, or null when it is `measured`. |
 | `tableKeys` | `string[]` | yes | Keys of the tables the covered flows touch. |
-| `graphChangedAt` | `string \| null` | yes | When the flow last changed. Runs from before this are excluded, because they exercised a different graph. |
+| `graphChangedAt` | `string \| null` | yes | When the flow last changed. Runs from before this are excluded. |
 | `truncated` | `boolean` | yes | True when the read hit `attemptLimit` and covers only the most recent attempts. A truncated report is a sample, so read its counts as such. |
 | `attemptLimit` | `integer` | yes | The cap that was applied, echoed back. |
 
@@ -350,7 +350,7 @@ Each item of `actions`:
 | `functionKey` | `string` | yes | Which function the action runs. |
 | `gated` | `boolean` | yes | True when the action has a condition, so never running is expected rather than suspicious. |
 | `ranCount` | `integer` | yes | How many of the observed attempts reached this action. |
-| `rate` | `number` | yes | `ranCount` over the attempts observed. Reported as a rate rather than a yes/no so a single attempt cannot stand in for the rest. |
+| `rate` | `number` | yes | `ranCount` over the attempts observed. |
 | `verdict` | `"covered" \| "cold-gated" \| "cold-unconditional"` | yes | The summary judgement for this action, already accounting for whether it is gated. |
 
 ### `GET /v1/flows/{id}/health`
@@ -369,18 +369,18 @@ The full validation report for the flow as saved: every diagnostic, what it is a
 | --- | --- | --- | --- |
 | `flowId` | `string` | yes | The flow this report is about. |
 | `diagnostics` | `object[]` | yes | Every diagnostic, errors and warnings together. An empty array means the flow is healthy — it is a real answer, not a missing one. |
-| `counts` | `object` | yes | Summary counts, so a caller need not tally the list itself. |
+| `counts` | `object` | yes | Summary counts. |
 | `danglingReads` | `object[]` | yes | Every input an action reads that nothing in the flow supplies — one entry per action and slot, the same findings `diagnostics` reports as `INPUT_STREAM_DANGLING_SLOT`. Such an action never runs, and neither does anything after it. Empty when every read is supplied. |
 
 Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this diagnostic. Branch on it rather than on the message. Deliberately an open string — a new validator rule can be reported without a schema release, so treat an unrecognised code as a generic diagnostic instead of an error. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this diagnostic. Branch on it rather than on the message. Treat an unrecognised code as a generic diagnostic instead of an error. |
 | `severity` | `"error" \| "warning"` | yes | `error` means the flow is not valid as it stands; `warning` is advisory and does not stop anything. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show to a person. Wording may change — do not parse it; read `segments` instead when you want the objects it names. |
 | `segments` | `object[]` | yes | `message` in pieces, for a consumer that can draw the objects it names as references. The two are folded from one list by the producer and cannot disagree about the words — but they are not the same characters: `message` quotes what a segment names and backticks what it spells as configuration, where a segment's `text` is the bare word. |
-| `remedy` | `string \| null` | yes | What to do about it, in one line. Null is a real answer: some findings have no action a person can take from here, and an invented one would be worse than none. |
+| `remedy` | `string \| null` | yes | What to do about it, in one line. Null is a real answer: some findings have no action a person can take from here. |
 | `remedySegments` | `object[]` | yes | `remedy` in pieces. Empty exactly when `remedy` is null. |
 | `target` | `"action" \| "edge" \| "flow"` | yes | What the diagnostic is about — the whole flow, one action, or one connection. This is what decides where to render it, and it is independent of `attribution`. |
 | `attribution` | `object` | yes | Where to point the reader, which is not the same as `target`: a flow-level diagnostic can still name the action that caused it. |
@@ -411,7 +411,7 @@ Run the flow now, in a sandbox, and answer what happened: every action's transcr
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
 | `project` | `string` | no | Resolve project-scoped context — relations, project config, vocabularies, the caller's profile — against this project (its id, as `POST /v1/projects` answered it) instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
-| `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true, matching what a preview has always done. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
+| `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
 
 **Response `200`**
 
@@ -486,7 +486,7 @@ Queue the same sandboxed run as `POST /v1/flows/{id}/preview` and answer 202 wit
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
 | `project` | `string` | no | Resolve project-scoped context — relations, project config, vocabularies, the caller's profile — against this project (its id, as `POST /v1/projects` answered it) instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
-| `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true, matching what a preview has always done. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
+| `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
 
 **Response `202`**
 
@@ -514,7 +514,7 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 | `input` | `object` | yes | Where the run's inputs come from: values in this request, or an existing record. |
 | `project` | `string` | no | Resolve project-scoped context — relations, project config, vocabularies, the caller's profile — against this project (its id, as `POST /v1/projects` answered it) instead of the flow's own. Requires EDITOR on it. Omit to use the flow's project. Required for a platform flow, which belongs to no project: it runs as this one with the platform's vendor keys, the platform pays, and no trace is written. |
 | `fanOutCap` | `integer \| "uncapped"` | no | Ceiling on branches any fan-out in this run may spawn. Omit for the default, give a number for that ceiling, or `"uncapped"` to let the flow's own limits apply. Narrowing only — it can never raise a node's configured maximum. A capped run still proves wiring, schemas and per-branch behaviour; it does not prove how a merge folds over the full population, and anything truncated is reported in `fanOutCaps`. |
-| `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true, matching what a preview has always done. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
+| `apply` | `boolean` | no | Whether this preview applies the writes it stages. Defaults to true. Pass false for a dry run: the flow executes in full and the change set is recorded and then discarded, readable at GET /v1/runs/{runId}/change-set. |
 
 **Response `200`** (first frame shape, when declared)
 
@@ -537,9 +537,9 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 | `error` | `string` | no | Failure message, when `outcome` is `failed`. |
 | `nestedFailures` | `unknown[]` | no | Failures from branches nested under this action. |
 | `reason` | `"empty-fanout"` | no | Present when the action did nothing because a fan-out above it produced no branches. |
-| `cacheHit` | `true` | no | A cache answered this action and its function never ran. Present only when true. Without it a replayed run reads as a fast flow rather than as one that had already run. |
+| `cacheHit` | `true` | no | A cache answered this action and its function never ran. Present only when true. |
 | `mergeInputs` | `unknown[]` | no | Per-source-branch inputs. Merge nodes only. |
-| `fanOut` | `object` | no | Fan-out nodes only, on the `applied` path. Arrives before the branch frames it describes, so it is the denominator for what follows and names any truncation rather than leaving a short count looking complete. |
+| `fanOut` | `object` | no | Fan-out nodes only, on the `applied` path. Arrives before the branch frames it describes, so it is the denominator for what follows. |
 | `parentActionId` | `string` | yes | The fan-out node whose empty result stranded this action. |
 | `branches` | `unknown[]` | yes | Full per-branch results, as on the non-streaming response. |
 | `flowOutput` | `object` | no | The flow's declared output slots, as a live invocation would return them. |
@@ -548,7 +548,7 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 | `ingestSpend` | `object` | no | Paid third-party ingest spend. Absent when no ingest function ran. |
 | `fanOutCaps` | `object[]` | yes | Every fan-out whose element list was truncated. Empty when nothing was dropped. |
 | `timings` | `object` | yes | Full breakdown of where the run's wall clock went. |
-| `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself — so the failure can be attributed. |
+| `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself. |
 | `status` | `integer \| null` | no | For a run refused as a whole (a required output missing, the writes refused): the HTTP status a live call would answer, as on the JSON preview's `errors`. Null for a runner crash; absent before the run. |
 | `code` | `string \| null` | no | The error code a live call would answer beside `status`. Null for a runner crash; absent before the run. |
 | `diagnostics` | `unknown[]` | no | Per-problem detail for a draft graph that failed validation. These are the same diagnostics saving that graph would return. |

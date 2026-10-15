@@ -48,14 +48,14 @@ Each item of `tables`:
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`, so the two cannot disagree. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
-| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record, so it is the one use whose refusal names rows rather than the declaration. |
+| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -87,9 +87,9 @@ Create a table that takes its data shape from an existing type. With `validateOn
 | `dataTypeId` | `string` | yes | Existing type in the same project that defines the table's data shape. A shape is always a type that already exists; a project document creates the type and the table in one apply. |
 | `description` | `string \| null` | no | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table: `user` for one person's own records, `project` for the project's shared content pool. Required — it is immutable once the table has records, so there is no safe default. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table: `user` for one person's own records, `project` for the project's shared content pool. Required — it is immutable once the table has records. |
 | `uses` | `object` | no | What each field is for. Omit for a table whose fields are stored with the record and read whole. Every projection — `searchable`, `queryable`, `relations`, the natural key, the vocabulary links — is derived from this and cannot be sent directly. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/write-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -100,26 +100,26 @@ Create a table that takes its data shape from an existing type. With `validateOn
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
 | `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
-| `renames` | `object[]` | no | Feature 385 — present when the checked patch renames (a new `key`, or `renameFields`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
+| `renames` | `object[]` | no | Present when the checked patch renames (a new `key`, or `renameFields`): what the write would move, the expression candidates and how each is resolved, and every external caller it would break. Absent when it renames nothing. |
 | `derived` | `object` | no | What the write WOULD compute and set in motion. Nothing here has happened. `staleVersion`, `writes`, `resolved` and `effects` are present whenever the patch got far enough to plan, and absent on a refusal its planner raised; the other members say when they appear. |
 
 Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -128,7 +128,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -145,7 +145,7 @@ Each item of `renames`:
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
-| `cost` | `object` | yes | What the rename spends (FR-042). Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
 **Response `201`**
 
@@ -161,14 +161,14 @@ Each item of `renames`:
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`, so the two cannot disagree. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
-| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record, so it is the one use whose refusal names rows rather than the declaration. |
+| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -186,7 +186,7 @@ Each item of `renames`:
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
-| `renames` | `object[]` | no | Feature 385 — present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
+| `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
 Each item of `contentFields`:
@@ -206,9 +206,9 @@ Each item of `contract`:
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
 | `payloadType` | `"keyword" \| "integer" \| "float" \| "bool" \| "datetime" \| null` | yes | Index type this field would get if made searchable, derived from its schema. Null means it cannot be filtered on at all — see `refusal`. |
 | `array` | `boolean` | yes | Whether the field is a list of `payloadType` rather than one value. |
-| `refusal` | `"UNTYPED" \| "NESTED_OBJECT" \| "NESTED_ARRAY" \| "AMBIGUOUS_UNION" \| "NULL_ONLY" \| "UNSUPPORTED_TYPE" \| null` | yes | Why the field cannot be filtered on. Non-null exactly when `payloadType` is null, so an editor can grey the option out and say why instead of offering it and failing the save. |
-| `contentRefusal` | `"NESTED_OBJECT" \| "NESTED_ARRAY" \| "NULL_ONLY" \| null` | yes | Why this field can never be the source of a searchable content slot, or null when it can. Non-null means no value the schema admits could render as text, so every record would project empty and be skipped — the declaration is refused rather than accepted into silence. |
-| `identityRefusal` | `"LIST" \| "NOT_TEXT" \| null` | yes | Why this field's schema rules it out as the natural key, or null when it might be one. A natural key is stamped only from a string value and is never coerced, so `LIST` (the field holds a list) and `NOT_TEXT` (every value it admits is a number, a boolean, an object or null) mean every record would fail to supply it. Null is not a promise: the key is stamped from the data a record is submitted with, so a `key` on a field whose `family` is not `submission` is refused `USES_KEY_NOT_SUBMITTED` whatever this says, and declaring the key still checks every existing record. |
+| `refusal` | `"UNTYPED" \| "NESTED_OBJECT" \| "NESTED_ARRAY" \| "AMBIGUOUS_UNION" \| "NULL_ONLY" \| "UNSUPPORTED_TYPE" \| null` | yes | Why the field cannot be filtered on. Non-null exactly when `payloadType` is null. |
+| `contentRefusal` | `"NESTED_OBJECT" \| "NESTED_ARRAY" \| "NULL_ONLY" \| null` | yes | Why this field can never be the source of a searchable content slot, or null when it can. Non-null means no value the schema admits could render as text; a declaration that uses it as one is refused. |
+| `identityRefusal` | `"LIST" \| "NOT_TEXT" \| null` | yes | Why this field's schema rules it out as the natural key, or null when it might be one: `LIST` (the field holds a list) or `NOT_TEXT` (every value it admits is a number, a boolean, an object or null). A natural key is taken only from a string value, never coerced. Null is not a promise: a `key` on a field whose `family` is not `submission` is refused `USES_KEY_NOT_SUBMITTED` whatever this says, and declaring the key still checks every existing record. |
 | `relationSource` | `object` | yes | What a relation declaration may do with this field. Both halves null means the field cannot source a link at all, and declaring one against it would be rejected. |
 
 Each item of `vocabularies`:
@@ -226,7 +226,7 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement, derived as a save derives it: a statement the derivation refuses is reported only as `uses` issues, and one it accepts has the `searchable`, `queryable` and `relations` projections it derives checked. Problems with the natural key arrive as `uses` issues, because the key is derived from the statement. |
+| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. |
 | `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. |
 | `path` | `string` | yes | Where in the declaration the issue is, e.g. `fields[2].source`. Empty for the natural key, which is one value. |
 | `message` | `string` | yes | The platform's own sentence for the issue. For `uses` it is followed by the remedy the save gives. |
@@ -254,7 +254,7 @@ Each item of `renames`:
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
-| `cost` | `object` | yes | What the rename spends (FR-042). Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
 Each item of `touched`:
 
@@ -294,14 +294,14 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`, so the two cannot disagree. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
-| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record, so it is the one use whose refusal names rows rather than the declaration. |
+| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -337,9 +337,9 @@ Each item of `contract`:
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
 | `payloadType` | `"keyword" \| "integer" \| "float" \| "bool" \| "datetime" \| null` | yes | Index type this field would get if made searchable, derived from its schema. Null means it cannot be filtered on at all — see `refusal`. |
 | `array` | `boolean` | yes | Whether the field is a list of `payloadType` rather than one value. |
-| `refusal` | `"UNTYPED" \| "NESTED_OBJECT" \| "NESTED_ARRAY" \| "AMBIGUOUS_UNION" \| "NULL_ONLY" \| "UNSUPPORTED_TYPE" \| null` | yes | Why the field cannot be filtered on. Non-null exactly when `payloadType` is null, so an editor can grey the option out and say why instead of offering it and failing the save. |
-| `contentRefusal` | `"NESTED_OBJECT" \| "NESTED_ARRAY" \| "NULL_ONLY" \| null` | yes | Why this field can never be the source of a searchable content slot, or null when it can. Non-null means no value the schema admits could render as text, so every record would project empty and be skipped — the declaration is refused rather than accepted into silence. |
-| `identityRefusal` | `"LIST" \| "NOT_TEXT" \| null` | yes | Why this field's schema rules it out as the natural key, or null when it might be one. A natural key is stamped only from a string value and is never coerced, so `LIST` (the field holds a list) and `NOT_TEXT` (every value it admits is a number, a boolean, an object or null) mean every record would fail to supply it. Null is not a promise: the key is stamped from the data a record is submitted with, so a `key` on a field whose `family` is not `submission` is refused `USES_KEY_NOT_SUBMITTED` whatever this says, and declaring the key still checks every existing record. |
+| `refusal` | `"UNTYPED" \| "NESTED_OBJECT" \| "NESTED_ARRAY" \| "AMBIGUOUS_UNION" \| "NULL_ONLY" \| "UNSUPPORTED_TYPE" \| null` | yes | Why the field cannot be filtered on. Non-null exactly when `payloadType` is null. |
+| `contentRefusal` | `"NESTED_OBJECT" \| "NESTED_ARRAY" \| "NULL_ONLY" \| null` | yes | Why this field can never be the source of a searchable content slot, or null when it can. Non-null means no value the schema admits could render as text; a declaration that uses it as one is refused. |
+| `identityRefusal` | `"LIST" \| "NOT_TEXT" \| null` | yes | Why this field's schema rules it out as the natural key, or null when it might be one: `LIST` (the field holds a list) or `NOT_TEXT` (every value it admits is a number, a boolean, an object or null). A natural key is taken only from a string value, never coerced. Null is not a promise: a `key` on a field whose `family` is not `submission` is refused `USES_KEY_NOT_SUBMITTED` whatever this says, and declaring the key still checks every existing record. |
 | `relationSource` | `object` | yes | What a relation declaration may do with this field. Both halves null means the field cannot source a link at all, and declaring one against it would be rejected. |
 
 Each item of `vocabularies`:
@@ -357,7 +357,7 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement, derived as a save derives it: a statement the derivation refuses is reported only as `uses` issues, and one it accepts has the `searchable`, `queryable` and `relations` projections it derives checked. Problems with the natural key arrive as `uses` issues, because the key is derived from the statement. |
+| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. |
 | `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. |
 | `path` | `string` | yes | Where in the declaration the issue is, e.g. `fields[2].source`. Empty for the natural key, which is one value. |
 | `message` | `string` | yes | The platform's own sentence for the issue. For `uses` it is followed by the remedy the save gives. |
@@ -393,9 +393,9 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `description` | `string \| null` | no | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
 | `ownerScope` | `"user" \| "project"` | no | Change who owns records of this table. Refused once the table has records. Omit to keep. |
-| `uses` | `object` | no | Replace the table's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order, and a merge cannot express a reorder. Every projection is re-derived from it in the same transaction. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-| `validateOnly` | `boolean` | no | Check this patch against the stored table and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/write-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `uses` | `object` | no | Replace the table's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order. Every projection is re-derived from it in the same transaction. |
+| `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored table and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -411,14 +411,14 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
-| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user, so the two can never disagree. |
+| `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
-| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`, so the two cannot disagree. |
+| `searchable` | `object \| null` | yes | DERIVED from `uses`, read-only: how the table is indexed for search (the profile, the chunking, what travels with each part), or null when no field carries `search`. Whether records are isolated per user is NOT declared here — it follows `ownerScope`. |
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
-| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record, so it is the one use whose refusal names rows rather than the declaration. |
+| `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -436,7 +436,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
-| `renames` | `object[]` | no | Feature 385 — present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
+| `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -461,9 +461,9 @@ Each item of `contract`:
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
 | `payloadType` | `"keyword" \| "integer" \| "float" \| "bool" \| "datetime" \| null` | yes | Index type this field would get if made searchable, derived from its schema. Null means it cannot be filtered on at all — see `refusal`. |
 | `array` | `boolean` | yes | Whether the field is a list of `payloadType` rather than one value. |
-| `refusal` | `"UNTYPED" \| "NESTED_OBJECT" \| "NESTED_ARRAY" \| "AMBIGUOUS_UNION" \| "NULL_ONLY" \| "UNSUPPORTED_TYPE" \| null` | yes | Why the field cannot be filtered on. Non-null exactly when `payloadType` is null, so an editor can grey the option out and say why instead of offering it and failing the save. |
-| `contentRefusal` | `"NESTED_OBJECT" \| "NESTED_ARRAY" \| "NULL_ONLY" \| null` | yes | Why this field can never be the source of a searchable content slot, or null when it can. Non-null means no value the schema admits could render as text, so every record would project empty and be skipped — the declaration is refused rather than accepted into silence. |
-| `identityRefusal` | `"LIST" \| "NOT_TEXT" \| null` | yes | Why this field's schema rules it out as the natural key, or null when it might be one. A natural key is stamped only from a string value and is never coerced, so `LIST` (the field holds a list) and `NOT_TEXT` (every value it admits is a number, a boolean, an object or null) mean every record would fail to supply it. Null is not a promise: the key is stamped from the data a record is submitted with, so a `key` on a field whose `family` is not `submission` is refused `USES_KEY_NOT_SUBMITTED` whatever this says, and declaring the key still checks every existing record. |
+| `refusal` | `"UNTYPED" \| "NESTED_OBJECT" \| "NESTED_ARRAY" \| "AMBIGUOUS_UNION" \| "NULL_ONLY" \| "UNSUPPORTED_TYPE" \| null` | yes | Why the field cannot be filtered on. Non-null exactly when `payloadType` is null. |
+| `contentRefusal` | `"NESTED_OBJECT" \| "NESTED_ARRAY" \| "NULL_ONLY" \| null` | yes | Why this field can never be the source of a searchable content slot, or null when it can. Non-null means no value the schema admits could render as text; a declaration that uses it as one is refused. |
+| `identityRefusal` | `"LIST" \| "NOT_TEXT" \| null` | yes | Why this field's schema rules it out as the natural key, or null when it might be one: `LIST` (the field holds a list) or `NOT_TEXT` (every value it admits is a number, a boolean, an object or null). A natural key is taken only from a string value, never coerced. Null is not a promise: a `key` on a field whose `family` is not `submission` is refused `USES_KEY_NOT_SUBMITTED` whatever this says, and declaring the key still checks every existing record. |
 | `relationSource` | `object` | yes | What a relation declaration may do with this field. Both halves null means the field cannot source a link at all, and declaring one against it would be rejected. |
 
 Each item of `vocabularies`:
@@ -481,7 +481,7 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement, derived as a save derives it: a statement the derivation refuses is reported only as `uses` issues, and one it accepts has the `searchable`, `queryable` and `relations` projections it derives checked. Problems with the natural key arrive as `uses` issues, because the key is derived from the statement. |
+| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. |
 | `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. |
 | `path` | `string` | yes | Where in the declaration the issue is, e.g. `fields[2].source`. Empty for the natural key, which is one value. |
 | `message` | `string` | yes | The platform's own sentence for the issue. For `uses` it is followed by the remedy the save gives. |
@@ -509,7 +509,7 @@ Each item of `renames`:
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
-| `cost` | `object` | yes | What the rename spends (FR-042). Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
 Each item of `touched`:
 
@@ -523,10 +523,10 @@ Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -535,7 +535,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -553,7 +553,7 @@ Delete one table. Refused (409) while records of it exist, and for a seeded or r
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -563,8 +563,8 @@ Delete one table. Refused (409) while records of it exist, and for a seeded or r
 | `id` | `string` | yes | Id of the row that was removed. |
 | `key` | `string` | yes | Key of the table that was removed. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
-| `invalidatedJoins` | `string[]` | yes | Other tables whose join declarations this delete voided, because they named the table you removed. You asked to remove one table and a declaration on a different one changed as a result, so it is reported rather than left to be discovered. |
-| `deletedRelations` | `string[]` | yes | Relations removed with this table, because it was the only table pair they applied to. A relation that applies to no pair connects nothing and cannot be traversed, so it goes rather than being left behind — and every link it had made goes with it. Same reason as the field above: you asked to remove one table and something else changed, so it is reported. |
+| `invalidatedJoins` | `string[]` | yes | Other tables whose join declarations this delete voided, because they named the table you removed. |
+| `deletedRelations` | `string[]` | yes | Relations removed with this table, because it was the only table pair they applied to — and every link it had made goes with it. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -584,19 +584,19 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -605,6 +605,6 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |

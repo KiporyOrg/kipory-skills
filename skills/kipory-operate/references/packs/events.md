@@ -12,7 +12,7 @@ A per-project registry of signals a flow can raise, so other parts of the system
 One resource: the **event type** — one specific event, addressed `categoryKey/key`. The
 `categoryKey` is the **namespace** it lives in: the first half of its address, the channel segment
 it is published on, and the group it is shown under. A namespace is not a row you create — it
-exists while one event type carries it. Each type has a default scope, an optional payload shape,
+exists while one event type carries it. Each type has a default scope, an optional payload type,
 whether it is kept in the event log (`durable`), and a lifecycle status.
 
 A flow raises one with an `event.emit` node. Consumers either watch the run's live stream or
@@ -55,7 +55,7 @@ POST /v1/event-types        create the event, in its namespace — nothing to cr
 ```
 
 A type takes `project`, its namespace `categoryKey`, its own `key`, a `label`, a default scope of
-`run`, `record`, `user` or `project`, optionally a payload shape — omit it and the event is a
+`run`, `record`, `user` or `project`, optionally a payload type — omit it and the event is a
 payload-less marker — and `durable` (omit it for `false`: published live and not kept). Both keys
 are lower-case kebab (`order-placed`), because each becomes a segment of the event's
 `category/event` address on the bus; both are permanent. A `categoryKey` no type uses yet simply
@@ -72,10 +72,10 @@ Four things to get right:
 - **Scope is not in the node config.** It comes from the event _type_. You choose scope when you
   author the type, once, rather than at every emit site — so it cannot disagree with itself.
 - **The payload must match the type, in both directions.** A payload-less type refuses an emit
-  that carries one; a type with a payload shape rejects an emit whose payload does not validate
-  against it — which usually means a missing payload, though a shape whose fields are all optional
+  that carries one; a type with a payload type rejects an emit whose payload does not validate
+  against it — which usually means a missing payload, though a payload type whose fields are all optional
   will accept an emit with none. The payload is
-  validated against that shape before anything is transported, on every path.
+  validated against that type before anything is transported, on every path.
 - **The emit is never served from a cache, and that is not yours to get wrong.** Caching is a
   property each function declares, not a setting on your node, and `event.emit` does not opt in — a
   cache hit would swallow the side effect silently. There is no flag here for you to set either
@@ -116,7 +116,7 @@ the user you mean as data.
 - ⭐ **Every write answers a dry run.** `POST` and `PATCH` of a type take `validateOnly: true`, and
   its `DELETE` takes `?validateOnly=true`: each runs the write's own rules, writes nothing, and
   answers **200** with a verdict `{ok, diagnostics, complete}` — a taken key, a reserved or
-  provider-owned namespace, a durable run-scoped type, a payload shape the project does not hold,
+  provider-owned namespace, a durable run-scoped type, a payload type the project does not hold,
   a seeded row's delete each come back as a finding. It cannot see a stale `version` (the write's
   lock).
 
@@ -142,9 +142,9 @@ the user you mean as data.
   half previews with the event from `GET /v1/triggers/{id}/sample` (triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)). A
   withheld event does not appear in a dry run's change set either.
 - **The payload version moves on its own.** It increments both when you re-point a type at a
-  different shape _and_ when someone edits that shape in place — which bumps every type bound to
-  it. It is not the optimistic-lock version, and it counts per event type, so two types sharing a
-  shape can sit at different versions.
+  different payload type _and_ when someone edits that type in place — which bumps every type bound to
+  it. It is not the optimistic-lock version, and it counts per event type, so two event types sharing a
+  payload type can sit at different versions.
 - ⚠️ **A type's lifecycle status does not gate emitting.** A `retired` type emits exactly like an
   active one — the status is management metadata the emit path never reads; what it gates is
   whether a trigger may listen (`listenable`). Retiring a type is how you say "stop authoring against this"; it is not
@@ -156,4 +156,4 @@ the user you mean as data.
   consumes bus-scoped events.
 - Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — running a flow because a durable event was recorded.
 - Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — where the emit node lives.
-- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring a payload shape.
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring a payload type.

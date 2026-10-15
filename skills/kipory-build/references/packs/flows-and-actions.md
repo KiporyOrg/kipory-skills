@@ -190,7 +190,7 @@ for it when you are picking a function for an action rather than reading about o
 | ----------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `staticOutputSchema`    | what the function emits in your project before any wiring — null when it mirrors an input, when the function writes **no output slot at all**, or when its contract is unresolved |
 | `inputContract`         | the bound on each input position, so you can tell which upstream slots may feed it                                                                                                |
-| `variadicInputContract` | the same for a function taking any number of same-shaped inputs                                                                                                                   |
+| `variadicInputContract` | the same for a function taking any number of same-typed inputs                                                                                                                    |
 | `configDefaults`        | what an action gets if it sends no `functionConfig` at all                                                                                                                        |
 | `configDefaultsValid`   | false when the function declares a required field with no default — you MUST send config                                                                                          |
 | `freeFormInput`         | which config fields carry slot names rather than literals                                                                                                                         |
@@ -242,11 +242,11 @@ return part of it, `path` is an object — `{ "segments": [{ "kind": "field", "n
 — never a dotted string. The segments are the ones `inputPaths` uses: `field` (one property),
 `first` (a list's first element), `last` (its last), `index` (the element at a position), `pluck`
 (one property of every element) and `wrap` (a value as a one-element list). ⚠️ **A `field` segment
-is checked against the action's declared output shape**, so it needs an action whose `outputSchema` is a
-shape declaring that field. An action typed as the open builtin `object` refuses it as a type mismatch;
+is checked against the action's declared output type**, so it needs an action whose `outputSchema` is a
+type declaring that field. An action typed as the open builtin `object` refuses it as a type mismatch;
 give the action a type.
 
-- **On create** it is optional, and only its shape is checked: every key must name a declared
+- **On create** it is optional, and only its keys are checked: every key must name a declared
   output slot. There are no actions yet, so nothing else _can_ be checked.
 - **Changing the binding alone** re-checks the keys against the persisted output slots, then
   validates the whole graph in one transaction.
@@ -258,7 +258,7 @@ give the action a type.
 
 **A signature change is refused with `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` while anything live
 still holds a snapshot of the old one.** Two things do: a dynamic API endpoint, and a flow-backed
-table. Each captured the shape when it bound and keeps validating against it, so changing the
+table. Each captured the signature when it bound and keeps validating against it, so changing the
 flow underneath would not break them loudly; it would leave them serving a contract the flow no
 longer satisfies. The refusal names them, not just their count, so you can see which routes you are
 about to re-publish.
@@ -268,7 +268,7 @@ default on purpose — adopting rewrites the published request/response contract
 that is your decision to make explicitly — but taking it is one call, where unbinding and rebinding
 by hand leaves the route bound to nothing in between.
 
-Other things bind a flow without capturing its shape: a schedule, a trigger, a
+Other things bind a flow without capturing its signature: a schedule, a trigger, a
 vocabulary resolver. None of them blocks a signature change, because none froze a copy
 to go stale. What a schedule needs is that its stored inputs still cover the flow's declared input
 slots, and that is reported live on the schedule itself (`uncoveredInputSlots`) and re-checked when
@@ -276,12 +276,12 @@ it fires. A signature change does not refuse on a schedule or trigger it leaves 
 mistyped, but the PATCH's `validateOnly` names each one in `leavesBehind`, and so does a document
 plan.
 
-Renaming, or rewriting only the binding, never touches a captured shape and is always allowed —
+Renaming, or rewriting only the binding, never touches a captured signature and is always allowed —
 **including when you send the type arrays back unchanged**, which a client that PATCHes the whole
 flow will do. The refusal is on the signature actually moving, not on the request mentioning it.
 
 ⚠️ This does not catch the _other_ way a binding goes stale. A snapshot resolves each type
-reference to that shape's definition, so **editing a shape re-forms every binding that references
+reference to that type's definition, so **editing a type re-forms every binding that references
 it without anyone touching a flow.**
 
 ## Preview — run it for real, in a sandbox
@@ -630,13 +630,13 @@ reads a system prompt at all — `text.generate` does, `text.interpolate` does n
 ⛔ **On the create, send `inputSchemas` with a wired FILE, or it is dropped from the answer.** A
 multimodal function attaches a file input that no placeholder mentions, and the save counts that slot;
 without the refs the derivation cannot recognise one and answers a list without it. The PATCH reads
-the stored shapes when you send none.
+the stored input types when you send none.
 
-`derivedInputSchemas` sits beside it, one entry per slot, and is the shape the save types a wire on
-that slot from — the action that writes it, else the flow input, else the platform's own type. When
+`derivedInputSchemas` sits beside it, one entry per slot, and is the type the save checks a wire on
+that slot against — the action that writes it, else the flow input, else the platform's own type. When
 the derived list differs from the action's wiring, send it as `inputSchemas` for every position you do
-not already hold a stored shape for. An entry is `null` when nothing declares that slot's shape:
-there is no neutral shape to send, so do not save that list until the slot is typed.
+not already hold a stored type for. An entry is `null` when nothing declares that slot's type:
+there is no neutral type to send, so do not save that list until the slot is typed.
 
 ⭐⭐ **Send the run settings and it answers the save's own rules about how the action runs.** The five
 that exist are in the section above: tries on an action that runs in the flow rather than on a queue, a
@@ -653,7 +653,7 @@ create, and a `null` is a real value: it means the setting was cleared, which is
 
 ⚠️ **A value outside a field's bounds is a 422 against the body**, not a `RUN_*` finding — the
 dry run parses the write's own body, so it cannot accept a number the save refuses. The bound is the
-shape of the field; the five `RUN_*` rules are about a well-formed number being wrong for THIS
+field's declaration; the five `RUN_*` rules are about a well-formed number being wrong for THIS
 function.
 
 ⭐ **A finding in `derived.draft` names the setting under `run`**, e.g. `fields: ["run.tryDelayMs"]`.
@@ -874,7 +874,7 @@ GET /v1/flows/{id}/scope                  the same, for an action you are about 
 
 It lists the flow's inputs, the platform's own slots, and every slot written by an action that does not
 wait on this one — by an input **or by its condition**, which is the save's cycle rule. Each slot
-carries the shape the save types a wire on it from.
+carries the type the save checks a wire on it against.
 Without `actionId`, nothing can wait on the action yet, so every slot the flow's actions write is listed.
 ⚠️ Except one kind of action: a saved action that already reads the slot your new action will write starts
 waiting on it once the new action is saved. The stepless form does not know that slot, so such an action's
@@ -896,7 +896,7 @@ and a type you give is kept for that input wherever the platform places it.
 
 - **Provider slots are roots like any other.** `record.list` and `record.read` default `userIdSlot`
   to `userInfo.userId`, so `userInfo` is an input even on a project-wide table; a prompt reading
-  `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo`. Their shapes are the
+  `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo`. They are typed by the
   platform's types `UserInfo`, `ProjectInfo`, `RunInfo` and `TableInfo` — by key in a
   document, by id on the row API (`GET /v1/types?project={nodeId}&key=UserInfo`), and
   typed in `/scope` above.
@@ -927,7 +927,7 @@ flow already holds:
   leaves the function's type where it was leaves the stored one alone, a type you refined included.
 - **A swap to a function with no type of its own clears it.** `text.generate` and `text.decide` emit
   what you tell them to, so the action is left as a create leaves it: `outputSchema: null`, no
-  constraint until you state one. The old function's type is not kept as the shape to fill, and
+  constraint until you state one. The old function's type is not kept as the type to fill, and
   neither is a type refined on the old action. Between two such functions the type you stated stays.
 - **An `outputSchema` you send wins**, on any of these.
 
@@ -1150,7 +1150,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
 - **A flow cannot be deleted while another flow invokes it, or while anything live points at it**
   — one 409 `FLOW_HAS_DEPENDENTS` naming every kind that holds it, the calling flows included
   (⚠️ a **wider** set than the signature guard's, not the same one: to the endpoint and
-  table bindings that freeze a shape it adds schedules, triggers, vocabulary resolvers and — for a
+  table bindings that freeze a signature it adds schedules, triggers, vocabulary resolvers and — for a
   platform flow — the platform jobs it does. Those bind a flow by
   id, or a job by the flow fitting it, and capture nothing, so they cannot go stale on a signature
   edit — but they very much break on a delete). Only a platform job's stored default is a
@@ -1320,7 +1320,7 @@ Send `flowId` and `functionKey`, and `actionId` when the action is saved. Nothin
   many are chosen for the action itself.
 - **`bounds`** says what each input must hold: with a `count`, one entry per position; without
   one, a single entry every position shares. Its `rule` is `contract` (the function declares the
-  shape, in `wants`), `list` (a fan-out's one input), `file` (something the action attaches), `none`
+  type, in `wants`), `list` (a fan-out's one input), `file` (something the action attaches), `none`
   or `unresolved`. `bounds` and `candidates` are filled for `row` and for any action whose `attaches`
   is set, and empty for a `config` action with `attaches` null.
 
@@ -1345,11 +1345,11 @@ What the answer means for the write:
   that same type, so an object never fits a text input directly — the case `reach-in` covers.
 - **Whether a slot holds a file is nominal.** An object of your own carrying a key, a name and a
   MIME type is not a file, and neither is a type whose definition points at the builtin `file`;
-  the save refuses a wire chosen by comparing shapes.
+  the save refuses a wire chosen by comparing structure.
 - **A fan-out needs a list that is always there.** A slot declared as a list that may be missing
   comes back `no`.
-- **`unresolved` is a platform defect, not freedom.** The function declares a shape that could not
-  be read: a slot with a shape comes back `unchecked`, one with none is still `no`, and a save of
+- **`unresolved` is a platform defect, not freedom.** The function declares a contract that could not
+  be read: a slot with a type comes back `unchecked`, one with none is still `no`, and a save of
   the action is refused with `INPUT_CONTRACT_RESOLVER_FAILED`.
 - **Nothing is filtered out.** A slot that does not fit or cannot be reached is listed with its
   reason. `unreachable` carries the platform's code and sentence when wiring the slot would make

@@ -1,6 +1,6 @@
 ---
 name: kipory-evolve
-description: Change a Kipory project that already holds records or serves callers, without breaking it — rename or re-shape a table, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or shape change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary action edit (kipory-build, kipory-model).
+description: Change a Kipory project that already holds records or serves callers, without breaking it — rename a table or change its type, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or type change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary action edit (kipory-build, kipory-model).
 license: MIT
 ---
 
@@ -33,7 +33,7 @@ reach for when the change touches more than a handful of rows.
   with one of three kinds — `stale-version`, `concurrent-consumer-write` or `unique-collision`. The
   first two are re-read-and-retry, or resubmit with `overwriteConcurrentEdit`, which skips the
   pre-check **and nothing else**: it never clears a `unique-collision`, and it never relaxes
-  validation. Read the resource's own contract before assuming either shape.
+  validation. Read the resource's own contract before assuming either form.
 
   <!-- field-ok: version — the optimistic-concurrency token, named on several design resources -->
 
@@ -67,8 +67,8 @@ matters here is that the plan is the apply rolled back, so it answers the same r
 row-by-row change would meet, in one read, and three things a row write never tells you:
 
 - **`consequences`** — how many stored records the change re-stamps or re-indexes, and
-  `records-invalid`: the records that would no longer fit a shape you changed, found by reach
-  (a shape another shape references is checked through every table that reaches it). A
+  `records-invalid`: the records that would no longer fit a type you changed, found by reach
+  (a type another type references is checked through every table that reaches it). A
   consequence is never a refusal; the platform tells you and lets you. Deleting a relation
   deletes every stored link of that relation, and the plan counts them as `links-deleted` on the
   relation's path — save them first (`GET /v1/links?project=<node>&relation=<key>`) if they matter.
@@ -96,7 +96,7 @@ the class decides the sequence, and every sequence is written out once, in
 | ------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Adding**                                                    | the dependency exists before the thing that names it: type → flow → table → endpoint → schedule                                                      |
 | **Removing**                                                  | the reverse: delete the leaf, then what it hung from. A flow delete is `409 FLOW_HAS_DEPENDENTS` while anything names it, a disabled schedule too    |
-| **Changing a shape under live records**                       | four moves: widen (add the field as optional), backfill, patch the fixed inputs of schedules and triggers, then narrow. Narrowing first is an outage |
+| **Changing a type under live records**                        | four moves: widen (add the field as optional), backfill, patch the fixed inputs of schedules and triggers, then narrow. Narrowing first is an outage |
 | **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old actions wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing    |
 | **Renaming an action's output slot**                          | rehearse, then one document carrying the action, its readers and the flow's `outputBinding`                                                          |
 | **Changing a flow's own input or output slots**               | a change to the product's API: `409` until `adoptSnapshots: true`                                                                                    |
@@ -105,8 +105,8 @@ the class decides the sequence, and every sequence is written out once, in
 
 Some destructive changes are refused outright:
 
-- deleting a table that holds records, or re-pointing its shape or owner scope
-  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its shape that records hold; deleting a
+- deleting a table that holds records, or re-pointing its type or owner scope
+  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold; deleting a
   reserved or seeded table, whatever it holds;
 - deleting a flow something still references, or an action whose output later actions read;
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
@@ -146,14 +146,14 @@ you exported before a change. Planning it and applying it — with the project's
 (export again, or take it from the plan), not the old export's, which answers `409` — puts its rows back — a row deleted
 since returns as a new row with a new id, and a row added since stays unless the document says
 `prune` — under the same refusals as any other apply. It covers configuration only: no records,
-no vectors, no secret values. Deleting a table leaves the type it took its shape
+no vectors, no secret values. Deleting a table leaves the type it took its fields
 from, so the rollback re-creates the table on that same type. A schedule's or trigger's `enabled` travels: one the rollback re-creates comes back in the
 state the export recorded. What it does not restore as you left them:
 
 - **A field added since the export cannot be rolled back off records that hold it.** Re-applying
-  the older shape removes the field, and a shape edit that removes a declared field some record
+  the older type removes the field, and a type edit that removes a declared field some record
   holds is refused `TYPE_UNSAFE_FOR_TABLE`, naming how many records hold it and skipping the
-  rows that depend on it. Keep the new field in the rollback document's shape, or remove it from
+  rows that depend on it. Keep the new field in the rollback document's type, or remove it from
   those records first.
 - **Links are data, not configuration.** A relation the change deleted comes back EMPTY:
   every link asserted by hand (`POST /v1/records/{id}/links/{relationKey}`) is gone for good, and
@@ -171,13 +171,13 @@ at all:
 ## What will bite you
 
 - **Ask the PATCH's dry run about the edit, not the stored table.** `expand=contract` answers for
-  what is stored; an agent holding an edited-but-unsaved shape must send it — the drafted
+  what is stored; an agent holding an edited-but-unsaved type must send it — the drafted
   `definition`, or the proposed `dataTypeId`/`flowId`, with `validateOnly: true` — or it derives
   declarations against a field vocabulary it is about to replace. Send the `uses` the save would
   send too: the dry run re-derives them against the proposed contract.
 - **A refused delete is the good outcome.** The dangerous ones are the changes that succeed and
   quietly invalidate something — a join declaration, a cached digest, an endpoint whose flow no
-  longer returns the shape it promised.
+  longer returns what it promised.
 - **A stale token is refused, not merged.** Re-read and re-apply rather than retrying the same body,
   and reach for `overwriteConcurrentEdit` only when you actually mean to discard whatever the other
   writer did — it is an override, not a retry.
@@ -206,9 +206,9 @@ at all:
   Switching its `tableKey` saves. Health and a document plan warn `RECORD_CREATE_DATA_MISMATCH`,
   and the run fails the action naming each field — the check `POST /v1/records` makes — when the
   incoming slot lacks a field the table requires or carries one under a different type. Fields the
-  table's shape does not declare are not a misfit unless the shape sets
+  table's type does not declare are not a misfit unless the type sets
   `"additionalProperties": false`: the warning stays silent, the action does not fail, and the run
-  writes a record in the wrong table. Close the shape if that matters, and preview with
+  writes a record in the wrong table. Close the type if that matters, and preview with
   `apply: false` after such an edit, reading the `tableKey` it reports.
 - **A schedule PATCH's dry run does not check `version`.** `validateOnly: true` answers `ok: true`
   on a stale one, and the same body sent for real answers `409 VERSION_CONFLICT`. Re-read the
@@ -236,9 +236,9 @@ at all:
 
 ## References
 
-| File                         | What it answers                                                                                                                                                                                                                                                                                                                                                                       |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `references/change-order.md` | every rehearsal route and what it answers; a change request → its class, then the full sequence for each: additive, narrowing a shape (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, renaming a slot, retiring a term, removing through a document; what each refusal carries and the way round it; what each cascade reports |
+| File                         | What it answers                                                                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `references/change-order.md` | every rehearsal route and what it answers; a change request → its class, then the full sequence for each: additive, narrowing a type (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, renaming a slot, retiring a term, removing through a document; what each refusal carries and the way round it; what each cascade reports |
 
 ## Then
 

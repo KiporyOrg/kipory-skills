@@ -66,7 +66,7 @@ Each item of `actions`:
 | `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the function's own backoff. |
 | `onFailure` | `"fail-run" \| "continue"` | yes | What this action's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; actions that do not depend on this one still run. `continue` — the run carries on without this action's output and reports the failure as a warning. Offered only on actions that write nothing. |
 | `failureSlot` | `string \| null` | yes | Slot the platform writes this action's failure to, as a `ActionFailure` (`phase`, `code`, `message`, `retryable`), when the action failed and the run carried on (`onFailure: continue`) or its function softened a failure, and beside the value as `code: value-cut` when the action says `onOversize: cut` and the engine cut its result. Absent on a run where the action succeeded uncut, was skipped or found nothing, so a reader takes it as an optional input or gates on it being present. Refused on an action that can never write it. Null when the action names none. |
-| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails — a cut list is still a list, so what read it cannot tell. An object or a file reference cannot be cut and always fails. |
+| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails. An object or a file reference cannot be cut and always fails. |
 | `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this action saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the function's own period; 0 always runs fresh and saves nothing. |
 | `timeoutMs` | `integer \| null` | yes | Per-action time limit in milliseconds, or null for none of its own. What it bounds depends on the function: each AI call for an AI generation action; the wait on the queued job for a fetch or file action, covering every try; and how long the run waits for an action that runs in the flow itself, whose work may still finish. Control actions ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
@@ -76,7 +76,7 @@ Each item of `actions`:
 | `canFire` | `boolean` | yes | False when the flow's wiring alone keeps this action from ever running: its condition cannot hold, none of its inputs can arrive, an input it reads a field of never arrives and the action cannot go without it, or it sits inside a fan-out that can never run — because the slots involved are never written by anything that can itself run. True is not a promise — a condition over a value that may arrive, or a list that may be empty, can still skip it on a given run. Every action is judged as though enabled. |
 | `blockedBy` | `string \| null` | yes | When `canFire` is false, the slot whose absence decides it — the first slot the condition names that never arrives, the first input that never does, the input whose field it reads that never arrives, or, for an action inside a fan-out that can never run, the slot that stops the fan-out. Null when `canFire` is true. |
 | `deleteRefusal` | `object \| null` | yes | Why `DELETE /v1/actions/{id}` would refuse this action right now, in the delete's own words — or null when no other action in the flow reads what it writes. Null does not mean YOU may delete it: the delete also needs the ADMIN role and a project that is not retired. An action saved between this read and the delete still refuses it. |
-| `effectiveTimeLimit` | `object \| null` | yes | What this action's time limit comes to on a run and which layer decided it — the precedence the engine applies, with the deployment's current limits. Null when the action's function is not registered, so nothing can say how it runs. |
+| `effectiveTimeLimit` | `object \| null` | yes | What this action's time limit comes to on a run and which layer decided it — the precedence the engine applies, with the deployment's current limits. Null when the action's function is not registered. |
 
 ### `POST /v1/actions`
 
@@ -102,15 +102,15 @@ Create one action in a flow. Leave out what the platform works out: the inputs a
 | `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
 | `inputProjectionNames` | `string \| null[] \| null` | no | Names each input is exposed under inside the prompt, POSITIONALLY ALIGNED with `inputStreams`. Null at a position uses the source slot's own name. |
 | `enabled` | `boolean` | no | Whether the action executes. Defaults to enabled. |
-| `modelId` | `string \| null` | no | AiModel id this action's AI call runs on. Omit (or send null) to inherit the model bound to this action's taskKey at /platform/models — the project's AiTaskConfig row for that task, else the system default. Set an explicit id only to pin this action to one model; it must name a row in the AiModel catalog. |
+| `modelId` | `string \| null` | no | The model id this action's AI call runs on. Omit (or send null) to inherit the model bound to this action's taskKey at /platform/models — the project's model setting for that task, else the system default. Set an explicit id only to pin this action to one model; it must name a model in the catalog. |
 | `timeoutMs` | `integer \| null` | no | Per-action time limit in milliseconds, up to 120000. |
 | `tries` | `integer \| null` | no | How many times the action is tried in all, the first try included, 1–5. Null uses the function's own number, which an action's number replaces rather than adds to. Only fetch and file actions take it; an action that runs in the flow itself is tried once. |
 | `tryDelayMs` | `integer \| null` | no | The fixed wait between tries, in milliseconds, up to 60000. Null uses the function's own backoff. |
 | `onFailure` | `"fail-run" \| "continue"` | no | What this action's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; actions that do not depend on this one still run. `continue` — the run carries on without this action's output and reports the failure as a warning. Offered only on actions that write nothing. Defaults to `fail-run`. |
 | `failureSlot` | `string \| null` | no | Slot the platform writes this action's failure to, as a `ActionFailure` (`phase`, `code`, `message`, `retryable`), when the action failed and the run carried on (`onFailure: continue`) or its function softened a failure, and beside the value as `code: value-cut` when the action says `onOversize: cut` and the engine cut its result. Absent on a run where the action succeeded uncut, was skipped or found nothing, so a reader takes it as an optional input or gates on it being present. Refused on an action that can never write it. Omit it, or send null, to name none. |
-| `onOversize` | `"cut" \| "fail" \| null` | no | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails — a cut list is still a list, so what read it cannot tell. An object or a file reference cannot be cut and always fails. Omit it, or send null, for the default. |
+| `onOversize` | `"cut" \| "fail" \| null` | no | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails. An object or a file reference cannot be cut and always fails. Omit it, or send null, for the default. |
 | `reuseResultsForMinutes` | `integer \| null` | no | How long a result this action saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the function's own period; 0 always runs fresh and saves nothing. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate-draft`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -127,19 +127,19 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -148,7 +148,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -158,7 +158,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `action` | `object` | yes | The action as saved. |
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
-| `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
+| `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings. |
 
 Each item of `outstandingIssues`:
 
@@ -166,7 +166,7 @@ Each item of `outstandingIssues`:
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable code identifying the kind of problem. |
 | `message` | `string` | yes | What is wrong, in prose. |
-| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block. |
 
 ### `GET /v1/actions/{id}`
 
@@ -205,7 +205,7 @@ One action by id. Every action of its flow, with the graph's facts about each: `
 | `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the function's own backoff. |
 | `onFailure` | `"fail-run" \| "continue"` | yes | What this action's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; actions that do not depend on this one still run. `continue` — the run carries on without this action's output and reports the failure as a warning. Offered only on actions that write nothing. |
 | `failureSlot` | `string \| null` | yes | Slot the platform writes this action's failure to, as a `ActionFailure` (`phase`, `code`, `message`, `retryable`), when the action failed and the run carried on (`onFailure: continue`) or its function softened a failure, and beside the value as `code: value-cut` when the action says `onOversize: cut` and the engine cut its result. Absent on a run where the action succeeded uncut, was skipped or found nothing, so a reader takes it as an optional input or gates on it being present. Refused on an action that can never write it. Null when the action names none. |
-| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails — a cut list is still a list, so what read it cannot tell. An object or a file reference cannot be cut and always fails. |
+| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails. An object or a file reference cannot be cut and always fails. |
 | `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this action saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the function's own period; 0 always runs fresh and saves nothing. |
 | `timeoutMs` | `integer \| null` | yes | Per-action time limit in milliseconds, or null for none of its own. What it bounds depends on the function: each AI call for an AI generation action; the wait on the queued job for a fetch or file action, covering every try; and how long the run waits for an action that runs in the flow itself, whose work may still finish. Control actions ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
@@ -227,7 +227,7 @@ Change one action; `version` is the one you last read, and a moved row answers 4
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `version` | `integer` | yes | The `version` you last read. Required — the write is refused if the action has changed since, so an edit cannot silently overwrite one made in another tab. |
-| `overwriteConcurrentEdit` | `boolean` | no | Skip the optimistic-lock pre-check, and NOTHING ELSE. A stale `version` is accepted rather than refused with a 409, so a concurrent edit is overwritten — that is the whole of what this does. It has no effect on validation: blocking errors are refused either way, warnings never blocked a save in the first place, and a `unique-collision` 409 will NOT clear (the index is still there). |
+| `overwriteConcurrentEdit` | `boolean` | no | Skip the optimistic-lock pre-check, and NOTHING ELSE. A stale `version` is accepted rather than refused with a 409, so a concurrent edit is overwritten. It has no effect on validation: blocking errors are refused either way, warnings never blocked a save in the first place, and a `unique-collision` 409 will NOT clear. |
 | `key` | `string` | no | The action's new key, dotted or not; omit to keep it. Lowercase words joined by dashes, optionally grouped with dots, like `extract.species`, up to 64 characters. |
 | `description` | `string \| null` | no | Free-text note about what this action does. |
 | `functionKey` | `string` | no | Change which function runs this action. |
@@ -243,16 +243,16 @@ Change one action; `version` is the one you last read, and a moved row answers 4
 | `inputPaths` | `object \| null[] \| null` | no | Per-input path expressions, POSITIONALLY ALIGNED with `inputStreams` — entry N selects a leaf out of input N. Null at a position takes that input whole. Send null for the whole field to take every input whole. |
 | `inputProjectionNames` | `string \| null[] \| null` | no | Names each input is exposed under inside the prompt, POSITIONALLY ALIGNED with `inputStreams`. Null at a position uses the source slot's own name. |
 | `enabled` | `boolean` | no | Whether the action executes. |
-| `modelId` | `string \| null` | no | AiModel id this action's AI call runs on. Omit (or send null) to inherit the model bound to this action's taskKey at /platform/models — the project's AiTaskConfig row for that task, else the system default. Set an explicit id only to pin this action to one model; it must name a row in the AiModel catalog. |
+| `modelId` | `string \| null` | no | The model id this action's AI call runs on. Omit (or send null) to inherit the model bound to this action's taskKey at /platform/models — the project's model setting for that task, else the system default. Set an explicit id only to pin this action to one model; it must name a model in the catalog. |
 | `timeoutMs` | `integer \| null` | no | Per-action time limit in milliseconds, up to 120000. |
 | `tries` | `integer \| null` | no | How many times the action is tried in all, the first try included, 1–5. Null uses the function's own number, which an action's number replaces rather than adds to. Only fetch and file actions take it; an action that runs in the flow itself is tried once. |
 | `tryDelayMs` | `integer \| null` | no | The fixed wait between tries, in milliseconds, up to 60000. Null uses the function's own backoff. |
 | `onFailure` | `"fail-run" \| "continue"` | no | What this action's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; actions that do not depend on this one still run. `continue` — the run carries on without this action's output and reports the failure as a warning. Offered only on actions that write nothing. |
 | `failureSlot` | `string \| null` | no | Slot the platform writes this action's failure to, as a `ActionFailure` (`phase`, `code`, `message`, `retryable`), when the action failed and the run carried on (`onFailure: continue`) or its function softened a failure, and beside the value as `code: value-cut` when the action says `onOversize: cut` and the engine cut its result. Absent on a run where the action succeeded uncut, was skipped or found nothing, so a reader takes it as an optional input or gates on it being present. Refused on an action that can never write it. Null clears it; omit it to leave it as it is. Renaming one is what `confirmedOutputSlotRenames` cascades to its readers. |
-| `onOversize` | `"cut" \| "fail" \| null` | no | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails — a cut list is still a list, so what read it cannot tell. An object or a file reference cannot be cut and always fails. Null returns it to the default; omit it to leave it as it is. |
+| `onOversize` | `"cut" \| "fail" \| null` | no | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails. An object or a file reference cannot be cut and always fails. Null returns it to the default; omit it to leave it as it is. |
 | `reuseResultsForMinutes` | `integer \| null` | no | How long a result this action saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the function's own period; 0 always runs fresh and saves nothing. |
 | `confirmedOutputSlotRenames` | `object[]` | no | Confirm output-slot renames and cascade them. Every sibling action referencing an old name is rewritten to the new one in the same transaction. An action may rename several slots at once, so this is a list. Omit it and a rename leaves referencing siblings pointing at a slot that no longer exists. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate-draft`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -260,7 +260,7 @@ Change one action; `version` is the one you last read, and a moved row answers 4
 | --- | --- | --- | --- |
 | `action` | `object` | yes | The action as saved. |
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
-| `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
+| `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -274,25 +274,25 @@ Each item of `outstandingIssues`:
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable code identifying the kind of problem. |
 | `message` | `string` | yes | What is wrong, in prose. |
-| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block. |
 
 Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -301,7 +301,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -319,7 +319,7 @@ Delete one action. Refused (409) while another action reads a slot it writes —
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/deletion-preview`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -338,19 +338,19 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -359,7 +359,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -379,7 +379,7 @@ Copy an action into its own flow, under a key and an output slot nothing else in
 | --- | --- | --- | --- |
 | `action` | `object` | yes | The action as saved. |
 | `outstandingIssues` | `object[]` | yes | Non-blocking warnings that rode along with the save. Empty when there were none. |
-| `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings — the blast radius of a rename, reported rather than left to be discovered. |
+| `rewrite` | `object` | no | Present only when the write carried a confirmed output-slot rename that cascaded to referencing siblings. |
 
 Each item of `outstandingIssues`:
 
@@ -387,7 +387,7 @@ Each item of `outstandingIssues`:
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable code identifying the kind of problem. |
 | `message` | `string` | yes | What is wrong, in prose. |
-| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block. |
 
 ### `POST /v1/actions/batch`
 
@@ -401,7 +401,7 @@ Create, change and delete several actions of ONE flow in one transaction, valida
 | `creates` | `object[]` | no | Actions to add. |
 | `updates` | `object[]` | no | Actions to change. Each carries its own `version`, so one stale item refuses the whole batch. |
 | `deletes` | `object[]` | no | Actions to remove. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` an update has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` an update has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -444,7 +444,7 @@ Each item of `created`:
 | `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the function's own backoff. |
 | `onFailure` | `"fail-run" \| "continue"` | yes | What this action's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; actions that do not depend on this one still run. `continue` — the run carries on without this action's output and reports the failure as a warning. Offered only on actions that write nothing. |
 | `failureSlot` | `string \| null` | yes | Slot the platform writes this action's failure to, as a `ActionFailure` (`phase`, `code`, `message`, `retryable`), when the action failed and the run carried on (`onFailure: continue`) or its function softened a failure, and beside the value as `code: value-cut` when the action says `onOversize: cut` and the engine cut its result. Absent on a run where the action succeeded uncut, was skipped or found nothing, so a reader takes it as an optional input or gates on it being present. Refused on an action that can never write it. Null when the action names none. |
-| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails — a cut list is still a list, so what read it cannot tell. An object or a file reference cannot be cut and always fails. |
+| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails. An object or a file reference cannot be cut and always fails. |
 | `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this action saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the function's own period; 0 always runs fresh and saves nothing. |
 | `timeoutMs` | `integer \| null` | yes | Per-action time limit in milliseconds, or null for none of its own. What it bounds depends on the function: each AI call for an AI generation action; the wait on the queued job for a fetch or file action, covering every try; and how long the run waits for an action that runs in the flow itself, whose work may still finish. Control actions ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
@@ -478,7 +478,7 @@ Each item of `updated`:
 | `tryDelayMs` | `integer \| null` | yes | The fixed wait between tries, in milliseconds, up to 60000. Null uses the function's own backoff. |
 | `onFailure` | `"fail-run" \| "continue"` | yes | What this action's failure does to the run. `fail-run` — the run fails and keeps nothing it wrote; actions that do not depend on this one still run. `continue` — the run carries on without this action's output and reports the failure as a warning. Offered only on actions that write nothing. |
 | `failureSlot` | `string \| null` | yes | Slot the platform writes this action's failure to, as a `ActionFailure` (`phase`, `code`, `message`, `retryable`), when the action failed and the run carried on (`onFailure: continue`) or its function softened a failure, and beside the value as `code: value-cut` when the action says `onOversize: cut` and the engine cut its result. Absent on a run where the action succeeded uncut, was skipped or found nothing, so a reader takes it as an optional input or gates on it being present. Refused on an action that can never write it. Null when the action names none. |
-| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails — a cut list is still a list, so what read it cannot tell. An object or a file reference cannot be cut and always fails. |
+| `onOversize` | `"cut" \| "fail" \| null` | yes | What happens when this action's result is over the slot limit (500,000 characters unless the deployment set another). `cut` — a text keeps its start and a list its first elements, the action succeeds with a `slot-truncated` warning, and its `failureSlot`, when it names one, holds `code: value-cut` unless its own softened failure already does. `fail` — the action fails. Null uses the platform's default: a text is cut, a list fails. An object or a file reference cannot be cut and always fails. |
 | `reuseResultsForMinutes` | `integer \| null` | yes | How long a result this action saved stays good enough to reuse, in minutes, up to 86400 (sixty days). Null uses the function's own period; 0 always runs fresh and saves nothing. |
 | `timeoutMs` | `integer \| null` | yes | Per-action time limit in milliseconds, or null for none of its own. What it bounds depends on the function: each AI call for an AI generation action; the wait on the queued job for a fetch or file action, covering every try; and how long the run waits for an action that runs in the flow itself, whose work may still finish. Control actions ignore it. A synchronous endpoint stops waiting at its own limit regardless. |
 | `version` | `integer` | yes | Optimistic-lock version. Send it back on a write to be refused on a concurrent edit rather than overwriting one. |
@@ -491,25 +491,25 @@ Each item of `outstandingIssues`:
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable code identifying the kind of problem. |
 | `message` | `string` | yes | What is wrong, in prose. |
-| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block and is reported so it is not discovered later. |
+| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block. |
 
 Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -518,7 +518,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -548,7 +548,7 @@ Every slot an action could read in a flow, each checked against what its functio
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowId` | `string` | yes | The flow the action belongs to. Flow-addressed because the action may not be saved yet. |
+| `flowId` | `string` | yes | The flow the action belongs to. |
 | `functionKey` | `string` | yes | The function the action runs. Its declared inputs are what every slot is checked against. An unregistered key is a 422. |
 | `actionId` | `string` | no | The action being edited, when it is saved. Its own output is never offered, and a slot that waits on it is reported as closing a circle. Omit it for an action that does not exist yet. |
 
@@ -627,7 +627,7 @@ Run ONE action's prompt against slot values you type — for `text.generate` it 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `interpolatedPrompt` | `string` | yes | The prompt after interpolation — exactly what the model would receive. |
-| `response` | `string \| null` | yes | What the model said, when one was called. For an action type that does not call a model this is the interpolated prompt instead, because that text IS its answer. |
+| `response` | `string \| null` | yes | What the model said, when one was called. For an action type that does not call a model this is the interpolated prompt instead. |
 | `tokensIn` | `number \| null` | yes | Tokens sent. NULL MEANS NO MODEL WAS CALLED, which is a different thing from a call that used zero. |
 | `tokensOut` | `number \| null` | yes | Tokens returned. Null when no model was called. |
 | `latencyMs` | `number` | yes | How long the preview took, in milliseconds. |

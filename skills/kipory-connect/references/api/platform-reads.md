@@ -40,7 +40,7 @@ Each item of `packs`:
 ### `GET /v1/capability-packs/{id}`
 
 One capability pack: its title, description and full markdown `content`, with the pack set's `version`. An unknown `id` is a 404 that names the ids which exist.
-List the packs, without content, with `GET /v1/capability-packs`. The packs point at facts rather than restating them: functions are `GET /v1/functions/{key}`, routes and bodies `GET /v1/openapi.json`.
+List the packs, without content, with `GET /v1/capability-packs`. Functions are `GET /v1/functions/{key}`, routes and bodies `GET /v1/openapi.json`.
 Public: no credential needed.
 
 **Path parameters**
@@ -57,7 +57,7 @@ Public: no credential needed.
 | `title` | `string` | yes | Its title. |
 | `description` | `string` | yes | Its opening paragraph. |
 | `content` | `string` | yes | The pack itself, as markdown, verbatim. |
-| `version` | `string` | yes | The SET's version, not this pack's. A per-pack hash would let you hold a coherent-looking mix of packs from two different deployments, which is exactly what this field exists to prevent. |
+| `version` | `string` | yes | The SET's version, not this pack's — the same value `GET /v1/capability-packs` answers as `version`. |
 
 ### `GET /v1/coded-routes`
 

@@ -28,22 +28,22 @@ A project's file library — every file it holds, uploaded or produced by a flow
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project whose files to list — its node id. |
-| `scope` | `"sent-in" \| "produced" \| "all"` | no | Which files to list. `sent-in` is what arrived from outside (uploads, channel media, imports); `produced` is what a flow made. Defaults to `sent-in`, because function output outnumbers it in a busy project and buries the handful of things a person actually sent. |
-| `owner` | `string` | no | Narrow to the files ONE person HOLDS, by their user id — the ones stored under their own owner prefix, which is the population account deletion erases. ⚠️ THREE different people can be called a file's owner: whoever holds it, whoever uploaded the bytes (`uploadedByUserId`, written only by the presign route and null on every function-produced file), and whoever owns the record it landed on. `source` on the row below reports the latter two because they come apart routinely; this filter is the first, and it is the one the Members roster counts. |
-| `kind` | `"image" \| "pdf" \| "audio" \| "video" \| "text" \| "other"` | no | Narrow to one content class. Omit for all of them. Like `q`, this is a scan within the project — `fileMimeType` carries no index — so it costs what the scope filter beside it already costs, and no more. |
+| `scope` | `"sent-in" \| "produced" \| "all"` | no | Which files to list. `sent-in` is what arrived from outside (uploads, channel media, imports); `produced` is what a flow made. Defaults to `sent-in`. |
+| `owner` | `string` | no | Narrow to the files ONE person HOLDS, by their user id — the ones stored under their own owner prefix, which is the population account deletion erases. ⚠️ THREE different people can be called a file's owner: whoever holds it, whoever uploaded the bytes (`uploadedByUserId`, written only by the presign route and null on every function-produced file), and whoever owns the record it landed on. `source` on the row below reports the latter two; this filter is the first, and it is the one the Members roster counts. |
+| `kind` | `"image" \| "pdf" \| "audio" \| "video" \| "text" \| "other"` | no | Narrow to one content class. Omit for all of them. |
 | `attached` | `"record" \| "project"` | no | Narrow to files a record carries (`record`) or to files nothing has claimed (`project`). Omit for both. Refused (400) as `project` beside `tableKey` or `record`, which name a record by definition. |
 | `tableKey` | `string` | no | Narrow to files on records of ONE type, by the type's key — the same string a record's `tableKey` carries. Implies `attached=record`. A type the project does not declare matches nothing rather than being refused: records can outlive their declaration. |
 | `record` | `string` | no | Narrow to the files ONE record carries, by its id. Implies `attached=record`; `tableKey` beside it is redundant and ignored, since a record has one type. |
-| `q` | `string` | no | Match against the file NAME only, case-insensitively. Deliberately narrow: the name column is not indexed, so this is a scan over one project's files and must not be widened into a content search. |
+| `q` | `string` | no | Match against the file NAME only, case-insensitively. |
 | `since` | `string` | no | Only files received at or after this instant. |
-| `until` | `string` | no | Only files received STRICTLY BEFORE this instant. Refused (400) at or before `since`: that window is empty by construction. |
+| `until` | `string` | no | Only files received STRICTLY BEFORE this instant. Refused (400) at or before `since`. |
 | `sort` | `"created-at" \| "file-name" \| "file-size"` | no | What the page is ordered by: `created-at` (when the file arrived — the default), `file-name`, or `file-size`. Ties break on the row id. ⚠️ `file-size` orders an awaiting-upload row by the size its uploader DECLARED, which the row reports as null until the bytes are confirmed. |
 | `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Defaults to `desc` — newest first under the default sort. |
 | `after` | `string` | no | The page AFTER this row in the ordering — pass back the `nextCursor` you were given. Omit for the first page. A cursor carries the `sort` and `order` it was minted under and is refused (400) beside different ones. |
-| `before` | `string` | no | The page BEFORE this row in the ordering — pass back the `prevCursor` you were given. Refused together with `after`: they name opposite directions from one row, so a request carrying both has not said which it wants. |
-| `page` | `integer` | no | Jump to this page, 1-based. Resolved as an OFFSET and therefore approximate while files are arriving — walking with `after`/`before` is exact and is what the response's cursors are for. Past the last page it CLAMPS to the last one rather than answering empty: an out-of-range page is a URL somebody typed, and an empty list reads as an empty library. Refused together with `after` or `before`. |
+| `before` | `string` | no | The page BEFORE this row in the ordering — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `page` | `integer` | no | Jump to this page, 1-based. Resolved as an OFFSET and therefore approximate while files are arriving — walking with `after`/`before` is exact. Past the last page it CLAMPS to the last one. Refused together with `after` or `before`. |
 | `limit` | `integer` | no | How many files per page, up to 100. Defaults to 50. |
-| `totals` | `"full" \| "none"` | no | `none` omits `totals` and answers `fileCount` alone. The totals need an aggregate over columns no index covers, so its cost tracks the project's file count; `fileCount` is an index-only scan. Ask for `none` when you want the number and not the breakdown. |
+| `totals` | `"full" \| "none"` | no | `none` omits `totals` and answers `fileCount` alone. The totals cost grows with the project's file count; `fileCount` is cheap. Ask for `none` when you want the number and not the breakdown. |
 
 **Response `200`**
 
@@ -52,11 +52,11 @@ A project's file library — every file it holds, uploaded or produced by a flow
 | `files` | `object[]` | yes | This page of files, in `sort` / `order` — whichever direction it was reached from. |
 | `sort` | `"created-at" \| "file-name" \| "file-size"` | yes | The ordering this page was read in: the `sort` sent, or `created-at`. |
 | `order` | `"asc" \| "desc"` | yes | Which way `sort` ran: the `order` sent, or `desc`. |
-| `fileCount` | `integer` | yes | Every file the project holds, ignoring every narrowing — `scope`, `q`, the `since`/`until` window — which is what a menu row means by a number. An index-only count, so it is cheap enough to ask for on a navigation. |
-| `totals` | `object \| null` | yes | Figures over THIS QUERY — the same predicate the list uses, including the search. NULL when `totals=none` was asked for, which is a statement about the request rather than about the project. |
-| `paging` | `object` | yes | Where this page sits in the whole result — the questions a cursor cannot answer. Always present on this route: it is an index-only count, unlike `totals`. Its `total` counts THIS query, search and scope included, which `fileCount` deliberately does not. |
+| `fileCount` | `integer` | yes | Every file the project holds, ignoring every narrowing — `scope`, `q`, the `since`/`until` window. Cheap to ask for. |
+| `totals` | `object \| null` | yes | Figures over THIS QUERY — the same predicate the list uses, including the search. NULL when `totals=none` was asked for. |
+| `paging` | `object` | yes | Where this page sits in the whole result. Always present on this route. Its `total` counts THIS query, search and scope included, which `fileCount` does not. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
 
 Each item of `files`:
 
@@ -66,8 +66,8 @@ Each item of `files`:
 | `fileName` | `string` | yes | The name the file arrived under. Not unique, and not its address: two files in a project may share one. |
 | `fileSize` | `integer \| null` | yes | Bytes, measured — NULL while `state` is `awaiting-upload`, which is not the same as zero. The size a client declares when it asks for an upload URL is a hint; only the confirm reconciles it against the object that actually landed. |
 | `fileMimeType` | `string` | yes | What the file says it is. Reconciled against the stored object on confirm, so it is the type a download will actually serve. |
-| `kind` | `"image" \| "pdf" \| "audio" \| "video" \| "text" \| "other"` | yes | The coarse class of `fileMimeType`, and the value the `kind` query parameter matches. Rendered where the raw mime would be unreadable. |
-| `previewable` | `boolean` | yes | Whether the platform will serve these bytes `inline`, so a client may render them in place. A prediction from the stored type, not a guarantee — see the note on `fileMimeType`. Always false while `state` is `awaiting-upload`: there are no bytes to serve, which is a second reason for false that the type alone does not explain. |
+| `kind` | `"image" \| "pdf" \| "audio" \| "video" \| "text" \| "other"` | yes | The coarse class of `fileMimeType`, and the value the `kind` query parameter matches. |
+| `previewable` | `boolean` | yes | Whether the platform will serve these bytes `inline`, so a client may render them in place. A prediction from the stored type, not a guarantee — see the note on `fileMimeType`. Always false while `state` is `awaiting-upload`: there are no bytes to serve. |
 | `state` | `"stored" \| "awaiting-upload"` | yes | `stored` means the bytes exist. `awaiting-upload` means a URL was signed and nothing ever arrived — there is nothing to download, and the platform clears these within a day. |
 | `source` | `object` | yes | Where the file came from. Three shapes, because only one of the three is a person: a flow's output names its action, and channel media names nobody. |
 | `record` | `object \| null` | yes | The record carrying this file, or null when nothing has claimed it. Null is ordinary: media can arrive ahead of the record that will claim it. There is no title here — a record's readable name lives in its own `data`, whose shape is the project's, not the platform's. |
@@ -185,7 +185,7 @@ Ask for somewhere to put a file: answers the file's id and a presigned URL to PU
 | `fileName` | `string` | yes | The file's name, kept for display. |
 | `contentType` | `string` | yes | The file's MIME type. It is recorded and served back on download, so getting it wrong makes the file arrive as the wrong kind. |
 | `size` | `integer` | yes | The exact size in bytes of what you will PUT: at most 100000000, or 25000000 with `project`. The upload URL takes exactly this many bytes; a PUT of any other length is refused by storage (403). |
-| `project` | `string` | no | Put the file into this PROJECT (its node id) rather than into your own files: the stored object belongs to the project, so it outlives your account and any run of the project can read it. Needs EDITOR on the project, and is refused on a project's own host — a project's end users upload their own files. Omitted, the file is yours. |
+| `project` | `string` | no | Put the file into this PROJECT (its node id) rather than into your own files: the stored object belongs to the project, so it outlives your account and any run of the project can read it. Needs EDITOR on the project, and is refused on a project's own host. Omitted, the file is yours. |
 
 **Response `200`**
 

@@ -34,7 +34,7 @@ The records this flow ran on lately, named, newest first — what a preview's re
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `records` | `object[]` | yes | Distinct records, most recently run first. Empty for a flow no record has run through lately — and for a PLATFORM flow, whose runs belong to the projects that bind it rather than to any one project a reader of this flow could be shown. |
+| `records` | `object[]` | yes | Distinct records, most recently run first. Empty for a flow no record has run through lately — and always for a PLATFORM flow. |
 
 Each item of `records`:
 
@@ -71,9 +71,9 @@ A flow's traces — the VALUES half of its runs: inputs, outputs and per-action 
 | --- | --- | --- | --- |
 | `traces` | `object[]` | yes | The flow's runs, newest first by `createdAt`, then id, WITHOUT their payloads — read one trace to get those. ⚠️ An absent run is not evidence it did not happen: traces expire, and writing them is sampled. |
 | `sampling` | `object` | yes | How much of this project's traffic is traced at all. ⚠️ WITHOUT THIS THE LIST IS UNINTERPRETABLE — 'three traces' means one thing at a rate of 1 and something very different at 0.05. Null means the deployment default is in force, which is NOT zero. |
-| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, and no `page` jump is offered — walk with `after` / `before`. |
+| `paging` | `null` | yes | Always null: no count and no `page` jump are offered — walk with `after` / `before`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
 
 Each item of `traces`:
 

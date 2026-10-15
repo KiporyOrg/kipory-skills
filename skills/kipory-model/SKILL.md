@@ -30,35 +30,35 @@ POST /v1/embedding-profiles/{id}/activate      { version } — repoint every dec
 
 - **`modelId`** is an embedding model's id from `GET /v1/ai-models?type=embedding` — nothing else lists them. A listed model is not a working one: before you choose, read `GET /v1/ai-calls?project={nodeId}&origins=all&outcome=error` for recent rows with `errorCode: "quota-exhausted"` by provider and pick another provider's model if its account is out. On a project with no history the first failed embed is the probe — see the indexing failure below.
 - **`keywords`** is required: `true` also indexes each record's exact words, so a `semantic` clause weighs a literal match beside meaning (names, codes); `false` is meaning alone. It is fixed for a generation. You name no slot anywhere: a `search` use is `{ "kind": "search" }` with no `role`, each `search` field is indexed on its own, and a `semantic` clause picks one by `field`. The profile read's `searchFieldsPerTable` is how many fields of one table may be marked `search` (4 on every profile); one more is refused `USES_SEARCH_FIELDS_OVER_LIMIT`.
-- **`defaultChunking`** is exactly one of two shapes: `{ "kind": "whole" }` (one point per record) or `{ "kind": "chunks", "tokens": 400, "overlap": 50 }` (token-sized pieces, `overlap` strictly below `tokens`). Any other `kind` — `tokens`, `fixed` — is a 422 `Expected 'whole' | 'chunks'`. A table's `uses.search.chunking` takes the same two shapes.
+- **`defaultChunking`** is exactly one of two forms: `{ "kind": "whole" }` (one point per record) or `{ "kind": "chunks", "tokens": 400, "overlap": 50 }` (token-sized pieces, `overlap` strictly below `tokens`). Any other `kind` — `tokens`, `fixed` — is a 422 `Expected 'whole' | 'chunks'`. A table's `uses.search.chunking` takes the same two forms.
 
 Activation is direction-agnostic — pointing at a superseded generation is the rollback, and it is a second reindex: records that already moved are embedded and billed again. Its response names `movedTables` and `touched`. An empty `movedTables` means it was already active; repeating is safe.
 
-**2. Shapes, then tables.** A table references its shape, so the shape is authored first.
+**2. Types, then tables.** A table references its type, so the type is authored first.
 
-**A shape refers to another shape by id**, inside its `definition`, in one form only:
+**A type refers to another type by id**, inside its `definition`, in one form only:
 
 ```json
 { "type": "array", "items": { "$ref": "#/$defs/<dataTypeId>" } }
 ```
 
 - **The id, never the key** — on the row API and inside a document alike. A key there (`"$ref": "Row"`, `"#/$defs/Row"`) is refused `SCHEMA_DEFINITION_INVALID_JSON_SCHEMA`. A document re-spells action and table references by key, but not this one.
-- **Two new shapes where one refers to the other are two applies.** A new type has no id until it is applied: apply the referenced shape first, read its `id` from the apply's returned `document`, then apply the shape that refers to it.
+- **Two new types where one refers to the other are two applies.** A new type has no id until it is applied: apply the referenced type first, read its `id` from the apply's returned `document`, then apply the type that refers to it.
 - **Inline fields need one apply but name nothing.** An inline object is the anonymous `object`, not a named type, and a `flow.fan-out` over such a list cannot read its rows' fields (`kipory-build`'s `references/patterns.md`, fan-out).
 
 ```
-POST /v1/types                        a reusable typed shape
+POST /v1/types                        a reusable set of fields
 POST /v1/types/seed                   { project } — materialise the flow-provider types, idempotent
-POST /v1/tables                          key, shape, owner scope (`user` | `project`), processing flow, `uses`
+POST /v1/tables                          key, type, owner scope (`user` | `project`), processing flow, `uses`
 PATCH /v1/tables/{id}                    replace `uses` whole; `searchable`/`queryable`/`relations` in a body are a 422
 GET  /v1/tables/{id}?expand=uses         where each use landed, and which use kinds this deployment supports
 PATCH /v1/tables/{id} validateOnly:true  what your PATCH body would do — derived declarations, reindex, restamp, the contract a
-                                               shape or flow move leaves (`derived.contract`), the verdict a `key` use gets
+                                               type or flow move leaves (`derived.contract`), the verdict a `key` use gets
                                                (`derived.naturalKey`) — writing nothing
-PATCH /v1/tables/{id} definition         rewrite the shape of the type the table points at — for every type, event and link that uses it
+PATCH /v1/tables/{id} definition         rewrite the definition of the type the table points at — for every type, event and link that uses it
 ```
 
-**A table and its processing flow name each other, so one of them goes first.** The flow's actions name the table by key and its input uses the table's shape; the table names the flow by id. Create the table without `flowId`, build the flow (`kipory-build`), then `PATCH /v1/tables/{id} { flowId, version }` — or state the shape, the table and the flow in one project document, which orders them for you. Add a `processed` field to `uses` only after the flow is bound: until then the table has no such field to name.
+**A table and its processing flow name each other, so one of them goes first.** The flow's actions name the table by key and its input uses the table's type; the table names the flow by id. Create the table without `flowId`, build the flow (`kipory-build`), then `PATCH /v1/tables/{id} { flowId, version }` — or state the type, the table and the flow in one project document, which orders them for you. Add a `processed` field to `uses` only after the flow is bound: until then the table has no such field to name.
 
 A field reference inside `uses` (a `search` field's `source`, a template) names a `family` and a `field`. The families are `submission` (the record's submitted data), `processed` (an output of the flow bound to the table — how a searchable `body` extracted from a file is named) and `system` (platform fields such as the id and creation time). `search` and `link` take either of the first two; **`filter` and `key` take a `submission` field only** — a `filter` on a processed field is refused `TABLE_QUERYABLE_INVALID`, a `key` on one `USES_KEY_NOT_SUBMITTED`. To filter, order or count on a value the flow computes, declare it as an optional submitted field and have the flow write it with `record.update` (`kipory-build`'s `references/records-and-endpoints.md`, roll-ups).
 
@@ -66,9 +66,9 @@ A field reference inside `uses` (a `search` field's `source`, a template) names 
 
 The natural key is the `key` use on a field in `uses`: the save verifies every existing record first and refuses the whole PATCH with `409 TABLE_NATURAL_KEY_UNSATISFIED` if two share a value or any record cannot supply the field. **A key is unique per project and per table — and, on a table owned by its users, per owner**: two users may each hold a record with the same key, and one user's record never collides with another's. So "each user follows a source once" is a `key` use on the source field of a per-user table, with no user id in the key. A `uses` refusal is `422 TABLE_USES_INVALID` with every issue and its remedy in `details.issues`.
 
-The builtin and library shapes are **synthesized on read**: they have no rows and nothing creates them. There is no `?seed=` flag on the read; the seed is the POST.
+The builtin and library types are **synthesized on read**: they have no rows and nothing creates them. There is no `?seed=` flag on the read; the seed is the POST.
 
-**3. Decide owner scope before any record exists.** Scope freezes the moment the first record is written, and so does the table's **data-shape reference** (`TABLE_PINNED_BY_RECORDS`). Neither can be revised afterwards without deleting the rows. The table's **key** can be renamed later: its records move with it (ADMIN; the `tables-and-types` pack, renaming a table). A per-user table cannot be written by a flow a key runs — a key's runs carry no end user; a key can only hand-write one record at a time naming its owner (`userId` on `POST /v1/records`) — see `kipory-data`.
+**3. Decide owner scope before any record exists.** Scope freezes the moment the first record is written, and so does the table's **type reference** (`TABLE_PINNED_BY_RECORDS`). Neither can be revised afterwards without deleting the rows. The table's **key** can be renamed later: its records move with it (ADMIN; the `tables-and-types` pack, renaming a table). A per-user table cannot be written by a flow a key runs — a key's runs carry no end user; a key can only hand-write one record at a time naming its owner (`userId` on `POST /v1/records`) — see `kipory-data`.
 
 **4. Relations, and the field that feeds them.**
 

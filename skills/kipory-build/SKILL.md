@@ -50,7 +50,7 @@ POST  /v1/flows/{id}/preview             run it — ADMIN, bills the payer, appl
 - **There is no position field**: execution order is derived from slot edges. A PATCH requires `version`.
 - **`inputTypeNames` and `outputTypeNames` entries are objects** `{ typeName, slot?, isList?, required? }`, not bare names.
 - **`outputBinding`** maps each flow output slot to `{ fromSlot, path? }`. `path` is omitted or `null` to take the whole value, and otherwise an **object, never a string** — `{ "segments": [{ "kind": "field", "name": "recordId" }] }`. A `field` segment needs a typed source: an action typed as the builtin `object` refuses it. The segment kinds are in `references/action-fields.md` §2.
-- **A type is a schema reference**: `{ "kind": "ref", "dataTypeId": "<id>" }` on the row API, `{ "kind": "ref", "ref": "<type key>" }` in a document. Named shapes match by type, never by structure — reuse one type or meet `NOMINAL_MISMATCH`. The list, optional, union, map and record-id forms are in `references/action-fields.md` §3.
+- **A type is a schema reference**: `{ "kind": "ref", "dataTypeId": "<id>" }` on the row API, `{ "kind": "ref", "ref": "<type key>" }` in a document. Named types match by identity, never by structure — reuse one type or meet `NOMINAL_MISMATCH`. The list, optional, union, map and record-id forms are in `references/action-fields.md` §3.
 - **Ask before you save**: `validateOnly: true` on `POST /v1/actions` and `PATCH /v1/actions/{id}` runs every rule the write runs and writes nothing. Before a risky edit, `POST /v1/flow-checkpoints { flowId, label }`. Both are in `references/checking.md`.
 
 ## What will bite you
@@ -92,10 +92,10 @@ The loop is **export → edit → plan → read → apply**. A plan is not a sim
 - **Everything is addressed by `key`**; a schema reference is `{ "kind": "ref", "ref": "<type key>" }`.
 - **A partial document is fine, and absence never deletes.** Removal is `delete: true` on a row or `prune: true` on a map, and needs ADMIN. Owned collections — a flow's `actions`, a vocabulary's `terms` — are stated whole, so an action you leave out of a flow's `actions` IS removed.
 - **`version` is required on the apply.** A stale one answers `409` with the current document under `details`; any other write to the project in between moves it.
-- **Plan a large document as it grows**: shapes and vocabularies, then tables, then flows, then endpoints. Apply once, when the whole plans clean.
+- **Plan a large document as it grows**: types and vocabularies, then tables, then flows, then endpoints. Apply once, when the whole plans clean.
 - **An `ok` plan has already run health** on every flow the document can move, so `/health` after the apply is a confirmation.
 
-`references/document.md` has every rule — what is permanent, how a shape is stated, how actions keep their ids, what a document derives for an action, the size limits. `references/packs/project-document.md` carries the reference forms, and `references/packs/authoring-order.md` says what must exist before what if you author row by row anyway.
+`references/document.md` has every rule — what is permanent, how a type is stated, how actions keep their ids, what a document derives for an action, the size limits. `references/packs/project-document.md` carries the reference forms, and `references/packs/authoring-order.md` says what must exist before what if you author row by row anyway.
 
 ## If a vocabulary sent you here
 
@@ -123,4 +123,4 @@ First check you need a flow at all — usually you do not. A vocabulary whose `m
 
 ## Then
 
-`kipory-expose` to put the flow on HTTP. `kipory-prove` to pin what "working" means before you edit it again. `kipory-model` when the flow needs a table, a shape or a vocabulary that does not exist yet. `kipory-data` to seed or correct the records the flow reads, and to reprocess them after an edit. `kipory-operate` to run the flow on a schedule or a trigger, and for what it spent. `kipory-secrets` if a function reported a missing API key — the fix is a stored credential, not a flow edit. `kipory-channels` if an action sends mail or reads a Telegram channel. For the action itself rather than the wiring: `kipory-gather` for a source that reaches outside the project, `kipory-extract` for one that opens a file, and `kipory-retrieve` for the chunk-embed-search-cite chain. `kipory-evolve` before changing a flow that something already depends on. `kipory-diagnose` when a run came back wrong.
+`kipory-expose` to put the flow on HTTP. `kipory-prove` to pin what "working" means before you edit it again. `kipory-model` when the flow needs a table, a type or a vocabulary that does not exist yet. `kipory-data` to seed or correct the records the flow reads, and to reprocess them after an edit. `kipory-operate` to run the flow on a schedule or a trigger, and for what it spent. `kipory-secrets` if a function reported a missing API key — the fix is a stored credential, not a flow edit. `kipory-channels` if an action sends mail or reads a Telegram channel. For the action itself rather than the wiring: `kipory-gather` for a source that reaches outside the project, `kipory-extract` for one that opens a file, and `kipory-retrieve` for the chunk-embed-search-cite chain. `kipory-evolve` before changing a flow that something already depends on. `kipory-diagnose` when a run came back wrong.

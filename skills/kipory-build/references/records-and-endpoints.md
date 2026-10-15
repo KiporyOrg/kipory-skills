@@ -21,7 +21,7 @@ Four shapes for flows that read and write the project's records. The section num
 
 The contract the flow is held to:
 
-- **Its inputs are named after the record.** Each input slot reads the submitted field of the same name. Three more names come from the record row itself: `recordId` (string), `createdAt` (ISO timestamp) and `files` — the files attached to the record, as a list of files (declare `{ "slot": "files", "typeName": "file", "isList": true }`). Binding the flow refuses a required input that is none of those three and not a required field of the table's shape; a field the shape leaves optional is an input with `"required": false`.
+- **Its inputs are named after the record.** Each input slot reads the submitted field of the same name. Three more names come from the record row itself: `recordId` (string), `createdAt` (ISO timestamp) and `files` — the files attached to the record, as a list of files (declare `{ "slot": "files", "typeName": "file", "isList": true }`). Binding the flow refuses a required input that is none of those three and not a required field of the table's type; a field the type leaves optional is an input with `"required": false`.
 - **It declares at least one output**, or binding it is refused with `TABLE_OUTPUT_EMPTY`. A flow that only files terms or writes elsewhere still needs one — bind a small computed value.
 - **A value a function's config names by slot must be produced by an action.** Some config slots (`vocabulary.resolve`'s `deterministicSlots`, for one) refuse a flow input directly with `…_UNRESOLVED "has no producing node"`; put a `value.transform` in between.
 - **Records wait for it.** A table with a processing flow creates records pending. A record created through the records API is queued for processing on its own; a record a flow creates with `record.create` is not — that flow must run `record.enqueue-process` after it. A table with no processing flow creates records ready.
@@ -29,10 +29,10 @@ The contract the flow is held to:
 
 In a document:
 
-```json
+```json kipory:request=project-document
 {
-  "kipory": 6,
-  "schema": {
+  "kipory": 7,
+  "types": {
     "Note": {
       "definition": {
         "type": "object",
@@ -71,7 +71,7 @@ In a document:
   },
   "tables": {
     "note": {
-      "shape": "Note",
+      "type": "Note",
       "ownerScope": "project",
       "flow": "summarise-note"
     }
@@ -131,7 +131,7 @@ What a flow endpoint can answer besides its bound output — and nothing else re
 
 - **The body is the flow's outputs, keyed by output name.** A flow with one output named `result` answers `{ "result": { … } }`, and a flow with two answers both keys. To answer the bare value instead, set `responseBody` on the endpoint's `contractConfig` to the name of one required output (`"responseBody": "result"`): the body is then that output alone — an object, a list or a scalar, always JSON. Only a synchronous `flow.invoke` takes it, and the run is still checked against every output the flow declares.
 
-- **Rows.** `record.list` (under `records`) and `record.read` give each row as the record's submitted **and processed** fields at the top level — `derived.body` is `$r.body` — beside `id`, `status`, `createdAt` and `updatedAt`, which a content field of the same name never overwrites. The example fields on the function pages are one project's shape. A vocabulary the table surfaces sits on the row under the vocabulary's key as `{ id, slug, label, parentSlug }` (a list of them for a `many` vocabulary) — not the records API's `{ vocabularyKey, key, label, status }` entries; `slug` is the term's key, and `id` is the field to compare on.
+- **Rows.** `record.list` (under `records`) and `record.read` give each row as the record's submitted **and processed** fields at the top level — `derived.body` is `$r.body` — beside `id`, `status`, `createdAt` and `updatedAt`, which a content field of the same name never overwrites. The example fields on the function pages are one project's own type. A vocabulary the table surfaces sits on the row under the vocabulary's key as `{ id, slug, label, parentSlug }` (a list of them for a `many` vocabulary) — not the records API's `{ vocabularyKey, key, label, status }` entries; `slug` is the term's key, and `id` is the field to compare on.
   - **A field the record does not hold arrives as `null`, not absent.** A row carries every field its table declares (every field `fields` selects, when set), so an optional field never written — or removed by a PATCH `merge` with `null`, which does delete it from the record — reads as `null` in the flow. `$exists($r.pollMinutes)` is therefore true; test `$r.pollMinutes != null`, and give an action output typed `number` a value (`$r.pollMinutes != null ? $r.pollMinutes : 60`), because `null` is refused there. A total over such rows has its own trap: `$sum` of no values is nothing, not 0 (`patterns.md`, `value.transform`).
 - **404** comes from one place: `record.read` with `failIfEmpty: true`, when nothing resolves — an empty id list included. For a lookup by a field rather than an id, chain `record.list` (filtered on the field) into `record.read` with `idsSlot` on the page's rows (`"page.records"` — objects carrying `id` are read as ids) and `failIfEmpty`. An `record.list` alone answers `200` with an empty page.
 - **422 with your message**: `$assert(condition, "message")` in a `value.transform` fails the action as invalid input, and the caller gets `422 VALIDATION_FAILED` carrying the message. This is how to refuse a request a guard would otherwise skip in silence: put the `$assert` in a transform that reads the value that decides, where the guard would have been (`$assert($length(text) >= 200, "The page has too little text to summarise.")`).
@@ -251,7 +251,7 @@ A `where[]` entry is `{ property, op, value | valueSlot }` over a filter the rel
 
 A parent that shows its children's count, latest date or common language stores those values itself.
 
-- **Write them with `record.update`, in the parent's flow.** A field that is the OUTPUT of the table's processing flow cannot carry a `filter` use (`TABLE_QUERYABLE_INVALID`): a filterable field is stamped from the record's own data, and nothing stamps a flow output. Declare the roll-up as an optional field of the shape, compute it in the flow (`record.list` the children → `value.transform`), and write it back with `record.update`. It can then be filtered and ordered by.
+- **Write them with `record.update`, in the parent's flow.** A field that is the OUTPUT of the table's processing flow cannot carry a `filter` use (`TABLE_QUERYABLE_INVALID`): a filterable field is stamped from the record's own data, and nothing stamps a flow output. Declare the roll-up as an optional field of the table's type, compute it in the flow (`record.list` the children → `value.transform`), and write it back with `record.update`. It can then be filtered and ordered by.
 - **Re-run the parent when a child joins.** The child's flow runs `record.update` on the parent with `setStatus: "PENDING"`, then `record.enqueue-process`. Every action runs again under any `replay` value. If the parent's flow files a term on a vocabulary that holds one value and that value can change (the common language, here), set `replay: "clean"`: otherwise the old term stays, the new one is refused, and the run fails. (`record.teardown` is not a substitute here: it fails on a run with no signed-in user and reaches only that user's own records.) `kipory-data`'s `references/in-flow-record-functions.md` has the replay modes. The parent's flow recomputes from all its children, so the value never drifts from a running total. Each re-run is a whole run of the parent's flow and is billed as one (`kipory-operate`).
 - **Take the majority, not the first.** For a value the children can disagree on (a language, a category), count them and take the commonest, ignoring an unknown while any child has a known value. Copying the first child's value lets one early odd record decide for the rest.
 - **Do not store the children as a list on the parent.** They are the incoming links of the relation; a list in the record grows without bound and cannot be filtered on.

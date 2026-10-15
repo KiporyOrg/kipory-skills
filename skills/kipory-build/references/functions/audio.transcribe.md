@@ -14,7 +14,7 @@ Leaving the model empty uses the project's transcription setting. The same file,
 - **Emits:** The spoken words as plain text. Empty when there is no file. The same file, model and language reuse the previous transcript.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Suggested input streams:** `currentFile`
-- **External dependency:** a model provider — Whichever provider hosts the transcription model this action is set to. `whisper-1` is only the default: the key is resolved per model.
+- **External dependency:** a model provider — Whichever provider hosts the transcription model this action is set to. The key is resolved per model, so changing the model can change which key it needs.
 - **Rate limit:** 50 per min in bucket `audio.transcribe`, counted per project
 - **Queue:** 2 attempts, exponential from 2 s; waits up to 10 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 

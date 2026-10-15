@@ -155,14 +155,14 @@ The `auth` and `account` groups can be switched off per project (route enablemen
 
 A project's end users each have a profile, typed by one type the builder connects. Until one is connected there is no profile: `userInfo` carries `userId` alone. These are design routes — the api host, with your key:
 
-| Route                                                        | Floor  | What it does                                                                                  |
-| ------------------------------------------------------------ | ------ | --------------------------------------------------------------------------------------------- |
-| `GET /v1/projects/{nodeId}/profile-schema`                   | VIEWER | the type that shapes the project's profiles, or none                                          |
-| `PUT /v1/projects/{nodeId}/profile-schema { dataTypeId }`    | EDITOR | connects a type; re-pointing to another is refused once profiles exist                        |
-| `POST /v1/projects/{nodeId}/profile-schema/starter { key }`  | EDITOR | creates a type from the platform's starter shape and connects it; refused once profiles exist |
-| `DELETE /v1/projects/{nodeId}/profile-schema`                | ADMIN  | disconnects it and keeps the type; stored profiles are left typed by nothing                  |
-| `GET /v1/users/{userId}/profile?project={nodeId}`            | VIEWER | one person's profile                                                                          |
-| `PATCH /v1/users/{userId}/profile?project={nodeId} { data }` | EDITOR | edits it                                                                                      |
+| Route                                                        | Floor  | What it does                                                                                   |
+| ------------------------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------- |
+| `GET /v1/projects/{nodeId}/profile-schema`                   | VIEWER | the type of the project's profiles, or none                                                    |
+| `PUT /v1/projects/{nodeId}/profile-schema { dataTypeId }`    | EDITOR | connects a type; re-pointing to another is refused once profiles exist                         |
+| `POST /v1/projects/{nodeId}/profile-schema/starter { key }`  | EDITOR | creates a type from the platform's starter fields and connects it; refused once profiles exist |
+| `DELETE /v1/projects/{nodeId}/profile-schema`                | ADMIN  | disconnects it and keeps the type; stored profiles are left typed by nothing                   |
+| `GET /v1/users/{userId}/profile?project={nodeId}`            | VIEWER | one person's profile                                                                           |
+| `PATCH /v1/users/{userId}/profile?project={nodeId} { data }` | EDITOR | edits it                                                                                       |
 
 The person reads and edits the same profile with their session, at `/v1/me/profile` on the project host. User ids come from `GET /v1/users?project={nodeId}` (VIEWER).
 

@@ -24,8 +24,8 @@ a `DELETE` and in the body on a `PATCH` or `POST`.
 | `DELETE /v1/actions/{id}` + `validateOnly`                                                                                                                       | whether later actions read its output — the dependents and the slots they read                                                                                                                  |
 | `DELETE /v1/terms/{id}` + `validateOnly`                                                                                                                         | whether assignments, children or aliases refuse it                                                                                                                                              |
 | `DELETE /v1/triggers/{id}`, `/v1/types/{id}`, `/v1/eval-suites/{id}`, `/v1/event-types/{id}`, `/v1/embedding-profiles/{id}`, `/v1/sources/{id}` + `validateOnly` | the delete's own verdict                                                                                                                                                                        |
-| `PATCH /v1/types/{id}` + `validateOnly`                                                                                                                          | what a shape edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                                                   |
-| `PATCH /v1/tables/{id}` + `validateOnly`                                                                                                                         | what a `uses`, shape (`dataTypeId`, own `definition`), binding or key change derives to — `derived.contract`, `derived.naturalKey`, reindex, restamp                                            |
+| `PATCH /v1/types/{id}` + `validateOnly`                                                                                                                          | what a type edit would do: the verdict, `records-invalid` under `consequences`, and what it would break under `leavesBehind`                                                                    |
+| `PATCH /v1/tables/{id}` + `validateOnly`                                                                                                                         | what a `uses`, type (`dataTypeId`, own `definition`), binding or key change derives to — `derived.contract`, `derived.naturalKey`, reindex, restamp                                             |
 | `PATCH /v1/actions/{id}` + `validateOnly`                                                                                                                        | a slot rename's `derived.rename`, the patched config's `derived.draft`, and — with `enabled: false` — `derived.switchOff`: the actions that would stop with it                                  |
 | `PATCH /v1/flows/{id}` + `validateOnly`                                                                                                                          | whether a signature or `outputBinding` change would be refused — `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` without `adoptSnapshots` — and what it would break around the flow, under `leavesBehind` |
 | `POST /v1/actions` + `validateOnly`                                                                                                                              | whether an unsaved action is valid — it executes nothing                                                                                                                                        |
@@ -73,7 +73,7 @@ type → flow → table → endpoint → schedule
 
 Each names one before it (a table names its processing flow in `flowId`), so the reverse
 order is a save refused for naming something absent. The one loop — a flow that reads a table's
-shape, and the table that names the flow — is broken by creating the table without `flowId` and
+type, and the table that names the flow — is broken by creating the table without `flowId` and
 binding it afterwards: `PATCH /v1/tables/{id} { flowId, version }`. A project document orders
 all of it for you.
 
@@ -85,24 +85,24 @@ invalidates every record that lacks it. So it is four changes, never one, in thi
 ```
 1  add the field as optional            → existing records stay valid
 2  backfill it                          → the loop below
-3  patch every schedule's and trigger's fixed inputs that feed the shape
+3  patch every schedule's and trigger's fixed inputs that feed the type
 4  make it required                     → now nothing is invalidated
 ```
 
-**Two routes edit a shape.** `PATCH /v1/types/{id}` (or the type under `schema` in a
+**Two routes edit a type.** `PATCH /v1/types/{id}` (or the type under `types` in a
 document) edits it alone. `PATCH /v1/tables/{id}` with `definition` edits it together with a
-table shaped by it, in one save. Both judge every row that uses the type.
+table of that type, in one save. Both judge every row that uses the type.
 
-**A published contract freezes the shape.** While a flow that reads the shape is frozen into a
+**A published contract freezes the type.** While a flow that reads the type is frozen into a
 published contract — an endpoint in front of it, or a table whose processing flow (`flowId`)
 it is — the edit answers `409 TYPE_RESHAPES_BOUND_SNAPSHOTS`, its message naming those
 holders (`details` only counts them by kind), unless it carries `adoptSnapshots: true`.
 
 - The type PATCH and a document take that flag.
 - The table PATCH does not — it is an unrecognised key there, whatever the 409's message
-  says. So a shape behind an endpoint or a processing flow is edited, and rehearsed, through the
-  type PATCH or a document, with the flag on the shape:
-  `"schema": { "Contact": { "definition": { … }, "adoptSnapshots": true } }`.
+  says. So a type behind an endpoint or a processing flow is edited, and rehearsed, through the
+  type PATCH or a document, with the flag on the type:
+  `"types": { "Contact": { "definition": { … }, "adoptSnapshots": true } }`.
 - Schedules and triggers freeze nothing, so the 409 neither names nor waits for them.
 
 **Rehearse steps 1 and 4 before sending them.**
@@ -279,7 +279,7 @@ rehearsal of its own. What to know before writing one:
   `changes` on its own path as a `delete` with `because: "cascade"`, not as `unchanged`.
 - **A plan's `changes` are not the apply's write order**, and the ids a plan shows for creates are
   from its rolled-back attempt; the apply mints its own.
-- **The table pins still hold.** A table with records refuses a re-pointed shape and an
+- **The table pins still hold.** A table with records refuses a re-pointed type and an
   ownership change exactly as its own PATCH does, and the finding lands on the row's path in your
   document. A change of its `key` is a rename: its records move with it.
 

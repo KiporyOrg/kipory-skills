@@ -32,9 +32,9 @@ Every request the project's own endpoints turned away with a 4xx, newest first, 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `requests` | `object[]` | yes | Newest first by `occurredAt`, then id. |
-| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
+| `paging` | `null` | yes | Always null: no page count is given and no `page` jump is offered. Walk with `after`/`before`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
 | `retentionDays` | `integer` | yes | How many days a rejected request is kept. An older one has been removed and is not returned, however far you walk. |
 
 Each item of `requests`:
@@ -52,6 +52,6 @@ Each item of `requests`:
 | `issues` | `object[]` | yes | The first five of the envelope's `details.issues` — the reason behind a constant `message` such as `Request validation failed`. Empty when the refusal carried none. |
 | `issueCount` | `integer` | yes | How many issues the envelope carried in all; `issues` keeps at most the first five. |
 | `requestId` | `string` | yes | The `requestId` in the envelope the caller received, to match a caller's report to this row. |
-| `credential` | `"api-key" \| "session" \| "none"` | yes | Which kind of credential came with the request — never the credential itself. `RejectedRequestCredential` through `toKebab` (API-32). |
+| `credential` | `"api-key" \| "session" \| "none"` | yes | Which kind of credential came with the request — never the credential itself. The credential's kind, kebab-case. |
 | `keyPrefix` | `string \| null` | yes | For an API key, the display prefix the key list shows (`kip_` and 8 characters); null otherwise. |
 | `gate` | `"wallet" \| "public-spend-cap" \| null` | yes | Only for a public endpoint (`auth: "none"`) refused for money with `PUBLIC_ENDPOINT_UNAVAILABLE`: which gate refused. `wallet` — the project's wallet is past its floor (below zero less its overdraft), or suspended; credit reopens the first, only the operator lifts the second. `public-spend-cap` — public calls have spent the project's public spend cap for the UTC day, or the cap is not set; raise `publicSpendCapCredits` in project settings or wait for 00:00 UTC. The caller is answered the same body for both, so this row is the only place the reason is kept. Null for every other refusal — and null on a `PUBLIC_ENDPOINT_UNAVAILABLE` row that money did not cause: the project is suspended, or the endpoint's flow reaches an action that needs a signed-in user. |

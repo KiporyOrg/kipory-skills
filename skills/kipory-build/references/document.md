@@ -5,36 +5,36 @@
 ## What you state
 
 - **Every element is addressed by its `key`** — the key each section's map is keyed by; display text is `label`.
-  - Where the row API takes an id (`dataTypeId`, `flowId`, `resolverFlowId`) the document takes the key (`shape`, `flow`, `resolver`).
+  - Where the row API takes an id (`dataTypeId`, `flowId`, `resolverFlowId`) the document takes the key (`type`, `flow`, `resolver`).
   - A bare flow key is this project's; a platform flow is `system:<key>`.
   - An action's `ref` is a type's key.
-  - The document states `kipory: 6`; a `kipory: 2`, `kipory: 3`, `kipory: 4` or `kipory: 5` document is refused with `DOCUMENT_VERSION_UNSUPPORTED`, and the `kipory-connect` skill's upgrade script converts it.
+  - The document states `kipory: 7`; a `kipory: 2` to `kipory: 6` document is refused with `DOCUMENT_VERSION_UNSUPPORTED`, and the `kipory-connect` skill's upgrade script converts it. A version-7 document that still says `schema` or a table's `shape` is refused with `DOCUMENT_KEY_RENAMED` at that key.
 - **A partial document is fine.** A section left out is untouched, and so is every row you do not name; of an existing row's optional fields, only the ones you state are compared. A row's required fields are required, because a row is its create body.
 - **Absence never deletes.** Removal is `delete: true` on a row, or `prune: true` on a map to remove every row of that map you did not name — and any document that removes something needs ADMIN.
 - **Owned collections are stated whole.** A flow's `actions`, a vocabulary's `terms`, a suite's `cases` and a relation's `pairings` replace the owner's, so a member you leave out of one IS a removal, with the same ADMIN floor.
 - **A field the row's PATCH does not take is permanent.** A vocabulary's `cardinality`, a profile's `modelId`, a trigger's `source`: stated as exported it is fine, stated changed it is refused on its path — the document never drops it in silence. A new value is a new row under a new key.
 - **A schedule and a trigger state `failurePolicy`** — `pause` (the default) or `keep-running`: whether the platform may pause the row when its runs keep failing. It is an ordinary field. An export also shows `paused: { at, reason }` on a row the platform has paused; that is read-only — never planned, never applied — and `enabled: true` does not resume the row. Only `POST /v1/schedules/{id}/resume` or `POST /v1/triggers/{id}/resume` does (`kipory-operate`).
 - **The `platform` event types are not yours to state.** Every project has them; a document neither creates nor prunes them, and a trigger row may select one (`categoryKey: platform`) like any other type — that trigger is how the project hears of its failures.
-- **A shape is stated under `schema`, and a table names it by key.** State both in one document to make a table and its shape together; any other row may use the same shape.
+- **A type is stated under `types`, and a table names it with `type`.** State both in one document to make a table and its type together; any other row may use the same type.
 - **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most 2 MiB and 2 000 rows, refused with `413` past either.
 
 ## What a plan tells you
 
 A plan is not a simulation: the platform applies the document through every row's own write, in one transaction, and rolls it back — so what a plan refuses is exactly what an apply refuses. Read three things off it:
 
-| List                           | Says                                                                                                                                                                 |
-| ------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `diagnostics`                  | each finding on a path in YOUR document, such as `records.member.shape`. Gate on `severity` and `introduced`, never on `code`                                        |
-| `consequences`                 | what the change does to stored data: records re-stamped, vectors re-indexed, and `records-invalid` — the stored records that would no longer fit a shape you changed |
-| the `delete` rows of `changes` | what is removed, including what a removal takes along by cascade                                                                                                     |
+| List                           | Says                                                                                                                                                                |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `diagnostics`                  | each finding on a path in YOUR document, such as `tables.member.type`. Gate on `severity` and `introduced`, never on `code`                                         |
+| `consequences`                 | what the change does to stored data: records re-stamped, vectors re-indexed, and `records-invalid` — the stored records that would no longer fit a type you changed |
+| the `delete` rows of `changes` | what is removed, including what a removal takes along by cascade                                                                                                    |
 
 - **A plan answers the contract of each table it creates.** `contracts.<key>` is the field vocabulary the new table would have — the fields a caller sends and the ones its flow adds — and `supportedUses` is the use kinds this deployment accepts. Read them to pick `uses` before the table exists; an apply does not carry them.
-- **The plan judges the state it leaves, not only the rows it writes.** Every flow the document can move — the ones it writes, the ones invoking them, the ones reading a shape or a table it changes — is checked with `GET /v1/flows/{id}/health`'s own rules, and so are the schedules, triggers and endpoints that start them.
+- **The plan judges the state it leaves, not only the rows it writes.** Every flow the document can move — the ones it writes, the ones invoking them, the ones reading a type or a table it changes — is checked with `GET /v1/flows/{id}/health`'s own rules, and so are the schedules, triggers and endpoints that start them.
 - **`introduced` says whose finding it is.** `true` when this document causes it, `false` when it was already there; a finding about the document itself (a refused row, a bad reference) has no `introduced` and counts as introduced. Only an introduced error makes `ok` false and refuses the apply; one already there is reported so you can fix it when you choose. An error an action you leave as it is already had does not refuse the document, even when you change its neighbours in the same flow; a new one your change causes on it still does. An action you DO change is judged whole: an error it already had refuses the change (`introduced: true`, its message saying it was already stored), so fix it in the same edit.
 - **A plan says when nobody would be told of a failure.** A project that runs schedules or triggers and has no enabled trigger on `platform/run.failed` gets `DOCUMENT_NO_FAILURE_LISTENER`. It is information and blocks nothing — but such a project is told of no failed run, and none of its schedules or triggers is ever paused.
 - **The failure settings are judged like any other.** A fan-out's `maxFailedBranches` or `maxFailedShare`, a merge's `failuresSlot` and a continuing `flow.invoke` are refused in a plan on the same rules as on an action save (`patterns.md` §2, §3); a document whose `flow.merge` action still states `onBranchFailure` is refused `INVALID_FUNCTION_CONFIG` — say it on the fan-out instead.
 - **So an `ok` plan leaves no flow with an error the plan did not name** — `/health` after the apply is a confirmation, not the check.
-- **Plan a large document as it grows, not all at once.** A section you leave out is untouched, so plan the shapes and vocabularies alone, then add the tables and plan again, then the flows, then the endpoints — each plan carrying everything before it. One mistake then shows in the section that introduced it, and a refusal that is not a finding (a 5xx) is found in one call instead of by bisecting the whole. Apply once, when the full document plans clean.
+- **Plan a large document as it grows, not all at once.** A section you leave out is untouched, so plan the types and vocabularies alone, then add the tables and plan again, then the flows, then the endpoints — each plan carrying everything before it. One mistake then shows in the section that introduced it, and a refusal that is not a finding (a 5xx) is found in one call instead of by bisecting the whole. Apply once, when the full document plans clean.
 
 <!-- field-ok: onBranchFailure — a `flow.merge` function-config key this release REMOVED, named so a reader knows what to delete -->
 
@@ -60,4 +60,4 @@ A plan is not a simulation: the platform applies the document through every row'
   - A function whose settings or prompt name its inputs gets them derived (`action-fields.md`).
   - An action's `inputPaths` is the same positional list of path objects, `[{ "segments": [{ "kind": "first" }] }]`.
 - **A flow's new signature is judged against the actions the document leaves**, so retyping an input and replacing its reader is one apply.
-- **A signature or shape change that live dependents hold needs its grant on the row that changes**: `adoptSnapshots: true` on the flow's row for a signature change, and on the `schema.<Name>` row for a shape edit refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` (`kipory-evolve`).
+- **A signature or type change that live dependents hold needs its grant on the row that changes**: `adoptSnapshots: true` on the flow's row for a signature change, and on the `types.<Name>` row for a type edit refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` (`kipory-evolve`).

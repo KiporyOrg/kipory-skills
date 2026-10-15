@@ -16,8 +16,8 @@ by its suffix — `<kind>Key` for a key, `<kind>Id` for a row id. Five kinds of 
 
 - a **flow** — an endpoint's, a trigger's or a schedule's target, a vocabulary's resolver, an
   eval suite's subject and scorers, the target of a `flow.invoke` action, a table's processing flow;
-- a **type** — a table's shape, an event type's payload, a relation's properties, a config
-  namespace's shape, a schema reference inside an action;
+- a **type** — a table's fields, an event type's payload, a relation's properties, a config
+  namespace's fields, a schema reference inside an action;
 - a **source** — a trigger's `sourceId`;
 - an **eval suite** — a case's `suiteId`;
 - an **embedding profile** — a table's `search` use, as `profileId`.
@@ -39,7 +39,7 @@ Two more facts shape the order and are easy to miss:
 
 | To create…                        | You need first…                                                               | Because                                                                                     |
 | --------------------------------- | ----------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| a table                           | its shape: a type (`POST /v1/types`)                                          | the create takes `dataTypeId`; a shape cannot be declared inline on the row API             |
+| a table                           | its type (`POST /v1/types`)                                                   | the create takes `dataTypeId`; a type cannot be declared inline on the row API              |
 | a table with `uses.vocabularies`  | every vocabulary it names (`POST /v1/vocabularies`)                           | refused with `USES_VOCABULARY_UNKNOWN`                                                      |
 | a table with a `link` use         | the relation it names — see the cycle below                                   | refused with `USES_RELATION_UNKNOWN`                                                        |
 | a table with a `search` use       | its embedding profile (`POST /v1/embedding-profiles`)                         | the use carries `profileId`                                                                 |
@@ -61,7 +61,7 @@ Two more facts shape the order and are easy to miss:
 | a source                          | nothing of yours                                                              | a source seeds its own event vocabulary; a trigger on it comes after                        |
 | an eval suite                     | its subject flow and every scorer flow                                        | the create takes `flowId` and `scorerFlowIds`                                               |
 | an eval case                      | its suite (`POST /v1/eval-suites`)                                            | the create takes `suiteId`                                                                  |
-| a config namespace with a shape   | the type that gives its shape                                                 | the create takes `dataTypeId`                                                               |
+| a config namespace with a type    | its type                                                                      | the create takes `dataTypeId`                                                               |
 | an embedding profile              | nothing of yours                                                              | a table's search use names the profile afterwards                                           |
 
 ## The two cycles
@@ -88,7 +88,7 @@ by key, and `plan` tells you what is unresolved, in one answer.
 
 - The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the whole project as one file, resolved in this
   order for you.
-- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — the shape a table needs first.
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — the type a table needs first.
 - Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — the declaration that rides on the table.
 - Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — producers before consumers.
 - Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) — parents before children, terms after the vocabulary.

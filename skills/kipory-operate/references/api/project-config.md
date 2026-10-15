@@ -39,8 +39,8 @@ Each item of `namespaces`:
 | `namespace` | `string` | yes | The namespace these settings belong to, e.g. `ranking`. |
 | `dataTypeId` | `string` | yes | Type that shapes this namespace and supplies each field's default. A soft reference: if the type is deleted, reads keep working and the next write is refused with 422 naming it. |
 | `data` | `object` | yes | Your explicit overrides ONLY. A key's absence means “use the default”, so this is usually much smaller than `effective`. |
-| `defaults` | `object` | yes | The defaults the bound type declares, one key per top-level field that carries a `default` — the half of `effective` that `data` did not supply. A field absent here has no default: with no override it is absent from what flows read, not null. Nested defaults are not lifted. Empty when the type is gone. Computed per request, like `effective`. |
-| `effective` | `object` | yes | Defaults overlaid with `data` — what flows actually read. Computed per request and never stored, so editing a default in the type takes effect here immediately. Overlay is per top-level field: an override replaces the whole field rather than merging into it. |
+| `defaults` | `object` | yes | The defaults the bound type declares, one key per top-level field that carries a `default` — the half of `effective` that `data` did not supply. A field absent here has no default: with no override it is absent from what flows read, not null. Nested defaults are not lifted. Empty when the type is gone. |
+| `effective` | `object` | yes | Defaults overlaid with `data` — what flows actually read. Editing a default in the type takes effect here immediately. Overlay is per top-level field: an override replaces the whole field rather than merging into it. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -55,10 +55,10 @@ Set one config namespace — an upsert by `(project, namespace)`. Creating it ta
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the owning project. |
 | `namespace` | `string` | yes | Namespace to set. Together with the project this is the natural key — the write is an idempotent upsert, not a create. |
-| `data` | `object` | yes | Explicit overrides, replacing whatever was stored. Serialized size is capped at 32768 bytes: this map is seeded into every flow run, so anything larger is content and belongs in a record. |
+| `data` | `object` | yes | Explicit overrides, replacing whatever was stored. Serialized size is capped at 32768 bytes; keep anything larger in a record. |
 | `dataTypeId` | `string` | no | Type to shape this namespace by. Required when creating the namespace; on update, omit to keep the current binding or pass a different id to re-bind. |
 | `version` | `integer` | no | The version you last read. Required when the namespace already exists — a stale value is refused with 409. Ignored on create. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-| `validateOnly` | `boolean` | no | Check this upsert against the namespace as stored and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this upsert against the namespace as stored and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -69,12 +69,12 @@ Set one config namespace — an upsert by `(project, namespace)`. Creating it ta
 | `namespace` | `string` | yes | The namespace these settings belong to, e.g. `ranking`. |
 | `dataTypeId` | `string` | yes | Type that shapes this namespace and supplies each field's default. A soft reference: if the type is deleted, reads keep working and the next write is refused with 422 naming it. |
 | `data` | `object` | yes | Your explicit overrides ONLY. A key's absence means “use the default”, so this is usually much smaller than `effective`. |
-| `defaults` | `object` | yes | The defaults the bound type declares, one key per top-level field that carries a `default` — the half of `effective` that `data` did not supply. A field absent here has no default: with no override it is absent from what flows read, not null. Nested defaults are not lifted. Empty when the type is gone. Computed per request, like `effective`. |
-| `effective` | `object` | yes | Defaults overlaid with `data` — what flows actually read. Computed per request and never stored, so editing a default in the type takes effect here immediately. Overlay is per top-level field: an override replaces the whole field rather than merging into it. |
+| `defaults` | `object` | yes | The defaults the bound type declares, one key per top-level field that carries a `default` — the half of `effective` that `data` did not supply. A field absent here has no default: with no override it is absent from what flows read, not null. Nested defaults are not lifted. Empty when the type is gone. |
+| `effective` | `object` | yes | Defaults overlaid with `data` — what flows actually read. Editing a default in the type takes effect here immediately. Overlay is per top-level field: an override replaces the whole field rather than merging into it. |
 | `version` | `integer` | yes | Optimistic-lock version; pass it back on the next write. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -82,10 +82,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `DELETE /v1/project-config/{id}`
 
@@ -101,7 +101,7 @@ Delete one config namespace; flows stop seeing it under `projectInfo.config` on 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -109,7 +109,7 @@ Delete one config namespace; flows stop seeing it under `projectInfo.config` on 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -117,7 +117,7 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |

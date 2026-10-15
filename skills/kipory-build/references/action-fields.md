@@ -78,13 +78,13 @@ A flow's `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName,
 | `{ "kind": "pluck", "name": … }`  | that property from every item (a list) |
 | `{ "kind": "wrap" }`              | one value lifted into a one-item list  |
 
-Segments apply in order. **A `field` segment needs a typed source**: the action's `outputSchema` must be a shape that declares that field. An action typed as the builtin `object` (or a list) refuses a field path with a type mismatch — give the action a type and bind into it.
+Segments apply in order. **A `field` segment needs a typed source**: the action's `outputSchema` must be a type that declares that field. An action typed as the builtin `object` (or a list) refuses a field path with a type mismatch — give the action a type and bind into it.
 
 An action's `condition` uses a different notation on the same row: its `path` is a plain dot-string.
 
 ## 3. Schema references
 
-What `inputSchemas[]` and `outputSchema` hold. On the row API a named shape is `{ "kind": "ref", "dataTypeId": "<id>" }`; inside a document it is `{ "kind": "ref", "ref": "<type key>" }`. Named shapes match by type, never by structure: two types with identical fields are still two types, and wiring one where the other is expected is a `NOMINAL_MISMATCH`. Reuse one type. The other forms wrap one of those:
+What `inputSchemas[]` and `outputSchema` hold. On the row API a named type is `{ "kind": "ref", "dataTypeId": "<id>" }`; inside a document it is `{ "kind": "ref", "ref": "<type key>" }`. Named types match by identity, never by structure: two types with identical fields are still two types, and wiring one where the other is expected is a `NOMINAL_MISMATCH`. Reuse one type. The other forms wrap one of those:
 
 | Form                                             | Means                                                                                                                              |
 | ------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -94,7 +94,7 @@ What `inputSchemas[]` and `outputSchema` hold. On the row API a named shape is `
 | `{ "kind": "record", "valueType": <ref> }`       | a string-keyed map                                                                                                                 |
 | `{ "kind": "recordRef", "tableKey": "<type>" }`  | one stored record's id                                                                                                             |
 
-The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own shapes (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) are types like yours: in a document name them by key; on the row API read the id with `GET /v1/types?project={nodeId}&key=<Key>`. `GET /v1/flows/{id}/scope` lists every slot an action may read, already typed.
+The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own types (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) work like yours: in a document name them by key; on the row API read the id with `GET /v1/types?project={nodeId}&key=<Key>`. `GET /v1/flows/{id}/scope` lists every slot an action may read, already typed.
 
 ## 4. Inputs the platform derives
 

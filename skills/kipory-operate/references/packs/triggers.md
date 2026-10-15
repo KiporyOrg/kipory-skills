@@ -112,7 +112,7 @@ they may not appear in `inputs` — the write refuses either by name with a 422:
   decision and `false` on a live one, which is the one branch a flow usually wants.
 
 Declare both slots on the flow with the builtin `object` type — the envelope is the platform's, not
-a shape of your project, and the save does not check what you typed them as. Read the payload in
+a type of your project, and the save does not check what you typed them as. Read the payload in
 the first action as `event.data.<field>`.
 
 Everything else the flow declares must be in `inputs`, fixed in advance — a trigger, like a

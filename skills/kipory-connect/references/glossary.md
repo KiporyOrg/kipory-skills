@@ -14,9 +14,17 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Grant.** What an API key carries: one node and one role. Reach is descent from that node. A key never has a user, so it never has a `me`.
 
-**Record vs. table.** A **table** is a kind of record — its shape, owner scope, vocabularies, natural key, processing flow (`/v1/tables`). A **record** is one stored instance. Records are normally written by flows; the design API also writes one at a time (`POST /v1/records` and the item routes beside it) for an operator correcting what a flow produced.
+**Record vs. table.** A **table** is a kind of record — its type, owner scope, vocabularies, natural key, processing flow (`/v1/tables`). A **record** is one stored instance. Records are normally written by flows; the design API also writes one at a time (`POST /v1/records` and the item routes beside it) for an operator correcting what a flow produced.
 
-**Type.** A reusable typed shape a table or flow output refers to. Builtin and library shapes are synthesized on read and have no rows.
+**Type.** A named, reusable set of fields a table or a flow's input or output refers to. Builtin and library types are synthesized on read and have no rows.
+
+**Search model.** What a table's search is indexed with: the embedding model and its vector space, whether keywords are indexed too, and the default chunking. It is the operator UI's word; the API spells it **embedding profile** — `/v1/embedding-profiles`, `vectors.profiles` in a project document, and `uses.search.profile` on a table, whose search indexes with the profile's live generation.
+
+**Wallet.** The credit balance one payer holds: an organisation or a project, or — where a project turns member wallets on — one member in that project (`/v1/wallets`). A charge is a debit on the wallet that pays; grants, expiries and returns move credits between a project and its members.
+
+**Member.** A person with a membership — a seat — on an organisation or a project (`/v1/nodes/{nodeId}/members`): a role there, and in a project with member wallets on, a wallet of their own. An API key is never a member.
+
+**Fan-out.** An action, the function `flow.fan-out`, that splits a list into one branch per element, up to its own item limit and the system ceiling. Each branch runs the actions after it with its own copy of the run's values; a merge gathers what the branches wrote.
 
 **Owner scope.** Whether a table's records belong to one end user each (per-user) or to the project's shared pool. A key's runs are project-owned and cannot write per-user records.
 

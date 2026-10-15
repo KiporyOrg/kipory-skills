@@ -48,7 +48,7 @@ Each item of `terms`:
 | `id` | `string` | yes | Term id — the address for every single-term verb. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `vocabularyKey` | `string` | yes | Key of the vocabulary this term is a value of. |
-| `key` | `string` | yes | The term's key. IMMUTABLE — a rename changes `label`, never this, so references stay valid. |
+| `key` | `string` | yes | The term's key. IMMUTABLE — a rename changes `label`, never this. |
 | `label` | `string` | yes | Display label — the only field a rename changes. |
 | `parentId` | `string \| null` | yes | Parent term, for a hierarchical vocabulary. Null for a top-level vocabulary or for a root term. |
 | `parentKey` | `string \| null` | yes | Parent's key, hydrated on the LIST read only. Null on single-term mutation responses even when `parentId` is set — absence here does not mean the term has no parent. |
@@ -64,7 +64,7 @@ Each item of `terms`:
 | `assignmentCount` | `integer` | no | `expand=usage` — records assigned this term, live and archived. Absent unless asked for. |
 | `childCount` | `integer` | no | `expand=usage` — terms directly beneath this one. Absent unless asked for. |
 | `aliasedByCount` | `integer` | no | `expand=usage` — terms merged INTO this one, i.e. aliases pointing here. Absent unless asked for. |
-| `deleteRefusal` | `object \| null` | no | `expand=usage` — why `DELETE /v1/terms/{id}` would refuse this term right now, decided by the same check the delete runs; null when it would be accepted — though the delete also needs the ADMIN role and a project that is not retired. Absent unless asked for — absent is NOT deletable. A reference landing between this read and the delete still refuses it, as `TERM_DELETE_RACE`. |
+| `deleteRefusal` | `object \| null` | no | `expand=usage` — why `DELETE /v1/terms/{id}` would refuse this term right now; null when it would be accepted — though the delete also needs the ADMIN role and a project that is not retired. Absent unless asked for — absent is NOT deletable. A reference landing between this read and the delete still refuses it, as `TERM_DELETE_RACE`. |
 
 Each item of `findings`:
 
@@ -90,8 +90,8 @@ Rename a term (`label`, which re-embeds it for search), archive it (`status: arc
 | --- | --- | --- | --- |
 | `label` | `string` | no | Rename the term. A rename re-embeds it for search; a status change alone does not. |
 | `status` | `"active" \| "archived"` | no | Change the term's status. `active` both RESTORES an archived term and ADMITS a candidate one into the vocabulary; `archived` withdraws it. `candidate` is not settable — it is where minting puts a term, not a state you move one into. Does not touch the term's entry in the search index. |
-| `version` | `integer` | yes | The term's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the term changed since, so a concurrent edit is never silently overwritten. |
-| `validateOnly` | `boolean` | no | Check this patch against the stored term and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `version` | `integer` | yes | The term's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the term changed since. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored term and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -99,7 +99,7 @@ Rename a term (`label`, which re-embeds it for search), archive it (`status: arc
 | --- | --- | --- | --- |
 | `term` | `object` | yes | The term as it now stands. |
 | `reembedWarning` | `string \| null` | yes | Non-null when the term was SAVED but its search vector could not be updated. The write succeeded — the row is authoritative — but search will find this term by its old wording until it is re-embedded. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -107,10 +107,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `DELETE /v1/terms/{id}`
 
@@ -126,7 +126,7 @@ Delete one unused term. Refused (409) while records carry it, other terms nest u
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -134,8 +134,8 @@ Delete one unused term. Refused (409) while records carry it, other terms nest u
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `qdrantWarning` | `string \| null` | yes | Non-null when the term was DELETED but its search vector was left behind. The deletion stands and the leftover is harmless — nothing assigns it, because assignment checks the database first — but nothing collects it either. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `qdrantWarning` | `string \| null` | yes | Non-null when the term was DELETED but its search vector was left behind. The deletion stands and the leftover is harmless — nothing assigns it — but nothing collects it either. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -143,10 +143,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `POST /v1/terms/{id}/merge`
 
@@ -198,7 +198,7 @@ Each item of `vocabularies`:
 | `id` | `string` | yes | Unique id of the vocabulary — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
-| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
+| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
@@ -226,7 +226,7 @@ Create one vocabulary. With `validateOnly: true` it answers whether the vocabula
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project that will own the vocabulary. |
 | `key` | `string` | yes | The vocabulary's key, unique within the project. Renameable later, with its terms (`PATCH /v1/vocabularies/{id}` with `key`). camelCase letters and digits starting with a lowercase letter, like `personRole`, up to 64 characters. |
-| `label` | `string` | yes | Display text. Editable later with PATCH; the rest of a vocabulary's shape is fixed at creation. |
+| `label` | `string` | yes | Display text. Editable later with PATCH; the rest of a vocabulary's settings are fixed at creation. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `parentVocabularyKey` | `string \| null` | no | Key of a vocabulary to nest this one under. Omit or pass null for a top-level vocabulary. Permanent. |
 | `mint` | `"none" \| "active" \| "candidate"` | no | Defaults to `active` when omitted. |
@@ -234,13 +234,13 @@ Create one vocabulary. With `validateOnly: true` it answers whether the vocabula
 | `proposal` | `object \| null` | no | How ingest may propose new terms for this vocabulary. Omit for the default behaviour. |
 | `resolverFlowId` | `string \| null` | no | The flow that searches this vocabulary for a term matching a proposed value. Three distinct choices: OMIT and a `matching: semantic` vocabulary is bound to the platform's default resolver for you; pass null to create it unbound; pass a flow id to bind that one. The id is not checked here — the resolver validates its own inputs when it runs. |
 | `resolutionParams` | `object \| null` | no | Parameters for the resolver flow. Ignored unless you named one explicitly. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the create WOULD have computed. Present whenever the draft was accepted; absent when it was refused. |
@@ -249,10 +249,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 **Response `201`**
 
@@ -261,7 +261,7 @@ Each item of `diagnostics`:
 | `id` | `string` | yes | Unique id of the vocabulary — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
-| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
+| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
@@ -317,7 +317,7 @@ Read one vocabulary by id, with the `version` its PATCH takes; `expand` adds its
 | `id` | `string` | yes | Unique id of the vocabulary — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
-| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
+| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
@@ -372,8 +372,8 @@ Relabel a vocabulary, rename its key, or change how it admits values (`mint`, `m
 | `proposal` | `object \| null` | no | Change how ingest may propose new terms. |
 | `resolverFlowId` | `string \| null` | no | Bind a different resolver flow, or pass null to unbind. This is what `matching: semantic` dispatches to, and unbinding a semantic vocabulary leaves it unable to resolve at all. It does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `object \| null` | no | Change the parameters passed to that resolver flow. |
-| `version` | `integer` | yes | The version you last read. REQUIRED: without it a concurrent edit is overwritten and both callers are told the write succeeded. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
-| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored row and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -382,7 +382,7 @@ Relabel a vocabulary, rename its key, or change how it admits values (`mint`, `m
 | `id` | `string` | yes | Unique id of the vocabulary — what `{id}` routes address. |
 | `project` | `string` | yes | Node id of the owning project. |
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
-| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string, because `key` is the identity. |
+| `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
@@ -399,7 +399,7 @@ Relabel a vocabulary, rename its key, or change how it admits values (`mint`, `m
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
 | `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
-| `renames` | `object[]` | no | Feature 385 — present when the PATCH changed `key`: the vocabulary renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
+| `renames` | `object[]` | no | Present when the PATCH changed `key`: the vocabulary renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -434,25 +434,25 @@ Each item of `renames`:
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
-| `cost` | `object` | yes | What the rename spends (FR-042). Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
 Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 Each item of `leavesBehind`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -461,7 +461,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -479,9 +479,9 @@ Delete one vocabulary and its terms. Refused (409) while another vocabulary nest
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `confirm` | `"true" \| "false"` | no | Pass `true` to actually delete. Without it a destructive delete is refused with a 409 rather than performed — the gate is server-side, so a direct caller cannot wipe a vocabulary by accident either. ⭐ TO SEE WHAT WOULD BE DESTROYED, send `validateOnly=true` (below) with the same options you intend to delete with: that answers a 200 verdict plus the blast radius and writes nothing. |
-| `assignedTerms` | `"delete" \| "archive"` | no | What to do with terms that records already carry. Required once any term is assigned — there is no default, because both answers destroy something different. Ask `validateOnly=true` to find out whether this delete needs one. |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/delete-preflight`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `confirm` | `"true" \| "false"` | no | Pass `true` to actually delete. Without it a destructive delete is refused with a 409 rather than performed. ⭐ TO SEE WHAT WOULD BE DESTROYED, send `validateOnly=true` (below) with the same options you intend to delete with: that answers a 200 verdict plus the blast radius and writes nothing. |
+| `assignedTerms` | `"delete" \| "archive"` | no | What to do with terms that records already carry. Required once any term is assigned — there is no default. Ask `validateOnly=true` to find out whether this delete needs one. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -495,11 +495,11 @@ Delete one vocabulary and its terms. Refused (409) while another vocabulary nest
 | `deletedTerms` | `integer` | yes | Terms removed outright. |
 | `archivedTerms` | `integer` | yes | Terms archived rather than removed, keeping the labels on existing records. Always zero if you chose to delete them instead. |
 | `removedAssignments` | `integer` | yes | Labels taken off real records. Always zero if you chose to archive instead. |
-| `qdrantWarning` | `string \| null` | yes | Set when the rows are gone but their vector-store points outlived the sweep. Harmless — a background pass collects them — and reported rather than hidden, because the database is the authority and silence here would be a lie. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `qdrantWarning` | `string \| null` | yes | Set when the rows are gone but their vector-store points outlived the sweep. Harmless — a background pass collects them. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the delete would reach — the same numbers `GET /:id/delete-preflight` used to answer on its own. Present on both arms of a verdict: a refusal is about a vocabulary that exists, and its counts are what explain the refusal. |
+| `derived` | `object` | no | What the delete would reach. Present on both arms of a verdict, so a refusal carries the counts behind it. |
 
 Each item of `touched`:
 
@@ -513,10 +513,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `POST /v1/vocabularies/{id}/terms`
 
@@ -534,7 +534,7 @@ Create terms under this vocabulary — one or up to 500 — operator-authored an
 | --- | --- | --- | --- |
 | `parentTermId` | `string \| null` | no | Parent term for every row in this batch. Required when the vocabulary nests under another; must be absent for a top-level vocabulary — a stray parent is refused rather than ignored. |
 | `terms` | `object[]` | yes | The terms to create, up to 500 per call. Seed a larger vocabulary in successive calls — this endpoint is idempotent, so re-sending a list you have grown is safe. |
-| `validateOnly` | `boolean` | no | Check this batch and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this batch and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -546,7 +546,7 @@ Create terms under this vocabulary — one or up to 500 — operator-authored an
 | `created` | `integer` | yes | How many terms were newly inserted. |
 | `existed` | `integer` | yes | How many already existed and were reused. |
 | `qdrantUpsertFailures` | `integer` | yes | How many seeded terms have no vector yet. They are saved and authoritative, but will not appear in a vector search until a backfill runs — so a non-zero value here means the seed succeeded and is not yet fully usable. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write WOULD have computed. Present whenever the batch was coherent enough to derive it, which is not the same as `ok`. |
@@ -566,10 +566,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `GET /v1/vocabularies/resolvers`
 

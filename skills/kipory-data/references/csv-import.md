@@ -58,10 +58,10 @@ Why it is written this way:
 
 ## Type the result, and the row
 
-Give the parse action an `outputSchema` naming a shape with `total`, `valid` and `rejected`, and make
-`valid`'s `items` a reference to a row shape of its own (`kipory-model` has the `$ref` form). The
+Give the parse action an `outputSchema` naming a type with `total`, `valid` and `rejected`, and make
+`valid`'s `items` a reference to a row type of its own (`kipory-model` has the `$ref` form). The
 fan-out reads `valid` through an `inputPaths` `field` segment, and its branch slot is typed as that
-row shape only when the items are a named type — an inline `items` object is the anonymous
+row type only when the items are a named type — an inline `items` object is the anonymous
 `object`, and a `field` path into the branch slot is then refused.
 
 ## What goes wrong around it

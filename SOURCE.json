@@ -1,7 +1,9 @@
 {
-  "source": "53dca092d0b721e796819e6c69fd5f44051ec073",
+  "source": "e6b0bcfd9f1e67d0e37f7313b626588a2884e172",
   "since": "2026-08-13",
   "history": [
+    {"sha":"e6b0bcfd9f1e","skills":"Docs catch-up, and the four docs rulings built: refusal-code page (395), spec status words (396), `types` in the document (397), builder-facing API notes (398) (#3477)"},
+    {"sha":"ea78b63a39b6"},
     {"sha":"53dca092d0b7","skills":"A missing value that spreads with no error is warned when the flow is saved: `!=` against nothing, an aggregate of no items in arithmetic, and a required output every writer may leave unwritten (#3487)"},
     {"sha":"f015aeabb934"},
     {"sha":"bb3f9f019494","skills":"The runs pages read top to bottom, and every action of a run opens to what it got, did and gave — on the run page and the flow board — with a flow able to record every run's values for a while (#3484)"},
@@ -999,8 +1001,6 @@
     {"sha":"cbdce468375b","skills":"A manifest records that someone ran a command; only the public repo knows (#2471)"},
     {"sha":"349286e553bb"},
     {"sha":"c4fbd1659e4f"},
-    {"sha":"0390bcf0eb96","skills":"The pack described a membership recheck that the grant model deleted (#2468)"},
-    {"sha":"9188cc2241ec"},
-    {"sha":"e740014a5f18"}
+    {"sha":"0390bcf0eb96","skills":"The pack described a membership recheck that the grant model deleted (#2468)"}
   ]
 }

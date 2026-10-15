@@ -8,12 +8,12 @@
 ## What it is
 
 Where a project's runtime tunables live — thresholds, windows, weights, cadences, toggles. One row
-per project and namespace, and each namespace is **typed** by a shape you author, whose fields
+per project and namespace, and each namespace is **typed** by a type you author, whose fields
 carry their own defaults.
 
 The load-bearing idea: **what gets stored is only the overrides.** The effective config — your
 defaults with the overrides laid over them — is computed when it is read, never written down.
-Change a default in the shape and every project sees it immediately, except where something
+Change a default in the type and every project sees it immediately, except where something
 explicitly overrode it. Clearing an override is deleting a key, not writing the default back.
 
 That inversion is what makes config safe to edit. If effective values were stored, every default
@@ -41,7 +41,7 @@ DELETE /v1/project-config/{id}[?validateOnly=true]   remove the row
 ```
 
 The write is an **upsert on the natural key**, which makes it one idempotent "set the ranking
-config" operation rather than a create-or-update dance. Creating requires naming the shape it
+config" operation rather than a create-or-update dance. Creating requires naming the type it
 binds; updating requires the `version` you last read.
 
 ⛔ **`data` REPLACES the whole stored override map — it does not merge.** Sending only the key you
@@ -51,7 +51,7 @@ map.** The serialized map is capped at 32 KB, because it is seeded into every fl
 larger is content and belongs in a record.
 
 ⭐ **Ask before you write.** `POST /v1/project-config` with `validateOnly: true` runs every rule the
-upsert runs — the cap, the shape a new namespace needs, the version an existing one needs, the
+upsert runs — the cap, the type a new namespace needs, the version an existing one needs, the
 effective object against its type — writes nothing, and answers **200** with a verdict
 `{ok, diagnostics, complete}`; a refusal the write would answer as a 422 comes back as a finding.
 It cannot see a stale `version`: that is the write's own lock. `DELETE …?validateOnly=true` does
@@ -67,7 +67,7 @@ Through the project provider attribute — `projectInfo.config.<namespace>.<fiel
 function call; it is resolved once per run and cached for that run.
 
 The map a flow sees is the **effective** one, so a flow picks up a field's default the moment the
-shape declares it. Each row also carries **`defaults`** — the half of `effective` your overrides did
+type declares it. Each row also carries **`defaults`** — the half of `effective` your overrides did
 not supply, lifted by the same rule. To tell a field sitting at its default from one with no default
 at all (absent from what the flow reads), read `defaults`; do not re-read the schema's `default`
 keywords, which include ones the lift never takes (a nested one, or one behind a `$ref`).
@@ -80,9 +80,9 @@ Three corners worth holding:
 - **Edits are not live mid-run.** A running flow keeps the snapshot it started with; the next run
   sees the change. This is what makes a run reproducible, but it also means "I changed it and
   nothing happened" is expected for anything already in flight.
-- **A namespace whose shape was deleted degrades to overrides only** — reads keep working with no
+- **A namespace whose type was deleted degrades to overrides only** — reads keep working with no
   defaults behind them, and the _next write_ is what tells you, by refusing and naming the
-  missing shape. The read will not warn you.
+  missing type. The read will not warn you.
 
 ## What the platform refuses
 
@@ -114,7 +114,7 @@ Three corners worth holding:
 
 ## Related
 
-- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring the shape a
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring the type a
   namespace binds.
 - Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — where the wiring that reads config lives.
 - Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — pinning behaviour that a tunable can move.

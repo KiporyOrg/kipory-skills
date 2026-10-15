@@ -91,12 +91,12 @@ PATCH /v1/records/{id}     { "version": <version>, "merge": { "phone": "…" } }
 POST  /v1/records/bulk     { "project": "<node>", "items": [ { "id", "version", "merge": { "phone": "…" } }, … ] }   up to 500
 ```
 
-- **`merge` or `data`.** `merge` names only the keys that change (`null` removes one); `data` instead replaces the whole document. Either way the result is validated against the table's current shape and the record is re-indexed. The processing flow does **not** re-run.
+- **`merge` or `data`.** `merge` names only the keys that change (`null` removes one); `data` instead replaces the whole document. Either way the result is validated against the table's current type and the record is re-indexed. The processing flow does **not** re-run.
 - **A bulk writes all of its items or none.** It judges every item first: a refusal is a 422 `RECORD_BULK_REFUSED` whose `details.issues[].path` names each item (`items.3`) and whose `code` is the item's own. `"validateOnly": true` answers what each item would do and writes nothing.
 - **`RECORD_VERSION_STALE`** means a run moved the row since you read it — re-read and resend. A row that moves in the instant between the judgement and the write answers 409 with the same code and the same `details.issues[]` shape; it is not a key conflict.
 - **`RECORD_NATURAL_KEY_TAKEN`** on a create item means another record already holds the natural key; send the item with `onKeyTaken: "update"` to update that record.
 
-⭐ **Adding a required field to a table with records is four calls**: widen the shape with the field optional (`kipory-evolve`), list the ids and versions, one bulk `merge` setting the field on each, then make it required.
+⭐ **Adding a required field to a table with records is four calls**: widen the type with the field optional (`kipory-evolve`), list the ids and versions, one bulk `merge` setting the field on each, then make it required.
 
 **Delete a record.** `DELETE /v1/records/{id}` (ADMIN, irreversible) removes the record and everything derived from it — terms, links, files it produced, vector points — and answers `{ id, deleted: true, outcome }`: `removed`, or `draining` when a run was over it (it goes at that run's next action). The bulk route takes creates and updates only, so to clear a table, page `GET /v1/records?project=<node>&tableKey=<type>` and delete each id.
 

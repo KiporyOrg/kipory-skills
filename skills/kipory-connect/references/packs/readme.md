@@ -60,7 +60,7 @@ quietly working around it.
 | Build or edit a flow; add, change or reorder actions                       | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
 | Make a flow actually return its declared output                            | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
 | Run a flow against real inputs — and the flag that stops it writing        | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
-| Define a reusable data shape                                               | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
+| Define a reusable type                                                     | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
 | Define a kind of record people create or the system processes              | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
 | Classify records against a vocabulary that resolves to terms               | Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)                                    |
 | Link records to each other with typed links                                | Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)                        |
@@ -111,7 +111,7 @@ judgment, and both defer to the live system for facts.
 - **Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)** — the main build target. Output binding, preview (which
   costs money **and writes records unless you pass `apply: false`**), what travels between actions,
   and the rule that a save succeeding is not a promise it will run.
-- **Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)** — shapes versus tables, the reserved names, and what a
+- **Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)** — types versus tables, the reserved names, and what a
   schema edit cascades into.
 - **Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)** — classification against a resolvable vocabulary, and the path
   from resolving to committing terms.
@@ -132,7 +132,7 @@ judgment, and both defer to the live system for facts.
 - **Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)** — the one place a flow's stored checks live: cases with assertions, a
   subject, and optional scorers, kept so runs compare. A suite with no scorers is a contract suite
   and asks "does this still work?"; scorer flows ask "is this any good?"
-- **Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)** — namespaced runtime tunables typed by a bound shape,
+- **Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`)** — namespaced runtime tunables typed by a bound type,
   readable by flows.
 - **Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`)** — the one place a project's vector space is
   defined.

@@ -35,9 +35,9 @@ List the messages one project's runs sent (`?project=<nodeId>`), newest first by
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `messages` | `object[]` | yes | Messages, newest first by `createdAt`, then id. |
-| `paging` | `null` | yes | Always null: a count is not paid on every page of a growing log, so no page count is given. Walk with `after`/`before`. |
+| `paging` | `null` | yes | Always null: no page count is given. Walk with `after`/`before`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
-| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page, which is the only honest way for a client to know it is at the start: it cannot infer that from a full page. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
 
 Each item of `messages`:
 

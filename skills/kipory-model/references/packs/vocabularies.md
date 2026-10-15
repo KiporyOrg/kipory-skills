@@ -19,7 +19,7 @@ the same term.
 
 ## When you need it — and when you don't
 
-- **Against a plain field on the shape.** Use a field when a caller or a single action just
+- **Against a plain field on the type.** Use a field when a caller or a single action just
   _writes_ the value. Use a vocabulary when the value should be resolved against shared terms —
   deduplicated, reused across records, and able to nest. A field gives you a flat literal; a
   vocabulary gives you terms with reuse.
@@ -101,7 +101,7 @@ typed signature actually matches the resolver contract. Each row carries the flo
 `paramsDefaults`, `platformDefault` and `paramsKind`.
 
 ⭐ **The filter is the point.** A flow whose signature cannot serve is not offered, so a binding you
-make from this list cannot fail at ingest for being the wrong shape. The offered set is exactly the
+make from this list cannot fail at ingest for a signature that does not fit. The offered set is exactly the
 set the runtime can load.
 
 ⚠️ **`paramsSchema` is what a `resolutionParams` bag for that resolver must look like** — so a form
@@ -175,7 +175,7 @@ and functions know it by), a label, a `cardinality` of `one` or `many`, and opti
 vocabulary key. A term attaches to the whole record: model a part inside a record as its own table
 with a relation.
 
-**The label and the key are editable; the shape is not.** Relabelling touches only the display
+**The label and the key are editable; the structure is not.** Relabelling touches only the display
 string — no term, no link and no stored resolution moves. A new key is a rename, and its terms move
 with it; see [Renaming a vocabulary](#renaming-a-vocabulary). There is no merge: folding two
 vocabularies into one would destroy an identity, and that is a different verb with different costs.
@@ -233,7 +233,7 @@ the parent that invokes it.
 **And a vocabulary the table does not LIST is written but never read.** Resolution succeeds, the
 assignment row lands, and every read of that record omits the value — a read returns exactly the
 vocabularies named in its table's `uses.vocabularies`, in that order (the
-tables pack (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) has the shape). Saving warns; adding the
+tables pack (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) has the details). Saving warns; adding the
 vocabulary to the list afterwards surfaces every assignment already written, so nothing is lost by
 saving first.
 
@@ -276,7 +276,7 @@ while a project is still being assembled.
   authoring-time refusal rather than a runtime one. Hence the order above: resolver flow first, bind
   it, then author the flow that uses it.
 - **Reserved keys are refused** with `VOCABULARY_KEY_INVALID` — the identity, content and metadata
-  names the record shape already owns, along with `vocabularies`, `terms`, `tableKey` and the
+  names a record already owns, along with `vocabularies`, `terms`, `tableKey` and the
   timestamps. A vocabulary's `key` is a **field key** — camelCase, starting lower-case — because it
   becomes a JSON property a model reads. Choose it with care: it can be renamed later, but the
   rename breaks every outside caller that spells it.

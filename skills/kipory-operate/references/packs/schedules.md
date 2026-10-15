@@ -131,7 +131,7 @@ read the one schedule you are about to show from it when the list left it `null`
 
   Coverage is presence; the TYPE is judged where inputs are stored. A value its slot's type
   refuses is refused at the schedule's save (`SCHEDULE_INPUT_MISTYPED`, one issue per slot), and
-  a change that narrows the flow or a shape under it — a document plan, or a type or flow
+  a change that narrows the flow or a type under it — a document plan, or a type or flow
   PATCH with `validateOnly` — reports every schedule and trigger it would leave unable to fire,
   with the same code, even when it never names them. The fire itself asks only presence, so a
   schedule stored before a change keeps firing until you patch its `inputs`.

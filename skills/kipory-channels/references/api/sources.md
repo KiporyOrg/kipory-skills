@@ -46,7 +46,7 @@ Each item of `sources`:
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
-| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop, on a cadence the connector sets rather than this API. |
+| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
 | `listening` | `integer` | yes | How many triggers listen to this source: those that name it, and enabled triggers with no source on its provider's own events, which hear every source of that provider in the project. A source nothing listens to still costs its connection. Whether a delete would be refused is `deleteRefusal`, not this count — only a trigger that names the source refuses it. |
@@ -70,14 +70,14 @@ Create a source: something that writes events a trigger can listen to, of one pr
 | `provider` | `"telegram" \| "webhook" \| "postgres" \| "apify"` | yes | Which kind of source to create. A provider the platform cannot run yet is refused with 422. |
 | `key` | `string` | no | Your identifier for this source within the project and provider. Letters, digits, dots, dashes and underscores. When omitted, it is slugified from what the source watches. |
 | `label` | `string` | no | Display text. Omit to leave the source unlabelled. |
-| `config` | `object` | yes | The provider's configuration, in that provider's shape (see the `config` shapes on the source row). Validated against the provider's schema; a field that does not parse is refused with 422 naming it. |
-| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `config` | `object` | yes | The provider's configuration, in that provider's own fields (see each provider's `config` on the source row). Validated against the provider's schema; a field that does not parse is refused with 422 naming it. |
+| `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write would compute. Nothing here has happened. ⚠️ THE CREATE'S ONLY — a patch cannot move a source's key, so it answers without this. |
@@ -86,10 +86,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 **Response `201`**
 
@@ -102,7 +102,7 @@ Each item of `diagnostics`:
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
-| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop, on a cadence the connector sets rather than this API. |
+| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
 | `listening` | `integer` | yes | How many triggers listen to this source: those that name it, and enabled triggers with no source on its provider's own events, which hear every source of that provider in the project. A source nothing listens to still costs its connection. Whether a delete would be refused is `deleteRefusal`, not this count — only a trigger that names the source refuses it. |
@@ -135,7 +135,7 @@ Read one source, with its health, listening count and `deleteRefusal`. The event
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
-| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop, on a cadence the connector sets rather than this API. |
+| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
 | `listening` | `integer` | yes | How many triggers listen to this source: those that name it, and enabled triggers with no source on its provider's own events, which hear every source of that provider in the project. A source nothing listens to still costs its connection. Whether a delete would be refused is `deleteRefusal`, not this count — only a trigger that names the source refuses it. |
@@ -165,7 +165,7 @@ Change a source's name or config (the provider is permanent), or switch it on or
 | `label` | `string \| null` | no | New display text, or null to clear it. Omit to leave it alone. |
 | `config` | `object` | no | A replacement configuration, whole, in the provider's shape. Omit to leave it alone. The provider itself cannot change. |
 | `enabled` | `boolean` | no | Switch the source on or off. Omit to leave it alone. A source switched off writes no events, so no trigger listening to it fires. On a retired project, a patch whose only change is `enabled: false` is still accepted; every other patch is refused with 409. |
-| `validateOnly` | `boolean` | no | Check this patch against the stored source and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING `/validate`: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `boolean` | no | Check this patch against the stored source and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -178,7 +178,7 @@ Change a source's name or config (the provider is permanent), or switch it on or
 | `label` | `string \| null` | yes | Display text, editable at any time — or null when nobody has labelled this source. |
 | `config` | `object` | yes | The provider's own configuration. Which shape applies is decided by the source's `provider`. |
 | `naturalKey` | `string \| null` | yes | What this source watches, as the provider names it — a channel, a Postgres table, an Apify actor — read from the config field the provider's `naturalKeyField` names. Null when the config carries none (a webhook's address is minted by the platform). |
-| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop, on a cadence the connector sets rather than this API. |
+| `enabled` | `boolean` | yes | Whether the source writes events. Switch it with `PATCH /v1/sources/{id}` `{enabled, version}`. Switching off is not instant for a connector's source: the connector stops watching the key on the next pass of its own reconcile loop. |
 | `createdByUserId` | `string \| null` | yes | Who set the source up. History only — a source is owned by its project. Null for a source created by a token, or once that account is gone. |
 | `health` | `object` | yes | How the source is doing right now, merged from the provider's last report and the platform's own signals. |
 | `listening` | `integer` | yes | How many triggers listen to this source: those that name it, and enabled triggers with no source on its provider's own events, which hear every source of that provider in the project. A source nothing listens to still costs its connection. Whether a delete would be refused is `deleteRefusal`, not this count — only a trigger that names the source refuses it. |
@@ -189,7 +189,7 @@ Change a source's name or config (the provider is permanent), or switch it on or
 | `version` | `integer` | yes | Increments on every operator write. Send it back on a patch — switching `enabled` included — to be refused with 409 if someone changed the source in the meantime. A provider's own report never bumps it. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 | `derived` | `object` | no | What the write would compute. Nothing here has happened. ⚠️ THE CREATE'S ONLY — a patch cannot move a source's key, so it answers without this. |
@@ -198,10 +198,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `DELETE /v1/sources/{id}`
 
@@ -217,7 +217,7 @@ Delete one source. Refused (409 `SOURCE_HAS_LISTENERS`) while a trigger listens 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did, because telling you your draft is wrong when nothing read it is the one answer a dry run must not give. ⛔ A FLAG ON THE REAL ROUTE, NOT A SIBLING ROUTE: one route means one set of rules, so a check that passes and a save that refuses cannot come apart. Default false. |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
 
@@ -225,7 +225,7 @@ Delete one source. Refused (409 `SOURCE_HAS_LISTENERS`) while a trigger listens 
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE. Some rules are database constraints the write learns about by attempting them — uniqueness above all — so this answers only that nothing refuses this body as of now, which another write landing first can change. Read it as a snapshot, and read `complete` beside it. |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
@@ -233,10 +233,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `GET /v1/sources/providers`
 
@@ -246,7 +246,7 @@ The source-provider registry: every provider a source can be, grouped by concern
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `concerns` | `object[]` | yes | Every concern, in the order the catalogue draws them. Adding a provider never adds a concern. |
+| `concerns` | `object[]` | yes | Every concern, in the order the catalogue draws them. |
 | `providers` | `object[]` | yes | Every provider a source can be, grouped by concern in `concerns` order, then as declared. |
 | `announced` | `object[]` | yes | Names the catalogue shows as coming, with no provider, config schema or source behind them. Never creatable. |
 

@@ -13,10 +13,10 @@
  * Without `--write` it prints the converted document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
- * It converts in four steps, and a version 2 document takes all four in one
- * run. A version 3 document takes the last three, a version 4 document the
- * last two, a version 5 document the last; a version 6 document is returned
- * as it is.
+ * It converts in five steps, and a version 2 document takes all five in one
+ * run. A version 3 document takes the last four, a version 4 document the
+ * last three, a version 5 document the last two, a version 6 document the
+ * last; a version 7 document is returned as it is.
  *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
@@ -56,6 +56,16 @@
  *     else is under it.
  * Each of these is listed on stderr.
  *
+ * Version 6 → 7 (one word for a type):
+ *   - the root section `schema` → `types`;
+ *   - on each table, `shape` → `type`;
+ *   - on each namespace of `project.config`, `shape` → `type`.
+ *   Nothing else named `shape` or `schema` moves: not a function's config
+ *   (`vocabulary.aggregate`'s `shape`, `text.generate`'s `schema`), not an
+ *   action's `outputSchema` or `inputSchemas`, not `events.types`, not a
+ *   property of one of your types, and not a table, action or namespace you
+ *   named `shape` or `schema`.
+ *
  * It does NOT rebuild an action on a function that no longer exists
  * (`vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`,
  * `text.embed`, `text.embed-sparse`): what the action becomes is your
@@ -93,7 +103,7 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /** The version this script converts TO. */
-const TARGET_VERSION = 6;
+const TARGET_VERSION = 7;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -574,6 +584,38 @@ const configUnder = (mode, key, sibling = noSibling) => {
   }
 };
 
+/* ── version 6 → 7: one word for a type ──────────────────────────────────
+ *
+ * Three keys move, each known by where it sits: the root `schema`, a table's
+ * `shape`, a config namespace's `shape`. Nothing below a table or a namespace
+ * is entered, so a function's config, a type's definition and the author's
+ * values keep every key they hold.
+ */
+const typeKeyIn = (mode, key) => {
+  switch (mode.name) {
+    case "root":
+      return key === "schema" ? "types" : key;
+    case "tableRow":
+    case "namespaceRow":
+      return key === "shape" ? "type" : key;
+    default:
+      return key;
+  }
+};
+const typeUnder = (mode, key) => {
+  switch (mode.name) {
+    case "root":
+      if (key === "tables") return M("rows", "table");
+      return key === "project" ? M("project") : UNTOUCHED;
+    case "project":
+      return key === "config" ? M("rows", "namespace") : UNTOUCHED;
+    case "rows":
+      return M(`${mode.parent}Row`);
+    default:
+      return UNTOUCHED;
+  }
+};
+
 /**
  * One step of the conversion: the version it reads, the version it writes,
  * and its answers to the questions above.
@@ -618,11 +660,23 @@ const STAGES = [
   {
     // Renames nothing: the search words are removals, made after every step
     // has run (`searchWordsJson`, `searchWordsYaml`), so this step only moves
-    // the version. Every conversion ends with it.
+    // the version.
     from: 5,
     to: 6,
     keyIn: (_mode, key) => key,
     under: () => UNTOUCHED,
+    textOf: () => null,
+    stringAt: (_mode, _key, value) => value,
+    rewrite: (text) => text,
+    needsAPerson: () => false,
+    watchedKey: () => false,
+    slotNote: () => false,
+  },
+  {
+    from: 6,
+    to: 7,
+    keyIn: typeKeyIn,
+    under: typeUnder,
     textOf: () => null,
     stringAt: (_mode, _key, value) => value,
     rewrite: (text) => text,
@@ -652,7 +706,7 @@ const versionOf = (stated) =>
 
 /**
  * A structured document (parsed JSON), converted. `notes` collects the places
- * a person must edit, `dropped` the members that were removed. A version 6
+ * a person must edit, `dropped` the members that were removed. A version 7
  * document is returned as it is, the same object.
  */
 export function upgradeJson(doc, notes = [], dropped = []) {
@@ -684,7 +738,7 @@ export function upgradeJson(doc, notes = [], dropped = []) {
       `${path.join(".")}${extra === "" ? "" : ` (${extra})`}`,
   );
   notes.splice(0, notes.length, ...new Set([...notes, ...said]));
-  // Version 5 → 6, which every conversion ends with: the search words.
+  // The search words (version 5 → 6), once every step has run.
   const searched = searchWordsJson(out, notes, dropped);
   notes.splice(0, notes.length, ...new Set(notes));
   return searched;
@@ -748,9 +802,8 @@ const stageJson = (doc, stage, places) => {
 /* ── the search words ─────────────────────────────────────────────────────
  *
  * Version 6: a document names no vector slot and no collection. This runs
- * once every step has, on a document already in version 5's names (the
- * places it reads did not move from 5 to 6), so every older version takes
- * one path.
+ * once every step has (the places it reads did not move from 5 to 7), so
+ * every older version takes one path.
  */
 
 /** Functions the platform no longer has. An action on one is the author's to rebuild. */
@@ -968,7 +1021,7 @@ const siblingValue = (lines, index, column, name) => {
 /**
  * A YAML document, converted line by line: the indentation says where each
  * key sits, and the same rules as the JSON path say what it becomes. Comments
- * and layout are kept. A version 6 document is returned as it is.
+ * and layout are kept. A version 7 document is returned as it is.
  */
 export function upgradeYaml(text, notes = [], dropped = []) {
   const stated = text
@@ -996,7 +1049,7 @@ export function upgradeYaml(text, notes = [], dropped = []) {
   const bom = renamed.charCodeAt(0) === 0xfeff ? renamed[0] : "";
   const eol = renamed.includes("\r\n") ? "\r\n" : "\n";
   const lines = renamed.slice(bom.length).split(/\r?\n/);
-  // Version 5 → 6, which every conversion ends with: the search words.
+  // The search words (version 5 → 6), once every step has run.
   const out = searchWordsYaml(lines, notes, dropped);
   notes.splice(0, notes.length, ...new Set(notes));
   return out === lines ? renamed : `${bom}${out.join(eol)}`;
@@ -1172,7 +1225,9 @@ const stageYaml = (text, stage, notes) => {
       // `[a, "b: c"]` of scalars and the empty `{}` / `[]` hold no key.
       const bare = unquoted(value);
       const flat = /^\[[^{}[\]:]*\]$/.test(bare) || /^\{\s*\}$/.test(bare);
-      if (!flat && (live(mode) || live(child) || policy !== null))
+      // This line's own key is read above; what the mapping holds is
+      // rewritten only where the mode under the key says so.
+      if (!flat && (live(child) || policy !== null))
         refuse(number, "a mapping is written on one line");
       return `${head}${looseText(rest, policy ?? child.text, note)}`;
     }

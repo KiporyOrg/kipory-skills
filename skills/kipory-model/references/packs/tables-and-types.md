@@ -7,10 +7,10 @@
 
 ## What they are
 
-- A **type** is a named shape in the project's registry — reusable, referenced by actions
+- A **type** is a named set of fields in the project's registry — reusable, referenced by actions
   and by tables.
-- A **table** is a named kind of stored record. It does **not** inline a shape; it
-  _references_ a type for its data shape, and optionally binds a flow whose output slots become
+- A **table** is a named kind of stored record. It does **not** inline its fields; it
+  _references_ a type for its data, and optionally binds a flow whose output slots become
   the table's derived fields.
 
 Both are addressed by their `key`. A table's key is a **table name** — letters and digits,
@@ -18,56 +18,56 @@ starting with a letter — and it is the value its records carry as `tableKey`; 
 at any time, and its records move with it (below). A type's key is an address key (below) and
 renameable at any time.
 
-They are separate resources on purpose: shapes are authored once and reused, while a table
+They are separate resources on purpose: types are authored once and reused, while a table
 is a thin descriptor pointing at one.
 
-**One shape refers to another by id.** Inside a `definition`, the reference is JSON Schema's
+**One type refers to another by id.** Inside a `definition`, the reference is JSON Schema's
 `$ref` in one form only: `{ "$ref": "#/$defs/<dataTypeId>" }` — the referenced type's **id**, on the
 row API and inside a project document alike. A key there is refused
 `SCHEMA_DEFINITION_INVALID_JSON_SCHEMA`. A new type has no id until it is written, so two new
-shapes where one refers to the other are two writes: the referenced shape first.
+types where one refers to the other are two writes: the referenced type first.
 
 ## When you need which
 
-- **A reusable shape** — a payload schema, a model's output schema, a nested object used in
+- **A reusable set of fields** — a payload schema, a model's output schema, a nested object used in
   several places — is a **type**, referenced from actions.
 - **A kind of record people create and the system processes** is a **table**, referencing a
   type for its data and optionally a flow that processes it.
 - **Derived fields are not authored.** They are _captured_ from the bound flow's output slots. To
-  change a table's output shape you edit the flow, never the table.
+  change a table's derived fields you edit the flow, never the table.
 
 ## The sequence
 
 ```
-POST /v1/types       author an operator shape
-POST /v1/tables         create the type, referencing the entry — and say what its fields are FOR (`uses`)
+POST /v1/types       author an operator type
+POST /v1/tables         create the table, referencing the type — and say what its fields are FOR (`uses`)
 PATCH /v1/tables/{id}   bind a flowId to make it flow-backed; replace `uses` whole
 
-# Not part of the sequence — the builtin and library shapes are synthesized on
+# Not part of the sequence — the builtin and library types are synthesized on
 # read and have no rows, so nothing seeds them. This route re-materializes the
 # infrastructure-tier Flow-Provider entries only, and is idempotent:
 POST /v1/types/seed
 ```
 
-### A table and its shape together
+### A table and its type together
 
 A table always points at a type, and a type is nobody's: any table, event
 payload, relation, config namespace, profile or flow slot may use it. To make a type and
-the table shaped by it in one step, state both in a
-project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the type under `schema`, the table under `tables`
-with `shape` naming the type's key. To edit a table's shape together with the table (its `uses`,
+a table of that type in one step, state both in a
+project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the type under `types`, the table under `tables`
+with `type` naming the type's key. To edit a table's type together with the table (its `uses`,
 its flow), send `definition` on `PATCH /v1/tables/{id}`, or state the type and the table in
 one document. Either way every other row that uses the type is judged by the edit, as on
 `PATCH /v1/types/{id}`. A registry PATCH that lands answers the row and its `touched`
 list — every event type and table whose version moved with it — as the table and
 flow PATCHes do.
 
-Both are scoped by `project`. Reads take useful expansions: the synthesised derived output shape,
+Both are scoped by `project`. Reads take useful expansions: the synthesised derived output fields,
 a **drift** verdict, and the type-reference graph.
 
 ## The model to hold
 
-1. **The data shape lives on the registry and is referenced softly.** A table points at an
+1. **The data's type lives on the registry and is referenced softly.** A table points at an
    operator-authored object type. What you see on the table's wire shape is a **read-only
    projection** of that type — there is no inline definition to edit.
 2. **Flow-backedness is just a bound flow.** There is no separate flag and no named output type.
@@ -83,12 +83,12 @@ a **drift** verdict, and the type-reference graph.
    any record, and `record.read` / `record.list` honour their vocabularies and files include-flags
    for every table. Ask the flow binding what a table derives; ask the record what it holds.
 
-## Which shapes may be a data shape — ask the server, do not guess
+## Which types may be a table's type — ask the server, do not guess
 
-A table's data shape must be an **operator** type, object-shaped, that
+A table's type must be an **operator** type, an object, that
 **compiles** against the project registry, whose top-level field names are
 letter-led alphanumeric and collide with no reserved system field. Five gates,
-and the last three are the ones that surprise people: a shape with a field
+and the last three are the ones that surprise people: a type with a field
 called `id` or `createdAt` is refused, and so is one whose name carries an
 underscore.
 
@@ -105,7 +105,7 @@ save checks the marker's name, uniqueness, vocabulary, placement (top level only
 and field type (a string or a list of strings), never whether anything reads
 it.
 
-⚠️ **Do not re-derive any of them.** Object-shapedness is not the gate. Choose
+⚠️ **Do not re-derive any of them.** Being an object is not the gate. Choose
 among the types the flag admits and the save cannot refuse the choice.
 
 ## What a keyword on a field does — ask the server, do not guess
@@ -149,7 +149,7 @@ For a type you have **not created yet**, send the create body to
 `POST /v1/types` with `validateOnly: true`: the same
 `derived.keywordVerdicts`, for a type nothing binds — which is what a new type is
 until something does — beside the create's own verdict. It needs EDITOR on the
-project node. A table's shape can also be asked through the table:
+project node. A table's type can also be asked through the table:
 `PATCH /v1/tables/{id}` with `definition` and `validateOnly: true` answers
 the same `derived.keywordVerdicts`.
 
@@ -169,14 +169,14 @@ Records are written by flows; an operator or an importer writes them over HTTP a
   same id, re-indexed, flow not re-run). A table with no natural key refuses the upsert 422.
 - `PATCH /v1/records/{id}` — one correction: `version` (the lock every list row and detail
   carries) and either `data` (the whole document; keys left out are removed) or `merge` (only the
-  keys that change; `null` removes one). The result is judged by the table's shape either way.
+  keys that change; `null` removes one). The result is judged by the table's type either way.
 - `POST /v1/records/bulk` — up to 500 of either kind in **one change set**: every item is judged by
   its single twin's rules first, and if any is refused nothing is written and the 422 names each
   item (`details.issues[].path` = `items.<n>`). `validateOnly: true` answers the verdict and writes
   nothing.
 
 ⭐ **Adding a required field to a table that already holds records is four calls**, not two per
-record: widen the shape (the field optional), read the ids and versions (`GET /v1/records`, one
+record: widen the type (the field optional), read the ids and versions (`GET /v1/records`, one
 page of up to 100), set the field on all of them (`POST /v1/records/bulk`, one `merge` item per
 record), then make it required. An import is one bulk of creates with `onKeyTaken: "update"`.
 
@@ -308,7 +308,7 @@ today, so the list is the deployment's statement, not a promise.
 **A refusal derives nothing.** Every issue comes back at once as `422 TABLE_USES_INVALID`, and
 `details.issues[]` carries per issue a `code` to branch on, the `path` into your statement, the
 `field` and `use` it is about, and a `remedy` — what to do instead, never empty. Branch on the code:
-`USES_FIELD_UNKNOWN` (no such contract field), `USES_ILLEGAL_FOR_SHAPE` (that shape cannot be used
+`USES_FIELD_UNKNOWN` (no such contract field), `USES_ILLEGAL_FOR_SHAPE` (that kind of field cannot be used
 that way — an object cannot be filtered, a number or a file cannot be a key), `USES_TWO_KEYS`,
 `USES_KEY_NOT_SUBMITTED` (a `key` on a field that is not submitted data, such as a flow output),
 `USES_SEARCH_NO_TEXT`, `USES_SEARCH_SETTINGS` (a `search` use with no `search` settings, or the
@@ -373,7 +373,7 @@ re-embed drains. Three changes that look adjacent are **not** in that set: addin
 `filter` rewrites each stored record's vector payload in place with no embedding calls (no credits —
 see "Making fields filterable"), dropping the last `search` use deletes the points without spending
 credits, and re-pointing the bound flow or the
-referenced shape diverges nothing at the save — those records re-embed later, each as it is next
+referenced type diverges nothing at the save — those records re-embed later, each as it is next
 reprocessed, not as this save's own bill. The trigger is the **diff of the derived document**, not
 the edit: re-sending the same `uses` derives the same document and enqueues nothing.
 
@@ -403,7 +403,7 @@ extract its text), and search that field. The refusal is the point: such a field
 record to an empty string, skip each one as having no content, and leave the table looking
 searchable while indexing nothing at all.
 
-The refusal is about the field's **shape**: a record that happens to be empty is reported per
+The refusal is about the field's **declaration**: a record that happens to be empty is reported per
 record, which is a fact about data rather than about the declaration.
 
 **A `search` field is one field.** There is no way to compose several fields into one indexed
@@ -890,7 +890,8 @@ and `limit` caps what is returned of it.
 
 **Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
 hop through `peer`. Ordering by how closely a LINKED record matches, or by any value on a linked
-record. A similarity cut-off on a ranking. An answer carrying records of two tables. A query
+record. A similarity cut-off on a ranking. An answer carrying records of two tables, except a
+ranking by meaning across `tableKeys`. A query
 language — the grammar is this JSON, in an action's config or a request body. A slot for WHICH field,
 operator or link a clause asks about — only the value compared against can come from the run. A
 cached answer — every query reads the stores as they are now.
@@ -911,6 +912,10 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
   stored as `null` holds nothing. To drop a held field, remove it from those records first (`kipory-data`: a
   record `merge` with `null` removes a top-level key), then from the type. Editing a type
   re-validates every table referencing it, strictest wins.
+- **Removing or retyping a field another table's statement uses** (422 `TYPE_UNSAFE_FOR_TABLE`): a field a table names in
+  a `filter`, `key` or `stream` use, or retyped into one that use is not allowed on. The
+  message names the table and the use; remove the use on that table first, or keep the field.
+  Only what the edit itself breaks is refused.
 - **A definition that contradicts itself or carries a `$vocabularyKey` marker no extraction can
   honour.** `SCHEMA_DEFINITION_MALFORMED_CONSTRAINT`: a range no value satisfies, a negative or
   fractional count bound, an `enum` member listed twice, two `oneOf` / `anyOf` branches pinning one
@@ -941,7 +946,7 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
 - **A table delete's `validateOnly=true`** rehearses the delete and rolls it back: `ok` is
   false when it would leave an error it introduces in a flow, as a document plan of the same delete
   answers, with the findings in `leavesBehind` and what it takes along in `consequences`.
-- **Deleting a type** while it is a table's data shape
+- **Deleting a type** while it is a table's type
   (`TYPE_REFERENCED_BY_TABLE`) or referenced by the type-reference graph
   (`SCHEMA_REFERENCED_BY_GRAPH`). ⭐ Ask the delete with `validateOnly=true` in the query: it runs
   the same gate the delete runs and answers a 200 verdict, with `derived` carrying the census of
@@ -989,7 +994,7 @@ vocabulary's (which also carries `confirm` and `assignedTerms`); anything else i
 refused.
 
 - **A declaration the contract has moved out from under.** Each declaration is validated when it is
-  saved; editing the shape or re-capturing the flow afterwards can leave one naming a field the
+  saved; editing the type or re-capturing the flow afterwards can leave one naming a field the
   table no longer has, and nothing refuses until the next save that restates it.
   `GET /v1/tables/{id}?expand=diagnostics` runs the save's own validators over what is stored
   now and lists every issue with its code, path and the contract `field` it names — empty when all
@@ -1030,7 +1035,7 @@ another, which is a removal and is refused while records hold it.
   <!-- pack-lint: ignore-next -->
   `source.link`). A field inside a list renames the same way (`helpers[].chefId`). <!-- field-ok: chefId, url, link — example field names a project would author, not platform fields -->
 - **What moves, in one transaction:**
-  - every record of every table whose shape reaches the type, at the path that table stores it
+  - every record of every table whose type is or holds the type, at the path that table stores it
     under; ids are kept and each moved record's `version` moves;
   - the table's `uses` and everything derived from it, without a re-stamp;
   - every setting that names the field in a declared place, such as a list's filter slot;
@@ -1092,7 +1097,7 @@ and create another, which is refused while it holds records.
 - **Who and when:** renaming needs ADMIN; an EDITOR's PATCH carrying `key` is refused `403`, and a
   plan says so in `permissions.mayRename`. New runs of the project wait up to about five seconds
   while it applies (`renames[].pauseMs`).
-- **Still frozen:** owner scope and the data-shape reference (`TABLE_PINNED_BY_RECORDS`). A refusal
+- **Still frozen:** owner scope and the type reference (`TABLE_PINNED_BY_RECORDS`). A refusal
   moves nothing.
 
 The inverse rename is the undo.
@@ -1104,7 +1109,7 @@ Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocab
 ## Ask what a change would cost, before you make it
 
 `GET /v1/tables/{id}?expand=contract` derives the field vocabulary from the descriptor **as
-stored**. So an editor that has staged a different data shape, or a different processing flow, is
+stored**. So an editor that has staged a different type, or a different processing flow, is
 holding a contract that no longer describes what it is about to save — and any declaration it
 offers against that contract is being written against the wrong vocabulary.
 
@@ -1128,7 +1133,7 @@ a refusal.
 
 ⭐ **`element.properties` carries each sibling's NAME and the JSON types it declares.** These are the
 values that may travel onto a link, and the bag they build is validated against the relation's
-`propertiesDataTypeId` — so an editor offering that type has to compare the two SHAPES, not their
+`propertiesDataTypeId` — so an editor offering that type has to compare the two sets of fields and JSON types, not their
 spellings. A sibling `quote` that holds a `string`, pointed at a type declaring `quote` as an
 object, agrees on every name and is refused on every link as `PROPERTIES_INVALID` — reported rather
 than raised, so the relation reads `0 links` and nothing says why.
@@ -1143,17 +1148,17 @@ word rather than folding one into the other — a reader deciding what satisfies
 distinction, and the compiler's `integer` arm accepts what its `number` arm does plus a whole-number
 check. Fold them in your own reader, not in what you read.
 
-To ask what a **proposed** shape or flow would make of the contract, send the PATCH that
+To ask what a **proposed** type or flow would make of the contract, send the PATCH that
 proposes it with `validateOnly: true`:
 
 ```
 PATCH /v1/tables/{id}
-{ "dataTypeId": "<entry>", "version": 7, "validateOnly": true }   // another shape
-{ "definition": { /* the type's shape, drafted */ }, "version": 7, "validateOnly": true }
+{ "dataTypeId": "<entry>", "version": 7, "validateOnly": true }   // another type
+{ "definition": { /* the type's definition, drafted */ }, "version": 7, "validateOnly": true }
 { "flowId": "<flowId>" | null, "version": 7, "validateOnly": true }
 ```
 
-The verdict is the save's own, and when the patch moves the shape or the flow it carries
+The verdict is the save's own, and when the patch moves the type or the flow it carries
 **`derived.contract`** — computed from the save's plan, not by a second read:
 
 ```jsonc
@@ -1166,7 +1171,7 @@ The verdict is the save's own, and when the patch moves the shape or the flow it
       "fields": [
         /* … the proposed vocabulary, the shape `expand=contract` returns … */
       ],
-      "definition": {/* the data shape's schema, as proposed */},
+      "definition": {/* the type's schema, as proposed */},
       "outputDefinition": null, // the bound flow's output schema, or null when unbound
     },
     /* … and the save's own staleVersion, writes, resolved and effects */
@@ -1178,20 +1183,20 @@ Send the `uses` the save would send too: the plan re-derives every projection fr
 against the proposed contract, so a declaration the move strands is **refused** — the verdict's
 diagnostic, in the save's code (`TABLE_SEARCHABLE_INVALID`, `TABLE_QUERYABLE_INVALID`,
 `TABLE_RELATIONS_INVALID`, `USES_FIELD_UNKNOWN`, …) — and the refused verdict still carries
-`derived.contract` once the shape and the flow resolved, so an editor can draw the proposed fields
+`derived.contract` once the type and the flow resolved, so an editor can draw the proposed fields
 beside the refusal. A refusal raised before that (an ineligible type, a flow in another project)
 carries none.
 
 `definition` is a real write, not only a question: **`PATCH /v1/tables/{id}` with
-`definition` replaces the shape of the type the table points at** — with the rules
+`definition` replaces the definition of the type the table points at** — with the rules
 `PATCH /v1/types/{id}` meets, every other row that uses the type included — in one
 transaction with the table; the type comes back in `touched`. It is refused 422 together
-with `dataTypeId` (`TABLE_DEFINITION_WITH_DATA_TYPE`). An edit that re-shapes a signature
+with `dataTypeId` (`TABLE_DEFINITION_WITH_DATA_TYPE`). An edit that changes a signature
 an endpoint or this table froze is refused 409 `TYPE_RESHAPES_BOUND_SNAPSHOTS`; re-send it
-through a project document with `adoptSnapshots` on the shape. Its dry run also answers
+through a project document with `adoptSnapshots` on the type. Its dry run also answers
 `derived.keywordVerdicts` for the drafted document — on a refused draft too, but not on the
 refusal above, where no draft is judged. Send `flowId` beside
-`definition` to re-bind in the same save: the new flow is judged against the new shape, and the
+`definition` to re-bind in the same save: the new flow is judged against the new type, and the
 flow being replaced no longer is.
 
 Things to hold about it:
@@ -1199,20 +1204,20 @@ Things to hold about it:
 - **A proposed flow is resolved against its LIVE signature**, which is what a re-bind actually
   captures — not against the snapshot the descriptor already stores. Ask before you bind and the
   answer is the one the save will use.
-- ⚠️ **They are not independent, and the shape one is the reason.** Re-pointing the shape re-binds
+- ⚠️ **They are not independent, and the type one is the reason.** Re-pointing the type re-binds
   the flow against it, so a `dataTypeId`-only proposal is resolved against the flow's **live**
   signature too — its `processed` fields can move, and it can be refused for a flow reason on a
-  request that never mentioned a flow. That is the save's behaviour, faithfully: a shape change is
+  request that never mentioned a flow. That is the save's behaviour, faithfully: a type change is
   what strands a declaration naming a flow slot.
 - **A `409` from `TABLE_PINNED_BY_RECORDS` means the table already holds records** and the
-  shape you proposed is not the one they were written against. Re-pointing is refused for the life
+  type you proposed is not the one they were written against. Re-pointing is refused for the life
   of those records — a fact about the table rather than about your proposal.
 - **A `seed`-origin table is refused** (`TABLE_SEEDED_READONLY`) by the dry run as by the save.
 - A stale `version` is reported as `derived.staleVersion: true` beside an `ok` verdict, never as a
   finding: the lock is about when the write lands, not whether the draft is coherent.
 
-⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the data
-shape and the owner scope; the binding can change at any point in a table's life. But a
+⚠️ **Re-binding a flow is not free, even though records never freeze it.** Records pin the
+type and the owner scope; the binding can change at any point in a table's life. But a
 re-bind re-derives the `processed` family and re-derives the table's whole `uses` against the new
 signature — every use is re-resolved and the three derived documents re-validated **before the
 write opens at all** — so one use naming a field the new signature no longer produces refuses the
@@ -1220,7 +1225,7 @@ whole save, including the rename that rode along with it. (Derivation precedes t
 rather than sharing it; the effect on you is the same, and it is why nothing partial can land.) This
 route is how you find that out before you send it.
 
-⛔ **Do not re-derive the contract yourself.** It is a pure function of the data shape's schema and
+⛔ **Do not re-derive the contract yourself.** It is a pure function of the type's schema and
 the flow's captured signature, and re-implementing it in an editor is how a declaration gets
 approved against one vocabulary and indexed against another. Ask.
 
@@ -1278,7 +1283,7 @@ disagree with the write. **EDITOR**, like the save it asks about.
 A table may declare a **natural key**: one field of the submitted payload that identifies the
 thing the record stands for. `externalId`
 
-<!-- field-ok: externalId — a field an operator authored on their own shape, named here as the
+<!-- field-ok: externalId — a field an operator authored on their own type, named here as the
      worked example this whole section runs on; the platform declares no such field --> on a post, a
 
 canonical URL on a bookmark, an ISBN on a book. Declare one and the **database** refuses a second
@@ -1373,9 +1378,9 @@ verdict says so in the save's words: `ok: false` with the 409's code,
   record. Max 512 characters. `expand=contract` asks this of each field's schema before you have
   records: `identityRefusal` is `LIST` or `NOT_TEXT` for a field no value of which could be stamped,
   and null for one that might — null is not a promise, the declaration still checks every record.
-  It is the same verdict a `key` use is refused by for its shape: a field with a non-null
+  It is the same verdict a `key` use is refused by for what the field holds: a field with a non-null
   `identityRefusal` saves as `USES_ILLEGAL_FOR_SHAPE`, and a number field is one of them. It answers
-  the shape only — a `processed` field with a null `identityRefusal` is still refused as above.
+  what the field holds only — a `processed` field with a null `identityRefusal` is still refused as above.
 - **A record that cannot supply it is REFUSED, never written unconstrained** — the silent exemption
   is the gap the key exists to close.
 - **Uniqueness is per project and per table**, and on a `user`-scoped table also **per user**: two
@@ -1531,9 +1536,9 @@ COMPUTES something you could not otherwise see — a schedule's occurrences, an 
 type edit computes nothing of that kind: what it produces is the document you sent. A field with
 nothing true to put in it is worse than an absent one.
 
-**A 409 is a verdict on the dry run.** An edit that re-shapes bound snapshots without
+**A 409 is a verdict on the dry run.** An edit that changes bound snapshots without
 `adoptSnapshots` is refused with **409** `TYPE_RESHAPES_BOUND_SNAPSHOTS`, listing what it
-would re-shape; the same check under `validateOnly` answers `ok: false` with that code. Send
+would change; the same check under `validateOnly` answers `ok: false` with that code. Send
 `adoptSnapshots: true` alongside the check to ask what the permitted edit would do instead — the
 dry run then rehearses it and reports `records-invalid` and what it would break.
 
@@ -1579,11 +1584,11 @@ lists the runs.
 
 ## What will bite you
 
-- **Editing a shape re-fires cached work, deliberately.** A type edit bumps the version of every
+- **Editing a type re-fires cached work, deliberately.** A type edit bumps the version of every
   action whose compiled schema depends on it — directly or through a nested chain — and that
-  version is folded into the ingest cache key. So a shape edit re-runs dependent cached ingests
+  version is folded into the ingest cache key. So a type edit re-runs dependent cached ingests
   with no manual cache bust. Useful, and expensive if you did not expect it.
-- **A flow-backed binding is re-validated against a new shape, but the captured snapshot is not
+- **A flow-backed binding is re-validated against a new type, but the captured snapshot is not
   rewritten.** The drift read is what owns the live comparison — which is why `uncaptured` matters.
 - **Vector guards fail open.** An unreachable vector store does not block a save, so a save can
   succeed while the search half of your change quietly did not land.
@@ -1598,7 +1603,7 @@ lists the runs.
 
 - The record-creating function names a table **by key**, plus the slot carrying the
   submission. Flow-less tables are born ready; flow-backed tables start pending and are processed.
-- `text.generate` does **not** carry its output schema in function config — the shape lives on the
+- `text.generate` does **not** carry its output schema in function config — the output schema lives on the
   action and points at a type. That is the main link between the registry and an action.
 - A reference to a table _instance_ names the table by key too, and is deliberately
   invisible to the id-based delete checks.
@@ -1609,7 +1614,7 @@ lists the runs.
 - Embedding profiles (capability pack `embedding-profiles` — `GET /v1/capability-packs/embedding-profiles`) — what `uses.search` names, and where chunking defaults live.
 - Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) and Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — classifying and
   linking records.
-- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — the shape comes first, and what a relation's
+- Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — the type comes first, and what a relation's
   declaration moves on the table.
 
 <!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field -->

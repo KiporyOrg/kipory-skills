@@ -93,7 +93,7 @@ the project, otherwise one of `projects`. Every route takes that one id.
 
 ### 2 — Records
 
-What _things_ exist here? Each becomes a **table**: a shape plus a descriptor. For each,
+What _things_ exist here? Each becomes a **table**: a type plus a descriptor. For each,
 decide what fields it carries, whether records are authored by people or produced by the system,
 and whether it has a processing flow or is born ready.
 
@@ -193,7 +193,7 @@ One row per object to be built:
 - **Disposition** — **`seed`** (design-API configuration, you can build it now) or **`code`**
   (software has to be written: either a platform capability Kipory does not have, or a service of
   your own that Kipory calls).
-- **Notes** — for a `seed` row, the function keys or shape that matter. For a `code` row, what
+- **Notes** — for a `seed` row, the function keys or type that matter. For a `code` row, what
   would have to exist, and why no existing primitive covers it.
 
 Follow the table with:

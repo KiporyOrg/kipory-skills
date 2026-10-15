@@ -8,7 +8,7 @@
 
 ## What it is
 
-A project's whole configuration — its shapes, tables, relations, vocabularies, events, flows,
+A project's whole configuration — its types, tables, relations, vocabularies, events, flows,
 entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
 ownership: a flow's actions sit under the flow, a vocabulary's terms under the vocabulary, a suite's
 cases under the suite. Ids are optional; the platform fills
@@ -16,7 +16,7 @@ them in on export and matches by them on apply. The document you write is the do
 platform hands back.
 
 Read it before authoring anything larger than one row. The row-by-row API has an order — a
-table needs its shape first, a relation its tables, a trigger its flow — and the
+table needs its type first, a relation its tables, a trigger its flow — and the
 Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) page states it. The document exists so that you need not
 know it: state the whole project by key, and the platform resolves the order.
 
@@ -27,11 +27,11 @@ project stands at — the lock an apply presents later. It is the same read as `
 in the same transaction, so it carries the same `ETag`: send it back as `If-None-Match` and an
 unchanged project answers `304`.
 
-- `?section=schema,flows` narrows to those sections, each complete (`section`, singular — the
+- `?section=types,flows` narrows to those sections, each complete (`section`, singular — the
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 6`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 7`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
@@ -69,14 +69,14 @@ the prefix is its namespace, and nothing has to exist before it — a source `<p
 type in a source provider's namespace (`telegram/…`) is written by that provider's source: a plan
 reports it as `derived` and never writes or prunes it, so an export from a project with a source
 applies cleanly to one without, whose own source then seeds it. A row's display text, where it has one, is `label`. A few references
-are ids on the row API and keys in the document — flows, shapes, sources, and a search profile:
+are ids on the row API and keys in the document — flows, types, sources, and a search profile:
 
 | The row API spells           | The document spells   | Meaning                                                   |
 | ---------------------------- | --------------------- | --------------------------------------------------------- |
-| `dataTypeId`                 | `shape`               | a table's shape, by type key                              |
+| `dataTypeId`                 | `type`                | a table's type, by key                                    |
 | `payloadDataTypeId`          | `payload`             | an event type's payload, by type key                      |
 | `propertiesDataTypeId`       | `properties`          | a relation's link properties, by type key                 |
-| `dataTypeId`                 | `shape`               | a config namespace's shape, by type key                   |
+| `dataTypeId`                 | `type`                | a config namespace's type, by key                         |
 | `flowId`                     | `flow`                | a table's, trigger's, schedule's or eval suite's flow     |
 | `sourceId`                   | `source`              | a trigger's source, as `<provider>/<key>`                 |
 | `targetConfig.flow.id`       | `targetConfig.flow`   | an endpoint target's flow, by key                         |
@@ -109,14 +109,14 @@ relation's `properties` follows the same reading on an update: omit it and the r
 type it holds, state `properties: null` and the relation carries none. An export leaves the field
 out when there is none, so it re-applies without touching what a project already holds. A vocabulary
 states no `binding`: a term attaches to the whole record, an export carries no such field, and a
-document that states one breaks the schema on that vocabulary's path. A shape is always stated under
-`schema`, and a table names it by key.
+document that states one breaks the schema on that vocabulary's path. A type is always stated under
+`types`, and a table names it by key with `type`.
 
-Editing a shape and the `uses` of a table shaped by it in the same document is ONE change:
+Editing a type and the `uses` of a table of that type in the same document is ONE change:
 when the table's row states `uses`, its search and link declarations are judged against those uses
-and the new shape together, so removing a field along with the uses that name it plans clean. With
-`uses` left out, the stored declarations are judged against the new shape, and a field they still
-name cannot be removed. Every other table shaped by the same type is judged on its stored
+and the new type together, so removing a field along with the uses that name it plans clean. With
+`uses` left out, the stored declarations are judged against the new type, and a field they still
+name cannot be removed. Every other table of the same type is judged on its stored
 declarations either way. A table's `uses` names each field's use as the table API does — `filter`,
 `key`, `search`, `link`, `stream`. A field reference's `family` is `submission`, `processed` or `system`, and
 `uses.search` carries no `stages`: a `search` use is `{ "kind": "search" }`, reads exactly one field
@@ -134,7 +134,7 @@ through every row's own write, in one transaction, and rolls the transaction bac
 refuses is exactly what an apply would refuse.
 
 ⭐ **A plan judges the state the document leaves, not only the rows it writes.** Every flow the
-document can move — the ones it writes, the ones invoking them, the ones reading a shape or a table
+document can move — the ones it writes, the ones invoking them, the ones reading a type or a table
 it changes — is judged with the rules `GET /v1/flows/{id}/health` runs, once before the writes and
 once after, and so are the schedules, triggers and endpoints that start those flows, by the rules
 their own saves run. A finding the document causes carries `introduced: true`; one already there
@@ -159,14 +159,14 @@ The exception is the owned collections (a flow's `actions`, a suite's `cases`, a
 vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
 and a member the project holds that the collection no longer names is REMOVED, which makes that
 document one that removes something, with the ADMIN floor an apply that removes has.
-A shape or a flow may also carry `adoptSnapshots: true`. Endpoints, and tables through their
+A type or a flow may also carry `adoptSnapshots: true`. Endpoints, and tables through their
 processing flow, FREEZE the types they bind (schedules and triggers freeze nothing), so an edit that
-re-shapes one is refused by the row's own write, naming what it would leave behind, unless you grant
+changes one is refused by the row's own write, naming what it would leave behind, unless you grant
 this. A document does not get to assume it: adopting re-publishes an endpoint's request and response
 contract to whoever already calls that route. It is a statement about this apply, like `delete` —
 never part of the row, never exported.
 
-A shape's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its definition as it
+A type's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its definition as it
 reads after the rename, and `keepExpressions`, the actions whose expressions or templates keep the
 old name as written. Both are statements about this apply, like `adoptSnapshots`: never stored,
 never exported. The plan answers `renames[]`: what moves, the expression candidates to settle, the
@@ -197,7 +197,7 @@ The answer holds the `version` the project was read at — the lock an apply pre
 
 - `changes` — every row you stated, as `create`, `update`, `delete`, `unchanged`, `derived` or
   `skipped`, in your document's order, followed by any row a delete takes along. That is not the
-  order an apply writes them: it writes creates and updates kind by kind (shapes first), then
+  order an apply writes them: it writes creates and updates kind by kind (types first), then
   deletes in reverse. It is complete even when a refusal stopped the attempt early, because it
   comes from comparing your document with the project, not from the attempt. A create's `id` in a
   plan comes from the attempt the plan rolls back, so it is not the id the apply will give the row:
@@ -205,15 +205,15 @@ The answer holds the `version` the project was read at — the lock an apply pre
   carries `expressionParts`: each stated expression's size in parts, beside the 1,000-part limit
   (`JSONATA_EXPRESSION_NEAR_LIMIT` warns from 800).
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
-  (`tables.member.shape`), never a path in some row's request body. Gate on `severity` and
+  (`tables.member.type`), never a path in some row's request body. Gate on `severity` and
   `introduced`: a finding about the state the document leaves carries `introduced` — `false` when
   it was already in the project, which reports it without gating.
 - `consequences` — what the change does to stored data, with counts measured in the planning
   transaction: records re-stamped, a vector reconcile queued, stream fields moved, links
   re-stamped, `links-deleted` — every stored link a relation delete takes along, including a
   relation a table delete removes with it — and `records-invalid` — stored records that do not fit a
-  shape you changed. That last one is found by reach, not by name: change a shape and every table
-  whose shape is it, or reaches it through a reference, has its stored records checked, whether or
+  type you changed. That last one is found by reach, not by name: change a type and every table
+  whose type it is, or reaches it through a reference, has its stored records checked, whether or
   not your document mentions the table. The count is of records that do not fit, not only newly
   broken ones; past 5 000 records of one table it is a floor and says so (`lowerBound: true`). A
   consequence is never a refusal — the platform tells you, and lets you.
@@ -254,11 +254,11 @@ the same way: an edited full export that deletes a table and still names the rel
 pairing it has that relation's change on `relations.<kind>` as the cascade, not as `unchanged` — the
 document says keep it, the delete takes it anyway, and the warning says which won.
 
-Rows are matched by `id` when the project holds a row of that kind with that id. For a shape, a
+Rows are matched by `id` when the project holds a row of that kind with that id. For a type, a
 table, a relation, a vocabulary, an action, an eval suite and an eval case, keeping the `id` under a new key is a
 RENAME — one update of the same row, and everything that named it follows; the row API renames
 exactly the same kinds. A table renamed this way takes its records with it, a relation its
-links and a vocabulary its terms; like a shape's `renameFields`, each needs ADMIN
+links and a vocabulary its terms; like a type's `renameFields`, each needs ADMIN
 (`permissions.mayRename`) and answers `renames[]`. Every
 other key is permanent (a flow, an endpoint: other rows or stored data are linked to
 it by key), so the same move is refused on the row;
@@ -279,7 +279,7 @@ twice — is the only `422` this route answers; a body sent as JSON that is not 
 platform's ordinary `400`. A document that parses but breaks its schema is a `200` plan whose
 diagnostics name every broken path.
 
-A plan's `consequences` include `fields-unset`: fields the document adds to a shape that stored records already use, with the count of records holding no value for one of them, to 5,000 (they read `null` until written). An action's `taskKey` must name a task (`extraction`, `reasoning`, `summarization`, `tiebreak` or `embedding`); any other is refused at the plan, where it used to fail every live run.
+A plan's `consequences` include `fields-unset`: fields the document adds to a type that stored records already use, with the count of records holding no value for one of them, to 5,000 (they read `null` until written). An action's `taskKey` must name a task (`extraction`, `reasoning`, `summarization`, `tiebreak` or `embedding`); any other is refused at the plan, where it used to fail every live run.
 
 ## Apply a document
 
@@ -376,13 +376,13 @@ its ids are ignored and its keys are the content.
 Keep the export you took before a change: applying it again, with the project's CURRENT
 `version`, puts its rows back. A row deleted since returns as a new row with a new id, and a row
 added since stays unless the document says `prune`. Deleting a table does not delete
-the type it took its shape from.
+the type it took its fields from.
 
 ## Make a project equal a document
 
 Absence never deletes, so applying another project's export to this one adds and updates what it
 names and leaves every other row standing. To make the project EQUAL the document, state
-`prune: true` on every map of rows: the four top-level maps (`schema`, `tables`, `relations`,
+`prune: true` on every map of rows: the four top-level maps (`types`, `tables`, `relations`,
 `vocabularies`), the one under `events` (types), the one under `vectors` (profiles), the
 `flows` map, the four under `surfaces` (endpoints, sources, triggers, schedules) and `evals` —
 twelve in all, including the maps the document does not carry, since an absent section then
@@ -413,10 +413,15 @@ key out for an action that states none.
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 6`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
-  convert a `kipory: 2`, `3`, `4` or `5` file you hold with the document upgrade script that comes
-  with `kipory-connect`. Version 6 is the one whose search models name no slot and whose
-  `search` uses carry no `role`; the script makes that change on the way (next item).
+- **A format version other than `kipory: 7`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
+  convert a `kipory: 2`, `3`, `4`, `5` or `6` file you hold with the document upgrade script that
+  comes with `kipory-connect`. Version 7 holds the project's types under `types` and names a table's
+  and a config namespace's type with `type`; version 6 called them `schema` and `shape`. Version 6
+  is also the one whose search models name no slot and whose `search` uses carry no `role`; the
+  script makes both changes on the way (next item).
+- **`schema`, or a table's or config namespace's `shape`, in a version-7 document** —
+  `DOCUMENT_KEY_RENAMED`, one finding per old key at its path. Rename them to `types` and `type`,
+  or convert the file with the upgrade script.
 - **An action's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
   lower-case. Change the two values.
 - **A `file` use, a `derived` field family, or projection `stages`** on a table or as a
@@ -426,7 +431,7 @@ current format refuses. Each is refused on its own path, so the plan names it; t
   it named a sparse slot, `false` where it named none. Remove `role`,
   keeping the table's `search` fields in the order they held, and remove the `collections` map
   whole. The document upgrade script that comes with `kipory-connect` makes these three changes
-  when it converts a file you hold to version 6. It leaves an action whose function the catalog
+  when it converts a file you hold. It leaves an action whose function the catalog
   does not have — one that searched, wrote or read a collection, or made an embedding — as written
   and lists it: rebuild that action as `record.query` with a `semantic` clause or as `term.search`,
   or remove it.
@@ -438,5 +443,5 @@ current format refuses. Each is refused on its own path, so the plan names it; t
 
 - Authoring order (capability pack `authoring-order` — `GET /v1/capability-packs/authoring-order`) — what must exist before what, when you author row by row.
 - Planning protocol (capability pack `planning-protocol` — `GET /v1/capability-packs/planning-protocol`) — the walk from idea to a document.
-- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — the shape a table
+- Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — the type a table
   needs, and what owning one means.

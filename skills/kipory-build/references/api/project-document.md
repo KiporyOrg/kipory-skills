@@ -26,9 +26,9 @@ Public: no credential needed.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kipory` | `6` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
+| `kipory` | `7` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
-| `schema` | `object` | no | Shapes, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
+| `types` | `object` | no | Types, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `tables` | `object` | no | Tables, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `relations` | `object` | no | Relations, with their pairings, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
 | `vocabularies` | `object` | no | Vocabularies, with their terms, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |
@@ -65,7 +65,7 @@ The project's whole configuration as one document addressed by key — flows wit
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `section` | `string` | no | Comma-separated section names to include (`schema,flows`). Omit for the whole document. Each named section is complete. |
+| `section` | `string` | no | Comma-separated section names to include (`types,flows`). Omit for the whole document. Each named section is complete. |
 
 **Response `200`**
 
@@ -88,8 +88,8 @@ Apply a project document: every row it names is created, changed or removed thro
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `string` | yes | The project's structure version you read the document at — `version` from the export. Required. A stale one is refused with 409 and the current document, so two authors cannot silently overwrite each other. |
-| `document` | `unknown` | no | The project document. Validated by the apply itself, so every broken path is reported at once rather than the first one. |
+| `version` | `string` | yes | The project's structure version you read the document at — `version` from the export. Required. A stale one is refused with 409 and the current document. |
+| `document` | `unknown` | no | The project document. Every broken path is reported at once. |
 
 **Response `200`**
 
@@ -100,7 +100,7 @@ Apply a project document: every row it names is created, changed or removed thro
 | `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
-| `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
+| `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same contract `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
 | `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a table that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
@@ -128,7 +128,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -136,10 +136,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `ignoredIds`:
@@ -162,7 +162,7 @@ Each item of `renames`:
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
-| `cost` | `object` | yes | What the rename spends (FR-042). Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
 
 ### `POST /v1/projects/{nodeId}/document/plan`
 
@@ -187,7 +187,7 @@ _No fields._
 | `changes` | `object[]` | yes | Every row the document states, in the document's own order, then any row a delete takes along. Not the order an apply writes them: an apply writes creates and updates kind by kind, then deletes in reverse. Complete whether or not a refusal stopped the attempt early. |
 | `consequences` | `object[]` | yes | What the changes do to stored data, with measured counts. |
 | `diagnostics` | `object[]` | yes | Every finding. `field` is a DOCUMENT path — a refusal a row's own write raised is re-addressed from that write's body onto the document. |
-| `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same shape `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
+| `contracts` | `object` | no | On a plan: the contract each table the document CREATES would have, by the table's key — its field vocabulary, with each field's index type and what it may be used for. The same contract `derived.contract` answers on `PATCH /v1/tables/{id}` with `validateOnly`, for a table that has no row to ask yet. Absent when the document creates no table, and on an apply. |
 | `supportedUses` | `"filter" \| "key" \| "search" \| "link" \| "stream"[]` | no | On a plan, beside `contracts`: the use kinds this deployment has a reader for — what `expand=uses` answers as `supported` on a table that exists. A kind absent here saves but nothing reads it yet, so an editor must not offer it. |
 | `ignoredIds` | `object[]` | yes | Ids the document carried that belong to no row of this project. Each row was matched by its key instead; none is a refusal. |
 | `counts` | `object` | yes | `changes` counted by kind. |
@@ -212,7 +212,7 @@ Each item of `consequences`:
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
 | `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow reading one gets `null` for those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. |
-| `rows` | `integer` | yes | How many stored rows are affected, measured in the planning transaction. |
+| `rows` | `integer` | yes | How many stored rows are affected. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
 
@@ -220,10 +220,10 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Deliberately an open string — a newer server may report a rule this build has never heard of, so treat an unrecognised code as a generic finding of its stated severity rather than as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code` — a rule added tomorrow arrives with a code you do not know and a severity you do. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
-| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field` — a form that falls back to highlighting something has invented a claim. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `ignoredIds`:
@@ -246,4 +246,4 @@ Each item of `renames`:
 | `candidates` | `object[]` | yes | Places in expressions and templates where the old word MAY mean this rename. Free text, so each is settled by name rather than guessed. |
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
-| `cost` | `object` | yes | What the rename spends (FR-042). Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+| `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |

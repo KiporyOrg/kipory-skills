@@ -249,24 +249,24 @@ contract to disagree with the flow it was snapshotted from.
 ## The snapshot, and the one way it goes stale
 
 The bound flow's signature is **snapshotted at save**, authoritatively — there is no field for you
-to supply your own copy. Saving again re-takes it. Each captured output slot is a name, its shape
+to supply your own copy. Saving again re-takes it. Each captured output slot is a name, its type
 and whether it is required, and every one of them is a field of the response: a flow has no output
 that travels beside its result.
 
 **Nothing else re-takes it.** If the flow's signature changes afterwards, the endpoint keeps
-publishing and validating the shape it captured, and the flow's new output is rejected by the
+publishing and validating the signature it captured, and the flow's new output is rejected by the
 endpoint's own contract.
 
-**Two guards, and they are symmetric.** Both edits that could invalidate a captured shape are
+**Two guards, and they are symmetric.** Both edits that could invalidate a captured signature are
 refused by default with a `409` that names the holders, and both take the same opt-in to commit the
 edit and re-snapshot every holder in one transaction:
 
 - Changing a flow's **signature** while anything binds it → `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`.
-- Editing a **shape** the flow's slots reference, where that reaches a bound snapshot →
+- Editing a **type** the flow's slots reference, where that reaches a bound snapshot →
   `TYPE_RESHAPES_BOUND_SNAPSHOTS`.
 
 Re-send with `adoptSnapshots: true` to make the change and update the holders together. ⛔ **Do not
-decompose it into unbind → change → rebind**, which is the shape a reader reaches for when they
+decompose it into unbind → change → rebind**, which is the sequence a reader reaches for when they
 think one side is unguarded: that leaves a live `/v1` route unbound in the middle. Two refusals to
 expect on the opt-in itself: an incomplete adopt, and a SYSTEM flow whose holders live in other
 projects, which cannot be adopted at all.

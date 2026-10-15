@@ -30,7 +30,7 @@ The **geometry** — how many dimensions, and which distance metric — is **der
 and returned read-only.
 
 A profile is also **the default way records enter the space**: `defaultChunking` (required on
-create). Chunking has exactly two shapes: `{ "kind": "whole" }` is one point per record, and
+create). Chunking has exactly two forms: `{ "kind": "whole" }` is one point per record, and
 `{ "kind": "chunks", "tokens": 400, "overlap": 50 }` splits each record's text into token-sized
 pieces, each repeating `overlap` tokens of the one before (`overlap` must be below `tokens`). Any
 other `kind` is refused. Every table that marks a field `search` against this profile
