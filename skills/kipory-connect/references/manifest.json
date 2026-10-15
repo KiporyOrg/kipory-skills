@@ -86,7 +86,7 @@
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
-      "hash": "9286a6359cb4",
+      "hash": "105e748b7b05",
       "page": "kipory-model/references/packs/vocabularies.md"
     }
   },
@@ -1292,7 +1292,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "GET /v1/vocabularies/{id}": {
-      "hash": "75b02940d42b",
+      "hash": "69c91b67ea60",
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PATCH /v1/actions/{id}": {
@@ -1398,7 +1398,7 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "PATCH /v1/vocabularies/{id}": {
-      "hash": "f278601f0f39",
+      "hash": "73dedeeed0d0",
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/actions/": {
@@ -1662,7 +1662,7 @@
       "page": "kipory-model/references/api/types.md"
     },
     "POST /v1/vocabularies/": {
-      "hash": "d6b535bb9174",
+      "hash": "448005da5d45",
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/vocabularies/{id}/terms": {

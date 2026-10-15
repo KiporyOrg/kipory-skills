@@ -361,8 +361,9 @@ contributes nothing, exactly as it would contribute nothing to a run.
 ⚠️ **Two flags on an `extracted` row are about drift between a node and its type.** `drift` is a
 sentence, set when the node's stored `vocabularyFields` no longer matches the `$vocabularyKey`
 markers on its response type — the same sentence the save-time warning carries. `declaredOnly` marks
-a row that exists only because the TYPE marks the vocabulary while the node has not captured it yet:
-nothing reaches the vocabulary from that row until the node is re-derived from its type.
+a row that exists only because the TYPE marks the vocabulary while the node's `vocabularyFields` does
+not name it: nothing reaches the vocabulary from that row until you add the pair to the action's
+`functionConfig` yourself — nothing derives it from the type.
 
 ⛔ **An empty list is weaker than "nothing fills it".** The scan reads configuration, and a
 `vocabulary.resolve` action can pick a vocabulary up from a slot it discovers at run time without

@@ -1,7 +1,11 @@
 {
-  "source": "bc00124784faf6110b4b6a673e8707c16693552d",
+  "source": "1300cb66a245ed1b3a5d170c866ec40cfca142ec",
   "since": "2026-08-13",
   "history": [
+    {"sha":"1300cb66a245","skills":"deriveVocabularyFields is gone: it had no caller, and no comment, doc or customer text promises a re-derive from the type any more (#3479)"},
+    {"sha":"63fc74ed16c1"},
+    {"sha":"58b7ae424546"},
+    {"sha":"d498012cb913"},
     {"sha":"bc00124784fa","skills":"The platform review's performance findings are fixed: requests load only the flow they run, the worker pool fits its jobs, every statement has a time limit, and sweeps and retention keep up (#3475)"},
     {"sha":"b3997e87979d"},
     {"sha":"5b9ce76610a7","skills":"The platform review's subsystems findings are fixed: deleted means gone for files and AI-call text, uploads and file reads have limits, mail outages page staff, and channel media, re-watches, pushes and relation links behave (#3474)"},
@@ -997,10 +1001,6 @@
     {"sha":"e740014a5f18"},
     {"sha":"36fb7090c4e8"},
     {"sha":"e17c65d38493"},
-    {"sha":"fdb5a2cbb9f4"},
-    {"sha":"8a1bd6c16ab7"},
-    {"sha":"a32031c511e4","skills":"The turn-zero pack sent every customer key at a staff-only route (#2460)"},
-    {"sha":"8131e9bc02b1"},
-    {"sha":"2eb363229af1"}
+    {"sha":"fdb5a2cbb9f4"}
   ]
 }

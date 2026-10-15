@@ -2,6 +2,15 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261015.712 — 2026-10-15
+
+Synced from the Kipory monorepo at `1300cb66a`.
+
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+
 ## 1.20261014.223658 — 2026-10-14
 
 Synced from the Kipory monorepo at `bc0012478`.
