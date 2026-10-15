@@ -61,7 +61,9 @@ Each item of `models`:
 | `supportsFunctionCalling` | `boolean` | yes | Supports provider-side tool/function calling. |
 | `supportsTemperature` | `boolean` | yes | The model accepts a `temperature`. FALSE means the platform REMOVES any temperature set on an action before the call — the model is not asked for one and no error is raised. |
 | `canReason` | `boolean` | yes | The model can spend hidden reasoning tokens before it answers. The `reasoning` task may only bind to a model where this is true. |
-| `reasoningEfforts` | `string[]` | yes | The effort levels the vendor accepts for that reasoning, in the vendor's own words (`low`, `medium`, `high`, …). Empty when the model has no dial, including models that reason at a fixed depth. |
+| `reasoningEfforts` | `string[]` | yes | The effort levels the vendor accepts for that reasoning, in the vendor's own words (`low`, `medium`, `high`, …). `none` is listed when reasoning can be switched off, and only then may an action ask for `none`. Empty when the model has no dial, including models that reason at a fixed depth. |
+| `reasoningEffortHonoured` | `boolean` | yes | A `reasoningEffort` set on an action or a task binding is SENT to this model. FALSE means a level is not sent and the model runs at `defaultReasoningEffort` whatever is set, and `none` is refused — choose another model if the effort matters. |
+| `defaultReasoningEffort` | `string \| null` | yes | What the model runs at when NO effort is sent — an action and its binding that leave `reasoningEffort` out get this, and its reasoning is billed as output tokens. In the vendor's words; `none` for a model that does not reason unless asked. `null` when the platform does not know it. |
 | `embeddingDimensions` | `integer \| null` | yes | Output dimension count. Non-null exactly on embedding models. |
 | `embeddingDistance` | `"Cosine" \| "Dot" \| "Euclid" \| null` | yes | Distance metric the embedding space was trained for. An embedding profile derives its collection geometry from this and `embeddingDimensions`, so null means the row is not yet complete enough to bind a profile to. |
 | `status` | `string` | yes | `active`, or `deprecated` when the vendor has announced a retirement. A model this deployment has decided to stop serving is absent from the catalog rather than labelled here. |
@@ -460,7 +462,7 @@ Bind a task kind to a model at this node; every project beneath it follows unles
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `modelId` | `string` | yes | A `modelId` from `GET /v1/ai-models`. It must be enabled, and its capability class must suit the task — an embedding model cannot serve `extraction`, and the `reasoning` task additionally requires a model whose `canReason` is true. |
-| `reasoningEffort` | `"low" \| "medium" \| "high" \| null` | no | How much hidden reasoning the model may spend before answering, or null for the platform's own default for this task. ⚠️ Only OpenAI reasoning models read it; other vendors ignore it. It rides on this binding and inherits with it, so a node that sets a model sets the effort that goes with it. |
+| `reasoningEffort` | `"none" \| "low" \| "medium" \| "high" \| null` | no | How much hidden reasoning the model may spend before answering, or null for the platform's own default for this task. Sent where the model takes it (`reasoningEffortHonoured` on `GET /v1/ai-models`); `none` only on a model that lists it. It rides on this binding and inherits with it, so a node that sets a model sets the effort that goes with it. |
 
 **Response `200`**
 

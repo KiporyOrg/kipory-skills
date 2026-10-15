@@ -330,6 +330,14 @@ aggregate's mean and sample size. `GET /v1/eval-runs/{id}/spend` breaks the cost
 subject and scorer actions alike, with `uncharged` counting the operations the platform paid for. It
 can read higher than `credits`: a case the run's deadline cut is charged there and not scored here.
 
+⚠️ **What a run's cases STARTED is not in its `credits`.** A suite that applies its writes runs
+whatever the flow queues — the records it hands to processing, and the runs those start in turn
+(a case's events fire no trigger, and it starts no one per person) — and each of those is a run of
+its own, charged as such. `startedRuns` on `GET /v1/eval-runs/{id}` (and on a `wait: true` answer,
+and on `/spend`) counts them: `runs`, `credits`, and the dearest fifty in `byRun`. They can cost
+many times the suite's own figure. A queued record is counted once a worker has claimed it, so read
+`/spend` again after the queue drains; set `applyWrites: false` to start nothing.
+
 ⚠️ **A case's `latencyMs` is `null` when no duration was recorded** — a case the run never started,
 or a run from before per-case outcomes were stored. A `0` is a measured zero.
 

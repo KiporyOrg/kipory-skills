@@ -1,7 +1,9 @@
 {
-  "source": "2fe107d3bbce5691a4cccd0943268f116c0ad820",
+  "source": "0ff8c6c9bb9df082f88a64c3d9bc74fd0241f1fc",
   "since": "2026-08-13",
   "history": [
+    {"sha":"0ff8c6c9bb9d","skills":"A project can see where its credits go — reasoning tokens, efforts honoured on Claude, the runs a run started, what a stopped call costs — and is told when a model or price it pays moves (#3488)"},
+    {"sha":"5f0c309296c6"},
     {"sha":"2fe107d3bbce","skills":"Platform review wave 2: billing correctness and run delivery guarantees (#3498)"},
     {"sha":"9cd53bd3965f"},
     {"sha":"f3831095ddf8"},
@@ -999,8 +1001,6 @@
     {"sha":"626d1550b25b"},
     {"sha":"d2405fbbff7b"},
     {"sha":"cdee2b3321e7","skills":"Turn zero was the one node in the skill graph with no edge out (#2481)"},
-    {"sha":"305f26898b76"},
-    {"sha":"4b06eba684cf"},
-    {"sha":"a404344325b6"}
+    {"sha":"305f26898b76"}
   ]
 }

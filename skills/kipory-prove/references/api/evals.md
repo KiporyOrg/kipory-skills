@@ -306,6 +306,7 @@ One eval run in full — its status, trigger, provenance, per-case results with 
 | `results` | `object[]` | yes | What happened to each case. |
 | `aggregates` | `object` | yes | This run's own numbers, pooled and per label. Always present. |
 | `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when nothing was compared — the run's `regression.reason` says whether there was no previous run (`no-baseline`) or it could not be read (`baseline-unreadable`). |
+| `startedRuns` | `object` | yes | The runs this eval run's cases STARTED — with `applyWrites: true`, the records the subject flow queued, and the runs those records started in turn — and what they cost. NOT part of `run.credits`, which is what the cases themselves were charged, and can be many times it. ⚠️ A queued record counts once a worker has claimed it: a `wait: true` answer is read before the queue drains, so read `GET /v1/eval-runs/{id}/spend` again afterwards. |
 
 Each item of `results`:
 
@@ -326,7 +327,7 @@ Each item of `results`:
 
 ### `GET /v1/eval-runs/{id}/spend`
 
-What one eval run cost, and which action spent it: one entry per action of the subject flow and of each scorer flow, summed over every case and repeat. Empty for a run that spent nothing, and for one that ran before eval spend was attributed to its run. The run itself is `GET /v1/eval-runs/{id}`; a project's spend over a window is `GET /v1/projects/{nodeId}/usage`.
+What one eval run cost, and which action spent it: one entry per action of the subject flow and of each scorer flow, summed over every case and repeat. Empty for a run that spent nothing, and for one that ran before eval spend was attributed to its run. `startedRuns` lists the runs its cases started (a suite with `applyWrites: true`) — records queued for processing, trigger fires, per-person starts, and the runs those started — and what they cost, which is not in `credits`. The run itself is `GET /v1/eval-runs/{id}`; a project's spend over a window is `GET /v1/projects/{nodeId}/usage`.
 
 **Path parameters**
 
@@ -343,6 +344,7 @@ What one eval run cost, and which action spent it: one entry per action of the s
 | `events` | `integer` | yes | Billable operations across the whole eval run. |
 | `uncharged` | `integer` | yes | How many of the eval run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. |
 | `byAction` | `object[]` | yes | One entry per action, across every case and repeat, the subject flow's actions and the scorer flows' alike; descending by charge. Each entry's `charges` says what the action was charged for, by kind, with the milliseconds or tokens billed. ⚠️ EMPTY has more than one cause: the run spent nothing, or it ran before eval spend was attributed to its run (2026-10-02) and its charges cannot be found. |
+| `startedRuns` | `object` | yes | The runs the eval run's cases STARTED — with `applyWrites: true`, the records the subject flow queued for processing, and the runs those records started in turn — and what they cost. A case's events fire no trigger and start no one per person. NOT part of `credits`: they are charged as runs of their own, to whoever the queued job named. ⚠️ A queued record counts once a worker has claimed it; read again after the queue drains. |
 
 Each item of `byAction`:
 
@@ -353,7 +355,7 @@ Each item of `byAction`:
 | `credits` | `integer` | yes | What the customer was charged for this action, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the action being absent from this list. A cache hit is not a `0`: an action answered from a function's input-keyed cache still pays its compute fee for the time the lookup took, and an action answered from the action-result cache makes no charge at all. |
 | `events` | `integer` | yes | How many billable operations made up that charge. |
 | `uncharged` | `integer` | yes | How many of this action's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of an action that failed on a platform fault (`detail.phase: "platform-fault"` in the timeline), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same action in a charged run has a price. |
-| `charges` | `object[]` | yes | What the action was charged FOR: the same charge by kind, descending by credits. Its entries sum to this action's `credits` and `events`. A model action reads as one `function-run` entry (milliseconds of compute) beside an `llm-call` entry per direction (tokens). |
+| `charges` | `object[]` | yes | What the action was charged FOR: the same charge by kind, descending by credits. Its entries sum to this action's `credits` and `events`. A model action reads as one `function-run` entry (milliseconds of compute) beside an `llm-call` entry per direction (tokens): tokens in are the `in`, `cached` and `cache-write` entries, tokens out the `out` entry, and its `reasoningUnits` the part of them that was reasoning. |
 
 ### `GET /v1/eval-runs/{id}/traces/{traceId}`
 
@@ -747,6 +749,7 @@ Run an eval suite: every enabled case (or `caseKeys`) through the suite's flow, 
 | `results` | `object[]` | yes | What happened to each case. |
 | `aggregates` | `object` | yes | This run's own numbers, pooled and per label. Always present. |
 | `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when nothing was compared — the run's `regression.reason` says whether there was no previous run (`no-baseline`) or it could not be read (`baseline-unreadable`). |
+| `startedRuns` | `object` | yes | The runs this eval run's cases STARTED — with `applyWrites: true`, the records the subject flow queued, and the runs those records started in turn — and what they cost. NOT part of `run.credits`, which is what the cases themselves were charged, and can be many times it. ⚠️ A queued record counts once a worker has claimed it: a `wait: true` answer is read before the queue drains, so read `GET /v1/eval-runs/{id}/spend` again afterwards. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

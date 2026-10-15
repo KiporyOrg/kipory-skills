@@ -22,7 +22,7 @@ Returns text, or a structured value when the action declares an output shape. Wi
 | --- | --- | --- | --- | --- |
 | `modelSlot` | string | no | — | A slot naming the model to use; empty uses this action's model. ⚠️ An unknown or disabled model fails the run; nothing falls back to this action's model. |
 | `outputs` | object[] | no | — | One extra slot for the vocabulary values when `vocabularyFields` is set. |
-| `reasoningEffort` | `low` \| `medium` \| `high` | no | — | How hard the model thinks first; costs time and tokens. ⚠️ Higher settings cost the most time and tokens on reasoning models. |
+| `reasoningEffort` | `none` \| `low` \| `medium` \| `high` | no | — | How hard the model thinks first; `none` where it allows. ⚠️ Reasoning is billed as output; left out, the model runs at its own default effort. |
 | `temperature` | number, 0 to 2 | no | — | How much the answer may vary; empty uses the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
 | `vocabularyFields` | object[] | no | — | Which answer fields hold vocabulary values to resolve into terms. |
 

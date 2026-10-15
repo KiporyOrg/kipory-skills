@@ -77,7 +77,7 @@ Each of these is explained in [references/when-a-run-fails.md](references/when-a
 **Being told**
 
 - A failed run cannot report itself.
-- Nine `platform` event types, and they are the platform's.
+- Ten `platform` event types, and they are the platform's.
 - The failure trigger is an ordinary trigger on one of those `platform` events, bound to an ordinary flow
 - Listen to `run.failures` as well.
 - Nothing is recorded for an attempt about to run again, a cancelled run, a preview or a synchronous call

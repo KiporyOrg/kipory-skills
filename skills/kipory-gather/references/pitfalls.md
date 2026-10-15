@@ -114,8 +114,8 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
   or updates it — a `key` use on the link does not make a re-poll update the item, it makes a
   changed item fail the run. `references/sources.md` (Reading an RSS or Atom feed) has the actions.
 - **A vendor bills you even though the platform queued the call.** Apify actor runs are billed and
-  queued by Apify. The platform's own per-invocation compute fee is charged on top, and bringing
-  your own key removes the vendor pass-through but not that fee.
+  queued by Apify. The action's own compute time is charged on top, and bringing
+  your own key removes the vendor pass-through but not that charge.
 - **Falling through to the platform's key is silent and it succeeds.** When no node in the chain
   holds a credential for the vendor, the call runs on the platform's key at the platform's price.
   You do not get an error; you get a charge. `kipory-secrets` explains the resolution order.
@@ -125,7 +125,10 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
   `headers` cannot set User-Agent.
 - **An action that stops waiting does not stop the vendor.** When an action's wait runs out, the call
   goes on, is charged when it finishes, and its answer is saved: the failure says so, and the same
-  request asked again is charged compute only.
+  request asked again is charged compute only. The same holds when the RUN is stopped mid-call — its
+  deadline passed, or the caller of a stream left: a call that had started is charged and its answer
+  saved; one still queued is dropped and charged nothing; one between tries keeps the charge for
+  the try that ran, and its next try is dropped. The action's failure says which.
 - **`web.search` charges by the page of results, and a page holds about ten.** `maxResults` (up to 50) is how many results you want, and a search reads pages until it has them
   or is within a few of them, each page charged at the `apify/web-search` row of the price list.
   A page often holds seven to nine, so 20 results is two pages or three; a search reads at most

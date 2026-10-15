@@ -41,6 +41,10 @@ So an action that cost 46 reads as 10 for one second of compute (`units: 1000`) 
 - **The list is the platform's price on the platform's key.** A vendor key the project stores moves that bill to the vendor and the action makes no `vendor-fetch` charge (`kipory-secrets`). A cached answer makes none either (below).
 - **A keyed request makes no vendor charge.** A `url.fetch`, `url.fetch-as-file` or `url.send` action is charged its compute like any action; the service it calls bills the holder of the key the action names. The delivery of a `url.send` request after the run, and its retries, are not charged.
 
+### When a price or a model changes under the project
+
+A task binding above the project (the platform's or the organization's) can move the task to another model, and a price can change either way. Each change that reaches work the project paid for in the last seven days records one `platform/price.changed` event — with the old and new price of each kind of work and the day's credits before and after at last week's use — and raises a "Prices changed" alert on the project (`kipory-operate`'s `references/when-a-run-fails.md` lists the event types; the triggers pack has the event's fields). A trigger on it can mail you. To keep a model whatever the platform's binding does, bind the task on the project: `PUT /v1/nodes/{nodeId}/task-models/{task}`.
+
 ### A cache hit
 
 A run that repeats an input can cost far less than the first. Two caches answer an action, they cost differently, and not every kind of run reads both:

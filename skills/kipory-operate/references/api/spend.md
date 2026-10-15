@@ -361,7 +361,7 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. `function-run` is compute TIME, not a fee per action: each action is charged the milliseconds its function ran (for a model or vendor action, its job — waiting on the answer included), priced per second; the wait for a worker is not charged. So the same flow costs more when its actions take longer. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
@@ -505,7 +505,7 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. `function-run` is compute TIME, not a fee per action: each action is charged the milliseconds its function ran (for a model or vendor action, its job — waiting on the answer included), priced per second; the wait for a worker is not charged. So the same flow costs more when its actions take longer. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
@@ -624,7 +624,7 @@ _No fields._
 
 ### `GET /v1/runs/{runId}/spend`
 
-What one run cost, and which action spent it. `0` for a run that spent nothing; `uncharged` counts the operations the platform paid for, whose `0` is not a price. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
+What one run cost, and which action spent it. `0` for a run that spent nothing; `uncharged` counts the operations the platform paid for, whose `0` is not a price. `startedRuns` is what the runs it started cost — the records it queued for processing, the runs its events fired through triggers, the runs it started per person, and the runs those started in turn — which is not in `credits`. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
 
 **Path parameters**
 
@@ -642,6 +642,7 @@ What one run cost, and which action spent it. `0` for a run that spent nothing; 
 | `uncharged` | `integer` | yes | How many of the run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. ⚠️ When this equals `events` the whole run was platform-paid, and `credits: 0` is not what the same work costs when it is charged. A record's first processing and its reprocess are both charged; a run the platform started for its own purposes is not. |
 | `byAction` | `object[]` | yes | Descending by charge, so the expensive action is first. Each entry's `charges` says what the action was charged for, by kind — `function-run` with the milliseconds of compute billed, `llm-call` per direction with its tokens. ⚠️ EMPTY is a real answer with more than one cause and this route cannot tell them apart: a run of pure transforms spent nothing, a run that failed before its first billable op spent nothing, and a run that predates per-run attribution has spend that cannot be found. A caller must not draw any of the three as `0 credits` without saying which it cannot rule out. |
 | `repeatedByPlatform` | `object` | yes | The part of this run's cost that came from the platform starting it again after one of its own failures (a worker that stopped, no worker free in time). An action's compute is charged once per run however often it is repeated, so this is model and vendor calls really made again, plus actions the first attempt never reached. Included in `credits` and `byAction`, not added to them. `{ credits: 0, lines: 0 }` on a run never started again. |
+| `startedRuns` | `object` | yes | The runs this run STARTED, and what they cost beside its own spend. ⚠️ A record's run counts here once a worker has claimed it: one still queued when this is read is not yet listed, so read again after the queue drains. Runs started before 2026-10-15 name no starter and are never found. |
 
 Each item of `byAction`:
 
@@ -652,4 +653,4 @@ Each item of `byAction`:
 | `credits` | `integer` | yes | What the customer was charged for this action, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the action being absent from this list. A cache hit is not a `0`: an action answered from a function's input-keyed cache still pays its compute fee for the time the lookup took, and an action answered from the action-result cache makes no charge at all. |
 | `events` | `integer` | yes | How many billable operations made up that charge. |
 | `uncharged` | `integer` | yes | How many of this action's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of an action that failed on a platform fault (`detail.phase: "platform-fault"` in the timeline), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same action in a charged run has a price. |
-| `charges` | `object[]` | yes | What the action was charged FOR: the same charge by kind, descending by credits. Its entries sum to this action's `credits` and `events`. A model action reads as one `function-run` entry (milliseconds of compute) beside an `llm-call` entry per direction (tokens). |
+| `charges` | `object[]` | yes | What the action was charged FOR: the same charge by kind, descending by credits. Its entries sum to this action's `credits` and `events`. A model action reads as one `function-run` entry (milliseconds of compute) beside an `llm-call` entry per direction (tokens): tokens in are the `in`, `cached` and `cache-write` entries, tokens out the `out` entry, and its `reasoningUnits` the part of them that was reasoning. |

@@ -254,7 +254,7 @@ Each logged `event` names its project `project`, the node id every `?project=` t
 
 ## Being told when a run fails: a trigger on a platform event
 
-Every project has the event category `platform`, with nine types the platform records itself.
+Every project has the event category `platform`, with ten types the platform records itself.
 You cannot add to it, change it or emit into it; `GET /v1/event-types` lists them, and a project
 document neither creates nor prunes them. **A failure trigger is an ordinary trigger on one of
 them, bound to an ordinary flow** — one that posts to your chat, opens a ticket, writes a record.
@@ -270,6 +270,7 @@ them, bound to an ordinary flow** — one that posts to your chat, opens a ticke
 | `health.pause-warned` | A failing schedule or trigger will be paused in 24 hours                      | `PlatformHealthChange` |
 | `health.paused`       | It was paused                                                                 | `PlatformHealthChange` |
 | `mail.failed`         | A message a run sent was refused, failed for good, or was returned            | `PlatformMailFailed`   |
+| `price.changed`       | A model the project follows moved, or a price it paid this week changed       | `PlatformPriceChanged` |
 
 An unattended run is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, or
 a record's processing. Its **subject** is what it ran for — `{ kind, key }` with `kind` one of
@@ -302,6 +303,27 @@ repeated and a message the relay accepted record nothing; read those from
 changes nothing about the run that sent the message, and a message sent by a flow that a platform
 event started records no event when it fails — read that one from its record.
 
+**What `price.changed` carries.** One event per change that reaches the project's bill: a task
+binding above the project moved to another model (`cause: "model-moved"`, with `tasks`,
+`modelBefore`, `modelAfter`), a price of work the project paid for in the seven days before the
+change changed (`cause: "price-changed"`), or a price change it was told of was withdrawn before it
+started (`cause: "price-change-withdrawn"`, the figures it was given turned round — so a
+"before" can be `null` there, where the change it undoes left work with no price). `lines` lists
+each kind of work — `provider`, `operation`, `modelId` on a model's line, the `unit` (`token`,
+`millisecond`, `minute`, `call`, `item`, `byte-hour`, or `unit` for work the price list does not
+name) — with `creditsPerUnitBefore` and `creditsPerUnitAfter`, the `unitsPerDay` the project used,
+and the day's credits before and after: what that use was priced at, before each charge was
+rounded, and the same use at the new price. `creditsPerDayBefore`, `creditsPerDayAfter` and
+`creditsPerDayDifference` add them up over `basisDays` (7); `message` says it in a sentence, and
+`pricesPath` is the project's model price list. A project with its own binding for every moved
+task is not moved and not told; one that did not use the old model or price that week is not told
+either. A model move counts all of the project's use of the old model — also what a task bound on
+the project or an action naming the model sends, which does not move — and prices it at the same
+token counts: another model may count the same text in more tokens, or reason more, so read the
+next days' spend before trusting the figure. To keep a model,
+bind the task on the project (`PUT /v1/nodes/{nodeId}/task-models/{task}`). The project's alert
+list shows the same change as "Prices changed".
+
 **Nothing is recorded** for an attempt the platform is about to start again, for a run a person
 cancelled, for a preview, or for a synchronous call — whose caller already has the answer.
 
@@ -322,8 +344,8 @@ runs in a slot of its own, so a project whose runs fill its concurrency cap can 
 event of that type for a subject the project has. Its `data` is an example with `test: true`;
 every enabled trigger on the type fires as on a real one, and the flows they start are ordinary,
 charged runs. Recording it costs nothing, moves no health and lists no failed run. The answer
-says how many triggers listen — zero means nothing ran. For `mail.failed` the `subject` is still
-required and is not used: any subject of a valid kind is accepted.
+says how many triggers listen — zero means nothing ran. For `mail.failed` and `price.changed` the
+`subject` is still required and is not used: any subject of a valid kind is accepted.
 
 ### Asking instead of being told
 

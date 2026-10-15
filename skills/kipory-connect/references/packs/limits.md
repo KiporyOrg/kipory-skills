@@ -268,6 +268,22 @@ person, on the project's bill.
 What each push did, per device, is `GET /v1/pushes?project={nodeId}`, kept 30 days. A started run
 whose person has left the project by the time it runs ends `NOT_A_MEMBER` and is not charged.
 
+### Compute is charged by the millisecond, not by the action
+
+There is no flat charge per action. A `function-run` charge is the time the action's function ran,
+measured in milliseconds and priced per second (`units` on `GET /v1/runs/{runId}/spend` is
+milliseconds billed). So the same action costs more when its work takes longer:
+
+- **What counts:** the time the function ran — for a model or vendor action, the time its job ran,
+  waiting on the model's or vendor's answer included.
+- **What does not:** the wait for a free worker, for a rate-limit allowance and between tries; an
+  action that only routes or runs other actions (`flow.invoke`, `flow.fan-out`, `flow.loop`, …);
+  an action that failed on a platform fault.
+- **What it means for a quote:** price a flow by measured `units`, never by its action count, and
+  measure on the deployment you will run on. The rate is read off any charge of a second or more:
+  `credits ÷ units × 1000` is credits per second. `kipory-operate`'s `references/spend.md` is the
+  whole statement.
+
 ### Every limit of your project, in one read
 
 `GET /v1/projects/{nodeId}/limits` answers every limit the project meets: `applied` is the number

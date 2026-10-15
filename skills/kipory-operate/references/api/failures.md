@@ -57,15 +57,15 @@ Each item of `runs`:
 
 ### `POST /v1/platform-events/test`
 
-Record one of the platform's own events by hand, to see your failure trigger run before anything fails. `type` is a type of the `platform` category (`run.failed`, `health.paused`, …) and `subject` names a schedule, trigger, table or endpoint of the project by its key. The event's data is an example of that type with `test: true`; every enabled trigger on the type fires as on a real one, and the flows they start are ordinary, charged runs. Recording the event costs nothing, changes no health and lists no failed run. Answers how many triggers listen: zero means nothing ran. Refused (422) for a type the platform does not have or a subject the project does not have; for `mail.failed` the body still requires `subject`, and it is not looked up.
+Record one of the platform's own events by hand, to see your failure trigger run before anything fails. `type` is a type of the `platform` category (`run.failed`, `health.paused`, …) and `subject` names a schedule, trigger, table or endpoint of the project by its key. The event's data is an example of that type with `test: true`; every enabled trigger on the type fires as on a real one, and the flows they start are ordinary, charged runs. Recording the event costs nothing, changes no health and lists no failed run. Answers how many triggers listen: zero means nothing ran. Refused (422) for a type the platform does not have or a subject the project does not have; for `mail.failed` and `price.changed` the body still requires `subject`, and it is not looked up.
 
 **Request body**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to record the event in. Required. |
-| `type` | `string` | yes | The event type inside the `platform` category, as `GET /v1/event-types` lists it: `run.failed`, `run.failures`, `run.partial`, `health.failing`, `health.recovered`, `health.quiet`, `health.pause-warned`, `health.paused` or `mail.failed`. |
-| `subject` | `object` | yes | The schedule, trigger, table or endpoint the event names. It must exist in the project. `mail.failed` is about a message and does not use it: it is still required, and any subject of a valid kind is accepted. |
+| `type` | `string` | yes | The event type inside the `platform` category, as `GET /v1/event-types` lists it: `run.failed`, `run.failures`, `run.partial`, `health.failing`, `health.recovered`, `health.quiet`, `health.pause-warned`, `health.paused`, `mail.failed` or `price.changed`. |
+| `subject` | `object` | yes | The schedule, trigger, table or endpoint the event names. It must exist in the project. `mail.failed` (about a message) and `price.changed` (about the project's prices) do not use it: it is still required, and any subject of a valid kind is accepted. |
 
 **Response `200`**
 
