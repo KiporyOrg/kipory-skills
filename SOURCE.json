@@ -1,7 +1,11 @@
 {
-  "source": "c1eb3e3245719863ba0da7838d533e17a95819f7",
+  "source": "2fe107d3bbce5691a4cccd0943268f116c0ad820",
   "since": "2026-08-13",
   "history": [
+    {"sha":"2fe107d3bbce","skills":"Platform review wave 2: billing correctness and run delivery guarantees (#3498)"},
+    {"sha":"9cd53bd3965f"},
+    {"sha":"f3831095ddf8"},
+    {"sha":"af6df2ef8144"},
     {"sha":"c1eb3e324571","skills":"Run pages after the #3484 review: ↑/↓ move between actions, stopped and partial runs, failed inputs follow recording, a recording toggle in History, a fast waterfall (#3493)"},
     {"sha":"205b24d5df18"},
     {"sha":"cc5397fee59c","skills":"Queuing a record queues it, the runs list finds sub-flow and eval runs, and a timeline row names the fan-out item it ran for (#3489)"},
@@ -997,10 +1001,6 @@
     {"sha":"cdee2b3321e7","skills":"Turn zero was the one node in the skill graph with no edge out (#2481)"},
     {"sha":"305f26898b76"},
     {"sha":"4b06eba684cf"},
-    {"sha":"a404344325b6"},
-    {"sha":"9710a37d4df2"},
-    {"sha":"8b5632f2fded","skills":"The traces were written, indexed and project-scoped, and had no door (#2476)"},
-    {"sha":"9a1373e5f06c"},
-    {"sha":"ffdb09d30b7e"}
+    {"sha":"a404344325b6"}
   ]
 }

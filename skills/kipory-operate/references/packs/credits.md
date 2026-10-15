@@ -27,7 +27,7 @@ wrong precisely when a customer most needs it to be right.
   far the payer may dip below zero before requests are refused: `softCapCredits` is headroom below
   zero, so a NEGATIVE `creditsRemaining` beside `status: "active"` is ordinary — the payer is
   spending the headroom. Requests are refused with `402 BALANCE_BELOW_SOFT_CAP` (`status` reads
-  `over-soft-cap`) only once the balance passes that floor. ⚠️ `status` has a third value,
+  `over-soft-cap`) once the balance reaches that floor — at zero for a wallet with no headroom. ⚠️ `status` has a third value,
   `suspended`: the account is stopped for a reason other than balance. It is refused with the same
   code — the `reason` inside `details` reads `payer_suspended` instead of `balance_below_soft_cap` — and
   added credit does not reopen it: only the deployment's operator lifts it.

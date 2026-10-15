@@ -10,7 +10,7 @@
       "page": "kipory-build/references/packs/authoring-order.md"
     },
     "credits": {
-      "hash": "ff2f90c466a5",
+      "hash": "4d31f3851071",
       "page": "kipory-operate/references/packs/credits.md"
     },
     "embedding-profiles": {
@@ -787,7 +787,7 @@
       "page": "kipory-connect/references/api/platform-reads.md"
     },
     "GET /v1/credits/balance": {
-      "hash": "ac2a34e8d919",
+      "hash": "39ba04011307",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/credits/events": {
@@ -1144,7 +1144,7 @@
       "page": "kipory-data/references/api/records.md"
     },
     "GET /v1/rejected-requests/": {
-      "hash": "707f7fc62b5b",
+      "hash": "9f903368046d",
       "page": "kipory-diagnose/references/api/rejected-requests.md"
     },
     "GET /v1/relation-pairings/": {
@@ -1715,7 +1715,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "747b502cb385",
+      "hash": "7b8338ef9a55",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }
