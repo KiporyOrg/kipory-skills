@@ -44,7 +44,7 @@ A plain GET for a JSON or text endpoint. For a web page, use `url.scrape` instea
 
 #### A JSON API
 
-Typical JSON endpoint — body returned as raw UTF-8 text (no parsing).
+Typical JSON endpoint — body returned as raw text (no parsing).
 
 Reads `string` → emits `string` · 1 in → 1 out
 

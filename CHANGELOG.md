@@ -2,6 +2,15 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261015.115218 — 2026-10-15
+
+Synced from the Kipory monorepo at `bbab8a133`.
+
+- changed: `skills/kipory-build/references/functions/file.read-text.md`
+- changed: `skills/kipory-build/references/functions/url.fetch.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261015.103000 — 2026-10-15
 
 Synced from the Kipory monorepo at `e6b0bcfd9`.

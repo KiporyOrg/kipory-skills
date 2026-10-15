@@ -1,7 +1,8 @@
 {
-  "source": "e6b0bcfd9f1e67d0e37f7313b626588a2884e172",
+  "source": "bbab8a133489c93ead1fbc111829c5fc3035725b",
   "since": "2026-08-13",
   "history": [
+    {"sha":"bbab8a133489","skills":"A fetched page is decoded by the character set it declares, so a windows-1255 feed reads as Hebrew instead of mojibake (F-132) (#3491)"},
     {"sha":"e6b0bcfd9f1e","skills":"Docs catch-up, and the four docs rulings built: refusal-code page (395), spec status words (396), `types` in the document (397), builder-facing API notes (398) (#3477)"},
     {"sha":"ea78b63a39b6"},
     {"sha":"53dca092d0b7","skills":"A missing value that spreads with no error is warned when the flow is saved: `!=` against nothing, an aggregate of no items in arithmetic, and a required output every writer may leave unwritten (#3487)"},
@@ -1000,7 +1001,6 @@
     {"sha":"6101298b5e15"},
     {"sha":"cbdce468375b","skills":"A manifest records that someone ran a command; only the public repo knows (#2471)"},
     {"sha":"349286e553bb"},
-    {"sha":"c4fbd1659e4f"},
-    {"sha":"0390bcf0eb96","skills":"The pack described a membership recheck that the grant model deleted (#2468)"}
+    {"sha":"c4fbd1659e4f"}
   ]
 }

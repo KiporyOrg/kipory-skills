@@ -29,7 +29,7 @@ A text file's bytes come back as text. The type is checked first, so a binary fi
 
 #### A CSV file
 
-`text/csv` — passes the mime gate; bytes decoded as UTF-8 verbatim.
+`text/csv` — passes the mime gate; bytes decoded by their declared charset, else UTF-8.
 
 Reads `file` → emits `string` · 1 in → 1 out
 

@@ -132,7 +132,7 @@
       "page": "kipory-build/references/functions/file.download-url.md"
     },
     "file.read-text": {
-      "hash": "7c17945ca834",
+      "hash": "0cde6fe0be05",
       "page": "kipory-build/references/functions/file.read-text.md"
     },
     "file.stats": {
@@ -476,7 +476,7 @@
       "page": "kipory-build/references/functions/tiktok.transcript.md"
     },
     "url.fetch": {
-      "hash": "d1b9ab1a27bd",
+      "hash": "386cddc1a297",
       "page": "kipory-build/references/functions/url.fetch.md"
     },
     "url.fetch-as-file": {
