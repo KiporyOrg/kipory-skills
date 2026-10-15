@@ -1,7 +1,8 @@
 {
-  "source": "bbab8a133489c93ead1fbc111829c5fc3035725b",
+  "source": "5ccbf6e7ce72615aa7b4d8855bed96cdb6611a01",
   "since": "2026-08-13",
   "history": [
+    {"sha":"5ccbf6e7ce72","skills":"397 follow-ups: Shipped with nothing owed, and the upgrade notes say your scripts must read `types` (#3490)"},
     {"sha":"bbab8a133489","skills":"A fetched page is decoded by the character set it declares, so a windows-1255 feed reads as Hebrew instead of mojibake (F-132) (#3491)"},
     {"sha":"e6b0bcfd9f1e","skills":"Docs catch-up, and the four docs rulings built: refusal-code page (395), spec status words (396), `types` in the document (397), builder-facing API notes (398) (#3477)"},
     {"sha":"ea78b63a39b6"},
@@ -1000,7 +1001,6 @@
     {"sha":"ffdb09d30b7e"},
     {"sha":"6101298b5e15"},
     {"sha":"cbdce468375b","skills":"A manifest records that someone ran a command; only the public repo knows (#2471)"},
-    {"sha":"349286e553bb"},
-    {"sha":"c4fbd1659e4f"}
+    {"sha":"349286e553bb"}
   ]
 }

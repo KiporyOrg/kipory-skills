@@ -115,7 +115,9 @@ version 7 in one run, and a second run changes nothing:
   else named `shape` or `schema` moves: not a function's config, not an action's `outputSchema`,
   not a property of one of your types, not a table or action you named `shape`. A version 7
   document that still holds one of the old keys is refused with `DOCUMENT_KEY_RENAMED` at that
-  key; rename it, or set its version back to 6 and run the script.
+  key; rename it, or set its version back to 6 and run the script. **A script of yours that reads a
+  converted document or an export must read `types` and `type` too**: one reading `schema` finds
+  nothing and can change its own output without an error.
 - **Slot and collection names go.** A search model under `vectors.profiles` loses `denseSlots` and
   `sparseSlot` and states `keywords` — `true` where it named a sparse slot, `false` where it named
   none; a `search` use loses `role`; `vectors.collections` is removed. Each removal is listed.
