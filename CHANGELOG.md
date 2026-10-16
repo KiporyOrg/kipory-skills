@@ -2,6 +2,24 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261016.25241 — 2026-10-16
+
+Synced from the Kipory monorepo at `ed40b7cf2`.
+
+Routes added: `POST /v1/auth/mobile/exchange`.
+
+- changed: `skills/kipory-build/references/functions/flow.dispatch.md`
+- changed: `skills/kipory-build/references/functions/flow.loop-end.md`
+- changed: `skills/kipory-build/references/functions/text.extract.md`
+- changed: `skills/kipory-build/references/functions/url.fetch-as-file.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/sign-in.md`
+
 ## 1.20261015.191733 — 2026-10-15
 
 Synced from the Kipory monorepo at `0ff8c6c9b`.

@@ -1,7 +1,8 @@
 {
-  "source": "0ff8c6c9bb9df082f88a64c3d9bc74fd0241f1fc",
+  "source": "ed40b7cf27117b3f71dd8f1a49bf6b1458120749",
   "since": "2026-08-13",
   "history": [
+    {"sha":"ed40b7cf2711","skills":"Six more tables are fenced to their project in the database, customer patterns run on RE2, and the mobile sign-in redeems only with its PKCE verifier (platform review wave 2: security) (#3499)"},
     {"sha":"0ff8c6c9bb9d","skills":"A project can see where its credits go — reasoning tokens, efforts honoured on Claude, the runs a run started, what a stopped call costs — and is told when a model or price it pays moves (#3488)"},
     {"sha":"5f0c309296c6"},
     {"sha":"2fe107d3bbce","skills":"Platform review wave 2: billing correctness and run delivery guarantees (#3498)"},
@@ -1000,7 +1001,6 @@
     {"sha":"82e71defd59a"},
     {"sha":"626d1550b25b"},
     {"sha":"d2405fbbff7b"},
-    {"sha":"cdee2b3321e7","skills":"Turn zero was the one node in the skill graph with no edge out (#2481)"},
-    {"sha":"305f26898b76"}
+    {"sha":"cdee2b3321e7","skills":"Turn zero was the one node in the skill graph with no edge out (#2481)"}
   ]
 }

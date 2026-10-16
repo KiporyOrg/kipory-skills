@@ -24,7 +24,7 @@ Keeps the file on the record and returns a reference to it.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `allowedMimePatterns` | string[] | no | — | Content types to accept, as regular expressions; empty accepts anything. |
+| `allowedMimePatterns` | string[] | no | — | Content types to accept, as RE2 regular expressions; empty accepts anything. |
 | `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
 | `bodySlot` | string, at most 4096 characters | no | — | The slot holding the request body, built by an earlier action. |
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |

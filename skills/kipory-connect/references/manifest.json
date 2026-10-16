@@ -34,7 +34,7 @@
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
-      "hash": "9d00e0982f11",
+      "hash": "a0c05f50c0c4",
       "page": "kipory-connect/references/packs/limits.md"
     },
     "planning-protocol": {
@@ -140,7 +140,7 @@
       "page": "kipory-build/references/functions/file.stats.md"
     },
     "flow.dispatch": {
-      "hash": "18014fd72391",
+      "hash": "9e424f8fe401",
       "page": "kipory-build/references/functions/flow.dispatch.md"
     },
     "flow.fan-out": {
@@ -156,7 +156,7 @@
       "page": "kipory-build/references/functions/flow.loop.md"
     },
     "flow.loop-end": {
-      "hash": "d25e3b47823e",
+      "hash": "e2cd09159011",
       "page": "kipory-build/references/functions/flow.loop-end.md"
     },
     "flow.merge": {
@@ -396,7 +396,7 @@
       "page": "kipory-build/references/functions/text.detect-language.md"
     },
     "text.extract": {
-      "hash": "03721bebdb8f",
+      "hash": "58800bd02642",
       "page": "kipory-build/references/functions/text.extract.md"
     },
     "text.generate": {
@@ -480,7 +480,7 @@
       "page": "kipory-build/references/functions/url.fetch.md"
     },
     "url.fetch-as-file": {
-      "hash": "c4838dec1362",
+      "hash": "e48c6781d9c3",
       "page": "kipory-build/references/functions/url.fetch-as-file.md"
     },
     "url.metadata": {
@@ -761,7 +761,7 @@
       "hash": "876a059837ca"
     },
     "GET /v1/auth/signin/google": {
-      "hash": "5912a1615d86"
+      "hash": "adeb79cfbd36"
     },
     "GET /v1/auth/signout": {
       "hash": "730d52188fc8"
@@ -1435,6 +1435,9 @@
     },
     "POST /v1/auth/handoff/exchange": {
       "hash": "684df6859c93"
+    },
+    "POST /v1/auth/mobile/exchange": {
+      "hash": "a5c21272c7f5"
     },
     "POST /v1/auth/native/apple": {
       "hash": "30dbc5abef48"

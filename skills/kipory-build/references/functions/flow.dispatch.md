@@ -45,7 +45,7 @@ What gets matched is set by `matchOn`, but the original input is what travels on
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `pattern` | string | yes | — | The pattern to test, as a regex or a glob. |
+| `pattern` | string | yes | — | The pattern to test, as an RE2 regex or a glob. |
 | `outputSlot` | string | yes | — | The slot the input is forwarded to when this rule matches. |
 
 ## Worked example

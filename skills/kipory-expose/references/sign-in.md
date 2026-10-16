@@ -18,13 +18,13 @@ Two providers exist, Google and Apple, and no others. There is no password, magi
 
 ## Pick the row for your client
 
-| Client                                 | How it signs a user in                                                                                                                                  | What it holds afterwards    |
-| -------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
-| Web app on the project's platform host | browser to `GET /v1/auth/signin/google` on the project host                                                                                             | the session cookie          |
-| Web app on your own proven domain      | the same, with `callbackUrl` and `state`, then `POST /v1/auth/handoff/exchange` — "Your own domain" below                                               | `session`, sent as a Bearer |
-| Native app, Apple                      | the system sheet, then `POST /v1/auth/native/apple { identityToken, authorizationCode, rawNonce, fullName? }` on the project host → `{ session, user }` | `session`, sent as a Bearer |
-| Native app, Google                     | a browser at `GET /v1/auth/signin/google?callbackUrl=kipory://auth/callback` — "Native app, Google" below                                               | `session`, sent as a Bearer |
-| A builder holding only an API key      | cannot — "What a key cannot do" below                                                                                                                   | nothing                     |
+| Client                                 | How it signs a user in                                                                                                                                                                                               | What it holds afterwards    |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------- |
+| Web app on the project's platform host | browser to `GET /v1/auth/signin/google` on the project host                                                                                                                                                          | the session cookie          |
+| Web app on your own proven domain      | the same, with `callbackUrl` and `state`, then `POST /v1/auth/handoff/exchange` — "Your own domain" below                                                                                                            | `session`, sent as a Bearer |
+| Native app, Apple                      | the system sheet, then `POST /v1/auth/native/apple { identityToken, authorizationCode, rawNonce, fullName? }` on the project host → `{ session, user }`                                                              | `session`, sent as a Bearer |
+| Native app, Google                     | a browser at `GET /v1/auth/signin/google?callbackUrl=kipory://auth/callback&codeChallenge=<challenge>`, then `POST /v1/auth/mobile/exchange { code, codeVerifier }` on the project host — "Native app, Google" below | `session`, sent as a Bearer |
+| A builder holding only an API key      | cannot — "What a key cannot do" below                                                                                                                                                                                | nothing                     |
 
 Apple has no web flow: its one route is the native POST, so a web app signs people in with Google only.
 
@@ -105,9 +105,13 @@ Run the system Sign in with Apple sheet, then post what it returned: `POST /v1/a
 There is no native Google route; a native app uses the web flow with a deep link. <!-- absent: POST /v1/auth/native/google -->
 
 1. Register the `kipory` URL scheme in the app.
-2. Open a browser at `GET /v1/auth/signin/google?callbackUrl=kipory://auth/callback` on the project host. That literal is the only non-http callback accepted.
-3. The sign-in ends by opening the app at `kipory://auth/callback?session=<token>`, or `kipory://auth/callback?error=<code>` when it failed.
-4. Send the token as a Bearer.
+2. For each sign-in, generate a random `codeVerifier` (43–128 characters of `A–Z a–z 0–9 - . _ ~`) and keep it in the app. Its `codeChallenge` is the base64url SHA-256 of it, without padding.
+3. Open a browser at `GET /v1/auth/signin/google?callbackUrl=kipory://auth/callback&codeChallenge=<challenge>` on the project host. That literal is the only non-http callback accepted, and a sign-in to it without `codeChallenge` ends at once with `error=code_challenge_required`. Google shows its account chooser every time.
+4. The sign-in ends by opening the app at `kipory://auth/callback?code=<one-time code>`, or `kipory://auth/callback?error=<code>` when it failed.
+5. Post `{ "code": "<code>", "codeVerifier": "<verifier>" }` to `POST /v1/auth/mobile/exchange` on the same project host, within about a minute. It answers `{ "session", "expiresAt" }`. Every bad code — unknown, expired, used, another project's, the wrong verifier — is the same 401 `HANDOFF_CODE_INVALID`: send the person through sign-in again. A body that is not `code` and a well-formed `codeVerifier` alone is a 422, and too many sign-in calls from one address answer 429.
+6. Send the `session` as a Bearer to that project's host. It works there and nowhere else.
+
+The code is useless without the verifier, so an app that intercepts the deep link gets nothing.
 
 ## Your own Google OAuth client
 

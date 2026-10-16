@@ -21,7 +21,7 @@ Duplicates are removed by default. Use a capture group to keep only part of each
 | `dedupe` | boolean | no | `true` | When true (default), repeat matches are dropped while preserving the first-occurrence order. |
 | `flags` | string[] | no | `["i"]` | Regular expression flags, such as `i` to ignore case. |
 | `group` | integer, at least 0 | no | `0` | Which capture group to take; 0 takes the whole match. |
-| `pattern` | string | no | `"[\\s\\S]+"` | The regular expression, run over all wired-in text. |
+| `pattern` | string | no | `"[\\s\\S]+"` | The regular expression, in RE2 syntax, run over all wired-in text. |
 
 ## Worked example
 

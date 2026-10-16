@@ -57,7 +57,7 @@ After each round, the outputs become the next round's carry slots. Afterwards, o
 | `op` | `slotMatches` | yes | — | Holds when the text matches the regular expression. |
 | `slot` | string | yes | — | The slot whose value is tested. |
 | `path` | string | no | — | A dotted path to one field; empty tests the whole value. |
-| `pattern` | string | yes | — | A JavaScript regular expression. |
+| `pattern` | string | yes | — | A regular expression in RE2 syntax, matched anywhere in the text. |
 
 **`op: slotStartsWith`**
 
