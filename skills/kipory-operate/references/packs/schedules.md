@@ -222,16 +222,16 @@ run's invocation. Reach for them in this order:
   to its own flow, or to a sub-flow that flow calls by a fixed reference — is not taken by a run
   already under way; the next run takes it. A sub-flow chosen at run time and first reached on a
   later attempt, types, model bindings, vocabularies and secrets are read as they are then.
-- **`statusError`** — a short message, and ⚠️ **generic on purpose.** For an ordinary action failure
-  it is the fixed string _"The flow failed to run."_ on every run, because the raw error can carry
-  provider bodies and prompt fragments and is deliberately not put there. The action's own words, cut
-  to 500 characters, are on its `action-failed` row in `GET /v1/runs/{runId}/timeline`. Three other shapes exist:
+- **`statusError`** — a short message built only from safe facts. On an action failure it reads
+  _The flow failed at action "<key>": <code>._ — the action's key and its failure code (no code when
+  it is `error`), with a caller-readable `reason` when there is one. The action's own words, which
+  can carry provider bodies and prompt fragments, are never put there; cut to 500 characters, they
+  are on its `action-failed` row in `GET /v1/runs/{runId}/timeline`. Three other shapes exist:
   a validation failure surfaces the operator-authored message verbatim, a missing record says so,
   and a flow that produced none of its declared output reports that instead.
 
-So a schedule whose runs all read _"The flow failed to run."_ often means you are reading the wrong
-field: `failure.class` says whose failure it is and `failure.actionKey` names the action. `failure`
-is `null` only for a run that failed before the class was recorded. For the action's own words,
+`failure.class` says whose failure it is, and `failure.actionKey` names the action `statusError`
+names. `failure` is `null` only for a run that failed before the class was recorded. For the action's own words,
 take the occurrence's invocation id to `GET /v1/runs/{runId}/timeline`: that is the per-action
 execution record, it says which actions ran and what happened to each, and unlike a flow trace it
 is **never sampled**.

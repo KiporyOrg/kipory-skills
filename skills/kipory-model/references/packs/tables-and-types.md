@@ -1572,7 +1572,8 @@ action when one failed (otherwise the `cause` that closed it, and the `refusedWr
 were refused when they were saved), and a `reason` when the refusal is one a caller may read (such as
 `project-mail-cap-reached`, or `recipient-not-an-address` when a mail action was given a recipient
 that is no email address, `more-than-one-recipient` when it was given a list, or `recipient-is-a-test-user` when it was given a test user's address), and a `limitKey` when a limit refused it. It is null on a record that is not `failed`, and for a failure recorded before
-this was kept. A flow reading a record sees `processing`, not `failure`.
+this was kept. A record run stopped from outside names the actions that were running in its
+`runningActions`. A flow reading a record sees `processing`, not `failure`.
 
 `record.enqueue-process` on a **failed** or **ready** record returns it to processing, with the
 replay mode the action states, as part of the calling run's change set — so if that run fails, the

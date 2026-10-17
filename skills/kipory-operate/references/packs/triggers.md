@@ -236,7 +236,8 @@ refused.
 not fire, and — for a fire — the invocation with its live `status` and, once it has failed, a
 `failure`: the run's closing record, with its `class` (`logic`, `vendor`, `platform-fault`, …), its
 `owner` (who has to act), whether it is `retryable`, the `attempt` that closed it, the action that
-failed (`actionKey`, `phase`) when one did — otherwise the `cause` that closed it and, for changes refused
+failed (`actionKey`, `phase`) when one did — otherwise the `cause` that closed it (a stop from outside
+also names the actions that were `runningActions`) and, for changes refused
 when they were saved, the `refusedWrite` — and a `reason` when it is one a caller may read (a mail refusal,
 `recipient-not-an-address` among them — the mail action was given a recipient that is no email address —
 `more-than-one-recipient` — it was given a list of recipients — `recipient-is-a-test-user` — it was given a test
