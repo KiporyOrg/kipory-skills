@@ -123,6 +123,7 @@ How the project's end users sign in: which providers are on, the redirect allowl
 | `stored` | `object \| null` | yes | What you saved, verbatim. Null when this project has never set a config — and ALSO null when what it saved failed to parse, so null alone does not distinguish never-set from broken. Read `malformed` to tell them apart. |
 | `effective` | `object` | yes | What is actually in force right now. Equal to `stored` when that is valid, and the platform default otherwise. This is the one to read when asking how sign-in currently behaves. |
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it. |
+| `version` | `string` | yes | The stored document's version. Send it back as `version` on `PUT` on this path; a save made since you read answers 409 `VERSION_CONFLICT` — re-read and apply your change again. Opaque: compare it, never parse it. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
 
 Each item of `providerStatus`:
@@ -136,7 +137,7 @@ Each item of `providerStatus`:
 
 ### `PUT /v1/projects/{nodeId}/auth-config`
 
-Replace the project's end-user auth configuration; `null` clears it to the platform's default. Answers what `GET` on this path answers. Provider credentials are secrets, stored with the secrets routes, not here.
+Replace the project's end-user auth configuration; `null` clears it to the platform's default. Requires the `version` your last `GET` answered: a save made since answers 409 `VERSION_CONFLICT` and stores nothing. Answers what `GET` on this path answers. Provider credentials are secrets, stored with the secrets routes, not here.
 
 **Path parameters**
 
@@ -149,6 +150,7 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `authConfig` | `object \| null` | yes | The whole document, REPLACING whatever is stored — this is not a merge, so a provider you omit becomes disabled. Send null to clear the config and go back to the platform default. |
+| `version` | `string` | yes | The `version` from your last `GET` on this path. A save made since answers 409 `VERSION_CONFLICT` and stores nothing — re-read and apply your change again. A `validateOnly` check judges it too, as a finding on `version`. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -158,6 +160,7 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 | `stored` | `object \| null` | yes | What you saved, verbatim. Null when this project has never set a config — and ALSO null when what it saved failed to parse, so null alone does not distinguish never-set from broken. Read `malformed` to tell them apart. |
 | `effective` | `object` | yes | What is actually in force right now. Equal to `stored` when that is valid, and the platform default otherwise. This is the one to read when asking how sign-in currently behaves. |
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it. |
+| `version` | `string` | yes | The stored document's version. Send it back as `version` on `PUT` on this path; a save made since you read answers 409 `VERSION_CONFLICT` — re-read and apply your change again. Opaque: compare it, never parse it. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
@@ -320,14 +323,14 @@ The type that shapes the project's end-user profiles, or none. Connect one with 
 | --- | --- | --- | --- |
 | `dataTypeId` | `string \| null` | yes | Type the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
 | `dataTypeKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
-| `version` | `integer \| null` | yes | The connected type's version, for optimistic locking when editing it on the types resource. Null when unconnected. |
+| `version` | `integer \| null` | yes | The connected type's version: send it back as `version` on `PUT` on this path, and on the types resource when editing that type. Null when unconnected — send null then. |
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different type is refused with 409, because stored profiles were seeded from the current one. |
 
 ### `PUT /v1/projects/{nodeId}/profile-schema`
 
-Connect a type as the project's end-user profile type, or re-point to another (refused once profiles exist). To create a new type from the platform's starter shape instead, `POST /v1/projects/{nodeId}/profile-schema/starter`.
+Connect a type as the project's end-user profile type, or re-point to another (refused once profiles exist). Requires the lock your last `GET` answered — its `dataTypeId` as `connectedDataTypeId`, and its `version` (both null when nothing was connected): a change made since answers 409 `VERSION_CONFLICT` and changes nothing. To create a new type from the platform's starter shape instead, `POST /v1/projects/{nodeId}/profile-schema/starter`.
 
 **Path parameters**
 
@@ -340,6 +343,8 @@ Connect a type as the project's end-user profile type, or re-point to another (r
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `dataTypeId` | `string` | yes | Type to connect as the project's end-user profile shape. Must be an operator-owned, profile-eligible type (else 422), and must match the current one once profiles exist (else 409). |
+| `connectedDataTypeId` | `string \| null` | yes | The `dataTypeId` your last `GET` on this path answered, or null when nothing was connected. If another type was connected since, the save answers 409 `VERSION_CONFLICT` and changes nothing. |
+| `version` | `integer \| null` | yes | The `version` your last `GET` on this path answered — the connected type's version, or null when nothing was connected. If the connection or that type changed since, the save answers 409 `VERSION_CONFLICT` and changes nothing — re-read and try again. |
 
 **Response `200`**
 
@@ -347,7 +352,7 @@ Connect a type as the project's end-user profile type, or re-point to another (r
 | --- | --- | --- | --- |
 | `dataTypeId` | `string \| null` | yes | Type the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
 | `dataTypeKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
-| `version` | `integer \| null` | yes | The connected type's version, for optimistic locking when editing it on the types resource. Null when unconnected. |
+| `version` | `integer \| null` | yes | The connected type's version: send it back as `version` on `PUT` on this path, and on the types resource when editing that type. Null when unconnected — send null then. |
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different type is refused with 409, because stored profiles were seeded from the current one. |
@@ -372,7 +377,7 @@ Disconnect the project's end-user profile type — the type itself is kept, and 
 
 ### `POST /v1/projects/{nodeId}/profile-schema/starter`
 
-Create a new profile type from the platform's starter shape under the name you give, and connect it. To connect a type you already have, `PUT /v1/projects/{nodeId}/profile-schema`.
+Create a new profile type from the platform's starter shape under the name you give, and connect it (refused once profiles exist). Takes the same lock as `PUT` — the `dataTypeId` your last `GET` answered as `connectedDataTypeId`, and its `version` (both null when nothing was connected): a change made since answers 409 `VERSION_CONFLICT` and creates nothing. To connect a type you already have, `PUT /v1/projects/{nodeId}/profile-schema`.
 
 **Path parameters**
 
@@ -385,6 +390,8 @@ Create a new profile type from the platform's starter shape under the name you g
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key` | `string` | yes | The new type's key. Required. Letters, digits, dots, dashes and underscores only, starting with a letter or digit; it is used as an address, so it may not contain slashes, spaces or braces, up to 64 characters. |
+| `connectedDataTypeId` | `string \| null` | yes | The `dataTypeId` your last `GET` on `…/profile-schema` answered, or null when nothing was connected. If another type was connected since, the request answers 409 `VERSION_CONFLICT` and creates nothing. |
+| `version` | `integer \| null` | yes | The `version` your last `GET` on `…/profile-schema` answered, or null when nothing was connected. If the connection or that type changed since, the request answers 409 `VERSION_CONFLICT` and creates nothing — re-read and try again. |
 
 **Response `200`**
 
@@ -392,7 +399,7 @@ Create a new profile type from the platform's starter shape under the name you g
 | --- | --- | --- | --- |
 | `dataTypeId` | `string \| null` | yes | Type the profile is connected to. Null means the project has no end-user profile shape — every field below is null too. |
 | `dataTypeKey` | `string \| null` | yes | Key of the connected type; null when unconnected. |
-| `version` | `integer \| null` | yes | The connected type's version, for optimistic locking when editing it on the types resource. Null when unconnected. |
+| `version` | `integer \| null` | yes | The connected type's version: send it back as `version` on `PUT` on this path, and on the types resource when editing that type. Null when unconnected — send null then. |
 | `definition` | `unknown` | no | The connected type's JSON Schema, verbatim. Its `default` keywords seed each new end user's profile. Null when unconnected. |
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different type is refused with 409, because stored profiles were seeded from the current one. |
@@ -481,7 +488,7 @@ Another session for a test user — when its last one expired, or to call as it 
 
 ### `GET /v1/users`
 
-A project's end users (`?project=`) — the people who have signed in to its app — as `id`, `name` and `email`, for pickers. Requires **VIEWER**.
+A project's end users (`?project=`) — the people who have signed in to its app — as `id`, `name` and `email`, for pickers, one page at a time in id order: walk on `after` / `before` with the cursors the response hands back. Requires **VIEWER**.
 
 Not its operators: seats at a node are `GET /v1/nodes/{nodeId}/members`. The same end users with their standing, spend and wallets are `GET /v1/projects/{nodeId}/members`. Neither lists the project's test users; those are `GET /v1/test-users?project={nodeId}`.
 
@@ -490,12 +497,18 @@ Not its operators: seats at a node are `GET /v1/nodes/{nodeId}/members`. The sam
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Which project's end users to list, as its node id. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `limit` | `integer` | no | Users per page, 1–200; default 50. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `users` | `object[]` | yes | The project's END USERS — the people who use what you built, not your team. |
+| `users` | `object[]` | yes | One page of the project's END USERS — the people who use what you built, not your team — ordered by id. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
+| `paging` | `null` | yes | Always null: the roster is walked by its cursors, with no page count. |
 
 Each item of `users`:
 

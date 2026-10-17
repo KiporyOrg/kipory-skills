@@ -315,8 +315,11 @@ moves while it runs is the same `409`, never a second commit over the first.
 
 An apply is the plan, kept. It commits only when the plan holds no `error`, and then all at once:
 one transaction, one project version, one entry in the project's history, however many rows moved.
-A refused apply answers `422` with the PLAN as its body and has written nothing — not the rows
-before the refused one either. A document that changes nothing answers `applied: true` and leaves
+A refused apply answers the standard error — `422 VALIDATION_FAILED`, `details.reason: "DOCUMENT_APPLY_FAILED"` —
+with the whole plan under `details.plan` and one entry in
+`details.issues` per refusing finding, its `field` in body terms (`document.tables.member.type`). It
+has written nothing — not the rows before the refused one either — and, like every error, it is JSON
+whatever `Accept` asks: only a kept document answers in YAML. A document that changes nothing answers `applied: true` and leaves
 the version where it was, so re-applying what you exported is always safe. What the platform fills in
 on a write is not a change: a `flow.invoke` or `flow.merge` `derivedShape`, a `flow.dispatch`
 `outputSlot` of `""`, the carry slots a `flow.loop-end` adds to its `inputStreams`, `functionConfig: {}`

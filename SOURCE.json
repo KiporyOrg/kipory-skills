@@ -1,7 +1,8 @@
 {
-  "source": "db64273709146669e81b087ff5e14ad32ca8608b",
+  "source": "99e98826620c98280f64864595b40c643ed2ed39",
   "since": "2026-08-14",
   "history": [
+    {"sha":"99e98826620c","skills":"Wave 3 of the platform review, operator UI and API contract: writes say what really happened, a crash keeps the frame and is reported, endpoints answer codes a product can branch on, lists page, whole-document saves lock, and the API document declares its errors and method names (#3509)"},
     {"sha":"db6427370914","skills":"Wave 3 of the platform review: an action's file limits stop at 100 MB, packages depend only downward, a table may be named item, the places that absorb code hold a size floor, and change history and eval results leave with run history (#3503)"},
     {"sha":"4e81834b2efc","skills":"A project is told when a flow's health gains or loses its errors, whether an edit or a new build moved it, and platform-status names the diagnostic codes a build added (F-137) (#3508)"},
     {"sha":"35d8fe2ee7c3","skills":"The server names the document format it reads and the skills say when theirs differs, and a failed url.screenshot can be carried past with failureMode soft (#3507)"},
@@ -1000,7 +1001,6 @@
     {"sha":"18001676cbb3"},
     {"sha":"fb3616ba917b"},
     {"sha":"a373180aeae1"},
-    {"sha":"6e07ddb344d1"},
-    {"sha":"8e26e2089a17"}
+    {"sha":"6e07ddb344d1"}
   ]
 }

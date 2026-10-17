@@ -34,7 +34,7 @@ A session, however it arrived, is one credential: the cookie in a browser, or th
 
 ```
 GET /v1/projects/{nodeId}/auth-config                        VIEWER — what is stored, what is in force, and what each provider would do
-PUT /v1/projects/{nodeId}/auth-config   { authConfig }       ADMIN — replaces the whole stored document
+PUT /v1/projects/{nodeId}/auth-config   { authConfig, version } ADMIN — replaces the whole stored document; `version` is what GET answered, else 409
 ```
 
 The document goes inside `authConfig`:
@@ -159,14 +159,14 @@ The `auth` and `account` groups can be switched off per project (route enablemen
 
 A project's end users each have a profile, typed by one type the builder connects. Until one is connected there is no profile: `userInfo` carries `userId` alone. These are design routes — the api host, with your key:
 
-| Route                                                        | Floor  | What it does                                                                                   |
-| ------------------------------------------------------------ | ------ | ---------------------------------------------------------------------------------------------- |
-| `GET /v1/projects/{nodeId}/profile-schema`                   | VIEWER | the type of the project's profiles, or none                                                    |
-| `PUT /v1/projects/{nodeId}/profile-schema { dataTypeId }`    | EDITOR | connects a type; re-pointing to another is refused once profiles exist                         |
-| `POST /v1/projects/{nodeId}/profile-schema/starter { key }`  | EDITOR | creates a type from the platform's starter fields and connects it; refused once profiles exist |
-| `DELETE /v1/projects/{nodeId}/profile-schema`                | ADMIN  | disconnects it and keeps the type; stored profiles are left typed by nothing                   |
-| `GET /v1/users/{userId}/profile?project={nodeId}`            | VIEWER | one person's profile                                                                           |
-| `PATCH /v1/users/{userId}/profile?project={nodeId} { data }` | EDITOR | edits it                                                                                       |
+| Route                                                                                     | Floor  | What it does                                                                                                                                                                                                                        |
+| ----------------------------------------------------------------------------------------- | ------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/projects/{nodeId}/profile-schema`                                                | VIEWER | the type of the project's profiles, or none                                                                                                                                                                                         |
+| `PUT /v1/projects/{nodeId}/profile-schema { dataTypeId, connectedDataTypeId, version }`   | EDITOR | connects the type `dataTypeId`; send as `connectedDataTypeId` the `dataTypeId` your last GET answered, and its `version` (null, null when none), else 409 `VERSION_CONFLICT`; re-pointing to another is refused once profiles exist |
+| `POST /v1/projects/{nodeId}/profile-schema/starter { key, connectedDataTypeId, version }` | EDITOR | creates a type from the platform's starter fields and connects it; the same lock as the PUT, else 409 `VERSION_CONFLICT`; refused once profiles exist                                                                               |
+| `DELETE /v1/projects/{nodeId}/profile-schema`                                             | ADMIN  | disconnects it and keeps the type; stored profiles are left typed by nothing                                                                                                                                                        |
+| `GET /v1/users/{userId}/profile?project={nodeId}`                                         | VIEWER | one person's profile                                                                                                                                                                                                                |
+| `PATCH /v1/users/{userId}/profile?project={nodeId} { data }`                              | EDITOR | edits it                                                                                                                                                                                                                            |
 
 The person reads and edits the same profile with their session, at `/v1/me/profile` on the project host. User ids come from `GET /v1/users?project={nodeId}` (VIEWER), a picker's list: `id`, `name` and `email`, active people only. Each person's `standing` in the project (`active` or `suspended`), seat `role` (`editor` for every end user) and spend are on `GET /v1/projects/{nodeId}/members` (VIEWER), which lists the suspended too.
 

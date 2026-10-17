@@ -87,7 +87,7 @@ row-by-row change would meet, in one read, and three things a row write never te
   delete list before applying; it is the true list, not only yours. A table delete also names
   its reach on its own path — the relations and joins it would take — even when the plan
   refuses the delete.
-- **Nothing partial.** A refused apply answers `422` with the plan and has written nothing — not
+- **Nothing partial.** A refused apply answers `422 VALIDATION_FAILED` with the plan under `details.plan` and has written nothing — not
   the rows before the refused one either. A document that changes nothing answers `applied: true`
   and moves no version.
 

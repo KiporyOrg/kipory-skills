@@ -184,7 +184,8 @@ Three kinds:
 - **Invoke** — a buffered call. Synchronous returns the result and has a timeout ceiling;
   asynchronous returns an acknowledgement immediately. Its status read
   (the `statusPath` its acknowledgement names) carries `output` once the run is ready and, once it has failed,
-  `error` and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
+  `error`, `code` — the error code the same call made synchronously would answer (`FLOW_FAILED`,
+  `RECORD_NOT_FOUND`, `QUOTA_EXHAUSTED`…), absent when none names it — and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
   and `retryable` a schedule's runs carry, the `attempt` that closed it, the `cause` and `refusedWrite` when its
   changes were refused when they were saved, and a `reason` when the refusal is one a
   caller may read, such as `project-push-cap-reached`, or `recipient-not-an-address` for a mail action given a

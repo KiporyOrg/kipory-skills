@@ -76,7 +76,7 @@ The project's whole configuration as one document addressed by key — flows wit
 
 ### `POST /v1/projects/{nodeId}/document`
 
-Apply a project document: every row it names is created, changed or removed through that row's own write, in one planned change. Ask `POST …/document/plan` first; read the result back with `GET …/document`. For one row, call its own write instead (`PATCH /v1/flows/{id}`, `POST /v1/actions`, …, each with `validateOnly` for a dry run); pick this when several rows change together, as one history action.
+Apply a project document: every row it names is created, changed or removed through that row's own write, in one planned change. A refused apply changes nothing and answers 422 `VALIDATION_FAILED`, `details.reason` `DOCUMENT_APPLY_FAILED`, one `details.issues` entry per refusing finding and the plan under `details.plan` — JSON whatever `Accept` asks. Ask `POST …/document/plan` first; read the result back with `GET …/document`. For one row, call its own write instead (`PATCH /v1/flows/{id}`, `POST /v1/actions`, …, each with `validateOnly` for a dry run); pick this when several rows change together, as one history action.
 
 **Path parameters**
 

@@ -555,6 +555,11 @@ The inverse rename is the undo.
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.
 - **Terms are the vocabulary substrate; no separate resource holds a vocabulary's values.** Vocabulary
   statistics and samples are computed over terms.
+- **`GET /v1/terms` answers one page.** A vocabulary grows with ingest, so the list is walked on
+  `after` / `before` (`limit` 1–500, default 100), ordered by vocabulary key, label, then id;
+  follow `nextCursor` until it is `null`. `expand=usage` counts only the page's terms, while
+  `expand=findings` always covers the whole project and comes back on every page that asks.
+  `after` with `before` is refused 422 `VALIDATION_FAILED`, naming both.
 - **A term carries a `version`, and its writes are locked on it.** `GET /v1/terms` publishes it;
   `PATCH /v1/terms/{id}` (rename, archive, restore or admit — both a label and a status in one call
   is one write) and `POST /v1/terms/{id}/merge` (the absorbed term's) require it, and a stale one

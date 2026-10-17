@@ -42,7 +42,7 @@ A plan is not a simulation: the platform applies the document through every row'
 
 - **`version` is required on the apply**: the one the export or the plan answered. A stale one answers `409` with the current document under `details` — re-base on it rather than resending.
 - **Any other write to the project in between moves the version too** — a task-model binding, a row edit.
-- **A refused apply answers `422` with the plan as its body.**
+- **A refused apply answers the standard error, with the plan inside it.** `422 VALIDATION_FAILED`, `details.reason: "DOCUMENT_APPLY_FAILED"`, the whole plan under `details.plan`, and one `details.issues` entry per refusing finding. It is JSON whatever `Accept` asks, a YAML caller included.
 
 ## Actions in a document
 

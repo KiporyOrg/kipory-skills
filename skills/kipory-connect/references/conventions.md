@@ -103,7 +103,7 @@ Vocabularies and relations report readiness under `expand=readiness`, from a fou
 
 ## Paging
 
-- Lists that page walk by **keyset cursors** `after` / `before`, both together being a 400. `nextCursor` and `prevCursor` are `string | null`, never a boolean, never omitted; `prevCursor` is measured, not inferred.
+- Lists that page walk by **keyset cursors** `after` / `before`. Both together is a 422 `VALIDATION_FAILED` whose `details.issues` name each; a cursor the read did not issue — malformed, or minted under another `sort` or `order` — is a 400 `BAD_REQUEST`: start the walk again without it. `nextCursor` and `prevCursor` are `string | null`, never a boolean, never omitted; `prevCursor` is measured, not inferred.
 - `paging` is present on every list response or explicitly `null`. Null is a statement: the route declined to count. `?page=` exists exactly where `paging` is non-null, and clamps.
 - Run and event logs page the same way, newest first: schedule runs, trigger runs, eval runs, flow traces, project events, rejected requests. Each answers `{ <items>, paging: null, nextCursor, prevCursor }`; walk `after=<nextCursor>` until `nextCursor` is `null`.
 - A `limit` with no cursor is a **cap**, not a page — an eval suite's trend, a schedule's `firings`, flow coverage. Where such a read can be cut short it says so in `truncated`; there is no way to ask for the rest.

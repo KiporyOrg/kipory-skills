@@ -24,7 +24,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/terms`
 
-List a project's terms — every vocabulary's, or one vocabulary's with `vocabularyKey` — archived ones and merge aliases included, each with the `version` its PATCH and merge take. `expand=usage` adds how much points at each term and `deleteRefusal`, why `DELETE /v1/terms/{id}` would refuse it; `expand=findings` adds what is wrong with the vocabulary. Terms are not in `GET /v1/bootstrap`: a vocabulary grows with ingest, so it is read here, on demand. A vocabulary's authored terms as configuration: its `terms` in `GET /v1/projects/{nodeId}/document`.
+List a project's terms — every vocabulary's, or one vocabulary's with `vocabularyKey` — archived ones and merge aliases included, each with the `version` its PATCH and merge take, one page at a time ordered by vocabulary, then label: walk on `after` / `before` with the cursors the response hands back. `expand=usage` adds how much points at each term and `deleteRefusal`, why `DELETE /v1/terms/{id}` would refuse it; `expand=findings` adds what is wrong with the vocabulary. Terms are not in `GET /v1/bootstrap`: a vocabulary grows with ingest, so it is read here, on demand. A vocabulary's authored terms as configuration: its `terms` in `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -33,13 +33,19 @@ List a project's terms — every vocabulary's, or one vocabulary's with `vocabul
 | `project` | `string` | yes | Node id of the project whose terms to list. |
 | `vocabularyKey` | `string` | no | Key of a vocabulary: keep only terms belonging to it — one vocabulary's terms. Omit for every term in the project. |
 | `expand` | `string` | no | Optional expansions, comma-separated. One or more of: usage, findings. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `after` | `string` | no | The page AFTER this row — pass back the `nextCursor` you were given. Refused together with `before`. |
+| `before` | `string` | no | The page BEFORE this row — pass back the `prevCursor` you were given. Refused together with `after`. |
+| `limit` | `integer` | no | Terms per page, 1–500; default 100. A vocabulary grows with ingest, so the list is walked page by page. |
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `terms` | `object[]` | yes | The project's terms, including archived ones and merge aliases — filter on `status` and `aliasOfId` if you want only live canonical terms. |
-| `findings` | `object[]` | no | `expand=findings` — what is wrong with the vocabulary, most severe kind first. Computed over EVERY term of the project, whatever `vocabularyKey` narrows `terms` to — a parent or canonical term in another vocabulary is still held — and then narrowed to that vocabulary. Absent unless asked for; an empty list means the check ran and found nothing. |
+| `terms` | `object[]` | yes | One page of the project's terms, ordered by vocabulary key, then label — archived ones and merge aliases included; filter on `status` and `aliasOfId` if you want only live canonical terms. `expand=usage` counts only this page's terms. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
+| `paging` | `null` | yes | Always null: the list is walked by its cursors, with no page count. |
+| `findings` | `object[]` | no | `expand=findings` — what is wrong with the vocabulary, most severe kind first. Computed over EVERY term of the project, whatever page this is and whatever `vocabularyKey` narrows `terms` to — a parent or canonical term in another vocabulary is still held — and then narrowed to that vocabulary. Absent unless asked for; an empty list means the check ran and found nothing. |
 
 Each item of `terms`:
 

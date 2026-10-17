@@ -800,7 +800,8 @@ the table with exactly ONE peer table; one that pairs it with several is refused
   field is left out. Beside a semantic clause it re-orders the ranking: the same at-most-`topK`
   records, listed by the field, with no cursor.
 
-A cursor belongs to the order that minted it; passed under another it is a 422. ⛔ There is no
+A cursor belongs to the order that minted it; passed under another it is refused — 400 on
+`POST /v1/records/query`, `invalid-input` (422 on an endpoint) from `record.query`. ⛔ There is no
 order by something on a LINKED record ("stories by their newest post", "most commented"): keep
 that value on the record itself — a processed `lastPostAt`, a count its processing flow maintains
 — and order by the field.
