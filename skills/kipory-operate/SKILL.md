@@ -67,7 +67,7 @@ A trigger fires a flow every time a matching event is **recorded** in the projec
 ```
 GET  /v1/failed-runs?project={nodeId}      the runs whose latest close is `failed` or `partial`, newest first (cursor-paged)
 GET  /v1/projects/{nodeId}/alerts          every schedule, trigger, table or endpoint that is failing, quiet, about to be paused or paused
-POST /v1/platform-events/test              { project, type, subject: { kind, key } } — record one example event and fire the triggers on it
+POST /v1/platform-events/test              { project, type, subject?: { kind, key } } — record one example event and fire the triggers on it
 ```
 
 An **unattended run** is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call or a record's processing: nobody is waiting on the answer. `references/packs/triggers.md` ("Being told when a run fails") and `references/packs/schedules.md` ("health, and being paused") have the detail; `references/api/failures.md` the fields.

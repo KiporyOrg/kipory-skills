@@ -214,6 +214,10 @@ apply; a type and the namespace it shapes can be deleted together; and a flow is
 every flow the same document deletes that calls it. A caller that stays refuses the called flow's
 row with `FLOW_HAS_DEPENDENTS`, naming the caller by key.
 
+A config namespace's `values` are its whole override map, and in them `null` and a key left out
+say different things: a key left out removes that override, so the field reads its default; `null`
+is a value, and the field reads `null`. Writing `null` does not clear an override — leave the key out.
+
 The answer holds the `version` the project was read at — the lock an apply presents —
 `ignoredIds`, three lists, their `counts` and a verdict:
 

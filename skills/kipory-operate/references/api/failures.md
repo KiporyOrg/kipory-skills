@@ -57,7 +57,7 @@ Each item of `runs`:
 
 ### `POST /v1/platform-events/test`
 
-Record one of the platform's own events by hand, to see your failure trigger run before anything fails. `type` is a type of the `platform` category (`run.failed`, `health.paused`, …) and `subject` names a schedule, trigger, table or endpoint of the project by its key. The event's data is an example of that type with `test: true`; every enabled trigger on the type fires as on a real one, and the flows they start are ordinary, charged runs. Recording the event costs nothing, changes no health and lists no failed run. Answers how many triggers listen: zero means nothing ran. Refused (422) for a type the platform does not have or a subject the project does not have; for `mail.failed`, `price.changed`, `member.left` and `flow-health.*` the body still requires `subject`, and it is not looked up.
+Record one of the platform's own events by hand, to see your failure trigger run before anything fails. `type` is a type of the `platform` category (`run.failed`, `health.paused`, `flow-health.failing`, …), and `subject` names what the type is about, by its key: a schedule, trigger, table or endpoint of the project for a `run.*` or `health.*` type, one of its flows (`kind: "flow"`) for a `flow-health.*` type, whose event then carries that flow's id, key and health path. `mail.failed`, `price.changed` and `member.left` name no subject: leave it out. The event's data is an example of that type with `test: true`; every enabled trigger on the type fires as on a real one, and the flows they start are ordinary, charged runs. Recording the event costs nothing, changes no health and lists no failed run. Answers how many triggers listen: zero means nothing ran. Refused (422) for a type the platform does not have, a subject the project does not have, a subject of the wrong kind for the type, a missing one where the type names one, and one stated for a type that names none.
 
 **Request body**
 
@@ -65,7 +65,7 @@ Record one of the platform's own events by hand, to see your failure trigger run
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to record the event in. Required. |
 | `type` | `string` | yes | The event type inside the `platform` category, as `GET /v1/event-types` lists it: `run.failed`, `run.failures`, `run.partial`, `health.failing`, `health.recovered`, `health.quiet`, `health.pause-warned`, `health.paused`, `mail.failed`, `price.changed`, `member.left`, `flow-health.failing` or `flow-health.recovered`. |
-| `subject` | `object` | yes | The schedule, trigger, table or endpoint the event names. It must exist in the project. `mail.failed` (about a message), `price.changed` (about the project's prices), `member.left` (about a person) and `flow-health.*` (about a flow) do not use it: it is still required, and any subject of a valid kind is accepted. |
+| `subject` | `object` | no | What the event names, and it must exist in the project. A `run.*` or `health.*` type names a schedule, trigger, table or endpoint; a `flow-health.*` type names a flow (`kind: "flow"`), and the event carries that flow's id, key and health path. `mail.failed` (about a message), `price.changed` (about the project's prices) and `member.left` (about a person) name none: leave it out, and one stated is refused. |
 
 **Response `200`**
 

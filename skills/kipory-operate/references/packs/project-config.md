@@ -14,7 +14,8 @@ carry their own defaults.
 The load-bearing idea: **what gets stored is only the overrides.** The effective config — your
 defaults with the overrides laid over them — is computed when it is read, never written down.
 Change a default in the type and every project sees it immediately, except where something
-explicitly overrode it. Clearing an override is deleting a key, not writing the default back.
+explicitly overrode it. Clearing an override is deleting a key, not writing the default back —
+nor writing `null`, which is an override whose value is `null`.
 
 That inversion is what makes config safe to edit. If effective values were stored, every default
 change would need a migration across every project that had ever read it.

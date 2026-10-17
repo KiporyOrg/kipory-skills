@@ -370,13 +370,15 @@ runs in a slot of its own, so a project whose runs fill its concurrency cap can 
 
 ### Prove the failure trigger before something fails
 
-`POST /v1/platform-events/test` with `{ project, type, subject: { kind, key } }` records one
+`POST /v1/platform-events/test` with `{ project, type, subject?: { kind, key } }` records one
 event of that type for a subject the project has. Its `data` is an example with `test: true`;
 every enabled trigger on the type fires as on a real one, and the flows they start are ordinary,
 charged runs. Recording it costs nothing, moves no health and lists no failed run. The answer
-says how many triggers listen — zero means nothing ran. For `mail.failed`, `price.changed` and
-`member.left` and `flow-health.*` the `subject` is still required and is not used: any subject of a
-valid kind is accepted.
+says how many triggers listen — zero means nothing ran. The `subject` is what the type is about:
+a schedule, trigger, table or endpoint for `run.*` and `health.*`; one of the project's flows,
+`{ "kind": "flow", "key": "<flow key>" }`, for `flow-health.*`, whose data's `flow` and `healthPath`
+then name that flow; and none for `mail.failed`, `price.changed` and `member.left` — leave it out,
+since one stated is refused.
 
 ### Asking instead of being told
 

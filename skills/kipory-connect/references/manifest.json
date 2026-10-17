@@ -42,11 +42,11 @@
       "page": "kipory-plan/references/packs/planning-protocol.md"
     },
     "project-config": {
-      "hash": "78c33e381c8f",
+      "hash": "a153dab1d554",
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "8d6b3b150c74",
+      "hash": "2f9fa57bb7d7",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -82,7 +82,7 @@
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
-      "hash": "3944f5b2bdf4",
+      "hash": "11e9e968a9c0",
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
@@ -1554,7 +1554,7 @@
       "page": "kipory-connect/references/api/nodes-and-organizations.md"
     },
     "POST /v1/platform-events/test": {
-      "hash": "4d5a219b4bd7",
+      "hash": "d77ac767f3cc",
       "page": "kipory-operate/references/api/failures.md"
     },
     "POST /v1/project-config/": {
