@@ -171,6 +171,7 @@ A machine caller has no statement of its own: `GET /v1/credits/events` scopes to
 
 Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
 
+- Working around a problem in silence.
 - The balance read 404s on the api host.
 - The wallet may not be the project's.
 - Five 402 codes, five remedies. <!-- count: api-402-codes -->

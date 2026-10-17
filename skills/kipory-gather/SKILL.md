@@ -190,6 +190,7 @@ read waits out once when the wait is short.
 
 Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
 
+- Working around a problem in silence.
 - A vendor failure about the page is a warning, and the flow keeps going; a refused key fails the action.
 - A refused key or an account out of credit is not about the page, and it fails the action
 - The cache is the design, not an optimisation.

@@ -125,6 +125,7 @@ GET /v1/projects/{nodeId}/ingest/summary?window=7d   what the ingest workers fet
 
 Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
 
+- Working around a problem in silence.
 - A per-user table refuses a key's run.
 - A pool record's identity is its content.
 - A natural-key collision inside a flow discards the whole run.

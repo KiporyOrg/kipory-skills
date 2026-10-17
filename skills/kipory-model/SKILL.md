@@ -103,6 +103,7 @@ A vocabulary whose `matching` is `exact` needs no resolver. A `semantic` one cre
 
 ## What will bite you
 
+- **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report: `kipory-connect`, "When something stops you".
 - ⛔ **There is no multi-hop, and that absence is the contract.** `GET /v1/records/{id}/links/{relationKey}` walks one hop, one relation, and there is no depth parameter. Inside a flow the record read and list functions can carry a record's links per row and select records by link — opt-in settings on the action; check the function pages rather than assuming names.
 - **An empty traversal is not proof of no links.** A relation the project does not have answers 200 with an empty list, never 404 (`kipory-data` walks links). Check the relation exists before concluding a write went missing.
 - **A `link` field does not check that its target exists.** A field naming a record that does not exist, is in another project, or is the record itself saves without an error and produces no link. Read the link back (`GET /v1/records/{id}/links/{relationKey}`) when it matters.

@@ -97,6 +97,7 @@ Values are truncated at write time — embeddings reduced to a head marker, long
 
 Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
 
+- Working around a problem in silence.
 - Three silent things stand between a run and a trace.
 - `null` and `0` in the sampling rates mean opposite things.
 - A trace has no status field, and a whole `output` does not mean the run succeeded.

@@ -179,6 +179,7 @@ at all:
 
 ## What will bite you
 
+- **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report: `kipory-connect`, "When something stops you".
 - **Ask the PATCH's dry run about the edit, not the stored table.** `expand=contract` answers for
   what is stored; an agent holding an edited-but-unsaved type must send it — the drafted
   `definition`, or the proposed `dataTypeId`/`flowId`, with `validateOnly: true` — or it derives

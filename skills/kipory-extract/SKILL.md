@@ -100,6 +100,7 @@ none — the platform chunks a `search` field itself (`kipory-model`).
 
 ## What will bite you
 
+- **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report: `kipory-connect`, "When something stops you".
 - **`file.download-url` signs a link that does not expire by default.** It grants read access to the
   object's bytes for as long as it lives, and nothing is called to create it — the link is signed
   locally, so it exists the moment the action runs. Bind its lifetime — `neverExpires: false`, and

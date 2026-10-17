@@ -153,6 +153,22 @@ Models the same way. `GET /v1/nodes/{nodeId}/task-models`, at the project's id, 
 
 A role-floor `403` carries `details: { reason: "insufficient_project_role", requiredRole, grant: { nodeId, role } }` — what the route needs, and what your key holds. Compare the two roles: if `grant.role` is below `requiredRole`, ask the human for a key with that role. If it is at or above it, the role was never the problem: the node you addressed is not `grant.nodeId` or beneath it — you were given another project's id, or one that does not exist. The body cannot say which of those two, deliberately: an unresolvable node, a project never created and an insufficient role all refuse identically, so a `403` is not an existence oracle. A key holds **one node and one role**. Reach is plain descent — a grant at an organisation reaches every project beneath it; a grant at one project reaches that project only. The role is uniform over the whole reach and cumulative: read → `viewer`, design mutation → `editor`, destructive or structural → `admin`; creating a project needs `owner` at the parent. **A key is minted at `viewer` unless a role was asked for**, so if every write refuses while reads succeed, suspect the role first. Previewing or testing a flow — preview, eval runs, vector search — is `admin`. A record write that queues processing, a reprocess and a trigger replay are `editor`, and are charged like any live run.
 
+## When something stops you
+
+Tell Kipory with `POST /v1/reports`, then carry on with whatever workaround you have. Any key of the project files one, whatever its role. File a report when:
+
+- an answer was unexpected — a `500`, or a `platform-fault` in a run's timeline that `GET /v1/platform-status` does not already show (one report per outage, not one per run, with the run ids in `runIds`);
+- a workaround cost you more than a few minutes;
+- a doc or skill said something untrue, or left out what you needed;
+- something you need does not exist;
+- an answer told you something went wrong but not what to do about it.
+
+Do not file a refusal whose remedy you can apply — a `422` that names your field, a `403` whose `requiredRole` you lack — nor a failure your own configuration caused, such as your `$assert`, a `FLOW_OUTPUT_MISSING` or a wrong binding: `kipory-diagnose` first. Fix those.
+
+One problem per report: the second problem is a second report, and a summary of your session is not a report. The body needs `project`, `trying` (the goal, not the call), `happened` (the answer, the code, what you tried next) and `impact` — `blocked`, `worked-around` or `annoyance`. Add `kind`, `surface` (the route or function key), `expected`, the `requestId` of each failing answer in `requestIds`, a failing run's id in `runIds`, the skill you were following in `skill`, your model and host in `agent`, and about how many minutes it cost in `timeLostMinutes`. Never paste a key or a secret: it is replaced before the report is kept, and the report is less useful for it.
+
+The answer carries the report's `id` and `statusUrl`. **At the start of every session, read `GET /v1/reports?project=<nodeId>`** and look at what changed — `&state=received&state=looking&state=planned` narrows it to the open ones. A report reads `fixed` when its fix shipped, `answered` when Kipory answered it without one, and `staffAnswer` says what to do. The same text from the same key or person within 24 hours answers `200` with the first report. A key or person files at most 10 a minute and 20 in any 24 hours in one project.
+
 ## What the platform refuses a key, always
 
 <!-- key-unreachable-ok: GET /v1/projects — named ONLY to warn it is refused, never prescribed -->
@@ -179,6 +195,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
   (`rules`); a trigger on
   `platform/flow-health.failing` is told without asking.
 - **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.
+- **Working around a problem in silence.** Kipory cannot fix what nobody tells it. When something stops you, file a report — see "When something stops you" above — and read your open reports at the start of the next session.
 
 ## References
 
@@ -194,6 +211,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | `references/packs/templates.md`              | when to start a project from a shipped template                                                                                                                                             |
 | `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                                                                                             |
 | `references/refusal-codes.md`                | every refusal code once: what it means, what to do, where it appears                                                                                                                        |
+| `references/api/reports.md`                  | filing a report when something stops you, and reading where it stands                                                                                                                       |
 | `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                                                                               |
 | `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                                                                                      |
 | `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                                                                                        |

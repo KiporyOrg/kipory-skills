@@ -39,6 +39,7 @@ license: MIT
 
 ## What will bite you
 
+- **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report: `kipory-connect`, "When something stops you".
 - **Emitting the sheet and continuing straight into building it.** The sheet exists to be rejected cheaply, and it is only cheap if you stopped and let it be read. The same is true of the plan: applying a document whose plan nobody read spends the one cheap moment the loop has.
 - **No one to stop for.** When you were told to build end to end and no person will answer, the stops become records instead of waits. Put the sheet, and later the plan's `diagnostics` and `consequences`, into your report or log. Write down each question you would have asked, with the answer you chose. Then read the plan yourself against the sheet before you apply it. Stop only for something you cannot undo, such as a document that deletes rows.
 - **Writing the document with ids.** A document carries names; an id in it is matched only when this project holds a row with it, and otherwise ignored (`ignoredIds`). A document written from another project's export plans cleanly here — its ids are noise, its names are the content.

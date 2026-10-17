@@ -2,6 +2,37 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261017.182819 — 2026-10-17
+
+Synced from the Kipory monorepo at `1eab17225`.
+
+Routes added: `GET /v1/reports/`, `GET /v1/reports/{id}`, `POST /v1/reports/`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- added: `skills/kipory-connect/references/api/reports.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/pitfalls.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/pitfalls.md`
+- changed: `skills/kipory-diagnose/references/reading-the-timeline.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-extract/SKILL.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/pitfalls.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/pitfalls.md`
+- changed: `skills/kipory-plan/SKILL.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+
 ## 1.20261017.173630 — 2026-10-17
 
 Synced from the Kipory monorepo at `3f2f30123`.

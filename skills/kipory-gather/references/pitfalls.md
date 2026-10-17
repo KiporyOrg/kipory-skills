@@ -2,6 +2,7 @@
 
 Each bullet is a trap met while bringing data in from outside: what happens, and what to do about it. `SKILL.md` lists them by their first line.
 
+- **Working around a problem in silence.** Kipory cannot fix what nobody tells it. When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report with `POST /v1/reports`, then carry on with your workaround. When and how: `kipory-connect`, "When something stops you".
 - **A vendor failure about the page is a warning, and the flow keeps going; a refused key fails
   the action.** When the vendor cannot read what was asked for — a site error, a block, a timeout —
   `url.scrape` emits an empty page with a soft `SCRAPE_FAILED` warning (`RATE_LIMITED` for a 429,
