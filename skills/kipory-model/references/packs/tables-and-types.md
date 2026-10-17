@@ -1023,6 +1023,12 @@ refused.
   `POST /v1/records/{id}/reprocess`, which accepts a `pending` record only when
   no processing job is waiting or running for it — the record read's `pendingRun` says which.
   A reprocess is charged like a first processing and answers no action from the action-result cache.
+- **How many records wait and run now.** `GET /v1/tables/{id}?expand=processing` answers
+  `processing: { pending, running }` — the table's records still pending (queued, waiting for the
+  platform to start them again, or created and never queued — `expand=processingGaps` names the
+  flows that do that) and those being processed now. Records are processed on the platform's shared
+  worker slots, so how many run at once rises and falls with the load on them; each record run's
+  `queued` (on `GET /v1/runs/{runId}`) says how long it waited and what held it. Item-route only.
 
 - **Re-pointing a table that already has records** — a new `dataTypeId` or `ownerScope`
   (`TABLE_PINNED_BY_RECORDS`). Renaming it is not refused; see below.

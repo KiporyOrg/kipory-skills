@@ -72,6 +72,7 @@ Each item of `tables`:
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
+| `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 ### `POST /v1/tables`
@@ -185,6 +186,7 @@ Each item of `renames`:
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
+| `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
@@ -278,7 +280,7 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, vocabularies, uses, restamp, migration, embedding, vectorProgress, diagnostics, processingGaps. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, vocabularies, uses, restamp, migration, embedding, vectorProgress, diagnostics, processingGaps, processing. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -318,6 +320,7 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
+| `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 Each item of `contentFields`:
@@ -435,6 +438,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
+| `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |

@@ -214,6 +214,14 @@ run's invocation. Reach for them in this order:
     its daily push allowance; `statusError` then names it too.
   - `limitKey` — set when a limit refused the run: the limit's key, which
     `GET /v1/projects/{nodeId}/limits` lists (limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
+- **`queued`** (on the runs list and `GET /v1/runs/{runId}`) — how long the latest attempt waited
+  before a worker started it, `ms`, and `waitedFor`: each thing that held it, with its `ms` and how
+  many `times` the run was put back for it — `project-limit` (as many of the project's runs going
+  as `runs.queued-at-once` allows, `runs.started-at-once` for a run started per person),
+  `person-limit`, `rename-hold`, `database-outage`, `restart` (started again after one of the
+  platform's own failures, or after the worker running it stopped) — and `worker-slots`, the rest
+  of the time: mostly every worker slot busy with other runs. A run started again shows that
+  attempt's wait. Null on a run that records none (a synchronous call, a stream, a flow preview).
 - **`waiting`** — set while the platform is about to start the run again. When one of the
   platform's own failures closes an attempt (`platform-busy`, `platform-interrupted`,
   `platform-fault`, or `platform-account` from a throttled account, code `rate-limited`), the run

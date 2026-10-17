@@ -291,7 +291,10 @@ milliseconds billed). So the same action costs more when its work takes longer:
 `GET /v1/projects/{nodeId}/limits` answers every limit the project meets: `applied` is the number
 in force for this project, `default` the standard before Kipory sets another (`defaultDerived` says how, when the platform computes it), `setAt` says where Kipory set another, and
 where the platform counts it, `used` is how much is used now and `resetsAt` when the count starts
-again. A limit nothing counts has no `used` at all, never 0. Each limit has a stable `key`, and a
+again. A limit nothing counts has no `used` at all, never 0. For `runs.queued-at-once`, `used` is
+how many of the project's schedule, trigger and asynchronous-call runs hold a slot now; for
+`runs.started-at-once`, how many runs it started per person do. Record processing and flow previews
+are not counted, and when the count cannot be read `used` is absent. Each limit has a stable `key`, and a
 refusal at it names that key as `details.limitKey` — on the error of a refused call and on the
 `closing` of a run that failed at it — so a caller can look the limit up instead of guessing.
 

@@ -1,7 +1,8 @@
 {
-  "source": "ab9c620a854f2ff8f426877d30dd1a4613f20103",
+  "source": "d67d27e7bcfe89de0e0c12a2f9a5b8b06de8b97f",
   "since": "2026-08-14",
   "history": [
+    {"sha":"d67d27e7bcfe","skills":"A queued run says how long it waited and what held it, an asynchronous call's status says when it was accepted and started, and a project can read its runs at once and each table's records waiting and running (#3517)"},
     {"sha":"ab9c620a854f","skills":"One of the platform's vendor accounts running dry no longer stops unrelated work: a flow may carry past it, it is not run again in seconds, and each project using it is told once when it stops and once when it serves again (F-142) (#3515)"},
     {"sha":"b1f98a8a0681"},
     {"sha":"cac1914307de","skills":"DELETE /v1/me with a project-scoped session: delete as far as the project could (scope in the answer) (#3510)"},
@@ -1000,7 +1001,6 @@
     {"sha":"8b17d7e0cd06","skills":"The vault decides who pays the vendor, and nothing customer-facing said so (#2502)"},
     {"sha":"5f4001bdfbc2"},
     {"sha":"efbe3466fc3e"},
-    {"sha":"9f6a91cc94d9"},
-    {"sha":"86d39397ed02"}
+    {"sha":"9f6a91cc94d9"}
   ]
 }

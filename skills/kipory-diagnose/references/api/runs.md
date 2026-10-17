@@ -100,6 +100,7 @@ Each item of `runs`:
 | `actionsStarted` | `integer` | yes | The `x`: how many actions this run has been observed to START. Counted from the log, so it is what HAPPENED — never a plan. |
 | `lifecycle` | `"in-flight" \| "settled" \| "unknown"` | yes | Whether the run is still going. ⛔ Read it here, not from the timeline: a run with no closing frame may be in flight, dead or reaped. A synchronous call or a preview is `settled` once it has a closing frame (`closing` non-null) and `unknown` until then. ⚠️ `unknown` is ordinary rather than an error; a lifecycle state the platform has grown but this reader has not been taught resolves to it as well. It means `no outcome recorded`, never `finished`. |
 | `closing` | `object \| null` | yes | How a run ended, where that has been observed. |
+| `queued` | `object \| null` | yes | How long the latest attempt waited in the queue before it started, and why. Null on a run that records none (a synchronous call, a stream, a flow preview, a run started before this was recorded) and on one not yet started. |
 | `waiting` | `object \| null` | yes | Set while the platform waits to start the run again after one of its own failures. Such a run is `in-flight` and has no `closing`: the attempt that failed was not the run's end. Null otherwise. |
 
 Each item of `started`:
