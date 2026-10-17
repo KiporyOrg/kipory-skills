@@ -190,7 +190,7 @@ Write one record by hand into a project, judged by its type's declared shape exa
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
-| `tableKey` | `string` | yes | The table to write, as the project declares it. Must be a table this project defines; the platform's own reserved tables are not special here. |
+| `tableKey` | `string` | yes | The table to write, as the project declares it. Must be a table this project defines. |
 | `data` | `object` | yes | The submission — the record's `data`, judged against the shape the table's own type declares. What becomes of a key the type does not declare is therefore the TYPE's answer, not this route's: a strict type refuses it, an open one carries it through, and one that says nothing drops it silently. |
 | `userId` | `string \| null` | no | Who owns the record. REQUIRED for a person-owned (`user`) type and refused for a project-owned (`project`, pool) one. Must be an active end user of this project. |
 | `requestId` | `string` | no | Idempotency for a person-owned (`user`) write: two sends carrying one id converge on one record instead of two. A pool record needs none — an identical payload converges on one record. Omitted, every send is a new record. |

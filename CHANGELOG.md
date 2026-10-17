@@ -2,6 +2,31 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261017.135814 — 2026-10-17
+
+Synced from the Kipory monorepo at `db6427370`.
+
+- changed: `skills/kipory-build/references/functions/audio.transcribe.md`
+- changed: `skills/kipory-build/references/functions/file.copy.md`
+- changed: `skills/kipory-build/references/functions/file.read-text.md`
+- changed: `skills/kipory-build/references/functions/image.resize.md`
+- changed: `skills/kipory-build/references/functions/pdf.screenshot.md`
+- changed: `skills/kipory-build/references/functions/url.fetch-as-file.md`
+- changed: `skills/kipory-build/references/functions/url.fetch.md`
+- changed: `skills/kipory-build/references/functions/url.metadata.md`
+- changed: `skills/kipory-build/references/functions/url.screenshot.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+
 ## 1.20261017.123925 — 2026-10-17
 
 Synced from the Kipory monorepo at `4e81834b2`.

@@ -971,11 +971,9 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
   (`DELETE /v1/types/{id}?validateOnly=true`) counts in `derived.blockingReferences` how many would refuse it. It resolves a reference's source
   ids through three maps: `flowLabels` (flow id → label), `actionKeys` (action id → key) and `dataTypeKeys` (type id → key).
 
-- **Deleting a table** that has records, was seeded, or carries a reserved table name (a
-  platform-wide set, not something your project defines). The DELETE answers 409 `CONFLICT` for
-  records, naming the rule at the head of its message (`TABLE_PINNED_BY_RECORDS: …`); 409
-  `TABLE_SEEDED_READONLY` for a seeded table; and 422 `VALIDATION_FAILED` for a reserved name,
-  again named at the head of the message (`TABLE_KEY_RESERVED: …`). Deleting a table
+- **Deleting a table** that has records or was seeded. The DELETE answers 409 `CONFLICT` for
+  records, naming the rule at the head of its message (`TABLE_PINNED_BY_RECORDS: …`), and 409
+  `TABLE_SEEDED_READONLY` for a seeded table. Deleting a table
   removes only the descriptor; the type outlives it.
 
   ⚠️ It does **not** leave the relation graph alone, and the response says what went. A table
@@ -989,12 +987,12 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
   **Ask before you delete: `DELETE /v1/tables/{id}?validateOnly=true`** answers the
   delete's own verdict, writing nothing — the refusal the delete would answer right now, from the
   function it throws from, in the same code and words; `ok: true` when nothing stands in the way.
-  It covers all three refusals above. Beside it, **`derived.dependents`**
+  It covers both refusals above. Beside it, **`derived.dependents`**
   counts, through the delete's own reads and before the refusal is asked, the records that refuse
   it (`kind: "records"`, `refuses: true`) and the paired relations and other tables' `joins`
   it would change (`relations`, `joins`, `refuses: false`) — present on a refused verdict
   too, so a refused dry run names the count that refused it. ⛔ `total` sums only the refusing
-  counts, so a seeded or reserved table reads `total: 0` and is refused anyway — never gate on
+  counts, so a seeded table reads `total: 0` and is refused anyway — never gate on
   `total`. It needs ADMIN on the table, the delete's own floor.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a

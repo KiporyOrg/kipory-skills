@@ -23,7 +23,7 @@ Leaving the model empty uses the project's transcription setting. The same file,
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `language` | string, at least 2 characters, at most 5 characters | no | — | Language code such as `en`; empty means detect it automatically. |
-| `maxBytes` | integer, more than 0 | no | `25000000` | Largest file to send, in bytes; bigger files are refused. |
+| `maxBytes` | integer, more than 0, at most 100000000 | no | `25000000` | Largest file to send, in bytes; bigger files are refused. |
 | `model` | string | no | `""` | Which model transcribes; empty uses the project's transcription setting. |
 
 ## Worked example

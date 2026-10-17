@@ -24,8 +24,8 @@ Fits within the maximum width and height. A file that is not an image fails, so 
 | `fit` | `inside` \| `cover` \| `contain` | no | `"inside"` | How the image fits the box: keep ratio, crop, or letterbox. |
 | `format` | `preserve` \| `jpeg` \| `webp` \| `png` | no | `"preserve"` | Output format; `preserve` keeps the input's format where it can. |
 | `maxHeight` | integer, more than 0 | no | `256` | Maximum output height in pixels. |
-| `maxInputBytes` | integer, more than 0 | no | `50000000` | Largest input file to accept, in bytes. |
-| `maxInputPixels` | integer, more than 0 | no | `50000000` | Largest source image allowed, as width times height. ⚠️ Checked before decoding; raise it for real panoramas, lower it to block hostile files. |
+| `maxInputBytes` | integer, more than 0, at most 100000000 | no | `50000000` | Largest input file to accept, in bytes. |
+| `maxInputPixels` | integer, more than 0, at most 268402689 | no | `50000000` | Largest source image allowed, as width times height. ⚠️ Checked before decoding; raise it for real panoramas, lower it to block hostile files. |
 | `maxWidth` | integer, more than 0 | no | `256` | Maximum output width in pixels. |
 | `quality` | integer, 1 to 100 | no | `80` | Quality from 1 to 100 for jpeg and webp; png ignores it. |
 

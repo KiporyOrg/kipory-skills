@@ -20,7 +20,7 @@ Copies a stored file into a new one this run owns. Only files of the run's proje
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxBytes` | integer, more than 0 | no | `50000000` | The largest file to copy, in bytes; a bigger one fails early. ⚠️ Checked against the stored size before reading, so a huge file fails cheaply. |
+| `maxBytes` | integer, more than 0, at most 100000000 | no | `50000000` | The largest file to copy, in bytes; a bigger one fails early. ⚠️ Checked against the stored size before reading, so a huge file fails cheaply. |
 
 ## Worked example
 

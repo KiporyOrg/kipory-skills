@@ -302,7 +302,7 @@ whether the cost is acceptable; the verdict is about quality.
 
 ⚠️ **A run compared against nothing says why.** A suite's first run answers with
 `reason: "no-baseline"`; a run whose previous run exists but could not be loaded answers
-`reason: "baseline-unreadable"`. Both have `delta: null` and `costChanges: []`. A run whose
+`reason: "baseline-unreadable"`. Both have `delta: null` and `costChanges: []`. Eval runs and scores leave with run history (`kept-for.run-history-days`), but each suite keeps its newest successful run and its scores, so a suite left alone for months still compares its next run. A run whose
 comparison was refused answers `reason: "not-comparable"`, and its `delta.suppressedReason` says
 why. None of the three regresses unless a case flipped — a contract flip's reason then takes the
 place of theirs. Only a `false` beside a null `reason` means "compared, and nothing got worse" —

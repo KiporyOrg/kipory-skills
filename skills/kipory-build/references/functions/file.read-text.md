@@ -21,7 +21,7 @@ Anything that is not text fails rather than being mangled; PDFs have their own a
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxBytes` | integer, more than 0 | no | `5000000` | Largest file to read, in bytes; a bigger one fails. |
+| `maxBytes` | integer, more than 0, at most 100000000 | no | `5000000` | Largest file to read, in bytes; a bigger one fails. |
 
 ## Worked example
 

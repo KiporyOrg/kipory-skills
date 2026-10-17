@@ -116,7 +116,7 @@ Some destructive changes are refused outright:
 
 - deleting a table that holds records, or re-pointing its type or owner scope
   (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold; deleting a
-  reserved or seeded table, whatever it holds;
+  seeded table, whatever it holds;
 - deleting a flow something still references, or an action whose output later actions read;
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
 - deleting a vocabulary without `confirm=true`, or while another vocabulary nests under it;

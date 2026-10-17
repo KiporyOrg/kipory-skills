@@ -432,7 +432,7 @@ Each item of `calls`:
 
 ### `GET /v1/projects/{nodeId}/history`
 
-The applied changes to the project's configuration, newest first, one action per entry (one action may change many rows). For one action's full change list, `GET /v1/projects/{nodeId}/history/{structureVersion}`. A record of what happened, not something to go back to: to keep a flow as it is and restore it later, take a checkpoint (`/v1/flow-checkpoints?flowId=`). For runs and calls, the runs routes.
+The applied changes to the project's configuration, newest first, one action per entry (one action may change many rows). For one action's full change list, `GET /v1/projects/{nodeId}/history/{structureVersion}`. A record of what happened, not something to go back to: to keep a flow as it is and restore it later, take a checkpoint (`/v1/flow-checkpoints?flowId=`). Entries leave with the project's run history (`kept-for.run-history-days`). For runs and calls, the runs routes.
 
 **Path parameters**
 

@@ -28,7 +28,7 @@ Reads JSON, plain text or an XML feed. A 4xx answer or a refused address fails t
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
 | `headerSlots` | object | no | — | Headers read from slots; an empty slot leaves one out. |
 | `headers` | object | no | — | Headers with fixed values; put a credential in `secret` instead. |
-| `maxBytes` | integer, more than 0 | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body too long for its slot is cut to fit and ends in `[TRUNCATED]`. |
+| `maxBytes` | integer, more than 0, at most 100000000 | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body too long for its slot is cut to fit and ends in `[TRUNCATED]`. |
 | `maxRedirects` | integer, 0 to 10 | no | `3` | Maximum HTTP redirect hops to follow. |
 | `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that only answers POST. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
 | `query` | object | no | — | Query parameters with fixed values, added to the address. |

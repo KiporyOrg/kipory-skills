@@ -31,7 +31,7 @@ Keeps the file on the record and returns a reference to it.
 | `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the action; `soft` returns an empty file and continues. ⚠️ A bad address, private address or storage failure fails the action even under `soft`. |
 | `headerSlots` | object | no | — | Headers read from slots; an empty slot leaves one out. |
 | `headers` | object | no | — | Headers with fixed values; put a credential in `secret` instead. |
-| `maxBytes` | integer, more than 0 | no | `25000000` | Largest download in bytes; a bigger one fails. |
+| `maxBytes` | integer, more than 0, at most 100000000 | no | `25000000` | Largest download in bytes; a bigger one fails. |
 | `maxRedirects` | integer, 0 to 10 | no | `5` | How many redirects to follow at most. |
 | `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that needs it. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
 | `query` | object | no | — | Query parameters with fixed values, added to the address. |

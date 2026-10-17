@@ -541,7 +541,7 @@ Each item of `consequences`:
 
 ### `DELETE /v1/tables/{id}`
 
-Delete one table. Refused (409) while records of it exist, and for a seeded or reserved table. Relations paired only with it go with it, and other tables' `joins` it voids are cleared — both reported. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with `derived.dependents`: the records that refuse it and the relations and joins it would take along. The type it took its shape from stays. Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+Delete one table. Refused (409) while records of it exist, and for a seeded table. Relations paired only with it go with it, and other tables' `joins` it voids are cleared — both reported. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with `derived.dependents`: the records that refuse it and the relations and joins it would take along. The type it took its shape from stays. Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 

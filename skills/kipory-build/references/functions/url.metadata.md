@@ -22,7 +22,7 @@ Reads only the page head, not the body. An unreachable site is reported in the r
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `maxBytes` | integer, more than 0 | no | `65536` | Most bytes of the page head to read. |
+| `maxBytes` | integer, more than 0, at most 100000000 | no | `65536` | Most bytes of the page head to read. |
 | `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow before giving up. ⚠️ A site that redirects more times than this is reported with the code `redirect-limit`. |
 | `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. ⚠️ Limits the one request; keep it below the action's own `timeoutMs` or a silent site fails it. |
 | `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
