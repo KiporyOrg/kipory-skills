@@ -103,7 +103,7 @@ Each item of `relations`:
 
 ### `GET /v1/records`
 
-One page of a project's records of one table (`tableKey`), with that table's declared columns — filtered by declared fields (`field=name:op:value`, ops `eq` `gt` `gte` `lt` `lte`), terms, owner, status and time, and ordered and paged by cursor. `id=` resolves named records instead, `key=` finds one by its natural key, and `mode=semantic` ranks by meaning. For a question the address cannot spell (links, streams, `in`), use `POST /v1/records/query`; for one record whole, `GET /v1/records/{id}`; for the project's links as rows, `GET /v1/links`.
+One page of a project's records of one table (`tableKey`), with that table's declared columns — filtered by declared fields (`field=name:op:value`, ops `eq` `gt` `gte` `lt` `lte`), terms, owner, status and time, and ordered and paged by cursor. `id=` resolves named records instead, `key=` finds one by its natural key, and `mode=semantic` ranks by meaning. `fields=` adds the named fields' values to every row's `values`, columns or not, so many records' fields are one read. For a question the address cannot spell (links, streams, `in`), use `POST /v1/records/query`; for one record whole, `GET /v1/records/{id}`; for the project's links as rows, `GET /v1/links`.
 
 **Query**
 
@@ -128,6 +128,7 @@ One page of a project's records of one table (`tableKey`), with that table's dec
 | `page` | `integer` | no | Jump to this page, 1-based, resolved as an OFFSET and therefore approximate while records are arriving. Refused (422) when this route declines to count — a phrase search is never counted, and an unnarrowed corpus past the threshold is not. Walk with `after`/`before` instead, which needs no total. |
 | `id` | `string \| string[]` | no | Name records by id — repeat for more than one, up to 100. The answer is the named records that exist in this project, of any type (or of `tableKey`, when one is sent), in the standard row shape; an id that names nothing here is simply absent, never an error, so a caller holding ids that may have been deleted resolves the survivors in one read. ⛔ It is a LOOKUP, not a query: refused beside `q`, `mode=semantic`, `sort`, `after`, `before`, `page`, `key` and every narrowing (`field`, `term`, `owner`, `status`, `createdAfter`, `createdBefore`). The rows come back ordered by id, never paged: `paging` and both cursors are null. |
 | `key` | `string` | no | The record of `tableKey` whose NATURAL KEY is exactly this — equality, case and all. Needs `tableKey`: a natural key is unique only within one. At most one record for a project-owned type; for a person-owned type one per owner, so send `owner` as well to get the one. Use `q` to find a record by PART of a name; this is for a key the caller already holds (a pasted URL, an external id). Surrounding whitespace is trimmed, as it is from the stored key. Refused beside `id` and `mode=semantic`. |
+| `fields` | `string \| string[]` | no | Fields whose values each row carries in `values`, by name — repeat for more than one, up to 32. A name is one top-level field the table declares, submitted or produced by its flow, whether or not it is a column; a dotted path is not read, and a stream field is refused (its events are not on a row). Needs `tableKey`, so never beside `subject=any`; works beside every other parameter, `id` included. Values come whole, never cut short; a field the record holds no value for is `null`. A name the table does not declare is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`, with the table's fields in the message. Omitted, rows carry no `values`. |
 
 **Response `200`**
 
@@ -170,6 +171,7 @@ Each item of `records`:
 | `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
 | `owner` | `object` | yes | Whether this record belongs to the project or to one person. |
 | `fields` | `object[]` | yes | One entry per column, in the same order. |
+| `values` | `object` | no | The values of the fields named with `fields=`, keyed by name in the order asked; `null` where the record holds none. Absent when no field was named. |
 | `terms` | `object[]` | yes | Vocabulary the record is filed under, CAPPED on the wire. Compare `termCount` to learn whether this is all of them. |
 | `termCount` | `integer` | yes | How many terms the record actually carries. ⛔ NOT `terms.length` once the cap bites. |
 | `fileCount` | `integer` | yes | How many files are attached. Counted, never listed, per row. |
@@ -555,7 +557,7 @@ Ask a project's records one question: a conjunction of clauses — `field` (`eq`
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `records` | `object[]` | yes | The records satisfying every clause — in keyset order (newest first) for an exact-only query, in closeness order when a semantic clause ran. The same row shape the list route answers. On a query of several tables (`tableKeys`) each row carries its own table's fields, and `scores` names the table of the row at each position. |
+| `records` | `object[]` | yes | The records satisfying every clause — in keyset order (newest first) for an exact-only query, in closeness order when a semantic clause ran. The list route's row shape, without `values`. On a query of several tables (`tableKeys`) each row carries its own table's fields, and `scores` names the table of the row at each position. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
 | `paging` | `null` | yes | Always null: a query is never counted. An exact-only answer is walked by `after` / `before`; a ranking has no position to count from. |

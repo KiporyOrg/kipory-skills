@@ -29,9 +29,12 @@ GET /v1/records?project=<node>&tableKey=<type>&q=<text>            natural key +
 GET /v1/records?project=<node>&tableKey=<type>&mode=semantic&q=<text>   a bounded ranking, no pages
 GET /v1/records?project=<node>&id=<id>&id=<id>                     name records by id (up to 100), any type; missing ids are absent
 GET /v1/records?project=<node>&tableKey=<type>&key=<naturalKey>    the one record with exactly that natural key
+GET /v1/records?project=<node>&tableKey=<type>&fields=<a>&fields=<b>   each row also carries those fields' values, in `values`
 GET /v1/records/{id}                                               one record whole: its `data`, its `version`, its type's contract
 POST /v1/records/query  { project, tableKey, clauses, order?, limit? }   fields, terms, links, streams and one phrase in one question
 ```
+
+A row's `fields` holds only the table's queryable columns, not its `data`. To read some fields of many records, name them with `fields=` (up to 32, `tableKey` required) on the page you already read, or beside `id=` for records you hold ids of — one request a page, never one `GET /v1/records/{id}` a record. A name is a top-level field the table declares, submitted or produced by its flow; a value comes whole, `null` where the record has none; an unknown or dotted name, or a stream field, is 422 `RECORD_PROJECTION_UNKNOWN_FIELD` listing the table's fields.
 
 Narrow the list with repeated `field=name:operator:value` and `term=vocabulary:key` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100. A `term=` condition matches **active** terms only: a record filed under a candidate term is not found by it until the term is admitted (`kipory-model`).
 

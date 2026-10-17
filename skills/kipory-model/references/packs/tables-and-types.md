@@ -713,6 +713,12 @@ name that is not one is 422 `RECORD_PROJECTION_UNKNOWN_FIELD`. The list changes 
 the same records, order, cursor, `scores` and passages. Name the fields whenever the table has
 long ones — an action's answer has one size limit, and a page of whole records can pass it. With
 `tableKeys`, a name is one any of the tables has, and each row carries the ones its own table has.
+The records list takes `fields=` too, with a different job: a row there already carries its
+columns, and each name adds that field's value to the row's `values` — any top-level field the
+table declares, submitted or produced by its flow, column or not, `null` where the record holds
+none. It needs `tableKey`, takes up to 32 names, works beside `id=`, and refuses a name the table
+does not declare (a dotted path included), or a stream field, with the same 422. To read a few fields of many records,
+this is one request a page instead of one `GET /v1/records/{id}` a record.
 
 **How close each record is.** An answer ranked by the query's own `semantic` clause carries
 `scores` beside `records`: one `{ id, score }` per returned record, in the records' order. The

@@ -314,7 +314,8 @@ from the target of a relation back to its sources is `?direction=incoming`. It a
 limit, whether to include expired links, and an ordering by one of the relation's declared link
 properties. Each link names its peer by id — `peerRecordId`, beside its `direction` and `origin` —
 and carries none of the peer's fields: read the peers in one call with
-`GET /v1/records?project=<node>&id=<peerRecordId>&id=…` (up to 100 ids).
+`GET /v1/records?project=<node>&id=<peerRecordId>&id=…` (up to 100 ids), adding `tableKey` and
+`fields=<name>` when you need fields that are not the table's columns.
 
 Three behaviours worth knowing before you debug an empty answer:
 

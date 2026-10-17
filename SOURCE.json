@@ -1,7 +1,11 @@
 {
-  "source": "ed40b7cf27117b3f71dd8f1a49bf6b1458120749",
+  "source": "c08ef1b1078a2a59424e4c8bed473c39eaeb1554",
   "since": "2026-08-13",
   "history": [
+    {"sha":"c08ef1b1078a","skills":"The records list carries the values of the fields a caller names, so many records' fields are one read instead of one read a record (#3505)"},
+    {"sha":"67ebae6513ba"},
+    {"sha":"9d7778ec1262"},
+    {"sha":"d48acdd7ca94"},
     {"sha":"ed40b7cf2711","skills":"Six more tables are fenced to their project in the database, customer patterns run on RE2, and the mobile sign-in redeems only with its PKCE verifier (platform review wave 2: security) (#3499)"},
     {"sha":"0ff8c6c9bb9d","skills":"A project can see where its credits go — reasoning tokens, efforts honoured on Claude, the runs a run started, what a stopped call costs — and is told when a model or price it pays moves (#3488)"},
     {"sha":"5f0c309296c6"},
@@ -997,10 +1001,6 @@
     {"sha":"d81d36083528"},
     {"sha":"7a77c26411bb"},
     {"sha":"14bf1e180669"},
-    {"sha":"275e9ba23caa"},
-    {"sha":"82e71defd59a"},
-    {"sha":"626d1550b25b"},
-    {"sha":"d2405fbbff7b"},
-    {"sha":"cdee2b3321e7","skills":"Turn zero was the one node in the skill graph with no edge out (#2481)"}
+    {"sha":"275e9ba23caa"}
   ]
 }
