@@ -6,8 +6,8 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `ab6e1c4eaa18` | `version` on `GET /v1/capability-packs` |
-| functions | `99d18b7f9710748fa7b42065aafe15025a539bb8069998866f60857bb899bed8` | `version` on `GET /v1/functions` |
+| packs | `e19d4c618db8` | `version` on `GET /v1/capability-packs` |
+| functions | `799d16617fd0f0dc7615349abb76efb70840d80931724312a1d35166cc39569e` | `version` on `GET /v1/functions` |
 | api | `1d791c3546ac` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 | codes | `a224c79d6035` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 

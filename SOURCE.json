@@ -1,7 +1,8 @@
 {
-  "source": "98fc85614838eb97c561108350608864ab042960",
+  "source": "3f2f30123d38770d743457dbd5f5ba94f8ef15a9",
   "since": "2026-08-14",
   "history": [
+    {"sha":"3f2f30123d38","skills":"A post's media item says a video's length, size, still and every size it comes in, and a Telegram video arrives with its length, size and still (F-144) (#3514)"},
     {"sha":"98fc85614838","skills":"A stopped run names the clock that stopped it, its limit, how long it had run and the actions it cut short, and a failed asynchronous call's status names the action and its code (#3513)"},
     {"sha":"c2cbb4dc5563","skills":"A document that leaves a stored null config override out removes it, so a config key drops in one apply; a test flow-health event names one of the project's flows (#3511)"},
     {"sha":"99e98826620c","skills":"Wave 3 of the platform review, operator UI and API contract: writes say what really happened, a crash keeps the frame and is reported, endpoints answer codes a product can branch on, lists page, whole-document saves lock, and the API document declares its errors and method names (#3509)"},
@@ -1000,7 +1001,6 @@
     {"sha":"6bc9b61eb625"},
     {"sha":"f04034f3fcac"},
     {"sha":"f7b433c6d46a"},
-    {"sha":"18001676cbb3"},
-    {"sha":"fb3616ba917b"}
+    {"sha":"18001676cbb3"}
   ]
 }

@@ -138,6 +138,7 @@ for a Telegram message that payload carries:
 <!-- field-ok: updateType — a field of the connector's event payload (the watcher writes it; no request carries it) -->
 <!-- field-ok: deletedUpstream — a field of the connector's event payload (the watcher writes it; no request carries it) -->
 <!-- field-ok: links — a field of the connector's event payload (the watcher writes it; no request carries it) -->
+<!-- field-ok: thumbnailFileId — a field of the connector's event payload (the inbox drain writes it; no request carries it) -->
 
 - `channel` — the handle or id the source watches.
 - `messageId` — the message's own id in that channel.
@@ -149,9 +150,12 @@ for a Telegram message that payload carries:
   keeps the words but not the address behind them.
 - `media` — one entry per attachment, each carrying its kind, its mime type, and this project's own
   `fileId` for the copy (or null when no copy was made). A copy is made for a new message only,
-  never for an edit, and only for an attachment of 50 MB or less.
+  never for an edit, and only for an attachment of 50 MB or less. A video also carries
+  `durationSec`, `width` and `height` where Telegram gave them, and `thumbnailFileId`: this
+  project's copy of the video's own still (or null when there is none, as on an edit). The still is
+  copied also when the video is too large to be.
 - `fileIds` — the flat list of materialised file ids, for a flow that wants them without walking
-  the attachments.
+  the attachments. A video's still is not among them.
 - `forwardedFrom` — the origin when the message was forwarded, otherwise null.
 - `views` — the view count the watcher last saw.
 - `reactions` — the reaction counts the watcher last saw.
@@ -163,7 +167,8 @@ An edited message is a second event with a different id; a deleted one a third.
 
 **A copy is kept only once something claims it.** Attach it to a record (`fileIdsSlot` on
 `record.create`, or `POST /v1/files/{id}/attach`) and it lives with the record. A copy nothing
-claims is deleted after at least 7 days.
+claims is deleted after at least 7 days — a video's still too, so attach its `thumbnailFileId` when
+you want to keep it.
 
 ## What the platform refuses
 

@@ -4,7 +4,7 @@
 
 Read the posts from an X post, profile, or search link.
 
-Each post comes with its text, author, time, media and engagement counts.
+A video's link is its largest file; a smaller one among its variants may fit a storage limit.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
