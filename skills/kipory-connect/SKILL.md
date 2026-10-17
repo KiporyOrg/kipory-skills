@@ -172,6 +172,12 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 - **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider types are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/types/seed`.
 - **A retired project stops its own keys.** A key granted at the project answers `401` to every call, reads included, until the project is restored. A key granted at the organisation above still reads it, and a write naming it answers 409 — except the restore and the purge, switching off a schedule, trigger or source, and deleting a secret.
 - **A declared query string is strict.** On a route whose reference lists query parameters, an unlisted key or value — `expand` on a resource that has none, an `expand` value that resource does not offer, a typo — is a 422. A read whose reference lists no query parameters ignores any you send, so a misspelled flag there is silent. A write — POST, PUT, PATCH or DELETE — refuses any query key it does not list (422) and writes nothing, and one that takes no body refuses a body with any key. Your project's own endpoints (defined with `/v1/api-endpoints`) are not part of this rule: what each accepts is set by its own definition.
+- **A new build can turn an untouched flow red.** When `sha` on `GET /health` changes, read
+  `GET /v1/flows?project=<nodeId>&expand=health` and fix any errors: a rule the build added or
+  tightened can fail a flow nobody edited while its runs keep succeeding, and the next write that
+  rewrites the action it is on is refused for it. `GET /v1/platform-status` names those codes
+  (`rules`); a trigger on
+  `platform/flow-health.failing` is told without asking.
 - **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.
 
 ## References

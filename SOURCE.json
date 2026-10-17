@@ -1,7 +1,8 @@
 {
-  "source": "35d8fe2ee7c3210c1ce0b82cc7c3f157c0828038",
+  "source": "4e81834b2efc313d5e96e3fde643f218959e94c1",
   "since": "2026-08-14",
   "history": [
+    {"sha":"4e81834b2efc","skills":"A project is told when a flow's health gains or loses its errors, whether an edit or a new build moved it, and platform-status names the diagnostic codes a build added (F-137) (#3508)"},
     {"sha":"35d8fe2ee7c3","skills":"The server names the document format it reads and the skills say when theirs differs, and a failed url.screenshot can be carried past with failureMode soft (#3507)"},
     {"sha":"9bca455f8647","skills":"A builder's key can make test users in a project and call it as them; a project is told when a person leaves; a fan-out says when it runs one branch at a time (399) (#3504)"},
     {"sha":"cec748e770d1","skills":"One project document can drop a config key, delete a config namespace with its type, and delete a flow with the flows that call it; the docs say once what replay \"clean\" removes (#3506)"},
@@ -1000,7 +1001,6 @@
     {"sha":"a373180aeae1"},
     {"sha":"6e07ddb344d1"},
     {"sha":"8e26e2089a17"},
-    {"sha":"6776ec0247bd"},
-    {"sha":"d81d36083528"}
+    {"sha":"6776ec0247bd"}
   ]
 }

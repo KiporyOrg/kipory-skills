@@ -255,24 +255,26 @@ Each logged `event` names its project `project`, the node id every `?project=` t
 
 ## Being told when a run fails: a trigger on a platform event
 
-Every project has the event category `platform`, with eleven types the platform records itself.
+Every project has the event category `platform`, with thirteen types the platform records itself.
 You cannot add to it, change it or emit into it; `GET /v1/event-types` lists them, and a project
 document neither creates nor prunes them. **A failure trigger is an ordinary trigger on one of
 them, bound to an ordinary flow** — one that posts to your chat, opens a ticket, writes a record.
 
-| Event                 | Recorded when                                                                 | `data` is              |
-| --------------------- | ----------------------------------------------------------------------------- | ---------------------- |
-| `run.failed`          | An unattended run failed for good — the first of an episode for its subject   | `PlatformRunFailed`    |
-| `run.failures`        | More runs of that subject failed: one summary per window                      | `PlatformRunFailures`  |
-| `run.partial`         | Runs of a subject finished having tolerated a failure: one summary per window | `PlatformRunPartial`   |
-| `health.failing`      | A subject's runs began failing for a reason that is its own                   | `PlatformHealthChange` |
-| `health.recovered`    | A failing subject ran clean again                                             | `PlatformHealthChange` |
-| `health.quiet`        | A schedule that should have run has not                                       | `PlatformHealthChange` |
-| `health.pause-warned` | A failing schedule or trigger will be paused in 24 hours                      | `PlatformHealthChange` |
-| `health.paused`       | It was paused                                                                 | `PlatformHealthChange` |
-| `mail.failed`         | A message a run sent was refused, failed for good, or was returned            | `PlatformMailFailed`   |
-| `price.changed`       | A model the project follows moved, or a price it paid this week changed       | `PlatformPriceChanged` |
-| `member.left`         | A person's seat in the project ended: they left, were removed, or were erased | `PlatformMemberLeft`   |
+| Event                   | Recorded when                                                                 | `data` is                  |
+| ----------------------- | ----------------------------------------------------------------------------- | -------------------------- |
+| `run.failed`            | An unattended run failed for good — the first of an episode for its subject   | `PlatformRunFailed`        |
+| `run.failures`          | More runs of that subject failed: one summary per window                      | `PlatformRunFailures`      |
+| `run.partial`           | Runs of a subject finished having tolerated a failure: one summary per window | `PlatformRunPartial`       |
+| `health.failing`        | A subject's runs began failing for a reason that is its own                   | `PlatformHealthChange`     |
+| `health.recovered`      | A failing subject ran clean again                                             | `PlatformHealthChange`     |
+| `health.quiet`          | A schedule that should have run has not                                       | `PlatformHealthChange`     |
+| `health.pause-warned`   | A failing schedule or trigger will be paused in 24 hours                      | `PlatformHealthChange`     |
+| `health.paused`         | It was paused                                                                 | `PlatformHealthChange`     |
+| `mail.failed`           | A message a run sent was refused, failed for good, or was returned            | `PlatformMailFailed`       |
+| `price.changed`         | A model the project follows moved, or a price it paid this week changed       | `PlatformPriceChanged`     |
+| `member.left`           | A person's seat in the project ended: they left, were removed, or were erased | `PlatformMemberLeft`       |
+| `flow-health.failing`   | A flow's health went from no errors to some — an edit, or a new build's rules | `PlatformFlowHealthChange` |
+| `flow-health.recovered` | That flow's health has no errors again                                        | `PlatformFlowHealthChange` |
 
 An unattended run is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, or
 a record's processing. Its **subject** is what it ran for — `{ kind, key }` with `kind` one of
@@ -334,6 +336,24 @@ account may be gone. It arrives within about a minute of the seat ending. Use it
 your shared records keep about the person — a copy, a count, a mention — which no erasure reaches.
 A seat at an organization above the project is an operator's and is not told.
 
+**What `flow-health.failing` carries.** A flow's health — what `GET /v1/flows/{id}/health` reports —
+has errors where it had none. Its runs may still be succeeding: health judges the configuration, not
+a run, and an error a flow already has refuses no save until a write rewrites the action it is on.
+The platform measures a project's flows after a change to its configuration (usually within a
+minute), after a new build starts serving (over the following minutes, projects whose
+configuration moved first), and at least hourly, and tells each flow once when its errors go above
+0 and once (`flow-health.recovered`) when they are back at 0 — not again while it stays failing.
+The first measure of a project tells every flow failing then, however long it has been. `data`
+carries the `flow` (`id`, `key`), the `errors` and `warnings` counts, the distinct error `codes`,
+`firstErrors` (at most ten: `code`, the `actionKey` it is on, and the platform's sentence), and
+`cause` — what moved the project, not this one flow: `first-check` on its first measure, `build`
+when a new build is serving (its rules judged every flow afresh, edited or not), `change` when the
+project's configuration moved (any edit — this flow, one it calls, a table it reads), `other` for
+what moves health with neither, such as a secret or a sending address. Then the `build` and
+`previousBuild` that measured it, `measuredAt`, and `healthPath`. A `recovered` event also carries
+`clearedCodes`: the error codes it had when last measured failing. Which codes a build added,
+raised or reworded is on `GET /v1/platform-status` (`rules`).
+
 **Nothing is recorded** for an attempt the platform is about to start again, for a run a person
 cancelled, for a preview, or for a synchronous call — whose caller already has the answer.
 
@@ -355,7 +375,8 @@ event of that type for a subject the project has. Its `data` is an example with 
 every enabled trigger on the type fires as on a real one, and the flows they start are ordinary,
 charged runs. Recording it costs nothing, moves no health and lists no failed run. The answer
 says how many triggers listen — zero means nothing ran. For `mail.failed`, `price.changed` and
-`member.left` the `subject` is still required and is not used: any subject of a valid kind is accepted.
+`member.left` and `flow-health.*` the `subject` is still required and is not used: any subject of a
+valid kind is accepted.
 
 ### Asking instead of being told
 

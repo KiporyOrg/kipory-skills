@@ -149,7 +149,20 @@ Send a PARTIAL document freely: a section you leave out is untouched, and so is 
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
 required here too (one row asks for more than its create: an `evals` suite must state `scorers`,
 `[]` for a contract suite) — but of its optional fields only the ones you state are compared and
-written; one you omit keeps its value. The simplest edit is the exported row with one field changed.
+written; one you omit keeps its value. ⚠️ A flow's actions are the exception for their run settings. A flow
+whose actions the document leaves as stored is not written, so a setting left out of one stays —
+even one a rule now refuses: a generator that stops writing `timeoutMs` leaves the stored limit in
+place, and the plan reads the action as unchanged. But when the document changes ANY action of a
+flow, it writes every action of that flow as stated, and the `timeoutMs`, `tries`, `tryDelayMs`,
+`reuseResultsForMinutes`, `onFailure`, `failureSlot`, `onOversize`, `modelId` and `systemPrompt`
+left out of each go back to their defaults — on the actions the plan shows `unchanged` too — and
+its input wiring (`inputStreams`, `inputPaths`, `inputProjectionNames`) left out is not kept from
+the stored action: what the save derives from its settings and prompt is derived again, and the
+rest is cleared. Its task, slot, description, condition, `enabled`,
+types and prompt are kept. State every run setting you mean an action to keep, and `null` to reset
+one (`"timeoutMs": null`).
+The simplest edit is the
+exported row with one field changed.
 A field the row's own PATCH does not take — a vocabulary's `cardinality`, a profile's `modelId`, a
 trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
 it is fine (an export states everything), stated CHANGED it is refused on its own path, never

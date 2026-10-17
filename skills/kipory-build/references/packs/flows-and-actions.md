@@ -513,12 +513,15 @@ action that sets none behaves as it always has.
   same figure keyed by action id, without the rows. Neither is on the bootstrap: the deployment's limits move it without a design write.
   `run.budgetMs` is a limit the function
   keeps whatever you set — 5 s for `value.transform` — so only a shorter limit changes anything
-  there.
+  there. ⚠️ A control action — a fan-out, a merge, a sub-flow call (`flow.invoke`) and the rest whose
+  catalog `phase` is `control` — reads no `timeoutMs` at all: one set on it is an error,
+  `RUN_TIME_LIMIT_NOT_READ`. A called flow's actions keep their own limits.
 - **`tries`, `tryDelayMs`** — the number of tries including the first (1–5), and a fixed wait between
   them. They REPLACE the function's own queue attempts rather than adding to them, and apply to actions
   that run as queued jobs — the functions whose catalog `phase` is `ingest`: fetches, file
   readers, model calls (`text.generate`, `text.decide`) and `term.upsert`. An action
-  that runs in the flow itself is tried once. Only a failure a second try can
+  that runs in the flow itself is tried once, and a control action (`flow.invoke` included) is never
+  tried: on either, `tries` or `tryDelayMs` is an error, `RUN_TRIES_NOT_SUPPORTED`. Only a failure a second try can
   fix is tried again — never a missing API key, a blocked web address, bad input or a used-up quota.
   ⚠️ An action that sets `tries` has every try's model or vendor call charged; on the function's own
   tries — an action that sets only `tryDelayMs` included — those calls are charged once however many
@@ -531,7 +534,11 @@ action that sets none behaves as it always has.
   sub-flow fails everything that flow staged is dropped, none of the call's outputs is written,
   and its `failureSlot` holds `sub-flow-failed` with the cause's code. Refused on every other
   control action, on an action that may write, and on an action — or a call — writing a slot a
-  required flow output is bound to.
+  required flow output is bound to (`RUN_CONTINUE_NOT_ALLOWED`). ⚠️ A function that keeps a file
+  may write — `url.fetch-as-file` is one — so `continue` is refused on it too. To carry on past a
+  download that fails, set the function's own `failureMode: "soft"` (a fetch that fails answers an
+  empty file and a warning; a refused address or a failed save still fails the action) and leave
+  `onFailure` at `fail-run`.
   ⚠️ A run that carried on past a failure does not close `succeeded`: it closes **`partial`**
   (`closing.verdict` on `GET /v1/runs`, with `closing.absorbed` counting what it carried on past).
   Its changes are applied and its row reads finished; an unattended one is reported to the project

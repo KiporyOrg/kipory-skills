@@ -14,7 +14,13 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/platform-status`
 
-Whether each of the platform's own vendor and model-provider accounts is answering calls right now: `ok`, `refusing` or `unknown`, and since when. An action that runs on the platform's key for a `refusing` account fails with the `platform-fault` phase (an endpoint answers 503 `PLATFORM_DEPENDENCY_UNAVAILABLE`) and is not charged; nothing in the project can fix it, and it clears when the platform's account is topped up. An action that spends a key stored on the project is not affected. The same answer for one task's model is `serving` on `GET /v1/nodes/{nodeId}/task-models`. Also names the project document format this server reads (`documentFormat`); a document in any other format is refused, so compare it with the format your own tools write. Any signed-in caller.
+Whether each of the platform's own vendor and model-provider accounts is answering calls right now — `ok`, `refusing` or `unknown`, and since when — and, under `rules`, which diagnostic codes this build added, raised, reworded, lowered or removed against the build served before it, or the build `since` names (422 for a sha this deployment never served). An action that runs on the platform's key for a `refusing` account fails with the `platform-fault` phase (an endpoint answers 503 `PLATFORM_DEPENDENCY_UNAVAILABLE`) and is not charged; nothing in the project can fix it, and it clears when the platform's account is topped up. An action that spends a key stored on the project is not affected. The same answer for one task's model is `serving` on `GET /v1/nodes/{nodeId}/task-models`. Also names the project document format this server reads (`documentFormat`); a document in any other format is refused, so compare it with the format your own tools write. Any signed-in caller.
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `since` | `string` | no | A build's full sha, as `GET /health` named it: compare the rules with that build instead of the one served just before this one — the build you last checked against. A sha this deployment never served is refused (422). |
 
 **Response `200`**
 
@@ -23,6 +29,7 @@ Whether each of the platform's own vendor and model-provider accounts is answeri
 | `evaluatedAt` | `string \| null` | yes | When the platform last finished checking its accounts, ISO-8601; null if it never has. The checks run every few minutes. |
 | `documentFormat` | `object` | yes | The project document format this server reads; a document in any other format is refused with `DOCUMENT_VERSION_UNSUPPORTED`. Compare it with the format your own tools write before exporting or applying a document. |
 | `accounts` | `object[]` | yes | Every vendor and model provider the platform can call on its own key, in a fixed order. This is about the PLATFORM's accounts only: an action that spends a key stored on the project or an organisation above it is not affected by a `refusing` row here. |
+| `rules` | `object` | yes | What this build changed in the diagnostic codes a save and a flow's health are judged by, read off the platform's own registry. A rule that fires in more places under an unchanged code and unchanged words is not listed: each project hears of that through `platform/flow-health.failing` on the flows it reaches. After a change of `sha` on `GET /health`, read `GET /v1/flows?project=…&expand=health` too. |
 
 Each item of `accounts`:
 

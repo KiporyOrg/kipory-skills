@@ -184,6 +184,17 @@ at all:
   `definition`, or the proposed `dataTypeId`/`flowId`, with `validateOnly: true` — or it derives
   declarations against a field vocabulary it is about to replace. Send the `uses` the save would
   send too: the dry run re-derives them against the proposed contract.
+- **A flow nobody edited can start failing health after a roll.** A new build can add a rule or
+  tighten one, and its health then reads errors though its runs keep succeeding; a write that
+  rewrites the action an error is on — a save of it, or a document that changes it — is refused for
+  it. When `sha` on `GET /health` changes,
+  read `GET /v1/flows?project=<nodeId>&expand=health` and fix every error; `GET /v1/platform-status`
+  names the codes the build added or tightened (`rules`). To be told rather than ask, put a trigger on
+  `platform/flow-health.failing` (`kipory-operate`'s triggers pack). And leaving a field out of a
+  document keeps its value, but not a run setting: one changed action resets the run settings
+  (`timeoutMs`, `tries`, `onFailure`, `modelId` and the rest) left out of every action of that
+  flow. State each one you mean to keep, and `null` to clear one a rule now refuses (a control
+  action's `timeoutMs`).
 - **A refused delete is the good outcome.** The dangerous ones are the changes that succeed and
   quietly invalidate something — a join declaration, a cached digest, an endpoint whose flow no
   longer returns what it promised.
