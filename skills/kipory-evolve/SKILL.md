@@ -60,6 +60,15 @@ run, not a rehearsal. `kipory-build` covers it.
 
 ## Change many things at once: the document
 
+**Check the format first.** A document states its format in its `kipory:` key (`kipory: 7`), and the
+deployment reads exactly one, with no overlap: `documentFormat.version` on
+`GET /v1/platform-status`, beside a line saying what it is. A document in any other format — one
+you hold, or one older skills would write — is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`
+before anything is planned. The `kipory-connect` skill's sync script compares the format these
+skills write with the deployment's, and its `document` line says plainly when they differ: update
+these skills when the deployment's is newer, then convert a held file with that skill's upgrade
+script.
+
 Export the project (`GET /v1/projects/{nodeId}/document`), edit the file, plan it (the body is the
 document itself), apply it as `{ version, document }` with the version the export or the plan
 answered — the project's current one. `kipory-build` owns that loop and the document's format. What

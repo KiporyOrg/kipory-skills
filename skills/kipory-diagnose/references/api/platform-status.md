@@ -14,13 +14,14 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/platform-status`
 
-Whether each of the platform's own vendor and model-provider accounts is answering calls right now: `ok`, `refusing` or `unknown`, and since when. An action that runs on the platform's key for a `refusing` account fails with the `platform-fault` phase (an endpoint answers 503 `PLATFORM_DEPENDENCY_UNAVAILABLE`) and is not charged; nothing in the project can fix it, and it clears when the platform's account is topped up. An action that spends a key stored on the project is not affected. The same answer for one task's model is `serving` on `GET /v1/nodes/{nodeId}/task-models`. Any signed-in caller.
+Whether each of the platform's own vendor and model-provider accounts is answering calls right now: `ok`, `refusing` or `unknown`, and since when. An action that runs on the platform's key for a `refusing` account fails with the `platform-fault` phase (an endpoint answers 503 `PLATFORM_DEPENDENCY_UNAVAILABLE`) and is not charged; nothing in the project can fix it, and it clears when the platform's account is topped up. An action that spends a key stored on the project is not affected. The same answer for one task's model is `serving` on `GET /v1/nodes/{nodeId}/task-models`. Also names the project document format this server reads (`documentFormat`); a document in any other format is refused, so compare it with the format your own tools write. Any signed-in caller.
 
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `evaluatedAt` | `string \| null` | yes | When the platform last finished checking its accounts, ISO-8601; null if it never has. The checks run every few minutes. |
+| `documentFormat` | `object` | yes | The project document format this server reads; a document in any other format is refused with `DOCUMENT_VERSION_UNSUPPORTED`. Compare it with the format your own tools write before exporting or applying a document. |
 | `accounts` | `object[]` | yes | Every vendor and model provider the platform can call on its own key, in a fixed order. This is about the PLATFORM's accounts only: an action that spends a key stored on the project or an organisation above it is not affected by a `refusing` row here. |
 
 Each item of `accounts`:

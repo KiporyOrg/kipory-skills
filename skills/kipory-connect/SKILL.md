@@ -36,7 +36,9 @@ GET /v1/capability-packs    → 200, the pack index and a `version`
 
 `/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error.
 
-Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare functions) in the environment. It compares four layers bundled with these skills — the packs, the function catalog, the API pages and the refusal-code page — against what this deployment serves, and writes nothing.
+Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare functions and the document format) in the environment. It compares four layers bundled with these skills — the packs, the function catalog, the API pages and the refusal-code page — against what this deployment serves, and writes nothing.
+
+Its `document` line compares the project document format these skills write with the one format the deployment reads, `documentFormat.version` on `GET /v1/platform-status` (it needs `KIPORY_API_KEY`). A new format replaces the old one with no overlap, so ✗ on that line means every document these skills write is refused with `DOCUMENT_VERSION_UNSUPPORTED` until the two match; the line says which side is newer and what to install.
 
 Its first line names the bundle that ran: `skills bundle <version> — <directory>`. Several versions of these skills can sit side by side on one machine (a plugin cache keeps old ones), and each copy of the script compares its own pages, so a run from an older copy reports every layer as differing. If the directory on that line is not the one this skill was loaded from, run the script from this skill's directory.
 
@@ -48,7 +50,7 @@ Then a `skills` line says whether these skills are ahead of the deployment. They
 | `1`  | at least one layer differs, or these skills carry changes the deployment does not run yet. It does not mean the others matched: a layer marked `not compared` can sit beside it, so read every line |
 | `2`  | nothing differs, and something could not be compared — the deployment was unreachable, or a layer could not be read; the line says which                                                            |
 
-Without `KIPORY_API_KEY` the function catalog cannot be read, so the best outcome is exit 2. Under a layer that differs it prints one line per pack, function or route:
+Without `KIPORY_API_KEY` the function catalog and the document format cannot be read, so the best outcome is exit 2. Under a layer that differs it prints one line per pack, function or route:
 
 - `changed` — both sides have it, with different content;
 - `added` — the deployment has it, these files do not;
@@ -105,7 +107,11 @@ were renamed states `kipory: 2`, one exported before the flow words were renamed
 `kipory: 3`, one exported before the link functions named their relation `relationKey` states
 `kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, one
 exported before a type was called a type in the document states `kipory: 6`, and all five are
-refused (`DOCUMENT_VERSION_UNSUPPORTED`).
+refused (`DOCUMENT_VERSION_UNSUPPORTED`). The deployment reads exactly one format, with no
+overlap: `documentFormat` on `GET /v1/platform-status` names it, with a line saying what it is.
+When it is newer than the version below, update these skills first — the skills that write a new
+format are published when the change merges, normally before a deployment rolls it — then
+convert.
 `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
 version 7 in one run, and a second run changes nothing:
 
@@ -170,22 +176,22 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 
 ## References
 
-| File                                         | What it answers                                                                                                                                         |
-| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `references/conventions.md`                  | the rules every design resource shares: hosts, ids, roles, `expand=`, `version`, readiness, errors, paging, streams, preview                            |
-| `references/glossary.md`                     | the words that collide — agent skill, action, function, record, term, event, preview — and which meaning the API uses                                   |
-| `references/api/projects.md`                 | create, lifecycle, address, settings, history, the generated descriptions, element metadata                                                             |
-| `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                                           |
-| `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                                               |
-| `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                                                          |
-| `references/api/templates.md`                | the project templates a create can start from                                                                                                           |
-| `references/packs/templates.md`              | when to start a project from a shipped template                                                                                                         |
-| `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                                                         |
-| `references/refusal-codes.md`                | every refusal code once: what it means, what to do, where it appears                                                                                    |
-| `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                                           |
-| `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                                                  |
-| `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                                                    |
-| `scripts/sync.mjs`                           | compares the bundled snapshot with the live deployment and names the packs, functions and routes that differ, and the skill changes it does not run yet |
+| File                                         | What it answers                                                                                                                                                                             |
+| -------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/conventions.md`                  | the rules every design resource shares: hosts, ids, roles, `expand=`, `version`, readiness, errors, paging, streams, preview                                                                |
+| `references/glossary.md`                     | the words that collide — agent skill, action, function, record, term, event, preview — and which meaning the API uses                                                                       |
+| `references/api/projects.md`                 | create, lifecycle, address, settings, history, the generated descriptions, element metadata                                                                                                 |
+| `references/api/bootstrap.md`                | the one read, its sections, the change stream                                                                                                                                               |
+| `references/api/nodes-and-organizations.md`  | organisations and invites                                                                                                                                                                   |
+| `references/api/platform-reads.md`           | the OpenAPI document, the pack index, the coded-route manifest                                                                                                                              |
+| `references/api/templates.md`                | the project templates a create can start from                                                                                                                                               |
+| `references/packs/templates.md`              | when to start a project from a shipped template                                                                                                                                             |
+| `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                                                                                             |
+| `references/refusal-codes.md`                | every refusal code once: what it means, what to do, where it appears                                                                                                                        |
+| `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                                                                               |
+| `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                                                                                      |
+| `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                                                                                        |
+| `scripts/sync.mjs`                           | compares the bundled snapshot with the live deployment and names the packs, functions and routes that differ, the skill changes it does not run yet, and a document format it does not read |
 
 ## Your first flow
 

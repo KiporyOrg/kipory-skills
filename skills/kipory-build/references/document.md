@@ -8,7 +8,7 @@
   - Where the row API takes an id (`dataTypeId`, `flowId`, `resolverFlowId`) the document takes the key (`type`, `flow`, `resolver`).
   - A bare flow key is this project's; a platform flow is `system:<key>`.
   - An action's `ref` is a type's key.
-  - The document states `kipory: 7`; a `kipory: 2` to `kipory: 6` document is refused with `DOCUMENT_VERSION_UNSUPPORTED`, and the `kipory-connect` skill's upgrade script converts it. A version-7 document that still says `schema` or a table's `shape` is refused with `DOCUMENT_KEY_RENAMED` at that key.
+  - The document states `kipory: 7`; a `kipory: 2` to `kipory: 6` document is refused with `DOCUMENT_VERSION_UNSUPPORTED`, and the `kipory-connect` skill's upgrade script converts it. The one format a deployment reads is `documentFormat.version` on `GET /v1/platform-status`, with no overlap between formats: check it before you plan or apply a document. A version-7 document that still says `schema` or a table's `shape` is refused with `DOCUMENT_KEY_RENAMED` at that key.
 - **A partial document is fine.** A section left out is untouched, and so is every row you do not name; of an existing row's optional fields, only the ones you state are compared. A row's required fields are required, because a row is its create body.
 - **Absence never deletes.** Removal is `delete: true` on a row, or `prune: true` on a map to remove every row of that map you did not name — and any document that removes something needs ADMIN.
 - **Owned collections are stated whole.** A flow's `actions`, a vocabulary's `terms`, a suite's `cases` and a relation's `pairings` replace the owner's, so a member you leave out of one IS a removal, with the same ADMIN floor.

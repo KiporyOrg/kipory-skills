@@ -7,8 +7,10 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 | Source | Version | Served live as |
 | --- | --- | --- |
 | packs | `4f8df86f33a7` | `version` on `GET /v1/capability-packs` |
-| functions | `bf53a6861ae33f4b49493b0632574aa57a7f7ba4e41a94a61fe722f69ac0675d` | `version` on `GET /v1/functions` |
-| api | `612aaaca20ad` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| functions | `616033539a918fd3e261c9f573afa7af5168a4617ce2fb00ed2704be49d6c4f6` | `version` on `GET /v1/functions` |
+| api | `91d3d066b2af` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 | codes | `21dd8f063195` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
 Function pages: 119 customer functions, key set `245016404d14`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
+
+Document format: `7` — the `kipory:` version `scripts/upgrade-document.mjs` in this skill converts to and these skills write. The deployment serves the one it reads as `documentFormat.version` on `GET /v1/platform-status`; when they differ, every document in this bundle's format is refused with `DOCUMENT_VERSION_UNSUPPORTED`.

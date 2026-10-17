@@ -102,8 +102,8 @@
 import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-/** The version this script converts TO. */
-const TARGET_VERSION = 7;
+/** The version this script converts TO — the format these skills write. */
+export const TARGET_VERSION = 7;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -685,6 +685,19 @@ const STAGES = [
     slotNote: () => false,
   },
 ];
+/* The conversions run one version at a time to TARGET_VERSION, or the script
+ * refuses to load: a target raised with no conversion to it would stamp a
+ * document with the old version and refuse every file in the previous one. */
+STAGES.forEach((stage, i) => {
+  if (stage.to !== stage.from + 1 || (i > 0 && STAGES[i - 1].to !== stage.from))
+    throw new Error(
+      `upgrade-document: the conversion from version ${stage.from} does not follow the one before it`,
+    );
+});
+if (STAGES.at(-1).to !== TARGET_VERSION)
+  throw new Error(
+    `upgrade-document: its conversions end at version ${STAGES.at(-1).to}, not at ${TARGET_VERSION}, the version it converts to`,
+  );
 const CONVERTS = `this script converts version ${STAGES.map((stage) => stage.from).join(" or ")} to ${TARGET_VERSION}`;
 /** The steps a document stating `version` still has to take, or null for a version not read. */
 const stagesFrom = (version) => {

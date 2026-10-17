@@ -29,6 +29,14 @@
 // source — the skills publish only when they change — unless it is older than
 // every recorded merge.
 //
+// The project document format is compared too, and it is not a hash: a
+// deployment reads exactly one format (`documentFormat.version` on
+// `GET /v1/platform-status`, which needs KIPORY_API_KEY), and a new one
+// replaces the old with no overlap. When the format these skills write
+// (`Document format:` in versions.md, the version `upgrade-document.mjs`
+// converts to) is another, every document they write is refused with
+// DOCUMENT_VERSION_UNSUPPORTED, and the script says so before that happens.
+//
 // Usage (from any directory — it finds versions.md beside itself):
 //   KIPORY_BASE_URL=https://api.example.com [KIPORY_API_KEY=…] node <this skill>/scripts/sync.mjs
 //
@@ -262,6 +270,11 @@ const keySetHash = (keys) =>
 const DOCUMENTED =
   /^Function pages: (\d+) customer functions, key set `([0-9a-f]+)`/m;
 const documentedMatch = DOCUMENTED.exec(versionsText);
+const DOCUMENT_FORMAT = /^Document format: `(\d+)`/m;
+const bundledFormatMatch = DOCUMENT_FORMAT.exec(versionsText);
+const bundledFormat = bundledFormatMatch
+  ? Number(bundledFormatMatch[1])
+  : undefined;
 const bundledDocumented = documentedMatch
   ? { count: Number(documentedMatch[1]), hash: documentedMatch[2] }
   : undefined;
@@ -386,7 +399,75 @@ if (lag.newer) {
   differs.push("skills");
 }
 
+// The reads are independent; `get` never rejects, and a shape this script
+// cannot read is caught below, so neither does this. Two
+// layers read the same document, so each path is fetched once. Started here,
+// beside the document format's read, and awaited after its line is printed.
+const fetched = new Map();
+const getOnce = (path, withKey) => {
+  const key = `${withKey} ${path}`;
+  if (!fetched.has(key)) fetched.set(key, get(path, withKey));
+  return fetched.get(key);
+};
+const layerReads = Promise.all(
+  LAYERS.map(async (layer) => {
+    if (layer.withKey && !apiKey) return { error: "set KIPORY_API_KEY" };
+    const res = await getOnce(layer.path, layer.withKey);
+    if (res.error) return { error: res.error };
+    // A deployment that answers in a shape this script does not read (a null
+    // row, a missing list) is a layer not compared, never a crash.
+    try {
+      return {
+        live: layer.pick(res.json),
+        documented: layer.documented?.(res.json),
+        items: layer.items(res.json),
+      };
+    } catch (err) {
+      return {
+        error: `the answer is not the shape this script reads (${err?.message ?? String(err)})`,
+      };
+    }
+  }),
+);
+
 const uncompared = [];
+
+// The document format: one number each side, compared before the layers
+// because a mismatch makes every document these skills write a refusal.
+const format = await (async () => {
+  if (bundledFormat === undefined)
+    return {
+      why: "versions.md in this bundle names no document format — it predates the line",
+    };
+  if (!apiKey) return { why: "set KIPORY_API_KEY to read it" };
+  const res = await get("/v1/platform-status", true);
+  if (res.error) return { why: `GET /v1/platform-status: ${res.error}` };
+  const live = res.json?.documentFormat;
+  if (typeof live?.version !== "number")
+    return {
+      why: "this deployment does not name the format it reads on GET /v1/platform-status",
+    };
+  return {
+    live: live.version,
+    description:
+      typeof live.description === "string" ? live.description : undefined,
+  };
+})();
+if (format.live === undefined) {
+  console.log(
+    `  ${"document".padEnd(9)} bundled: ${bundledFormat ?? "?"}   live: (not readable — ${format.why})`,
+  );
+  uncompared.push("document");
+} else if (format.live === bundledFormat) {
+  console.log(
+    `  ${"document".padEnd(9)} bundled: ${bundledFormat}   live: ${format.live}   ✓ these skills write the document format the deployment reads`,
+  );
+} else {
+  console.log(
+    `  ${"document".padEnd(9)} bundled: ${bundledFormat}   live: ${format.live}   ✗ DIFFERS — these skills write document format ${bundledFormat}; the deployment reads only ${format.live}${format.description ? ` (${format.description})` : ""}`,
+  );
+  differs.push("document");
+}
 // label → how many items were named under a layer that differs; absent when
 // the items could not be compared.
 const itemised = new Map();
@@ -470,27 +551,7 @@ const report = ({ label }, result, local) => {
   }
 };
 
-// The reads are independent; `get` never rejects, so neither does this. Two
-// layers read the same document, so each path is fetched once.
-const fetched = new Map();
-const getOnce = (path, withKey) => {
-  const key = `${withKey} ${path}`;
-  if (!fetched.has(key)) fetched.set(key, get(path, withKey));
-  return fetched.get(key);
-};
-const results = await Promise.all(
-  LAYERS.map(async (layer) => {
-    if (layer.withKey && !apiKey) return { error: "set KIPORY_API_KEY" };
-    const res = await getOnce(layer.path, layer.withKey);
-    return res.error
-      ? { error: res.error }
-      : {
-          live: layer.pick(res.json),
-          documented: layer.documented?.(res.json),
-          items: layer.items(res.json),
-        };
-  }),
-);
+const results = await layerReads;
 LAYERS.forEach((layer, i) =>
   report(layer, results[i], bundled.get(layer.label)),
 );
@@ -504,6 +565,13 @@ if (differs.includes("skills")) {
   console.log(
     `  ${"skills".padEnd(9)} the changes listed are in these skills and not yet on the deployment: where a refusal contradicts what a skill says about them, the deployment is right until it rolls them — or use the bundle whose source it runs (CHANGELOG.md names each version's source)`,
   );
+}
+if (differs.includes("document")) {
+  const advice =
+    format.live > bundledFormat
+      ? `the deployment reads a newer document format than these skills write, with no overlap: a document in format ${bundledFormat} is refused with DOCUMENT_VERSION_UNSUPPORTED. Install the skills bundle that writes format ${format.live} (CHANGELOG.md names each version's source) before you export, plan or apply a document; the deployment's own export is already format ${format.live}`
+      : `these skills write document format ${bundledFormat}, newer than the ${format.live} the deployment reads: until it rolls, every document they write is refused with DOCUMENT_VERSION_UNSUPPORTED — use the bundle whose format it reads, or wait for the roll`;
+  console.log(`  ${"document".padEnd(9)} ${advice}`);
 }
 for (const layer of LAYERS) {
   if (!differs.includes(layer.label)) continue;
@@ -520,6 +588,12 @@ for (const layer of LAYERS) {
   console.log(`  ${layer.label.padEnd(9)} ${advice}`);
 }
 for (const label of uncompared) {
+  if (label === "document") {
+    console.log(
+      `  ${"document".padEnd(9)} not compared — before you plan or apply a document, read documentFormat.version on GET /v1/platform-status: a document whose \`kipory:\` line states another version is refused`,
+    );
+    continue;
+  }
   const layer = LAYERS.find((l) => l.label === label);
   console.log(`  ${label.padEnd(9)} not compared — ${layer.advice}`);
 }

@@ -492,7 +492,7 @@
       "page": "kipory-build/references/functions/url.scrape.md"
     },
     "url.screenshot": {
-      "hash": "ac1634d13259",
+      "hash": "e33f972d72cc",
       "page": "kipory-build/references/functions/url.screenshot.md"
     },
     "url.send": {
@@ -1032,7 +1032,7 @@
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/platform-status/": {
-      "hash": "9e5ba121ffe0",
+      "hash": "702904490577",
       "page": "kipory-diagnose/references/api/platform-status.md"
     },
     "GET /v1/project-config/": {

@@ -106,9 +106,18 @@ PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes i
   and a long page can run the model call into its time limit. Make the capture smaller — a
   narrower `viewportWidth`, `format: "jpeg"` with a lower `jpegQuality` — give the model action
   `"timeoutMs": 120000` (the most an action takes) and `"tries": 2`, and screenshot only the pages
-  whose look is the question. `maxBytes` does not trim: a capture over it fails the action. Outside a
+  whose look is the question. `maxBytes` does not trim: a capture over it fails the action, unless `failureMode` is `soft`. Outside a
   record's processing flow the image is a working file, removed when the run ends
   (`kipory-extract`, "What will bite you").
+- **To carry on past a screenshot that fails, set `failureMode: "soft"`, not `onFailure`.**
+  `url.screenshot` keeps a file, so `"onFailure": "continue"` is refused on it. Under `soft` a
+  screenshot that cannot be taken within its limits — no picture back, a picture over
+  `maxBytes`, a download that breaks — gives an empty picture and an `action-warned` row
+  (`SCRAPE_FAILED`), and the run goes on; name a `failureSlot` to get the failure as a value. A
+  Firecrawl error other than a refused key, or a rate limit, already ends that way under `hard`. A
+  refused Firecrawl key, an address that is not `http` or `https` and a storage failure still fail
+  the action. Guard the
+  actions that read the picture with `slotPresent`.
 - **There is no feed reader, and no upsert.** An RSS or Atom feed is `url.fetch` with its own
   period, a regex cut into items and a fan-out that looks each item up by its link, then creates
   or updates it — a `key` use on the link does not make a re-poll update the item, it makes a

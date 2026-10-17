@@ -12,7 +12,7 @@ Saves the page as a PNG or JPEG. Each fresh shot is paid; repeats within a day a
 - **I/O:** `string` → `file`
 - **Also found as:** website screenshot, capture page, page image
 - **Reads:** One URL — the page to capture. Anything that is not `http` or `https` is refused before the request goes out. _(shape hint: `string`)_
-- **Emits:** A `FileRef` for the captured image — PNG by default, JPEG when you ask for it. An empty one when there was no URL to capture.
+- **Emits:** A `FileRef` for the captured image, PNG or JPEG. An empty one when there was no URL, or when a failed capture became a warning.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** Firecrawl — Renders the page in a headless browser and captures a full-page screenshot via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
@@ -25,6 +25,7 @@ Saves the page as a PNG or JPEG. Each fresh shot is paid; repeats within a day a
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the action; `soft` returns an empty picture and continues. ⚠️ A refused key, an address that is not `http` or `https`, or a storage failure still fails the action. |
 | `format` | `png` \| `jpeg` | no | `"png"` | Image format: PNG is lossless, JPEG is smaller. |
 | `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality from 1 to 100; used only for JPEG. |
 | `maxBytes` | integer, more than 0 | no | `10000000` | Largest image in bytes; a bigger one fails. |
@@ -88,16 +89,24 @@ Output:
 }
 ```
 
-#### Bad address
+#### Carry on past a failure
 
-Not a web address, so nothing is captured and the result is an empty file reference.
+Under `failureMode: "soft"`, a failed screenshot gives an empty file reference and a warning; the run goes on.
 
 Reads `string` → emits `file` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "failureMode": "soft"
+}
+```
 
 Input:
 
 ```
-ftp://legacy.example.com/old-archive
+https://slow.example.org/very-long-page
 ```
 
 Output:
