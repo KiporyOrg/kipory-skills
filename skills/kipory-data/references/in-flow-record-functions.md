@@ -143,13 +143,21 @@ chain fails `RECORD_HANDOFF_DEPTH_EXCEEDED` rather than queue a tenth.
 `replay` says what the new run keeps from the last one. Every mode runs every action again, against
 the flow as it is now — a flow edited since the record last ran is not a reason for refusal.
 
-| `replay`           | Generated files and term assignments  | The previous run's output                           | Use it for                                               |
-| ------------------ | ------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| `resume` (default) | kept                                  | kept: a slot this run does not emit keeps its value | retrying a record that failed part-way                   |
-| `rerun`            | kept                                  | kept, the same way                                  | a poll that re-fetches on a schedule                     |
-| `clean`            | stripped by the worker before the run | dropped                                             | reprocessing: the flow, the file or the data was changed |
+| `replay`           | Generated files and term assignments                                    | The previous run's output                           | Use it for                                               |
+| ------------------ | ----------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| `resume` (default) | kept                                                                    | kept: a slot this run does not emit keeps its value | retrying a record that failed part-way                   |
+| `rerun`            | kept                                                                    | kept, the same way                                  | a poll that re-fetches on a schedule                     |
+| `clean`            | terms removed before the run; files replaced only when the run succeeds | dropped                                             | reprocessing: the flow, the file or the data was changed |
 
-`resume` and `rerun` behave the same on a record run; only `clean` differs.
+`resume` and `rerun` behave the same on a record run; only `clean` differs. `clean` removes the
+record's term assignments before the run, and a failed run does not bring them back. Its processed
+fields and generated files are replaced only when the run succeeds, and the record is indexed again
+then; a failed run keeps them. A successful run removes each generated file the record held before
+it that the run did not attach again and its processed fields do not name, even when it made no new
+one. A record that is not ready — failed, or waiting to run again — is taken out of search by the
+index sweep, whatever its replay mode, until a run succeeds. A run that "succeeds" by writing a
+failure note on the row is a success here: to keep the last file until a new one exists, use
+`rerun`, which leaves the old file in place (beside the new one, unless the new one reuses its key).
 
 **A failed or ready record needs no status reset.** `record.enqueue-process` on a record whose
 processing failed or finished returns it to processing, with the replay mode the action states, as

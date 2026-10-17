@@ -191,6 +191,15 @@ does. A row re-created from an export in another project starts unpaused.
 Removal is always explicit — `delete: true` on a row, or `prune: true` on a map to remove every
 row of that map you did not name. Absence alone never deletes. A `delete: true` row states nothing
 but its `id`; any other field beside it is refused `DOCUMENT_DELETE_WITH_FIELDS` on the row's path.
+A config namespace is removed the same way, `<namespace>: { delete: true }` under `project`'s
+`config`, with nothing beside it (it has no `id`); that map takes no `prune` (a `prune: true` there is
+refused).
+
+One document can remove what depends on what. A type that drops a config key is judged against the
+values the same document writes to that namespace, so the key and its stored value go in one
+apply; a type and the namespace it shapes can be deleted together; and a flow is deleted after
+every flow the same document deletes that calls it. A caller that stays refuses the called flow's
+row with `FLOW_HAS_DEPENDENTS`, naming the caller by key.
 
 The answer holds the `version` the project was read at — the lock an apply presents —
 `ignoredIds`, three lists, their `counts` and a verdict:

@@ -19,7 +19,7 @@ A ready or failed record is set pending and processed again. One being processed
 | --- | --- | --- | --- | --- |
 | `mode` | `full` \| `from-cache` | no | `"full"` | `full` re-runs every action; `from-cache` replays the unchanged ones. ⚠️ Use `from-cache` only when the earlier derived output still exists. |
 | `recordIdSlot` | string | yes | — | The slot holding the id of the record to queue. ⚠️ Scoped to the signed-in user, so an id owned by anyone else queues nothing and reports no error. |
-| `replay` | `resume` \| `rerun` \| `clean` | no | `"resume"` | What a re-run carries over; `clean` replaces the last output on success. ⚠️ `clean` replaces output and generated files when the run succeeds, removing those of actions now switched off. |
+| `replay` | `resume` \| `rerun` \| `clean` | no | `"resume"` | What a re-run carries over; `clean` replaces the last output on success. ⚠️ `clean` keeps files until the run succeeds, then removes earlier generated files it did not reattach or name. |
 | `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ## Worked example

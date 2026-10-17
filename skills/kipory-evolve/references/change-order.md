@@ -283,6 +283,19 @@ rehearsal of its own. What to know before writing one:
   ownership change exactly as its own PATCH does, and the finding lands on the row's path in your
   document. A change of its `key` is a rename: its records move with it.
 
+One apply can do each of these, so a cleanup needs no second document and no hand-made `DELETE`:
+
+- **Drop or rename a config key.** Remove the key from the `*Config` type and state that
+  namespace's `values` without it, in the same document. The type is judged against the values the
+  document writes, not the stored ones; leave the namespace out and the stored value still refuses
+  the type with `TYPE_UNSAFE_FOR_PROJECT_CONFIG`.
+- **Retire a config namespace with its type.** `project.config.<namespace>: { delete: true }` beside
+  `types.<Type>: { delete: true }`. The namespace's delete row states nothing else; its flows then
+  read nothing under that namespace.
+- **Delete a flow together with the flows that call it.** Every caller the document also deletes
+  goes first, whatever order the document lists them in. A caller that stays refuses the called
+  flow's row with `FLOW_HAS_DEPENDENTS`, naming the caller by its key.
+
 ## Reading a refusal
 
 A refusal names what blocked it. That name is the next thing to deal with, and it is usually not the

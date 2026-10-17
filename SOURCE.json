@@ -1,7 +1,8 @@
 {
-  "source": "c08ef1b1078a2a59424e4c8bed473c39eaeb1554",
+  "source": "cec748e770d1bed301bb494ae4217c59d77c8a3c",
   "since": "2026-08-13",
   "history": [
+    {"sha":"cec748e770d1","skills":"One project document can drop a config key, delete a config namespace with its type, and delete a flow with the flows that call it; the docs say once what replay \"clean\" removes (#3506)"},
     {"sha":"c08ef1b1078a","skills":"The records list carries the values of the fields a caller names, so many records' fields are one read instead of one read a record (#3505)"},
     {"sha":"67ebae6513ba"},
     {"sha":"9d7778ec1262"},
@@ -1000,7 +1001,6 @@
     {"sha":"6776ec0247bd"},
     {"sha":"d81d36083528"},
     {"sha":"7a77c26411bb"},
-    {"sha":"14bf1e180669"},
-    {"sha":"275e9ba23caa"}
+    {"sha":"14bf1e180669"}
   ]
 }
