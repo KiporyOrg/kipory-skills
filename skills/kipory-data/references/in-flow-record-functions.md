@@ -168,16 +168,19 @@ queued: the action answers `false`, so a flow can tell it apart from a record th
 **A flow that sends failed records back reads `processing`.** Every record read, and every record
 a flow reads, carries `processing { attempts, lastFailureClass }`: how many times the record was
 sent to processing, and the class of its last failure (`logic`, `definition`, `vendor`, `limit`,
-`platform-fault`, …; null if it never failed, and kept after a later success). Stop after a few
+`platform-fault`, `platform-account`, …; null if it never failed, and kept after a later success). Stop after a few
 `attempts`, and leave alone a record whose `lastFailureClass` says its own data is at fault
 (`logic`) — the same record fails the same way again. `processing` is a reserved field name: a
 table cannot declare it.
 
 - **Do not send back what the platform is already running again.** A processing run that ended on
-  one of the platform's own failures (`platform-busy`, `platform-interrupted`, `platform-fault`)
-  is started again by the platform, up to three attempts <!-- count: run-attempts -->, and the record stays `PENDING`
-  meanwhile; only a run that failed for good leaves it failed. Waiting for a free worker is not a
-  failure either.
+  one of the platform's own failures (`platform-busy`, `platform-interrupted`, `platform-fault`,
+  or `platform-account` from a throttled platform account) is started again by the platform, up
+  to three attempts <!-- count: run-attempts -->, and the record stays `PENDING` meanwhile; only a run that failed for
+  good leaves it failed. Waiting for a free worker is not a failure either. A run that failed
+  because a platform account is out of credit or its key was refused (`platform-account`,
+  `retryable: false`) is not started again: it fails at once, and sending it back before the
+  account serves again fails it the same way.
 - **A record's failed processing is reported to the project**, not to the flow that queued it: the
   first failure of a table as a `platform/run.failed` event and later ones in summaries, and the
   runs are listed on `GET /v1/failed-runs?project={nodeId}&subjectKind=table&subjectKey=<table key>`.

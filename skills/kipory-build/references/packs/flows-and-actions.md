@@ -543,10 +543,14 @@ action that sets none behaves as it always has.
   (`closing.verdict` on `GET /v1/runs`, with `closing.absorbed` counting what it carried on past).
   Its changes are applied and its row reads finished; an unattended one is reported to the project
   in `platform/run.partial` summaries (triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)).
-  ⚠️ Only a failure that is the flow's or a vendor's is carried on past. One of the platform's own
-  — its class is `platform-busy`, `platform-interrupted` or `platform-fault` — a spend cap
-  (`limit`) and a cancelled run fail the run whatever the action says; the platform starts its own
-  failures again.
+  ⚠️ Only a failure that is the flow's, a vendor's, or one of the platform's own vendor accounts'
+  (`platform-account`: out of credit, its key refused, or throttled) is carried on past. One of the
+  platform engine's own — its class is `platform-busy`, `platform-interrupted` or `platform-fault`
+  — a spend cap (`limit`) and a cancelled run fail the run whatever the action says; the platform
+  starts its own failures again. A `failureSlot` that holds a `platform-account` failure reads
+  phase `platform-fault` with code `vendor-out-of-credit` or `credential-rejected` (a throttled
+  account: phase `function-error`, code `rate-limited`); a continuing `flow.invoke`'s slot reads
+  `sub-flow-failed`, with that code as its `cause`.
 - **A fan-out says how many of its branches may fail**, on its own settings: `maxFailedBranches`
   (a whole number) or `maxFailedShare` (above 0, at most 1 — a share of the branches run, rounded
   down). State one, never both. With neither, the first failed branch stops the fan-out: no

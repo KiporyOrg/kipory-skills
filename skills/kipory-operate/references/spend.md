@@ -62,12 +62,12 @@ Each action, and the run, carries `uncharged`: how many of its `events` the plat
 
 - `credits: 0, events: 6, uncharged: 6` is work nobody was charged for. The same action in a charged run has a price, so do not budget from it.
 - `credits: 0` with `uncharged: 0` is a real zero.
-- An action that failed on a platform fault — `detail.phase: "platform-fault"` in the timeline, one of the platform's own vendor or model accounts refusing the call — is one of these: its compute is waived, so it reads `credits: 0` with its event counted in `uncharged`. Any other failed action is charged its compute as usual.
+- An action that failed on a platform fault — `detail.phase: "platform-fault"` in the timeline, one of the platform's own vendor or model accounts refusing the call (the run's class is then `platform-account`) — is one of these: its compute is waived, so it reads `credits: 0` with its event counted in `uncharged`. Any other failed action is charged its compute as usual.
 - `GET /v1/eval-runs/{id}/spend` carries the same field.
 
 ### A run the platform started again
 
-An unattended run — a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, a record's processing — whose attempt ended on one of the platform's own failures (`platform-busy`, `platform-interrupted`, `platform-fault`) is started again under the same run id, up to three attempts <!-- count: run-attempts --> in all (`references/when-a-run-fails.md`). The later attempt runs the actions again:
+An unattended run — a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, a record's processing — whose attempt ended on one of the platform's own failures (`platform-busy`, `platform-interrupted`, `platform-fault`, or `platform-account` from a throttled platform account) is started again under the same run id, up to three attempts <!-- count: run-attempts --> in all (`references/when-a-run-fails.md`). The later attempt runs the actions again:
 
 - **Compute is charged once per action per run**, however often the action is repeated.
 - **A model or vendor call that is really made again is charged again**, as any call is. One a cache answers costs nothing more.

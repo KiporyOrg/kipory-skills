@@ -2,6 +2,30 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261017.200312 — 2026-10-17
+
+Synced from the Kipory monorepo at `ab9c620a8`.
+
+- changed: `skills/kipory-build/references/action-fields.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/reading-the-timeline.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-gather/references/pitfalls.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-operate/references/spend.md`
+- changed: `skills/kipory-operate/references/when-a-run-fails.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+
 ## 1.20261017.190956 — 2026-10-17
 
 Synced from the Kipory monorepo at `cac191430`.

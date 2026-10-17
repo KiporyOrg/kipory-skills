@@ -180,7 +180,10 @@ run's invocation. Reach for them in this order:
     refused. `definition`: the flow cannot be run as it is stored. `limit`: a spend cap, the paying
     account's standing or an allowance. `vendor`: a site or service the flow called. `platform-busy`,
     `platform-interrupted`, `platform-fault`: the platform's own — no worker was free, the worker
-    stopped, or the platform itself failed. `cancelled`: it was stopped on purpose.
+    stopped, or the platform itself (its engine, database, queue or worker) failed.
+    `platform-account`: one of the platform's own accounts at a vendor or a model provider could not
+    serve the call — out of credit, its key refused, or throttled. `cancelled`: it was stopped on
+    purpose.
   - `owner` — who has to act: `customer` (you), `vendor`, `platform` (nothing in your flow needs
     changing) or `caller`.
   - `retryable` — whether running it again, unchanged, could end differently.
@@ -213,11 +216,14 @@ run's invocation. Reach for them in this order:
     `GET /v1/projects/{nodeId}/limits` lists (limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
 - **`waiting`** — set while the platform is about to start the run again. When one of the
   platform's own failures closes an attempt (`platform-busy`, `platform-interrupted`,
-  `platform-fault`), the run is not failed: `status` goes back to `pending` and `waiting` says why
+  `platform-fault`, or `platform-account` from a throttled account, code `rate-limited`), the run
+  is not failed: `status` goes back to `pending` and `waiting` says why
   (`reason`), how many attempts have been made (`attempt`, at most 3 <!-- count: run-attempts -->) and when the next may
   start (`notBefore`). Nothing the failed attempt staged was saved, and nothing in your flow needs
   changing. Only the last attempt's failure is the run's, and then `failure` carries it. A failure of
-  your flow, of a vendor, or of a limit is never run again.
+  your flow, of a vendor, or of a limit is never run again, and neither is a `platform-account`
+  failure whose account is out of credit or whose key was refused (`retryable: false`): it fails at
+  once, since topping the account up takes an operator, not seconds.
   ⭐ A run started again runs the flow it first started with: an edit saved between two attempts —
   to its own flow, or to a sub-flow that flow calls by a fixed reference — is not taken by a run
   already under way; the next run takes it. A sub-flow chosen at run time and first reached on a

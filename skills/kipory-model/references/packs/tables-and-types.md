@@ -1562,7 +1562,7 @@ healthier draft.**
 
 A record read carries `processing { attempts, lastFailureClass }`: how many times the record was
 sent to processing, and the class of its last failure (`logic`, `definition`, `vendor`, `limit`,
-`platform-fault`, …; null if it never failed, and kept after a later success). `processing` is a
+`platform-fault`, `platform-account`, …; null if it never failed, and kept after a later success). `processing` is a
 reserved field name: a table cannot declare it.
 
 A **failed** record's read (`GET /v1/records`, `GET /v1/records/{id}`, `POST /v1/records/query`)

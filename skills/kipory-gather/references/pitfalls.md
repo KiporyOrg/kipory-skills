@@ -17,18 +17,29 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   (`kipory-secrets`) the action fails `api-key-missing` (refused) or `quota-exhausted` (your
   account is empty), and it is yours to fix. With none, the call ran on the **platform's**
   account and the action fails with `detail.phase: "platform-fault"` and a message ending "This is
-  a platform fault, not a fault in the flow": the deployment's operator is alerted by the same
-  failure, the failed action is **not charged**, and an endpoint over the flow answers `503
-PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. Nothing in the flow fixes it; to keep
-  working meanwhile, store your own key under the vendor's name as purpose and the action runs on
-  your account from the next call. `GET /v1/platform-status` lists every platform account as
+  a platform fault, not a fault in the flow": the run's class is `platform-account`, the
+  deployment's operator is alerted by the same failure, the failed action is **not charged**, and
+  an endpoint over the flow answers `503 PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. An
+  unattended run is not started again when the account is out of credit or its key was refused; a
+  throttled one is. Nothing in the flow
+  fixes it; to keep working meanwhile, store your own key under the vendor's name as purpose and
+  the action runs on your account from the next call. The project hears it too: a trigger on
+  `platform/vendor.unavailable` fires once when the account stops serving, naming the `functions`
+  your flows use on it (only actions that cannot run elsewhere count: an `x.posts` action with
+  `fallback` on is not one), and `platform/vendor.available` once when it serves again. A fan-out
+  over many `x.posts` reads can carry on past an empty platform account: state a tolerance
+  (`maxFailedBranches` or `maxFailedShare`) and the failed branches are dropped whole, the run
+  closes `partial`, and the merge's `failuresSlot` holds each failure (phase `platform-fault`,
+  code `vendor-out-of-credit` or `credential-rejected`; a throttled account: phase
+  `function-error`, code `rate-limited`). With no tolerance the
+  first such branch still fails the run. `GET /v1/platform-status` lists every platform account as
   `ok`, `refusing` or `unknown` with `since`: read it before spending a run to find out, and
   again to see the account come back. While an account is `refusing`, an action on it fails at
   once without calling the vendor. A function with a second vendor and `fallback` on
   (`x.posts`, `youtube.transcript`) does not fail on the platform's refused key: the next
   vendor answers, at its own price, and the result carries a `PROVIDER_FALLBACK` warning whose
-  message says the platform's key was refused — the action fails `platform-fault` only when
-  `fallback` is off or no vendor answers. A key of your **own** that the chosen vendor refuses
+  message says the platform's key was refused — the action fails on the platform's account only
+  when `fallback` is off or no vendor answers. A key of your **own** that the chosen vendor refuses
   still fails the action, fallback or not; a fallback vendor that refuses is one more miss and
   the next is tried. The YouTube Data API reads
   (`youtube.video`, `youtube.channel`, `youtube.search`, `youtube.trending`) are the exception:

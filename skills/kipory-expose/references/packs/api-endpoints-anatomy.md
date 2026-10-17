@@ -198,7 +198,10 @@ Three kinds:
   synchronous call whose failure is the platform's own answers 503 with `Retry-After`, not 502.
   An asynchronous run the platform closed with one of its own failures is run again, up to
   3 attempts <!-- count: run-attempts --> in all: its status read answers `PENDING` with `waiting` — a `reason`, the `attempt` number and `notBefore` —
-  meanwhile, and `FAILED` only if the last attempt fails the same way.
+  meanwhile, and `FAILED` only if the last attempt fails the same way. One exception: when one of
+  the platform's own vendor accounts is out of credit or refused the platform's key (class
+  `platform-account`, `retryable: false`), the run fails at once, since a second try seconds later
+  cannot differ; a throttled account is run again and waits with `reason: "platform-account"`.
 - **Stream** — server-sent events, naming which output slot streams as deltas, with an optional
   allowlist of events to surface. Deltas come only from a `text.generate` action with structured
   output whose text field carries the same name as that slot; any other flow streams `stage`
