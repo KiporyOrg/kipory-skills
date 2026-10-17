@@ -2,6 +2,38 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261017.113747 — 2026-10-17
+
+Synced from the Kipory monorepo at `9bca455f8`.
+
+Routes added: `DELETE /v1/test-users/{id}`, `GET /v1/test-users/`, `POST /v1/test-users/`, `POST /v1/test-users/{id}/sessions`.
+
+- changed: `skills/kipory-build/references/checking.md`
+- changed: `skills/kipory-build/references/functions/flow.fan-out.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/references/api/mail-messages.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-expose/references/sign-in.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-operate/references/when-a-run-fails.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- changed: `skills/kipory-prove/references/packs/evals.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+
 ## 1.20261017.110456 — 2026-10-17
 
 Synced from the Kipory monorepo at `cec748e77`.

@@ -59,7 +59,7 @@ Minting a key is a signed-in person's act on the api host, and a key is VIEWER u
 - **A web app on your own domain** cannot receive the cookie. It proves the domain, starts the same sign-in with `callbackUrl` and `state`, and its server exchanges a one-time code at `POST /v1/auth/handoff/exchange` for a `session` it sends as a Bearer.
 - **A native app** posts Apple's result to `POST /v1/auth/native/apple`, or runs the Google web flow with the deep link `kipory://auth/callback` and a PKCE `codeChallenge`, then exchanges the returned `code` with its `codeVerifier` at `POST /v1/auth/mobile/exchange`, and holds a `session` either way. Apple has no web flow.
 - **Signing out** is `GET /v1/auth/signout` on the project host. Its redirect goes to the project's configured landing, or to a `callbackUrl` that sign-in would accept (`references/sign-in.md`). The person's own account routes are under `/v1/me`.
-- **A builder holding only an API key cannot sign a user in or mint a session.** A human signs in once per test user and hands you the `session`; inside an eval suite, `runAsUserId` acts as a user (`kipory-prove`).
+- **A builder holding only an API key makes test users instead of signing people in.** `POST /v1/test-users` answers a test user and its `session`; it is left out of members, wallets and mail (`references/sign-in.md`, "Test users"). Inside an eval suite, `runAsUserId` acts as a user, a test user included (`kipory-prove`).
 
 A provider that is off for the project has no routes: its paths answer 404 and are **left out of that project's `GET /v1/openapi.json`**, which is why Apple's route is missing there until `auth-config` enables it. `GET /v1/coded-routes` lists the path either way.
 

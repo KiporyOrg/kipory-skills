@@ -239,7 +239,8 @@ not fire, and — for a fire — the invocation with its live `status` and, once
 failed (`actionKey`, `phase`) when one did — otherwise the `cause` that closed it and, for changes refused
 when they were saved, the `refusedWrite` — and a `reason` when it is one a caller may read (a mail refusal,
 `recipient-not-an-address` among them — the mail action was given a recipient that is no email address —
-`more-than-one-recipient` — it was given a list of recipients —
+`more-than-one-recipient` — it was given a list of recipients — `recipient-is-a-test-user` — it was given a test
+user's address —
 `project-mail-cap-reached`, `project-push-cap-reached`), and a `limitKey` when a limit refused it. Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes. While the platform is
 about to start a run again after one of its own failures, the invocation is `pending` and carries
 `waiting` — a `reason`, the `attempt` number and `notBefore` — instead; schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) says what that
@@ -254,7 +255,7 @@ Each logged `event` names its project `project`, the node id every `?project=` t
 
 ## Being told when a run fails: a trigger on a platform event
 
-Every project has the event category `platform`, with ten types the platform records itself.
+Every project has the event category `platform`, with eleven types the platform records itself.
 You cannot add to it, change it or emit into it; `GET /v1/event-types` lists them, and a project
 document neither creates nor prunes them. **A failure trigger is an ordinary trigger on one of
 them, bound to an ordinary flow** — one that posts to your chat, opens a ticket, writes a record.
@@ -271,6 +272,7 @@ them, bound to an ordinary flow** — one that posts to your chat, opens a ticke
 | `health.paused`       | It was paused                                                                 | `PlatformHealthChange` |
 | `mail.failed`         | A message a run sent was refused, failed for good, or was returned            | `PlatformMailFailed`   |
 | `price.changed`       | A model the project follows moved, or a price it paid this week changed       | `PlatformPriceChanged` |
+| `member.left`         | A person's seat in the project ended: they left, were removed, or were erased | `PlatformMemberLeft`   |
 
 An unattended run is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, or
 a record's processing. Its **subject** is what it ran for — `{ kind, key }` with `kind` one of
@@ -324,6 +326,14 @@ next days' spend before trusting the figure. To keep a model,
 bind the task on the project (`PUT /v1/nodes/{nodeId}/task-models/{task}`). The project's alert
 list shows the same change as "Prices changed".
 
+**What `member.left` carries.** One event per seat that ended in the project: the `userId` — the
+id `userInfo.userId` and a record's owner give — the `reason` (`left` on their own, `removed` by
+someone else, `account-deleted`: their account is gone everywhere, and every record they owned is
+being erased), `at`, and a `message`. Never their name or address: by the time a flow reads it the
+account may be gone. It arrives within about a minute of the seat ending. Use it to clean up what
+your shared records keep about the person — a copy, a count, a mention — which no erasure reaches.
+A seat at an organization above the project is an operator's and is not told.
+
 **Nothing is recorded** for an attempt the platform is about to start again, for a run a person
 cancelled, for a preview, or for a synchronous call — whose caller already has the answer.
 
@@ -344,8 +354,8 @@ runs in a slot of its own, so a project whose runs fill its concurrency cap can 
 event of that type for a subject the project has. Its `data` is an example with `test: true`;
 every enabled trigger on the type fires as on a real one, and the flows they start are ordinary,
 charged runs. Recording it costs nothing, moves no health and lists no failed run. The answer
-says how many triggers listen — zero means nothing ran. For `mail.failed` and `price.changed` the
-`subject` is still required and is not used: any subject of a valid kind is accepted.
+says how many triggers listen — zero means nothing ran. For `mail.failed`, `price.changed` and
+`member.left` the `subject` is still required and is not used: any subject of a valid kind is accepted.
 
 ### Asking instead of being told
 

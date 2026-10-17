@@ -252,7 +252,9 @@ A statement naming one fails request validation (`422 VALIDATION_FAILED`), not a
 
 And three statements about the **table**, beside the fields: `search` (the embedding profile, with
 optional overrides of `chunking`, `indexWhen` and `isolationGroup` — required iff a field is
-marked `search`), `join` (this table IS a link — `{ relationKey, from, to }`, the relation by its
+marked `search`; `indexWhen` names one true/false field, `{ "family", "field" }`, and only a record
+whose field is exactly `true` is indexed (there is no condition form), and a record without the
+field is left out), `join` (this table IS a link — `{ relationKey, from, to }`, the relation by its
 key), and `vocabularies` (the ordered vocabulary keys the table
 surfaces — a vocabulary is not a field, so it is not a use of one; see "Which vocabularies a table
 surfaces").
@@ -1570,7 +1572,7 @@ reads serve as `closing.failure`: its class, its owner, whether it is retryable,
 action when one failed (otherwise the `cause` that closed it, and the `refusedWrite` when its changes
 were refused when they were saved), and a `reason` when the refusal is one a caller may read (such as
 `project-mail-cap-reached`, or `recipient-not-an-address` when a mail action was given a recipient
-that is no email address, or `more-than-one-recipient` when it was given a list), and a `limitKey` when a limit refused it. It is null on a record that is not `failed`, and for a failure recorded before
+that is no email address, `more-than-one-recipient` when it was given a list, or `recipient-is-a-test-user` when it was given a test user's address), and a `limitKey` when a limit refused it. It is null on a record that is not `failed`, and for a failure recorded before
 this was kept. A flow reading a record sees `processing`, not `failure`.
 
 `record.enqueue-process` on a **failed** or **ready** record returns it to processing, with the

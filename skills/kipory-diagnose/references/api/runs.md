@@ -240,6 +240,7 @@ A run's execution record — one row per run and action event (`run-started`, `a
 | `after` | `string` | no | The page LATER in the run than this action — pass back the `nextCursor` you were given. An unparseable cursor is treated as absent and returns the first page. |
 | `before` | `string` | no | The page EARLIER in the run than this action — pass back the `prevCursor` you were given. Refused together with `after`. |
 | `page` | `integer` | no | Jump to this page, 1-based. Resolved as an offset: only a live run's pages can shift. Past the last page it CLAMPS. Refused together with a cursor. |
+| `limit` | `integer` | no | Rows per page, 1–5000. Defaults to 5000. |
 
 **Response `200`**
 

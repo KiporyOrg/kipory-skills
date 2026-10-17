@@ -24,7 +24,7 @@ Two providers exist, Google and Apple, and no others. There is no password, magi
 | Web app on your own proven domain      | the same, with `callbackUrl` and `state`, then `POST /v1/auth/handoff/exchange` — "Your own domain" below                                                                                                            | `session`, sent as a Bearer |
 | Native app, Apple                      | the system sheet, then `POST /v1/auth/native/apple { identityToken, authorizationCode, rawNonce, fullName? }` on the project host → `{ session, user }`                                                              | `session`, sent as a Bearer |
 | Native app, Google                     | a browser at `GET /v1/auth/signin/google?callbackUrl=kipory://auth/callback&codeChallenge=<challenge>`, then `POST /v1/auth/mobile/exchange { code, codeVerifier }` on the project host — "Native app, Google" below | `session`, sent as a Bearer |
-| A builder holding only an API key      | cannot — "What a key cannot do" below                                                                                                                                                                                | nothing                     |
+| A builder holding only an API key      | makes a test user and gets its session in the same answer — "Test users" below                                                                                                                                       | `session`, sent as a Bearer |
 
 Apple has no web flow: its one route is the native POST, so a web app signs people in with Google only.
 
@@ -145,7 +145,7 @@ The signed-in person's own account lives under `/v1/me` on the project host. The
 | `DELETE /v1/me/sessions/{id}`         | end one of them                                                                      |
 | `GET /v1/me/stats`                    | totals across what the account holds: records, stored bytes, records being processed |
 
-A session that came from the own-domain exchange is scoped to its project: it reads and edits the account and the profile, and is refused `403 SESSION_SCOPED_TO_PROJECT` on the account-wide acts — the sessions list, ending a session, unlinking a provider, deleting the account.
+A session that came from the own-domain exchange, or a test user's session, is scoped to its project: it reads and edits the account and the profile, and is refused `403 SESSION_SCOPED_TO_PROJECT` on the account-wide acts — the sessions list, ending a session, unlinking a provider, deleting the account.
 
 <!-- key-unreachable-ok: POST /v1/devices — the person's own app calls it with their session -->
 <!-- key-unreachable-ok: GET /v1/devices — the person's own app lists its devices with their session -->
@@ -168,13 +168,35 @@ A project's end users each have a profile, typed by one type the builder connect
 | `GET /v1/users/{userId}/profile?project={nodeId}`            | VIEWER | one person's profile                                                                           |
 | `PATCH /v1/users/{userId}/profile?project={nodeId} { data }` | EDITOR | edits it                                                                                       |
 
-The person reads and edits the same profile with their session, at `/v1/me/profile` on the project host. User ids come from `GET /v1/users?project={nodeId}` (VIEWER).
+The person reads and edits the same profile with their session, at `/v1/me/profile` on the project host. User ids come from `GET /v1/users?project={nodeId}` (VIEWER), a picker's list: `id`, `name` and `email`, active people only. Each person's `standing` in the project (`active` or `suspended`), seat `role` (`editor` for every end user) and spend are on `GET /v1/projects/{nodeId}/members` (VIEWER), which lists the suspended too.
+
+**When a person goes, the project is told.** Deleting an account (`DELETE /v1/me`, or the platform's operator on request) ends every seat it holds at once, then erases in the background every record the person owns, their profile and files, and the watches those records held (`kipory-channels`). Leaving the project or being removed from it ends the seat. Either way the project is told within about a minute: the `platform` event `member.left` carries the person's `userId` and why (`left`, `removed`, `account-deleted`), and the person drops out of both lists above. Anything of yours that points at them from a shared record — a copy, a count, a mention — stays until a flow of yours cleans it up: put a trigger on that event (`kipory-operate`'s `references/packs/triggers.md`).
+
+## Test users
+
+To call your product as a person while you build it — two people for an isolation check, one for a flow that reads `userInfo` — make test users with your key. These are design routes, on the api host:
+
+| Route                                    | Floor  | What it does                                                                  |
+| ---------------------------------------- | ------ | ----------------------------------------------------------------------------- |
+| `POST /v1/test-users { project, name? }` | ADMIN  | makes one and answers `{ user, session, expiresAt }`                          |
+| `GET /v1/test-users?project={nodeId}`    | VIEWER | the project's test users, each with its live sessions, and the `limit`        |
+| `POST /v1/test-users/{id}/sessions`      | ADMIN  | another session for one of them, when the last expired or for a second caller |
+| `DELETE /v1/test-users/{id}`             | ADMIN  | deletes it as an account deletion                                             |
+
+Send the `session` as `Authorization: Bearer <session>` to the **project's host**. It works there and nowhere else, for 7 days, and is refused the account-wide routes like an own-domain session. The test user's `id` is what a flow reads as `userInfo.userId`, and it owns records, calls endpoints, has a profile and may register a device like anyone.
+
+What sets a test user apart:
+
+- **It is not one of your people.** `GET /v1/projects/{nodeId}/members`, `GET /v1/users?project={nodeId}` and their counts leave it out, and a `flow.start-per-person` over the whole project does not start a run for it. A start or a push that names it does reach it.
+- **It costs your project, not a wallet.** It gets no member wallet and no grant; the project pays its runs, and the spend is still attributed to it.
+- **It receives no mail.** Its `email` is one the platform made, on a domain that takes none; a mail action sent to it fails with `recipient-is-a-test-user` before anything is queued.
+- **It belongs to this project only**, and cannot sign in through Google or Apple. A project holds at most `limit` of them (the limit `account.test-users`); past it the create answers 422 `TEST_USER_LIMIT`.
+- **Deleting one** ends its sessions at once and erases what it owned. The project is told, as for a person who deleted their account: `member.left` with `account-deleted` — so it is how you test a cleanup flow.
+
+`runAsUserId` on an eval suite and on a flow preview takes a test user even before it owns a record (`kipory-prove`).
 
 ## What a key cannot do
 
-A key cannot sign a user in, mint a session, or call any `/v1/me` route. To test as a user:
-
-- A human signs in once per test user and hands you the `session`; send it as a Bearer to the project host.
-- Inside an eval suite, `runAsUserId` runs the flow as one user without a session (`kipory-prove`). Plan a two-user proof as two suites.
+A key cannot sign a real person in or call any `/v1/me` route. Every person other than a test user is a real Google or Apple account that signed in to the project once; a human who signs in can also hand you their `session`, sent as a Bearer to the project host.
 
 A key calling a product endpoint has no `userInfo` at all, and what that does depends on the action: anything that needs a person fails closed — a per-user table refuses, and an endpoint whose flow reads or writes person-owned records answers 403 before the flow runs (`access.requiresUser` says so beforehand) — while an action that reads a project-wide table runs without one.

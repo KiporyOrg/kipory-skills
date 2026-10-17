@@ -2,7 +2,7 @@
 
 # End users of the product
 
-Who calls a project's endpoints: sign-in providers, the domain the project's app is served from and the DNS proof that it owns it, the profile shape end users carry, the operator's view over them, and their standing and credits at the project node.
+Who calls a project's endpoints: sign-in providers, the domain the project's app is served from and the DNS proof that it owns it, the profile shape end users carry, the operator's view over them, their standing and credits at the project node, and the test users a builder makes to call the project as them.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -23,6 +23,10 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `PUT` | [`/v1/projects/{nodeId}/profile-schema`](#put-v1-projects-nodeid-profile-schema) |  |
 | `DELETE` | [`/v1/projects/{nodeId}/profile-schema`](#delete-v1-projects-nodeid-profile-schema) |  |
 | `POST` | [`/v1/projects/{nodeId}/profile-schema/starter`](#post-v1-projects-nodeid-profile-schema-starter) |  |
+| `GET` | [`/v1/test-users`](#get-v1-test-users) |  |
+| `POST` | [`/v1/test-users`](#post-v1-test-users) |  |
+| `DELETE` | [`/v1/test-users/{id}`](#delete-v1-test-users-id) |  |
+| `POST` | [`/v1/test-users/{id}/sessions`](#post-v1-test-users-id-sessions) |  |
 | `GET` | [`/v1/users`](#get-v1-users) |  |
 | `GET` | [`/v1/users/{userId}/profile`](#get-v1-users-userid-profile) |  |
 | `PATCH` | [`/v1/users/{userId}/profile`](#patch-v1-users-userid-profile) |  |
@@ -393,11 +397,93 @@ Create a new profile type from the platform's starter shape under the name you g
 | `seedDefaults` | `object \| null` | yes | What a newly-registered end user's profile starts as: the defaults the connected type's schema declares, as the platform collects them — a top-level field's own `default` taken whole, and an object field without one assembled from its properties' defaults. A `default` anywhere else (a list's items, a `$ref` target, a union branch) seeds nothing and is not here. Empty when nothing seeds; null when unconnected. |
 | `hasUserProfiles` | `boolean` | yes | Whether end-user profiles already exist. When true the connection is PINNED: connecting a different type is refused with 409, because stored profiles were seeded from the current one. |
 
+### `GET /v1/test-users`
+
+A project's test users (`?project=`, its node id), oldest first, each with how many live sessions it holds. Not paged: a project holds at most `limit`. Real people are on `GET /v1/projects/{nodeId}/members`; `POST /v1/test-users` makes another.
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project whose test users to list — its node id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `testUsers` | `object[]` | yes | Every test user of the project, oldest first. Not paged: a project holds at most `limit`. |
+| `limit` | `integer` | yes | How many test users the project may hold (the limit `account.test-users`). |
+
+Each item of `testUsers`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The test user's id — what a flow reads as `userInfo.userId` when it calls as them. |
+| `name` | `string` | yes | The name it was given, or `Test user N`. |
+| `email` | `string` | yes | An address the platform made for it, on a domain that receives no mail; mail sent to it is refused. |
+| `test` | `true` | yes | Always `true`: a test user, left out of the project's members and every count of real people. |
+| `createdAt` | `string` | yes | When it was made. |
+| `lastSeenAt` | `string \| null` | yes | When it last called the project with a session, to within a few minutes, or null. |
+| `liveSessions` | `integer` | yes | How many of its sessions have not expired. |
+
+### `POST /v1/test-users`
+
+Make a test user in a project (`project`, its node id) and get its first session, to call the project as that person while you build — no sign-in needed. Send the session as a Bearer to the project's host. A test user is left out of `GET /v1/projects/{nodeId}/members` and every count of real people, gets no member wallet (the project pays its runs), receives no mail, and belongs to this project only. Real people sign in with the routes under `/v1/auth`. `GET /v1/test-users?project=` lists them; `POST /v1/test-users/{id}/sessions` gives another session; `DELETE /v1/test-users/{id}` deletes one.
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project to make it in — its node id. |
+| `name` | `string` | no | A name to tell it apart by, up to 80 characters. Omitted, it is `Test user N`. |
+
+**Response `201`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `user` | `object` | yes | One test user of the project. |
+| `session` | `string` | yes | The test user's session, shown once. Send it as `Authorization: Bearer <session>` to the project's host; it works there and nowhere else, and is refused the account-wide routes (listing or ending sessions, unlinking a sign-in, deleting the account). |
+| `expiresAt` | `string` | yes | When the session stops working. Ask for another with `POST /v1/test-users/{id}/sessions`. |
+
+### `DELETE /v1/test-users/{id}`
+
+Delete a test user: its sessions end at once, and what it owned — records, profile, files, devices — is erased as for any deleted account. The project is told with the `platform` event `member.left`, reason `account-deleted`, within about a minute, so a cleanup flow of yours runs as it would for a real person. A real person's id answers as an unknown one does; their account is deleted with `POST /v1/projects/{nodeId}/members/{userId}/account-deletion`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The test user's id. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
+| `id` | `string` | yes | Id of the row that was removed. |
+
+### `POST /v1/test-users/{id}/sessions`
+
+Another session for a test user — when its last one expired, or to call as it from a second place. Earlier sessions keep working until they expire. A real person's id answers as an unknown one does: real people sign in themselves. A suspended test user is refused 409. `POST /v1/test-users` makes a new test user instead.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The test user's id. |
+
+**Response `201`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `session` | `string` | yes | The test user's session, shown once. Send it as `Authorization: Bearer <session>` to the project's host; it works there and nowhere else, and is refused the account-wide routes (listing or ending sessions, unlinking a sign-in, deleting the account). |
+| `expiresAt` | `string` | yes | When the session stops working. Ask for another with `POST /v1/test-users/{id}/sessions`. |
+
 ### `GET /v1/users`
 
 A project's end users (`?project=`) — the people who have signed in to its app — as `id`, `name` and `email`, for pickers. Requires **VIEWER**.
 
-Not its operators: seats at a node are `GET /v1/nodes/{nodeId}/members`. The same end users with their standing, spend and wallets are `GET /v1/projects/{nodeId}/members`.
+Not its operators: seats at a node are `GET /v1/nodes/{nodeId}/members`. The same end users with their standing, spend and wallets are `GET /v1/projects/{nodeId}/members`. Neither lists the project's test users; those are `GET /v1/test-users?project={nodeId}`.
 
 **Query**
 

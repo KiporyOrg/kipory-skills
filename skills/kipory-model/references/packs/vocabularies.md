@@ -23,6 +23,16 @@ the same term.
   _writes_ the value. Use a vocabulary when the value should be resolved against shared terms —
   deduplicated, reused across records, and able to nest. A field gives you a flat literal; a
   vocabulary gives you terms with reuse.
+- **Against a closed list answered by a decision.** A short list the owner keeps — sixteen kinds of
+  business, six services — is a field of a `text.decide` output type whose answer is one of an
+  `enum` (an option per entry, each worded with its own description). One call answers it, typed,
+  for a few tens of credits, and changing the list is an edit of that type. A vocabulary earns its
+  cost when you need what only terms give: a list that grows from what records say (`mint`),
+  nesting under a parent vocabulary, filtering and counting by term (`vocabularyFilter` on
+  `record.list` and `record.count`, a `record.query` term clause, `vocabulary.aggregate`), or
+  matching by meaning. Its cost: every term write embeds the term, and every record not fed by
+  `deterministicSlots` pays a chat-model proposal in `vocabulary.resolve` — about 600 credits a
+  record where a `text.decide` asking the same closed pick measured 30–40, on one deployment.
 - **Against a relation.** A vocabulary classifies a record against its _terms_. A link
   joins a record to _another record_. If the thing on the other end is itself first-class — with
   its own fields and its own lifecycle — it is a relation (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`), not a

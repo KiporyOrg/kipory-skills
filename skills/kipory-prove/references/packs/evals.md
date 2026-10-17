@@ -502,6 +502,8 @@ configuration alone: **a suite with no `runAsUserId` runs as a sentinel, which o
 If the flow under test reads a table whose rows belong to individual users, every case
 searches an empty corpus — and the run reports `success` with a column of real zeroes. Nothing
 downstream can tell that from a flow that genuinely retrieves nothing.
+A project's **test user** (`POST /v1/test-users`) is accepted as `runAsUserId` before it
+owns a record, so a suite can run as a person it is about to give data to.
 
 The suite carries half the answer. This read carries the other half: it walks the subject flow's
 transitive `flow.invoke` closure and reports every table the enabled actions name, together

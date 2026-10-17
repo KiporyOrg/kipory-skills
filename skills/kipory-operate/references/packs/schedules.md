@@ -206,6 +206,7 @@ run's invocation. Reach for them in this order:
   - `reason` — set only for a refusal a caller may read: a mail action's sender refusal, or
     `recipient-not-an-address` for a mail recipient that is no email address, or
     `more-than-one-recipient` for a mail recipient that is a list, or
+    `recipient-is-a-test-user` for a mail recipient that is a test user's address, which no mail reaches, or
     `project-mail-cap-reached` past the project's daily mail cap, or `project-push-cap-reached` past
     its daily push allowance; `statusError` then names it too.
   - `limitKey` — set when a limit refused the run: the limit's key, which

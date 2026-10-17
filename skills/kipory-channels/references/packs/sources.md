@@ -90,7 +90,13 @@ channel — do not write a source per follow from outside. A flow does it with t
   (`HOLDER_NOT_WRITABLE`). The first holder makes the project's source for the channel; a later one
   adds a hold; a source that was switched off is switched back on.
 - `source.unwatch` lets that holder go. The channel stays watched while anyone else holds it; the
-  last one switches its source off (never deletes it).
+  last one switches its source off (never deletes it). It answers `{ sourceId, enabled, holders }`,
+  `enabled` always present.
+- **Letting go of a hold that was never placed is harmless.** A holder that never watched the
+  channel, or whose hold is already gone, changes nothing: the action succeeds and answers the
+  channel as it stands — `sourceId: null`, `enabled: false`, `holders: 0` when the project watches
+  nothing for it. So an unfollow may always unwatch, without first asking whether the follow held
+  a watch.
 - **Deleting the holder record lets its watch go**, in the same transaction, by any path: a run's
   `record.delete`, `DELETE /v1/records/{id}`, or the person's account being erased. You do not
   write an unwatch for the delete.
@@ -118,7 +124,7 @@ What holds:
 - **What it costs** is the runs your trigger starts, one per message. Letting the last holder go
   stops them; the platform's own reader stays in the channel, which costs you nothing.
 - **A preview or a suite case watches nothing**, `applyWrites: true` included. It answers what the
-  action would have done, marked `preview`. To make a watch for an existing record, run the flow
+  action would have done — the same fields, `enabled` among them — plus `preview: true`. To make a watch for an existing record, run the flow
   for real as the record's owner.
 - `GET /v1/sources` says which sources runs hold (`watchedByRuns`) and by how many (`holders`).
 

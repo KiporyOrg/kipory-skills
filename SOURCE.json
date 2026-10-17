@@ -1,7 +1,8 @@
 {
-  "source": "cec748e770d1bed301bb494ae4217c59d77c8a3c",
-  "since": "2026-08-13",
+  "source": "9bca455f86476c3ab70a671c521192791428af92",
+  "since": "2026-08-14",
   "history": [
+    {"sha":"9bca455f8647","skills":"A builder's key can make test users in a project and call it as them; a project is told when a person leaves; a fan-out says when it runs one branch at a time (399) (#3504)"},
     {"sha":"cec748e770d1","skills":"One project document can drop a config key, delete a config namespace with its type, and delete a flow with the flows that call it; the docs say once what replay \"clean\" removes (#3506)"},
     {"sha":"c08ef1b1078a","skills":"The records list carries the values of the fields a caller names, so many records' fields are one read instead of one read a record (#3505)"},
     {"sha":"67ebae6513ba"},
@@ -1000,7 +1001,6 @@
     {"sha":"8e26e2089a17"},
     {"sha":"6776ec0247bd"},
     {"sha":"d81d36083528"},
-    {"sha":"7a77c26411bb"},
-    {"sha":"14bf1e180669"}
+    {"sha":"7a77c26411bb"}
   ]
 }

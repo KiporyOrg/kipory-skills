@@ -27,7 +27,7 @@ Both shapes were measured on one deployment, on the same stored input:
 
 The two made the same accept and reject decisions. These are one deployment's measurements on one model binding, not a price list: a `text.generate` call costs what it reads and writes, so the 120–220 above is a short prompt with a short answer and the figures here are a long one. Measure your own flow as section 4 says.
 
-- A closed pick written as a `text.generate` prompt, or as a `vocabulary.resolve` over a vocabulary that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` and assign the term from the answer.
+- A closed pick written as a `text.generate` prompt, or as a `vocabulary.resolve` over a vocabulary that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` as an `enum` field and store the answer; keep a vocabulary only for what terms alone give — a list that grows, nesting, filtering or counting by term (`kipory-model`'s `references/packs/vocabularies.md`, "When you need it").
 - "Is this the same thing as that?" is a probability, not prose: one `text.decide` field, compared against a threshold where you branch.
 - `text.decide` runs on a decision model, not a chat model, named in `functionConfig.model` (default `typesafe/jev-latest`). An action save refuses it (`FUNCTION_MODEL_UNUSABLE`) when the catalog does not hold that model or it is not a decision model. Read `GET /v1/ai-models?type=decision` and name one it lists; an empty list means the action cannot run on this deployment.
 

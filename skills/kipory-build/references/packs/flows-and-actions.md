@@ -170,6 +170,15 @@ action at level 0, where it reads nothing and skips — which is what `INPUT_STR
 above is for. Read the diagnostic for "is this wired", `canFire` for "can this ever run", and
 `level` only for "in what order".
 
+**`level` is also how a run moves: in waves.** Every action on one level starts together, up to the
+project's `runs.parallel-actions-per-branch` limit (8 as standard), and the next level starts only
+when every one of them has finished. So a two-second chain beside a nine-second fetch waits for the
+fetch at each level, and on a streamed run its events and `stage` frames arrive a wave at a time.
+Actions on one level never see each other's outputs; when two write one slot, the one listed first
+wins. To let fast work finish ahead of slow work, put the two in separate branches of a
+`flow.fan-out` that runs its branches together (`maxParallelBranches` above 1), or in separate
+flows.
+
 Four more things a save now says rather than lets through:
 
 - **An action that reads only optional flow inputs** warns `ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`. A caller that leaves those inputs out skips the action, so a transform written to default an input never runs. Also read a slot that always arrives, such as `runInfo`, and it runs either way.
@@ -418,7 +427,7 @@ Preview proves one run. Which actions real runs have exercised since the flow la
 `GET /v1/flows/{id}/coverage`; it names the tables the covered flows touch by key, under
 `tableKeys`.
 
-**Run as one of your app's users.** `input.principal: "end-user"` with `runAsUserId` runs the preview as that person — their `userInfo`, their records — to rehearse a response only they see. It must be sent with `apply: false`: nothing is written in their name. The user must hold records in the project, as for a suite's `runAsUserId`.
+**Run as one of your app's users.** `input.principal: "end-user"` with `runAsUserId` runs the preview as that person — their `userInfo`, their records — to rehearse a response only they see. It must be sent with `apply: false`: nothing is written in their name. The user must hold records in the project or be one of its test users, as for a suite's `runAsUserId`.
 
 **A capped fan-out says so on the run.** A preview runs at most `fanOutCap` branches. That cut is now a `fan-out-capped` warning with `cappedBy: "preview"` on the run itself, so a queued preview read at `GET /v1/runs/{id}` shows it too. Send `fanOutCap: "uncapped"` to measure a real run.
 
