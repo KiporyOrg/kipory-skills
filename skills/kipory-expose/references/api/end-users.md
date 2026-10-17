@@ -449,7 +449,7 @@ Make a test user in a project (`project`, its node id) and get its first session
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `user` | `object` | yes | One test user of the project. |
-| `session` | `string` | yes | The test user's session, shown once. Send it as `Authorization: Bearer <session>` to the project's host; it works there and nowhere else, and is refused the account-wide routes (listing or ending sessions, unlinking a sign-in, deleting the account). |
+| `session` | `string` | yes | The test user's session, shown once. Send it as `Authorization: Bearer <session>` to the project's host; it works there and nowhere else, and is refused the account-wide routes (listing or ending sessions, unlinking a sign-in). `DELETE /v1/me` with it deletes the test user, as a person's own delete would. |
 | `expiresAt` | `string` | yes | When the session stops working. Ask for another with `POST /v1/test-users/{id}/sessions`. |
 
 ### `DELETE /v1/test-users/{id}`
@@ -483,7 +483,7 @@ Another session for a test user — when its last one expired, or to call as it 
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `session` | `string` | yes | The test user's session, shown once. Send it as `Authorization: Bearer <session>` to the project's host; it works there and nowhere else, and is refused the account-wide routes (listing or ending sessions, unlinking a sign-in, deleting the account). |
+| `session` | `string` | yes | The test user's session, shown once. Send it as `Authorization: Bearer <session>` to the project's host; it works there and nowhere else, and is refused the account-wide routes (listing or ending sessions, unlinking a sign-in). `DELETE /v1/me` with it deletes the test user, as a person's own delete would. |
 | `expiresAt` | `string` | yes | When the session stops working. Ask for another with `POST /v1/test-users/{id}/sessions`. |
 
 ### `GET /v1/users`

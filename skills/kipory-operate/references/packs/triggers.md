@@ -331,8 +331,8 @@ list shows the same change as "Prices changed".
 
 **What `member.left` carries.** One event per seat that ended in the project: the `userId` — the
 id `userInfo.userId` and a record's owner give — the `reason` (`left` on their own, `removed` by
-someone else, `account-deleted`: their account is gone everywhere, and every record they owned is
-being erased), `at`, and a `message`. Never their name or address: by the time a flow reads it the
+someone else, `account-deleted`: they deleted their account — everywhere, or, when it lives on in
+other places, as far as this project reaches — and every record they owned here goes with it), `at`, and a `message`. Never their name or address: by the time a flow reads it the
 account may be gone. It arrives within about a minute of the seat ending. Use it to clean up what
 your shared records keep about the person — a copy, a count, a mention — which no erasure reaches.
 A seat at an organization above the project is an operator's and is not told.

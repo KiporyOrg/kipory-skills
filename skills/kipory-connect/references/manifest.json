@@ -82,7 +82,7 @@
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
-      "hash": "c3d9120c4877",
+      "hash": "df8694fb6e0c",
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
@@ -616,7 +616,7 @@
       "page": "kipory-channels/references/api/managed-email-addresses.md"
     },
     "DELETE /v1/me/": {
-      "hash": "f810a3ae8ebd"
+      "hash": "8e8dcb9d7144"
     },
     "DELETE /v1/me/identities/{provider}": {
       "hash": "78edfa025df2"
@@ -1673,11 +1673,11 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/test-users/": {
-      "hash": "3479efc996b8",
+      "hash": "033b34b36581",
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/test-users/{id}/sessions": {
-      "hash": "76e3be25458f",
+      "hash": "69b398ef9167",
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/triggers/": {
@@ -1746,7 +1746,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "01fd78eea704",
+      "hash": "4b943163ee5b",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

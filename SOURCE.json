@@ -1,7 +1,8 @@
 {
-  "source": "1eab17225b07f8aa2476a7d5506279a8b1f09283",
+  "source": "cac1914307de81b9c36255751546c8d30639acc5",
   "since": "2026-08-14",
   "history": [
+    {"sha":"cac1914307de","skills":"DELETE /v1/me with a project-scoped session: delete as far as the project could (scope in the answer) (#3510)"},
     {"sha":"1eab17225b07","skills":"An agent stopped by Kipory files a report with POST /v1/reports, reads it back, and staff read every project's at /system/reports (400 S1) (#3512)"},
     {"sha":"3f2f30123d38","skills":"A post's media item says a video's length, size, still and every size it comes in, and a Telegram video arrives with its length, size and still (F-144) (#3514)"},
     {"sha":"98fc85614838","skills":"A stopped run names the clock that stopped it, its limit, how long it had run and the actions it cut short, and a failed asynchronous call's status names the action and its code (#3513)"},
@@ -1000,7 +1001,6 @@
     {"sha":"9f6a91cc94d9"},
     {"sha":"86d39397ed02"},
     {"sha":"6bc9b61eb625"},
-    {"sha":"f04034f3fcac"},
-    {"sha":"f7b433c6d46a"}
+    {"sha":"f04034f3fcac"}
   ]
 }
