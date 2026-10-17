@@ -163,7 +163,7 @@ A call or a run refused at a limit names it: `details.limitKey` on the error, `l
 
 **The spend read says what each action was charged for.** Every entry of `byAction` names its action in `actionName` and `actionId` and carries `charges`, one per kind, that sum to the action's `credits` (`references/spend.md` lists the kinds).
 
-The reads count different things, so they disagree by design. `references/spend.md` has the table of which read answers which question; the two to remember are that `x-credits-charged` holds only what was charged by the time the response was sent — so not an asynchronous call's run, which is read on `/spend` with the 202's `id` — and that `GET /v1/ai-calls` hides previews and evals unless you send `origins=all`.
+The reads count different things, so they disagree by design. `references/spend.md` has the table of which read answers which question; the two to remember are that `x-credits-charged` holds only what was charged by the time the response was sent — so not an asynchronous call's run, which is read on `/spend` with the 202's `id` — and that `GET /v1/ai-calls` hides previews, evals and the platform's own describing calls unless you send `origins=all`.
 
 A machine caller has no statement of its own: `GET /v1/credits/events` scopes to a person and answers 401 to a key. Account for key-driven spend per run, or per project through `usage`.
 

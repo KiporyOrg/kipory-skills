@@ -114,9 +114,9 @@ The reads count different things, so they disagree by design. Pick the one that 
 
 **The AI-call list.**
 
-- Its default view hides design-time origins (previews, tests, evals). Read `excludedOrigins`, or send `origins=all`.
+- Its default view hides design-time origins (previews, tests, evals) and the platform's own calls describing your configuration (`origin: element-describer`, paid by the platform, 0 credits to you). Read `excludedOrigins`, or send `origins=all`.
 - Eval-run model calls are logged `origin: test`.
-- The default view counts `origin: element-describer` rows: the platform describing your configuration, paid by the platform, 0 credits to you. Leave them out with `origins` when you count your own calls.
+- An `origins` list you send leaves the platform's calls out unless it names `element-describer`.
 - It has no `total` and no page jump; walk its cursors.
 
 **`usage`.**

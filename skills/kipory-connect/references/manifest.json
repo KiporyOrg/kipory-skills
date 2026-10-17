@@ -738,11 +738,11 @@
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/ai-calls/": {
-      "hash": "acbf214887e2",
+      "hash": "d43fe936937a",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/ai-calls/rollup": {
-      "hash": "ea023d0dfd2a",
+      "hash": "13fcf49cf52e",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/ai-calls/{id}": {
