@@ -196,7 +196,8 @@ Three kinds:
   refused it (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). On a failed action `error` names it
   and its code — _The flow failed at action "search": timeout._ — never the action's own words. A run stopped from
   outside names, in `failure`, the clock that stopped it (`deadline`: `name` and `limitMs`) and the actions that
-  were running (`runningActions`). A
+  were running (`runningActions`). Its `code` is never `value-cut` or `fan-out-capped`: those only mark
+  a cut result or a capped fan-out in a failure slot. A
   synchronous call whose failure is the platform's own answers 503 with `Retry-After`, not 502.
   An asynchronous run the platform closed with one of its own failures is run again, up to
   3 attempts <!-- count: run-attempts --> in all: its status read answers `PENDING` with `waiting` — a `reason`, the `attempt` number and `notBefore` —

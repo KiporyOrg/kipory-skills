@@ -39,7 +39,7 @@ The timeline says _what_ happened; only the trace says _what the values were_. Y
 GET /v1/runs/{runId}/trace
 ```
 
-A 404 here is ordinary: the run was not sampled, or its trace expired. Before reading it as a symptom, check the rates on the flow's listing:
+A 404 here is ordinary: the run was not sampled, or its trace expired. A record or asynchronous run in which an action failed keeps its trace whatever the rate, so a 404 there means it expired, was too large, or the rate is 0; those failures also lift the trace count above the rate. Before reading it as a symptom, check the rates on the flow's listing:
 
 ```
 GET /v1/flows/{id}/traces?source=production&limit=20

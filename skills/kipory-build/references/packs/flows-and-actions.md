@@ -588,9 +588,11 @@ action that sets none behaves as it always has.
   none, so "output absent, failure absent" still means it found nothing. A later action reads it as
   any optional slot. On an action that says `onOversize: "cut"` (below) and whose result was cut, it
   holds `code: "value-cut"` beside the cut value — the one failure-slot value that comes with an
-  output.
-  Refused at save on an action that can never write it — one that does not continue, does not say
-  `onOversize: "cut"`, and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's
+  output. On a `flow.fan-out` that ran fewer branches than its list held (its `maxItems`, or the
+  platform's ceiling — never a preview's own branch cap), it holds `code: "fan-out-capped"`, written before the branches start, so every
+  branch and what follows the merge can tell a whole list from a capped one.
+  Refused at save on an action that can never write it — one that is not a fan-out, does not
+  continue, does not say `onOversize: "cut"`, and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's
   own output (`FAILURE_SLOT_IS_OWN_OUTPUT`), and as the source of a required flow output
   (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`). `null` clears it. The codes a function softens are on its
   catalog entry, `run.softFailureCodes`.

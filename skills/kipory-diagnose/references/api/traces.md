@@ -70,7 +70,7 @@ A flow's traces — the VALUES half of its runs: inputs, outputs and per-action 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `traces` | `object[]` | yes | The flow's runs, newest first by `createdAt`, then id, WITHOUT their payloads — read one trace to get those. ⚠️ An absent run is not evidence it did not happen: traces expire, and writing them is sampled. |
-| `sampling` | `object` | yes | How much of this project's traffic is traced at all. ⚠️ WITHOUT THIS THE LIST IS UNINTERPRETABLE — 'three traces' means one thing at a rate of 1 and something very different at 0.05. Null means the deployment default is in force, which is NOT zero. |
+| `sampling` | `object` | yes | How much of this project's traffic is traced at all. ⚠️ WITHOUT THIS THE LIST IS UNINTERPRETABLE — 'three traces' means one thing at a rate of 1 and something very different at 0.05. Null means the deployment default is in force, which is NOT zero. A record or asynchronous run in which an action failed is traced whatever the rate (unless it is 0), so failures lift the count above it. |
 | `paging` | `null` | yes | Always null: no count and no `page` jump are offered — walk with `after` / `before`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |

@@ -42,7 +42,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Checkpoint vs. snapshot.** A **checkpoint** is a named, manual or automatic copy of a flow's actions, signature and binding that you can restore. A **flow snapshot** is the frozen graph a particular run executed, readable per run, never restorable.
 
-**Run vs. trace vs. timeline.** A **run** is one execution, with one id whatever started it — an endpoint invocation, a record-processing attempt, a bare request. Its **timeline** is never sampled. Its **trace** holds what each output slot held, is sampled per project, and expires.
+**Run vs. trace vs. timeline.** A **run** is one execution, with one id whatever started it — an endpoint invocation, a record-processing attempt, a bare request. Its **timeline** is never sampled. Its **trace** holds what each output slot held, is sampled per project (a record or asynchronous run in which an action failed is always kept, unless the rate is 0), and expires.
 
 **Contract suite vs. scorer.** A flow's stored checks are **eval suites**. A suite with no scorer flows is a **contract suite** and asks "does this still work" — stored inputs and pass/fail assertions, and every run says whether its `contract` held. **Scorer flows** on a suite ask "is this any good" — each case scored by a flow, a billed model call. There is no separate test-case resource.
 
