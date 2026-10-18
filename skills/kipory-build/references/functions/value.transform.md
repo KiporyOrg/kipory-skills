@@ -11,7 +11,7 @@ Nothing is fetched and no model is called. For prose with holes, use Fill a temp
 - **I/O:** `any+` → `object`
 - **Also found as:** pick a field, map fields, compute, format value, calculate, convert
 - **Reads:** Every slot named at the top of the expression; the inputs list exactly those. Inside `[…]` or after a `.` a name is an item's field; `$$.name` reads a slot. _(shape hint: `any+`)_
-- **Emits:** Whatever the expression evaluates to — usually an object built from several slots, a list zipped from parallel lists, or a copy of a slot with fields added.
+- **Emits:** Whatever the expression gives: an object, a list or text. When it gives nothing, no value is stored, whatever the output type, and later actions see it as missing.
 
 ## Config
 

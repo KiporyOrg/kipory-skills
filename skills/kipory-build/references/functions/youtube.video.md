@@ -32,7 +32,7 @@ Turns a video URL or id into its metadata and stats — cheap enough to check be
 
 #### From a link
 
-The default parts: identity, duration, whether captions exist, view count, and whether it is live.
+The default parts. isShort is checked with YouTube up to three minutes; hasManualCaptions ignores auto-generated captions.
 
 Reads `string` → emits `string` · 1 in → 1 out
 
@@ -55,7 +55,7 @@ Output:
   "postedAt":     "2009-10-25T06:57:33Z",
   "durationSec":  213,
   "counts":       { "views": 1500000000 },
-  "hasCaptions":  true,
+  "hasManualCaptions": true,
   "isLive":       false,
   "isShort":      false
 }
@@ -81,7 +81,7 @@ Output:
   "id": "dQw4w9WgXcQ",
   "title": "Rick Astley - Never Gonna Give You Up (Official Music Video)",
   "durationSec": 213,
-  "hasCaptions": true,
+  "isShort": false,
   ...
 }
 ```

@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261018.154924 — 2026-10-18
+
+Synced from the Kipory monorepo at `213698c72`.
+
+- changed: `skills/kipory-build/references/functions/facebook.ads.md`
+- changed: `skills/kipory-build/references/functions/url.fetch.md`
+- changed: `skills/kipory-build/references/functions/value.transform.md`
+- changed: `skills/kipory-build/references/functions/youtube.video.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-gather/SKILL.md`
+
 ## 1.20261018.74611 — 2026-10-18
 
 Synced from the Kipory monorepo at `ae54ff0fd`.

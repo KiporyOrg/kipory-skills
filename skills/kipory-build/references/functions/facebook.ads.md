@@ -11,7 +11,7 @@ Also covers Instagram. Each ad comes with its advertiser, copy, media links, des
 - **I/O:** `string` → `SocialAd[]`
 - **Also found as:** facebook adverts, meta ads, competitor ads
 - **Reads:** One company name; or one keyword, or one page's ad library id, when the action is set to it. Results are cached for a day. _(shape hint: `string`)_
-- **Emits:** A list of `SocialAd`. Empty when the library has no matching ads.
+- **Emits:** A list of `SocialAd`. Empty when the library has no matching ads, or no page for the company name (with a `NOT_FOUND` warning).
 - **Softens these failures:** `vendor-refused`, `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Suggested input streams:** `source`
 - **External dependency:** ScrapeCreators — Reads the Facebook ad library through ScrapeCreators. Uses a ScrapeCreators API key: the project's own, stored in its secrets, or Kipory's.

@@ -143,7 +143,8 @@ tag-stripping expression and the no-vendor variant:
 
 - coalesce text with text — `page.content` against the stripped fetch, never the bare objects;
 - set `"onFailure": "continue"` on the `fetch` action, because `url.fetch` fails the action on a 4xx
-  or an unresolvable address and one failed action fails the run;
+  or an unresolvable address and one failed action fails the run; its `failureSlot` then says which,
+  with `httpStatus` — 403 is a site refusing the fetch, 404 a page that is not there;
 - guard every action that reads the body beside another slot with a `slotPresent` condition, model
   actions included — an action runs while any one input is present.
 

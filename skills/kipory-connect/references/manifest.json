@@ -112,7 +112,7 @@
       "page": "kipory-build/references/functions/facebook.ad.md"
     },
     "facebook.ads": {
-      "hash": "ffb1d3a82d9e",
+      "hash": "3c4a6e36d7d4",
       "page": "kipory-build/references/functions/facebook.ads.md"
     },
     "facebook.page": {
@@ -476,7 +476,7 @@
       "page": "kipory-build/references/functions/tiktok.transcript.md"
     },
     "url.fetch": {
-      "hash": "b874fed22fa7",
+      "hash": "dc14465eb6ae",
       "page": "kipory-build/references/functions/url.fetch.md"
     },
     "url.fetch-as-file": {
@@ -504,7 +504,7 @@
       "page": "kipory-build/references/functions/value.first-non-empty.md"
     },
     "value.transform": {
-      "hash": "7e4396f33823",
+      "hash": "8a5d727a817d",
       "page": "kipory-build/references/functions/value.transform.md"
     },
     "vocabulary.aggregate": {
@@ -564,7 +564,7 @@
       "page": "kipory-build/references/functions/youtube.trending.md"
     },
     "youtube.video": {
-      "hash": "c44b67f3a630",
+      "hash": "d1e13590b542",
       "page": "kipory-build/references/functions/youtube.video.md"
     }
   },

@@ -4,14 +4,14 @@
 
 Download the text behind a web address.
 
-Reads JSON, plain text or an XML feed. A 4xx answer or a refused address fails the action.
+Reads JSON, plain text or an XML feed. A 4xx answer fails the action; its failure value carries the `httpStatus`.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`
 - **Also found as:** http, api call, json, rest api, get request, download text
 - **Reads:** One URL to fetch. Anything that is not `http` or `https`, resolves to a private address, or does not resolve at all is refused as a blocked request. _(shape hint: `string`)_
-- **Emits:** The body as text, or parsed: an object under `json`, a list of objects under `json-list`. Empty, with a warning, on no URL or a 5xx; another non-2xx fails.
+- **Emits:** The body as text, or parsed: an object under `json`, a list of objects under `json-list`. Empty, with a warning, on no URL or a 5xx; a 4xx fails.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Suggested input streams:** `currentUrl`
 - **External dependency:** the open web — Fetches whatever the URL points at, through the SSRF guard. No vendor — the site itself is the dependency. A service that needs a key takes a stored request credential, named in `secret`.

@@ -1,7 +1,11 @@
 {
-  "source": "ae54ff0fd3a602f1e47361b874eaad8fa8ca35e3",
+  "source": "213698c72f8ec755e38ae92956cc4c585ba46912",
   "since": "2026-08-14",
   "history": [
+    {"sha":"213698c72f8e","skills":"Wave 1 of the customer reports: five places a flow silently did the wrong thing (#3525)"},
+    {"sha":"5e5f7e882f01"},
+    {"sha":"f3a506367786"},
+    {"sha":"eebb1912266f"},
     {"sha":"ae54ff0fd3a6","skills":"Vocabulary terms, relations and relation pairings are fenced to their project in the database (RLS debt batch 2), with the pre-serve 503 alert carried (#3521)"},
     {"sha":"530c315f2668"},
     {"sha":"49f43c55648f","skills":"Each step's row says how big each value it stored was, a failed or partial run always keeps its trace on the record and asynchronous paths, and a capped fan-out flags it in its failure slot (#3519)"},
@@ -997,10 +1001,6 @@
     {"sha":"64c29ee6c6e5"},
     {"sha":"133b66c2f292","skills":"Absent from the key-unreachable table meant unclassified, and I read it as cleared (#2508)"},
     {"sha":"572bda4c444d"},
-    {"sha":"3c847ba6cec3"},
-    {"sha":"ed91ba2b1266"},
-    {"sha":"ebda5924b4dd"},
-    {"sha":"051797f144ae"},
-    {"sha":"67abc970c2f5"}
+    {"sha":"3c847ba6cec3"}
   ]
 }
