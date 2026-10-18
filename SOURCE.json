@@ -1,7 +1,9 @@
 {
-  "source": "49f43c55648f6a0da1479e9cb5286284c15d70a9",
+  "source": "ae54ff0fd3a602f1e47361b874eaad8fa8ca35e3",
   "since": "2026-08-14",
   "history": [
+    {"sha":"ae54ff0fd3a6","skills":"Vocabulary terms, relations and relation pairings are fenced to their project in the database (RLS debt batch 2), with the pre-serve 503 alert carried (#3521)"},
+    {"sha":"530c315f2668"},
     {"sha":"49f43c55648f","skills":"Each step's row says how big each value it stored was, a failed or partial run always keeps its trace on the record and asynchronous paths, and a capped fan-out flags it in its failure slot (#3519)"},
     {"sha":"bb10707ed2a0","skills":"A new customer's first ten minutes read cleanly: the platform's own work stops counting as the project's, a first project is pointed at Starter, the endpoint and board say what to do next, and the value dialog reads an answer like a record (#3518)"},
     {"sha":"d67d27e7bcfe","skills":"A queued run says how long it waited and what held it, an asynchronous call's status says when it was accepted and started, and a project can read its runs at once and each table's records waiting and running (#3517)"},
@@ -999,8 +1001,6 @@
     {"sha":"ed91ba2b1266"},
     {"sha":"ebda5924b4dd"},
     {"sha":"051797f144ae"},
-    {"sha":"67abc970c2f5"},
-    {"sha":"8b17d7e0cd06","skills":"The vault decides who pays the vendor, and nothing customer-facing said so (#2502)"},
-    {"sha":"5f4001bdfbc2"}
+    {"sha":"67abc970c2f5"}
   ]
 }
