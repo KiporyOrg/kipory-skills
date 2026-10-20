@@ -791,7 +791,7 @@
       "page": "kipory-connect/references/api/platform-reads.md"
     },
     "GET /v1/credits/balance": {
-      "hash": "9e97421d05e9",
+      "hash": "39682cc798dd",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/credits/events": {

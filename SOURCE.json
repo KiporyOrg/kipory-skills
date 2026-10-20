@@ -1,7 +1,11 @@
 {
-  "source": "bc082be03b1dca5406cb06c362f7aa5652b480a3",
+  "source": "63f3f83b4e4fb736bacf3c17590ac28ae23993b4",
   "since": "2026-08-15",
   "history": [
+    {"sha":"63f3f83b4e4f","skills":"Wallet reads and writes go through answers, a charge can only debit a wallet on its own chain, and admission drops to two statements (N3a) (#3560)"},
+    {"sha":"03552909827d"},
+    {"sha":"f3aa7baed177"},
+    {"sha":"3443a2a48218"},
     {"sha":"bc082be03b1d","skills":"Runs filter by outcome and starter at any range, and staging's slow reads are fast: an hourly ledger tally, covering indexes, flow-health batch sharing (#3552)"},
     {"sha":"28701a4792ad","skills":"Wave 2 of the customer reports: a re-filed category replaces its term, a plan names the outside flows a shared type reaches, and platform-status sees a model provider's outage (#3554)"},
     {"sha":"1bd588c1e75b"},
@@ -997,10 +1001,6 @@
     {"sha":"9afe036d36e2"},
     {"sha":"09e9ed517345"},
     {"sha":"9b0b2affa2a4"},
-    {"sha":"6c45d84663c9"},
-    {"sha":"47b5e4ef64e5"},
-    {"sha":"d684a9c4f4d6"},
-    {"sha":"341c50fa6c0c"},
-    {"sha":"31d4a4eee2b5"}
+    {"sha":"6c45d84663c9"}
   ]
 }
