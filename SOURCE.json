@@ -1,7 +1,8 @@
 {
-  "source": "28701a4792ad78c00725ab894e360e2326c1b587",
+  "source": "bc082be03b1dca5406cb06c362f7aa5652b480a3",
   "since": "2026-08-15",
   "history": [
+    {"sha":"bc082be03b1d","skills":"Runs filter by outcome and starter at any range, and staging's slow reads are fast: an hourly ledger tally, covering indexes, flow-health batch sharing (#3552)"},
     {"sha":"28701a4792ad","skills":"Wave 2 of the customer reports: a re-filed category replaces its term, a plan names the outside flows a shared type reaches, and platform-status sees a model provider's outage (#3554)"},
     {"sha":"1bd588c1e75b"},
     {"sha":"b95c1296d4f6"},
@@ -1000,7 +1001,6 @@
     {"sha":"47b5e4ef64e5"},
     {"sha":"d684a9c4f4d6"},
     {"sha":"341c50fa6c0c"},
-    {"sha":"31d4a4eee2b5"},
-    {"sha":"be29a8b3392d"}
+    {"sha":"31d4a4eee2b5"}
   ]
 }
