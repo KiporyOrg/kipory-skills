@@ -359,10 +359,14 @@ what moves health with neither, such as a secret or a sending address. Then the 
 raised or reworded is on `GET /v1/platform-status` (`rules`).
 
 **What `vendor.unavailable` carries.** One of the platform's own accounts at a vendor — the one a
-project without its own key for that vendor fetches through — stopped serving. The platform tells
+project without its own key for that vendor fetches through — stopped serving: it refuses calls
+(out of credit, key refused), or, for a model provider a function names itself (TypeSafe behind
+`text.decide`, Cohere behind `text.rerank`), the provider is failing its calls on its own side
+(`degraded` on `GET /v1/platform-status`). The platform tells
 each project whose flows hold an action that can run only on that account, once when it stops and
 once (`vendor.available`) when it serves again — not again in between. The platform checks every
-minute, and an outage ends when its alert closes (an empty balance read again with credit on it), or, for one
+minute, and an outage ends when its alert closes (an empty balance read again with credit on it, or a
+failing provider's calls answered again for 10 minutes), or, for one
 known only from refused calls, after at least an hour with none; `available` goes
 to each project told `unavailable` of that outage. A project that starts using the account during
 an outage hears neither. An action that chooses another vendor, or falls back to one, or is

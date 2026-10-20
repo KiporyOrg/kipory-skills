@@ -97,17 +97,17 @@ needs no record reads, and is already scoped correctly.
   persistence sink, and that is normally a `term.upsert`.
 - **`term.upsert` writes nothing on a preview.** A preview run resolves and shows you the outcome
   without saving it, so a term you saw proposed may not exist afterwards.
-- **`term.upsert` adds; it never replaces.** A run that resolves a `one` vocabulary to a different
-  term than the record already carries fails when its writes apply, and every write of the run is
-  dropped. The symptom misleads: the record goes `failed` while the timeline shows every action
-  applied, and only `GET /v1/runs/{runId}/change-set` says why — `rejected`, with
-  `rejection.cause.kind: "unique-violation"`. A `many` vocabulary keeps the old terms beside the
-  new. Resolving to the term the record already carries is fine. So:
-  - re-classify only on a clean run — `POST /v1/records/{id}/reprocess`, or
-    `record.enqueue-process` with `replay: clean`, both of which strip the record's terms first
-    (`kipory-data`);
-  - or gate the classify actions so they are skipped when the record already carries a term;
-  - or replace one vocabulary's terms by hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
+- **`term.upsert` replaces on a `one` vocabulary and adds on a `many` one.** A run that resolves a
+  `one` vocabulary to a different term than the record carries swaps it in the same write, so a
+  flow may re-classify a record on any run. The record's terms on vocabularies nested under the old
+  term leave with it; file the new ones in the same run. A `many` vocabulary keeps the old terms
+  beside the new; to drop one, re-run clean (`POST /v1/records/{id}/reprocess`, or
+  `record.enqueue-process` with `replay: clean`, both strip the record's terms first, `kipory-data`)
+  or replace the vocabulary's terms by hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
+- **A `one` vocabulary still refuses two terms in one run, and a term of another vocabulary.** The
+  action that saves the terms fails; when the run's writes are saved together at the end, the run
+  fails with nothing written and `GET /v1/runs/{runId}/change-set` reads `rejected`,
+  `rejection.cause.kind: "one-term-vocabulary"`, naming `vocabularyKey` and the `terms`.
 - **The gate does not check that the vocabulary exists.** It stamps the vocabulary onto its
   decision; whether that vocabulary is real is checked when the terms are saved. A typo surfaces one
   action later than you would expect.

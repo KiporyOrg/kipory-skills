@@ -81,6 +81,9 @@ row-by-row change would meet, in one read, and three things a row write never te
   consequence is never a refusal; the platform tells you and lets you. Deleting a relation
   deletes every stored link of that relation, and the plan counts them as `links-deleted` on the
   relation's path — save them first (`GET /v1/links?project=<node>&relation=<key>`) if they matter.
+  `flows-affected` names every flow your document does not state that reads or writes a type
+  it changes. Type names are project-wide, so a type you state may be the one another
+  document's flows use: if it is not yours, rename yours before applying.
 - **Cascades before the fact.** A removal that takes other rows along — the relations that
   pair a deleted table, the terms of a deleted vocabulary — is in `changes` as a
   `delete` with `because: "cascade"` and a `DOCUMENT_DELETE_CASCADED` warning. Read the plan's

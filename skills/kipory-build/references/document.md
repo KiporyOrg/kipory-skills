@@ -22,11 +22,11 @@
 
 A plan is not a simulation: the platform applies the document through every row's own write, in one transaction, and rolls it back — so what a plan refuses is exactly what an apply refuses. Read three things off it:
 
-| List                           | Says                                                                                                                                                                |
-| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `diagnostics`                  | each finding on a path in YOUR document, such as `tables.member.type`. Gate on `severity` and `introduced`, never on `code`                                         |
-| `consequences`                 | what the change does to stored data: records re-stamped, vectors re-indexed, and `records-invalid` — the stored records that would no longer fit a type you changed |
-| the `delete` rows of `changes` | what is removed, including what a removal takes along by cascade                                                                                                    |
+| List                           | Says                                                                                                                                                                                                                                                       |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `diagnostics`                  | each finding on a path in YOUR document, such as `tables.member.type`. Gate on `severity` and `introduced`, never on `code`                                                                                                                                |
+| `consequences`                 | what the change does to stored data: records re-stamped, vectors re-indexed, `records-invalid` — the stored records that would no longer fit a type you changed — and `flows-affected` — the flows your document does not state that use a type it changes |
+| the `delete` rows of `changes` | what is removed, including what a removal takes along by cascade                                                                                                                                                                                           |
 
 - **A plan answers the contract of each table it creates.** `contracts.<key>` is the field vocabulary the new table would have — the fields a caller sends and the ones its flow adds — and `supportedUses` is the use kinds this deployment accepts. Read them to pick `uses` before the table exists; an apply does not carry them.
 - **The plan judges the state it leaves, not only the rows it writes.** Every flow the document can move — the ones it writes, the ones invoking them, the ones reading a type or a table it changes — is checked with `GET /v1/flows/{id}/health`'s own rules, and so are the schedules, triggers and endpoints that start them.

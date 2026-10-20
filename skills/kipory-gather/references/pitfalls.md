@@ -33,8 +33,8 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   code `vendor-out-of-credit` or `credential-rejected`; a throttled account: phase
   `function-error`, code `rate-limited`). With no tolerance the
   first such branch still fails the run. `GET /v1/platform-status` lists every platform account as
-  `ok`, `refusing` or `unknown` with `since`: read it before spending a run to find out, and
-  again to see the account come back. While an account is `refusing`, an action on it fails at
+  `ok`, `refusing`, `degraded` (a model provider failing calls on its own side) or `unknown` with
+  `since`: read it before spending a run to find out, and again to see the account come back. While an account is `refusing`, an action on it fails at
   once without calling the vendor. A function with a second vendor and `fallback` on
   (`x.posts`, `youtube.transcript`) does not fail on the platform's refused key: the next
   vendor answers, at its own price, and the result carries a `PROVIDER_FALLBACK` warning whose

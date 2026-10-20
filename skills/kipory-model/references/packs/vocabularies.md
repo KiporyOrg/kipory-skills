@@ -218,14 +218,20 @@ a parent minted in the same batch. ⚠️ **A resolver SUBFLOW is the exception*
 another flow legitimately hands persistence off to its caller by binding the bundle to an ordinary
 flow output, and adding a `term.upsert` there is not required.
 
-⚠️ **`term.upsert` adds an assignment; it never replaces one.** A run that resolves a `one`
-vocabulary to a different term than the record already carries fails when its writes apply: the
-record goes `failed`, every write of the run is dropped, and `GET /v1/runs/{runId}/change-set` reads
-`rejected` with `rejection.cause.kind: "unique-violation"` — while the timeline shows every action
-applied. On a `many` vocabulary the new terms land beside the old ones. So re-classify a record only
-on a clean run — `POST /v1/records/{id}/reprocess`, or `record.enqueue-process` with
-`replay: clean`, both of which strip the record's terms first — or replace one vocabulary's terms by
-hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
+**On a `one` vocabulary, `term.upsert` replaces; on a `many` vocabulary, it adds.** A run that
+resolves a `one` vocabulary to a different term than the record carries files the new term in the
+same write that removes the old one, so a flow may judge a record again — a story's category as
+posts join it — with no clean run. The record's terms on vocabularies nested under the old term
+(`topic` under `category`) leave with it: file the new ones in the same run. On a `many` vocabulary
+the new terms land beside the old ones; to drop one, re-run clean (`POST /v1/records/{id}/reprocess`,
+or `record.enqueue-process` with `replay: clean`, both strip the record's terms first) or replace the
+vocabulary's terms by hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
+
+⚠️ Two writes are still refused on a `one` vocabulary: two different terms for one record in one
+run, and a term of another vocabulary. The action that saves the terms fails, or, when the run's
+writes are saved together at the end, the run fails with nothing written and
+`GET /v1/runs/{runId}/change-set` reads `rejected`, `rejection.cause.kind: "one-term-vocabulary"`,
+with `vocabularyKey` and the `terms` by key.
 
 **A resolve flow with no sink at all resolves nothing** — the values simply never land, because
 resolving itself succeeded and nothing failed. It is not silent at save, though: it warns there like

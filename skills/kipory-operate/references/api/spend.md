@@ -75,7 +75,7 @@ Each item of `calls`:
 | `provider` | `string` | yes | The vendor that served it. |
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
-| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown`, so a client can switch on this exhaustively. |
+| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "provider-unavailable" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown`, so a client can switch on this exhaustively. |
 | `action` | `object \| null` | yes | Null for a call no action made. |
 | `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
 | `record` | `object \| null` | yes | The record this call was processing, null when it was processing none. ⚠️ THE NAME IS BEST-EFFORT AND MAY BE NULL: it is read from `derived.title`, then `data.title`, then a truncated `data.text`, which are CONVENTIONS a table is free to mean something else by. A null name is not a missing record — the id is still the handle. |
@@ -111,7 +111,7 @@ One model call in full — the list's row plus its action, flow, record, cost an
 | `provider` | `string` | yes | The vendor that served it. |
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
-| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown`, so a client can switch on this exhaustively. |
+| `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "provider-unavailable" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown`, so a client can switch on this exhaustively. |
 | `action` | `object \| null` | yes | Null for a call no action made. |
 | `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
 | `record` | `object \| null` | yes | The record this call was processing. ⛔ NO ADDRESS COMES WITH IT — unlike `flow`, which carries a key because it has a page; it is not a link. |
