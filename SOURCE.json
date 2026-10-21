@@ -1,7 +1,8 @@
 {
-  "source": "d15065c430f9ea80590c6b4eb7840e5ff8422a77",
+  "source": "821152e4dcd6468b94b25a1a8a2938487bc11c8c",
   "since": "2026-08-15",
   "history": [
+    {"sha":"821152e4dcd6","skills":"The organization page opens on a summary, gives its tables room, and says when each project last worked (#3570)"},
     {"sha":"d15065c430f9","skills":"RLS follow-ups: unkeyed runs keep out of the ingest cache, four flakes fixed at their cause, health sources fail loudly, AI calls kept 90 days (#3569)"},
     {"sha":"cf3944e1829f"},
     {"sha":"f63d72dbed58"},
@@ -1000,7 +1001,6 @@
     {"sha":"47cea0bc48f1"},
     {"sha":"007818ba6f4e"},
     {"sha":"e0204737a64e"},
-    {"sha":"fe582c5eb80c"},
-    {"sha":"32738566cfd5"}
+    {"sha":"fe582c5eb80c"}
   ]
 }

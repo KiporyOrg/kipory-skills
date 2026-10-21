@@ -385,6 +385,7 @@ Each item of `projects`:
 | `name` | `string` | yes | The project's name. |
 | `credits` | `integer` | yes | What it spent over the window under the scope and every narrowing but `project` — so the list keeps every project when the figure is narrowed to one. |
 | `charged` | `integer` | yes | How many of its events carried a charge above zero. |
+| `lastActivityAt` | `string \| null` | yes | When the project last worked — an end user's request, design-time work or a public call, whatever it cost; stored data's daily charge and the platform's own work do not count. Regardless of the window; null when it has never worked. |
 | `payer` | `object \| null` | yes | The wallet it settles to — its own, or the organization's — under the same balance rule as the organization's own payer. |
 | `caps` | `object` | yes | The project's spend ceilings and how close each is. Measured on the ceilings' own windows, not the page's. |
 
