@@ -1,7 +1,16 @@
 {
-  "source": "63f3f83b4e4fb736bacf3c17590ac28ae23993b4",
+  "source": "d15065c430f9ea80590c6b4eb7840e5ff8422a77",
   "since": "2026-08-15",
   "history": [
+    {"sha":"d15065c430f9","skills":"RLS follow-ups: unkeyed runs keep out of the ingest cache, four flakes fixed at their cause, health sources fail loudly, AI calls kept 90 days (#3569)"},
+    {"sha":"cf3944e1829f"},
+    {"sha":"f63d72dbed58"},
+    {"sha":"a029c69e1d66"},
+    {"sha":"bf59487ce0e6"},
+    {"sha":"2f38a8fecd99"},
+    {"sha":"750e7f3cee69"},
+    {"sha":"6486c8a06df4"},
+    {"sha":"41d723e2e1dd"},
     {"sha":"63f3f83b4e4f","skills":"Wallet reads and writes go through answers, a charge can only debit a wallet on its own chain, and admission drops to two statements (N3a) (#3560)"},
     {"sha":"03552909827d"},
     {"sha":"f3aa7baed177"},
@@ -992,15 +1001,6 @@
     {"sha":"007818ba6f4e"},
     {"sha":"e0204737a64e"},
     {"sha":"fe582c5eb80c"},
-    {"sha":"32738566cfd5"},
-    {"sha":"42ecff54d728"},
-    {"sha":"f712f54d0a2d"},
-    {"sha":"b4b3d2e35253"},
-    {"sha":"cbc1041f1bb4"},
-    {"sha":"b2f0189f7428"},
-    {"sha":"9afe036d36e2"},
-    {"sha":"09e9ed517345"},
-    {"sha":"9b0b2affa2a4"},
-    {"sha":"6c45d84663c9"}
+    {"sha":"32738566cfd5"}
   ]
 }
