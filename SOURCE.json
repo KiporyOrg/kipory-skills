@@ -1,7 +1,18 @@
 {
-  "source": "821152e4dcd6468b94b25a1a8a2938487bc11c8c",
+  "source": "832839b2b97fc76e55093fcec4014b7bb7a63a9a",
   "since": "2026-08-15",
   "history": [
+    {"sha":"832839b2b97f","skills":"A run's page reads as the run happened, and the runs list says why runs failed (#3581)"},
+    {"sha":"b15f48b8a4e1"},
+    {"sha":"ef1faebb8be9"},
+    {"sha":"285bdbebf95c"},
+    {"sha":"69485deabe56"},
+    {"sha":"d15d7073b5a4"},
+    {"sha":"5ce80c437ae2"},
+    {"sha":"98cd4b568e9d"},
+    {"sha":"b1b22dd0e9d9"},
+    {"sha":"aadfa8b3e332"},
+    {"sha":"8a9c92263093"},
     {"sha":"821152e4dcd6","skills":"The organization page opens on a summary, gives its tables room, and says when each project last worked (#3570)"},
     {"sha":"d15065c430f9","skills":"RLS follow-ups: unkeyed runs keep out of the ingest cache, four flakes fixed at their cause, health sources fail loudly, AI calls kept 90 days (#3569)"},
     {"sha":"cf3944e1829f"},
@@ -990,17 +1001,6 @@
     {"sha":"f012f75c176d"},
     {"sha":"14fc74439da1"},
     {"sha":"1ca300cedc5d"},
-    {"sha":"d2c573e26a59"},
-    {"sha":"01397e2c25c8"},
-    {"sha":"21bc3c2e9a70"},
-    {"sha":"4cc578e9a9ae"},
-    {"sha":"b37c85a2cbad"},
-    {"sha":"615513546ba3"},
-    {"sha":"1b4966916db1"},
-    {"sha":"558cff2b5593"},
-    {"sha":"47cea0bc48f1"},
-    {"sha":"007818ba6f4e"},
-    {"sha":"e0204737a64e"},
-    {"sha":"fe582c5eb80c"}
+    {"sha":"d2c573e26a59"}
   ]
 }

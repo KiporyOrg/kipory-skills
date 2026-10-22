@@ -55,7 +55,7 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `before` | `string` | no | Read the previous page along `order` — pass the `prevCursor` you were given. ⛔ NOT VALID WITH `after`: a request carrying both is answered 422 `VALIDATION_FAILED` naming both. |
 | `limit` | `integer` | no | Rows per page. Defaults to 50, capped at 100. |
 | `flowKey` | `string` | no | Only runs that ran the flow with this key — the flow's address, the same one `/{project}/flows/{key}` takes: runs whose own flow it is and runs that called it as a sub-flow, at any depth and on any attempt, and started at least one of its actions. A run is listed once, ranged by when it started; one that only called this flow is placed where it first called it. A key the project does not have is a 404, never an empty page. ⚠️ A run whose flow was since deleted matches nothing here. Filters inside the same ordered walk the page uses; it does not change the cursor. |
-| `record` | `string` | no | Only the runs that processed this record (`source.kind: record`), its latest 500. A record this project does not hold, or one since deleted, lists nothing. Not valid with `tally` or `starters` (400). |
+| `record` | `string` | no | Only the runs that processed this record (`source.kind: record`), its latest 500. A record this project does not hold, or one since deleted, lists nothing. Not valid with `tally`, `starters` or `causes` (422). |
 | `window` | `"24h" \| "7d" \| "30d"` | no | Narrow to runs STARTED in this window — the same values the calls, ingestion and usage surfaces take. ⚠️ IT FILTERS, IT DOES NOT ORDER: the page is still walked by `seq`. Counted in whole slices, as usage counts it: `24h` from the top of the hour 23 hours before the current one, `7d` and `30d` from 00:00 UTC that many days back counting today. ⛔ NOT VALID WITH `since` or `until` (400). |
 | `since` | `string` | no | Only runs STARTED at or after this instant — the explicit form of `window`, for a range no preset names. Filters without changing the cursor. |
 | `until` | `string` | no | Only runs started STRICTLY BEFORE this instant. Omit it for up to now. Refused (400) at or before `since`: that range is empty by construction. |
@@ -63,6 +63,7 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `starters` | `"1"` | no | Also answer how many runs each starter began in the range, as `starters`: one row per schedule, trigger and endpoint, one for all records together and one for all eval cases together, each with its runs, how many failed and when it last began one. It is how one endpoint's calls are counted. ⛔ NEEDS A LOWER BOUND (`window` or `since`), as `tally` does. Counted under the same range and `flowKey` as the list, before `outcome` and `source`. Not moved by the cursor. |
 | `outcome` | `"running" \| "failed" \| "stopped" \| "partial" \| "warned" \| "succeeded" \| "other"` | no | Only runs that ended this way. ⛔ NEEDS A LOWER BOUND (`window` or `since`), as `tally` does. Any range is read, however many runs it holds; it is refused (400) only when it is too slow to read in its time budget, or holds over 5,000 runs still going, never closed or started again: narrow it. Pages with the same cursors as the unfiltered list. The words: `running`: known to be going — its `lifecycle` is `in-flight` — or waiting to be started again. `failed`: it failed. `stopped`: it was stopped from outside the flow — a closing of kind `run-aborted` whose failure is absent or of class `cancelled` — which `GET /v1/failed-runs` does not list either. `partial`: it finished having carried on past a failure: the `partial` verdict, or a success with an `action-failed-continued` warning. `warned`: succeeded with another warning; `succeeded`: with none. `other`: no end recorded and not known to be going — a call answered in the same request or a preview with no closing yet (`lifecycle: unknown`), a run that died or was reaped — or a status the platform does not translate. |
 | `source` | `"schedule" \| "trigger" \| "endpoint" \| "record" \| "request" \| "public" \| "preview" \| "eval" \| "unknown"` | no | Only runs this kind of starter began, as each row's `source.kind` says, with one difference: `endpoint` also keeps a `request` run an endpoint answered (one whose `source.targetId` names the endpoint), and `request` keeps only the `request` runs no endpoint answered — so each matches what a reader calls an endpoint's runs. ⛔ NEEDS A LOWER BOUND, and is refused (400) only when `outcome` would be. |
+| `causes` | `"1"` | no | Also answer why the range's runs failed, as `causes`, and the failed runs per slice in `started` when `tally` is sent. ⛔ NEEDS A LOWER BOUND. |
 | `outcomes` | `"1"` | no | Also answer how many runs in the range ended each way, as `outcomes`. ⛔ NEEDS A LOWER BOUND. Counted under `flowKey` and `source` but not `outcome`, so each count says what picking that outcome would list. Not moved by the cursor. |
 | `order` | `"desc" \| "asc"` | no | Which way the list runs by start (insertion `seq`): `desc` (the default) is newest first, `asc` oldest first. |
 
@@ -79,6 +80,7 @@ One project's runs, in the order they started, walked on `after`/`before`; filte
 | `since` | `string \| null` | yes | The lower bound the list was read from — the instant `window` resolved to, or the `since` sent — or `null` when neither was asked. |
 | `until` | `string \| null` | yes | The `until` sent, or `null` for up to now. |
 | `started` | `object[] \| null` | yes | Runs started per slice of the range, oldest first, when `tally` was sent, counting every run in the range before `outcome` and `source`. Every slice is PRESENT, a quiet one with zero. `null` when `tally` was not sent — never an empty list for a range that was not counted. |
+| `causes` | `object[] \| null` | yes | Why the range's runs failed, when `causes=1` was sent: the failed runs grouped by the action that failed and whose failure it was, the flow's own failures first, then by runs. A run counts when its latest attempt failed, as `outcomes` counts `failed`; one waiting to be started again does not. Counted under `flowKey` as the list is (the runs that flow started and those that called it; each cause names the flow that started its runs), but not `outcome` or `source`. `null` when not asked, or when the range could not be read in time — it never fails the page. |
 | `starters` | `object[] \| null` | yes | Runs by what started them over the range, most runs first, when `starters=1` was sent, before `outcome` and `source`. A call to an endpoint is `request` (it answered in the same request), `endpoint` (it answers later) or `public` (no credential), each with the endpoint's key as `targetId`: sum the three for one endpoint's calls. Runs that processed a record are ONE row, `record` with `targetId: null`: which record is on the list's own rows; eval cases likewise, `eval` with `targetId: null`. Under `flowKey`, a failed run that only called the flow counts as failed when one of the flow's own actions failed in it. A starter that began no run in the range has NO row. `null` when `starters` was not sent, or when the count did not finish within its time budget — never an empty list for a range not counted. |
 | `outcomes` | `object \| null` | yes | Runs in the range by how they ended (see `outcome`), when `outcomes=1` was sent. `null` when it was not sent, or when the range could not be counted — the cases `outcome` is refused in — never zeroes for a range not counted. |
 
@@ -109,6 +111,20 @@ Each item of `started`:
 | --- | --- | --- | --- |
 | `at` | `string` | yes | The slice's first instant: the top of a UTC hour, or 00:00 UTC. |
 | `runs` | `integer` | yes | Runs that started in this slice. |
+| `failed` | `integer \| null` | yes | Of them, the runs that failed, counted as `outcomes` counts `failed` and as `causes` counts them, when `causes=1` was sent; `null` when not sent or when `causes` is `null`. |
+
+Each item of `causes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `actionKey` | `string \| null` | yes | The action that failed, by its name; `null` when the run failed outside any action. |
+| `flowKey` | `string \| null` | yes | The flow that started these runs, by its key. |
+| `owner` | `string \| null` | yes | Whose failure it was: `customer` (the flow's own, to fix in the flow), `vendor`, `platform` or `caller`. |
+| `failureClass` | `string \| null` | yes | The failure's class, as a run's closing says it. |
+| `code` | `string \| null` | yes | Its code, or why the run's changes were refused. |
+| `runs` | `integer` | yes | Failed runs in the range with this cause. |
+| `lastAt` | `string` | yes | When the latest of them started. |
+| `lastRunId` | `string` | yes | The latest of them: `GET /v1/runs/{runId}`. |
 
 Each item of `starters`:
 

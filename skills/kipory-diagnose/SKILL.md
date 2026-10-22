@@ -32,7 +32,7 @@ Every execution is a **run** with one id, whatever started it — an endpoint ca
 ## The sequence
 
 ```
-GET /v1/runs?project={nodeId}&flowKey={key}&window=24h   recent runs, newest first — flow, source, lifecycle, closing; `flowKey` is optional (runs that called it as a sub-flow count), an unknown one is a 404, not an empty page; `record={id}` for one record's runs
+GET /v1/runs?project={nodeId}&flowKey={key}&window=24h   recent runs, newest first — flow, source, lifecycle, closing; `flowKey` is optional (runs that called it as a sub-flow count), an unknown one is a 404, not an empty page; `record={id}` for one record's runs; `causes=1` (needs `window` or `since`) adds `causes`, why the range's runs failed grouped by the action that failed and whose failure it was, each with its `lastRunId` — the cheapest first read when many runs failed
 GET /v1/runs/{runId}                               one run and how many attempts it took
 GET /v1/runs/{runId}/timeline                         the ordered timeline: run-started / run-finished / run-aborted; action-started, action-applied, action-skipped, action-not-reached, action-no-op, action-failed, action-warned; cache-hit or cache-miss; log-truncated
 GET /v1/runs/{runId}/change-set                    what it wrote: captured · applied · rejected · discarded

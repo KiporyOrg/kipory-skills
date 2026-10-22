@@ -829,7 +829,7 @@
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/eval-runs/{id}/spend": {
-      "hash": "35ad523df0d6",
+      "hash": "48f5303add7f",
       "page": "kipory-prove/references/api/evals.md"
     },
     "GET /v1/eval-runs/{id}/traces/{traceId}": {
@@ -1180,7 +1180,7 @@
       "page": "kipory-expose/references/api/route-enablement.md"
     },
     "GET /v1/runs/": {
-      "hash": "d23a30632e86",
+      "hash": "443fc4cc25e8",
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}": {
@@ -1196,7 +1196,7 @@
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}/spend": {
-      "hash": "51302a7d158e",
+      "hash": "d800adb85949",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/runs/{runId}/timeline": {
