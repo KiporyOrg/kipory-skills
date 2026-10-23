@@ -409,10 +409,13 @@ leave it out, since one stated is refused.
 ### Asking instead of being told
 
 - `GET /v1/failed-runs?project=<nodeId>` — the runs whose latest close is `failed` or `partial`,
-  newest first, filterable by subject (`subjectKind` with `subjectKey`), by failure `class`, by `verdict`, and by
-  when the run closed (`from` up to `to`, which is exclusive). Cursor-paged on `after`. Each row's `closing` carries
-  the `failure` of a failed run and, for a `partial` one, `absorbed` — how many failures it
-  carried on past.
+  newest first, filterable by subject (`subjectKind` with `subjectKey`), by `flowId`, by failure `class` and
+  `code`, by whose failure it was (`owner`), by `verdict`, and by when the run closed (`from` up to `to`, which is
+  exclusive). Cursor-paged on `after`. Each row names its `flowId` and `filed` class and code, and its `closing`
+  carries the `failure` of a failed run and, for a `partial` one, `absorbed` — how many failures it carried on past.
+- `GET /v1/failed-runs/summary?project=<nodeId>&from=<instant>` — the same runs grouped by flow, class and code,
+  the commonest first: each group's runs, first and latest close, whose failure it is, its latest run and what that
+  run's failed action said. At most 50 groups; `more` says the window holds others. Takes the list's narrowings.
 - `GET /v1/projects/{nodeId}/alerts` — every schedule, trigger, table or endpoint that is
   failing, quiet, about to be paused or paused, read live.
 - A plan (`POST /v1/projects/{nodeId}/document/plan`) of a project that runs schedules or

@@ -82,7 +82,7 @@
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
-      "hash": "0820c5807983",
+      "hash": "8fd234548b1f",
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
@@ -869,7 +869,11 @@
       "page": "kipory-operate/references/api/events.md"
     },
     "GET /v1/failed-runs/": {
-      "hash": "020cb082aa5c",
+      "hash": "67526d5530f5",
+      "page": "kipory-operate/references/api/failures.md"
+    },
+    "GET /v1/failed-runs/summary": {
+      "hash": "3c9d63f7236c",
       "page": "kipory-operate/references/api/failures.md"
     },
     "GET /v1/files/": {
@@ -1020,7 +1024,7 @@
       "page": "kipory-build/references/api/functions-and-models.md"
     },
     "GET /v1/organizations/{nodeId}/ledger": {
-      "hash": "9aa9cea87098",
+      "hash": "41f3fafcbe11",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/organizations/{nodeId}/quota": {
@@ -1028,7 +1032,7 @@
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/organizations/{nodeId}/usage": {
-      "hash": "9ebd168709fb",
+      "hash": "9d158197de5b",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/platform-status/": {
@@ -1100,7 +1104,7 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "GET /v1/projects/{nodeId}/members/{userId}/ledger": {
-      "hash": "014041f14673",
+      "hash": "6d01998a97a1",
       "page": "kipory-expose/references/api/end-users.md"
     },
     "GET /v1/projects/{nodeId}/profile-schema": {
@@ -1112,15 +1116,15 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/usage": {
-      "hash": "8d74cd1998d7",
+      "hash": "4d1e47430014",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/projects/{nodeId}/usage/events": {
-      "hash": "04afec776e2e",
+      "hash": "9a5da2a431c5",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/projects/{nodeId}/usage/events.csv": {
-      "hash": "05d18351a128",
+      "hash": "0298ea6cc9c0",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/pushes/": {
@@ -1180,11 +1184,11 @@
       "page": "kipory-expose/references/api/route-enablement.md"
     },
     "GET /v1/runs/": {
-      "hash": "443fc4cc25e8",
+      "hash": "f6674ec89595",
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}": {
-      "hash": "880979c8c880",
+      "hash": "120c5248b146",
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}/change-set": {
@@ -1196,7 +1200,7 @@
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}/spend": {
-      "hash": "d800adb85949",
+      "hash": "f12427f289a6",
       "page": "kipory-operate/references/api/spend.md"
     },
     "GET /v1/runs/{runId}/timeline": {

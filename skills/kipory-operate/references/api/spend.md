@@ -255,10 +255,10 @@ Each item of `entries`:
 | --- | --- | --- | --- |
 | `kind` | `"movement"` | yes | Credits moved: a charge, a grant, an adjustment or a transfer. |
 | `at` | `string` | yes | When the credits moved. |
-| `id` | `string` | yes | The entry's id: the charge's id for a `usage-debit`, the ledger row's id for a grant or an adjustment. |
-| `amount` | `integer` | yes | Signed credits: negative for a debit, positive for a grant or an adjustment that returned credits. |
+| `id` | `string` | yes | The entry's id: the charge's (or its waiver's) id for a `usage-debit`, the ledger row's id for a grant or an adjustment. |
+| `amount` | `integer` | yes | Signed credits: negative for a debit, positive for a grant, an adjustment that returned credits, or a `usage-debit` the platform gave back (a waiver: work it lost, ran twice or broke is not charged). |
 | `type` | `"usage-debit" \| "grant" \| "adjustment" \| "transfer"` | yes | `usage-debit` is metered work; `grant` and `adjustment` are operator movements; `transfer` is credits moved to or from another wallet — a grant to a member's wallet, or what came back from one. |
-| `causeRef` | `string` | yes | What caused the movement — the charge's id for a `usage-debit`, or an operator movement's own reference. |
+| `causeRef` | `string` | yes | What caused the movement — the charge's id for a `usage-debit` (for a waiver, the charge it gave back), or an operator movement's own reference. |
 | `counterparty` | `object \| null` | yes | The other wallet of a `transfer`: where the credits went (a negative amount) or came from (a positive one). Null on every other movement. |
 | `actor` | `string` | yes | Who changed it — `user:<id>`, an operator email, or `system:<slug>`. |
 | `actorPerson` | `object \| null` | yes | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
@@ -311,6 +311,7 @@ What the projects under this organization spent over a window, by project, kind,
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
+| `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
@@ -348,6 +349,7 @@ Each item of `buckets`:
 | `credits` | `integer` | yes | The slice's total charge. |
 | `events` | `integer` | yes | The slice's billable event COUNT. ⛔ CARRIED ON EVERY SCOPE, NOT ONLY `system`. On `system` it is the ONLY meaningful figure — every charge there is zero. |
 | `byKind` | `object[]` | yes | The slice's total, split the same way `kinds` splits the window. Only kinds with activity in THIS slice appear; a client stacking a fixed set of bands reads a missing kind as zero for the slice. |
+| `split` | `object \| null` | yes | The slice's total split along `breakdown.by`, so a chart can stack the slices by the same rows the breakdown lists. `null` when `by` is `kind` — `byKind` is that split. |
 
 Each item of `priorBuckets`:
 
@@ -396,6 +398,7 @@ Each item of `hours`:
 | `weekday` | `integer` | yes | ISO weekday in UTC — 1 is Monday, 7 is Sunday. |
 | `hour` | `integer` | yes | The UTC hour, 0–23. |
 | `events` | `integer` | yes | Events in that weekday-hour over the whole window. |
+| `credits` | `integer` | yes | What those events were charged, over the whole window — the hour a reader pays for, which is not always the busiest one. |
 
 ### `GET /v1/projects/{nodeId}/limits`
 
@@ -456,13 +459,14 @@ What one project spent over a window, by kind of billable work — split by kind
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
+| `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
-| `by` | `"kind" \| "action" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work. |
+| `by` | `"flow" \| "kind" \| "action" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 | `flows` | `"1"` | no | Pass `1` to also split the window's credits by the flow whose runs spent them, as `flows`. Under the same scope and narrowing as every other figure here. `flows` is null without it. |
 
@@ -483,7 +487,8 @@ What one project spent over a window, by kind of billable work — split by kind
 | `caps` | `object` | yes | The project's spend ceilings and how close each is. Measured on the ceilings' own windows, not the page's. |
 | `payer` | `object \| null` | yes | The wallet this project's work settles to. `null` when no wallet resolves anywhere above it, in which case the work is served unbilled. |
 | `hours` | `object[]` | yes | Billable events by UTC weekday and hour across the window, under the scope and narrowing — every kind of work but function runs, which are most of the events and charge nothing. Only cells with events are listed. |
-| `flows` | `object \| null` | yes | The window's credits by the flow whose runs spent them, when `flows=1` was sent. `null` when it was not sent, or when the window holds too many runs to split — never an empty split for a window that was not counted. |
+| `firstChargeAt` | `string \| null` | yes | When this project's first charge occurred, under no filter — so a period before with nothing in it can be told apart from a period before the project charged anything. `null` when it never charged. |
+| `flows` | `object \| null` | yes | The window's credits by the flow whose runs spent them, when `flows=1` was sent. `null` when it was not sent. |
 
 Each item of `buckets`:
 
@@ -493,6 +498,7 @@ Each item of `buckets`:
 | `credits` | `integer` | yes | The slice's total charge. |
 | `events` | `integer` | yes | The slice's billable event COUNT. ⛔ CARRIED ON EVERY SCOPE, NOT ONLY `system`. On `system` it is the ONLY meaningful figure — every charge there is zero. |
 | `byKind` | `object[]` | yes | The slice's total, split the same way `kinds` splits the window. Only kinds with activity in THIS slice appear; a client stacking a fixed set of bands reads a missing kind as zero for the slice. |
+| `split` | `object \| null` | yes | The slice's total split along `breakdown.by`, so a chart can stack the slices by the same rows the breakdown lists. `null` when `by` is `kind` — `byKind` is that split. |
 
 Each item of `priorBuckets`:
 
@@ -529,6 +535,7 @@ Each item of `hours`:
 | `weekday` | `integer` | yes | ISO weekday in UTC — 1 is Monday, 7 is Sunday. |
 | `hour` | `integer` | yes | The UTC hour, 0–23. |
 | `events` | `integer` | yes | Events in that weekday-hour over the whole window. |
+| `credits` | `integer` | yes | What those events were charged, over the whole window — the hour a reader pays for, which is not always the busiest one. |
 
 ### `GET /v1/projects/{nodeId}/usage/events`
 
@@ -549,12 +556,16 @@ The project's statement — every charge under the same window and narrowings as
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
+| `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
+| `charged` | `"1"` | no | `1` lists only the rows that moved credits: the charges that cost something, and the waivers that gave a charge back (negative `credits`; the platform does not charge for work it lost, ran twice or broke). Rows at 0 credits — function time under its first unit, work the platform does not price — are left out. Omitted, every row is listed. |
+| `failed` | `"1"` | no | `1` lists only the charges of runs whose latest close in the window failed — what failures cost (the failed-run list, as `GET /v1/failed-runs` reads it). Omitted, every charge is listed. |
+| `order` | `"newest" \| "costliest"` | no | `costliest` lists the window's charges by what they cost, dearest first (then newest) — the question "which charge cost the most" — then the free ones (left out under `charged=1`), newest first, then the waivers, which gave charges back, the largest give-back last: by `credits`, the same rows the newest-first order lists. Omitted, newest first. A cursor names a row in one order only: pass back the ones this order handed you. |
 | `after` | `string` | no | The page OLDER than this row — pass back the `nextCursor` you were given. Omit for the newest page. |
 | `before` | `string` | no | The page NEWER than this row — pass back the `prevCursor` you were given. Refused together with `after`. |
 | `limit` | `integer` | no | How many charges per page, up to 200. Defaults to 50. |
@@ -578,8 +589,10 @@ Each item of `events`:
 | `createdAt` | `string` | yes | When the charge was recorded. Later than `occurredAt` for a retried or backfilled row. |
 | `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | What kind of work was charged for. |
 | `actor` | `"request" \| "design" \| "system" \| "holding" \| "public"` | yes | Whose work: `request` an end user's, `public` a call to a public endpoint, made with no credential and paid by the project, `design` design-time, `system` the platform's own, which charges nobody; `holding` what the project stores — files and vectors — charged by the daily held tick with no end user behind it. |
-| `credits` | `integer` | yes | What the project was charged for this event, in credits. `0` is a measured charge — a free or platform-actor row — not an absence. |
+| `credits` | `integer` | yes | What the project was charged for this event, in credits. `0` is a measured charge — a free or platform-actor row — not an absence. Negative on a waiver: what the platform gave back of a charge it does not charge for (work it lost, ran twice or broke). |
 | `actionId` | `string \| null` | yes | The action row that spent it, or null outside any action. ⚠️ Ids fragment on every flow edit; `actionName` is the key that totals. |
+| `flowId` | `string \| null` | yes | The flow whose run made the charge, by its row id — the key a usage breakdown by flow lists it under; null for work outside any flow. |
+| `flowLabel` | `string \| null` | yes | That flow's label as it stands today; null outside any flow, and for a flow that has since been deleted. |
 | `actionName` | `string \| null` | yes | The action's name, frozen at charge time; null outside any action. |
 | `model` | `string \| null` | yes | The model a priced AI call named, lifted out of `details`; null for work that named none. |
 | `functionKey` | `string \| null` | yes | The vendor function that made a paid fetch, lifted out of `details`; null for every other kind. |
@@ -612,12 +625,15 @@ The statement of `GET /v1/projects/{nodeId}/usage/events` as CSV, newest first, 
 | `to` | `string` | no | The instant a custom span ends, EXCLUSIVE — a charge at exactly `to` is outside it, so `from=2026-09-01T00:00:00Z&to=2026-09-08T00:00:00Z` is seven whole days. A `to` still in the future ends the window at the moment of the read. Only with `window=custom`, where it is required. A span longer than 365 days, or one that does not run forwards, is refused. |
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
+| `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
 | `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
+| `charged` | `"1"` | no | `1` lists only the rows that moved credits: the charges that cost something, and the waivers that gave a charge back (negative `credits`; the platform does not charge for work it lost, ran twice or broke). Rows at 0 credits — function time under its first unit, work the platform does not price — are left out. Omitted, every row is listed. |
+| `failed` | `"1"` | no | `1` lists only the charges of runs whose latest close in the window failed — what failures cost (the failed-run list, as `GET /v1/failed-runs` reads it). Omitted, every charge is listed. |
 
 **Response `200`**
 
@@ -643,6 +659,7 @@ What one run cost, and which action spent it. `0` for a run that spent nothing; 
 | `uncharged` | `integer` | yes | How many of the run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. ⚠️ When this equals `events` the whole run was platform-paid, and `credits: 0` is not what the same work costs when it is charged. A record's first processing and its reprocess are both charged; a run the platform started for its own purposes is not. |
 | `byAction` | `object[]` | yes | Descending by charge, so the expensive action is first. Each entry's `charges` says what the action was charged for, one entry per kind, direction and model — `function-run` with the milliseconds of compute billed, `llm-call` per direction and model with its tokens. ⚠️ EMPTY is a real answer with more than one cause and this route cannot tell them apart: a run of pure transforms spent nothing, a run that failed before its first billable op spent nothing, and a run that predates per-run attribution has spend that cannot be found. A caller must not draw any of the three as `0 credits` without saying which it cannot rule out. |
 | `repeatedByPlatform` | `object` | yes | The part of this run's cost that came from the platform starting it again after one of its own failures (a worker that stopped, no worker free in time). An action's compute is charged once per run however often it is repeated, so this is model and vendor calls really made again, plus actions the first attempt never reached. Included in `credits` and `byAction`, not added to them. `{ credits: 0, lines: 0 }` on a run never started again. |
+| `waived` | `object` | yes | What the platform gave back because the failure was its own: a run it lost, an attempt it ran twice, a run that failed on its own queue, database or vendor account. Already taken out of `credits` and `byAction`. `{ credits: 0, lines: 0 }` when nothing was given back. |
 | `startedRuns` | `object` | yes | The runs this run STARTED, and what they cost beside its own spend. ⚠️ A record's run counts here once a worker has claimed it: one still queued when this is read is not yet listed, so read again after the queue drains. Runs started before 2026-10-15 name no starter and are never found. |
 
 Each item of `byAction`:

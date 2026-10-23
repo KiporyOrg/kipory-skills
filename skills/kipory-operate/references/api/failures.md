@@ -11,12 +11,13 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | Method | Path | Notes |
 | --- | --- | --- |
 | `GET` | [`/v1/failed-runs`](#get-v1-failed-runs) |  |
+| `GET` | [`/v1/failed-runs/summary`](#get-v1-failed-runs-summary) |  |
 | `POST` | [`/v1/platform-events/test`](#post-v1-platform-events-test) |  |
 | `GET` | [`/v1/projects/{nodeId}/alerts`](#get-v1-projects-nodeid-alerts) |  |
 
 ### `GET /v1/failed-runs`
 
-List one project's runs whose latest close is `failed` or `partial` (`?project=<nodeId>`), newest first: scheduled runs, trigger runs, asynchronous endpoint calls and record processing. Each row names the run, what it ran for (`subject`), and how it failed and whose failure it was. Filter by `subjectKind` and `subjectKey`, by failure `class`, by `verdict`, by when the run closed (`from` inclusive, `to` exclusive), by when the platform reported it (`reportedFrom`, `reportedTo`), and by whether a `platform` event started it (`causedByPlatform`). A run the platform is about to start again is not listed, nor is one a person cancelled. A `platform/run.failures` or `run.partial` event carries this address as `failedRunsPath`, filtered to exactly the runs it counted: its subject and verdict, its window by report time, and no run a `platform` event started. Walk with `after`.
+List one project's runs whose latest close is `failed` or `partial` (`?project=<nodeId>`), newest first: scheduled runs, trigger runs, asynchronous endpoint calls and record processing. Each row names the run, what it ran for (`subject`), and how it failed and whose failure it was. Filter by `subjectKind` and `subjectKey`, by `flowId`, by failure `class` and `code`, by whose failure it was (`owner`), by `verdict`, by when the run closed (`from` inclusive, `to` exclusive), by when the platform reported it (`reportedFrom`, `reportedTo`), and by whether a `platform` event started it (`causedByPlatform`). A run the platform is about to start again is not listed, nor is one a person cancelled. A `platform/run.failures` or `run.partial` event carries this address as `failedRunsPath`, filtered to exactly the runs it counted: its subject and verdict, its window by report time, and no run a `platform` event started. Walk with `after`.
 
 **Query**
 
@@ -26,6 +27,9 @@ List one project's runs whose latest close is `failed` or `partial` (`?project=<
 | `subjectKind` | `"schedule" \| "trigger" \| "table" \| "endpoint"` | no | Only runs of this kind of subject. |
 | `subjectKey` | `string` | no | Only runs of the subject with this key. Read together with `subjectKind`, and ignored without it. |
 | `class` | `"logic" \| "definition" \| "limit" \| "vendor" \| "platform-busy" \| "platform-interrupted" \| "platform-fault" \| "platform-account" \| "cancelled"` | no | Only runs whose failure has this class. |
+| `code` | `string` | no | Only runs whose failure has this code — with `class`, one group of `GET /v1/failed-runs/summary`. |
+| `flowId` | `string` | no | Only runs of this flow, by its row id — the key a usage breakdown by flow lists it under. |
+| `owner` | `"customer" \| "vendor" \| "platform" \| "caller"` | no | Only runs whose failure was this owner's, by the class each run is filed under: `customer` (the flow's own — logic, definition, limit), `vendor` (a service the flow called), `platform` (the platform busy, interrupted, at fault, or its own account), `caller`. A run with no class recorded matches none. |
 | `verdict` | `"failed" \| "partial"` | no | `failed`: the run failed and applied nothing. `partial`: it finished and applied its changes, having carried on past a failure it was told to tolerate. |
 | `from` | `string` | no | Only runs closed at or after this. An instant, RFC 3339. |
 | `to` | `string` | no | Only runs closed BEFORE this: the bound is exclusive. An instant, RFC 3339. |
@@ -50,10 +54,51 @@ Each item of `runs`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `runId` | `string` | yes | The run. Read it at `GET /v1/runs/{runId}`; its actions at `GET /v1/runs/{runId}/timeline`. |
+| `flowId` | `string \| null` | yes | The flow the run ran, by its row id; null when none was named. |
+| `filed` | `object \| null` | yes | The class and code the run is filed under — a failed run's own, a partial run's commonest absorbed one. Null on a run closed before classes were kept. |
 | `subject` | `object` | yes | What the run ran for. |
 | `verdict` | `"failed" \| "partial"` | yes | `failed`: the run failed and applied nothing. `partial`: it finished and applied its changes, having carried on past a failure it was told to tolerate. |
 | `closing` | `object` | yes | How the run closed, from its closing record. |
 | `closedAt` | `string` | yes | When the run closed for good, RFC 3339. |
+
+### `GET /v1/failed-runs/summary`
+
+One project's failed and partial runs closed in a window, grouped by flow, failure class and code, the commonest first (at most 50 groups; `more` says the window holds others): how many, the first and latest close, whose failure the class is, and the latest run to open. Narrow by `verdict`, `flowId`, `owner`, `class` and `code` as `GET /v1/failed-runs` does.
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | Node id of the project whose failed runs to group. Required. |
+| `from` | `string` | yes | Runs closed at or after this, RFC 3339. Required. |
+| `to` | `string` | no | Runs closed before this; now when omitted. |
+| `verdict` | `"failed" \| "partial"` | no | `failed`: the run failed and applied nothing. `partial`: it finished and applied its changes, having carried on past a failure it was told to tolerate. |
+| `flowId` | `string` | no | Only this flow's runs. |
+| `owner` | `"customer" \| "vendor" \| "platform" \| "caller"` | no | Only failures this owner's, as `GET /v1/failed-runs` reads it. |
+| `class` | `"logic" \| "definition" \| "limit" \| "vendor" \| "platform-busy" \| "platform-interrupted" \| "platform-fault" \| "platform-account" \| "cancelled"` | no | Only failures of this class. |
+| `code` | `string` | no | Only failures of this code. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `groups` | `object[]` | yes | The window's failed and partial runs grouped by flow, class and code, the commonest first — at most 50 groups. |
+| `more` | `boolean` | yes | True when the window holds more groups than `groups` sends: counts summed over `groups` are a lower bound. |
+
+Each item of `groups`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string \| null` | yes | The flow; null for runs that named none. |
+| `class` | `string \| null` | yes | The failure class; null where none was recorded. |
+| `code` | `string \| null` | yes | The failure code; null where none was recorded. |
+| `sentence` | `string \| null` | yes | The platform's sentence for the code, in plain words; null without a code it words. |
+| `owner` | `"customer" \| "vendor" \| "platform" \| "caller" \| null` | yes | Whose failure the class is; null without a class. |
+| `runs` | `integer` | yes | Runs in the group. |
+| `firstAt` | `string` | yes | The group's first close, RFC 3339. |
+| `lastAt` | `string` | yes | Its latest close, RFC 3339. |
+| `exampleRunId` | `string` | yes | Its latest run, to open. |
+| `example` | `object \| null` | yes | What the latest run's failed action said — for a cause its code does not word. Null where no action failed. |
 
 ### `POST /v1/platform-events/test`
 

@@ -66,6 +66,7 @@ A trigger fires a flow every time a matching event is **recorded** in the projec
 
 ```
 GET  /v1/failed-runs?project={nodeId}      the runs whose latest close is `failed` or `partial`, newest first (cursor-paged)
+GET  /v1/failed-runs/summary?project={nodeId}&from=…   the same runs grouped by flow, class and code, the commonest first
 GET  /v1/projects/{nodeId}/alerts          every schedule, trigger, table or endpoint that is failing, quiet, about to be paused or paused
 POST /v1/platform-events/test              { project, type, subject?: { kind, key } } — record one example event and fire the triggers on it
 ```

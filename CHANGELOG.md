@@ -2,6 +2,22 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261023.64413 — 2026-10-23
+
+Synced from the Kipory monorepo at `4e98745ab`.
+
+Routes added: `GET /v1/failed-runs/summary`.
+
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+
 ## 1.20261022.192621 — 2026-10-22
 
 Synced from the Kipory monorepo at `832839b2b`.
