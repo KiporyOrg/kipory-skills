@@ -33,7 +33,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 7`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 8`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
@@ -109,10 +109,7 @@ key always means this project's flow. A library or system flow — one that belo
 no project — is `system:<key>`. A vocabulary's `resolver` is the one reference with a default: omit
 it on a new vocabulary and the platform binds a semantic vocabulary to its default resolver where it
 holds one, so "none" is stated as `resolver: null` — which is how an unbound vocabulary exports, and
-why that export re-applies as unbound rather than picking up a resolver on the way back in. A
-relation's `properties` follows the same reading on an update: omit it and the relation keeps the
-type it holds, state `properties: null` and the relation carries none. An export leaves the field
-out when there is none, so it re-applies without touching what a project already holds. A vocabulary
+why that export re-applies as unbound rather than picking up a resolver on the way back in. A relation's `properties` has no such default: on an update, left out or stated `null`, the relation carries none (a stated element is whole). An export leaves the field out only when there is none, so it re-applies unchanged. A vocabulary
 states no `binding`: a term attaches to the whole record, an export carries no such field, and a
 document that states one breaks the schema on that vocabulary's path. A type is always stated under
 `types`, and a table names it by key with `type`.
@@ -179,19 +176,35 @@ that action as already stored.
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
 required here too (one row asks for more than its create: an `evals` suite must state `scorers`,
-`[]` for a contract suite) — but of its optional fields only the ones you state are compared and
-written; one you omit keeps its value. ⚠️ A flow's actions are the exception for their run settings. A flow
-whose actions the document leaves as stored is not written, so a setting left out of one stays —
-even one a rule now refuses: a generator that stops writing `timeoutMs` leaves the stored limit in
-place, and the plan reads the action as unchanged. But when the document changes ANY action of a
-flow, it writes every action of that flow as stated, and the `timeoutMs`, `tries`, `tryDelayMs`,
-`reuseResultsForMinutes`, `onFailure`, `failureSlot`, `onOversize`, `modelId` and `systemPrompt`
-left out of each go back to their defaults — on the actions the plan shows `unchanged` too — and
-its input wiring (`inputStreams`, `inputPaths`, `inputProjectionNames`) left out is not kept from
-the stored action: what the save derives from its settings and prompt is derived again, and the
-rest is cleared. Its task, slot, description, condition, `enabled`,
-types and prompt are kept. State every run setting you mean an action to keep, and `null` to reset
-one (`"timeoutMs": null`).
+`[]` for a contract suite).
+
+⭐ **A stated element is whole (format 8).** An element you state — a flow, an action, a table, a
+trigger — is the whole element: an own optional field you leave out goes back to its default, as
+it would on a create (`timeoutMs` left out of an action resets the stored limit; `description` left
+out clears it). The plan shows each reset as a field going to its default, with a
+`FIELD_RESET_TO_DEFAULT` warning naming the value held now, so nothing resets unseen. State a field
+to keep it; the export states every field, so the simplest edit is still the exported element with
+one field changed. Four kinds of field are not reset by leaving them out:
+
+- **owned collections** — a flow's `actions`, a suite's `cases`, a vocabulary's `terms`, a
+  relation's `pairings`, the project's `config` and `routes`, a table's `uses`: left out,
+  untouched; stated, whole (a member you leave out of a stated one IS removed);
+- **what the platform chooses** — an action's `inputSchemas`, `outputSchema`, `outputSlot` and
+  `taskKey` are completed by the save from the action it keeps, and a vocabulary's `resolver` and
+  `resolutionParams` keep the binding the project chose;
+- **what only a create sets** — a trigger's `source` and a vocabulary's `parentVocabularyKey`
+  (stated with another value, each is refused as permanent);
+- **the project's own `name`** (its `description` resets to `""`).
+
+An action's input wiring — `inputStreams`, `inputPaths`, `inputProjectionNames` — left out is what
+the save derives from the function and its settings (a `flow.invoke`'s input rows, a loop-end's
+carry map, the slots a prompt names), and cleared where it derives none; the plan warns on each one it
+clears. A reference left out is cleared too: a table's `flow` unbinds, and an event type's `payload`
+and a suite's `regression` go. A config namespace always states its `type` (`type: null` is
+refused), and an eval case's `inputs` is required on an update.
+
+A field's value is whole too: a stated `functionConfig` replaces the stored one, it is not merged
+key by key.
 The simplest edit is the
 exported row with one field changed.
 A field the row's own PATCH does not take — a vocabulary's `cardinality`, a profile's `modelId`, a
@@ -412,8 +425,7 @@ leave out: `inputStreams` for a function that names its inputs in its settings, 
 `flow.invoke` input rows (derived, as the save derives them), `inputSchemas` (each input typed from
 what feeds it, an action of the same document included, and typed again when what feeds it changes),
 `promptTemplate` and `taskKey`, `outputSlot` on a function that writes no named result,
-`description`, `condition`, `enabled` and `outputSchema`. Left out of an action the flow already holds,
-each keeps its value; a new action starts on `""`, `extraction`, no slot, no description, no
+`description`, `condition`, `enabled` and `outputSchema`. Left out of an action the flow already holds, `taskKey`, `outputSlot` and `outputSchema` keep the value the platform chose, and the author's own — `promptTemplate`, `description`, `condition`, `enabled` — go back to their defaults (a stated element is whole); a new action starts on `""`, `extraction`, no slot, no description, no
 condition, enabled, and the type its function emits (`record.create` → `RecordCreate`,
 `value.transform` → `object`), worked out once what feeds it is typed. An `outputSchema` of `null`
 is stated: no constraint. An action the flow already holds keeps its
@@ -480,13 +492,14 @@ key out for an action that states none.
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 7`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
-  convert a `kipory: 2`, `3`, `4`, `5` or `6` file you hold with the document upgrade script that
-  comes with `kipory-connect`. Version 7 holds the project's types under `types` and names a table's
+- **A format version other than `kipory: 8`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
+  convert a `kipory: 2` to `7` file you hold with the document upgrade script that comes with
+  `kipory-connect`. Version 8 makes a stated element whole (above); the script moves a version-7
+  file's number only, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`. Version 7 holds the project's types under `types` and names a table's
   and a config namespace's type with `type`; version 6 called them `schema` and `shape`. Version 6
   is also the one whose search models name no slot and whose `search` uses carry no `role`; the
   script makes both changes on the way (next item).
-- **`schema`, or a table's or config namespace's `shape`, in a version-7 document** —
+- **`schema`, or a table's or config namespace's `shape`, in a current document** —
   `DOCUMENT_KEY_RENAMED`, one finding per old key at its path. Rename them to `types` and `type`,
   or convert the file with the upgrade script.
 - **An action's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,

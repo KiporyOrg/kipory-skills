@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "c578755c6f1e",
+      "hash": "a9245a18888a",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -78,7 +78,7 @@
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
-      "hash": "fe8f12bc7163",
+      "hash": "66a93ef5edbd",
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
@@ -1048,7 +1048,7 @@
       "page": "kipory-operate/references/api/project-config.md"
     },
     "GET /v1/project-document/example": {
-      "hash": "85d892593a9e",
+      "hash": "e90586b7284b",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/project-document/schema": {
@@ -1084,7 +1084,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/document": {
-      "hash": "3a9fcedbf885",
+      "hash": "86268a89c2b5",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
@@ -1272,7 +1272,7 @@
       "page": "kipory-connect/references/api/templates.md"
     },
     "GET /v1/templates/{slug}": {
-      "hash": "6d5db7017657",
+      "hash": "8a67508ce6a4",
       "page": "kipory-connect/references/api/templates.md"
     },
     "GET /v1/terms/": {
@@ -1758,7 +1758,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "d7ccdded4da4",
+      "hash": "b517c410ab2d",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

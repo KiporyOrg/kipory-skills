@@ -31,7 +31,7 @@ slug grammar would refuse included; there is no `422` on this read.
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
-`kipory: 7`, and every rule of that pack holds for it: what a row may state, how each reference is
+`kipory: 8`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused. A `delete: true` row, a config namespace's too, finds nothing to
 remove in a new project. A template that breaks one is refused like any other document. A
 table there names its type by key with `type` — the type stated under `types` — never inline. Check
@@ -80,8 +80,8 @@ project document, with the document's own rules. Two of them decide what lands:
 
 - A vocabulary that omits `resolver` takes the platform's default binding on the deployment it lands
   on; one that states `resolver: null` lands unbound everywhere.
-- A relation that states `properties: null` lands with no properties type; one that omits the
-  field keeps what the project already holds.
+- A relation that omits `properties`, or states `null`, lands with no properties type — over a
+  relation the project already holds too, since a stated element is whole.
 
 Read it with `GET /v1/templates/{slug}`, plan it against your project to see what it would add or
 change, and apply it like any other document. A template carries no `basedOn` (a read names one

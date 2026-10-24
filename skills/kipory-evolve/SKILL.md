@@ -60,7 +60,7 @@ run, not a rehearsal. `kipory-build` covers it.
 
 ## Change many things at once: the document
 
-**Check the format first.** A document states its format in its `kipory:` key (`kipory: 7`), and the
+**Check the format first.** A document states its format in its `kipory:` key (`kipory: 8`), and the
 deployment reads exactly one, with no overlap: `documentFormat.version` on
 `GET /v1/platform-status`, beside a line saying what it is. A document in any other format — one
 you hold, or one older skills would write — is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`
@@ -194,10 +194,9 @@ at all:
   it. When `sha` on `GET /health` changes,
   read `GET /v1/flows?project=<nodeId>&expand=health` and fix every error; `GET /v1/platform-status`
   names the codes the build added or tightened (`rules`). To be told rather than ask, put a trigger on
-  `platform/flow-health.failing` (`kipory-operate`'s triggers pack). And leaving a field out of a
-  document keeps its value, but not a run setting: one changed action resets the run settings
-  (`timeoutMs`, `tries`, `onFailure`, `modelId` and the rest) left out of every action of that
-  flow. State each one you mean to keep, and `null` to clear one a rule now refuses (a control
+  `platform/flow-health.failing` (`kipory-operate`'s triggers pack). And a stated element is whole (document format 8): a field left out of an action, a flow or any
+  row you state goes back to its default (the plan warns `FIELD_RESET_TO_DEFAULT` on each), so a run
+  setting (`timeoutMs`, `tries`, `onFailure`, `modelId` and the rest) left out is reset. State each one you mean to keep, and `null` to clear one a rule now refuses (a control
   action's `timeoutMs`).
 - **A refused delete is the good outcome.** The dangerous ones are the changes that succeed and
   quietly invalidate something — a join declaration, a cached digest, an endpoint whose flow no

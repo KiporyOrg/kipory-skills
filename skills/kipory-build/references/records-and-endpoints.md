@@ -31,7 +31,7 @@ In a document:
 
 ```json kipory:request=project-document
 {
-  "kipory": 7,
+  "kipory": 8,
   "types": {
     "Note": {
       "definition": {

@@ -113,13 +113,15 @@ When it is newer than the version below, update these skills first — the skill
 format are published when the change merges, normally before a deployment rolls it — then
 convert.
 `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
-version 7 in one run, and a second run changes nothing:
+version 8 in one run, and a second run changes nothing. From 7 to 8 it changes only the number: format
+8 makes a stated element whole, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`
+before you apply it:
 
 - **It renames only the names the platform defines**, never one you chose, and lists the prompts
   and expressions that name a renamed field, which are yours to edit.
 - **`schema` becomes `types`, a table's and a config namespace's `shape` becomes `type`** — nothing
   else named `shape` or `schema` moves: not a function's config, not an action's `outputSchema`,
-  not a property of one of your types, not a table or action you named `shape`. A version 7
+  not a property of one of your types, not a table or action you named `shape`. A current
   document that still holds one of the old keys is refused with `DOCUMENT_KEY_RENAMED` at that
   key; rename it, or set its version back to 6 and run the script. **A script of yours that reads a
   converted document or an export must read `types` and `type` too**: one still reading the old

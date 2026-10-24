@@ -13,10 +13,11 @@
  * Without `--write` it prints the converted document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
- * It converts in five steps, and a version 2 document takes all five in one
- * run. A version 3 document takes the last four, a version 4 document the
- * last three, a version 5 document the last two, a version 6 document the
- * last; a version 7 document is returned as it is.
+ * It converts in six steps, and a version 2 document takes all six in one
+ * run. A version 3 document takes the last five, a version 4 document the
+ * last four, a version 5 document the last three, a version 6 document the
+ * last two, a version 7 document the last; a version 8 document is returned
+ * as it is.
  *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
@@ -66,6 +67,12 @@
  *   property of one of your types, and not a table, action or namespace you
  *   named `shape` or `schema`.
  *
+ * Version 7 → 8 (a stated element is whole):
+ *   - only `kipory: 8`. What changes is what an omitted field means: an
+ *     element the document states is whole, so an own field it leaves out
+ *     goes back to its default. A file cannot know what the project stores;
+ *     plan the converted document and read each `FIELD_RESET_TO_DEFAULT`.
+ *
  * It does NOT rebuild an action on a function that no longer exists
  * (`vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`,
  * `text.embed`, `text.embed-sparse`): what the action becomes is your
@@ -103,7 +110,7 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /** The version this script converts TO — the format these skills write. */
-export const TARGET_VERSION = 7;
+export const TARGET_VERSION = 8;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -684,6 +691,23 @@ const STAGES = [
     watchedKey: () => false,
     slotNote: () => false,
   },
+  {
+    // Renames nothing: format 8 changes what an omitted field MEANS — a
+    // stated element is whole, so a field left out goes back to its default
+    // — and a file cannot know the values the project stores. The platform's
+    // sweep report lists, per project, the fields this would reset; a plan
+    // warns `FIELD_RESET_TO_DEFAULT` on each. This step only moves the version.
+    from: 7,
+    to: 8,
+    keyIn: (_mode, key) => key,
+    under: () => UNTOUCHED,
+    textOf: () => null,
+    stringAt: (_mode, _key, value) => value,
+    rewrite: (text) => text,
+    needsAPerson: () => false,
+    watchedKey: () => false,
+    slotNote: () => false,
+  },
 ];
 /* The conversions run one version at a time to TARGET_VERSION, or the script
  * refuses to load: a target raised with no conversion to it would stamp a
@@ -719,7 +743,7 @@ const versionOf = (stated) =>
 
 /**
  * A structured document (parsed JSON), converted. `notes` collects the places
- * a person must edit, `dropped` the members that were removed. A version 7
+ * a person must edit, `dropped` the members that were removed. A version 8
  * document is returned as it is, the same object.
  */
 export function upgradeJson(doc, notes = [], dropped = []) {
@@ -1034,7 +1058,7 @@ const siblingValue = (lines, index, column, name) => {
 /**
  * A YAML document, converted line by line: the indentation says where each
  * key sits, and the same rules as the JSON path say what it becomes. Comments
- * and layout are kept. A version 7 document is returned as it is.
+ * and layout are kept. A version 8 document is returned as it is.
  */
 export function upgradeYaml(text, notes = [], dropped = []) {
   const stated = text

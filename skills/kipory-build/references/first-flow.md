@@ -262,7 +262,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 
 ```json kipory:request=project-document
 {
-  "kipory": 7,
+  "kipory": 8,
   "flows": {
     "summarise": {
       "label": "Summarise",
@@ -309,7 +309,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 }
 ```
 
-A document action is filled as a single create is. `functionKey` and `functionConfig` are required (`null` or `{}` where a function takes no settings). `description`, `condition`, `enabled` and `outputSchema` may be left out: a new action starts on `null`, `null`, `true` and the type its function emits, and a held action keeps its own. Leaving `outputSchema` out is not the same as stating `null`. A stated `null` is saved as "no type": once another action reads that slot the plan and health warn `PRODUCER_OUTPUT_UNTYPED`, and on a `flow.merge` action — whose type the save always derives from what it merges — a stated `null` re-plans as an `update` every time. The rest: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a function that names its inputs, `promptTemplate` and `taskKey` left out keep a held action's values (a new action starts on `""` and `extraction`), and `outputSlot` needed by every function except `event.emit` and `term.upsert`, which write nothing and refuse one, and the control functions whose outputs live in config. The flow's `actions` map is stated whole — an action you leave out of it is removed.
+A document action is filled as a single create is. `functionKey` and `functionConfig` are required (`null` or `{}` where a function takes no settings). `description`, `condition`, `enabled` and `outputSchema` may be left out: a new action starts on `null`, `null`, `true` and the type its function emits. A held action goes back to `null`, `null` and `true` for the first three and keeps its `outputSchema`. Leaving `outputSchema` out is not the same as stating `null`. A stated `null` is saved as "no type": once another action reads that slot the plan and health warn `PRODUCER_OUTPUT_UNTYPED`, and on a `flow.merge` action — whose type the save always derives from what it merges — a stated `null` re-plans as an `update` every time. The rest: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a function that names its inputs (left out of a held action whose function names none, they are cleared), `promptTemplate` left out goes back to `""`, `taskKey` left out keeps a held action's value (a new action starts on `extraction`), and `outputSlot` needed by every function except `event.emit` and `term.upsert`, which write nothing and refuse one, and the control functions whose outputs live in config. The flow's `actions` map is stated whole — an action you leave out of it is removed.
 
 An **exported** document states every action's `outputSchema` and `inputSchemas`, and a stated `inputSchemas` is kept and checked, not re-typed. So giving a type to an action that had none also means removing `inputSchemas` from each action that reads its slot (or restating it): a reader that still states `object` for that input is refused `NOMINAL_MISMATCH`.
 

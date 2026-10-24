@@ -27,7 +27,7 @@ Public: no credential needed.
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kipory` | `7` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
+| `kipory` | `8` | yes | The document format version. Required, first. A version this build does not read is refused with `DOCUMENT_VERSION_UNSUPPORTED`. |
 | `basedOn` | `string` | no | The read this document was made from: `<nodeId>@<version>`, the project it was exported from and that project's version then. The export writes it; keep it in the file. A plan with no `basedOn` query reads it here, so a change made after your read is never overwritten silently. Planned on another project it is refused (422, `BASED_ON_OTHER_PROJECT`): to apply the file there, plan it with that project's current version as `?basedOn=<version>`. |
 | `project` | `object` | no | The project's own settings. Optional in a partial document. |
 | `types` | `object` | no | Types, keyed by key. The reserved key `prune: true` removes every row of this map the document does not name; absence alone never deletes. |

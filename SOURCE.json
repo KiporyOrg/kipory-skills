@@ -1,7 +1,8 @@
 {
-  "source": "294cb071a3554ae08de70e066ca7db6c0613b601",
+  "source": "56dd8a217f294182079815d0e9c8930e33547be7",
   "since": "2026-08-15",
   "history": [
+    {"sha":"56dd8a217f29","skills":"An element a document states is whole: a field left out goes back to its default, and the plan shows it (405, PR 2) (#3591)"},
     {"sha":"294cb071a355","skills":"A plan names what changes, every design save keeps its diff, and an apply binds to its author's read (405, PR 1) (#3589)"},
     {"sha":"91c278245a50"},
     {"sha":"1bbd2ec27f68","skills":"A step's refusal code reaches the run, its failure slot and the endpoint that called it (#3588)"},
@@ -1000,7 +1001,6 @@
     {"sha":"162a00ce1f6e"},
     {"sha":"7f987d8da47a"},
     {"sha":"23f0b45cc721"},
-    {"sha":"04d5bf597ed9"},
-    {"sha":"6b114b8c7808"}
+    {"sha":"04d5bf597ed9"}
   ]
 }
