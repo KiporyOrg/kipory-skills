@@ -57,10 +57,12 @@ schema and no validator, and it is not what the platform runs.
 
 What the platform runs is a project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) — the same project, stated
 as one key-addressed file. When the sheet is accepted, write the document it describes and
-**plan it** (`POST /v1/projects/{nodeId}/document/plan`). The plan response is the second moment a
-person can say no, and a better-informed one: it lists every row that would be created, changed
-and removed, every refusal on the path that caused it, and what the change does to stored data.
-Nothing has been written when they read it.
+**plan it** (`POST /v1/projects/{nodeId}/document/plan?basedOn=<your read>`). The plan response is
+the second moment a person can say no, and a better-informed one: it lists every row that would
+be created, changed (field by field) and removed, every refusal on the path that caused it, what
+someone else changed after your read (`moved`), how the flows' health moves, and what the change
+does to stored data. Nothing has been written when they read it; the apply takes that plan's
+`planId` and a note saying why.
 
 What makes that safe: **there is no privileged path.** Applying a document is ordinary design semantics — every row goes through the same write a
 person makes by hand, with the same refusals — composed into one transaction. Nothing a document

@@ -129,7 +129,7 @@ Three reads say what is there:
 - **`callable: false` on a task you inherit** means the binding above names a model this deployment holds no account for: every action on that task fails until you bind the task at your project.
 - **`inherited`**, on a task you did bind, shows what your binding overrides, so you can see the default without clearing yours.
 
-Bind a task with `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` (**ADMIN**; a key may do it for its own project). Every action on that `taskKey` follows. The write moves the project's version, so present the version a fresh read or plan gives you on the next document apply.
+Bind a task with `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` (**ADMIN**; a key may do it for its own project). Every action on that `taskKey` follows. The write moves the project's version but changes no element a document states, so a plan made from an earlier read is not stopped by it.
 
 ## 4. What a model costs
 

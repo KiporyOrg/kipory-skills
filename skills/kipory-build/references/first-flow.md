@@ -319,26 +319,22 @@ An **exported** document states every action's `outputSchema` and `inputSchemas`
 POST /v1/projects/{nodeId}/document/plan
 ```
 
-Read `ok`, then `diagnostics` (each on a path in your document, such as `flows.summarise.actions.write-summary.inputSchemas` — gate on `severity`), `consequences`, and any `delete` rows in `changes`. Keep `version`.
+Plan it with the read you exported at: `?basedOn=<version>` (the export also wrote it into the document as `basedOn: <nodeId>@<version>`). Read `ok`, then `changes` (only what changes, each `update` field by field), `moved` (what someone else changed since your read), `diagnostics` (each on a path in your document, such as `flows.summarise.actions.write-summary.inputSchemas` — gate on `severity`), `health`, `consequences`, and any `delete` rows. Keep `planId`.
 
 **Apply it.**
 
 ```
-POST /v1/projects/{nodeId}/document   { version, document }
+POST /v1/projects/{nodeId}/document   { planId, note }
 ```
 
 ```json
 {
-  "version": "<version from the plan>",
-  "document": {
-    "kipory": 7,
-    "flows": { "summarise": { "…": "…" } },
-    "surfaces": { "…": "…" }
-  }
+  "planId": "<planId from the plan>",
+  "note": "Add the summarise flow and its endpoint"
 }
 ```
 
-`200` with `applied: true`, `appliedVersion` (present it on your next apply) and `document` — the project as it now stands with every `id` filled in. `document.flows.summarise.id` is the flow id for health and preview (step 5 — preview — is still yours; step 4's health checks the plan already ran for every flow it touched, so `/health` after an apply confirms what the plan said); `document.surfaces.endpoints.summarise.id` is the endpoint to read `invokeUrl` from with `GET /v1/api-endpoints/{id}`. A refused apply answers the standard error, `422 VALIDATION_FAILED`, with the plan under `details.plan` (JSON whatever `Accept` asks); a stale `version` answers `409` with the current document under `details`. The rest of the format is `packs/project-document.md`.
+`200` with `applied: true`, `appliedVersion` and `basedOn` — the read to plan your next change from. The answer carries no document: read the project again (`GET …/document?section=flows,surfaces`) for the ids — `flows.summarise.id` is the flow id for health and preview (step 5 — preview — is still yours; step 4's health checks the plan already ran for every flow it touched, so `/health` after an apply confirms what the plan said); `surfaces.endpoints.summarise.id` is the endpoint to read `invokeUrl` from with `GET /v1/api-endpoints/{id}`. A refused apply answers the standard error, `422 VALIDATION_FAILED`, with the plan under `details.plan` (JSON whatever `Accept` asks); `409 VERSION_CONFLICT` lists under `details.moved` what someone else changed after your read — read again, plan again. The rest of the format is `packs/project-document.md`.
 
 ## What this page does not fix
 

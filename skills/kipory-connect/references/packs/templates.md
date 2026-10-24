@@ -84,7 +84,9 @@ project document, with the document's own rules. Two of them decide what lands:
   field keeps what the project already holds.
 
 Read it with `GET /v1/templates/{slug}`, plan it against your project to see what it would add or
-change, and apply it like any other document. Rows your project already has under the same keys
+change, and apply it like any other document. A template carries no `basedOn` (a read names one
+project, and a template is no project's): plan it with the version of your own read of the
+project (`?basedOn=<version>`), then apply the kept plan by `{planId, note}`. Rows your project already has under the same keys
 are UPDATED to the template's, which is rarely what you want for a whole template — plan first,
 and send the sections you mean.
 

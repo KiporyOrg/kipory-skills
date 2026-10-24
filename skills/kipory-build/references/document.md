@@ -16,7 +16,7 @@
 - **A schedule and a trigger state `failurePolicy`** — `pause` (the default) or `keep-running`: whether the platform may pause the row when its runs keep failing. It is an ordinary field. An export also shows `paused: { at, reason }` on a row the platform has paused; that is read-only — never planned, never applied — and `enabled: true` does not resume the row. Only `POST /v1/schedules/{id}/resume` or `POST /v1/triggers/{id}/resume` does (`kipory-operate`).
 - **The `platform` event types are not yours to state.** Every project has them; a document neither creates nor prunes them, and a trigger row may select one (`categoryKey: platform`) like any other type — that trigger is how the project hears of its failures.
 - **A type is stated under `types`, and a table names it with `type`.** State both in one document to make a table and its type together; any other row may use the same type.
-- **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most 2 MiB and 2 000 rows, refused with `413` past either.
+- **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most 8 MiB and 6 000 rows, refused with `413` past either.
 - **The YAML export prints each flow's outline as comments above it** (`# outline (format 1), derived at export; plan ignores it`) — the same lines `GET /v1/flows/{id}/outline` answers. A plan ignores comments, so they never change what a plan does; edit the actions, and the next export redraws the outline. A plan finding about one flow action carries its `outlinePath` in that outline.
 
 ## What a plan tells you
@@ -41,8 +41,13 @@ A plan is not a simulation: the platform applies the document through every row'
 
 ## The apply
 
-- **`version` is required on the apply**: the one the export or the plan answered. A stale one answers `409` with the current document under `details` — re-base on it rather than resending.
-- **Any other write to the project in between moves the version too** — a task-model binding, a row edit.
+- **Plan from your read, apply the plan.** The export writes `basedOn: <nodeId>@<version>` into the document; plan with it (or `?basedOn=`, which overrides it), read the plan, then apply `{planId, note, label?}` — the note says why, in history. Never resend a document to the apply.
+- **A file from another project is refused, not bound** (`422`, `details.reason: "BASED_ON_OTHER_PROJECT"`, naming both projects and this one's `version`). To promote a dev project's file to another project, plan it there with that project's current version: `?basedOn=<version>`.
+- **Only what someone else changed in YOUR elements stops you.** The plan lists it under `moved` (who, when, why, what); the apply refuses it `409 VERSION_CONFLICT` with the same. Read again, make the change on what the project says now, plan, apply. A change to an element your document does not touch never refuses it.
+- **`404 PLAN_UNKNOWN`**: the plan was applied, is over 24 hours old, or was dropped to make room — a key keeps at most 50 open plans per session label, 200 in all and 64 MB of documents per project, oldest dropped first. Plan again.
+- **`409 PLAN_STALE`**: the plan no longer says what the apply would do (`changed`), or your read is older than the history the project keeps (`read-too-old`). Plan again from a fresh export.
+- **The answer's `basedOn` is your next read**: plan the next part from it. With a `label`, your own earlier parts never count as moves — so give each session its own label: two sessions sharing one key and one label read each other's changes as their own.
+- **A platform change can end your read.** When the platform rewrites rows in your project that the history does not record (a change to a platform flow your evals run, a data migration), every read from before it answers `read-too-old`. Export again and plan; nothing of yours was lost.
 - **A refused apply answers the standard error, with the plan inside it.** `422 VALIDATION_FAILED`, `details.reason: "DOCUMENT_APPLY_FAILED"`, the whole plan under `details.plan`, and one `details.issues` entry per refusing finding. It is JSON whatever `Accept` asks, a YAML caller included.
 
 ## Actions in a document

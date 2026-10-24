@@ -23,7 +23,9 @@ know it: state the whole project by key, and the platform resolves the order.
 ## Read a project as one document
 
 `GET /v1/projects/{nodeId}/document` answers the project as a document, with the `version` the
-project stands at — the lock an apply presents later. It is the same read as `GET /v1/bootstrap`,
+project stands at. The document itself carries the read as a top-level `basedOn`:
+`<nodeId>@<version>`, the project it was read from and its version then — the read your change is
+made on. Keep it in the file: a plan binds to it. It is the same read as `GET /v1/bootstrap`,
 in the same transaction, so it carries the same `ETag`: send it back as `If-None-Match` and an
 unchanged project answers `304`.
 
@@ -34,9 +36,8 @@ unchanged project answers `304`.
   `kipory: 7`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
-  and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
-  `ETag` is an opaque validator, so the version an apply needs is taken from the PLAN, which
-  answers it.
+  and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
+  `basedOn` inside the document, whole or by section, so a file edited for hours still names it.
 - In the YAML form each flow is preceded by its outline as comment lines
   (`# outline (format 1), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
@@ -136,6 +137,32 @@ with `content-type: application/yaml` — and answers what applying it would do.
 nothing, so its floor is VIEWER. A plan is not a simulation: the platform applies the document
 through every row's own write, in one transaction, and rolls the transaction back. What a plan
 refuses is exactly what an apply would refuse.
+
+⭐ **A plan is made from your read, and kept for its apply.** The read is the `basedOn` the export
+wrote into the document, or `?basedOn=`, which overrides it: a read token (`<nodeId>@<version>`)
+or a bare version of THIS project. The answer's `planId` is what you apply (kept 24 hours;
+`GET …/document/plans/{planId}` reads it back), and `basedOn` echoes the read as a token. A plan
+you mean to apply without a read is a `422` naming `basedOn`; `?keep=false` plans a preview that
+keeps nothing. `?label=agent-docs` names your session, so two sessions on one key are told apart.
+
+⛔ **A file read from another project is refused, never bound.** Exported from a dev project and
+planned on another, its `basedOn` names the dev project, whose versions say nothing about this
+one's history: the plan is a `422` with `details.reason: "BASED_ON_OTHER_PROJECT"`, naming both
+projects and this project's current `version`. To apply the file here, plan it against this
+project as it is now: `?basedOn=<that version>`.
+
+The answer lists only rows that change — `create`, `update`, `delete` — and counts the rest under
+`counts.unchanged`. Each `update` says what changes field by field under `fields` — each field's
+path, its value before and its value after; text over several lines also as a line diff. `diagnostics` lists what this document introduces;
+what the project already had is counted under `health` (errors and warnings before and after,
+what it adds, what it fixes) — over the flows the document can reach.
+
+⛔ **`moved`: what someone else changed after your read.** Every element the document states or
+changes — and every key it would create — that another person, key or session changed after
+`basedOn` is listed with who, when, their note and label, and what they changed. Any here makes
+`ok` false: read the project again, make your change on what it says now, plan again. Elements
+the document does not touch never stop it, so two authors working on different flows never refuse
+each other. A read older than the history the project keeps is `409 PLAN_STALE` `read-too-old`.
 
 ⭐ **A plan judges the state the document leaves, not only the rows it writes.** Every flow the
 document can move — the ones it writes, the ones invoking them, the ones reading a type or a table
@@ -305,7 +332,7 @@ exactly one key of the same kind is within two edits, the message offers it; whe
 close, it offers none rather than guess. Forward references need no care: a flow may be named by a
 row that appears before it, because the platform writes in a fixed order, not yours.
 
-A document is at most 2 MiB and 2 000 rows; past either it is refused with `413` before the
+A document is at most 8 MiB and 6 000 rows; past either it is refused with `413` before the
 project is read. A body that is not parseable YAML — including a YAML map that states one key
 twice — is the only `422` this route answers; a body sent as JSON that is not JSON is the
 platform's ordinary `400`. A document that parses but breaks its schema is a `200` plan whose
@@ -315,33 +342,38 @@ A plan's `consequences` include `fields-unset`: fields the document adds to a ty
 
 ## Apply a document
 
-`POST /v1/projects/{nodeId}/document` takes `{ version, document }` and makes the document the
-project's configuration. `version` is the one the export or the plan gave you; it is required, and
-it is the body's envelope — the plan takes the document itself, this route takes the document and
-its lock. If the project has moved since, the answer is `409 VERSION_CONFLICT` with the current
-document as `current` in the error's `details` — re-base your change on it rather than resending,
-because someone else's work is in it. The lock holds to the last statement: an apply whose project
-moves while it runs is the same `409`, never a second commit over the first.
+`POST /v1/projects/{nodeId}/document` takes `{ planId, note }` — the plan you read, and why, in a
+sentence a person reads in the project's history (1–500 characters, required); `label` (1–64)
+names your session and defaults to the plan's. The document is the plan's: never send it again.
+Under the project's design lock the platform plans the kept document once more against the
+project as it now stands, then:
 
-An apply is the plan, kept. It commits only when the plan holds no `error`, and then all at once:
-one transaction, one project version, one entry in the project's history, however many rows moved.
-A refused apply answers the standard error — `422 VALIDATION_FAILED`, `details.reason: "DOCUMENT_APPLY_FAILED"` —
-with the whole plan under `details.plan` and one entry in
-`details.issues` per refusing finding, its `field` in body terms (`document.tables.member.type`). It
-has written nothing — not the rows before the refused one either — and, like every error, it is JSON
-whatever `Accept` asks: only a kept document answers in YAML. A document that changes nothing answers `applied: true` and leaves
-the version where it was, so re-applying what you exported is always safe. What the platform fills in
-on a write is not a change: a `flow.invoke` or `flow.merge` `derivedShape`, a `flow.dispatch`
-`outputSlot` of `""`, the carry slots a `flow.loop-end` adds to its `inputStreams`, `functionConfig: {}`
-against a stored `null`, and the `x-record-ref` a `link` use stamps on a field. Planning the same
-document again, or its export, reports every row `unchanged`, and an action it leaves alone keeps its
-`version` and the results cached under it.
+- someone else changed an element it changes after your read → `409 VERSION_CONFLICT`, each in
+  `details.moved` with who and what; nothing written. Read again, plan again, apply the new plan;
+- the plan no longer says what applying it would do (rows, fields, or what a removal takes along
+  changed) → `409 PLAN_STALE` `changed`. Plan again;
+- the plan was applied already (with the version it became and who applied it), is over 24 hours
+  old, was pushed out by the same planner's newer plans, or never existed here → `404
+PLAN_UNKNOWN`, with `details.reason` saying which;
+- the re-plan finds an error the document introduces → `422 VALIDATION_FAILED`,
+  `details.reason: "DOCUMENT_APPLY_FAILED"`, the whole plan under `details.plan` and one entry in
+  `details.issues` per refusing finding at its document path;
+- another write holds the project for more than 3 seconds, or a row this write needs for more than 10 → `409 DESIGN_BUSY` with `Retry-After`: nothing was written; send the same request again after it. A row save can answer it too.
 
-The answer is the plan plus `applied`, `appliedVersion` — present that on your next apply if nothing else wrote since — and
-`document`, the project as it now stands with every id filled in. Any other write to the project —
-a row edit, a task-model binding — moves the version as well, so present the version of your most
-recent read or plan, not of your last apply. The answer's `appliedVersion` and `document` are both read inside the
-apply's own transaction, so they are this apply's, whatever lands after it.
+An apply commits all at once: one transaction, one project version, one entry in the project's
+history carrying your note and label. A refusal has written nothing, and like every error it is
+JSON whatever `Accept` asks. A plan that changes nothing answers `applied: true` and leaves the
+version where it was. What the platform fills in on a write is not a change: a `flow.invoke` or
+`flow.merge` `derivedShape`, a `flow.dispatch` `outputSlot` of `""`, the carry slots a
+`flow.loop-end` adds to its `inputStreams`, `functionConfig: {}` against a stored `null`, and the
+`x-record-ref` a `link` use stamps on a field. Planning the same document again, or its export,
+changes nothing, and an action it leaves alone keeps its `version` and the results cached under it.
+
+The answer is the plan plus `applied`, `appliedVersion` and `basedOn` — no document; read it with
+`GET …/document`. `basedOn` is the read your next part binds to: `appliedVersion` when nobody else
+changed the project in between, else your earlier read. With a `label`, your own applies after a
+read never count as moves for your later parts; without one, plan each part from the `basedOn` the
+last apply answered.
 
 Authoring needs EDITOR. A document that REMOVES anything — a `delete: true` row, or a `prune: true`
 map that finds something to remove — needs ADMIN, and is refused with `403` before the first write

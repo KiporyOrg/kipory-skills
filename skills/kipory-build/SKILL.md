@@ -82,20 +82,22 @@ POST  /v1/flows/{id}/preview             run it — ADMIN, bills the payer, appl
 `kipory-build` owns the project document. When a plan was accepted, or the change touches more than a handful of rows, do not author row by row. State the project as one **document** and let the platform order the writes.
 
 ```
-GET   /v1/projects/{nodeId}/document          the project now, with the version an apply must present
-POST  /v1/projects/{nodeId}/document/plan     what applying it would do — writes nothing, VIEWER
-POST  /v1/projects/{nodeId}/document          { version, document } — one transaction, one version, one history entry
+GET   /v1/projects/{nodeId}/document          the project now; the document carries `basedOn` (`<nodeId>@<version>`), your read
+POST  /v1/projects/{nodeId}/document/plan     ?basedOn=&label= — what applying it would do, kept as `planId`
+GET   /v1/projects/{nodeId}/document/plans/{planId}   a kept plan read back — for a reviewer, before it is applied
+POST  /v1/projects/{nodeId}/document          { planId, note, label? } — one transaction, one version, one history entry
 GET   /v1/project-document/schema             the format, public
 GET   /v1/project-document/example            a complete document that belongs to no project, public
 ```
 
-The loop is **export → edit → plan → read → apply**. A plan is not a simulation: the platform applies the document through every row's own write, in one transaction, and rolls it back — so what a plan refuses is exactly what an apply refuses.
+The loop is **export → edit → plan with `basedOn` → read the plan → apply `{planId, note}`**. A plan is not a simulation: the platform applies the document through every row's own write, in one transaction, and rolls it back — so what a plan refuses is exactly what an apply refuses.
 
-- **Read three things off a plan**: `diagnostics` (gate on `severity` and `introduced`, never on `code`), `consequences` (what the change does to stored data) and the `delete` rows of `changes`.
+- **Read the plan before you apply it**: `changes` (only what changes; each `update` says `fields` from → to), `moved` (what someone else changed after your read — any here and `ok` is false), `diagnostics` (what this document introduces; gate on `severity`, never on `code`), `health` (errors and warnings before and after, over the flows it reaches), `consequences` (what it does to stored data) and the `delete` rows. A platform release that breaks a live flow is not in any plan: the project hears it as the `platform/flow-health.failing` event.
 - **Everything is addressed by `key`**; a schema reference is `{ "kind": "ref", "ref": "<type key>" }`.
 - **A partial document is fine, and absence never deletes.** Removal is `delete: true` on a row or `prune: true` on a map, and needs ADMIN. Owned collections — a flow's `actions`, a vocabulary's `terms` — are stated whole, so an action you leave out of a flow's `actions` IS removed.
-- **`version` is required on the apply.** A stale one answers `409` with the current document under `details`; any other write to the project in between moves it.
-- **Plan a large document as it grows**: types and vocabularies, then tables, then flows, then endpoints. Apply once, when the whole plans clean.
+- **Apply the plan you read, with a note**: `{planId, note: "Shorten the reminder copy", label: "agent-docs"}`. The note and label show in history. The answer carries no document; keep its `basedOn` and plan the next part from it. Never resend an old document.
+- **On `409 VERSION_CONFLICT`**: read `details.moved` (who changed what after your read), read the project again, make your change on what it says now, plan, apply. **On `409 PLAN_STALE`**: plan again. Changes to elements your document does not touch never refuse it.
+- **Plan a large document as it grows**: types and vocabularies, then tables, then flows, then endpoints. Apply once, when the whole plans clean — or in parts from one read, each under the same `label`, so your own parts never count as moves.
 - **An `ok` plan has already run health** on every flow the document can move, so `/health` after the apply is a confirmation.
 
 `references/document.md` has every rule — what is permanent, how a type is stated, how actions keep their ids, what a document derives for an action, the size limits. `references/packs/project-document.md` carries the reference forms, and `references/packs/authoring-order.md` says what must exist before what if you author row by row anyway.

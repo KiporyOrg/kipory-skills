@@ -69,9 +69,9 @@ skills write with the deployment's, and its `document` line says plainly when th
 these skills when the deployment's is newer, then convert a held file with that skill's upgrade
 script.
 
-Export the project (`GET /v1/projects/{nodeId}/document`), edit the file, plan it (the body is the
-document itself), apply it as `{ version, document }` with the version the export or the plan
-answered — the project's current one. `kipory-build` owns that loop and the document's format. What
+Export the project (`GET /v1/projects/{nodeId}/document` — the file carries `basedOn`, your read),
+edit the file, plan it (the body is the document itself; it binds to that read), read the plan,
+and apply `{ planId, note }` — never the document again. `kipory-build` owns that loop and the document's format. What
 matters here is that the plan is the apply rolled back, so it answers the same refusals a
 row-by-row change would meet, in one read, and three things a row write never tells you:
 

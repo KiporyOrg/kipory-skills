@@ -471,6 +471,8 @@ Each item of `actions`:
 | `structureVersion` | `string` | yes | The project configuration version this action produced, as a decimal string. Compare for equality and display it; do not parse it to a number — it is a 64-bit value and JSON cannot carry one. |
 | `at` | `string` | yes | When the action was applied. ⛔ NOT an ordering key — every change of one action shares it. Order on `structureVersion`. |
 | `actor` | `object` | yes | Who applied this action — a person, an API key, or the platform. One action has exactly one principal. |
+| `note` | `string \| null` | yes | Why this action was made, as its author wrote it: the note of a document apply, or the `Kipory-Change-Note` of a row save. NULL when it carried none. |
+| `label` | `string \| null` | yes | The session that made it, when it named itself (`label` of an apply, `Kipory-Session-Label` of a row save) — tells two sessions on one key apart. |
 | `changeCount` | `integer` | yes | How many changes this action RECORDED. Excludes anything elided — see `elidedCount`. |
 | `elidedCount` | `integer \| null` | yes | How many changes were NOT recorded, when the action exceeded the per-transaction detail cap. NULL means the action was recorded in full. ⛔ Never 0. A client MUST surface a non-null value — the recorded subset is not the whole action. |
 | `resources` | `string[]` | yes | The distinct resources this action touched, for summarising it. ⛔ A summary derived from these may name KINDS and COUNTS and nothing else. No column records what the operator did. |
@@ -504,14 +506,27 @@ One applied action and every row it changed. The list is `GET /v1/projects/{node
 | `structureVersion` | `string` | yes | The project configuration version this action produced, as a decimal string. Compare for equality and display it; do not parse it to a number — it is a 64-bit value and JSON cannot carry one. |
 | `document` | `object \| null` | yes | Set when this action was ONE project-document apply: what the document's plan counted. NULL for every other action. |
 | `valueRecording` | `object \| null` | yes | Set when this action turned a flow's "record every run" on until a time, or stopped it (`PATCH /v1/flows/{id}/value-recording`): the flow and the new end. NULL for every other action. Such an action changes no configuration, so its `changeCount` is 0 — this field is what it did. |
+| `diffs` | `object[] \| null` | yes | What changed in each element this action touched, field by field. NULL when the action is older than the change log, so no field diff was kept; empty when nothing an author states changed. |
 | `at` | `string` | yes | When the action was applied. Shared by every change in it. |
 | `actor` | `object` | yes | Who applied this action. Resolved the same way as on the list. |
+| `note` | `string \| null` | yes | Why this action was made, as its author wrote it: the note of a document apply, or the `Kipory-Change-Note` of a row save. NULL when it carried none. |
+| `label` | `string \| null` | yes | The session that made it, when it named itself (`label` of an apply, `Kipory-Session-Label` of a row save) — tells two sessions on one key apart. |
 | `changes` | `object[]` | yes | Every recorded change of this action, in a stable order that approximates the order they were written in. ⛔ Every RECORDED one: read `elidedCount` before concluding this is all of them. |
 | `changeCount` | `integer` | yes | How many changes this action RECORDED, in total — NOT how many this page returned. ⛔ The two differ whenever `changes` is paged. |
 | `elidedCount` | `integer \| null` | yes | How many changes this action made that were NOT recorded, or NULL when it was recorded in full. Non-null means `changes` is incomplete by this many BEYOND whatever paging has yet to return — the two shortfalls are different and a client may not add them. |
 | `paging` | `null` | yes | Always NULL here. The total is `changes.length` plus what paging has yet to return, and neither this route nor its page offers a jump. |
 | `nextCursor` | `string \| null` | yes | Pass as `after` for the next changes. Null on the last page. |
 | `prevCursor` | `string \| null` | yes | Pass as `before` for the previous changes. Null on the first page. |
+
+Each item of `diffs`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `path` | `string` | yes | The element, as a document path. |
+| `oldPath` | `string \| null` | yes | Its path before this action, when this action renamed it. |
+| `resource` | `string` | yes | The kind of element. |
+| `kind` | `"create" \| "update" \| "delete"` | yes | What this action did to it. |
+| `fields` | `object[] \| object` | yes | What changed in it, field by field. A field changed by a saved row reads under the row's own name, and a reference as the id it stores. |
 
 Each item of `changes`:
 
