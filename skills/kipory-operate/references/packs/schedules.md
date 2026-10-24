@@ -207,7 +207,10 @@ run's invocation. Reach for them in this order:
     that already holds the key; on `precondition-conflict` the `recordId` another run wrote and the
     `readByActionKey` whose read went stale. The key's value is never named — read that record for
     it. The run's `run-finished` row in `GET /v1/runs/{runId}/timeline` carries the same `failure`.
-  - `reason` — set only for a refusal a caller may read: a mail action's sender refusal, or
+  - `reason` — set only for a refusal a caller may read: the rule the failing action's function
+    named, a code `kipory-connect`'s `references/refusal-codes.md` lists (`RECORD_READ_HAS_MORE`
+    beside `code: "invalid-input"`, `STREAM_MIGRATING` beside `precondition-unmet`), or a mail
+    action's sender refusal, or
     `recipient-not-an-address` for a mail recipient that is no email address, or
     `more-than-one-recipient` for a mail recipient that is a list, or
     `recipient-is-a-test-user` for a mail recipient that is a test user's address, which no mail reaches, or

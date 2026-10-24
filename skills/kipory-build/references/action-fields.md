@@ -143,7 +143,7 @@ An action that fails softly, or fails with `"onFailure": "continue"`, leaves its
 - **A continuing sub-flow call is a scope.** When the flow a `flow.invoke` action calls fails, everything that flow staged is dropped, none of the call's outputs is written, and the call's `failureSlot` holds `sub-flow-failed` with the cause's code. Refused when the called flow reads or writes run state (`RUN_CONTINUE_NOT_ALLOWED`).
 - **It is written in two cases only**: the action failed and the run carried on, or its function softened a failure into a warning. An action that succeeded, was skipped, or ran and found nothing writes none.
 - **So three outcomes read apart**: output present — it worked; output absent and failure present — it failed, and `code` says how; both absent — it ran and found nothing.
-- **The value is an `ActionFailure`**: `code`, `message`, `retryable`, `phase`, and `httpStatus` when a site or vendor answered with one.
+- **The value is an `ActionFailure`**: `code`, `message`, `retryable`, `phase`, `httpStatus` when a site or vendor answered with one, and `reason` when the function named the rule that refused — `code: "invalid-input"` with `reason: "RECORD_READ_HAS_MORE"`. `code` is always one of the list below; `reason` is a code `kipory-connect`'s `references/refusal-codes.md` lists, so branch on it for the exact cause.
 
 | `code`                                                                                  | Means                                                          |
 | --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |

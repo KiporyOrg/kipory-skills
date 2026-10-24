@@ -1,7 +1,8 @@
 {
-  "source": "9c1e19ffc5a42e25d609067b7d24abb81f92b182",
+  "source": "1bbd2ec27f68a2cde603a75e10df00f15164e00a",
   "since": "2026-08-15",
   "history": [
+    {"sha":"1bbd2ec27f68","skills":"A step's refusal code reaches the run, its failure slot and the endpoint that called it (#3588)"},
     {"sha":"9c1e19ffc5a4","skills":"A record read brings every page and the records linked to each record, in one action (402) (#3586)"},
     {"sha":"8cb3aa8132a2","skills":"A fan-out over sub-flows runs its branches together where nothing can meet, and a branch that changes only its own record needs no promise (404) (#3585)"},
     {"sha":"638e38e0496f","skills":"A flow reads as an outline: GET /v1/flows/{id}/outline, outline paths on findings, a plan block in health, outline comments in the YAML export (403) (#3584)"},
@@ -1000,7 +1001,6 @@
     {"sha":"04d5bf597ed9"},
     {"sha":"6b114b8c7808"},
     {"sha":"683d21172548"},
-    {"sha":"5df4c127ccc3"},
-    {"sha":"ee9331307400"}
+    {"sha":"5df4c127ccc3"}
   ]
 }

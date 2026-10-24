@@ -452,7 +452,8 @@ fails as a timeout. But a flow that _breaks_ comes back 200 with the wreckage in
 runner crash appears as an error entry attributed to the runner, and individual action failures
 ride in the transcript. Checking only the status code will tell you a broken flow is fine.
 Each `errors` entry carries the `status` and `code` a live call would answer for it when it is
-the first; the streamed preview's `preview-error` frame carries them too for a run refused as a
+the first, and a `reason` when the failing function named the rule that refused
+(`RECORD_READ_HAS_MORE`) — the `reason` in a live call's `details`; the streamed preview's `preview-error` frame carries them too for a run refused as a
 whole. A run a limit stopped is one entry with phase `limit-reached` and `limitKey`, a key of
 `GET /v1/projects/{nodeId}/limits`.
 

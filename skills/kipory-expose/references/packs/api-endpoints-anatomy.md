@@ -190,7 +190,8 @@ Three kinds:
   `RECORD_NOT_FOUND`, `QUOTA_EXHAUSTED`…), absent when none names it — and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
   and `retryable` a schedule's runs carry, the `attempt` that closed it, the `cause` and `refusedWrite` when its
   changes were refused when they were saved, and a `reason` when the refusal is one a
-  caller may read, such as `project-push-cap-reached`, or `recipient-not-an-address` for a mail action given a
+  caller may read, such as the rule a function named (`RECORD_READ_HAS_MORE`, which a synchronous
+  call answers as the `reason` in a 422's `details`), `project-push-cap-reached`, or `recipient-not-an-address` for a mail action given a
   recipient that is no email address, `more-than-one-recipient` for one given a list, or `recipient-is-a-test-user` for one given a test user's
   address, and a `limitKey` when a limit
   refused it (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). On a failed action `error` names it

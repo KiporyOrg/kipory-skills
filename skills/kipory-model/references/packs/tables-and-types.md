@@ -1627,7 +1627,7 @@ also carries `failure` beside `status`: how its latest processing run failed, in
 reads serve as `closing.failure`: its class, its owner, whether it is retryable, the attempt, the
 action when one failed (otherwise the `cause` that closed it, and the `refusedWrite` when its changes
 were refused when they were saved), and a `reason` when the refusal is one a caller may read (such as
-`project-mail-cap-reached`, or `recipient-not-an-address` when a mail action was given a recipient
+the rule a function named, `RECORD_READ_HAS_MORE`, or `project-mail-cap-reached`, or `recipient-not-an-address` when a mail action was given a recipient
 that is no email address, `more-than-one-recipient` when it was given a list, or `recipient-is-a-test-user` when it was given a test user's address), and a `limitKey` when a limit refused it. It is null on a record that is not `failed`, and for a failure recorded before
 this was kept. A record run stopped from outside names the actions that were running in its
 `runningActions`; its `code` is never `value-cut` or `fan-out-capped`, which only mark a failure

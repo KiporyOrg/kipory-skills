@@ -239,7 +239,8 @@ not fire, and — for a fire — the invocation with its live `status` and, once
 closed it, the action that failed (`actionKey`, `phase`, and a `code` that is never `value-cut` or
 `fan-out-capped` — those only mark a failure slot) when one did — otherwise the `cause` that
 closed it (a stop from outside also names the actions that were `runningActions`) and, for changes refused
-when they were saved, the `refusedWrite` — and a `reason` when it is one a caller may read (a mail refusal,
+when they were saved, the `refusedWrite` — and a `reason` when it is one a caller may read (the rule a function named, such as
+`RECORD_READ_HAS_MORE`, or a mail refusal,
 `recipient-not-an-address` among them — the mail action was given a recipient that is no email address —
 `more-than-one-recipient` — it was given a list of recipients — `recipient-is-a-test-user` — it was given a test
 user's address —

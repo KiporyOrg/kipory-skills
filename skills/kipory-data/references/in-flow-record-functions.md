@@ -35,8 +35,9 @@ page and bringing linked records, which the three reads share, comes first below
 - **`pages: { "max": N }` reads every page in this one action** — the records in the read's order,
   each once, as one `RecordPage`. When records remain after `N` pages, or the next page would pass
   one slot (about 2,400 short records; a record counts whole), the action fails
-  `RECORD_READ_HAS_MORE`. `"onMore": "stop"` instead answers what it read and a `nextCursor` to
-  continue from — it covers the size bound as well as `max`. `max` is at most the project's
+  `RECORD_READ_HAS_MORE`: the run's failure names it as `reason` (a `failureSlot` too), and a
+  flow endpoint answers `422 VALIDATION_FAILED` with it as `details.reason`. `"onMore": "stop"`
+  instead answers what it read and a `nextCursor` to continue from — it covers the size bound as well as `max`. `max` is at most the project's
   read-pages limit (50 unless Kipory set another); above it the save is refused
   `READ_PAGES_OVER_LIMIT`.
 - **A first page plus N passes is `max: N + 1`.** A flow that read a page and then looped up to 9
