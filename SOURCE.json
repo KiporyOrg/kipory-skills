@@ -1,7 +1,10 @@
 {
-  "source": "439d9b6522ae3185c7d89b33aa940964b8718737",
+  "source": "6de53c72f142b560a329de789de3771494d21774",
   "since": "2026-08-15",
   "history": [
+    {"sha":"6de53c72f142","skills":"A table filters on its flow's output with no copy into the record, and long text in a filter no longer fails its write (401) (#3598)"},
+    {"sha":"d148c9f517f4"},
+    {"sha":"078bc19c0e5e"},
     {"sha":"439d9b6522ae","skills":"Every use of a field, key, relation or flow, one map of the project, and a removal a flow still uses is refused (408) (#3595)"},
     {"sha":"41ee60e0caf0","skills":"A breaking change is announced to the projects it reaches, through their own key, when their environment rolls (409) (#3594)"},
     {"sha":"7fc7bd74d11c","skills":"Vendor functions stop leaking money and time: a retried try is billed, every Apify and Firecrawl call fits the action's wait, YouTube keys ride a header and alert when refused (#3593)"},
@@ -998,9 +1001,6 @@
     {"sha":"519530a6a974"},
     {"sha":"26f3258dfc08"},
     {"sha":"91c2e1a66960"},
-    {"sha":"b99356d3a302"},
-    {"sha":"8f98fa5f5463"},
-    {"sha":"4c3dfec258b5"},
-    {"sha":"162a00ce1f6e"}
+    {"sha":"b99356d3a302"}
   ]
 }

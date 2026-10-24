@@ -240,11 +240,12 @@ A table carries ONE storage declaration, `uses`, and everything the platform sto
 its fields is derived from it. Per field, a list of what the field is **for**:
 
 - `filter` — an indexed column; the field can be filtered on, in the record store and the vector
-  index alike (the derived `queryable` list, in this order). **Submitted fields only**: a `filter`
-  on a `processed` field is refused (`TABLE_QUERYABLE_INVALID`), because the column is
-  stamped from the record's submitted data and nothing stamps it when flow output lands. To
-  filter, order or count on a value the flow computes, declare it as an optional submitted field
-  and have the flow write it into the record with `record.update`.
+  index alike (the derived `queryable` list, in this order). A `processed` field takes one too:
+  its column holds the record's stored flow output — what the last finished run wrote, or a flow's
+  later `record.update` of it, with a field a rerun leaves out kept — so a value the flow computes
+  can be filtered, ordered and counted on with no copy into the submitted data. A submitted and a
+  processed field of one name cannot both be filters, and a flow change that drops or retypes a
+  filtered output is refused until the filter goes.
 - `search` — the meaning index; `{ "kind": "search" }`, the field's text is embedded and a
   `semantic` clause can rank on it by naming the field (the derived `searchable` document).
 - `link` — the link store; `{ "kind": "link", "relation", "element"? }`, the field holds a record
@@ -301,7 +302,7 @@ record's submitted data — or `processed` — an output of the processing flow 
 way a searchable `body` extracted from an uploaded file is named (`{ "family": "processed",
 "field": "body" }`, where `body` is that flow's output slot). The grammar also has `system`
 (platform-maintained fields); a reference the table cannot supply is refused at save, never left to
-produce nothing. `search` and `link` take either family; `key` and `filter` take `submission` only.
+produce nothing. `search`, `link` and `filter` take either family; `key` takes `submission` only.
 
 ⛔ **`searchable` as well as `queryable` and `relations` are READ-ONLY on the wire.** They are derived from
 `uses` and reported beside it; a create or patch body naming any of them is a `422` from the strict
@@ -477,6 +478,14 @@ Things to know before you declare one:
   a _text_ field: it matches exactly and it does not compare. Give it the `date-time` format in
   its type and it becomes a date — which is what makes "before" and "after" mean what you
   expect, and what moves it out of your text budget.
+- **A text filter has a length line at 2,000 bytes.** Equals and any-of find a value of any
+  length. Greater-than and less-than on text belong to `record.query`: they compare only values up
+  to 2,000 bytes, and the clause's explanation counts the longer ones left out (`longTextSkipped`);
+  `record.list` and `record.count` refuse a text range when saved (`RECORD_FILTER_TEXT_RANGE`). A plan
+  that adds a filter on a text field with no length limit warns `TEXT_FILTER_LENGTH_UNBOUNDED`.
+  Give a short field a `maxLength` of 500 or fewer (500 characters fit in 2,000 bytes in any
+  script), a list of values, or a date or uuid format. Long text you want to find by its words
+  belongs in a `search` use, not a filter.
 - **Not every field can be filtered.** Objects, nested lists, untyped fields and fields that can
   hold more than one kind of value are refused when you save, with the reason. Project the value
   you actually want to filter on into its own field.

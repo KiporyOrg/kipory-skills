@@ -50,6 +50,10 @@ page and bringing linked records, which the three reads share, comes first below
   ordered by update time, by a field that is not a date, or by a date processing fills
   (`READ_PAGES_SORT_NOT_DATE`); and on a `record.query` with a phrase, a phrase on a `peer`, or
   `tableKeys`.
+- Saving refuses a greater-than or less-than on a text field in `record.list` and `record.count`
+  (`RECORD_FILTER_TEXT_RANGE`): a range on text compares only values up to 2,000 bytes, and only
+  `record.query` says how many it left out (`longTextSkipped` on its clause row). `eq` and `in`
+  find a text value of any length in all three.
 
 `linked` brings each record's linked records with it — on `record.read`, `record.list` and
 `record.query` alike:
