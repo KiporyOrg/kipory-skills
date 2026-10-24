@@ -31,14 +31,22 @@ GET /v1/records?project=<node>&id=<id>&id=<id>                     name records 
 GET /v1/records?project=<node>&tableKey=<type>&key=<naturalKey>    the one record with exactly that natural key
 GET /v1/records?project=<node>&tableKey=<type>&fields=<a>&fields=<b>   each row also carries those fields' values, in `values`
 GET /v1/records/{id}                                               one record whole: its `data`, its `version`, its type's contract
-POST /v1/records/query  { project, tableKey, clauses, order?, limit? }   fields, terms, links, streams and one phrase in one question
+POST /v1/records/query  { project, tableKey, clauses?, order?, limit?, linked? }   fields, terms, links, streams and one phrase in one question; each record with its linked records
 ```
 
 A row's `fields` holds only the table's queryable columns, not its `data`. To read some fields of many records, name them with `fields=` (up to 32, `tableKey` required) on the page you already read, or beside `id=` for records you hold ids of — one request a page, never one `GET /v1/records/{id}` a record. A name is a top-level field the table declares, submitted or produced by its flow; a value comes whole, `null` where the record has none; an unknown or dotted name, or a stream field, is 422 `RECORD_PROJECTION_UNKNOWN_FIELD` listing the table's fields.
 
 Narrow the list with repeated `field=name:operator:value` and `term=vocabulary:key` (up to 32 of each, AND-composed), `owner`, `status`, `createdAfter`, `createdBefore`. Page with `after` / `before` cursors; `limit` is at most 100. A `term=` condition matches **active** terms only: a record filed under a candidate term is not found by it until the term is admitted (`kipory-model`).
 
-The query body asks what the address cannot spell — a link to another record, a stream window, `in`. Its clause grammar, `bounded` and `explanation` are in `kipory-model`'s `references/packs/tables-and-types.md`, "One question across the stores". Read `bounded` before `records`: it says whether every matching record was in reach.
+The query body asks what the address cannot spell — a link to another record, a stream window, `in` — and it is the one route that brings each record's **linked records** with it. Leave `clauses` out and it lists the table's records, newest first, paged by `after` like the list; add `linked` and every row carries `linked.<name>`:
+
+```
+POST /v1/records/query  { "project": "<node>", "tableKey": "book",
+                          "linked": { "author": { "relation": "written-by", "fields": ["name"] },
+                                      "reviews": { "relation": "about", "direction": "incoming", "limit": 20 } } }
+```
+
+`author` is one record (outgoing on a relation declared many-to-one), `reviews` a list of at most 20 per book — `limit` is per record, not a total; more than 20 is 422 `VALIDATION_FAILED` with `details.reason` `RECORD_LINKED_HAS_MORE` unless the linked read says `"onMore": "stop"`, which keeps 20 and sets `linkedMore.reviews`. A linked read may carry one more level of `linked`. Each linked record is this route's own row shape. `GET /v1/records` takes no `linked` (an unknown member, 422): send `linked` to this POST. The rules and every refusal are in `kipory-model`'s `references/packs/tables-and-types.md`, "One question across the stores". Its clause grammar, `bounded` and `explanation` are in `kipory-model`'s `references/packs/tables-and-types.md`, "One question across the stores". Read `bounded` before `records`: it says whether every matching record was in reach.
 
 A stream field's events are not in the record's `data`. `GET /v1/records/{id}/stream/{field}` pages them newest first, inside the window the field's retention keeps; only a flow's `record.append` action writes them.
 
@@ -49,7 +57,7 @@ The `field=` operators are the platform's one comparison vocabulary — the same
 **Walk and state links.**
 
 ```
-GET    /v1/records/{id}/links/{relationKey}                     one hop, one kind — there is no multi-hop
+GET    /v1/records/{id}/links/{relationKey}                     one hop, one kind, no depth — for the records themselves, `linked` on the query
 POST   /v1/records/{id}/links/{relationKey}                     { targetRecordId, properties? } → { linkId, outcome, revived }
 DELETE /v1/records/{id}/links/{relationKey}/{peerRecordId}      retract your own assertion → { id, deleted: true, retracted: true }
 GET    /v1/links?project=<node>&relation=<key>              every link in the project as rows

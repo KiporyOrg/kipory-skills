@@ -170,6 +170,18 @@ record.list (my follows → follows)  →  value.transform (follows.records → 
 
 The transform writes the slot `followed`, an object with one field: `{ "ids": [ … ] }`. `cursor` is an optional flow input carrying the `nextCursor` a previous page answered; absent, the query returns the first page.
 
+The follows read takes every page, so a person following more than one page of things is not cut to the first 50:
+
+```json
+{
+  "tableKey": "follow",
+  "limit": 100,
+  "pages": { "max": 10 }
+}
+```
+
+`max: 10` is 1,000 follows; a person with more fails the action `RECORD_READ_HAS_MORE` rather than silently missing the rest — which also fits the 1,000-value bound on `in` below. Without `pages` the save warns `RECORD_LIST_CURSOR_UNREAD`, because no action reads the follows page's `nextCursor`. The feed query itself stays one page: its cursor goes back to the caller.
+
 The relation is declared once, on the child: an `item` points at its `collection`, and the relation `in-collection` is paired from `item` to `collection`. The `uses` of `item`:
 
 ```json
@@ -230,6 +242,7 @@ The query is asked of the parent, with the link coming IN:
 - **`incoming` is asked of the table the relation points at.** The `link` use stays on the child's field (`item.collectionId`); the parent needs none, and `peer` clauses are checked against the child's `uses` (`authorId` carries `filter`). Without `direction: "incoming"` the same clause on `collection` is refused `QUERY_CLAUSE_UNROUTED`: the default, `outgoing`, needs the `link` use on the queried table. The refusal says to ask `incoming`.
 - **Following nobody is an answer.** A slot holding `[]` runs the action and returns no records. A slot that is absent skips the action, so produce the list in an action that always runs.
 - **`in` takes at most 1,000 values.** Past that the action fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
+- **Each collection with its newest items is `linked`, not a second query.** Add `"linked": { "latest": { "relation": "in-collection", "direction": "incoming", "limit": 3, "onMore": "stop" } }` to the query: each collection then carries `linked.latest`, its three newest items (`limit` is per collection), and `linkedMore.latest` when it has more. The query's `limit` times each list `limit` must stay within 20,000 — checked at save.
 - **Order by a date the record carries.** `order` takes `created`, or one of the table's own date fields with a `filter` use; a record with no value there is left out. To order by something a linked record holds (the newest item's date), keep it on the record — the next pattern.
 - **"Due now" is the same shape.** `{ "kind": "field", "field": "nextRunAt", "op": "lte", "valueSlot": "runInfo.now" }` reads only the due records; listing them all and filtering in a transform reads the whole table.
 
@@ -251,7 +264,7 @@ A `where[]` entry is `{ property, op, value | valueSlot }` over a filter the rel
 
 A parent that shows its children's count, latest date or common language stores those values itself.
 
-- **Write them with `record.update`, in the parent's flow.** A field that is the OUTPUT of the table's processing flow cannot carry a `filter` use (`TABLE_QUERYABLE_INVALID`): a filterable field is stamped from the record's own data, and nothing stamps a flow output. Declare the roll-up as an optional field of the table's type, compute it in the flow (`record.list` the children → `value.transform`), and write it back with `record.update`. It can then be filtered and ordered by.
+- **Write them with `record.update`, in the parent's flow.** A field that is the OUTPUT of the table's processing flow cannot carry a `filter` use (`TABLE_QUERYABLE_INVALID`): a filterable field is stamped from the record's own data, and nothing stamps a flow output. Declare the roll-up as an optional field of the table's type, compute it in the flow (`record.read` the parent with a linked read bringing its children — `"direction": "incoming"`, a `limit`, and `"onMore": "fail"` so a parent with more children than the limit fails rather than rolls up a part; or `record.list` the children with `pages` → `value.transform`), and write it back with `record.update`. It can then be filtered and ordered by.
 - **Re-run the parent when a child joins.** The child's flow runs `record.enqueue-process` on the parent, which sets a ready parent back to pending itself; a `record.update` with `setStatus: "PENDING"` before it is not needed. A parent whose own run is under way is not queued again: the action answers `false`, and that run may have read the children before this one joined, so read the answer and queue the parent again later (the next child's run, or a sweep) when it is `false`. Every action runs again under any `replay` value. If the parent's flow files a term on a vocabulary that holds one value and that value can change (the common language, here), set `replay: "clean"`: otherwise the old term stays, the new one is refused, and the run fails. (`record.teardown` is not a substitute here: it fails on a run with no signed-in user and reaches only that user's own records.) `kipory-data`'s `references/in-flow-record-functions.md` has the replay modes. The parent's flow recomputes from all its children, so the value never drifts from a running total. Each re-run is a whole run of the parent's flow and is billed as one (`kipory-operate`).
 - **Take the majority, not the first.** For a value the children can disagree on (a language, a category), count them and take the commonest, ignoring an unknown while any child has a known value. Copying the first child's value lets one early odd record decide for the rest.
 - **Do not store the children as a list on the parent.** They are the incoming links of the relation; a list in the record grows without bound and cannot be filtered on.

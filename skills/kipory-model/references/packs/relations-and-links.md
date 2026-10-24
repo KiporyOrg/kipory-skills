@@ -8,18 +8,20 @@
 
 ## Read this first
 
-⛔ **What genuinely does not exist is MULTI-HOP.** There is no `depth` parameter left at 1 —
-recursive traversal is out of scope, and the absence is the contract rather than a default anyone
-can raise. Design the read path around that before you author the relations.
+⛔ **What does not exist is a WALK of any depth.** The per-relation link read takes one hop and has
+no `depth` parameter, and recursive traversal is out of scope. What does exist is a read that
+BRINGS linked records with each record, two levels deep: `linked` on a flow's `record.read`,
+`record.list` and `record.query`, and on `POST /v1/records/query`. "Each book with its author and
+the author's publisher" is one action, not a loop of calls.
 
 Links themselves arrive on more than one surface, and picking the wrong one is where the cost goes:
 
 - `GET /v1/records/{id}/links/{relationKey}` — one record, **one relation** per call. The narrowest
   read, and the only one that reaches a `join-record` relation.
-- **Inside a flow**, the record read and list actions can carry a record's links per row, grouped by
-  relation and for every relation at once, and the list and count actions can keep only rows that
-  carry a link. Both are action configuration, opt-in and off by default — check the function catalog
-  for the field names rather than trusting this pack's vocabulary.
+- **Inside a flow**, `linked` on the record reads brings the linked RECORDS themselves, with their
+  fields, per named linked read ([below](#linked-records-in-one-read)). Separately, the record read and
+  list actions can carry a record's raw links per row (`include` with `links`: ids and properties, every
+  relation at once), and the list and count actions can keep only rows that carry a link.
 - **Over HTTP**, the project's links sweep (`GET /v1/links?project=`) anchored on a record
   (`record=`) returns its links across every relation in one call.
 
@@ -680,12 +682,72 @@ can ENTER that state today — but rows that predate those two doors still exist
 The validator calls that check "quarantining a row" rather than enforcing an invariant, and this is
 the first read that says so out loud.
 
+## Linked records in one read
+
+`linked` is a map from a name you choose to a linked read. It is the same option on `record.read`,
+`record.list`, `record.query` and the body of `POST /v1/records/query`. A `record.list` that brings
+each order's customer and its five latest line items:
+
+```json
+{
+  "tableKey": "order",
+  "limit": 50,
+  "pages": { "max": 10 },
+  "linked": {
+    "customer": { "relation": "placed-by", "fields": ["name", "email"] },
+    "items": {
+      "relation": "line-of",
+      "direction": "incoming",
+      "limit": 5,
+      "onMore": "stop",
+      "linked": {
+        "product": { "relation": "for-product", "fields": ["title"] }
+      }
+    }
+  }
+}
+```
+
+Each row then carries `linked` with a `customer` member (one record, or no key when there is none)
+and an `items` member (a list, `[]` when none), each item carrying its own `product` under its own
+`linked`, and `linkedMore` with `items: true` on an order that had more than five.
+
+- **One record or a list is decided by the relation, not by you.** A linked read answers ONE record only
+  when it is `outgoing` on a directed relation declared many-to-one. Everything else — `incoming`,
+  many-to-many, symmetric, a curated relation with no declared cardinality — answers a list.
+  A list linked read needs `limit` (`LINKED_LIST_NEEDS_LIMIT`); a one-record linked read takes no `limit`,
+  `sortField`, `order` or `onMore` (`LINKED_ONE_TAKES_NO_LIST_OPTIONS`).
+- **`limit` is per record, not a total.** 5 above is five items for EACH order. More than `limit`
+  for one record fails the action `RECORD_LINKED_HAS_MORE`, unless `onMore` is `"stop"`.
+- **The worst case is checked at save, for the whole read.** Every linked read at both levels spends from
+  one budget of 20,000 linked records: per linked read, the records it hangs off (the read's `limit`, 200
+  ids for `record.read`; for a level-2 linked read, its level-1 linked read's worst case) times its `limit` —
+  one each for a linked read that brings one record — summed over every linked read (`LINKED_TOO_MANY_ROWS`).
+  A read the save accepted never fails `RECORD_LINKED_TOO_MANY`; with `onMore: "stop"` every full
+  list is cut and marked. For a list of `limit₁` with a list of `limit₂` inside, keep
+  `limit₁ × (1 + limit₂)` at 100 or less and a 200-id read fits.
+- **`table` is needed only when the relation reaches more than one table from here**
+  (`LINKED_TABLE_UNCLEAR`); a `table` the relation does not reach is `LINKED_TABLE_NOT_AT_END`.
+- **Two levels, at most 8 linked reads in one map.** A level-2 linked read takes no `linked`. A relation whose
+  links are records of a join table is not followed (`LINKED_JOIN_RECORD`): link from the join
+  table's records instead.
+- **A linked record is exactly what a plain read of its table would answer in that run.** A run
+  acting for nobody (a schedule, a trigger, an API key) that follows a link into a table whose
+  records belong to people fails as that plain read fails, even when nothing is linked.
+- **Records the run wrote itself.** A `record.read` of a record this run created or changed brings
+  its outgoing linked record through the field that produces the link, so create-then-read-back in
+  one run works. A link the run made with `record.link-assert` is not followed until the run ends;
+  `record.list` and `record.query` read only what earlier runs committed.
+- Linked records count toward the slot size of the answer (Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
+
 ## What the read half still does not do
 
 Do not promise these:
 
-- **No multi-hop.** One hop per call, deliberately. A two-hop question is two rounds of calls, and
-  bounding that fan-out is yours to do.
+- **No walk of any depth on the link read.** `GET /v1/records/{id}/links/{relationKey}` and a flow's
+  `record.links` take one hop and no `depth`. To bring records two links away, use `linked` (two
+  levels); to SELECT records by a condition two links away, there is no clause — a query's `peer`
+  is one hop.
   <!-- absent: relations-no-multi-hop -->
 - **No link history for a field-backed relation.** Its links are hard-deleted when the field stops
   saying so, because the field is the truth and the history lives on the record. Only a curated

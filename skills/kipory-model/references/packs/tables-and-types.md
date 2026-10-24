@@ -898,6 +898,56 @@ typed, among the guides they follow" is one action.
 `nextCursor` out. With a semantic clause the answer is a ranking of at most `topK` with no cursor,
 and `limit` caps what is returned of it.
 
+**No clauses: the table's records.** On the route `clauses` may be left out: the answer is the
+table's records, newest first, paged exactly as above: `limit`, and the `after` and `before` cursors. An empty
+list is refused; leave the member out instead. The `record.query` action still states at least one
+clause — a flow lists a table with `record.list`.
+
+**Linked records with each record: `linked`.** The route's body takes `linked`, the option a
+flow's `record.query`, `record.list` and `record.read` take, and brings with each record the
+records it is linked to, under `linked.<name>`:
+
+```json
+{
+  "project": "<node id>",
+  "tableKey": "book",
+  "linked": {
+    "author": {
+      "relation": "written-by",
+      "fields": ["name"],
+      "linked": { "publisher": { "relation": "published-by" } }
+    },
+    "reviews": { "relation": "about", "direction": "incoming", "limit": 20 }
+  }
+}
+```
+
+- Each linked read follows one `relation`, `outgoing` (default: the records this one points at) or
+  `incoming` (the records pointing at it). `table` names the far table only when the relation
+  reaches several from here.
+- A linked read brings ONE record — an object, absent when there is none — when it is `outgoing` on a
+  directed relation declared many-to-one; otherwise a LIST, which needs `limit` (at most 100 per
+  record) and may take `sortField` (a date field of the far table), `order` (`desc` default) and
+  `onMore`. A list with more than `limit` records for one record refuses the whole query
+  (`RECORD_LINKED_HAS_MORE`) unless `onMore` is `"stop"`, which keeps the first `limit` and marks
+  the record's `linkedMore.<name>: true`.
+- On the route a linked record is the route's own row — id, identity, lowercase `status`, its
+  table's columns — and the linked read's `fields` fill its `values`: absent or empty is every field the
+  table declares, `["id"]` none. A name the far table does not declare is 422
+  `RECORD_PROJECTION_UNKNOWN_FIELD`.
+- One more level: a linked read may carry its own `linked`, whose linked reads take none.
+- Linked records are read across every owner, as the route's own records are, and carry no
+  vocabulary terms: a linked read's `include` with `vocabularies` is 422 `LINKED_VOCABULARIES_UNAVAILABLE` here
+  and on a flow's `record.query` (`record.read` and `record.list` carry them).
+- The route has no save step, so a linked read the project's relations cannot answer is refused before
+  anything is read: 422 `VALIDATION_FAILED` with the rule in the `reason` of its `details` —
+  `LINKED_RELATION_UNKNOWN`, `LINKED_NO_PAIRING`, `LINKED_TABLE_UNCLEAR`, `LINKED_LIST_NEEDS_LIMIT`,
+  `LINKED_ONE_TAKES_NO_LIST_OPTIONS`, `LINKED_SORT_NOT_DATE`, `LINKED_TOO_MANY_ROWS` (the query's
+  `limit` times each list `limit` on the path passes the most linked records one read may bring).
+  `RECORD_LINKED_HAS_MORE` and `RECORD_LINKED_TOO_MANY` arrive the same way.
+- `GET /v1/records` takes no `linked`, its rows carry no `linked` / `linkedMore`, and neither route
+  takes `pages` — both are 422 as unknown members.
+
 **Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
 hop through `peer`. Ordering by how closely a LINKED record matches, or by any value on a linked
 record. A similarity cut-off on a ranking. An answer carrying records of two tables, except a

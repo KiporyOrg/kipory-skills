@@ -116,8 +116,8 @@ judgment, and both defer to the live system for facts.
 - **Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)** — classification against a resolvable vocabulary, and the path
   from resolving to committing terms.
 - **Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`)** — typed record-to-record links: relations,
-  pairings, the declaration that rides on the table, the surfaces links arrive on, and the multi-hop
-  walk that does not exist.
+  pairings, the declaration that rides on the table, the surfaces links arrive on, the linked records a read
+  brings two levels deep, and the walk of any depth that does not exist.
 - **Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)** — time-triggered flow runs, run history, and why the next-run time
   you are given is one you can hold the platform to.
 - **Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)** — event-triggered flow runs: the durable event log, the selector and

@@ -22,7 +22,9 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `cursorSlot` | string | no | — | The slot holding a prior answer's cursor; empty for the first page. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the action; with `tableKeys`, each row carries its own table's named fields. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
+| `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | union | no | — | Order by `created`, `meaning`, or a date field of the type. ⚠️ A field order leaves out records with no value in that field. |
+| `pages` | object | no | — | Read every page of an exact question in one action. ⚠️ Only an exact question reads every page; records left after the last page fail the action unless `onMore` is "stop". |
 | `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
 | `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
 | `userIdSlot` | string | no | — | The slot holding whose records to query; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the action on user-owned tables. |
@@ -161,6 +163,13 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `field` | string | yes | — | A date field with a `filter` use; empty dates are left out. |
 | `direction` | `asc` \| `desc` | no | `"desc"` | `desc` (latest first, the default) or `asc`. |
 
+### `pages`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `max` | integer, 1 to 500 | yes | — | Most pages to read, up to the project's read-pages limit. |
+| `onMore` | `fail` \| `stop` | no | `"fail"` | `"fail"` (default) fails when records remain; `"stop"` answers a `nextCursor`. |
+
 ## Worked example
 
 Asks one question across a table's stores and says, on every answer, whether it is complete and which store answered each clause.
@@ -223,6 +232,65 @@ Output:
       { "clause": 2, "store": "vector-index", "index": "person.bio", "rank": 9, "candidates": 1, "freshness": { "eventual": true, "watermark": "2026-06-15T10:02:30.000Z", "unindexed": 0 } }
     ],
     "pushdown": { "ids": 37, "cap": 25000, "mode": "exact" }
+  }
+}
+```
+
+#### With linked records
+
+Each answered post carries its source under `linked.source`; the answer's order is unchanged.
+
+Reads `{ userId }` → emits `RecordQueryPage` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "tableKey": "post",
+  "clauses": [
+    {
+      "kind": "field",
+      "field": "lang",
+      "op": "eq",
+      "value": "en"
+    }
+  ],
+  "fields": [
+    "title"
+  ],
+  "limit": 20,
+  "linked": {
+    "source": {
+      "relation": "from-source",
+      "direction": "outgoing",
+      "fields": [
+        "name"
+      ]
+    }
+  }
+}
+```
+
+Input:
+
+```
+{ "userId": "ckpg_user_a" }
+```
+
+Output:
+
+```
+{
+  "records": [
+    { "id": "ckps01", "title": "Rain on the coast", "createdAt": "2026-06-15T10:01:55.000Z", "updatedAt": "2026-06-15T10:02:10.000Z", "status": "READY",
+      "linked": { "source": { "id": "cksr02", "name": "Harbour Daily", "createdAt": "2026-02-01T09:00:00.000Z", "updatedAt": "2026-02-01T09:00:00.000Z", "status": "READY" } } }
+  ],
+  "bounded": false,
+  "explanation": {
+    "clauses": [
+      { "clause": 0, "store": "record-table", "index": "TableRecord_qText0_idx", "rank": 1, "candidates": 1, "freshness": "transactional" }
+    ],
+    "pushdown": { "ids": 1, "cap": 25000, "mode": "exact" }
   }
 }
 ```
@@ -443,6 +511,61 @@ Output:
     /* …49 more, newest-first… */
   ],
   "nextCursor": "eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6ImNrd3g5eSJ9",
+  "bounded": false,
+  "explanation": {
+    "clauses": [
+      { "clause": 0, "store": "record-store", "index": "TableRecord_sText0_idx", "rank": 2, "candidates": 214, "freshness": "transactional" }
+    ],
+    "pushdown": { "ids": 0, "cap": 25000, "mode": "none" }
+  }
+}
+```
+
+#### Every page
+
+`pages` reads page after page of an exact question: every match, and no cursor.
+
+Reads `{ userId }` → emits `RecordQueryPage` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "tableKey": "person",
+  "userIdSlot": "userInfo.userId",
+  "clauses": [
+    {
+      "kind": "field",
+      "field": "city",
+      "op": "eq",
+      "value": "Tel Aviv"
+    }
+  ],
+  "limit": 100,
+  "fields": [
+    "title"
+  ],
+  "pages": {
+    "max": 10,
+    "onMore": "fail"
+  }
+}
+```
+
+Input:
+
+```
+{ "userId": "ckpg_user_a" }
+```
+
+Output:
+
+```
+{
+  "records": [
+    { "id": "ckwx0b", "title": "Dana Cohen", "createdAt": "2026-06-09T08:22:31.000Z", "updatedAt": "2026-06-09T08:25:00.000Z", "status": "READY" }
+    /* …every other match, newest-first… */
+  ],
   "bounded": false,
   "explanation": {
     "clauses": [

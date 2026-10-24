@@ -30,7 +30,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Vocabulary vs. term.** A **vocabulary** is a classification kind — a namespace of terms. A **term** is one value in it. Terms are created through the vocabulary (`POST /v1/vocabularies/{id}/terms`, one or many) and renamed, archived, merged or deleted at `/v1/terms/{id}`.
 
-**Relation vs. pairing vs. link.** A **relation** is the declared definition of a typed link between records; a **pairing** is one (tableA, tableB) pair the relation admits; a **link** is an actual instance joining two records. Links are read one hop at a time.
+**Relation vs. pairing vs. link.** A **relation** is the declared definition of a typed link between records; a **pairing** is one (tableA, tableB) pair the relation admits; a **link** is an actual instance joining two records. The link read walks one hop at a time; a record read can bring its linked records with it, two levels deep (`linked`).
 
 **Event.** In the design API, an **event type** is a declared, emittable signal in a **category**, with a scope of `run`, `record`, `user` or `project`. It is unrelated to the charges statement's "credit events", to the run timeline's events, and to server-sent events on a stream.
 

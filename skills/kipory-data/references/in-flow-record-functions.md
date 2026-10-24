@@ -24,8 +24,69 @@ runs as **the run's principal**. That single difference explains most of what su
 | `record.enqueue-process` | hands the record to its processing flow                              | idempotent side effect |
 
 `record.create`, `record.update` and `record.enqueue-process` are covered where record creation
-is taught, in `kipory-build`, and `record.query`'s clauses on its function page there. The rest are
-below; every field of each is on its function page in `kipory-build`.
+is taught, in `kipory-build`, and `record.query`'s clauses on its function page there. Reading every
+page and bringing linked records, which the three reads share, comes first below; the rest follow; every field of each is on its function page in `kipory-build`.
+
+## Reading every page, and the linked records
+
+`record.list`, and a `record.query` with no `semantic` clause over one table, answer ONE page
+(`limit`, 100 at most) and a `nextCursor` when more remain. Two settings make a read whole:
+
+- **`pages: { "max": N }` reads every page in this one action** — the records in the read's order,
+  each once, as one `RecordPage`. When records remain after `N` pages, or the next page would pass
+  one slot (about 2,400 short records; a record counts whole), the action fails
+  `RECORD_READ_HAS_MORE`. `"onMore": "stop"` instead answers what it read and a `nextCursor` to
+  continue from — it covers the size bound as well as `max`. `max` is at most the project's
+  read-pages limit (50 unless Kipory set another); above it the save is refused
+  `READ_PAGES_OVER_LIMIT`.
+- **A first page plus N passes is `max: N + 1`.** A flow that read a page and then looped up to 9
+  more times on `nextCursor` is `"pages": { "max": 10 }` on the one action, and the loop goes.
+- **A one-page read on purpose is `"pages": { "max": 1, "onMore": "stop" }`.** A read without
+  `pages` whose `nextCursor` no action reads and no flow output passes on carries the warning
+  `RECORD_LIST_CURSOR_UNREAD` at save and on health: the flow is treating the first page as every
+  record. It never blocks the save; either setting above silences it.
+- Saving refuses `pages` where a record could move across the cursor while the pages are read:
+  ordered by update time, by a field that is not a date, or by a date processing fills
+  (`READ_PAGES_SORT_NOT_DATE`); and on a `record.query` with a phrase, a phrase on a `peer`, or
+  `tableKeys`.
+
+`linked` brings each record's linked records with it — on `record.read`, `record.list` and
+`record.query` alike:
+
+```json
+{
+  "tableKey": "book",
+  "limit": 50,
+  "pages": { "max": 20 },
+  "linked": {
+    "author": { "relation": "written-by", "fields": ["name"] },
+    "reviews": {
+      "relation": "about",
+      "direction": "incoming",
+      "limit": 10,
+      "onMore": "stop"
+    }
+  }
+}
+```
+
+Each row carries `linked.author` (one record, no key when none: outgoing on a relation declared
+many-to-one) and `linked.reviews` (a list, `[]` when none; `linkedMore.reviews: true` when a book had
+more than ten). `limit` is per record — ten reviews for EACH book. One read brings at most 20,000
+linked records over all its linked reads, checked at save: per linked read, the records it hangs off times its
+`limit` (one each for a one-record linked read), summed over every linked read at both levels; a list of `a` with
+a list of `b` inside fits a 200-id read when `a × (1 + b)` is 100 or less. Name `table` only when the relation reaches more
+than one table. One more level of `linked` is allowed, not two. The relations pack (`kipory-model`'s
+`references/packs/relations-and-links.md`, "Linked records in one read") has every rule.
+
+Two things that follow from the run's principal:
+
+- **A linked record is what a plain read of its table would answer in this run.** A schedule,
+  trigger or key-started run that follows a link into a table whose records belong to people fails,
+  as reading that table directly fails.
+- **Records the run wrote itself** follow their field links on `record.read`: create a record, read
+  it back with `linked`, and the record its field names is there. A link stated with
+  `record.link-assert` in the same run is not followed until the run ends.
 
 ## Counting
 

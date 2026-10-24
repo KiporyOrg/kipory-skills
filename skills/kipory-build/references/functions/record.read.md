@@ -22,6 +22,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ Unknown field names are ignored. |
 | `idsSlot` | string | yes | — | The slot holding a list of ids, or a path like `hits[].recordId`. ⚠️ A lone id reads nothing; wrap it as `[recordId]` in a `value.transform`. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
+| `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `tableKey` | string | yes | — | The table to read. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id; others' ids are dropped. ⚠️ On a user-owned type, an empty value fails the action; dropped ids are silent. |
@@ -117,6 +118,59 @@ Output:
 [
   { "id": "ckwx_user_a_1", "title": "...", "summary": "...", "thumbnail": null, "text": "...", "comment": null, "createdAt": "2026-05-29T18:22:31.000Z", "updatedAt": "2026-05-29T18:25:02.000Z", "status": "READY" },
   { "id": "ckwx_user_a_3", "title": "...", "summary": "...", "thumbnail": null, "text": "...", "comment": null, "createdAt": "2026-05-25T13:11:02.000Z", "updatedAt": "2026-05-25T13:12:40.000Z", "status": "READY" }
+]
+```
+
+#### With linked records
+
+`linked` brings the record each review points at, and that book's author one level further, for every id at once.
+
+Reads `list<string>` → emits `RecordRead[]` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "idsSlot": "candidates",
+  "tableKey": "review",
+  "fields": [
+    "rating"
+  ],
+  "linked": {
+    "book": {
+      "relation": "about",
+      "direction": "outgoing",
+      "fields": [
+        "title"
+      ],
+      "linked": {
+        "author": {
+          "relation": "written-by",
+          "direction": "outgoing",
+          "fields": [
+            "name"
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+Input:
+
+```
+["ckrv_01", "ckrv_02"]
+```
+
+Output:
+
+```
+[
+  { "id": "ckrv_01", "rating": 5, "createdAt": "2026-06-01T10:00:00.000Z", "updatedAt": "2026-06-01T10:00:00.000Z", "status": "READY",
+    "linked": { "book": { "id": "ckbk01", "title": "The Long Walk", "createdAt": "2026-05-01T09:00:00.000Z", "updatedAt": "2026-05-01T09:00:00.000Z", "status": "READY",
+      "linked": { "author": { "id": "ckau07", "name": "Ada Brook", "createdAt": "2026-01-03T09:00:00.000Z", "updatedAt": "2026-01-03T09:00:00.000Z", "status": "READY" } } } } },
+  { "id": "ckrv_02", "rating": 3, "createdAt": "2026-06-02T10:00:00.000Z", "updatedAt": "2026-06-02T10:00:00.000Z", "status": "READY", "linked": {} }
 ]
 ```
 

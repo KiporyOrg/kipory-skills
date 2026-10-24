@@ -4,7 +4,7 @@
 
 List a user's records, newest first, one page at a time.
 
-Each page carries a cursor for the next. Filter by status, date, vocabulary, field or link.
+Read one page and its cursor, or every page. Filter by status, date, vocabulary, field or link.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -32,7 +32,9 @@ Each page carries a cursor for the next. Filter by status, date, vocabulary, fie
 | `limit` | integer, 1 to 100 | no | `50` | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows that a page was cut short. |
 | `limitSlot` | string | no | — | A slot that sets the page size while the flow runs. ⚠️ A value outside 1 to 100 or not whole is silently ignored. |
 | `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ If an entry's slot is missing, the action is skipped. |
+| `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
+| `pages` | object | no | — | Read every page in one action; unset reads one page. ⚠️ Records left after the last page fail the action unless `onMore` is "stop". |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order by when a row was created (default) or last changed. |
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
@@ -73,6 +75,13 @@ Each page carries a cursor for the next. Filter by status, date, vocabulary, fie
 | --- | --- | --- | --- | --- |
 | `relationKey` | string | yes | — | The relation a row must have a link of, by key. |
 | `peerRecordIdSlot` | string | no | — | The record at the other end; empty means any link. |
+
+### `pages`
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `max` | integer, 1 to 500 | yes | — | Most pages to read, up to the project's read-pages limit. |
+| `onMore` | `fail` \| `stop` | no | `"fail"` | `"fail"` (default) fails when records remain; `"stop"` answers a `nextCursor`. |
 
 ### `scalars`
 
@@ -157,6 +166,95 @@ Output:
 {
   "records": [
     { "id": "ckwx9y", "title": "First note", "summary": "Welcome", "text": null, "comment": null, "createdAt": "2026-04-02T11:00:00.000Z", "updatedAt": "2026-04-02T11:05:00.000Z", "status": "READY" }
+  ]
+}
+```
+
+#### Every page
+
+`pages` reads page after page until none remain: every record, and no cursor.
+
+Reads `{ userId }` → emits `RecordPage` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "tableKey": "item",
+  "userIdSlot": "userInfo.userId",
+  "fields": [
+    "title",
+    "summary"
+  ],
+  "limit": 100,
+  "pages": {
+    "max": 20,
+    "onMore": "fail"
+  }
+}
+```
+
+Input:
+
+```
+{ "userId": "ckpg_user_a" }
+```
+
+Output:
+
+```
+{
+  "records": [
+    { "id": "ckwx0a", "title": "Costco receipt", "summary": "Costco, $112.00", "createdAt": "2026-06-15T10:01:55.000Z", "updatedAt": "2026-06-15T10:02:10.000Z", "status": "READY" },
+    { "id": "ckwx0b", "title": "Lisbon trip notes", "summary": "4 days, May", "createdAt": "2026-06-14T08:22:31.000Z", "updatedAt": "2026-06-14T08:25:00.000Z", "status": "READY" }
+    /* …every other record, newest first… */
+  ]
+}
+```
+
+#### With linked records
+
+Every book carries the author it points at under `linked.author`, read for the whole page at once.
+
+Reads `{ userId }` → emits `RecordPage` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "tableKey": "book",
+  "userIdSlot": "userInfo.userId",
+  "fields": [
+    "title"
+  ],
+  "limit": 20,
+  "linked": {
+    "author": {
+      "relation": "written-by",
+      "direction": "outgoing",
+      "fields": [
+        "name"
+      ]
+    }
+  }
+}
+```
+
+Input:
+
+```
+{ "userId": "ckpg_user_a" }
+```
+
+Output:
+
+```
+{
+  "records": [
+    { "id": "ckbk01", "title": "The Long Walk", "createdAt": "2026-06-15T10:01:55.000Z", "updatedAt": "2026-06-15T10:02:10.000Z", "status": "READY",
+      "linked": { "author": { "id": "ckau07", "name": "Ada Brook", "createdAt": "2026-01-03T09:00:00.000Z", "updatedAt": "2026-01-03T09:00:00.000Z", "status": "READY" } } },
+    { "id": "ckbk02", "title": "Untitled draft", "createdAt": "2026-06-14T08:22:31.000Z", "updatedAt": "2026-06-14T08:25:00.000Z", "status": "READY",
+      "linked": {} }
   ]
 }
 ```
