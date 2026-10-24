@@ -28,7 +28,7 @@ Loads the page in a real browser, so script-built pages work. Results are cached
 | `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. ⚠️ Narrower than `excludeTags`: leave it empty unless the article's container is known and stable. |
 | `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | Below this many characters, also read the whole page; 0 is off. ⚠️ Non-zero bills a second scrape on each page that trips it, keeping the longer; so does an overlay-only result. |
 | `onlyMainContent` | boolean | no | `true` | Strip navigation, footers, and ads — request article body only. |
-| `timeoutMs` | integer, more than 0 | no | `30000` | How long to wait for the provider, in milliseconds. ⚠️ This limits the one page read, not the action's own `timeoutMs` run setting. |
+| `timeoutMs` | integer, more than 0 | no | `30000` | Milliseconds to wait for the provider; 1,000 to 136,000. ⚠️ This limits the one page read, not the action's own `timeoutMs` run setting. |
 
 ## Worked example
 

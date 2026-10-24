@@ -29,7 +29,7 @@ Saves the page as a PNG or JPEG. Each fresh shot is paid; repeats within a day a
 | `format` | `png` \| `jpeg` | no | `"png"` | Image format: PNG is lossless, JPEG is smaller. |
 | `jpegQuality` | integer, 1 to 100 | no | `85` | JPEG quality from 1 to 100; used only for JPEG. |
 | `maxBytes` | integer, more than 0, at most 100000000 | no | `10000000` | Largest image in bytes; a bigger one fails. |
-| `timeoutMs` | integer, more than 0 | no | `60000` | How long to wait for the provider, in milliseconds. ⚠️ This limits the one page read, not the action's own `timeoutMs` run setting. |
+| `timeoutMs` | integer, more than 0 | no | `60000` | Milliseconds to wait for the provider; 1,000 to 80,000. ⚠️ This limits the one page read, not the action's own `timeoutMs` run setting. |
 | `viewportWidth` | integer, more than 0 | no | `1280` | Page width in CSS pixels; the whole page height is captured. |
 
 ## Worked example

@@ -488,11 +488,11 @@
       "page": "kipory-build/references/functions/url.metadata.md"
     },
     "url.scrape": {
-      "hash": "0cc6f1e56a5e",
+      "hash": "47adf5c157a8",
       "page": "kipory-build/references/functions/url.scrape.md"
     },
     "url.screenshot": {
-      "hash": "ba43e66e342f",
+      "hash": "69a73e07fcca",
       "page": "kipory-build/references/functions/url.screenshot.md"
     },
     "url.send": {
