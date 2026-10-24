@@ -27,7 +27,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/flows`
 
-List one project's flows (`?project=<nodeId>`), or the platform's own with `?scope=system` (staff only). Each row carries its `version`, the lock `PATCH /v1/flows/{id}` requires. `expand=health` folds each flow's validity into the row — the full report is `GET /v1/flows/{id}/health`. The same rows, with every other design section, come in one read from `GET /v1/bootstrap`; the project's whole configuration, actions included, is `GET /v1/projects/{nodeId}/document`.
+List one project's flows (`?project=<nodeId>`), or the platform's own with `?scope=system` (staff only). Each row carries its `version`, the lock `PATCH /v1/flows/{id}` requires, and `calls`/`calledBy`: the flows it calls and the flows that call it, one hop each way (flows that reach it through others are the bootstrap's `invokedBy`). `expand=health` folds each flow's validity into the row — the full report is `GET /v1/flows/{id}/health`. The same rows, with every other design section, come in one read from `GET /v1/bootstrap`; the project's whole configuration, actions included, is `GET /v1/projects/{nodeId}/document`.
 
 **Query**
 
@@ -62,6 +62,8 @@ Each item of `flows`:
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
+| `calls` | `object[]` | yes | This project's flows that this flow's `flow.invoke` actions target, one entry per invoking action (disabled ones included), sorted by flow id, then action id. Each target's own row gives its inputs and outputs. |
+| `calledBy` | `object[]` | yes | This project's flows whose `flow.invoke` actions target this flow, one entry per invoking action, sorted by flow id, then action id. Flows that reach this one through others are the bootstrap's `invokedBy`. |
 
 ### `POST /v1/flows`
 
@@ -144,7 +146,7 @@ Each item of `consequences`:
 
 ### `GET /v1/flows/{id}`
 
-Read one flow — its signature, binding, action count and `version` (the lock `PATCH /v1/flows/{id}` requires). Its actions are `GET /v1/actions?flowId=`; `expand=timeLimits` adds each action's effective time limit. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true` (`derived.dependents`). For a project's flow, every flow at once is `GET /v1/bootstrap`, and the flow as configuration you can restate, with its actions, is `GET /v1/projects/{nodeId}/document`, whose `evals` section holds its eval cases. A platform flow (`scope: "system"`) belongs to no project and is in neither: its actions are `GET /v1/actions?flowId=`.
+Read one flow — its signature, binding, action count, `version` (the lock `PATCH /v1/flows/{id}` requires), and `calls`/`calledBy`: the flows it calls and the flows that call it, one hop each way. Its actions are `GET /v1/actions?flowId=`; `expand=timeLimits` adds each action's effective time limit. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true` (`derived.dependents`). For a project's flow, every flow at once is `GET /v1/bootstrap`, and the flow as configuration you can restate, with its actions, is `GET /v1/projects/{nodeId}/document`, whose `evals` section holds its eval cases. A platform flow (`scope: "system"`) belongs to no project and is in neither: its actions are `GET /v1/actions?flowId=`.
 
 **Path parameters**
 
@@ -177,6 +179,22 @@ Read one flow — its signature, binding, action count and `version` (the lock `
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `health` | `object` | no | Whether the flow can run, present only when you pass `expand=health`. Folded from the same report `GET /v1/flows/{id}/health` returns in full. Absent means not requested, or that this flow could not be measured — never that it is healthy. |
 | `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
+| `calls` | `object[]` | yes | This project's flows that this flow's `flow.invoke` actions target, one entry per invoking action (disabled ones included), sorted by flow id, then action id. Each target's own row gives its inputs and outputs. |
+| `calledBy` | `object[]` | yes | This project's flows whose `flow.invoke` actions target this flow, one entry per invoking action, sorted by flow id, then action id. Flows that reach this one through others are the bootstrap's `invokedBy`. |
+
+Each item of `calls`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The other flow's id. |
+| `actionId` | `string` | yes | The `flow.invoke` action that makes the call, in the calling flow. |
+
+Each item of `calledBy`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The other flow's id. |
+| `actionId` | `string` | yes | The `flow.invoke` action that makes the call, in the calling flow. |
 
 ### `PATCH /v1/flows/{id}`
 

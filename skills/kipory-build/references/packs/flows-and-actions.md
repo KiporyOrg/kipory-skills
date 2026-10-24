@@ -268,6 +268,17 @@ the outputs the sub-flow BINDS and nothing else: what the sub-flow's actions wro
 never crosses the boundary. An output the sub-flow declares but does not bind returns nothing to the
 flow that invoked it; the sub-flow's `OUTPUT_SLOT_UNBOUND` warning is where that shows.
 
+**Who calls a flow, and what it calls.** Each row of `GET /v1/flows` and `GET /v1/flows/{id}`, and
+each flow in the bootstrap, carries `calls` and `calledBy`: one entry per `flow.invoke` action between this project's
+flows, as `{ flowId, actionId }`, one hop each way. Read them before changing a sub-flow's signature: every
+`calledBy` entry is a call that changes with it. Flows that reach this one through others are the
+bootstrap's `invokedBy`.
+
+A fan-out whose branch calls a sub-flow is judged by what the sub-flow does, exactly as if its
+actions sat in the branch: a read-only sub-flow lets the branches run together, and one that writes
+a record other than the branch's own item holds them one at a time (`FANOUT_RUNS_ONE_AT_A_TIME`
+names the action and, in `details.holdingFlowIds`, the sub-flow it sits in).
+
 Every output slot is an ordinary output: there is no kind of output that is emitted beside the
 result. A flow that must persist terms does it with a `term.upsert` action, never through a slot.
 

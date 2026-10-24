@@ -1,7 +1,8 @@
 {
-  "source": "638e38e0496f6b74ba7d4f500a3bb71682985422",
+  "source": "8cb3aa8132a290e9b619e02d658dd306f6accb42",
   "since": "2026-08-15",
   "history": [
+    {"sha":"8cb3aa8132a2","skills":"A fan-out over sub-flows runs its branches together where nothing can meet, and a branch that changes only its own record needs no promise (404) (#3585)"},
     {"sha":"638e38e0496f","skills":"A flow reads as an outline: GET /v1/flows/{id}/outline, outline paths on findings, a plan block in health, outline comments in the YAML export (403) (#3584)"},
     {"sha":"5672a415cbfd"},
     {"sha":"4e98745abc7d","skills":"The Usage page is one chart split by flow, the Runs pages say what failed and whose, and the platform gives back what its own failures were charged (#3582)"},
@@ -1000,7 +1001,6 @@
     {"sha":"683d21172548"},
     {"sha":"5df4c127ccc3"},
     {"sha":"ee9331307400"},
-    {"sha":"4ab423dddac9"},
-    {"sha":"f012f75c176d"}
+    {"sha":"4ab423dddac9"}
   ]
 }
