@@ -82,7 +82,7 @@
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
-      "hash": "16f101c6698b",
+      "hash": "70b2270b1711",
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
@@ -1027,6 +1027,14 @@
       "hash": "a609cfb96d51",
       "page": "kipory-build/references/api/functions-and-models.md"
     },
+    "GET /v1/notices/": {
+      "hash": "6f4618b0591f",
+      "page": "kipory-connect/references/api/notices.md"
+    },
+    "GET /v1/notices/{id}": {
+      "hash": "03fbefec43aa",
+      "page": "kipory-connect/references/api/notices.md"
+    },
     "GET /v1/organizations/{nodeId}/ledger": {
       "hash": "41f3fafcbe11",
       "page": "kipory-operate/references/api/spend.md"
@@ -1088,7 +1096,7 @@
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
-      "hash": "31a77ecbf147",
+      "hash": "58d73aa92509",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/history": {
@@ -1574,7 +1582,7 @@
       "page": "kipory-connect/references/api/nodes-and-organizations.md"
     },
     "POST /v1/platform-events/test": {
-      "hash": "d57d4f8292a8",
+      "hash": "0c9932e7656b",
       "page": "kipory-operate/references/api/failures.md"
     },
     "POST /v1/project-config/": {
@@ -1590,11 +1598,11 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/projects/{nodeId}/document": {
-      "hash": "61b76ca88637",
+      "hash": "0d95fcd60b52",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/document/plan": {
-      "hash": "ebcd243bb1bc",
+      "hash": "9ce011e7a13b",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/ingest/cache/bust": {
@@ -1758,7 +1766,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "b517c410ab2d",
+      "hash": "af73820f6d93",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

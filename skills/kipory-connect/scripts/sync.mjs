@@ -330,6 +330,77 @@ console.log(
   `deployment ${baseUrl} — build ${health.json?.sha ?? "(unstamped)"}`,
 );
 
+// Breaking changes the deployment announced to the projects this key reaches
+// (`GET /v1/notices`): printed right after the deployment line, because an
+// open one is what to read before planning. Each project the key reaches is read in turn
+// (`GET /v1/grant` lists them). Notices change no exit code.
+const notices = await (async () => {
+  if (!apiKey) return { why: "set KIPORY_API_KEY to read them" };
+  const grant = await get("/v1/grant", true);
+  if (grant.error) return { why: `GET /v1/grant: ${grant.error}` };
+  const projects = Array.isArray(grant.json?.projects)
+    ? grant.json.projects
+    : [];
+  // Read together: a key on an organization reaches several projects. One
+  // project's failed read keeps the others' notices and says which failed.
+  const reads = await Promise.all(
+    projects.map(async (project) => ({
+      project,
+      res: await get(
+        `/v1/notices?project=${encodeURIComponent(project.id)}`,
+        true,
+      ),
+    })),
+  );
+  const items = [];
+  const failed = [];
+  let answered = 0;
+  for (const { project, res } of reads) {
+    if (res.error) {
+      // A 404 is either a deployment without the route or a project gone
+      // since the grant was read; only the first holds for every project.
+      failed.push(`${project.slug}: ${res.error}`);
+      continue;
+    }
+    const got = res.json?.items;
+    if (!Array.isArray(got)) {
+      failed.push(`${project.slug}: an answer with no items list`);
+      continue;
+    }
+    answered += 1;
+    items.push(...got);
+  }
+  if (answered === 0 && failed.length > 0)
+    return {
+      why: `GET /v1/notices: ${failed.join("; ")}${reads.every(({ res }) => res.error === "HTTP 404") ? " — this deployment predates notices" : ""}`,
+    };
+  return { items, failed };
+})();
+if (notices.items === undefined) {
+  console.log(`notices: not read (${notices.why})`);
+} else if (notices.items.length === 0) {
+  console.log("notices: none open");
+} else {
+  console.log(
+    `notices: ${notices.items.length} open — read each before planning; it says what changed and what to do`,
+  );
+  for (const n of notices.items) {
+    const when = String(n.effectiveAt ?? "").slice(0, 10);
+    const flags = [
+      n.state === "upcoming" ? `takes effect ${when}` : `in effect since ${when}`,
+      ...(n.hasReport ? ["carries a report on this project"] : []),
+      ...(n.read ? [] : ["unread"]),
+    ];
+    console.log(`  ! ${n.title} (${n.projectSlug}) — ${flags.join("; ")}`);
+    console.log(
+      `      read GET /v1/notices/${n.id}?project=${encodeURIComponent(n.project)}`,
+    );
+  }
+}
+if (notices.failed?.length > 0) {
+  console.log(`  (not read for ${notices.failed.join("; ")})`);
+}
+
 // Whether these skills describe code the deployment does not run yet: its
 // build's place among the merges SOURCE.json records. Unknown changes no exit
 // code — a bundle published before SOURCE.json existed is not a fault.

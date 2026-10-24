@@ -2,6 +2,24 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261024.192519 — 2026-10-24
+
+Synced from the Kipory monorepo at `41ee60e0c`.
+
+Routes added: `GET /v1/notices/`, `GET /v1/notices/{id}`.
+
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- added: `skills/kipory-connect/references/api/notices.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/sync.mjs`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-operate/references/when-a-run-fails.md`
+
 ## 1.20261024.172522 — 2026-10-24
 
 Synced from the Kipory monorepo at `7fc7bd74d`.

@@ -109,7 +109,7 @@ Record one of the platform's own events by hand, to see your failure trigger run
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `project` | `string` | yes | Node id of the project to record the event in. Required. |
-| `type` | `string` | yes | The event type inside the `platform` category, as `GET /v1/event-types` lists it: `run.failed`, `run.failures`, `run.partial`, `health.failing`, `health.recovered`, `health.quiet`, `health.pause-warned`, `health.paused`, `mail.failed`, `price.changed`, `member.left`, `flow-health.failing`, `flow-health.recovered`, `vendor.unavailable` or `vendor.available`. |
+| `type` | `string` | yes | The event type inside the `platform` category, as `GET /v1/event-types` lists it: `run.failed`, `run.failures`, `run.partial`, `health.failing`, `health.recovered`, `health.quiet`, `health.pause-warned`, `health.paused`, `mail.failed`, `price.changed`, `member.left`, `flow-health.failing`, `flow-health.recovered`, `vendor.unavailable`, `vendor.available` or `notice.published`. |
 | `subject` | `object` | no | What the event names, and it must exist in the project. A `run.*` or `health.*` type names a schedule, trigger, table or endpoint; a `flow-health.*` type names a flow (`kind: "flow"`), and the event carries that flow's id, key and health path. `mail.failed` (about a message), `price.changed` (about the project's prices), `member.left` (about a person) and `vendor.*` (about a vendor account of the platform's) name none: leave it out, and one stated is refused. |
 
 **Response `200`**

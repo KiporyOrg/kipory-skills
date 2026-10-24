@@ -258,7 +258,7 @@ Each logged `event` names its project `project`, the node id every `?project=` t
 
 ## Being told when a run fails: a trigger on a platform event
 
-Every project has the event category `platform`, with fifteen types the platform records itself.
+Every project has the event category `platform`, with sixteen types the platform records itself.
 You cannot add to it, change it or emit into it; `GET /v1/event-types` lists them, and a project
 document neither creates nor prunes them. **A failure trigger is an ordinary trigger on one of
 them, bound to an ordinary flow** — one that posts to your chat, opens a ticket, writes a record.
@@ -280,6 +280,7 @@ them, bound to an ordinary flow** — one that posts to your chat, opens a ticke
 | `flow-health.recovered` | That flow's health has no errors again                                        | `PlatformFlowHealthChange`    |
 | `vendor.unavailable`    | A service the platform provides stopped serving                               | `PlatformVendorServingChange` |
 | `vendor.available`      | That service serves again                                                     | `PlatformVendorServingChange` |
+| `notice.published`      | Kipory announced a breaking change that reaches this project                  | `PlatformNoticePublished`     |
 
 An unattended run is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, or
 a record's processing. Its **subject** is what it ran for — `{ kind, key }` with `kind` one of

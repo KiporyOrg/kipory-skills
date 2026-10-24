@@ -1,7 +1,8 @@
 {
-  "source": "7fc7bd74d11c707b5ddc105b31ce28e247558488",
+  "source": "41ee60e0caf09d7619ac9e813d30a64827554450",
   "since": "2026-08-15",
   "history": [
+    {"sha":"41ee60e0caf0","skills":"A breaking change is announced to the projects it reaches, through their own key, when their environment rolls (409) (#3594)"},
     {"sha":"7fc7bd74d11c","skills":"Vendor functions stop leaking money and time: a retried try is billed, every Apify and Firecrawl call fits the action's wait, YouTube keys ride a header and alert when refused (#3593)"},
     {"sha":"56dd8a217f29","skills":"An element a document states is whole: a field left out goes back to its default, and the plan shows it (405, PR 2) (#3591)"},
     {"sha":"294cb071a355","skills":"A plan names what changes, every design save keeps its diff, and an apply binds to its author's read (405, PR 1) (#3589)"},
@@ -1000,7 +1001,6 @@
     {"sha":"8f98fa5f5463"},
     {"sha":"4c3dfec258b5"},
     {"sha":"162a00ce1f6e"},
-    {"sha":"7f987d8da47a"},
-    {"sha":"23f0b45cc721"}
+    {"sha":"7f987d8da47a"}
   ]
 }
