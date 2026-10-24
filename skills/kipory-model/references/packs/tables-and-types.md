@@ -156,7 +156,8 @@ the same `derived.keywordVerdicts`.
 ⭐ **`ok` also answers what the write would leave broken.** The table PATCH's `validateOnly`
 rehearses the write and lists what it would leave behind in `leavesBehind`. `ok` is `false` when
 one of those findings is an error the write introduces, the same verdict a document plan of the
-change gives, so read `ok` and then `leavesBehind` before you send the write.
+change gives, so read `ok` and then `leavesBehind` before you send the write. A finding about one
+action of a flow carries its `outlinePath` (`each-item › save-row`), the place in that flow's outline.
 
 ## Writing records from outside a flow
 

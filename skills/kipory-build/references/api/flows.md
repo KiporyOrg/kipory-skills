@@ -17,6 +17,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `DELETE` | [`/v1/flows/{id}`](#delete-v1-flows-id) |  |
 | `GET` | [`/v1/flows/{id}/coverage`](#get-v1-flows-id-coverage) |  |
 | `GET` | [`/v1/flows/{id}/health`](#get-v1-flows-id-health) |  |
+| `GET` | [`/v1/flows/{id}/outline`](#get-v1-flows-id-outline) |  |
 | `POST` | [`/v1/flows/{id}/preview`](#post-v1-flows-id-preview) |  |
 | `POST` | [`/v1/flows/{id}/preview-runs`](#post-v1-flows-id-preview-runs) |  |
 | `POST` | [`/v1/flows/{id}/preview/stream`](#post-v1-flows-id-preview-stream) |  |
@@ -108,6 +109,7 @@ Each item of `leavesBehind`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -251,6 +253,7 @@ Each item of `leavesBehind`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -371,6 +374,7 @@ The full validation report for the flow as saved: every diagnostic, what it is a
 | `diagnostics` | `object[]` | yes | Every diagnostic, errors and warnings together. An empty array means the flow is healthy — it is a real answer, not a missing one. |
 | `counts` | `object` | yes | Summary counts. |
 | `danglingReads` | `object[]` | yes | Every input an action reads that nothing in the flow supplies — one entry per action and slot, the same findings `diagnostics` reports as `INPUT_STREAM_DANGLING_SLOT`. Such an action never runs, and neither does anything after it. Empty when every read is supplied. |
+| `plan` | `object` | yes | The flow's size and shape, from its configuration alone. |
 
 Each item of `diagnostics`:
 
@@ -385,6 +389,7 @@ Each item of `diagnostics`:
 | `target` | `"action" \| "edge" \| "flow"` | yes | What the diagnostic is about — the whole flow, one action, or one connection. This is what decides where to render it, and it is independent of `attribution`. |
 | `attribution` | `object` | yes | Where to point the reader, which is not the same as `target`: a flow-level diagnostic can still name the action that caused it. |
 | `details` | `unknown` | no | Extra context whose shape depends on `code`. Read it only after matching the code. |
+| `outlinePath` | `string` | no | Where the action this is about sits in the flow's outline, such as `each-member › send-note`: the keys of the fan-outs and loops around it, then its own key. Present when the diagnostic names a switched-on action; see `GET /v1/flows/{id}/outline`. |
 
 Each item of `danglingReads`:
 
@@ -392,6 +397,38 @@ Each item of `danglingReads`:
 | --- | --- | --- | --- |
 | `actionId` | `string` | yes | The action that reads the slot. |
 | `slot` | `string` | yes | The slot it reads, which no action writes and the flow does not take as an input. |
+
+### `GET /v1/flows/{id}/outline`
+
+The flow as an indented outline: one line per action in the order it runs, each action inside the fan-out or loop that repeats it, with its key, its function, the settings that matter, the slot it writes and when it is skipped. Read it before the flow's actions. Each line's `path` is the `outlinePath` that `GET /v1/flows/{id}/health` puts on a diagnostic; the full action rows are `GET /v1/actions?flowId=`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The flow's id, as returned when it was created or listed. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `flowId` | `string` | yes | The flow this outline is about. |
+| `flowKey` | `string` | yes | The flow's key. |
+| `structureVersion` | `string \| null` | yes | The project's configuration version the outline was read at, as a decimal string. Null for a platform flow. |
+| `outlineFormat` | `integer` | yes | The outline's format number. Lines read the same until it changes; a change is announced. |
+| `lines` | `object[]` | yes | The outline, one entry per line, in reading order. |
+| `text` | `string` | yes | The same lines as one text, each indented two spaces per `depth` and joined by newlines. |
+| `plan` | `object` | yes | The flow's size and shape, from its configuration alone. |
+
+Each item of `lines`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `depth` | `integer` | yes | How far the line is indented: 0 for the flow's header, 1 for its actions, one more inside each fan-out or loop. |
+| `kind` | `"header" \| "note" \| "action" \| "fan-out" \| "merge" \| "loop" \| "loop-end" \| "invoke" \| "return" \| "off"` | yes | What the line is: the flow's `header`, a planner `note`, a `action`, a `fan-out` and its `merge`, a `loop` and its `loop-end`, a sub-flow `invoke`, the `return`, or the `off` list of switched-off actions. New kinds come only with a new `outlineFormat`. |
+| `key` | `string` | no | The action's key. Present on every line that is one action. |
+| `path` | `string` | no | Where the action sits: the keys of the fan-outs and loops around it, then its own key, joined by ` › `. Present exactly when `key` is; health diagnostics carry the same text as `outlinePath`. |
+| `text` | `string` | yes | The line itself, without its indentation. |
 
 ### `POST /v1/flows/{id}/preview`
 

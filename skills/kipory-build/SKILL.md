@@ -42,6 +42,7 @@ For a new project, or any change of more than a few rows, author the document in
 POST  /v1/flows                          { project, key, label, inputTypeNames, outputTypeNames, outputBinding? }
 POST  /v1/actions                         one action — or POST /v1/actions/batch for creates, updates and deletes in one transaction
 PATCH /v1/flows/{id}                     { outputBinding, version }  ← without this the flow returns nothing
+GET   /v1/flows/{id}/outline             the flow as an indented outline — read it before the actions
 GET   /v1/flows/{id}/health              the whole-flow verdict: diagnostics, counts, danglingReads
 POST  /v1/flows/{id}/preview             run it — ADMIN, bills the payer, applies writes unless apply: false
 ```
@@ -59,7 +60,7 @@ POST  /v1/flows/{id}/preview             run it — ADMIN, bills the payer, appl
 <!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
 
 - **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report: `kipory-connect`, "When something stops you".
-- **The diagnostics are not where you look.** Action writes return `outstandingIssues` with no action id; a 422 carries `details.diagnostics[]` with one; flow writes carry nothing. For the whole-flow verdict, attributed to an action and an edge, ask `GET /v1/flows/{id}/health` — `expand=health` works on the flow list only. `references/checking.md` §1.
+- **The diagnostics are not where you look.** Action writes return `outstandingIssues` with no action id; a 422 carries `details.diagnostics[]` with one; flow writes carry nothing. For the whole-flow verdict, attributed to an action and an edge, ask `GET /v1/flows/{id}/health` — `expand=health` works on the flow list only. A diagnostic about one step carries `outlinePath` (`each-member › send-note`), its place in `GET /v1/flows/{id}/outline`. `references/checking.md` §1.
 - **An unbound output is a common cause of a dead endpoint.** A required output the run never produced is refused `422 FLOW_OUTPUT_MISSING` (`details.missing` names it), whatever its type, and the run's writes are discarded; nothing is filled in. Preview names it first: `missingRequiredOutput` is non-null exactly when a live call would be refused. Bind the slots — `OUTPUT_SLOT_UNBOUND` is only a warning, and it is this. A flow whose honest answer can be empty produces that value (`0`, `[]`) or declares the output optional.
 - **A guard that skipped a write refuses the call the same way.** For your own message use `$assert` (a `422`), for a missing record `record.read`'s `failIfEmpty` (a `404`) — `references/records-and-endpoints.md` §8.
 - ⛔ **Preview costs money and writes.** `apply` defaults to true; `apply: false` still runs every action and every model call, then discards the change set. Fan-out is capped at 5 branches and the wall clock at 180 seconds. To run it as a key or a schedule will, send `principal: "no-end-user"`. `references/checking.md` §3.

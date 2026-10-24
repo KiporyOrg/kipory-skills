@@ -198,8 +198,9 @@ a payload. ⚠️ An explicit null clears only `proposal`, `resolverFlowId` and 
 a different resolver and the params are replaced with that resolver's defaults. Send them explicitly
 if you meant to keep yours. `version` is required on every vocabulary patch. A patch takes
 **`validateOnly: true`** too: it answers a 200 verdict (narrow on `ok`) saying whether the patch
-would be accepted, and writes nothing. The dry run does not judge the lock; the save answers a
-stale `version` with 409 `VERSION_CONFLICT`.
+would be accepted, and writes nothing. A finding it leaves on a flow action carries that action's
+`outlinePath`. The dry run does not judge the lock; the save answers a stale `version` with 409
+`VERSION_CONFLICT`.
 
 ## How a value actually reaches a record
 

@@ -614,7 +614,8 @@ refused while the relation's link restamp is still running.
 - **Deleting a relation cascades** to its links _and_ its pairings, and tells you how many of each.
   Ask first with `DELETE /v1/relations/{id}?validateOnly=true`: it rehearses the delete,
   rolls it back, and answers a verdict whose `consequences` carry the `links-deleted` count — the
-  same count a document plan reports — and whose `leavesBehind` names any flow the delete breaks.
+  same count a document plan reports — and whose `leavesBehind` names any flow the delete breaks,
+  with the broken action's `outlinePath` in that flow's outline.
   Deleting a pairing cascades nothing — but the **last** pairing cannot be deleted at all, because a
   relation that applies to no tables can connect nothing. Delete the relation instead.
 

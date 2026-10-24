@@ -19,6 +19,29 @@ Three facts change a plan more than the rest of this pack, and each sits deep in
 - **An action can replace its function's cache.** `reuseResultsForMinutes: 0` runs fresh every time,
   which is what polling a source needs. → _How an action runs_
 
+Before you read a flow's actions, read its outline: `GET /v1/flows/{id}/outline` answers the flow as
+an indented tree, one line per action in the order it runs, each action inside the fan-out or loop that
+repeats it:
+
+```text
+flow send-weekly-digest (clubId) → sent
+  load-members: record.list member → members
+  load-picks: record.list pick → picks
+  each-member: each member in members (≤500, 10 at once)
+    write-note: text.generate "A short note for {{member.name}} on this week's picks." → note
+    send-note: email.send toSlot="member" textSlot="note" → mailed  if not (member.optedOut = true)
+  collect-mailed: collect mailed → sentList (concat)
+  count-sent: transform $count(sentList) → sentCount
+  return {sent: sentCount}
+```
+
+Each line is `key: what it does → the slot it writes`, then `if …` when a condition can skip it.
+A test that a action's only input is present is left out: the action waits for that input anyway.
+On a action with two inputs it stays, because the action runs as soon as either one arrives.
+Each line also has a `path` (`each-member › send-note`), and health and a plan put the same text on
+a finding as `outlinePath`. The answer's `plan` gives the flow's size: `actions`, `topLevelActions`,
+`depth` and `longestChain`. The outline is derived on every read; nothing you write edits it.
+
 Building a product, you can skip the three "Asking…" sections on a first read: they describe
 `validateOnly` and `derived` in depth.
 
@@ -119,7 +142,9 @@ The cheapest way to close this gap is a preview, below, which tells you directly
 `GET /v1/flows/{id}/health` answers it for one flow: every diagnostic, classified, and
 how many are `errors` in `counts` — 0 means the flow is sound. An error does not stop the flow from running.
 Each diagnostic carries a `message` (what is wrong, in one line) and a `remedy` (what to do about
-it; `null` is a real answer, for a finding with nothing to act on from here).
+it; `null` is a real answer, for a finding with nothing to act on from here). The answer's `plan`
+says how big the flow is (`actions`, `topLevelActions`, `depth`, `longestChain`), the same numbers the
+outline answers.
 
 For a list, ask the list:
 
@@ -1086,7 +1111,8 @@ code; a flow that does not exist, or a role below the floor, is still a thrown s
 ⭐⭐ **A PATCH's `validateOnly` rehearses the save.** It makes the write and rolls it
 back, then judges what it leaves: `leavesBehind` lists health's findings on this
 flow and on every flow invoking it, and on the schedules, triggers and endpoints
-that start them — each with `introduced` (`false` means it was already there).
+that start them — each with `introduced` (`false` means it was already there) and,
+for a finding about one step, its `outlinePath` in the flow as the change leaves it.
 `consequences` says what the change does to stored data — including `rename`, the
 rows a rename moves in place, when the change is one (tables pack, renaming a field).
 Neither decides `ok`,
@@ -1281,6 +1307,7 @@ Each diagnostic `GET /v1/flows/{id}/health` answers carries its words in two hal
 | `remedy`         | what to do about it — `null` is a real answer, for a finding with nothing a person can act on from here |
 | `segments`       | the sentence in pieces, each naming what it is about                                                    |
 | `remedySegments` | the remedy in pieces; empty exactly when there is no remedy                                             |
+| `outlinePath`    | where the action sits in the flow's outline (`each-member › send-note`); absent when no action is named |
 
 A segment is `{ kind: "text" }`, `{ kind: "code" }` — a slot, a path, an expression — or
 `{ kind: "ref" }`, whose `ref` carries `of`, naming the object (`action`, `flow`, `table`,

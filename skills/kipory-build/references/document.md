@@ -17,6 +17,7 @@
 - **The `platform` event types are not yours to state.** Every project has them; a document neither creates nor prunes them, and a trigger row may select one (`categoryKey: platform`) like any other type — that trigger is how the project hears of its failures.
 - **A type is stated under `types`, and a table names it with `type`.** State both in one document to make a table and its type together; any other row may use the same type.
 - **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most 2 MiB and 2 000 rows, refused with `413` past either.
+- **The YAML export prints each flow's outline as comments above it** (`# outline (format 1), derived at export; plan ignores it`) — the same lines `GET /v1/flows/{id}/outline` answers. A plan ignores comments, so they never change what a plan does; edit the actions, and the next export redraws the outline. A plan finding about one flow action carries its `outlinePath` in that outline.
 
 ## What a plan tells you
 

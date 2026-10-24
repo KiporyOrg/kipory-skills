@@ -4,12 +4,13 @@
 <!-- field-ok: record-owner — an enum VALUE of the preview's principal, not a property -->
 <!-- field-ok: end-user — an enum VALUE of the preview's principal, not a property -->
 
-Five <!-- count: rows-of-next-table --> questions to ask about a flow before a caller does, cheapest first. `packs/flows-and-actions.md` has each in more depth.
+Six <!-- count: rows-of-next-table --> questions to ask about a flow before a caller does, cheapest first. `packs/flows-and-actions.md` has each in more depth.
 
 | Question                                         | Ask                                                                    | Role   | Costs                       |
 | ------------------------------------------------ | ---------------------------------------------------------------------- | ------ | --------------------------- |
 | Would this action save, and what would it break? | `validateOnly: true` on `POST /v1/actions` or `PATCH /v1/actions/{id}` | EDITOR | nothing                     |
 | What does this prompt become?                    | `POST /v1/actions/interpolate`                                         | EDITOR | nothing                     |
+| What does the flow do, step by step?             | `GET /v1/flows/{id}/outline`                                           | VIEWER | nothing                     |
 | Is the whole flow sound?                         | `GET /v1/flows/{id}/health`                                            | VIEWER | nothing                     |
 | What does one model call answer?                 | `POST /v1/actions/preview`                                             | ADMIN  | one model call              |
 | What does a run produce?                         | `POST /v1/flows/{id}/preview`, or `…/preview-runs` to keep the run     | ADMIN  | everything a live run costs |
@@ -19,7 +20,7 @@ Five <!-- count: rows-of-next-table --> questions to ask about a flow before a c
 - **Action writes return `outstandingIssues`** — code, message, severity, and **no action id**. Only a problem attributable to the one action refuses the save; edge and flow problems save cleanly and ride back here.
 - **A refusal (422) carries `details.diagnostics[]`** _with_ an action id (`actionId`).
 - **Flow writes carry nothing.**
-- **For attribution ask `GET /v1/flows/{id}/health`**: its classified diagnostics say which action and which edge. A clean `outstandingIssues` on a write does not mean the flow is healthy — the write validates a subset around the touched actions; health, a document plan, and a flow or type PATCH with `validateOnly` (its `leavesBehind`) run the whole graph.
+- **For attribution ask `GET /v1/flows/{id}/health`**: its classified diagnostics say which action and which edge, and a diagnostic about one action carries `outlinePath`, the action's place in the flow's outline (`GET /v1/flows/{id}/outline`). Health's `plan` gives the flow's size: `actions`, `topLevelActions`, `depth` (how deeply fan-outs and loops nest) and `longestChain`. A clean `outstandingIssues` on a write does not mean the flow is healthy — the write validates a subset around the touched actions; health, a document plan, and a flow or type PATCH with `validateOnly` (its `leavesBehind`) run the whole graph.
 - **One health warning is about your data, not your wiring.** `READ_PAGE_MAY_EXCEED_SLOT` on a `record.list` or `record.query` action says that `limit` of the table's large recent records would pass what one result may hold, so the action would fail at run time. A save of that action and a plan carry it too and neither is refused by it; a save of another action of the flow does not, as with every finding about one action. It is judged against the records as they are at that moment, so it can appear on a flow nobody edited: name the fields the action needs in `fields`, or lower `limit`.
 - **`expand=health` works on the list only.** `GET /v1/flows?project={nodeId}&expand=health` gives each row a `health` summary with its `firstErrorCode` — a digest, not the attributed diagnostics. `GET /v1/flows/{id}` accepts only `expand=timeLimits`; `expand=health` there is a 422. What holds a flow is its delete's dry run, `DELETE /v1/flows/{id}?validateOnly=true`.
 - **`OUTPUT_SLOT_UNBOUND` means the binding is missing, and it is only a warning.** An action may already write the slot; what is absent is the flow's output binding naming it. If the output is required, every live call is refused `422 FLOW_OUTPUT_MISSING`, so an unheeded warning ships an endpoint that refuses everything.

@@ -37,6 +37,10 @@ unchanged project answers `304`.
   and JSON answers the `{ version, document }` envelope. The YAML form carries no `version`: the
   `ETag` is an opaque validator, so the version an apply needs is taken from the PLAN, which
   answers it.
+- In the YAML form each flow is preceded by its outline as comment lines
+  (`# outline (format 1), derived at export; plan ignores it`, then the lines
+  `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
+  unchanged; edit the actions, never the outline.
 - The floor is VIEWER, like the bootstrap read.
 
 ## Learn the format
@@ -233,7 +237,9 @@ The answer holds the `version` the project was read at — the lock an apply pre
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
   (`tables.member.type`), never a path in some row's request body. Gate on `severity` and
   `introduced`: a finding about the state the document leaves carries `introduced` — `false` when
-  it was already in the project, which reports it without gating.
+  it was already in the project, which reports it without gating. A finding about one flow action
+  also carries `outlinePath`, the action's place in that flow's outline as the document leaves it
+  (`each-member › send-note`).
 - `consequences` — what the change does to stored data, with counts measured in the planning
   transaction: records re-stamped, a vector reconcile queued, stream fields moved, links
   re-stamped, `links-deleted` — every stored link a relation delete takes along, including a
