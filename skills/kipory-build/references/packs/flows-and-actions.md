@@ -173,6 +173,22 @@ Two things to know before you reach for it:
   returned WITHOUT the field rather than with a passing one. Treat absence as "not measured" and
   say so; defaulting it to `errors: 0` reports a flow nobody managed to check as healthy.
 
+For who uses what across the whole project, two reads answer from one index of the configuration:
+
+- `GET /v1/projects/{nodeId}/map` — one entry per flow: what starts it, the flows it calls, the
+  tables and fields it reads and writes, the relations it follows, the config keys it reads, what it
+  announces. Under about 100 KB where the whole configuration is megabytes; read it first in a session.
+- `GET /v1/projects/{nodeId}/references?of=field:review.stars` — every use of up to 20 things (a
+  field, a config key, a relation, a flow, a flow input or output, an action output), each with the
+  action's outline path, its `role` and how sure the platform is. A `named` use is a name matched
+  inside an expression and is not proven; check it before you rely on it.
+
+The same index guards removals. Dropping a flow input or output a caller binds, or renaming an
+action's output away from a reader the confirmed cascade does not rewrite, is refused with 422
+`VALIDATION_FAILED` and a `REMOVED_STILL_USED` diagnostic per user; a reader the platform only
+guesses at comes back as a `REMOVED_MAY_BE_USED` entry in the 200's `warnings`. A project document
+that removes something and its users together is judged on the state it leaves.
+
 ### What the action list already tells you about the order
 
 `GET /v1/actions?flowId={id}` answers three questions about each action that only make sense with the

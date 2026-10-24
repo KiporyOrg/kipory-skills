@@ -376,6 +376,14 @@ on.
   (Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)), not this read, and two
   `where` clauses are always AND.
 
+## Who uses a relation
+
+`GET /v1/projects/{nodeId}/references?of=relation:<key>` lists every action that follows the
+relation (a `record.query` clause, a link filter, a linked read — role `traverses`), every
+`record.link-assert` / `record.link-retract` that writes its links (`links`, `unlinks`), and the table
+declarations that carry it (`declares`). Ask it before you delete or rename a relation: a relation
+nothing traverses is one no flow will miss.
+
 ## The clause everything else rests on
 
 ⭐ **Supersession is scoped to the producer, never to an endpoint.** Rewriting a record retracts
@@ -444,6 +452,11 @@ The findings and consequences these answers carry come from one list the whole d
 
 ## What the platform refuses
 
+- **Deleting a relation that a flow still surely uses is refused** with 422 `VALIDATION_FAILED`; each
+  `REMOVED_STILL_USED` diagnostic names the user and its outline path. A use the platform only
+  guesses at (a name inside an expression) lets the write through with a `REMOVED_MAY_BE_USED`
+  entry in `warnings`. `validateOnly` answers the same verdict as data. Ask
+  `GET /v1/projects/{nodeId}/references?of=relation:<key>` first to see every user.
 - **A producer is required and immutable.** The create body's schema requires it, so a create
   without one is a 422 issue at `producer`, and a document's relation row needs one too. There is
   no default, and ⚠️ it can **never** change (`RELATION_PRODUCER_IMMUTABLE`) — not "once

@@ -78,13 +78,17 @@ Keep the project's `baseUrl`: it is the **project's host**, where the endpoints 
 
 If the human also gave you a project id, compare it with `projects` before using it. An id from another project is the commonest wrong input, and without this read it shows up only as a 403.
 
-**3. Read everything the project holds.**
+**3. Read the map first, then only what you will change.**
 
 ```
 GET /v1/projects/{nodeId}                         → 200 and you are connected
-GET /v1/bootstrap?project={nodeId}                → the whole authored configuration, versioned
+GET /v1/projects/{nodeId}/map                     → one entry per flow: what starts it, what it reads, writes, calls, announces
+GET /v1/flows/{id}/outline                        → one flow as an indented outline, when you need its shape
+GET /v1/bootstrap?project={nodeId}&sections=flows → the authored configuration, one section at a time
 GET /v1/bootstrap?project={nodeId}&sections=tenancy   → your grant: the nodes you reach, with your role on each
 ```
+
+Read the map at the start of a session **instead of** the whole bootstrap or document. It is small (under about 100 KB for a project with 150 flows, against megabytes for the whole configuration) and names a table's fields only where the platform is sure of them. Then read a flow's outline when you need its shape, and the bootstrap's `sections=` only for what you are about to edit. Before you rename or remove anything, ask who uses it: `GET /v1/projects/{nodeId}/references?of=field:review.stars` (the kipory-evolve skill says how to read the answer).
 
 The bootstrap read returns nine sections <!-- count: bootstrap-sections --> — project, schema, relations, events, flows, surfaces, vectors, evals, tenancy — each the resource's own envelope, with a `structureVersion` to cache against and a `sections` map that says which moved. The `tenancy` section is the same grant as step 2, drawn as a tree: the shallowest node in `nodes[]` is the grant node and `role` on every node is the grant's role. Do not probe ids to discover reach.
 

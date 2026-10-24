@@ -2,7 +2,7 @@
 
 # Projects
 
-A project is the container everything else scopes by. Creating one needs OWNER at the parent organisation node, and the `id` the create answers is the project's one id: `{nodeId}` in these paths, `?project=` on every list, `project` in every create body. The project's generated element descriptions are here too.
+A project is the container everything else scopes by. Creating one needs OWNER at the parent organisation node, and the `id` the create answers is the project's one id: `{nodeId}` in these paths, `?project=` on every list, `project` in every create body. The project's generated element descriptions are here too, and the reads of who uses what: the map, the references and the connections.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -24,7 +24,9 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/projects/{nodeId}/connections`](#get-v1-projects-nodeid-connections) |  |
 | `GET` | [`/v1/projects/{nodeId}/history`](#get-v1-projects-nodeid-history) |  |
 | `GET` | [`/v1/projects/{nodeId}/history/{structureVersion}`](#get-v1-projects-nodeid-history-structureversion) |  |
+| `GET` | [`/v1/projects/{nodeId}/map`](#get-v1-projects-nodeid-map) |  |
 | `POST` | [`/v1/projects/{nodeId}/purge`](#post-v1-projects-nodeid-purge) |  |
+| `GET` | [`/v1/projects/{nodeId}/references`](#get-v1-projects-nodeid-references) |  |
 | `POST` | [`/v1/projects/{nodeId}/restore`](#post-v1-projects-nodeid-restore) |  |
 | `GET` | [`/v1/projects/{nodeId}/settings`](#get-v1-projects-nodeid-settings) |  |
 | `PATCH` | [`/v1/projects/{nodeId}/settings`](#patch-v1-projects-nodeid-settings) |  |
@@ -543,6 +545,44 @@ Each item of `changes`:
 | `fromVersion` | `integer \| null` | yes | The version this change replaced. NULL unless `priorState` says otherwise. |
 | `toVersion` | `integer \| null` | yes | The version this change produced. NULL unless `priorState` says otherwise. |
 
+### `GET /v1/projects/{nodeId}/map`
+
+The project in one small read: one entry per flow — what starts it, which flows it calls, which tables and fields it reads and writes, which relations it follows, which config keys it reads, what it announces and which endpoints answer with it. Read this first in a session instead of the whole document. Only uses the platform is sure of name fields; for every use of one thing, with guesses marked, read `GET /v1/projects/{nodeId}/references`. Revalidate with `If-None-Match`: an unchanged project answers 304.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | Node id of the project. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `string` | yes | The structure version the map was computed at. |
+| `flows` | `object[]` | yes | Every flow of the project, by key. |
+
+Each item of `flows`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The flow's key. |
+| `label` | `string` | yes | The flow's label. |
+| `ref` | `string` | yes | Its element ref (`flow:<id>`). |
+| `outline` | `string` | yes | Where to read the flow as an outline. |
+| `startedByNothing` | `boolean` | yes | True when nothing in the project starts it. |
+| `startedBy` | `object[]` | yes | What starts the flow. |
+| `switchedOff` | `string[]` | yes | Its actions that are switched off, by outline path. |
+| `calls` | `object` | yes | What it calls. |
+| `reads` | `object[]` | yes | The tables it reads. |
+| `writes` | `object[]` | yes | The tables it writes, creates records in or deletes from. |
+| `traverses` | `string[]` | yes | The relations it follows or filters by. |
+| `config` | `string[]` | yes | The config keys it reads (`club.digestHour`). |
+| `emits` | `string[]` | yes | The event types it announces (`<category>.<key>`). |
+| `listens` | `string[]` | yes | The event types it waits for or reads (`<category>.<key>`). |
+| `serves` | `string[]` | yes | The endpoints that answer with it. |
+| `unresolved` | `string[]` | yes | Actions whose uses cannot be stated — their function is unknown, or they act on ids of no stated table. |
+
 ### `POST /v1/projects/{nodeId}/purge`
 
 Destroy a retired project now instead of waiting for its `purgeAfter`. Send the slug and `confirmForce: true`. Retire first with `DELETE /v1/projects/{nodeId}`; undo a retire with `POST …/restore`.
@@ -567,6 +607,42 @@ Destroy a retired project now instead of waiting for its `purgeAfter`. Send the 
 | `enqueued` | `boolean` | yes | Whether a purge is queued for this project as a result of this call. TRUE also covers a purge that was already in flight — the request collapsed into it, and the destruction is happening either way. FALSE means nothing was queued: an earlier attempt for this same retirement finished or failed today. The project stays due and the next daily sweep re-enqueues it, but nothing is running now. |
 | `nodeId` | `string` | yes | The project's id (its node id). |
 | `slug` | `string` | yes | The project's slug. |
+
+### `GET /v1/projects/{nodeId}/references`
+
+Every use of the things you name — a table, a field, a type, a config key, a relation, a vocabulary, an event type, a flow, a flow's input or output, an action's output: which action uses it (with its place in the flow's outline) or which endpoint, schedule, trigger or declaration does, in which role, at which configuration path, and how sure the platform is. Ask before renaming or removing anything. Up to 20 things per request; filter by `role` or `certainty`. Revalidate with `If-None-Match`: an unchanged project answers 304. For one entry per flow read `GET /v1/projects/{nodeId}/map`; for the element web read `GET /v1/projects/{nodeId}/connections`; for one flow's shape read `GET /v1/flows/{id}/outline`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | Node id of the project. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `of` | `string \| string[]` | yes | The things to list the uses of, one to 20 (repeat `of`). Name each by key — `table:book`, `field:review.stars`, `type:Review`, `type-field:Review.stars`, `config:club`, `config:club.digestHour`, `relation:review-of-book`, `vocabulary:genre`, `event-type:review.added`, `flow:book-card`, `flow-input:book-card.id`, `flow-output:book-card.card`, `action-output:book-card.reviews`, `endpoint:<key>`, `schedule:<key>`, `trigger:<key>` — or by the element ref the connections answer carries (`table:<id>`). A value is read as a key first, then as an id. |
+| `role` | `"starts" \| "invokes" \| "reads" \| "filters" \| "sorts" \| "projects" \| "writes" \| "creates" \| "deletes" \| "traverses" \| "links" \| "unlinks" \| "tags" \| "emits" \| "listens" \| "declares" \| "binds" \| "serves" \| "starts" \| "invokes" \| "reads" \| "filters" \| "sorts" \| "projects" \| "writes" \| "creates" \| "deletes" \| "traverses" \| "links" \| "unlinks" \| "tags" \| "emits" \| "listens" \| "declares" \| "binds" \| "serves"[]` | no | Keep only uses in these roles (repeat `role`). The count then counts what is kept. |
+| `certainty` | `"declared" \| "typed" \| "named" \| "whole" \| "declared" \| "typed" \| "named" \| "whole"[]` | no | Keep only uses this sure (repeat `certainty`): `declared` and `typed` are certain; `named` and `whole` are the platform's best reading. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `string` | yes | The structure version the index was computed at. |
+| `subjects` | `object[]` | yes | One answer per `of`, in the order asked. |
+
+Each item of `subjects`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `of` | `string` | yes | The ref as asked. |
+| `unknown` | `false` | yes | False: the subject exists. |
+| `subject` | `object` | yes | The thing whose uses are listed. |
+| `count` | `integer` | yes | How many uses there are, before any cut. |
+| `truncated` | `boolean` | yes | True when the list was cut at the platform's limit; narrow with `role` or `certainty` to see the rest. |
+| `uses` | `object[]` | yes | Every use, ordered by flow, then where the action sits in it, then path; non-action users after the flows. |
 
 ### `POST /v1/projects/{nodeId}/restore`
 

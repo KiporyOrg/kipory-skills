@@ -288,6 +288,11 @@ while a project is still being assembled.
 
 ## What the platform refuses
 
+- **Deleting a vocabulary that a flow still surely uses is refused** with 422 `VALIDATION_FAILED`; each
+  `REMOVED_STILL_USED` diagnostic names the user and its outline path. A use the platform only
+  guesses at (a name inside an expression) lets the write through with a `REMOVED_MAY_BE_USED`
+  entry in `warnings`. `validateOnly` answers the same verdict as data. Ask
+  `GET /v1/projects/{nodeId}/references?of=vocabulary:<key>` first to see every user.
 - **A `semantic` vocabulary with no resolver bound blocks the flow save** with
   `VOCABULARIES_RESOLVE_SEMANTIC_VOCABULARY_UNBOUND_RESOLVER`. This is deliberately an
   authoring-time refusal rather than a runtime one. Hence the order above: resolver flow first, bind

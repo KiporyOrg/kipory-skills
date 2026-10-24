@@ -159,6 +159,15 @@ one of those findings is an error the write introduces, the same verdict a docum
 change gives, so read `ok` and then `leavesBehind` before you send the write. A finding about one
 action of a flow carries its `outlinePath` (`each-item › save-row`), the place in that flow's outline.
 
+## Removing a field something uses
+
+Dropping a field from a type (`PATCH /v1/types/{id}`) or from a table's shape
+(`PATCH /v1/tables/{id}`) asks the reference index first. A flow that surely reads, writes, filters
+or sorts by the field refuses the write with 422 `VALIDATION_FAILED`, one `REMOVED_STILL_USED`
+diagnostic per user with its outline path; a field only named inside an expression lets the write
+through with a `REMOVED_MAY_BE_USED` entry in `warnings`. `validateOnly` answers the same verdict.
+`GET /v1/projects/{nodeId}/references?of=field:<table>.<field>` lists every user before you start.
+
 ## Writing records from outside a flow
 
 Records are written by flows; an operator or an importer writes them over HTTP at one prefix,

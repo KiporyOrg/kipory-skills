@@ -95,6 +95,11 @@ the user you mean as data.
 
 ## What the platform refuses
 
+- **Deleting an event type that a flow still surely uses is refused** with 422 `VALIDATION_FAILED`; each
+  `REMOVED_STILL_USED` diagnostic names the user and its outline path. A use the platform only
+  guesses at (a name inside an expression) lets the write through with a `REMOVED_MAY_BE_USED`
+  entry in `warnings`. `validateOnly` answers the same verdict as data. Ask
+  `GET /v1/projects/{nodeId}/references?of=event-type:<category>.<key>` first to see every user.
 - **Reserved namespaces**, as a security fence: the fence covers every channel prefix the
   platform builds by hand — around ten of them, spanning sessions and revocation, projects and
   records, bootstrap, activity and the timeline stream. Do not work from a list; the 422 names

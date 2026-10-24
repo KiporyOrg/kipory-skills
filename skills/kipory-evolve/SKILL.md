@@ -42,14 +42,24 @@ reach for when the change touches more than a handful of rows.
 Every rehearsal, route by route, with what each answers, is the first table of
 `references/change-order.md`. The short form:
 
-| To learn                                  | Ask                                                                                                                                                       |
-| ----------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| what the project holds                    | `GET /v1/bootstrap?project={nodeId}`, then `GET /v1/tables/{id}` for each table's `hasRecords` / `recordCount`                                            |
-| what points at an element                 | `GET /v1/projects/{nodeId}/connections` — computed from the configuration, so current after every write                                                   |
-| whether a delete would be refused         | the same `DELETE` with `?validateOnly=true` — every design-row delete has one, and its reference lists it; a record, file, link or secret delete has none |
-| what a patch would derive, break or queue | the same `PATCH` with `validateOnly: true` — flows, actions, types, tables, relations, and every other design row whose reference lists the flag          |
-| what a checkpoint restore would undo      | `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`                                                                                        |
-| what a whole change would do              | `POST /v1/projects/{nodeId}/document/plan` — every refusal, every cascade, and what it does to stored records, without writing                            |
+| To learn                                       | Ask                                                                                                                                                       |
+| ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| what the project holds                         | `GET /v1/bootstrap?project={nodeId}`, then `GET /v1/tables/{id}` for each table's `hasRecords` / `recordCount`                                            |
+| what points at an element                      | `GET /v1/projects/{nodeId}/connections` — computed from the configuration, so current after every write                                                   |
+| who uses a field, config key, relation or flow | `GET /v1/projects/{nodeId}/references?of=field:review.stars` — every use, at its action's outline path, with how sure the platform is                     |
+| what each flow does, in one small read         | `GET /v1/projects/{nodeId}/map`                                                                                                                           |
+| whether a delete would be refused              | the same `DELETE` with `?validateOnly=true` — every design-row delete has one, and its reference lists it; a record, file, link or secret delete has none |
+| what a patch would derive, break or queue      | the same `PATCH` with `validateOnly: true` — flows, actions, types, tables, relations, and every other design row whose reference lists the flag          |
+| what a checkpoint restore would undo           | `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`                                                                                        |
+| what a whole change would do                   | `POST /v1/projects/{nodeId}/document/plan` — every refusal, every cascade, and what it does to stored records, without writing                            |
+
+**Before a rename or a removal, ask who uses it.** `GET /v1/projects/{nodeId}/references?of=<subject>`
+takes up to 20 subjects by key — `field:review.stars`, `config:club.digestHour`, `relation:review-of-book`,
+`flow-output:book-card.card`, `action-output:book-card.reviews` — and answers every use: the action (with its
+outline path) or the endpoint, schedule, trigger or declaration, its `role` and the `path` inside it. Read
+`certainty` before you act: `declared` and `typed` are certain; `named` is a name matched inside an expression
+or on a value of unknown type, and `whole` means the whole record is read or written, so check those by hand.
+Narrow a long answer with `&certainty=declared&certainty=typed` or `&role=writes`.
 
 After the edit, `GET /v1/flows/{id}/health` says whether the flow is whole and
 `GET /v1/eval-suites/{id}/readiness` whether a suite can still judge it.

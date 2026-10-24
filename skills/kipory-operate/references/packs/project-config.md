@@ -87,6 +87,11 @@ Three corners worth holding:
 
 ## What the platform refuses
 
+- **Deleting a namespace, or dropping a key from its type, that a flow still surely uses is refused** with 422 `VALIDATION_FAILED`; each
+  `REMOVED_STILL_USED` diagnostic names the user and its outline path. A use the platform only
+  guesses at (a name inside an expression) lets the write through with a `REMOVED_MAY_BE_USED`
+  entry in `warnings`. `validateOnly` answers the same verdict as data. Ask
+  `GET /v1/projects/{nodeId}/references?of=config:<namespace>` first to see every user.
 - **Validation runs against the effective object, not your patch.** A write whose missing required
   fields are covered by schema defaults is accepted. What fails is a required field with neither a
   default nor an override — and the refusal names it. ⚠️ "Partial" here means partial against the

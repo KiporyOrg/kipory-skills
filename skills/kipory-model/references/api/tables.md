@@ -189,6 +189,7 @@ Each item of `renames`:
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
+| `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
 | `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
@@ -243,6 +244,17 @@ Each item of `processingGaps`:
 | `message` | `string` | yes | The platform's own sentence, with the way forward. |
 | `flow` | `object` | yes | The flow that creates the records. |
 | `actionKey` | `string` | yes | The key of the flow's action that creates them. |
+
+Each item of `warnings`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `renames`:
 
@@ -441,6 +453,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
+| `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
 | `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
@@ -500,6 +513,17 @@ Each item of `processingGaps`:
 | `message` | `string` | yes | The platform's own sentence, with the way forward. |
 | `flow` | `object` | yes | The flow that creates the records. |
 | `actionKey` | `string` | yes | The key of the flow's action that creates them. |
+
+Each item of `warnings`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
+| `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `renames`:
 

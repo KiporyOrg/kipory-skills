@@ -2,6 +2,35 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261024.215113 — 2026-10-24
+
+Synced from the Kipory monorepo at `439d9b652`.
+
+Routes added: `GET /v1/projects/{nodeId}/map`, `GET /v1/projects/{nodeId}/references`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/actions.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+- changed: `skills/kipory-operate/references/api/events.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/packs/events.md`
+- changed: `skills/kipory-operate/references/packs/project-config.md`
+
 ## 1.20261024.192519 — 2026-10-24
 
 Synced from the Kipory monorepo at `41ee60e0c`.
