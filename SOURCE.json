@@ -1,7 +1,11 @@
 {
-  "source": "cc7761dd43a021ae2603c66ac5ed132fbab306df",
+  "source": "4f4db78719ea5e24f2f7de298948bc08efc487ef",
   "since": "2026-08-15",
   "history": [
+    {"sha":"4f4db78719ea","skills":"The published skills say how to keep the Claude Code plugin current: auto-update is off for kipory-skills until the user turns it on (#3605)"},
+    {"sha":"807ecea0176c"},
+    {"sha":"d2a0c162e5e6"},
+    {"sha":"9abddb715fdb"},
     {"sha":"cc7761dd43a0","skills":"A read's records are typed by their table: saves check every field a step reads, transforms carry examples, one action can be evaluated (407) (#3599)"},
     {"sha":"6de53c72f142","skills":"A table filters on its flow's output with no copy into the record, and long text in a filter no longer fails its write (401) (#3598)"},
     {"sha":"d148c9f517f4"},
@@ -997,10 +1001,6 @@
     {"sha":"4f1ac0e5e92e"},
     {"sha":"3ba50ce95d3d"},
     {"sha":"039c3b5bfec6"},
-    {"sha":"69ad971c12ab"},
-    {"sha":"d90e5f119527"},
-    {"sha":"519530a6a974"},
-    {"sha":"26f3258dfc08"},
-    {"sha":"91c2e1a66960"}
+    {"sha":"69ad971c12ab"}
   ]
 }

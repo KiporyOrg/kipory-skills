@@ -38,6 +38,28 @@ claude plugin marketplace add KiporyOrg/kipory-skills
 claude plugin install kipory@kipory-skills --scope project
 ```
 
+**Keep them current.** Claude Code updates an installed plugin on its own only when the plugin's marketplace has auto-update on, and it turns that on by default only for Anthropic's own marketplaces. So `kipory-skills` starts with it off, and nothing a marketplace publishes can turn it on. Turn it on once, in your user settings (`~/.claude/settings.json`):
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "kipory-skills": {
+      "source": { "source": "github", "repo": "KiporyOrg/kipory-skills" },
+      "autoUpdate": true
+    }
+  }
+}
+```
+
+or with the auto-update toggle on the marketplace's page under Marketplaces in `/plugin`. Claude Code then pulls the marketplace when a session starts and updates the plugin. To update by hand:
+
+```
+claude plugin marketplace update kipory-skills
+claude plugin update kipory@kipory-skills --scope project
+```
+
+A `--scope project` install belongs to one folder, so run the second command in each folder that installed it. Either way the new skills load in the next session: one already running keeps the skills it started with.
+
 **Any agent that reads the Agent Skills format** (Codex, Cursor, Gemini CLI, Copilot and others):
 
 ```

@@ -62,6 +62,8 @@ Each `changed` or `removed` line names the bundled page that documents the item,
 
 Keep the `sha` you read. A deployment is rolled while you work — several times a day on a busy one — and a roll can change the function catalog, the model catalog and the task bindings your actions inherit. When something that worked starts failing with no edit of yours, read `/health` again first: a different `sha` means re-run `scripts/sync.mjs`, update these skills from their source if it reports a layer that differs (not when its `skills` line says they are ahead — then updating changes nothing, and the deployment wins until it rolls), and re-read the page for whatever failed before changing your own work.
 
+Installed as a Claude Code plugin, these skills update only when someone updates them: auto-update is off for this marketplace until the user turns it on. Updating is `claude plugin marketplace update kipory-skills`, then `claude plugin update kipory@kipory-skills` (with `--scope project` for an install made in one project's folder), and the updated skills load only in a new session. Updating changes the user's machine, so tell the user what `scripts/sync.mjs` reported and give them the two commands rather than running them yourself; then mention that auto-update can be turned on for `kipory-skills`, in their user settings or under Marketplaces in `/plugin`.
+
 **2. Prove the key is alive, and ask it what it holds.**
 
 ```
