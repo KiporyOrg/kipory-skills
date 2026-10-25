@@ -24,7 +24,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `dataContainsSlot` | string | no | — | The slot holding the object to look for in that list. ⚠️ If the slot is missing the action is skipped; a non-object fails it. |
 | `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEqualsSlot`. ⚠️ This reads every row of the table before narrowing. |
 | `dataEqualsSlot` | string | no | — | The slot holding the value to compare: text, number or true/false. ⚠️ If the slot is missing the action is skipped; a wrong kind fails it. |
-| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A row missing the key matches neither choice, and every row is read. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A missing key counts as no value, and every row is read. |
 | `fieldFilterSlots` | object | no | — | Each queryable field with the slot carrying its value or list. ⚠️ If a slot is missing the action is skipped; an empty list matches nothing. |
 | `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A field the table never declared queryable is refused when the action runs. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the action; a run warns from half the limit and a save when one is likely. |
@@ -39,7 +39,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order by when a row was created (default) or last changed. |
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
 | `statuses` | string[], at least 1 item | no | — | Keep only rows with these statuses; empty allows every status. |
-| `tableKey` | string | yes | — | The table to list. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
+| `tableKey` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The signed-in user's id slot; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the action. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
 
@@ -48,7 +48,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `path` | string | yes | — | A dotted path inside the record's `data`. |
-| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps null values at the path; `isNotNull` keeps set ones. |
+| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows with no value there; `isNotNull` keeps the rest. |
 
 ### `fieldFilters` — each item
 
@@ -129,8 +129,8 @@ Output:
 ```
 {
   "records": [
-    { "id": "ckwx0a", "title": "Costco receipt", "summary": "Costco, $112.00", "text": null, "comment": null, "createdAt": "2026-06-15T10:01:55.000Z", "updatedAt": "2026-06-15T10:02:10.000Z", "status": "READY" },
-    { "id": "ckwx0b", "title": "Lisbon trip notes", "summary": "4 days, May", "text": null, "comment": null, "createdAt": "2026-06-14T08:22:31.000Z", "updatedAt": "2026-06-14T08:25:00.000Z", "status": "READY" }
+    { "id": "ckwx0a", "title": "Costco receipt", "summary": "Costco, $112.00", "createdAt": "2026-06-15T10:01:55.000Z", "updatedAt": "2026-06-15T10:02:10.000Z", "status": "READY" },
+    { "id": "ckwx0b", "title": "Lisbon trip notes", "summary": "4 days, May", "createdAt": "2026-06-14T08:22:31.000Z", "updatedAt": "2026-06-14T08:25:00.000Z", "status": "READY" }
     /* …48 more, newest-first… */
   ],
   "nextCursor": "eyJjIjoiMjAyNi0wNi0xMFQwOToyMjozMS4wMDBaIiwiaSI6ImNrd3gwYyJ9"
@@ -165,7 +165,7 @@ Output:
 ```
 {
   "records": [
-    { "id": "ckwx9y", "title": "First note", "summary": "Welcome", "text": null, "comment": null, "createdAt": "2026-04-02T11:00:00.000Z", "updatedAt": "2026-04-02T11:05:00.000Z", "status": "READY" }
+    { "id": "ckwx9y", "title": "First note", "summary": "Welcome", "createdAt": "2026-04-02T11:00:00.000Z", "updatedAt": "2026-04-02T11:05:00.000Z", "status": "READY" }
   ]
 }
 ```

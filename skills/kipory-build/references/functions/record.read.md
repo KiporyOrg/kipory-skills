@@ -17,14 +17,14 @@ Returns records in the order of the ids given; on user-owned types, only the use
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A row missing the key matches neither choice, so the table has to always write it. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A missing key counts as no value; only the submitted value is checked. |
 | `failIfEmpty` | boolean | no | `false` | Fail when nothing is found instead of returning an empty list. ⚠️ Without it, a missing record fails later actions in a confusing way. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ Unknown field names are ignored. |
 | `idsSlot` | string | yes | — | The slot holding a list of ids, or a path like `hits[].recordId`. ⚠️ A lone id reads nothing; wrap it as `[recordId]` in a `value.transform`. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
-| `tableKey` | string | yes | — | The table to read. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
+| `tableKey` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id; others' ids are dropped. ⚠️ On a user-owned type, an empty value fails the action; dropped ids are silent. |
 
 ### `dataNullChecks` — each item
@@ -32,7 +32,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `path` | string | yes | — | A dotted path inside the record's `data`. |
-| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps null values at the path; `isNotNull` keeps set ones. |
+| `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows with no value there; `isNotNull` keeps the rest. |
 
 ### `include`
 
@@ -85,8 +85,8 @@ Output:
 ```
 [
   { "id": "ckwx4j2nq0001oj5qhdz9pq6y", "title": "Latest groceries receipt", "summary": "Whole Foods, $48.12", "thumbnail": "https://cdn/thumb/a.jpg", "text": "WHOLE FOODS MARKET\n2026-05-29 14:22\nTotal: $48.12…", "comment": "for week 05-29", "createdAt": "2026-05-29T18:22:31.000Z", "updatedAt": "2026-05-29T18:25:02.000Z", "status": "READY" },
-  { "id": "ckwx4j2nq0002oj5q…",        "title": "Receipt — Trader Joe's",  "summary": "Trader Joe's, $33.10", "thumbnail": null,                       "text": "TRADER JOE'S\n2026-05-25 …",                                "comment": null,            "createdAt": "2026-05-25T13:11:02.000Z", "updatedAt": "2026-05-25T13:12:40.000Z", "status": "READY" },
-  { "id": "ckwx4j2nq0003oj5q…",        "title": "Costco order",            "summary": "Costco, $112.00",      "thumbnail": null,                       "text": "COSTCO #134 …",                                            "comment": null,            "createdAt": "2026-05-20T10:01:55.000Z", "updatedAt": "2026-05-20T10:03:10.000Z", "status": "READY" }
+  { "id": "ckwx4j2nq0002oj5q…",        "title": "Receipt — Trader Joe's",  "summary": "Trader Joe's, $33.10",                       "text": "TRADER JOE'S\n2026-05-25 …",            "createdAt": "2026-05-25T13:11:02.000Z", "updatedAt": "2026-05-25T13:12:40.000Z", "status": "READY" },
+  { "id": "ckwx4j2nq0003oj5q…",        "title": "Costco order",            "summary": "Costco, $112.00",                       "text": "COSTCO #134 …",            "createdAt": "2026-05-20T10:01:55.000Z", "updatedAt": "2026-05-20T10:03:10.000Z", "status": "READY" }
 ]
 ```
 
@@ -116,8 +116,8 @@ Output:
 
 ```
 [
-  { "id": "ckwx_user_a_1", "title": "...", "summary": "...", "thumbnail": null, "text": "...", "comment": null, "createdAt": "2026-05-29T18:22:31.000Z", "updatedAt": "2026-05-29T18:25:02.000Z", "status": "READY" },
-  { "id": "ckwx_user_a_3", "title": "...", "summary": "...", "thumbnail": null, "text": "...", "comment": null, "createdAt": "2026-05-25T13:11:02.000Z", "updatedAt": "2026-05-25T13:12:40.000Z", "status": "READY" }
+  { "id": "ckwx_user_a_1", "title": "...", "summary": "...", "text": "...", "createdAt": "2026-05-29T18:22:31.000Z", "updatedAt": "2026-05-29T18:25:02.000Z", "status": "READY" },
+  { "id": "ckwx_user_a_3", "title": "...", "summary": "...", "text": "...", "createdAt": "2026-05-25T13:11:02.000Z", "updatedAt": "2026-05-25T13:12:40.000Z", "status": "READY" }
 ]
 ```
 

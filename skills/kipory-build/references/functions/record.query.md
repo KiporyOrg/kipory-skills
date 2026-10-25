@@ -25,7 +25,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | union | no | — | Order by `created`, `meaning`, or a date field of the type. ⚠️ A field order leaves out records with no value in that field. |
 | `pages` | object | no | — | Read every page of an exact question in one action. ⚠️ Only an exact question reads every page; records left after the last page fail the action unless `onMore` is "stop". |
-| `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field the record does not hold is `null`, so test `!= null`. |
+| `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
 | `userIdSlot` | string | no | — | The slot holding whose records to query; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the action on user-owned tables. |
 
@@ -222,7 +222,7 @@ Output:
 ```
 {
   "records": [
-    { "id": "ckwx0a", "title": "Noa Levi", "summary": "Hikes the Israel Trail every spring", "text": null, "comment": null, "createdAt": "2026-06-15T10:01:55.000Z", "updatedAt": "2026-06-15T10:02:10.000Z", "status": "READY" }
+    { "id": "ckwx0a", "title": "Noa Levi", "summary": "Hikes the Israel Trail every spring", "createdAt": "2026-06-15T10:01:55.000Z", "updatedAt": "2026-06-15T10:02:10.000Z", "status": "READY" }
   ],
   "bounded": false,
   "explanation": {
@@ -458,7 +458,7 @@ Output:
 ```
 {
   "records": [
-    { "id": "ckg_02", "title": "Maya Ben-Ami", "summary": "Leads family routes in the north", "text": null, "comment": null, "createdAt": "2026-03-02T09:00:00.000Z", "updatedAt": "2026-03-02T09:00:04.000Z", "status": "READY" }
+    { "id": "ckg_02", "title": "Maya Ben-Ami", "summary": "Leads family routes in the north", "createdAt": "2026-03-02T09:00:00.000Z", "updatedAt": "2026-03-02T09:00:04.000Z", "status": "READY" }
     /* …the other guides linked to one of the 50 closest outings… */
   ],
   "bounded": { "bound": 50, "reason": "peer-top-k" },
@@ -507,7 +507,7 @@ Output:
 ```
 {
   "records": [
-    { "id": "ckwx0b", "title": "Dana Cohen", "summary": "Runs a book club", "text": null, "comment": null, "createdAt": "2026-06-09T08:22:31.000Z", "updatedAt": "2026-06-09T08:25:00.000Z", "status": "READY" }
+    { "id": "ckwx0b", "title": "Dana Cohen", "summary": "Runs a book club", "createdAt": "2026-06-09T08:22:31.000Z", "updatedAt": "2026-06-09T08:25:00.000Z", "status": "READY" }
     /* …49 more, newest-first… */
   ],
   "nextCursor": "eyJjcmVhdGVkQXQiOiIyMDI2LTA1LTAxVDEyOjAwOjAwLjAwMFoiLCJpZCI6ImNrd3g5eSJ9",

@@ -1,7 +1,8 @@
 {
-  "source": "084883bcf730d97a5ad3d347cdc6a01fa5e0cad9",
+  "source": "58386fa94651ac53db9efce5eb4dc7dca7ed2162",
   "since": "2026-08-15",
   "history": [
+    {"sha":"58386fa94651","skills":"A record field with no value is left out, never null, in flow rows, API reads and JSONata, with a warning on reads written for null (406) (#3602)"},
     {"sha":"084883bcf730","skills":"The connections and references reads spell an event type `event-type:` as the descriptions read does, and the trigger form says who sends the event (#3608)"},
     {"sha":"2f4c28aec2b3","skills":"The Events page splits the project's own events from the platform's, and says who sends each one (#3607)"},
     {"sha":"0d9c7945a06e","skills":"A project document export never answers 500 on a stored value: it warns, names the value, and a migration moves the retired task keys (#3606)"},
@@ -1000,7 +1001,6 @@
     {"sha":"2ac04db76fdb"},
     {"sha":"7281d25825e9"},
     {"sha":"92dbc94f1acf"},
-    {"sha":"e85c825c20f6"},
-    {"sha":"72f3778944d6"}
+    {"sha":"e85c825c20f6"}
   ]
 }

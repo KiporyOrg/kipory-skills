@@ -736,8 +736,8 @@ long ones — an action's answer has one size limit, and a page of whole records
 `tableKeys`, a name is one any of the tables has, and each row carries the ones its own table has.
 The records list takes `fields=` too, with a different job: a row there already carries its
 columns, and each name adds that field's value to the row's `values` — any top-level field the
-table declares, submitted or produced by its flow, column or not, `null` where the record holds
-none. It needs `tableKey`, takes up to 32 names, works beside `id=`, and refuses a name the table
+table declares, submitted or produced by its flow, column or not; a field the record holds no value
+for is left out. It needs `tableKey`, takes up to 32 names, works beside `id=`, and refuses a name the table
 does not declare (a dotted path included), or a stream field, with the same 422. To read a few fields of many records,
 this is one request a page instead of one `GET /v1/records/{id}` a record.
 
@@ -1356,7 +1356,7 @@ in place — neither embeds anything.
 It runs the save's own decision phase rather than a description of it, so an answer here cannot
 disagree with the write. **EDITOR**, like the save it asks about.
 
-**A field you add is `null` on every record already stored.** A plan that adds fields to a table holding records lists a `fields-unset` consequence: the new fields, and how many stored records hold no value for one of them (counted to 5,000; past that, `lowerBound` and "At least"). A flow reading one of them gets `null` for those records until each is written. Test it with `!= null`, or backfill before the flows that read it go live.
+**A field you add has no value on every record already stored.** A plan that adds fields to a table holding records lists a `fields-unset` consequence: the new fields, and how many stored records hold no value for one of them (counted to 5,000; past that, `lowerBound` and "At least"). A flow or an API read leaves them out of those records until each is written. Test with `$exists(x)`, give a default with `x ?? d`, or backfill before the flows that read it go live.
 
 **A reindex line says when it costs nothing.** When the plan finds no `reembed`, its `reindex` line says nothing is re-embedded and no embedding credits are spent.
 

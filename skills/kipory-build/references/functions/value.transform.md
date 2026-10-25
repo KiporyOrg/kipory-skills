@@ -159,3 +159,32 @@ Output:
   "ingested": true
 }
 ```
+
+#### Fill in what is missing
+
+Reads `mixed` → emits `object` · 1 in → 1 out
+
+Action settings (`functionConfig`):
+
+```json
+{
+  "expression": "{\"brief\": $default(post.brief, post.text), \"tags\": $default(post.tags, [\"untagged\"])}"
+}
+```
+
+Input:
+
+```
+{
+  "post": { "id": "rec_1", "text": "Building with React 19", "tags": [] }
+}
+```
+
+Output:
+
+```
+{
+  "brief": "Building with React 19",
+  "tags":  ["untagged"]
+}
+```
