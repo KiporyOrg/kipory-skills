@@ -1,7 +1,8 @@
 {
-  "source": "2f4c28aec2b37ee315651cefe3f61216d9f4c925",
+  "source": "084883bcf730d97a5ad3d347cdc6a01fa5e0cad9",
   "since": "2026-08-15",
   "history": [
+    {"sha":"084883bcf730","skills":"The connections and references reads spell an event type `event-type:` as the descriptions read does, and the trigger form says who sends the event (#3608)"},
     {"sha":"2f4c28aec2b3","skills":"The Events page splits the project's own events from the platform's, and says who sends each one (#3607)"},
     {"sha":"0d9c7945a06e","skills":"A project document export never answers 500 on a stored value: it warns, names the value, and a migration moves the retired task keys (#3606)"},
     {"sha":"4ef7881447c1"},
@@ -1000,7 +1001,6 @@
     {"sha":"7281d25825e9"},
     {"sha":"92dbc94f1acf"},
     {"sha":"e85c825c20f6"},
-    {"sha":"72f3778944d6"},
-    {"sha":"4f1ac0e5e92e"}
+    {"sha":"72f3778944d6"}
   ]
 }

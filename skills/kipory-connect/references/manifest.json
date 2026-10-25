@@ -1088,7 +1088,7 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "GET /v1/projects/{nodeId}/connections": {
-      "hash": "4b76480fc32e",
+      "hash": "8df0f417cc21",
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/document": {
