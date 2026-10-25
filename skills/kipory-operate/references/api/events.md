@@ -2,7 +2,7 @@
 
 # Event types
 
-The project's declared event registry. Each type carries its namespace (`categoryKey`); a new namespace needs nothing created first. Seeded rows refuse delete and accept patch.
+The project's declared event registry. Each type carries its namespace (`categoryKey`); a new namespace needs nothing created first. `source` says who installed a type: the platform's own (`platform`) refuse every change, a source's (`provider`) refuse delete and accept patch; `sentWhen` says when either is sent.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -49,6 +49,8 @@ Each item of `eventTypes`:
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
 | `listenable` | `boolean` | yes | COMPUTED, read-only. Whether a trigger can listen to this type: it is `active`, it is not run-scoped, and it is durable. The same test a trigger create, update, enable or replay applies — a type reading false here is refused there with a 422 that names which of the three failed. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this type was authored in the project or installed by the platform. |
+| `source` | `"platform" \| "provider" \| "project"` | yes | COMPUTED, read-only. Who installed this type: `platform` — in the platform's own namespace: sent by the platform, in every project, and never changed or deleted (a row the project wrote there before the namespace was reserved can still be deleted through this API, and has no `sentWhen`); `provider` — planted by the platform under a source provider's namespace, for the project's source of that provider, and never deleted; `project` — authored in the project. |
+| `sentWhen` | `string \| null` | yes | COMPUTED, read-only. For a type the project did not author — the platform's own, or one a source created — when it is sent, in one sentence, where the platform still describes that key. Null for the project's own types (its flows send those) and for a planted key the platform no longer describes. |
 | `sortOrder` | `integer` | yes | Position within its namespace, ascending. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the type in the meantime. Not the same as `payloadVersion`. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -104,6 +106,8 @@ Each item of `diagnostics`:
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
 | `listenable` | `boolean` | yes | COMPUTED, read-only. Whether a trigger can listen to this type: it is `active`, it is not run-scoped, and it is durable. The same test a trigger create, update, enable or replay applies — a type reading false here is refused there with a 422 that names which of the three failed. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this type was authored in the project or installed by the platform. |
+| `source` | `"platform" \| "provider" \| "project"` | yes | COMPUTED, read-only. Who installed this type: `platform` — in the platform's own namespace: sent by the platform, in every project, and never changed or deleted (a row the project wrote there before the namespace was reserved can still be deleted through this API, and has no `sentWhen`); `provider` — planted by the platform under a source provider's namespace, for the project's source of that provider, and never deleted; `project` — authored in the project. |
+| `sentWhen` | `string \| null` | yes | COMPUTED, read-only. For a type the project did not author — the platform's own, or one a source created — when it is sent, in one sentence, where the platform still describes that key. Null for the project's own types (its flows send those) and for a planted key the platform no longer describes. |
 | `sortOrder` | `integer` | yes | Position within its namespace, ascending. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the type in the meantime. Not the same as `payloadVersion`. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -135,6 +139,8 @@ Read one event type. Every type of its project: `GET /v1/event-types?project=` (
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
 | `listenable` | `boolean` | yes | COMPUTED, read-only. Whether a trigger can listen to this type: it is `active`, it is not run-scoped, and it is durable. The same test a trigger create, update, enable or replay applies — a type reading false here is refused there with a 422 that names which of the three failed. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this type was authored in the project or installed by the platform. |
+| `source` | `"platform" \| "provider" \| "project"` | yes | COMPUTED, read-only. Who installed this type: `platform` — in the platform's own namespace: sent by the platform, in every project, and never changed or deleted (a row the project wrote there before the namespace was reserved can still be deleted through this API, and has no `sentWhen`); `provider` — planted by the platform under a source provider's namespace, for the project's source of that provider, and never deleted; `project` — authored in the project. |
+| `sentWhen` | `string \| null` | yes | COMPUTED, read-only. For a type the project did not author — the platform's own, or one a source created — when it is sent, in one sentence, where the platform still describes that key. Null for the project's own types (its flows send those) and for a planted key the platform no longer describes. |
 | `sortOrder` | `integer` | yes | Position within its namespace, ascending. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the type in the meantime. Not the same as `payloadVersion`. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
@@ -178,6 +184,8 @@ Change an event type — name, default scope, payload shape, storage, status; it
 | `status` | `"draft" \| "active" \| "deprecated" \| "retired"` | yes | Whether this type is in use or retired. |
 | `listenable` | `boolean` | yes | COMPUTED, read-only. Whether a trigger can listen to this type: it is `active`, it is not run-scoped, and it is durable. The same test a trigger create, update, enable or replay applies — a type reading false here is refused there with a 422 that names which of the three failed. |
 | `origin` | `"seed" \| "operator"` | yes | Whether this type was authored in the project or installed by the platform. |
+| `source` | `"platform" \| "provider" \| "project"` | yes | COMPUTED, read-only. Who installed this type: `platform` — in the platform's own namespace: sent by the platform, in every project, and never changed or deleted (a row the project wrote there before the namespace was reserved can still be deleted through this API, and has no `sentWhen`); `provider` — planted by the platform under a source provider's namespace, for the project's source of that provider, and never deleted; `project` — authored in the project. |
+| `sentWhen` | `string \| null` | yes | COMPUTED, read-only. For a type the project did not author — the platform's own, or one a source created — when it is sent, in one sentence, where the platform still describes that key. Null for the project's own types (its flows send those) and for a planted key the platform no longer describes. |
 | `sortOrder` | `integer` | yes | Position within its namespace, ascending. |
 | `version` | `integer` | yes | Increments on every write. Send it back on a PATCH to be refused with 409 if someone edited the type in the meantime. Not the same as `payloadVersion`. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |

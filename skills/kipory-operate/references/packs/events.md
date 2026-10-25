@@ -34,6 +34,14 @@ subscribe on the bus, depending on scope.
   a trigger write applies, so offer what it says rather than re-deriving the rule from `durable`,
   scope and status. A `flow.invoke` action is the coupled way, and the right one when the second flow
   is really a part of the first.
+- **Not every type you read is yours.** Each carries `source`: `platform` for the platform's own
+  (`platform/run.failed` and the rest, in every project — any change or delete is a 409; a row
+  the project wrote in that namespace before it was reserved reads `platform` too, and can only be
+  deleted, through `DELETE /v1/event-types/{id}`),
+  `provider` for one a source created under its provider's namespace (a delete is a 409),
+  `project` for the ones the project authored. The first two carry `sentWhen` where the platform
+  still describes the key: one sentence saying when they are sent. No flow emits them, so read
+  that rather than concluding nothing does. A project reacts to one with a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`).
 
 ### Scope decides the transport, so choose it by who needs to hear it
 
