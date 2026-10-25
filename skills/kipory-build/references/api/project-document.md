@@ -75,6 +75,16 @@ The project's whole configuration as one document addressed by key — flows wit
 | --- | --- | --- | --- |
 | `version` | `string` | yes | The project's structure version the document was read at — written into the document as `basedOn: <nodeId>@<version>`. A plan reads the document's `basedOn`; changes after it in what you state are listed as `moved`. |
 | `document` | `object` | yes | A project's whole configuration as one name-addressed document. Every section is optional; an absent section is untouched on apply. |
+| `warnings` | `object[]` | no | Present when the project holds a value a save now refuses, saved before that rule: each names the value's place in `document` (`field`) and the value. The document carries it as stored; a plan of this document refuses it until you change it. |
+
+Each item of `warnings`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
 ### `POST /v1/projects/{nodeId}/document`
 

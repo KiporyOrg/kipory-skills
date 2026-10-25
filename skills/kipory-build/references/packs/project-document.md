@@ -42,6 +42,11 @@ unchanged project answers `304`.
   (`# outline (format 1), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
   unchanged; edit the actions, never the outline.
+- A value saved before a rule that now refuses it is exported as stored, never as an error.
+  The JSON answer adds `warnings`, one `STORED_VALUE_REFUSED_ON_APPLY` per value, naming its
+  `field` and the value; the YAML form says the same in a comment above the value. A plan of
+  that document refuses the value, so change it (to what the warning's message allows) before
+  you apply.
 - The floor is VIEWER, like the bootstrap read.
 
 ## Learn the format

@@ -1,7 +1,9 @@
 {
-  "source": "4f4db78719ea5e24f2f7de298948bc08efc487ef",
+  "source": "0d9c7945a06ed4daed1c3d6da2ace0ac671d3e7b",
   "since": "2026-08-15",
   "history": [
+    {"sha":"0d9c7945a06e","skills":"A project document export never answers 500 on a stored value: it warns, names the value, and a migration moves the retired task keys (#3606)"},
+    {"sha":"4ef7881447c1"},
     {"sha":"4f4db78719ea","skills":"The published skills say how to keep the Claude Code plugin current: auto-update is off for kipory-skills until the user turns it on (#3605)"},
     {"sha":"807ecea0176c"},
     {"sha":"d2a0c162e5e6"},
@@ -999,8 +1001,6 @@
     {"sha":"e85c825c20f6"},
     {"sha":"72f3778944d6"},
     {"sha":"4f1ac0e5e92e"},
-    {"sha":"3ba50ce95d3d"},
-    {"sha":"039c3b5bfec6"},
-    {"sha":"69ad971c12ab"}
+    {"sha":"3ba50ce95d3d"}
   ]
 }

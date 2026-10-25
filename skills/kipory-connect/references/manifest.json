@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "a9245a18888a",
+      "hash": "4700d7700124",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -1092,7 +1092,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/document": {
-      "hash": "86268a89c2b5",
+      "hash": "3cd1d5940826",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
