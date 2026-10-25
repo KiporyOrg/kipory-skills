@@ -18,6 +18,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `POST` | [`/v1/actions/{id}/duplicate`](#post-v1-actions-id-duplicate) |  |
 | `POST` | [`/v1/actions/batch`](#post-v1-actions-batch) |  |
 | `GET` | [`/v1/actions/condition-operators`](#get-v1-actions-condition-operators) |  |
+| `POST` | [`/v1/actions/evaluate`](#post-v1-actions-evaluate) |  |
 | `GET` | [`/v1/actions/input-options`](#get-v1-actions-input-options) |  |
 | `POST` | [`/v1/actions/interpolate`](#post-v1-actions-interpolate) |  |
 | `POST` | [`/v1/actions/preview`](#post-v1-actions-preview) |  |
@@ -580,6 +581,30 @@ Each item of `operators`:
 | `wholeSlot` | `object` | yes | Its verdict when the leaf tests a WHOLE slot (no `path`). An operator the condition schema accepts only with a `path` is listed here too; the save refuses it without one first. |
 | `field` | `object` | yes | Its verdict when the leaf tests a field inside the slot (a `path`). |
 
+### `POST /v1/actions/evaluate`
+
+Run one action — stored (`action.id`) or a draft — on values you give in `slots` or that a past run recorded (`fromRun`), and answer what it gives, how long it took and, for a transform, its size. Nothing is written and no vendor or model is called. Functions that read only their inputs run free at EDITOR; record reads (`record.list`, `record.read`, `record.query` without a meaning search) see the project's saved records, are billed as design-time work and need ADMIN; any other function is refused. A failure answers 200 with `ok: false`. Render a prompt instead: `POST /v1/actions/interpolate` (free) or `POST /v1/actions/preview` (calls the model). Run the whole flow: `POST /v1/flows/{id}/preview`.
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project the action belongs to, by its node id. Its records are what a record read sees, and it pays for a read. |
+| `action` | `object` | yes | The action to evaluate: a stored one by `id`, or a `draft`. |
+| `slots` | `object` | no | The values to give the action, keyed by the names it reads its inputs under. Each must be one the action reads, and each value is checked against that input's type first. Send this or `fromRun`, not both. |
+| `fromRun` | `string` | no | A past run of the action's flow whose recorded values to use instead of `slots`. The run must have recorded its values, and none of the values the action reads may have been cut short in that record. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `true` | yes | The action ran and gave an answer. |
+| `value` | `unknown` | yes | What the action gives: the value its output slot would hold. |
+| `timeMs` | `integer` | yes | How long the evaluation took, in milliseconds. |
+| `parts` | `integer` | no | For a transform: how many parts its expression has, counted against the limit on one expression. |
+| `absent` | `true` | yes | The action gives nothing on these values, so its output slot would stay empty. |
+| `failure` | `object` | yes | How the action failed, as a run would fail on these values. |
+
 ### `GET /v1/actions/input-options`
 
 Every slot an action could read in a flow, each checked against what its function takes, with the type and path a save would store for it. Works before the action is saved. The action's whole scope, every slot typed: `GET /v1/flows/{id}/scope`.
@@ -618,6 +643,7 @@ Each item of `candidates`:
 | `slot` | `string` | yes | The slot's name. Store it as this position's `inputStreams` entry. |
 | `source` | `object` | yes | Where the value comes from: an earlier action, the flow's own inputs, or the platform. |
 | `shape` | `object \| null` | yes | What the slot holds, or null when nothing declares it. |
+| `rowType` | `object` | no | When the slot is what a record read gives: one record as JSON Schema — its table's fields the read asks for, the members its options add, and its linked records. Paths into the slot's records are checked against it at save. Absent for any other slot. |
 | `suggested` | `boolean` | yes | The function suggests a slot of this name. |
 | `scopedTo` | `object \| null` | yes | The fan-out or loop this slot exists inside — it has a value only within that action's branch or body. Null outside both. |
 | `unreachable` | `object \| null` | yes | Why wiring this slot would leave the flow broken, whatever its shape — it would make actions wait for each other in a circle, or mix a fan-out's or loop's values with values from outside it. The save does not refuse such wiring: it keeps it and reports it as an outstanding issue, and the flow's health reports an error until it is resolved; the flow still runs, wrongly. Null when nothing stands in the way. Judged as if the slot were the action's only input — beside the ones its settings already name, for `attaches: positional`. |

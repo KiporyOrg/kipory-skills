@@ -662,6 +662,7 @@ Each item of `slots`:
 | `slot` | `string` | yes | The slot's name. |
 | `source` | `object` | yes | Where the shape below comes from: the action the save types the slot from, the flow's inputs, or the platform. |
 | `shape` | `object \| null` | yes | What the slot holds, or null when nothing declares its shape. |
+| `rowType` | `object` | no | When the slot is what a record read gives: one record as JSON Schema — its table's fields the read asks for, the members its options add, and its linked records. Paths into the slot's records are checked against it at save. Absent for any other slot. |
 
 ### `GET /v1/flows/{id}/value-recording`
 

@@ -2,6 +2,23 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261025.101628 — 2026-10-25
+
+Synced from the Kipory monorepo at `cc7761dd4`.
+
+Routes added: `POST /v1/actions/evaluate`.
+
+- changed: `skills/kipory-build/references/api/actions.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/functions/value.transform.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+
 ## 1.20261024.234827 — 2026-10-24
 
 Synced from the Kipory monorepo at `6de53c72f`.

@@ -496,8 +496,8 @@ Delete one vocabulary and its terms. Refused (409) while another vocabulary nest
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
-| `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
 | `key` | `string` | yes | Key of the vocabulary that was deleted. |
+| `warnings` | `object[]` | no | Present when the delete went through but left something to check: `REMOVED_MAY_BE_USED` names a use the platform only guessed, and `VOCABULARY_FIELD_STILL_READ` the actions that read the vocabulary's field off records and now read nothing there. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `unlinkedTables` | `integer` | yes | How many tables stopped surfacing it. |
 | `deletedTerms` | `integer` | yes | Terms removed outright. |

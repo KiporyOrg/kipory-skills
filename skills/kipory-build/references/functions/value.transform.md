@@ -17,7 +17,26 @@ Nothing is fetched and no model is called. For prose with holes, use Fill a temp
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `examples` | union[] | no | — | Made-up inputs and the outputs each save must still give. |
 | `expression` | string | yes | — | The expression to run; a name at its top is a slot. ⚠️ The result must fit the output type; `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused. |
+
+### `examples` — each item is one of
+
+**An object with `input`, `output`, `note`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `input` | object | yes | — | The values the expression reads, keyed by its input names. |
+| `output` | object | yes | — | What the expression must give for that input. |
+| `note` | string | no | — | What the example shows, for the next reader. |
+
+**An object with `input`, `absent`, `note`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `input` | object | yes | — | The values the expression reads, keyed by its input names. |
+| `absent` | boolean | yes | — | The expression must give nothing for that input. |
+| `note` | string | no | — | What the example shows, for the next reader. |
 
 ## Worked example
 
@@ -31,7 +50,31 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "expression": "$zip(ytHashtags, ytUrls).{\"tag\": $[0], \"url\": $[1]}"
+  "expression": "$zip(ytHashtags, ytUrls).{\"tag\": $[0], \"url\": $[1]}",
+  "examples": [
+    {
+      "input": {
+        "ytHashtags": [
+          "#a",
+          "#b"
+        ],
+        "ytUrls": [
+          "u1",
+          "u2"
+        ]
+      },
+      "output": [
+        {
+          "tag": "#a",
+          "url": "u1"
+        },
+        {
+          "tag": "#b",
+          "url": "u2"
+        }
+      ]
+    }
+  ]
 }
 ```
 

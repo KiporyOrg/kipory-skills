@@ -558,7 +558,10 @@ The inverse rename is the undo.
   removes all its terms, and can strip labels off records. ⛔ Ask the delete itself first, with
   `validateOnly=true` in the query: it answers a 200 verdict saying whether the delete would be
   allowed and, under `derived`, the blast radius it would reach — before anything is written. The
-  real delete's response carries only COUNTS, not the list of what was hit.
+  real delete's response carries only COUNTS, not the list of what was hit — and `warnings`:
+  `VOCABULARY_FIELD_STILL_READ` names the actions that read the vocabulary's field off records and
+  will read nothing there once it is gone (the dry run lists it among its diagnostics). The delete
+  is not refused for it; change those actions.
   ⚠️ Send the SAME query you intend to delete with. A destructive delete is refused without
   `confirm=true`, and a vocabulary with assigned terms also needs an `assignedTerms` disposition, so
   a dry run that omits either answers the refusal you would have got — which is the point of asking.

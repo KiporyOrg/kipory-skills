@@ -1088,6 +1088,22 @@ naming a slot nothing produces. `INPUT_STREAM_DANGLING_SLOT` reports that, but i
 diagnostic — it rides in `outstandingIssues` on a 200, and the flow runs with the dangling read. Preview,
 confirm, and read what came back.
 
+## Records are typed, transforms carry examples, one action can be tried
+
+A read's records are typed by their table at save: the fields the read asks for, what its `include` adds and its
+linked records. Each read's `rowType` is on `GET /v1/actions/input-options` and `GET /v1/flows/{id}/scope`.
+
+- A transform, a condition or an input path that names a field the records do not have is refused
+  (`JSONATA_FIELD_UNKNOWN`, `CONDITION_FIELD_UNKNOWN`), with the nearest name. Only a sure miss is reported.
+- The refusal is for a new or changed action. One saved before, or made wrong by a table edit, is a
+  `…_STORED` warning on health and never blocks a save.
+- A table edit that removes a field actions read, a processing flow that stops producing one, or a relation
+  deleted under a linked read is refused `TABLE_FIELD_STILL_READ`, naming the readers.
+- `examples` on a `value.transform` (up to 5) run at every save with the run's evaluator; an output that changed
+  refuses the save (`TRANSFORM_EXAMPLE_FAILED`).
+- `POST /v1/actions/evaluate` runs one action on given `slots` (or a recorded run's, `fromRun`) and writes
+  nothing: free for transforms and other pure functions, billed as a preview for a record read.
+
 ## What travels between actions
 
 A **slot bag** maps slot names to values, and the value union is closed and untagged: string,

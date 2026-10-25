@@ -195,6 +195,42 @@ running list across branches that otherwise never meet.
 
 One JSONata `expression`; nothing else in a flow computes.
 
+- **A read's records are typed by their table, and the save checks what you read off them.** A `record.list`, `record.read` or `record.query` knows the fields it asks for in `fields` (every field when it names none), the members its `include` adds, and its `linked` records. `GET /v1/actions/input-options` and `GET /v1/flows/{id}/scope` show each read's `rowType`. A path naming a field the record does not have — `books.records.titel`, or `linked.author.nmae` — is refused `JSONATA_FIELD_UNKNOWN` with the field's nearest name (`"did you mean title?"`); a field the table has but the read leaves out says to add it to `fields`. The same holds for an input path (`records[0].titel`) and a condition on a record field (`CONDITION_FIELD_UNKNOWN`). Only a sure miss is reported: through `$map`/`$each` results, a computed `$lookup`, `*`, `**` or a sub-flow's output nothing is checked.
+- **Old actions are warned, new and changed ones are refused.** An action saved before this check, or one a table edit made wrong, is `JSONATA_FIELD_UNKNOWN_STORED` on health and never blocks a save; the error is for an action you create or whose expression, inputs or condition you change. Removing or renaming a table field that actions still read is refused `TABLE_FIELD_STILL_READ`, naming each reader: change the readers first, or rename the field with the rename route and change the expressions it lists in the same rename.
+- **Pin what an expression does with `examples`.** Up to 5 per action:
+  ```json
+  {
+    "expression": "books.records.{ \"t\": title }",
+    "examples": [
+      {
+        "input": {
+          "books": {
+            "records": [
+              {
+                "id": "b1",
+                "status": "READY",
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-01T00:00:00Z",
+                "title": "Dune"
+              },
+              {
+                "id": "b2",
+                "status": "READY",
+                "createdAt": "2026-01-01T00:00:00Z",
+                "updatedAt": "2026-01-01T00:00:00Z",
+                "title": "Emma"
+              }
+            ]
+          }
+        },
+        "output": [{ "t": "Dune" }, { "t": "Emma" }]
+      }
+    ]
+  }
+  ```
+  Every save runs them with the run's own evaluator and refuses one whose output changed (`TRANSFORM_EXAMPLE_FAILED`, naming the first place they differ); `{ "input": …, "absent": true }` pins "gives nothing". Key `input` by the names the expression reads. Write made-up values, never ones copied from a run.
+- **Try one action without running the flow: `POST /v1/actions/evaluate`** with the action (`{ "id": … }` or a draft) and `slots`, or `fromRun` to use a recorded run's values. It answers the value, its time and its parts, writes nothing and is free for a transform, `value.first-non-empty`, `list.concat` and `text.interpolate`; a record read runs read-only and is billed as a preview. Any other function is refused `ACTION_EVALUATE_UNSUPPORTED` — use the flow preview.
+
 - **Top-level identifiers are slot names**, which the save reads into `inputStreams` when you leave it out. A list you send must be exactly those names — the save refuses a difference with `FREE_FORM_INPUT_STREAMS_MISMATCH` (`action-fields.md`, inputs the platform derives).
 - **Only a name at the top of the expression is a slot.** Inside a predicate `[...]`, after a `.` (`docs.{"id": id}`), in a group-by or a sort, a bare name is a field of each item (after a focus binding `list@$e` it reads the outer context instead), and the save does not count it as an input: `meaning.scores[score > 0.5]` reads the slot `meaning` and each score's `score`. A lambda body written at the top counts as the top: `$map(docs, function($d){ title })` reads the slot `title`.
 - **To read a slot from inside a predicate or after a `.`, write `$$.name`** (or bind it first). `cached.records[expiresAt > runInfo.now]` reads `runInfo` off each record, finds nothing, and filters every item out; `cached.records[expiresAt > $$.runInfo.now]` compares with the run's clock. The plan warns `JSONATA_ITEM_FIELD_NAMED_LIKE_SLOT` when an item field there is spelled like a slot the flow has; `$.name` reads the item's field and says so.

@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "4daa7f7f37fa",
+      "hash": "8200903a5a54",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -86,7 +86,7 @@
       "page": "kipory-operate/references/packs/triggers.md"
     },
     "vocabularies": {
-      "hash": "57e9fcbd3e32",
+      "hash": "683f50f9b4d2",
       "page": "kipory-model/references/packs/vocabularies.md"
     }
   },
@@ -504,7 +504,7 @@
       "page": "kipory-build/references/functions/value.first-non-empty.md"
     },
     "value.transform": {
-      "hash": "8a5d727a817d",
+      "hash": "c48b988567c3",
       "page": "kipory-build/references/functions/value.transform.md"
     },
     "vocabulary.aggregate": {
@@ -710,7 +710,7 @@
       "page": "kipory-model/references/api/types.md"
     },
     "DELETE /v1/vocabularies/{id}": {
-      "hash": "05cfe8af4065",
+      "hash": "db51d8fa57b1",
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "GET /v1/actions/": {
@@ -722,7 +722,7 @@
       "page": "kipory-build/references/api/actions.md"
     },
     "GET /v1/actions/input-options": {
-      "hash": "8074af9d62e0",
+      "hash": "7da4c7e3d3cb",
       "page": "kipory-build/references/api/actions.md"
     },
     "GET /v1/actions/takers": {
@@ -921,7 +921,7 @@
       "page": "kipory-diagnose/references/api/traces.md"
     },
     "GET /v1/flows/{id}/scope": {
-      "hash": "4ff475c40e66",
+      "hash": "ddb12642f099",
       "page": "kipory-build/references/api/flows.md"
     },
     "GET /v1/flows/{id}/traces": {
@@ -1344,7 +1344,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PATCH /v1/actions/{id}": {
-      "hash": "99acfa2cec18",
+      "hash": "370ae782f00e",
       "page": "kipory-build/references/api/actions.md"
     },
     "PATCH /v1/api-endpoints/{id}": {
@@ -1454,11 +1454,15 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/actions/": {
-      "hash": "8463b94b65a0",
+      "hash": "817c86bb1a81",
       "page": "kipory-build/references/api/actions.md"
     },
     "POST /v1/actions/batch": {
       "hash": "067754cfcf86",
+      "page": "kipory-build/references/api/actions.md"
+    },
+    "POST /v1/actions/evaluate": {
+      "hash": "d8d6c649f0fa",
       "page": "kipory-build/references/api/actions.md"
     },
     "POST /v1/actions/interpolate": {
@@ -1774,7 +1778,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "17531f7a4224",
+      "hash": "9c9d24a2e89e",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }
