@@ -1,7 +1,8 @@
 {
-  "source": "9a01cf2b44b1ead044dd1a5b3e849aae2f738de3",
+  "source": "86f11be61cefa0284020a05aed609d4609d272be",
   "since": "2026-08-15",
   "history": [
+    {"sha":"86f11be61cef","skills":"Platform staff can create a top-level organization again, from Tenancy and the project switcher, where GET /v1/me/projects marks the root canCreateOrganization (#3621)"},
     {"sha":"9a01cf2b44b1","skills":"A notice reaches only the projects its reports name, flow health says why a roll turned a flow red, and a removed route answers 410 (413) (#3618)"},
     {"sha":"d8c58e25fa53"},
     {"sha":"65bb00eab9b6","skills":"A one-page read takes any order, so `pages: {max: 1}` clears the unread-cursor warning; 402's refusals say what they mean and the outline shows `pages` and `linked` (readable-flows review C3) (#3615)"},
@@ -1000,7 +1001,6 @@
     {"sha":"b717d12b8741"},
     {"sha":"9cdf2b9b39ef"},
     {"sha":"dfd530f4b4e2"},
-    {"sha":"773ef4369132"},
-    {"sha":"7e7f7635cd53"}
+    {"sha":"773ef4369132"}
   ]
 }
