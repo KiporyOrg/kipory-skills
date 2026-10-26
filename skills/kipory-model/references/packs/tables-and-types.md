@@ -1106,7 +1106,15 @@ refused.
   flows that do that) and those being processed now. Records are processed on the platform's shared
   worker slots, so how many run at once rises and falls with the load on them; each record run's
   `queued` (on `GET /v1/runs/{runId}`) says how long it waited and what held it. Item-route only.
-
+- **Records that break their own type.** A field the table's type marks required that some stored records have
+  no value for — records written before it was required, or before a write checked it — is a finding:
+  `GET /v1/tables/{id}?expand=diagnostics` lists it as `declaration: "records"`,
+  `code: "RECORDS_MISSING_REQUIRED_FIELD"`, with the field and `count`, and
+  `GET /v1/projects/{nodeId}/alerts?include=required-gaps` lists every table's (`{ table, field, missing }`). A
+  record with no value for a field leaves it out of its rows, required or not; a flow reading such a field gets
+  nothing on those records, and the plan does not warn about a read it can place on a required field. Both reads
+  change nothing: fill the field with `PATCH /v1/records/{id}`, or stop marking it required. Each scans the
+  records, so ask on purpose.
 - **Re-pointing a table that already has records** — a new `dataTypeId` or `ownerScope`
   (`TABLE_PINNED_BY_RECORDS`). Renaming it is not refused; see below.
 - **A stale version on either update**, and the `version` you last read is REQUIRED rather than

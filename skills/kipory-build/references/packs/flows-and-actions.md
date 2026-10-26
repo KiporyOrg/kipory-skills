@@ -1102,7 +1102,8 @@ linked records. Each read's `rowType` is on `GET /v1/actions/input-options` and 
   reading action on `details.diagnostics`, beside any `REMOVED_STILL_USED` for other uses. Change the actions first,
   or make both changes in one project document.
 - `examples` on a `value.transform` (up to 5) run at every save with the run's evaluator; an output that changed
-  refuses the save (`TRANSFORM_EXAMPLE_FAILED`).
+  refuses the save (`TRANSFORM_EXAMPLE_FAILED`). Leave a field with no value out of an example record, as a run
+  does: `null` there is refused.
 - `POST /v1/actions/evaluate` runs one action on given `slots` (or a recorded run's, `fromRun`) and writes
   nothing: free for transforms and other pure functions, billed as a preview for a record read.
 

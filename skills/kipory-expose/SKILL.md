@@ -31,7 +31,7 @@ PATCH /v1/api-endpoints/{id}   { version, contractConfig, targetConfig }        
 DELETE /v1/api-endpoints/{id}[?validateOnly=true]                               the only off switch — there is no disable; nothing refuses it
 ```
 
-**`contractConfig`** — `method` (GET, POST, PATCH or DELETE; no PUT), `path` (starts `/v1/`, literal segments or one `{param}` per segment, no `_` first segment), `params` (a map keyed by parameter name, each `{ in: path | query, type: string, required }` — `{}` when there are none; a path parameter is `required: true`), `successStatus` (default 200; **async needs 202**), `responseBody` (optional: the name of one required flow output to send as the whole body — a synchronous `flow.invoke` only; absent, the body is an object of every output keyed by name). There is no read-only flag — see below.
+**`contractConfig`** — `method` (GET, POST, PATCH or DELETE; no PUT), `path` (starts `/v1/`, literal segments or one `{param}` per segment, no `_` first segment), `params` (a map keyed by parameter name, each `{ in: path | query, type: string, required }` — `{}` when there are none; a path parameter is `required: true`), `successStatus` (default 200; **async needs 202**), `responseBody` (optional: the name of one required flow output to send as the whole body — a synchronous `flow.invoke` only; absent, the body is an object of every output keyed by name). A field read off a record is left out when it has no value, so a response type that requires it answers 502 on such a record: mark it optional, or give it a value of its type (`x ?? ""`). There is no read-only flag — see below.
 
 **`targetConfig.kind`** — one of three, and the method is decided by it:
 

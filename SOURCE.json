@@ -1,7 +1,10 @@
 {
-  "source": "75a0686dc92b06c0f0894f9cf8544f4b54526a0c",
-  "since": "2026-08-15",
+  "source": "2343f7800f65e5dc8b1aa0099ec5cd47d804c322",
+  "since": "2026-08-16",
   "history": [
+    {"sha":"2343f7800f65","skills":"406's absent-value warning fires wherever a record's field can be read, with advice that keeps answers, and a corrected notice reaches the projects it names (406 review C1) (#3614)"},
+    {"sha":"6d448153314d"},
+    {"sha":"3952262bdee3"},
     {"sha":"75a0686dc92b","skills":"Planning a project's own export changes nothing, a description-only plan judges no flow, a run parses each expression once, and a document near its size limit warns (readable-flows review C4) (#3620)"},
     {"sha":"4e91ab5e1e26","skills":"One refusal for a removal: a processing flow's inputs are reads, the document judges bound flows, a vocabulary delete is refused, and the index uses 407's proven reads (readable-flows C2) (#3617)"},
     {"sha":"86f11be61cef","skills":"Platform staff can create a top-level organization again, from Tenancy and the project switcher, where GET /v1/me/projects marks the root canCreateOrganization (#3621)"},
@@ -998,9 +1001,6 @@
     {"sha":"7d2066527b87"},
     {"sha":"7ac796f07001"},
     {"sha":"2e8c5ff57705"},
-    {"sha":"7b21715e9deb"},
-    {"sha":"91e48524ea3b"},
-    {"sha":"b717d12b8741"},
-    {"sha":"9cdf2b9b39ef"}
+    {"sha":"7b21715e9deb"}
   ]
 }

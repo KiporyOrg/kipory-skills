@@ -70,7 +70,7 @@ Each item of `tables`:
 | `restamp` | `object` | no | Present when `expand=restamp` was requested. |
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
-| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
+| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
@@ -185,7 +185,7 @@ Each item of `renames`:
 | `restamp` | `object` | no | Present when `expand=restamp` was requested. |
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
-| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
+| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
@@ -230,11 +230,12 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. |
-| `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. |
+| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations" \| "records"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. `records` is the table's stored records breaking its type: a field the type marks required that some records have no value for. |
+| `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. For `records` it is `RECORDS_MISSING_REQUIRED_FIELD`. |
 | `path` | `string` | yes | Where in the declaration the issue is, e.g. `fields[2].source`. Empty for the natural key, which is one value. |
 | `message` | `string` | yes | The platform's own sentence for the issue. For `uses` it is followed by the remedy the save gives. |
 | `field` | `object \| null` | yes | The contract field the issue is about, as the declaration names it — which may be a field the contract no longer has. Null when the issue is not about one field. |
+| `count` | `integer` | no | For `records`: how many of the table's stored records have no value for `field`. Absent for a declaration's issue. |
 
 Each item of `processingGaps`:
 
@@ -331,7 +332,7 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 | `restamp` | `object` | no | Present when `expand=restamp` was requested. |
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
-| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
+| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
@@ -373,11 +374,12 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. |
-| `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. |
+| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations" \| "records"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. `records` is the table's stored records breaking its type: a field the type marks required that some records have no value for. |
+| `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. For `records` it is `RECORDS_MISSING_REQUIRED_FIELD`. |
 | `path` | `string` | yes | Where in the declaration the issue is, e.g. `fields[2].source`. Empty for the natural key, which is one value. |
 | `message` | `string` | yes | The platform's own sentence for the issue. For `uses` it is followed by the remedy the save gives. |
 | `field` | `object \| null` | yes | The contract field the issue is about, as the declaration names it — which may be a field the contract no longer has. Null when the issue is not about one field. |
+| `count` | `integer` | no | For `records`: how many of the table's stored records have no value for `field`. Absent for a declaration's issue. |
 
 Each item of `processingGaps`:
 
@@ -449,7 +451,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `restamp` | `object` | no | Present when `expand=restamp` was requested. |
 | `embedding` | `object` | no | Present when `expand=embedding` was requested. |
 | `vectorProgress` | `object` | no | Present when `expand=vectorProgress` was requested. |
-| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. |
+| `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
@@ -499,11 +501,12 @@ Each item of `diagnostics`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. |
-| `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. |
+| `declaration` | `"uses" \| "searchable" \| "queryable" \| "relations" \| "records"` | yes | Which declaration the issue is in. `uses` is the table's field uses statement: when it is refused, only `uses` issues are reported; when it is accepted, the `searchable`, `queryable` and `relations` it implies are checked too. Problems with the natural key arrive as `uses` issues. `records` is the table's stored records breaking its type: a field the type marks required that some records have no value for. |
+| `code` | `string` | yes | The issue's code. For `uses` it is the code a save of the statement reports in its `TABLE_USES_INVALID` issues, for example `USES_FIELD_UNKNOWN`, or `USES_KEY_NOT_SUBMITTED` for a `key` on a field that is not part of the submitted data. For `searchable`, `queryable` and `relations` it is the code that declaration's check reports, for example `QUERYABLE_FIELD_UNKNOWN`. For `records` it is `RECORDS_MISSING_REQUIRED_FIELD`. |
 | `path` | `string` | yes | Where in the declaration the issue is, e.g. `fields[2].source`. Empty for the natural key, which is one value. |
 | `message` | `string` | yes | The platform's own sentence for the issue. For `uses` it is followed by the remedy the save gives. |
 | `field` | `object \| null` | yes | The contract field the issue is about, as the declaration names it — which may be a field the contract no longer has. Null when the issue is not about one field. |
+| `count` | `integer` | no | For `records`: how many of the table's stored records have no value for `field`. Absent for a declaration's issue. |
 
 Each item of `processingGaps`:
 
