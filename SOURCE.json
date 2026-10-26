@@ -1,7 +1,8 @@
 {
-  "source": "2343f7800f65e5dc8b1aa0099ec5cd47d804c322",
+  "source": "4957739cb793ae79b22a5ee9324cc657dfae7b8a",
   "since": "2026-08-16",
   "history": [
+    {"sha":"4957739cb793","skills":"A read is declared once as a view and read by name; a GET over a view gets its paging, typed params, OpenAPI and ETag derived (412) (#3612)"},
     {"sha":"2343f7800f65","skills":"406's absent-value warning fires wherever a record's field can be read, with advice that keeps answers, and a corrected notice reaches the projects it names (406 review C1) (#3614)"},
     {"sha":"6d448153314d"},
     {"sha":"3952262bdee3"},
@@ -1000,7 +1001,6 @@
     {"sha":"6645f41f7fd3"},
     {"sha":"7d2066527b87"},
     {"sha":"7ac796f07001"},
-    {"sha":"2e8c5ff57705"},
-    {"sha":"7b21715e9deb"}
+    {"sha":"2e8c5ff57705"}
   ]
 }

@@ -62,10 +62,11 @@ OpenAPI response is that output's schema. Only a synchronous `flow.invoke` takes
 
 A flow-backed target names its flow **by id only** and carries **no signature** — the save reads
 the flow's key and snapshots the signature off the live flow, so neither is a field you may send.
-Both come back on every read.
+Both come back on every read, and so does `viewEndpoint` on a view endpoint (below), which the save
+derives the same way.
 
-**So you cannot echo a stored target config back verbatim.** Strip the signature and the flow key
-first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
+**So you cannot echo a stored target config back verbatim.** Strip the signature, `viewEndpoint`
+and the flow key first. An unknown key is refused loudly, naming the key, rather than being silently dropped — which
 is the right behaviour and also means a round-trip that "should" work fails until you understand
 why.
 
@@ -285,6 +286,53 @@ projects, which cannot be adopted at all.
 
 `expand=drift` on the endpoint read answers "did this endpoint's snapshot fall behind its flow" for
 an endpoint you did not just write.
+
+## A view endpoint: the contract comes from the view
+
+<!-- field-ok: readAfter — a flow input a project names, after its `record.view` action `read` -->
+<!-- field-ok: readBefore — a flow input a project names, after its `record.view` action `read` -->
+<!-- field-ok: readLimit — a flow input a project names, after its `record.view` action `read` -->
+
+A `GET`, synchronous `flow.invoke` whose response body (`responseBody`, or the flow's only output)
+is bound unchanged to a `record.view` action is a **view endpoint**. Declare no params and no
+bindings for it: the save derives them from the view and snapshots them as `viewEndpoint`, beside
+the signature.
+
+- **Query**: the view's params, typed and bounded as the view declares them, plus the three
+  paging names — `after` to page on, `before` to page back, and `limit` (1 to the view's
+  `pageSize.max`). A param binds the flow input of the same name; the paging names bind the
+  `record.view` action's own paging inputs, named after the action — for the action `read`,
+  `readAfter`, `readBefore` and `readLimit`. So the flow declares an input per param it exposes
+  and per paging input; a path parameter of the same name feeds a param instead. An unknown key, a value of the wrong type or out of
+  bounds is `422 VALIDATION_FAILED`. A flow input typed otherwise than the view gives it is refused
+  at save, `VIEW_INPUT_TYPE`; a flow that declares none of the action's paging inputs is warned
+  `VIEW_PAGING_NOT_DECLARED`, since its endpoint would answer only the first page.
+- **Answer**: `{items, nextCursor, prevCursor, paging: null}`; a view that ranks by meaning takes
+  no cursor and answers both `null`. A `one: true` view answers the record itself, or `404
+NOT_FOUND` whether it does not exist or the caller may not read it. A cursor from another view,
+  person or params is `400 VIEW_CURSOR_INVALID`.
+- **Not a view endpoint**: an asynchronous one, or one whose contract declares any of the three
+  paging names itself. It keeps its declared contract, and the plan warns
+  `VIEW_ENDPOINT_NOT_DERIVED`.
+- **Revalidation**: when the flow is that one `record.view` and every input comes from the request,
+  and the view reads only fields and links (no term, stream or meaning clause, no vocabulary, no
+  file), and its item is typed, the answer carries an `ETag` (the snapshot says `etag: true`).
+  Send it back as `If-None-Match`: while nothing the answer depends on changed — the records and
+  links of every table the view reads, the caller, and every query and path value of the request,
+  an input you bound by hand too — the answer is `304` with no body, no run and no charge. The
+  snapshot records the version of everything else the answer is derived from: the flow
+  (`flowVersion`) and each of its actions (`actionVersions`), each view and shape it reads, each
+  table it reaches (`tableVersions`) and each relation its linked reads go through
+  (`relationVersions`). An edit anywhere else in the project leaves the `ETag` standing. A change
+  to one of those made through a row's own route (adding an action to the flow, say) leaves the
+  endpoint answering with no `ETag`, running the flow every time, until its snapshot is derived
+  again: by its own save, the next document apply, or the daily sweep. Every
+  view-endpoint answer carries `Cache-Control: private, no-cache` and
+  `Vary: Authorization, Cookie`.
+- **A view, shape or flow edit** re-derives the snapshot of every view endpoint it moves in the same
+  apply, and the plan lists each as an `update` of `surfaces.endpoints.<key>` whose `fields` name
+  what callers see move (`published.query.<param>` for a param renamed, retyped, added or
+  removed). The daily drift sweep re-adopts anything else that left a snapshot behind.
 
 ## The life of a request
 

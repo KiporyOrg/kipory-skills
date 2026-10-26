@@ -7,7 +7,7 @@
 
 Six control shapes cover how most flows are wired. Each names the control functions involved and the one rule each has that is not obvious from its config table. Field names are the function's own config keys — see `functions/<key>.md` for the full table and a worked example.
 
-The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7 (a record's processing flow), §8 (what an endpoint answers: 404, 422, optional filters), §9 (`record.query` and a per-user feed) and §10 (roll-ups); `models.md` holds which model function to use, `text.decide` questions, model bindings and prices.
+The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7 (a record's processing flow), §8 (what an endpoint answers: 404, 422, optional filters), §9 (`record.query` and a per-user feed), §10 (roll-ups) and §11 (views: a read declared once, and the endpoint that pages itself); `models.md` holds which model function to use, `text.decide` questions, model bindings and prices.
 
 ## The three grammars, once
 
@@ -190,6 +190,7 @@ running list across branches that otherwise never meet.
 - `record.read` — `idsSlot` must hold a **list** of ids, or of objects carrying `id` (a `RecordPage`'s rows: `"page.records"`). A record search's hits carry `recordId`, not `id`: name `hits[].recordId`. A single id string — or a path that resolves to one, such as `created.recordId` — reads nothing, and with `failIfEmpty` that is a 404: wrap it first — `value.transform` with `[id]`.
 - `list.concat` — an ordered `inputs` list of slots; flattens lists, lifts scalars to one-element lists, and joins them in the order given. `strategy` is `concat` or `dedup-concat`. It collects contributions from parallel sources **without needing a fan-out and merge pair**, which is the cheaper answer whenever the branches were never really a fan-out.
 - `record.query` — the one function that joins: records matching several clauses at once (a field, a term, a link to a matching peer, a phrase by meaning), with values read from slots. `records-and-endpoints.md` §9 has the clause grammar.
+- `record.view` — the same read declared once as a view and named by key; prefer it whenever the read's values are the caller's own sets or the request's params rather than something an earlier action computed (`records-and-endpoints.md` §11).
 
 ### `value.transform`
 

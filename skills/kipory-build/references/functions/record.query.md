@@ -37,7 +37,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `kind` | `field` | yes | — | A condition on a field the type routes with `filter`. |
 | `field` | string | yes | — | A field of the table with a `filter` use. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | Each operator takes one value; `in` takes a list. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` \| `not-in` | yes | — | Each operator takes one value; `in` takes a list. |
 | `value` | union | no | — | One value, or a list for `in`; dates as ISO 8601. |
 | `valueSlot` | string | no | — | A slot holding the value to compare, instead of `value`. |
 

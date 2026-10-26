@@ -2,6 +2,46 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261026.230926 — 2026-10-26
+
+Synced from the Kipory monorepo at `4957739cb`.
+
+Functions added: `record.view`.
+
+Routes added: `POST /v1/views/{key}/preview`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/action-fields.md`
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- added: `skills/kipory-build/references/functions/record.view.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/bootstrap.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/readme.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+
 ## 1.20261026.220814 — 2026-10-26
 
 Synced from the Kipory monorepo at `2343f7800`.

@@ -2,7 +2,7 @@
 
 # Records and relations
 
-The project's own data: listing and searching records, writing and correcting one by hand, re-running or ending it, stating how it is filed, reading and stating a record's links one hop at a time, and watching a record's processing as it happens.
+The project's own data: listing and searching records, writing and correcting one by hand, re-running or ending it, stating how it is filed, reading and stating a record's links one hop at a time, watching a record's processing as it happens, and previewing a view as one member reads it.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -25,6 +25,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `PUT` | [`/v1/records/{id}/vocabularies/{vocabularyKey}`](#put-v1-records-id-vocabularies-vocabularykey) |  |
 | `POST` | [`/v1/records/bulk`](#post-v1-records-bulk) |  |
 | `POST` | [`/v1/records/query`](#post-v1-records-query) |  |
+| `POST` | [`/v1/views/{key}/preview`](#post-v1-views-key-preview) |  |
 
 ### `GET /v1/links`
 
@@ -601,3 +602,65 @@ Each item of `scores`:
 | `score` | `number` | yes | How close the record's closest part is to the query: a cosine similarity, on the same scale for every table. Higher is closer; a poor match can be negative. |
 | `passage` | `object` | no | The record's best-matching part, when the clause asked (`passage: true`) and the record is indexed in more than one part. |
 | `passageStale` | `true` | no | Present in place of `passage` when the record changed after it was last indexed, so the part that was scored can no longer be quoted. |
+
+### `POST /v1/views/{key}/preview`
+
+Read one page of a view as a chosen member of the project (`asUserId`), or as the project for a view that reads no person's records, with its params, a cursor and a limit. Answers the page, the JSON Schema of one item, every table the read reaches and the clauses it ran with params and its base merged in. Writes, charges and runs nothing. A view endpoint answers the same page to a caller; `record.view` reads it in a flow. Reads the applied view: to try an edit, plan the document first.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The view's key in the project document. |
+
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project whose view to read — its node id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `asUserId` | `string` | no | The person to read as; a project view needs none. |
+| `params` | `object` | no | A value for each param, by name. |
+| `after` | `string` | no | A `nextCursor` from an earlier preview, for the page after it. |
+| `before` | `string` | no | A `prevCursor` from an earlier preview, for the page before it. |
+| `limit` | `integer` | no | Rows in the page; the view's page size when absent. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `items` | `object[]` | yes | The page's rows, each in the view's item shape. |
+| `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
+| `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
+| `paging` | `null` | yes | Always null: a view's page is never counted; walk it by `after` / `before`. |
+| `itemSchema` | `object` | yes | The JSON Schema of one row. |
+| `tables` | `string[]` | yes | Every table the read reaches: its own, its sets', its base's and linked ones. |
+| `clauses` | `object[]` | yes | The clauses the read ran, with params and the base merged in: its literal clauses, then each set it compared with. |
+
+Each item of `clauses`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `kind` | `"field"` | yes | A condition on a field the type routes with `filter`. |
+| `field` | `string` | yes | A field of the table with a `filter` use, or `id` (with `eq`, `in` or `not-in`). |
+| `op` | `"eq" \| "lt" \| "lte" \| "gt" \| "gte" \| "in" \| "not-in"` | yes | Each operator takes one value; `in` and `not-in` take a list. `not-in` keeps records with no value in the field. |
+| `value` | `string \| number \| boolean \| string \| number \| boolean[]` | yes | One value, or a list for `in` and `not-in`; dates as ISO 8601. |
+| `vocabularyKey` | `string` | yes | A vocabulary the table lists in `uses.vocabularies`. |
+| `slug` | `string` | yes | The term, by slug. An alias resolves to its canonical term, one hop, as every term read does. |
+| `relation` | `string` | yes | A relation a `link` use declares, from or to this table. |
+| `direction` | `"outgoing" \| "incoming" \| "either"` | no | Which end the record is on; default `outgoing`. |
+| `where` | `object[]` | no | Clauses on the relation's declared link filters (`link.element.filters`), ANDed. |
+| `count` | `object` | no | How many matching links to require; default at least one. |
+| `peer` | `object[]` | no | Clauses on the linked record, one hop away. |
+| `window` | `object` | no | The time window on the event's own `at`. Omitted or open-ended: bounded to the stream's retention, and the explanation says so. |
+| `text` | `string` | no | The phrase to resemble. Exactly one of a phrase and a record (`likeRecordId`) is given. |
+| `likeRecordId` | `string` | no | A record to resemble instead of a phrase; it is left out. |
+| `likeTableKey` | `string` | no | The table of the record to resemble, if not the queried one. |
+| `topK` | `integer` | no | How many to rank when this clause is the only one, or when it runs first above the pushdown cap. Default 50. |
+| `minScore` | `number` | no | Leave out records scoring below this, from −1 to 1. |
+| `passage` | `boolean` | no | `true` also returns the text of each record's best-matching part. |
+| `set` | `object` | yes | The values of one field across another view's rows, read in the same statement. Empty values are left out of the set. |

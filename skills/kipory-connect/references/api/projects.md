@@ -398,7 +398,7 @@ Each item of `elements`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `ref` | `string` | yes | `<kind>:<id>` — the element's reference, spelled as the element descriptions spell it (`table:`, `event-type:`), so the two reads join on it. An opaque identifier: read an element's kind from `kind`, never from the prefix. |
-| `kind` | `"flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
+| `kind` | `"flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type" \| "view"` | yes | What kind of element. |
 | `label` | `string` | yes | The element's display text. An action's own key; its flow is `flowRef`. |
 | `flowRef` | `string \| null` | yes | Actions only: the reference of the flow the action is part of. |
 | `order` | `integer \| null` | yes | Actions only: the action's position in its flow, 1-based. |

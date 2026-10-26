@@ -702,7 +702,11 @@ conditions — `eq`, `gt`, `gte`, `lt`, `lte`.
 Each kind of clause is answered by the store its use routed the field to, so each needs that use:
 
 - **`field`** needs `filter` on the field. `eq`, `lt`, `lte`, `gt`, `gte` take one value; `in`
-  takes a list of up to 1 000 (an OR inside the clause). Dates travel as ISO strings.
+  takes a list of up to 1 000 (an OR inside the clause), and `not-in` the same list for the records
+  holding none of its values. `not-in` keeps a record with no value in the field: an exclusion removes
+  only what it names. `field: "id"` compares the record's own id, with `eq`, `in` or `not-in`, and
+  needs no use. `not-in` is taken by the route's body and by a view's clauses; a `record.query` action's config
+  does not accept it yet. Dates travel as ISO strings.
 - **`term`** needs the vocabulary in `uses.vocabularies`. The `slug` may be an alias; it resolves
   one hop to its canonical term, as every term read does. It matches **active** terms only: a record
   filed under a candidate term is not found by a `term` clause, or by the list's `term=` condition,
@@ -865,7 +869,8 @@ typed, among the guides they follow" is one action.
 - ⛔ **Every slot a clause names must be there, or the action does not run.** A value that is
   missing (undefined or null) SKIPS the action, even when its other inputs are present — a query
   with one condition missing is a wider question, and it is never asked. There is no optional
-  clause: an endpoint with an optional filter routes to one of two actions with `flow.dispatch`.
+  clause in an inline query: an optional filter is a view's `optional` param, whose clause is left
+  out when no value comes, in one `record.view` action (the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)).
 - **An empty list is not missing.** It matches nothing, so the answer is empty with `emptiedBy`
   naming that clause, and the action runs even when that list is its only input.
 - **A value of the wrong kind fails the action**, `QUERY_OPERAND_INVALID`, before any store is read:
@@ -880,7 +885,8 @@ typed, among the guides they follow" is one action.
   number where text is needed. A warning: the action saves, and the run would refuse the value.
 - `record.list` and `record.count` hold their filter slots to the same rule: a missing filter
   value skips the action, a wrong one fails it (`FILTER_VALUE_INVALID`), an empty list matches
-  nothing. A filter is never dropped, so an optional one is two actions behind a `flow.dispatch`.
+  nothing. A filter is never dropped: an optional one is a view's `optional` param, read with
+  `record.view`.
 - The request body of the route takes written values only; a `…Slot` key there is a 422.
 
 **Two honesty fields, never omitted.** Read them before you read `records`:
@@ -1137,7 +1143,9 @@ another, which is a removal and is refused while records hold it.
     under; ids are kept and each moved record's `version` moves;
   - the table's `uses` and everything derived from it, without a re-stamp;
   - every setting that names the field in a declared place, such as a list's filter slot;
-  - conditions, input paths, trigger filters, endpoint retry paths, eval inputs and checkpoints.
+  - conditions, input paths, trigger filters, endpoint retry paths, eval inputs and checkpoints;
+  - every view and shape that names the field: in a clause, as a set's `field`, in the `order`,
+    among the `fields`, in a shape's `properties`.
 - **What it never edits:** JSONata expressions and prompt templates. A plan lists each occurrence
   of the old name in `renames[].candidates`, with its span and a proposed text. Settle each one in
   the same document: change the text, or keep it by naming its action in `keepExpressions`
@@ -1185,7 +1193,8 @@ and create another, which is refused while it holds records.
   - every configuration position that names the table, such as an action's `tableKey` or a
     `record.query` semantic clause's `likeTableKey`;
   - every `x-record-ref` in another type, every `recordRef` in action, flow and table schemas, and
-    checkpoints and snapshots.
+    checkpoints and snapshots;
+  - every view's and shape's `table`.
 - **What it never edits:** JSONata expressions and templates that spell the old key. A plan lists
   each in `renames[].candidates`; settle each by changing it in the same document or naming its
   action in `keepExpressions`.

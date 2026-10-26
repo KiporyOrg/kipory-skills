@@ -8,8 +8,8 @@
 
 ## What it is
 
-A project's whole configuration — its types, tables, relations, vocabularies, events, flows,
-entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
+A project's whole configuration — its types, tables, relations, vocabularies, views and shapes,
+events, flows, entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
 ownership: a flow's actions sit under the flow, a vocabulary's terms under the vocabulary, a suite's
 cases under the suite. Ids are optional; the platform fills
 them in on export and matches by them on apply. The document you write is the document the
@@ -39,7 +39,7 @@ unchanged project answers `304`.
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
   `basedOn` inside the document, whole or by section, so a file edited for hours still names it.
 - In the YAML form each flow is preceded by its outline as comment lines
-  (`# outline (format 2), derived at export; plan ignores it`, then the lines
+  (`# outline (format 3), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
   unchanged; edit the actions, never the outline.
 - A value saved before a rule that now refuses it is exported as stored, never as an error.
@@ -70,6 +70,94 @@ suite's `coverageMode` is `strict` or `report-only` as on `POST /v1/eval-suites`
 the same list under the same bounds, with `direction` in kebab (`higher-is-better`). A suite's
 `applyWrites` rides along too: an export always states it, and `false` means the suite's runs
 discard what the flow writes (eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`)).
+
+## Views and shapes
+
+**A read is a view; a flow only when it computes.** `views` holds the project's named reads: a
+view states one read — its table (or a base view it `extends`), its conditions under `where`, its
+`params`, its `order` and `pageSize`, and the `shape` its rows take — and a flow reads it by key
+with one `record.view` action. A `GET` endpoint over that flow declares only its path: its typed
+query, paging and `ETag` come from the view (anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
+Write an inline `record.list` or `record.query` only when a value comes from an earlier action.
+
+<!-- field-ok: authorId — one project's example field name, not a platform field -->
+<!-- field-ok: genre — one project's example field name, not a platform field -->
+<!-- field-ok: publishedOn — one project's example field name, not a platform field -->
+<!-- field-ok: visibleBooks — one project's example view key, not a platform field -->
+
+```json
+"shapes": {
+  "authorChip": { "table": "author", "properties": { "name": "name" } },
+  "bookCard": {
+    "table": "book",
+    "properties": { "title": "title", "publishedOn": "publishedOn", "genre": "genre" },
+    "linked": { "author": { "relation": "written-by", "shape": "authorChip" } }
+  }
+},
+"views": {
+  "followedAuthors": { "table": "follow", "fields": ["authorId"] },
+  "hiddenAuthors": { "table": "hide", "fields": ["authorId"] },
+  "visibleBooks": {
+    "table": "book",
+    "where": [{ "kind": "field", "field": "authorId", "op": "not-in", "set": { "view": "hiddenAuthors", "field": "authorId" } }]
+  },
+  "myShelf": {
+    "extends": "visibleBooks",
+    "params": { "genre": { "type": "string", "optional": true } },
+    "where": [
+      { "kind": "field", "field": "authorId", "op": "in", "set": { "view": "followedAuthors", "field": "authorId" } },
+      { "kind": "field", "field": "genre", "op": "eq", "param": "genre" }
+    ],
+    "order": { "by": "field", "field": "publishedOn", "direction": "desc" },
+    "pageSize": { "default": 20, "max": 50 },
+    "shape": "bookCard"
+  }
+}
+```
+
+What no schema says:
+
+- **`where` is `record.query`'s clause grammar written as values** — a view names no run slot. A
+  `field` clause takes exactly one operand: a fixed `value`; a `param`, one of the view's params; or a `set` (the
+  values of a field across another view's rows, `id` by default, under `in` or `not-in`).
+- **A set is a sub-read, not a list.** It runs in the same statement as the view, as the same
+  caller, with no member cap; an empty set matches nothing under `in` and everything under
+  `not-in`, and `not-in` keeps a record with no value at all. A set view holds only `field` clauses
+  and sets, two levels deep at most, and no view with a `semantic` clause uses one.
+- **The exclusion runs before the page is cut**, so a base view that drops what the caller hid
+  (`visibleBooks`) gives every view that extends it full pages. `extends` takes the base's table,
+  scope and `where` and adds its own clauses; its `order`, `pageSize`, `shape` replace the base's.
+  One level.
+- **An absent param never widens the read.** It takes its `default`; with `optional: true` only the
+  clauses naming it are left out; with neither the read fails `VIEW_PARAM_MISSING` before reading.
+  A bad value fails `VIEW_PARAM_INVALID`. A param of a set or a base needs a `default`: nothing
+  passes it one. This is how an optional filter is written — one action, not a branch per case.
+- **Who it reads as is the view's `scope`.** `"caller"`, the default, reads a person-owned table as
+  the signed-in person — the identity is never wired. A flow that can start with no person (a
+  schedule, a trigger, a project table's processing) and reaches such a view is refused at plan,
+  `VIEW_CALLER_WITHOUT_PERSON`; `"project"` reads as the project and may reach no person-owned
+  table.
+- **A shape is the answer's type.** A shaped row carries `id` and exactly the named properties; a
+  linked one-record property is absent when nothing is linked. The flow slot, the endpoint's
+  answer and the OpenAPI component (`BookCard`) are derived from it, so they cannot disagree.
+- **What a view cannot say yet** — OR across clauses, an order by a linked record's value, a set
+  over `link` or `term` clauses, a computed property — stays a flow action after `record.view`.
+
+Both sections are maps keyed by the view's or shape's key, with `delete: true` and `prune: true` as
+every other section. A view names only keys, so its rows carry no id but their own. A view is
+judged when it is planned, against the section as the document leaves it: a view may be listed
+before the set or base it names. A view or a shape is removed before the tables it reads, so a
+document may remove both together.
+
+To see what an applied view answers before a flow uses it, preview it:
+`POST /v1/views/{key}/preview?project=<id>` with `asUserId` (the member to read as; none for a view
+that reads no person's records), the `params`, a cursor (`after` to page on, `before` to page back)
+and `limit`. It answers the page as
+`items`, `nextCursor`, `prevCursor` and `paging: null`, beside `itemSchema` (one row's JSON Schema),
+`tables` (every table the read reaches) and `clauses` (what it ran, params and base merged in). It
+needs the viewer role, and writes, charges and runs nothing. A plan steers reads to views: an
+inline `record.list` or `record.query` equal to a declared view warns `READ_REPEATS_VIEW`, and a
+`GET` endpoint whose flow is only one such read warns `ENDPOINT_IS_A_VIEW`; neither refuses.
 
 ## Three reference forms
 
@@ -332,9 +420,11 @@ pairing it has that relation's change on `relations.<kind>` as the cascade, not 
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a type, a
-table, a relation, a vocabulary, an action, an eval suite and an eval case, keeping the `id` under a new key is a
+table, a relation, a vocabulary, a view, a shape, an action, an eval suite and an eval case, keeping the `id` under a new key is a
 RENAME — one update of the same row, and everything that named it follows; the row API renames
-exactly the same kinds. A table renamed this way takes its records with it, a relation its
+the same kinds, bar views and shapes, which only a document writes. A view renamed this way is
+renamed in every view that extends it or reads it as a set and in every `record.view` naming it;
+a shape, in every view and shape answering in it. A table renamed this way takes its records with it, a relation its
 links and a vocabulary its terms; like a type's `renameFields`, each needs ADMIN
 (`permissions.mayRename`) and answers `renames[]`. Every
 other key is permanent (a flow, an endpoint: other rows or stored data are linked to

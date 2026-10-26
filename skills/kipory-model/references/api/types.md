@@ -123,7 +123,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type. |
 | `to` | `string` | yes | The new key; for a field, its new path. |
@@ -233,7 +233,7 @@ Each item of `renames`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"table" \| "field" \| "relation" \| "vocabulary"` | yes | What is renamed. |
+| `kind` | `"table" \| "field" \| "relation" \| "vocabulary" \| "view" \| "shape"` | yes | What is renamed. |
 | `path` | `string` | yes | The document path of the row that states the rename. |
 | `from` | `string` | yes | The old key; for a field, its old path in the type. |
 | `to` | `string` | yes | The new key; for a field, its new path. |

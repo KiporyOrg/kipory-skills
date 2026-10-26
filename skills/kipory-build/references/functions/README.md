@@ -2,12 +2,12 @@
 
 # Function catalog
 
-119 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+120 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
 - `ingest` (76) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
-- `inline` (37) — runs synchronously inside the flow engine, in order.
+- `inline` (38) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
 - model — calls an AI model.
@@ -167,7 +167,7 @@ _Find the terms of a vocabulary closest in meaning to a phrase._
 
 - [`term.search`](term.search.md) — Search terms by meaning · `inline` · model (when it embeds) · `phrase + vocabulary` → `TermHit[]`
 
-## records (18)
+## records (19)
 
 _Read and change the project's records and terms. Only these actions can change a record._
 
@@ -185,6 +185,7 @@ _Read and change the project's records and terms. Only these actions can change 
 - [`record.read`](record.read.md) — Read records · `inline` · `any+` → `RecordRead[]`
 - [`record.teardown`](record.teardown.md) — Clear generated data · `inline` · `record id` → `object`
 - [`record.update`](record.update.md) — Update a record · `inline` · `record slot + data/derived patches` → `boolean`
+- [`record.view`](record.view.md) — Read a view · `inline` · model (when it embeds) · `the view's params` → `object`
 - [`term.threshold-gate`](term.threshold-gate.md) — Decide: match or new term · `inline` · `candidates + thresholds + proposal` → `GateDecision`
 - [`term.upsert`](term.upsert.md) — Save terms · `ingest` · model (when it embeds) · `TermResolution[]` → `nothing`
 - [`vocabulary.aggregate`](vocabulary.aggregate.md) — Count records by term · `inline` · `string` → `VocabularyAggregate`

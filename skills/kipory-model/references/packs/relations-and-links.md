@@ -550,6 +550,7 @@ relation and create another, which deletes its links.
 - **What moves, in one transaction:**
   - every link, keeping its id — links are stored by relation id, so no link restamp is owed; the
     relation's pairings follow;
+  - every view's `link` clause and `linked` read, and every shape's linked property;
   - every configuration position that names the relation: `relationKey` on the record links,
     link-assert, link-retract and link-counts actions, `linkFilters[].relationKey` on the record
     list and count actions, and `clauses[].relation` on a `record.query`;

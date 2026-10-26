@@ -32,6 +32,7 @@ GET /v1/records?project=<node>&tableKey=<type>&key=<naturalKey>    the one recor
 GET /v1/records?project=<node>&tableKey=<type>&fields=<a>&fields=<b>   each row also carries those fields' values, in `values`
 GET /v1/records/{id}                                               one record whole: its `data`, its `version`, its type's contract
 POST /v1/records/query  { project, tableKey, clauses?, order?, limit?, linked? }   fields, terms, links, streams and one phrase in one question; each record with its linked records
+POST /v1/views/{key}/preview?project=<node>  { asUserId?, params?, after?, before?, limit? }   one page of a named view as that member reads it, with its item schema; writes and charges nothing
 ```
 
 A row's `fields` holds only the table's queryable columns, not its `data`. To read some fields of many records, name them with `fields=` (up to 32, `tableKey` required) on the page you already read, or beside `id=` for records you hold ids of — one request a page, never one `GET /v1/records/{id}` a record. A name is a top-level field the table declares, submitted or produced by its flow; a value comes whole, and a field the record has no value for is left out of `values`; an unknown or dotted name, or a stream field, is 422 `RECORD_PROJECTION_UNKNOWN_FIELD` listing the table's fields.

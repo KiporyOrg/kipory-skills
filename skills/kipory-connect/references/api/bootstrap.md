@@ -38,6 +38,7 @@ To edit the configuration and send it back, read `GET /v1/projects/{nodeId}/docu
 | `project` | `object` | no | Project-level settings, route enablement and model bindings. Absent when unchanged since `?since=` or not requested. |
 | `schema` | `object` | no | Tables, types and vocabulary definitions. Absent when unchanged or not requested. |
 | `relations` | `object` | no | Relations and the table pairs each may connect. Absent when unchanged or not requested. |
+| `views` | `object` | no | Views and the shapes their rows take. Absent when unchanged or not requested. |
 | `events` | `object` | no | Event types, each carrying its namespace (`categoryKey`). Absent when unchanged or not requested. |
 | `flows` | `object` | no | Flows and their actions. Absent when unchanged or not requested. |
 | `surfaces` | `object` | no | Dynamic API endpoints and schedules — the things that expose or drive the project. Absent when unchanged or not requested. |

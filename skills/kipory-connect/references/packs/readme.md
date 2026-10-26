@@ -56,6 +56,7 @@ quietly working around it.
 | Create a project, or find its id and its address                           | Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`)                    |
 | Understand how a request to a project's own host is served, end to end     | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
 | Expose a flow over HTTP — sync, async or streaming                         | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
+| Declare a read once and serve it as a paged, typed `GET` (a view)          | The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)       |
 | Mint a token that can call a project's API                                 | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
 | Build or edit a flow; add, change or reorder actions                       | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
 | Make a flow actually return its declared output                            | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
