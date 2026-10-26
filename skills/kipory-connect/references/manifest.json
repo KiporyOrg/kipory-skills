@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "df9ceed63a13",
+      "hash": "8d5ff5990e1a",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -1092,7 +1092,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/document": {
-      "hash": "3cd1d5940826",
+      "hash": "9f58727d0543",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
@@ -1778,7 +1778,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "32135e4c3dd0",
+      "hash": "64baa8a71f18",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

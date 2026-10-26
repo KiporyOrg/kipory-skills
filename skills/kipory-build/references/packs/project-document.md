@@ -372,7 +372,8 @@ project as it now stands, then:
   changed) → `409 PLAN_STALE` `changed`. Plan again;
 - the plan was applied already (with the version it became and who applied it), is over 24 hours
   old, was pushed out by the same planner's newer plans, or never existed here → `404
-PLAN_UNKNOWN`, with `details.reason` saying which;
+PLAN_UNKNOWN`, with `details.reason` saying which (`GET …/plans/{id}` of a plan an earlier
+  release made answers `outdated`);
 - the re-plan finds an error the document introduces → `422 VALIDATION_FAILED`,
   `details.reason: "DOCUMENT_APPLY_FAILED"`, the whole plan under `details.plan` and one entry in
   `details.issues` per refusing finding at its document path;

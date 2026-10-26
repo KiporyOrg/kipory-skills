@@ -1,7 +1,8 @@
 {
-  "source": "4e91ab5e1e26b2969b44fad0a11dbb1535b9199a",
+  "source": "75a0686dc92b06c0f0894f9cf8544f4b54526a0c",
   "since": "2026-08-15",
   "history": [
+    {"sha":"75a0686dc92b","skills":"Planning a project's own export changes nothing, a description-only plan judges no flow, a run parses each expression once, and a document near its size limit warns (readable-flows review C4) (#3620)"},
     {"sha":"4e91ab5e1e26","skills":"One refusal for a removal: a processing flow's inputs are reads, the document judges bound flows, a vocabulary delete is refused, and the index uses 407's proven reads (readable-flows C2) (#3617)"},
     {"sha":"86f11be61cef","skills":"Platform staff can create a top-level organization again, from Tenancy and the project switcher, where GET /v1/me/projects marks the root canCreateOrganization (#3621)"},
     {"sha":"9a01cf2b44b1","skills":"A notice reaches only the projects its reports name, flow health says why a roll turned a flow red, and a removed route answers 410 (413) (#3618)"},
@@ -1000,7 +1001,6 @@
     {"sha":"7b21715e9deb"},
     {"sha":"91e48524ea3b"},
     {"sha":"b717d12b8741"},
-    {"sha":"9cdf2b9b39ef"},
-    {"sha":"dfd530f4b4e2"}
+    {"sha":"9cdf2b9b39ef"}
   ]
 }

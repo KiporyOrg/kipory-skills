@@ -75,7 +75,7 @@ The project's whole configuration as one document addressed by key — flows wit
 | --- | --- | --- | --- |
 | `version` | `string` | yes | The project's structure version the document was read at — written into the document as `basedOn: <nodeId>@<version>`. A plan reads the document's `basedOn`; changes after it in what you state are listed as `moved`. |
 | `document` | `object` | yes | A project's whole configuration as one name-addressed document. Every section is optional; an absent section is untouched on apply. |
-| `warnings` | `object[]` | no | Present when the project holds a value a save now refuses, saved before that rule: each names the value's place in `document` (`field`) and the value. The document carries it as stored; a plan of this document refuses it until you change it. |
+| `warnings` | `object[]` | no | Present when the export has something to warn about: a value a save now refuses, saved before that rule (`field` names its place in `document`; a plan of this document refuses it until you change it), or the whole document near a size limit (`DOCUMENT_NEAR_LIMIT`). |
 
 Each item of `warnings`:
 
