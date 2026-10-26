@@ -162,10 +162,14 @@ action of a flow carries its `outlinePath` (`each-item › save-row`), the place
 ## Removing a field something uses
 
 Dropping a field from a type (`PATCH /v1/types/{id}`) or from a table's shape
-(`PATCH /v1/tables/{id}`) asks the reference index first. A flow that surely reads, writes, filters
-or sorts by the field refuses the write with 422 `VALIDATION_FAILED`, one `REMOVED_STILL_USED`
-diagnostic per user with its outline path; a field only named inside an expression lets the write
+(`PATCH /v1/tables/{id}`) asks two things first and answers once. Every action it would break comes
+back in one 422 `VALIDATION_FAILED`, one finding per action on `details.diagnostics`:
+`TABLE_FIELD_STILL_READ` for an action that reads the field (a transform, condition or input path the
+platform places on the record's type; the message names the path it reads), and `REMOVED_STILL_USED`
+for one whose configuration uses it (a sort, filter, write or a processing flow's input, with its
+outline path). A field only named inside an expression the platform cannot place lets the write
 through with a `REMOVED_MAY_BE_USED` entry in `warnings`. `validateOnly` answers the same verdict.
+Fix every named action first, or make the removal and their changes in one project document.
 `GET /v1/projects/{nodeId}/references?of=field:<table>.<field>` lists every user before you start.
 
 ## Writing records from outside a flow
@@ -1134,10 +1138,11 @@ another, which is a removal and is refused while records hold it.
   `"endpoint:<key>"`). Until every
   one is settled, the apply is refused `RENAME_CANDIDATE_UNRESOLVED`.
 - **A processing flow's input slot of the same name is the flow's own word.** A table's flow
-  takes a record field as the input slot named like it, and the rename never renames a slot. Rename
-  the slot in the same document: restate the flow with the slot's new name, everywhere the flow
-  reads it, and `adoptSnapshots: true`. The plan judges the pair once both are written; left
-  alone, the field rename is refused `TABLE_FLOW_INPUT_UNMAPPED`.
+  takes a record field as the input slot named like it, required or optional, and the rename never
+  renames a slot. Rename the slot in the same document: restate the flow with the slot's new name,
+  everywhere the flow reads it, and `adoptSnapshots: true`. The plan judges the pair once both are
+  written; left alone, the field rename is refused `TABLE_FLOW_INPUT_UNMAPPED`, and so is removing
+  the field. The references read lists the flow as a reader of the field, at `inputs.<slot>`.
 - **A row you edit in the renaming document is written in the new words.** A row you restate
   unchanged may keep the old ones, and the rename moves them. Change a row, and every word in it
   is judged against the project as it reads after the rename.

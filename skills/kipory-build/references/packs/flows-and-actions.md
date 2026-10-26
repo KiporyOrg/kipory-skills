@@ -1098,7 +1098,9 @@ linked records. Each read's `rowType` is on `GET /v1/actions/input-options` and 
 - The refusal is for a new or changed action. One saved before, or made wrong by a table edit, is a
   `…_STORED` warning on health and never blocks a save.
 - A table edit that removes a field actions read, a processing flow that stops producing one, or a relation
-  deleted under a linked read is refused `TABLE_FIELD_STILL_READ`, naming the readers.
+  deleted under a linked read is refused with one 422 `VALIDATION_FAILED`: a `TABLE_FIELD_STILL_READ` finding per
+  reading action on `details.diagnostics`, beside any `REMOVED_STILL_USED` for other uses. Change the actions first,
+  or make both changes in one project document.
 - `examples` on a `value.transform` (up to 5) run at every save with the run's evaluator; an output that changed
   refuses the save (`TRANSFORM_EXAMPLE_FAILED`).
 - `POST /v1/actions/evaluate` runs one action on given `slots` (or a recorded run's, `fromRun`) and writes

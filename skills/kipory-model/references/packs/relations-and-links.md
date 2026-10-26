@@ -453,7 +453,8 @@ The findings and consequences these answers carry come from one list the whole d
 ## What the platform refuses
 
 - **Deleting a relation that a flow still surely uses is refused** with 422 `VALIDATION_FAILED`; each
-  `REMOVED_STILL_USED` diagnostic names the user and its outline path. A use the platform only
+  `REMOVED_STILL_USED` diagnostic names the user and its outline path, and an action that reads the records
+  the relation links is a `TABLE_FIELD_STILL_READ` finding in the same answer. A use the platform only
   guesses at (a name inside an expression) lets the write through with a `REMOVED_MAY_BE_USED`
   entry in `warnings`. `validateOnly` answers the same verdict as data. Ask
   `GET /v1/projects/{nodeId}/references?of=relation:<key>` first to see every user.
