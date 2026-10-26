@@ -11,7 +11,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 - **I/O:** `user id + cursor` → `RecordPage`
 - **Also found as:** all records, browse records, page of rows, table rows
 - **Reads:** The user id, from the slot `userIdSlot` names. To read past the first page, wire the previous page's cursor into `cursorSlot`. Everything else is settings on the action. _(shape hint: `user id + cursor`)_
-- **Emits:** A `RecordPage`: the rows, newest first, each record's submitted and processed fields flattened to the top level, and a cursor when more remain.
+- **Emits:** A `RecordPage`: the rows, newest first, each record's fields flattened to the top level, and a cursor when more remain — with `pages`, only under `onMore: "stop"`.
 
 ## Config
 

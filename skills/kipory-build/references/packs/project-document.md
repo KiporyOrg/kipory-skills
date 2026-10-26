@@ -39,7 +39,7 @@ unchanged project answers `304`.
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
   `basedOn` inside the document, whole or by section, so a file edited for hours still names it.
 - In the YAML form each flow is preceded by its outline as comment lines
-  (`# outline (format 1), derived at export; plan ignores it`, then the lines
+  (`# outline (format 2), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
   unchanged; edit the actions, never the outline.
 - A value saved before a rule that now refuses it is exported as stored, never as an error.

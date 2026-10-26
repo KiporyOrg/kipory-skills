@@ -484,7 +484,9 @@ Things to know before you declare one:
   `record.list` and `record.count` refuse a text range when saved (`RECORD_FILTER_TEXT_RANGE`). A plan
   that adds a filter on a text field with no length limit warns `TEXT_FILTER_LENGTH_UNBOUNDED`.
   Give a short field a `maxLength` of 500 or fewer (500 characters fit in 2,000 bytes in any
-  script), a list of values, or a date or uuid format. Long text you want to find by its words
+  script), a list of values, or a date or uuid format — for a field the table's flow fills, on the
+  type its output field `ref`s, then re-bind the table (`PATCH /v1/tables/{id}` with the same
+  `flowId`) so its captured signature reads the new length. Long text you want to find by its words
   belongs in a `search` use, not a filter.
 - **Not every field can be filtered.** Objects, nested lists, untyped fields and fields that can
   hold more than one kind of value are refused when you save, with the reason. Project the value
@@ -960,8 +962,10 @@ records it is linked to, under `linked.<name>`:
 - The route has no save step, so a linked read the project's relations cannot answer is refused before
   anything is read: 422 `VALIDATION_FAILED` with the rule in the `reason` of its `details` —
   `LINKED_RELATION_UNKNOWN`, `LINKED_NO_PAIRING`, `LINKED_TABLE_UNCLEAR`, `LINKED_LIST_NEEDS_LIMIT`,
-  `LINKED_ONE_TAKES_NO_LIST_OPTIONS`, `LINKED_SORT_NOT_DATE`, `LINKED_TOO_MANY_ROWS` (the query's
-  `limit` times each list `limit` on the path passes the most linked records one read may bring).
+  `LINKED_ONE_TAKES_NO_LIST_OPTIONS`, `LINKED_SORT_NOT_DATE`, `LINKED_TABLE_NOT_AT_END`,
+  `LINKED_JOIN_RECORD`, `LINKED_TOO_MANY_ROWS` (for each linked read, the records it hangs off times
+  its `limit`, summed over every linked read at both levels, passes the most linked records one read
+  may bring). `RECORD_LINKED_TOO_SLOW` arrives when the linked reads take too long.
   `RECORD_LINKED_HAS_MORE` and `RECORD_LINKED_TOO_MANY` arrive the same way.
 - `GET /v1/records` takes no `linked`, its rows carry no `linked` / `linkedMore`, and neither route
   takes `pages` — both are 422 as unknown members.

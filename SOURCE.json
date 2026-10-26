@@ -1,7 +1,14 @@
 {
-  "source": "58386fa94651ac53db9efce5eb4dc7dca7ed2162",
+  "source": "65bb00eab9b6d2aea40dd8ebbbf2b18d12814870",
   "since": "2026-08-15",
   "history": [
+    {"sha":"65bb00eab9b6","skills":"A one-page read takes any order, so `pages: {max: 1}` clears the unread-cursor warning; 402's refusals say what they mean and the outline shows `pages` and `linked` (readable-flows review C3) (#3615)"},
+    {"sha":"a7b9f77ff327"},
+    {"sha":"e278c7a3c4fb"},
+    {"sha":"86be8935cf40"},
+    {"sha":"c92b51a05e8c"},
+    {"sha":"47bf48699e2f"},
+    {"sha":"eb309002768d"},
     {"sha":"58386fa94651","skills":"A record field with no value is left out, never null, in flow rows, API reads and JSONata, with a warning on reads written for null (406) (#3602)"},
     {"sha":"084883bcf730","skills":"The connections and references reads spell an event type `event-type:` as the descriptions read does, and the trigger form says who sends the event (#3608)"},
     {"sha":"2f4c28aec2b3","skills":"The Events page splits the project's own events from the platform's, and says who sends each one (#3607)"},
@@ -994,13 +1001,6 @@
     {"sha":"773ef4369132"},
     {"sha":"7e7f7635cd53"},
     {"sha":"3e31336059dd"},
-    {"sha":"7005cbaae426"},
-    {"sha":"6dd4a02e4beb"},
-    {"sha":"882c8377a75a"},
-    {"sha":"b81683cbc5e0"},
-    {"sha":"2ac04db76fdb"},
-    {"sha":"7281d25825e9"},
-    {"sha":"92dbc94f1acf"},
-    {"sha":"e85c825c20f6"}
+    {"sha":"7005cbaae426"}
   ]
 }

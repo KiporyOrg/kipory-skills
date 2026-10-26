@@ -37,7 +37,7 @@ page and bringing linked records, which the three reads share, comes first below
   one slot (about 2,400 short records; a record counts whole), the action fails
   `RECORD_READ_HAS_MORE`: the run's failure names it as `reason` (a `failureSlot` too), and a
   flow endpoint answers `422 VALIDATION_FAILED` with it as `details.reason`. `"onMore": "stop"`
-  instead answers what it read and a `nextCursor` to continue from — it covers the size bound as well as `max`. `max` is at most the project's
+  instead answers what it read and a `nextCursor` to continue from — it covers the size bound as well as `max`, except when the first page alone passes the slot, which fails whatever `onMore` says: lower `limit` or name fewer `fields`. `max` is at most the project's
   read-pages limit (50 unless Kipory set another); above it the save is refused
   `READ_PAGES_OVER_LIMIT`.
 - **A first page plus N passes is `max: N + 1`.** A flow that read a page and then looped up to 9
@@ -45,10 +45,11 @@ page and bringing linked records, which the three reads share, comes first below
 - **A one-page read on purpose is `"pages": { "max": 1, "onMore": "stop" }`.** A read without
   `pages` whose `nextCursor` no action reads and no flow output passes on carries the warning
   `RECORD_LIST_CURSOR_UNREAD` at save and on health: the flow is treating the first page as every
-  record. It never blocks the save; either setting above silences it.
-- Saving refuses `pages` where a record could move across the cursor while the pages are read:
-  ordered by update time, by a field that is not a date, or by a date processing fills
-  (`READ_PAGES_SORT_NOT_DATE`); and on a `record.query` with a phrase, a phrase on a `peer`, or
+  record. It never blocks the save; either setting above silences it, whatever the read's order.
+- Saving refuses `pages` with `max` above 1 where a record could move across the cursor while the
+  pages are read: ordered by update time, by a field that is not a date with a `filter` use, or by
+  a date processing fills (`READ_PAGES_SORT_NOT_DATE`); `max: 1` reads no second page, so it takes
+  any order; and on a `record.query` with a phrase, a phrase on a `peer`, or
   `tableKeys`.
 - Saving refuses a greater-than or less-than on a text field in `record.list` and `record.count`
   (`RECORD_FILTER_TEXT_RANGE`): a range on text compares only values up to 2,000 bytes, and only

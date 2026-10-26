@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "9b4d3541d027",
+      "hash": "df9ceed63a13",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -74,7 +74,7 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
-      "hash": "e54bc04316c7",
+      "hash": "3e7bd1f981d9",
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
@@ -308,15 +308,15 @@
       "page": "kipory-build/references/functions/record.links.md"
     },
     "record.list": {
-      "hash": "352c292e9442",
+      "hash": "b79cb37a1ff7",
       "page": "kipory-build/references/functions/record.list.md"
     },
     "record.query": {
-      "hash": "0ea194fca380",
+      "hash": "1dff8a5a59f9",
       "page": "kipory-build/references/functions/record.query.md"
     },
     "record.read": {
-      "hash": "c53f8a35f869",
+      "hash": "c55509066dfb",
       "page": "kipory-build/references/functions/record.read.md"
     },
     "record.teardown": {
@@ -1778,7 +1778,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "52de4415e5ef",
+      "hash": "c48371457841",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

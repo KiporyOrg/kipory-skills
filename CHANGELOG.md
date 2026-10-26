@@ -2,6 +2,20 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261026.112103 — 2026-10-26
+
+Synced from the Kipory monorepo at `65bb00eab`.
+
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261025.221810 — 2026-10-25
 
 Synced from the Kipory monorepo at `58386fa94`.
