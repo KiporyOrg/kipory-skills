@@ -1028,11 +1028,11 @@
       "page": "kipory-build/references/api/functions-and-models.md"
     },
     "GET /v1/notices/": {
-      "hash": "6f4618b0591f",
+      "hash": "19064f887d64",
       "page": "kipory-connect/references/api/notices.md"
     },
     "GET /v1/notices/{id}": {
-      "hash": "03fbefec43aa",
+      "hash": "167fffbdf384",
       "page": "kipory-connect/references/api/notices.md"
     },
     "GET /v1/organizations/{nodeId}/ledger": {
@@ -1096,7 +1096,7 @@
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
-      "hash": "81d3ba3ab04d",
+      "hash": "a11ae77573a5",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/history": {
@@ -1610,11 +1610,11 @@
       "page": "kipory-expose/references/api/end-users.md"
     },
     "POST /v1/projects/{nodeId}/document": {
-      "hash": "bc72e2fb4cce",
+      "hash": "d378a3ccdea5",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/document/plan": {
-      "hash": "b024e74c9f59",
+      "hash": "92ec918c1a91",
       "page": "kipory-build/references/api/project-document.md"
     },
     "POST /v1/projects/{nodeId}/ingest/cache/bust": {
@@ -1778,7 +1778,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "c48371457841",
+      "hash": "0ae75b445eff",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

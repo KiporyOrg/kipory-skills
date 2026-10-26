@@ -330,10 +330,13 @@ console.log(
   `deployment ${baseUrl} — build ${health.json?.sha ?? "(unstamped)"}`,
 );
 
-// Breaking changes the deployment announced to the projects this key reaches
-// (`GET /v1/notices`): printed right after the deployment line, because an
-// open one is what to read before planning. Each project the key reaches is read in turn
-// (`GET /v1/grant` lists them). Notices change no exit code.
+// What the platform tells each project this key reaches (`GET /v1/notices`):
+// the flows a platform build turned red, a count of flows the project's own
+// changes turned red, a count of the others (red at the platform's first
+// measure, or after a secret or catalog moved), and the notices of changes
+// that reach it that it has not read. Printed right after the deployment line; a project with none of these
+// prints nothing. Each project the key reaches is read in turn (`GET /v1/grant`
+// lists them). None of it changes the exit code.
 const notices = await (async () => {
   if (!apiKey) return { why: "set KIPORY_API_KEY to read them" };
   const grant = await get("/v1/grant", true);
@@ -352,7 +355,7 @@ const notices = await (async () => {
       ),
     })),
   );
-  const items = [];
+  const told = [];
   const failed = [];
   let answered = 0;
   for (const { project, res } of reads) {
@@ -368,33 +371,70 @@ const notices = await (async () => {
       continue;
     }
     answered += 1;
-    items.push(...got);
+    const flows = Array.isArray(res.json?.flows) ? res.json.flows : [];
+    told.push({
+      project,
+      byBuild: flows.filter((f) => f.cause === "build"),
+      own: flows.filter((f) => f.cause === "change"),
+      other: flows.filter(
+        (f) => f.cause !== "build" && f.cause !== "change",
+      ),
+      unread: got.filter((n) => !n.read),
+    });
   }
   if (answered === 0 && failed.length > 0)
     return {
       why: `GET /v1/notices: ${failed.join("; ")}${reads.every(({ res }) => res.error === "HTTP 404") ? " — this deployment predates notices" : ""}`,
     };
-  return { items, failed };
+  return { told, failed };
 })();
-if (notices.items === undefined) {
+if (notices.told === undefined) {
   console.log(`notices: not read (${notices.why})`);
-} else if (notices.items.length === 0) {
-  console.log("notices: none open");
 } else {
-  console.log(
-    `notices: ${notices.items.length} open — read each before planning; it says what changed and what to do`,
+  const some = notices.told.filter(
+    (t) =>
+      t.byBuild.length + t.own.length + t.other.length + t.unread.length > 0,
   );
-  for (const n of notices.items) {
-    const when = String(n.effectiveAt ?? "").slice(0, 10);
-    const flags = [
-      n.state === "upcoming" ? `takes effect ${when}` : `in effect since ${when}`,
-      ...(n.hasReport ? ["carries a report on this project"] : []),
-      ...(n.read ? [] : ["unread"]),
-    ];
-    console.log(`  ! ${n.title} (${n.projectSlug}) — ${flags.join("; ")}`);
+  const quiet = notices.told.length - some.length;
+  const projects = (n) => `${n} project${n === 1 ? "" : "s"}`;
+  if (some.length === 0) {
     console.log(
-      `      read GET /v1/notices/${n.id}?project=${encodeURIComponent(n.project)}`,
+      `notices: nothing from the platform for ${projects(notices.told.length)}`,
     );
+  } else {
+    console.log(
+      `notices: the platform tells ${some.length} of ${projects(notices.told.length)} — read each call below`,
+    );
+    for (const { project, byBuild, own, other, unread } of some) {
+      console.log(`  ${project.slug}`);
+      for (const f of byBuild) {
+        const since = String(f.since ?? "").slice(0, 10);
+        const build = typeof f.build === "string" ? ` ${f.build}` : "";
+        console.log(
+          `    ! flow ${f.flow?.key} turned red when platform build${build} rolled (${(f.codes ?? []).join(", ")}) — since ${since}`,
+        );
+        console.log(`        read GET ${f.healthPath}`);
+      }
+      if (own.length > 0)
+        console.log(
+          `    ${own.length} flow${own.length === 1 ? "" : "s"} red from the project's own changes (${own.map((f) => f.flow?.key).join(", ")}) — read each flow's health`,
+        );
+      if (other.length > 0)
+        console.log(
+          `    ${other.length} flow${other.length === 1 ? "" : "s"} red, not from a platform build (${other.map((f) => f.flow?.key).join(", ")}) — read each flow's health`,
+        );
+      for (const n of unread) {
+        const when = String(n.effectiveAt ?? "").slice(0, 10);
+        console.log(
+          `    ! ${n.title} — ${n.state === "upcoming" ? `takes effect ${when}` : `in effect since ${when}`}`,
+        );
+        console.log(
+          `        read GET /v1/notices/${n.id}?project=${encodeURIComponent(n.project)}`,
+        );
+      }
+    }
+    if (quiet > 0)
+      console.log(`  ${projects(quiet)}: nothing from the platform`);
   }
 }
 if (notices.failed?.length > 0) {
@@ -522,6 +562,7 @@ const format = await (async () => {
     live: live.version,
     description:
       typeof live.description === "string" ? live.description : undefined,
+    rules: res.json?.rules,
   };
 })();
 if (format.live === undefined) {
@@ -538,6 +579,25 @@ if (format.live === undefined) {
     `  ${"document".padEnd(9)} bundled: ${bundledFormat}   live: ${format.live}   ✗ DIFFERS — these skills write document format ${bundledFormat}; the deployment reads only ${format.live}${format.description ? ` (${format.description})` : ""}`,
   );
   differs.push("document");
+}
+// What this build changed in the save rules, from the same answer: one line,
+// only when it added a code or raised one — news, not a difference, so it
+// changes no exit code (specs/413-targeted-notices, FR-016).
+{
+  const codesOf = (list) =>
+    Array.isArray(list)
+      ? list.map((r) => r?.code).filter((c) => typeof c === "string")
+      : [];
+  const added = codesOf(format.rules?.added);
+  const raised = codesOf(format.rules?.raised);
+  if (added.length + raised.length > 0) {
+    const named = [...added, ...raised];
+    const shown = named.slice(0, 5).join(", ");
+    const more = named.length > 5 ? `, and ${named.length - 5} more` : "";
+    console.log(
+      `  ${"rules".padEnd(9)} this build added ${added.length} code${added.length === 1 ? "" : "s"} and raised ${raised.length}: ${shown}${more} — GET /v1/platform-status lists each with what it means`,
+    );
+  }
 }
 // label → how many items were named under a layer that differs; absent when
 // the items could not be compared.
