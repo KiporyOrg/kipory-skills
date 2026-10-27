@@ -1,7 +1,8 @@
 {
-  "source": "03b46e676f8a22a1f12e790b8e00675b8ae9582a",
+  "source": "68f9dee64c32b6192f0764de38a2cde48c0b1837",
   "since": "2026-08-16",
   "history": [
+    {"sha":"68f9dee64c32","skills":"An action output named like a view read's paging input is refused, linked reads read only what they keep, and the rest of #3631's follow-ups (#3632)"},
     {"sha":"03b46e676f8a","skills":"Every finding of the readable-flows deep review and its re-checks is fixed: example budgets, the 406 prover, view params, computed fields in views, document halves, recompute locking, and the migration fence lint (#3631)"},
     {"sha":"c30c0650eb30","skills":"A table can declare computed fields that Kipory keeps right, and processing that runs again when related records change (410) (#3622)"},
     {"sha":"6f90762d6d9b"},
@@ -1000,7 +1001,6 @@
     {"sha":"76b3ee611d5a"},
     {"sha":"41ab6f397636"},
     {"sha":"037385fa9c08"},
-    {"sha":"46071e3c909d"},
-    {"sha":"7bc2254fd907"}
+    {"sha":"46071e3c909d"}
   ]
 }
