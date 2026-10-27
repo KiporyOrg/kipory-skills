@@ -221,6 +221,10 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `id`, `scope`, `project`, `label`, `key`, `description`, `inputSlots`, `outputSlots`, `outputBinding`, `actionCount`, `version`, `createdAt`, `updatedAt`, `touched`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Unique id of the flow — what `{id}` routes address. |
@@ -240,12 +244,6 @@ Change a flow's label, description, signature (`inputTypeNames` or `outputTypeNa
 | `timeLimits` | `object` | no | Each action's time limit as a run applies it, keyed by action id, present only when you pass `expand=timeLimits` to `GET /v1/flows/{id}`. The same answer `GET /v1/actions?flowId=` puts on each list entry as `effectiveTimeLimit`, without the rows. The deployment's task limits and generation default move it without bumping `structureVersion`, and the bootstrap's flows section does not carry it. Null for an action whose function is not registered. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
-| `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
-| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
-| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
-| `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
-| `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to resolve every type name, which is not the same as `ok` — a draft with a warning still resolves. |
 
 Each item of `touched`:
 
@@ -265,6 +263,17 @@ Each item of `warnings`:
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this change would be accepted: false when the row would be refused (a finding in `diagnostics` that stops the save), AND when the change would leave an error it introduces around the row (`leavesBehind` with `severity: "error"` and `introduced: true`) — exactly when a project-document plan of the same change answers `ok: false`. An error that was already there (`introduced: false`) is reported and does not make it false: fix it when you choose. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE — a database constraint another write reaches first can still refuse it; read it as a snapshot. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `leavesBehind` | `object[]` | no | What the change would leave BROKEN AROUND this row, found by rehearsing the write and rolling it back — a flow a shape change breaks, a schedule whose stored inputs a narrowed shape now refuses. Each carries `introduced`: `true` if this change causes it, `false` if it was already there. The same findings a project-document plan stating only this row reports, judged by the same gate: an introduced error makes `ok` false. Absent when the dry run did not rehearse — a draft its planner refused, or a stale `version`. |
+| `consequences` | `object[]` | no | What this change would do to stored DATA, measured by rehearsing the write and rolling it back — the same list a project-document plan stating only this row reports (records a narrowed shape would leave invalid, links a delete takes along, …). Absent when the dry run did not rehearse. |
+| `derived` | `object` | no | What the write WOULD have computed. Present whenever the body was coherent enough to resolve every type name, which is not the same as `ok` — a draft with a warning still resolves. |
 
 Each item of `diagnostics`:
 
@@ -314,12 +323,21 @@ Delete a flow and every action in it (`deletedActionCount` says how many); its c
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `deleted`, `id`, `deletedActionCount`, `deletedContractSuiteCount`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `deletedActionCount` | `integer` | yes | How many actions went with the flow. Deleting a flow deletes everything inside it. |
 | `deletedContractSuiteCount` | `integer` | yes | How many `<flowKey>-contract` eval suites went with the flow, with their cases and runs. For a platform flow, this counts the contract suites over it in every project. Other eval suites over the flow are kept; their runs fail until they name another flow. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -586,6 +604,10 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 
 **Response `200`** (first frame shape, when declared)
 
+One of 6 shapes:
+
+Shape 1, with `previewSessionId`, `flowId`, `fanOutBranchCap`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `type` | `"preview-started"` | yes | The run is about to execute. |
@@ -593,10 +615,30 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 | `flowId` | `string` | yes | Flow being previewed. |
 | `fanOutBranchCap` | `integer \| null` | yes | Branch ceiling in force for this run, or null if uncapped. |
 | `ts` | `string` | yes | When the run started. |
+
+Shape 2, with `actionId`, `actionKey`, `branchId`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"action-started"` | yes | An action began executing. |
 | `actionId` | `string` | yes | Action this frame is about. |
 | `actionKey` | `string` | yes | Key of that action. |
+| `flowId` | `string` | no | Flow the action belongs to, when the frame carries it. |
 | `branchId` | `string \| null` | yes | Branch the action ran in, or null when it is not inside a fan-out. |
 | `branchPath` | `unknown[]` | no | Position within nested fan-outs, outermost first. |
+| `ts` | `string` | yes | When this frame was emitted. |
+
+Shape 3, with `actionId`, `actionKey`, `branchId`, `outcome`, `durationMs`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"action-ended"` | yes | An action finished, in any outcome. An action that fails does not end the stream — the run continues and completes normally. |
+| `actionId` | `string` | yes | Action this frame is about. |
+| `actionKey` | `string` | yes | Key of that action. |
+| `flowId` | `string` | no | Flow the action belongs to, when the frame carries it. |
+| `branchId` | `string \| null` | yes | Branch the action ran in, or null when it is not inside a fan-out. |
+| `branchPath` | `unknown[]` | no | Position within nested fan-outs, outermost first. |
+| `ts` | `string` | yes | When this frame was emitted. |
 | `outcome` | `"applied" \| "skipped" \| "failed" \| "no-op"` | yes | `applied` — ran and wrote its output. `skipped` — its condition was not satisfied, or it is disabled. `failed` — it ran and errored. `no-op` — it ran and had nothing to do. |
 | `durationMs` | `number` | yes | Wall-clock time this action took. |
 | `slotBag` | `object` | no | Slot values visible at this point in the run. |
@@ -608,18 +650,38 @@ The same sandboxed run as `POST /v1/flows/{id}/preview` — same body, same auth
 | `cacheHit` | `true` | no | A cache answered this action and its function never ran. Present only when true. |
 | `mergeInputs` | `unknown[]` | no | Per-source-branch inputs. Merge nodes only. |
 | `fanOut` | `object` | no | Fan-out nodes only, on the `applied` path. Arrives before the branch frames it describes, so it is the denominator for what follows. |
+
+Shape 4, with `actionId`, `actionKey`, `branchId`, `reason`, `parentActionId`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"action-not-reached"` | yes | An action the engine never reached. Distinct from `skipped`, which means the action was evaluated and declined to run. |
+| `actionId` | `string` | yes | Action this frame is about. |
+| `actionKey` | `string` | yes | Key of that action. |
+| `flowId` | `string` | no | Flow the action belongs to, when the frame carries it. |
+| `branchId` | `string \| null` | yes | Branch the action ran in, or null when it is not inside a fan-out. |
+| `branchPath` | `unknown[]` | no | Position within nested fan-outs, outermost first. |
+| `ts` | `string` | yes | When this frame was emitted. |
+| `reason` | `"empty-fanout"` | yes | The enclosing fan-out produced no branches. |
 | `parentActionId` | `string` | yes | The fan-out node whose empty result stranded this action. |
+| `slotBag` | `object` | no | Slot values visible where the action would have run. |
+| `runState` | `object` | no | Shared run state at that point. |
+
+Shape 5, with `branches`, `totals`, `fanOutCaps`, `timings`, `previewSessionId`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"preview-complete"` | yes | The run finished. |
 | `branches` | `unknown[]` | yes | Full per-branch results, as on the non-streaming response. |
 | `flowOutput` | `object` | no | The flow's declared output slots, as a live invocation would return them. |
+| `runState` | `object` | no | Shared run state as it stood when the run ended. |
 | `outputValidation` | `object` | no | Whether the run produced everything the flow declares. |
 | `totals` | `object` | yes | Token usage for the whole run. |
 | `ingestSpend` | `object` | no | Paid third-party ingest spend. Absent when no ingest function ran. |
 | `fanOutCaps` | `object[]` | yes | Every fan-out whose element list was truncated. Empty when nothing was dropped. |
 | `timings` | `object` | yes | Full breakdown of where the run's wall clock went. |
-| `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself. |
-| `status` | `integer \| null` | no | For a run refused as a whole (a required output missing, the writes refused): the HTTP status a live call would answer, as on the JSON preview's `errors`. Null for a runner crash; absent before the run. |
-| `code` | `string \| null` | no | The error code a live call would answer beside `status`. Null for a runner crash; absent before the run. |
-| `diagnostics` | `unknown[]` | no | Per-problem detail for a draft graph that failed validation. These are the same diagnostics saving that graph would return. |
+| `previewSessionId` | `string` | yes | Identifies this run, the same value `preview-started` carried. |
+| `ts` | `string` | yes | When the run finished. |
 
 Each item of `fanOutCaps`:
 
@@ -630,6 +692,18 @@ Each item of `fanOutCaps`:
 | `branches` | `integer` | yes | Branches actually spawned. |
 | `requested` | `integer` | yes | Elements the node would have spawned, after de-duplication and before the limit applied. |
 | `cappedBy` | `"preview" \| "config" \| "system"` | yes | Which limit truncated the list: `preview` — this request's `fanOutCap`; `config` — the node's own configured maximum; `system` — the platform ceiling. |
+
+Shape 6, with `error`, `phase`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"preview-error"` | yes | The run could not proceed. This is the run's error channel — an action that merely fails arrives as `action-ended` instead, and the run continues. |
+| `error` | `string` | yes | What went wrong. |
+| `phase` | `string` | yes | Where it went wrong — admission, validation, loading record files, or the run itself. |
+| `status` | `integer \| null` | no | For a run refused as a whole (a required output missing, the writes refused): the HTTP status a live call would answer, as on the JSON preview's `errors`. Null for a runner crash; absent before the run. |
+| `code` | `string \| null` | no | The error code a live call would answer beside `status`. Null for a runner crash; absent before the run. |
+| `diagnostics` | `unknown[]` | no | Per-problem detail for a draft graph that failed validation. These are the same diagnostics saving that graph would return. |
+| `ts` | `string` | yes | When the failure was emitted. |
 
 ### `GET /v1/flows/{id}/scope`
 

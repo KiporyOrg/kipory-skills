@@ -386,6 +386,10 @@ Watch one record's processing live, as Server-Sent Events: a `snapshot` of where
 
 **Response `200`** (first frame shape, when declared)
 
+One of 4 shapes:
+
+Shape 1, with `recordId`, `status`, `statusError`, `statusUpdatedAt`, `at`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `recordId` | `string` | yes | The record being watched. |
@@ -393,11 +397,28 @@ Watch one record's processing live, as Server-Sent Events: a `snapshot` of where
 | `statusError` | `string \| null` | yes | Why it failed, when it has. Null in every other state. |
 | `statusUpdatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `at` | `integer` | yes | When the server emitted this frame, in unix milliseconds. For correlating logs, not for ordering. |
+
+Shape 2, with `status`, `at`, `requestId`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | The record's new state. ⚠️ A record FAILING is one of these frames followed by `done` — the STREAM completed fine, so do not read a clean close as a successful run. |
 | `actionId` | `string` | no | Id of the action now starting. Present only while processing is under way. |
 | `error` | `string` | no | Why it failed. Present only on the failing frame. |
+| `at` | `integer` | yes | When the publisher emitted this frame, in unix milliseconds. For correlating logs. |
 | `requestId` | `string` | yes | The request that started this processing run, for correlation. |
+
+Shape 3, with `code`, `message`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `code` | `"CLIENT_TOO_SLOW" \| "INTERNAL"` | yes | A TRANSPORT fault, not a record failure — the connection broke. `CLIENT_TOO_SLOW` means you were not reading fast enough. Reconnect and take the snapshot again. |
 | `message` | `string` | yes | What went wrong, in prose. |
+
+Shape 4, with `type`, `reason`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `type` | `"close"` | yes | Always `close`. The server is ending the stream deliberately — this is an orderly goodbye, not a fault. |
 | `reason` | `"lifetime" \| "transport-unavailable" \| "revoked" \| "terminal" \| "too-slow"` | yes | Why the stream is ending. ⚠️ If you do not recognise the value, treat it as `lifetime` and reconnect with jitter. |
 
@@ -507,16 +528,16 @@ Write up to 500 records of one project in one change set: updates by id (`{id, v
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `items`, `created`, `updated`, `unchanged`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `items` | `object[]` | yes | One entry per item, in the order sent. |
 | `created` | `integer` | yes | How many records were created — counted over writes, so an upsert row a later row repeated the key of is not counted twice. |
 | `updated` | `integer` | yes | How many records were changed. |
 | `unchanged` | `integer` | yes | How many writes changed nothing (`existed` or `unchanged`). |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
-| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
-| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the write WOULD do. Present when every item was judged, which is not the same as `ok`. |
 
 Each item of `items`:
 
@@ -526,6 +547,15 @@ Each item of `items`:
 | `id` | `string` | yes | The record written or converged on. |
 | `outcome` | `"created" \| "existed" \| "updated" \| "unchanged"` | yes | `created` — a new record. `existed` — an identical create converged on the record already there. `updated` — an update, or an upsert that found its key, changed the record's `data`. `unchanged` — the edit left `data` as it was, so nothing was written. |
 | `version` | `integer \| null` | yes | The record's `version` after the bulk — the next edit's lock. Null when it could not be re-read. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD do. Present when every item was judged, which is not the same as `ok`. |
 
 Each item of `diagnostics`:
 
@@ -646,12 +676,12 @@ Each item of `clauses`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `kind` | `"field"` | yes | A condition on a field the type routes with `filter`. |
-| `field` | `string` | yes | A field of the table with a `filter` use, or `id` (with `eq`, `in` or `not-in`). |
-| `op` | `"eq" \| "lt" \| "lte" \| "gt" \| "gte" \| "in" \| "not-in"` | yes | Each operator takes one value; `in` and `not-in` take a list. `not-in` keeps records with no value in the field. |
-| `value` | `string \| number \| boolean \| string \| number \| boolean[]` | yes | One value, or a list for `in` and `not-in`; dates as ISO 8601. |
-| `vocabularyKey` | `string` | yes | A vocabulary the table lists in `uses.vocabularies`. |
-| `slug` | `string` | yes | The term, by slug. An alias resolves to its canonical term, one hop, as every term read does. |
-| `relation` | `string` | yes | A relation a `link` use declares, from or to this table. |
+| `field` | `string` | no | A field of the table with a `filter` use, or `id` (with `eq`, `in` or `not-in`). |
+| `op` | `"eq" \| "lt" \| "lte" \| "gt" \| "gte" \| "in" \| "not-in"` | no | Each operator takes one value; `in` and `not-in` take a list. `not-in` keeps records with no value in the field. |
+| `value` | `string \| number \| boolean \| string \| number \| boolean[]` | no | One value, or a list for `in` and `not-in`; dates as ISO 8601. |
+| `vocabularyKey` | `string` | no | A vocabulary the table lists in `uses.vocabularies`. |
+| `slug` | `string` | no | The term, by slug. An alias resolves to its canonical term, one hop, as every term read does. |
+| `relation` | `string` | no | A relation a `link` use declares, from or to this table. |
 | `direction` | `"outgoing" \| "incoming" \| "either"` | no | Which end the record is on; default `outgoing`. |
 | `where` | `object[]` | no | Clauses on the relation's declared link filters (`link.element.filters`), ANDed. |
 | `count` | `object` | no | How many matching links to require; default at least one. |
@@ -663,4 +693,4 @@ Each item of `clauses`:
 | `topK` | `integer` | no | How many to rank when this clause is the only one, or when it runs first above the pushdown cap. Default 50. |
 | `minScore` | `number` | no | Leave out records scoring below this, from −1 to 1. |
 | `passage` | `boolean` | no | `true` also returns the text of each record's best-matching part. |
-| `set` | `object` | yes | The values of one field across another view's rows, read in the same statement. Empty values are left out of the set. |
+| `set` | `object` | no | The values of one field across another view's rows, read in the same statement. Empty values are left out of the set. |

@@ -39,7 +39,7 @@ unchanged project answers `304`.
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
   `basedOn` inside the document, whole or by section, so a file edited for hours still names it.
 - In the YAML form each flow is preceded by its outline as comment lines
-  (`# outline (format 3), derived at export; plan ignores it`, then the lines
+  (`# outline (format 4), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
   unchanged; edit the actions, never the outline.
 - A value saved before a rule that now refuses it is exported as stored, never as an error.
@@ -245,6 +245,9 @@ or a bare version of THIS project. The answer's `planId` is what you apply (kept
 `GET …/document/plans/{planId}` reads it back), and `basedOn` echoes the read as a token. A plan
 you mean to apply without a read is a `422` naming `basedOn`; `?keep=false` plans a preview that
 keeps nothing. `?label=agent-docs` names your session, so two sessions on one key are told apart.
+A plan gives way to real work: when a row it rehearses stays held by another write for more than
+a second, it answers `409 DESIGN_BUSY` with `Retry-After` — not `PLAN_STALE`; your read is still
+good, so send the same plan again after it.
 
 ⛔ **A file read from another project is refused, never bound.** Exported from a dev project and
 planned on another, its `basedOn` names the dev project, whose versions say nothing about this
@@ -264,6 +267,14 @@ changes — and every key it would create — that another person, key or sessio
 `ok` false: read the project again, make your change on what it says now, plan again. Elements
 the document does not touch never stop it, so two authors working on different flows never refuse
 each other. A read older than the history the project keeps is `409 PLAN_STALE` `read-too-old`.
+
+Your own writes after a read are not moves only when they carry your session's label: an apply
+takes `label` (the plan's by default), and a row save — a `PATCH /v1/flows/{id}`, a
+`POST /v1/actions`, any design row's own write — takes the header `Kipory-Session-Label` (1–64
+characters), beside `Kipory-Change-Note` (1–500), the sentence history shows for that save. Text
+outside ASCII goes percent-encoded. Send the same label, from the same key, on every plan, apply
+and row save of one working session; a save without it is listed under `moved` like anyone
+else's, and the apply it stops answers `409 VERSION_CONFLICT`.
 
 ⭐ **A plan judges the state the document leaves, not only the rows it writes.** Every flow the
 document can move — the ones it writes, the ones invoking them, the ones reading a type or a table
@@ -338,9 +349,10 @@ whole rule.
 
 A schedule, a trigger and a source carry `enabled`, which their create bodies do not: the row API
 switches it with a `PATCH` (`{enabled, version}`), and the document writes it through that same
-patch after the row. Export always states it. Omitted, a new row is created enabled and an existing
-one keeps its state — so a disabled schedule, trigger or source re-created from its export comes
-back disabled.
+patch after the row. Export always states it, so a disabled schedule, trigger or source re-created
+from its export comes back disabled. Omitted, it is `true`, like any field a stated element leaves
+out: a new row is created enabled, and an existing disabled one is switched back ON, with a
+`FIELD_RESET_TO_DEFAULT` warning on its path. State `enabled: false` to keep a row off.
 
 A schedule and a trigger also carry `failurePolicy` (`pause` or `keep-running`), an ordinary
 field, and — on export only — `paused: { at, reason }` when the platform has paused the row
@@ -366,7 +378,7 @@ A config namespace's `values` are its whole override map, and in them `null` and
 say different things: a key left out removes that override, so the field reads its default; `null`
 is a value, and the field reads `null`. Writing `null` does not clear an override — leave the key out.
 
-The answer holds the `version` the project was read at — the lock an apply presents —
+The answer holds the `version` the plan was computed against, its `planId` and `basedOn`,
 `ignoredIds`, three lists, their `counts` and a verdict:
 
 - `changes` — every row you stated, as `create`, `update`, `delete`, `unchanged`, `derived` or
@@ -478,10 +490,12 @@ PLAN_UNKNOWN`, with `details.reason` saying which (`GET …/plans/{id}` of a pla
 - the re-plan finds an error the document introduces → `422 VALIDATION_FAILED`,
   `details.reason: "DOCUMENT_APPLY_FAILED"`, the whole plan under `details.plan` and one entry in
   `details.issues` per refusing finding at its document path;
-- another write holds the project for more than 3 seconds, or a row this write needs for more than 10 → `409 DESIGN_BUSY` with `Retry-After`: nothing was written; send the same request again after it. A row save can answer it too.
+- another write holds the project for more than 3 seconds, or a row this write needs for more than 10 → `409 DESIGN_BUSY` with `Retry-After`: nothing was written; send the same request again after it. A plan and a row save can answer it too.
 
 An apply commits all at once: one transaction, one project version, one entry in the project's
-history carrying your note and label. A refusal has written nothing, and like every error it is
+history carrying your note and label. Seeding and relabelling a vocabulary's terms run after that
+commit as writes of their own (below), each moving the version again under the same note and
+label, so `appliedVersion` can be several above the plan's `version`. A refusal has written nothing, and like every error it is
 JSON whatever `Accept` asks. A plan that changes nothing answers `applied: true` and leaves the
 version where it was. What the platform fills in on a write is not a change: a `flow.invoke` or
 `flow.merge` `derivedShape`, a `flow.dispatch` `outputSlot` of `""`, the carry slots a
@@ -491,9 +505,11 @@ changes nothing, and an action it leaves alone keeps its `version` and the resul
 
 The answer is the plan plus `applied`, `appliedVersion` and `basedOn` — no document; read it with
 `GET …/document`. `basedOn` is the read your next part binds to: `appliedVersion` when nobody else
-changed the project in between, else your earlier read. With a `label`, your own applies after a
-read never count as moves for your later parts; without one, plan each part from the `basedOn` the
-last apply answered.
+changed the project in between, else your earlier read. With a `label`, your own applies and row
+saves after a read never count as moves for your later parts. Without one, nothing tells your
+writes from anyone else's: when the answered `basedOn` is still your earlier read (someone else
+wrote in between), your own earlier parts are listed under `moved` too — export again before the
+next part. Send a label.
 
 Authoring needs EDITOR. A document that REMOVES anything — a `delete: true` row, or a `prune: true`
 map that finds something to remove — needs ADMIN, and is refused with `403` before the first write
@@ -512,8 +528,8 @@ document DOES name are checked with everything else and SEEDED AFTER the commit,
 embeds each term. The rest of the apply does not wait on it and is not undone by it. If that seed
 — or any other work owed after the commit — fails, the apply still answers `200` and
 `applied: true`, with a `warning` diagnostic `DOCUMENT_EFFECT_FAILED` on the path that owed it
-(`vocabularies.topic.terms`). Read the diagnostics of a successful apply, not only its status: apply
-the same document again to retry, and only what is still missing is attempted.
+(`vocabularies.topic.terms`). Read the diagnostics of a successful apply, not only its status: plan
+the same document again and apply the new plan to retry, and only what is still missing is attempted.
 An apply whose only change is a vocabulary's terms is still a change: it moves the version, and its
 seed runs after the commit like any other.
 
@@ -559,8 +575,13 @@ its ids are ignored and its keys are the content.
 
 ## Roll back to an export
 
-Keep the export you took before a change: applying it again, with the project's CURRENT
-`version`, puts its rows back. A row deleted since returns as a new row with a new id, and a row
+Keep the export you took before a change. Its `basedOn` is the read it was made at, so planned
+as it is, every element changed since is listed under `moved` (or, past the history the project
+keeps, it is `409 PLAN_STALE` `read-too-old`). Plan it against the project as it is now instead:
+`POST …/document/plan?basedOn=<the project's current version>` — the `version` a fresh
+`GET …/document` answers. `moved` is then empty, `changes` are the rollback, and applying that
+plan's `planId` with a note puts its rows back. An export in an older format is converted first
+with the document upgrade script that comes with `kipory-connect` (below). A row deleted since returns as a new row with a new id, and a row
 added since stays unless the document says `prune`. Deleting a table does not delete
 the type it took its fields from.
 

@@ -155,6 +155,10 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `stored`, `effective`, `malformed`, `version`, `providerStatus`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `stored` | `object \| null` | yes | What you saved, verbatim. Null when this project has never set a config — and ALSO null when what it saved failed to parse, so null alone does not distinguish never-set from broken. Read `malformed` to tell them apart. |
@@ -162,10 +166,6 @@ Replace the project's end-user auth configuration; `null` clears it to the platf
 | `malformed` | `boolean` | yes | True when a config was stored but could not be parsed, so `effective` is the platform fallback rather than what you intended. ⚠️ TREAT THIS AS URGENT: the fallback ENABLES Google sign-in, so a project that deliberately turned Google OFF has it back on while this is true. Nothing else reports it. |
 | `version` | `string` | yes | The stored document's version. Send it back as `version` on `PUT` on this path; a save made since you read answers 409 `VERSION_CONFLICT` — re-read and apply your change again. Opaque: compare it, never parse it. |
 | `providerStatus` | `object[]` | yes | Every sign-in provider this platform supports, with how its own credential resolves for this project and what a sign-in through it does under `effective`. One entry per provider, whether or not it is enabled. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
-| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
-| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the write WOULD have computed. Present whenever the document was accepted; absent when it was refused, and absent when the body clears the config. |
 
 Each item of `providerStatus`:
 
@@ -175,6 +175,15 @@ Each item of `providerStatus`:
 | `credential` | `object` | yes | How this provider's own credential resolves for this project, by the same walk sign-in uses. Metadata only; nothing is decrypted. |
 | `signIn` | `"shared-app" \| "own-app" \| "refused"` | yes | What a sign-in through this provider does right now. `shared-app`: it goes through Kipory's application. `own-app`: through yours. `refused`: every one is turned away — the provider is off, Apple has no bundle id, or Google is set to your own application and no active credential resolves for it (it never falls back to Kipory's). Apple set to your own application still signs people in without its key; the key is what lets Kipory capture and later revoke the Apple grant. |
 | `refusal` | `"provider-off" \| "no-bundle-id" \| "no-credential" \| null` | yes | Why `signIn` is `refused`; null whenever it is not. `provider-off`: the provider is switched off for this project. `no-bundle-id`: Apple has no bundle id to verify an identity token against. `no-credential`: the provider is set to your own application and no active credential for it resolves. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed. Present whenever the document was accepted; absent when it was refused, and absent when the body clears the config. |
 
 Each item of `diagnostics`:
 
@@ -298,14 +307,14 @@ Each item of `entries`:
 | `kind` | `"movement"` | yes | Credits moved: a charge, a grant, an adjustment or a transfer. |
 | `at` | `string` | yes | When the credits moved. |
 | `id` | `string` | yes | The entry's id: the charge's (or its waiver's) id for a `usage-debit`, the ledger row's id for a grant or an adjustment. |
-| `amount` | `integer` | yes | Signed credits: negative for a debit, positive for a grant, an adjustment that returned credits, or a `usage-debit` the platform gave back (a waiver: work it lost, ran twice or broke is not charged). |
+| `amount` | `integer` | no | Signed credits: negative for a debit, positive for a grant, an adjustment that returned credits, or a `usage-debit` the platform gave back (a waiver: work it lost, ran twice or broke is not charged). |
 | `type` | `"usage-debit" \| "grant" \| "adjustment" \| "transfer"` | yes | `usage-debit` is metered work; `grant` and `adjustment` are operator movements; `transfer` is credits moved to or from another wallet — a grant to a member's wallet, or what came back from one. |
-| `causeRef` | `string` | yes | What caused the movement — the charge's id for a `usage-debit` (for a waiver, the charge it gave back), or an operator movement's own reference. |
-| `counterparty` | `object \| null` | yes | The other wallet of a `transfer`: where the credits went (a negative amount) or came from (a positive one). Null on every other movement. |
-| `actor` | `string` | yes | Who changed it — `user:<id>`, an operator email, or `system:<slug>`. |
-| `actorPerson` | `object \| null` | yes | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
-| `before` | `object \| null` | yes | The fields before the change, as strings. `null` on creation. |
-| `after` | `object` | yes | The fields after the change, as strings. |
+| `causeRef` | `string` | no | What caused the movement — the charge's id for a `usage-debit` (for a waiver, the charge it gave back), or an operator movement's own reference. |
+| `counterparty` | `object \| null` | no | The other wallet of a `transfer`: where the credits went (a negative amount) or came from (a positive one). Null on every other movement. |
+| `actor` | `string` | no | Who changed it — `user:<id>`, an operator email, or `system:<slug>`. |
+| `actorPerson` | `object \| null` | no | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
+| `before` | `object \| null` | no | The fields before the change, as strings. `null` on creation. |
+| `after` | `object` | no | The fields after the change, as strings. |
 
 ### `GET /v1/projects/{nodeId}/profile-schema`
 

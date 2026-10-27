@@ -175,9 +175,18 @@ Set one metadata key on one element — an upsert by `(project, element, key)`. 
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `entry`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `entry` | `object` | yes | The entry as stored. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -209,10 +218,19 @@ Remove one metadata key, by the `id` `GET /v1/metadata` lists. Needs ADMIN on th
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `deleted`, `id`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -328,6 +346,10 @@ Retire a project: its node is suspended, its API keys, schedules and sources are
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `deleted`, `willPurge`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
@@ -335,10 +357,18 @@ Retire a project: its node is suspended, its API keys, schedules and sources are
 | `slug` | `string` | yes | The retired project's slug. |
 | `purgeAfter` | `string` | yes | When this becomes irreversible. A daily sweep permanently destroys projects past this date, so restore before it (`POST /v1/projects/{nodeId}/restore`). |
 | `willPurge` | `object` | yes | What the eventual purge will destroy, counted by kind. A preview of the consequence, not of anything already done. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`, `graceDays`, `counts`, `external`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `id` | `string` | yes | The project's id (its node id). |
+| `slug` | `string` | yes | The project's slug — what `confirmSlug` must repeat. |
 | `graceDays` | `integer` | yes | How many days a retire started now would keep the project restorable before it is destroyed. A project already retired keeps the deadline it was given — `purgeAfter`. |
+| `purgeAfter` | `string \| null` | yes | When an ALREADY retired project becomes irreversible — the deadline a second retire keeps rather than resets. Null while the project is live. |
 | `counts` | `object` | yes | What a purge would destroy, by kind. A PREVIEW — reading it changes nothing, and the figures move as the project keeps being used. |
 | `external` | `object` | yes | What would be destroyed OUTSIDE the main database, and therefore not recoverable from a database backup. |
 
@@ -639,10 +669,10 @@ Each item of `subjects`:
 | --- | --- | --- | --- |
 | `of` | `string` | yes | The ref as asked. |
 | `unknown` | `false` | yes | False: the subject exists. |
-| `subject` | `object` | yes | The thing whose uses are listed. |
-| `count` | `integer` | yes | How many uses there are, before any cut. |
-| `truncated` | `boolean` | yes | True when the list was cut at the platform's limit; narrow with `role` or `certainty` to see the rest. |
-| `uses` | `object[]` | yes | Every use, ordered by flow, then where the action sits in it, then path; non-action users after the flows. |
+| `subject` | `object` | no | The thing whose uses are listed. |
+| `count` | `integer` | no | How many uses there are, before any cut. |
+| `truncated` | `boolean` | no | True when the list was cut at the platform's limit; narrow with `role` or `certainty` to see the rest. |
+| `uses` | `object[]` | no | Every use, ordered by flow, then where the action sits in it, then path; non-action users after the flows. |
 
 ### `POST /v1/projects/{nodeId}/restore`
 

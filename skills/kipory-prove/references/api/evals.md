@@ -126,14 +126,14 @@ Each item of `assertions`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
-| `slot` | `string` | yes | Output slot that must be present. |
+| `slot` | `string` | no | Output slot that must be present. |
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
-| `actionKey` | `string` | yes | Key of the action to check. |
-| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
+| `actionKey` | `string` | no | Key of the action to check. |
+| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | no | Outcome that action must have reached. |
 | `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
 | `code` | `string` | no | The error code a live call would answer, e.g. `VALIDATION_FAILED`, `NOT_FOUND`, `CONFLICT`, `FLOW_OUTPUT_MISSING`. |
 | `messageContains` | `string` | no | Text the failing action's own error must contain — for a flow's own `$assert`, its words, which a live call answers with too. Other failures answer a caller with a generic message: assert their `status` and `code`. |
-| `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
+| `expression` | `string` | no | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
 ### `GET /v1/eval-cases/{id}`
@@ -171,14 +171,14 @@ Each item of `assertions`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
-| `slot` | `string` | yes | Output slot that must be present. |
+| `slot` | `string` | no | Output slot that must be present. |
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
-| `actionKey` | `string` | yes | Key of the action to check. |
-| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
+| `actionKey` | `string` | no | Key of the action to check. |
+| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | no | Outcome that action must have reached. |
 | `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
 | `code` | `string` | no | The error code a live call would answer, e.g. `VALIDATION_FAILED`, `NOT_FOUND`, `CONFLICT`, `FLOW_OUTPUT_MISSING`. |
 | `messageContains` | `string` | no | Text the failing action's own error must contain — for a flow's own `$assert`, its words, which a live call answers with too. Other failures answer a caller with a generic message: assert their `status` and `code`. |
-| `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
+| `expression` | `string` | no | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
 
 ### `PATCH /v1/eval-cases/{id}`
@@ -208,6 +208,10 @@ Change an eval case — its inputs, expected result, assertions, labels, or whet
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `id`, `suiteId`, `key`, `label`, `description`, `inputs`, `assertions`, `labels`, `enabled`, `version`, `createdById`, `createdByEmail`, `createdAt`, `updatedAt`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Case id — the address for every case verb. |
@@ -225,24 +229,29 @@ Change an eval case — its inputs, expected result, assertions, labels, or whet
 | `createdByEmail` | `string \| null` | yes | Email of the creator, when known. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
-| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
-| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 Each item of `assertions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `kind` | `"no-missing-required-output"` | yes | Every output slot the flow declares as required was produced. The highest-value check: if this fails, a live invocation of the flow would fail too. |
-| `slot` | `string` | yes | Output slot that must be present. |
+| `slot` | `string` | no | Output slot that must be present. |
 | `dataTypeId` | `string` | no | Check against this type instead of the slot's own declared type. |
-| `actionKey` | `string` | yes | Key of the action to check. |
-| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | yes | Outcome that action must have reached. |
+| `actionKey` | `string` | no | Key of the action to check. |
+| `outcome` | `"applied" \| "skipped" \| "no-op" \| "failed"` | no | Outcome that action must have reached. |
 | `status` | `integer` | no | The HTTP status a live call would answer, e.g. 422 for a refused input, 404 for a record not found, 409 for a conflict. |
 | `code` | `string` | no | The error code a live call would answer, e.g. `VALIDATION_FAILED`, `NOT_FOUND`, `CONFLICT`, `FLOW_OUTPUT_MISSING`. |
 | `messageContains` | `string` | no | Text the failing action's own error must contain — for a flow's own `$assert`, its words, which a live call answers with too. Other failures answer a caller with a generic message: assert their `status` and `code`. |
-| `expression` | `string` | yes | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
+| `expression` | `string` | no | Boolean JSONata expression. Checked when you save the case as well as when it runs. An expression returning a non-boolean fails rather than passing on a truthy value. |
 | `description` | `string` | no | What this expression is checking, in your words. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 Each item of `diagnostics`:
 
@@ -271,10 +280,19 @@ Delete an eval case. The runs that measured it keep its results, and its scores 
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `deleted`, `id`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -615,6 +633,10 @@ Change an eval suite's configuration — its flow, scorers, `scoreRules` (replac
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `id`, `project`, `key`, `label`, `description`, `flowId`, `scorerFlowIds`, `scoreRules`, `runAsUserId`, `coverageMode`, `runOnConfigChange`, `repeats`, `latencyIsolated`, `subjectUncached`, `applyWrites`, `perActionLatency`, `bracketed`, `regressionCategoryKey`, `regressionEventKey`, `enabled`, `version`, `caseCount`, `lastRun`, `runInFlight`, `createdById`, `createdByEmail`, `createdAt`, `updatedAt`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | Suite id — the address for every suite verb. |
@@ -645,9 +667,6 @@ Change an eval suite's configuration — its flow, scorers, `scoreRules` (replac
 | `createdByEmail` | `string \| null` | yes | Email of the creator, when known. |
 | `createdAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `updatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
-| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
-| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 Each item of `scoreRules`:
 
@@ -657,6 +676,14 @@ Each item of `scoreRules`:
 | `direction` | `"higher-is-better" \| "lower-is-better"` | no | Which way is better for a numeric score. Undeclared reads `higher-is-better`, and the run marks it `directionAssumed`. |
 | `failing` | `string[]` | no | For a categorical score: the values that mean the case failed, at most 100, each at most 200 characters. A case taking one breaks the run's contract, and a case that held before and takes one now regresses the run. Not refused on a numeric score; there the values never match anything. |
 | `floor` | `number` | no | For a numeric score: the smallest mean movement that counts, in the score's own unit. A drop must clear this as well as twice its standard error. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
 
 Each item of `diagnostics`:
 
@@ -685,10 +712,19 @@ Delete an eval suite with its cases and runs. The scores its runs produced survi
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `deleted`, `id`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -743,6 +779,10 @@ Run an eval suite: every enabled case (or `caseKeys`) through the suite's flow, 
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `run`, `results`, `aggregates`, `delta`, `startedRuns`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `run` | `object` | yes | The run's own record. |
@@ -750,10 +790,6 @@ Run an eval suite: every enabled case (or `caseKeys`) through the suite's flow, 
 | `aggregates` | `object` | yes | This run's own numbers, pooled and per label. Always present. |
 | `delta` | `object \| null` | yes | Comparison against the previous run of this suite. Null when nothing was compared — the run's `regression.reason` says whether there was no previous run (`no-baseline`) or it could not be read (`baseline-unreadable`). |
 | `startedRuns` | `object` | yes | The runs this eval run's cases STARTED — with `applyWrites: true`, the records the subject flow queued, and the runs those records started in turn — and what they cost. NOT part of `run.credits`, which is what the cases themselves were charged, and can be many times it. ⚠️ A queued record counts once a worker has claimed it: a `wait: true` answer is read before the queue drains, so read `GET /v1/eval-runs/{id}/spend` again afterwards. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
-| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
-| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the run WOULD do. Present whenever the run would be accepted; absent when the platform refused to start it. |
 
 Each item of `results`:
 
@@ -771,6 +807,15 @@ Each item of `results`:
 | `scores` | `object[]` | yes | Every score recorded for this case. |
 | `scorerErrors` | `object[]` | yes | Scorer flows that failed on this case. Such a case is `errored`, and the rest of the run is still scored. Empty when every scorer ran. |
 | `latencyMs` | `number \| null` | yes | How long this case took, in milliseconds. Null when no duration was recorded — a case the run never started, or a run from before per-case outcomes were stored — which is not a case that took no time. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the run WOULD do. Present whenever the run would be accepted; absent when the platform refused to start it. |
 
 Each item of `diagnostics`:
 

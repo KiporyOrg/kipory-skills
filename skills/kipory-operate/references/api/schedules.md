@@ -228,6 +228,10 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `id`, `project`, `key`, `label`, `flowId`, `inputs`, `cronPattern`, `tz`, `enabled`, `startsAt`, `endsAt`, `maxRuns`, `overlapPolicy`, `pausedAt`, `pauseReason`, `failurePolicy`, `createdByUserId`, `nextRunAt`, `lastRunAt`, `runCount`, `version`, `createdAt`, `updatedAt`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
@@ -260,6 +264,11 @@ Change a schedule — its flow and inputs, pattern, timezone, bounds, name, over
 | `nextRun` | `object \| null` | no | Whether this schedule has another occurrence ahead, judged at the moment of the read from its pattern, timezone and every bound. A disabled schedule answers `kind: "disabled"`, with `stop` saying whether it could run again. An occurrence already due that the scheduler has not fired yet counts as ahead. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. |
 | `upcoming` | `object \| null` | no | The occurrences ahead, walked the way the scheduler advances: an occurrence already due and not yet fired comes first, `startsAt` opens the walk, `endsAt` closes it, and each occurrence spends one of `maxRuns`. Present only when you pass `expand=timing`. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. It assumes every occurrence fires — one that is skipped or blocked spends no run, so a schedule near its limit can fire later than this list ends. It also assumes the scheduler is on time: it checks once a minute, and a late check moves the schedule to the first occurrence after that check, so an occurrence listed in between may not fire. A pattern stored with a seconds field lists every instant it names, though the scheduler fires it at most once a check. Empty on a disabled schedule, which fires nothing. |
 | `firings` | `object \| null` | no | Every occurrence inside a window that opens at the moment of the read, walked the same way as `upcoming` and with the same assumptions — for laying schedules side by side on one clock. Present only when you pass `expand=timing`; `windowHours` sizes the window. Null when a list read ran out of the time it spends on timing before it reached this schedule: not measured, and no answer about its occurrences — `GET /v1/schedules/{id}?expand=timing` always answers. Empty on a disabled schedule, which fires nothing. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
@@ -292,10 +301,19 @@ Delete one schedule and its run history; it stops firing at once. Nothing refuse
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `deleted`, `id`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

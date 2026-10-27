@@ -34,12 +34,30 @@ Server-Sent Events. Emits `open` with the project's current activity counter, `c
 
 **Response `200`** (first frame shape, when declared)
 
+One of 3 shapes:
+
+Shape 1, with `project`, `version`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `type` | `"open"` | yes | Always `open` — the first frame on every connection. ⚠️ ACT ON IT, not only on `changed`: runs start and finish while you are disconnected, and every deploy closes every connection. |
 | `project` | `string` | yes | The project's NODE id — what you passed as `?project=`. Not the project's own id, which is a different value. |
 | `version` | `string` | yes | The activity counter as it stands right now. Compare it with the one you hold to decide whether anything happened while you were away. |
+
+Shape 2, with `project`, `version`, `sections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"changed"` | yes | Always `changed`. One frame per counter advance, no matter how many domains moved. |
+| `project` | `string` | yes | The project's node id, as on the `open` frame. |
+| `version` | `string` | yes | The counter this change advanced to. |
 | `sections` | `string[]` | yes | Which page-questions moved — `eval-runs`, `flow-runs`, `schedule-runs`, `endpoint-calls`, `record-ingestion`. Refetch only what you are showing. Treat an unrecognised word as a signal to refetch nothing, not as an error. |
+
+Shape 3, with `reason`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"close"` | yes | Always `close`. The server is ending the stream deliberately — this is an orderly goodbye, not a fault. |
 | `reason` | `"lifetime" \| "transport-unavailable" \| "revoked" \| "terminal" \| "too-slow"` | yes | Why the stream is ending. ⚠️ If you do not recognise the value, treat it as `lifetime` and reconnect with jitter. |
 
 ### `GET /v1/runs`
@@ -308,14 +326,16 @@ Server-Sent Events. Emits `timeline` with whatever the caller missed (empty when
 
 **Response `200`** (first frame shape, when declared)
 
+One of 2 shapes:
+
+Shape 1, with `runId`, `timeline`, `through`, `truncated`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `runId` | `string` | yes | The run these rows belong to. Heterogeneous by construction — an endpoint invocation id, a record-processing attempt id or a flow run's request id — exactly the id space `GET /v1/runs/{runId}/timeline` takes. |
 | `timeline` | `object[]` | yes | Rows appended since the position the client asked from, in `seq` order. ⛔ MAY BE EMPTY, and an empty batch is not a defect: it is how a caller that is already current is told so at connect time, which is also what tells it the run exists at all. |
 | `through` | `string` | yes | The `seq` of the last row in this frame, or the client's own position when the frame is empty. Pass it back as `after` on a reconnect. ⚠️ A STRING because `seq` is a 64-bit sequence and JSON numbers lose precision above 2^53. Compare as a BigInt, never as a string: `"9" > "10"` holds for the first nine rows of every run and is wrong ever after. |
 | `truncated` | `boolean` | yes | True once the RUN has outrun the writer's per-run cap, so events occurred that were never recorded at all. ⛔ It does NOT end the stream and it is not a paging flag — the run continues and still finishes. Read it as: this timeline is INCOMPLETE rather than short. |
-| `type` | `"close"` | yes | Always `close`. The server is ending the stream deliberately — this is an orderly goodbye, not a fault. |
-| `reason` | `"lifetime" \| "transport-unavailable" \| "revoked" \| "terminal" \| "too-slow"` | yes | Why the stream is ending. ⚠️ If you do not recognise the value, treat it as `lifetime` and reconnect with jitter. |
 
 Each item of `timeline`:
 
@@ -332,6 +352,13 @@ Each item of `timeline`:
 | `branchPathIds` | `object[] \| null` | yes | Fan-out / loop ancestry, outermost first, on each action row of a branch (a cache row carries only `branchId`) — the rows of a flow it calls with `flow.invoke` included — and null at the trunk. `branchId` alone cannot express NESTING — a fan-out inside a fan-out yields two unrelated ids — and each level's `index` names the item the branch ran for. |
 | `durationMs` | `integer \| null` | yes | Engine-measured wall clock for the action. ⚠️ INCLUDES any time spent queuing for a rate-limit token — see `rateLimitWaitMs` in `detail`, which is a COMPONENT of this number and not a sibling of it. Null where the outcome carries no duration (a skipped action). |
 | `detail` | `object \| null` | yes | Kind-specific extras: identifiers, configuration keys, counts and closed enums, never a slot bag or branch value. A `action-failed` row names its `phase` and carries the action's error `message`, and a `action-warned` row a function warning's `message`, each cut to 500 characters — function text that can quote what the action was processing. |
+
+Shape 2, with `type`, `reason`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"close"` | yes | Always `close`. The server is ending the stream deliberately — this is an orderly goodbye, not a fault. |
+| `reason` | `"lifetime" \| "transport-unavailable" \| "revoked" \| "terminal" \| "too-slow"` | yes | Why the stream is ending. ⚠️ If you do not recognise the value, treat it as `lifetime` and reconnect with jitter. |
 
 ### `GET /v1/runs/{runId}/trace`
 

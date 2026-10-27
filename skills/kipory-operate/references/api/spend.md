@@ -256,14 +256,14 @@ Each item of `entries`:
 | `kind` | `"movement"` | yes | Credits moved: a charge, a grant, an adjustment or a transfer. |
 | `at` | `string` | yes | When the credits moved. |
 | `id` | `string` | yes | The entry's id: the charge's (or its waiver's) id for a `usage-debit`, the ledger row's id for a grant or an adjustment. |
-| `amount` | `integer` | yes | Signed credits: negative for a debit, positive for a grant, an adjustment that returned credits, or a `usage-debit` the platform gave back (a waiver: work it lost, ran twice or broke is not charged). |
+| `amount` | `integer` | no | Signed credits: negative for a debit, positive for a grant, an adjustment that returned credits, or a `usage-debit` the platform gave back (a waiver: work it lost, ran twice or broke is not charged). |
 | `type` | `"usage-debit" \| "grant" \| "adjustment" \| "transfer"` | yes | `usage-debit` is metered work; `grant` and `adjustment` are operator movements; `transfer` is credits moved to or from another wallet — a grant to a member's wallet, or what came back from one. |
-| `causeRef` | `string` | yes | What caused the movement — the charge's id for a `usage-debit` (for a waiver, the charge it gave back), or an operator movement's own reference. |
-| `counterparty` | `object \| null` | yes | The other wallet of a `transfer`: where the credits went (a negative amount) or came from (a positive one). Null on every other movement. |
-| `actor` | `string` | yes | Who changed it — `user:<id>`, an operator email, or `system:<slug>`. |
-| `actorPerson` | `object \| null` | yes | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
-| `before` | `object \| null` | yes | The fields before the change, as strings. `null` on creation. |
-| `after` | `object` | yes | The fields after the change, as strings. |
+| `causeRef` | `string` | no | What caused the movement — the charge's id for a `usage-debit` (for a waiver, the charge it gave back), or an operator movement's own reference. |
+| `counterparty` | `object \| null` | no | The other wallet of a `transfer`: where the credits went (a negative amount) or came from (a positive one). Null on every other movement. |
+| `actor` | `string` | no | Who changed it — `user:<id>`, an operator email, or `system:<slug>`. |
+| `actorPerson` | `object \| null` | no | The person a `user:<id>` actor names, as their account reads now — usually a Kipory operator. Null for an email or `system:<slug>` actor, and for a person whose account is gone. |
+| `before` | `object \| null` | no | The fields before the change, as strings. `null` on creation. |
+| `after` | `object` | no | The fields after the change, as strings. |
 
 ### `GET /v1/organizations/{nodeId}/quota`
 

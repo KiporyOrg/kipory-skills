@@ -18,7 +18,7 @@ Each branch runs the rest of the flow with its item in the output slot. Any list
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `branchTargetsAreDisjoint` | boolean | no | `false` | Tick when each branch writes a distinct record not named by `<item>.id`. ⚠️ Writes to an item's own record need no tick unless the branch reads records or attaches files. |
+| `branchTargetsAreDisjoint` | boolean | no | `false` | Tick when no two branches ever change the same record. ⚠️ A write to `<item>.id` needs no tick unless the branch also reads records or attaches files. |
 | `dedupe` | boolean | no | `true` | Drop repeated items before starting branches. ⚠️ Text is compared exactly, case included, a file by its storage key and anything else by its value. |
 | `maxFailedBranches` | integer, at least 0 | no | — | Branches that may fail; each is dropped, the run ends `partial`. ⚠️ Set this or `maxFailedShare`, not both; with neither, one failure fails the run; a tolerated branch keeps nothing it staged. |
 | `maxFailedShare` | number, more than 0, at most 1 | no | — | That tolerance as a share, rounded down: 0.2 of 10 is 2. ⚠️ Platform failures, spend caps and cancels are never tolerated; one branch must succeed; none sees a sibling's staged writes. |

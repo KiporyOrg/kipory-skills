@@ -1,7 +1,9 @@
 {
-  "source": "2c9d10b945d1e6aaa05b82fd4c4579a7ca29b6fd",
+  "source": "6d47bd5bbd386f17648973cf3abf4aaf0a11d8f8",
   "since": "2026-08-16",
   "history": [
+    {"sha":"6d47bd5bbd38","skills":"The docs, skills and refusal page say what the code does, 405 and 411 tell the projects they reach, and a body of several shapes reads as each shape (readable-flows review C6) (#3630)"},
+    {"sha":"ed5b51674365"},
     {"sha":"2c9d10b945d1","skills":"Evaluate wires a draft as a save would and names every misfit at once, slot refusals carry a rule name, and a save with no worker free for its examples answers 503 (readable-flows review C5) (#3627)"},
     {"sha":"576c1e462ffe","skills":"Every action input is an argument — a slot path, a fixed value or an expression — and the project document is format 9, named views included (411) (#3625)"},
     {"sha":"9d35e805ff88"},
@@ -999,8 +1001,6 @@
     {"sha":"7bc2254fd907"},
     {"sha":"f89e9e5bd882"},
     {"sha":"7ae2f8627614"},
-    {"sha":"47310d5b1d02"},
-    {"sha":"619f66099451"},
-    {"sha":"6645f41f7fd3"}
+    {"sha":"47310d5b1d02"}
   ]
 }

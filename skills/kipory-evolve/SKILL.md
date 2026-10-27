@@ -81,8 +81,17 @@ script.
 
 Export the project (`GET /v1/projects/{nodeId}/document` — the file carries `basedOn`, your read),
 edit the file, plan it (the body is the document itself; it binds to that read), read the plan,
-and apply `{ planId, note }` — never the document again. `kipory-build` owns that loop and the document's format. What
-matters here is that the plan is the apply rolled back, so it answers the same refusals a
+and apply `{ planId, note }` — never the document again. `kipory-build` owns that loop and the document's format.
+
+**Name your session on every write.** A plan takes `?label=`, an apply `label`, and a row save
+(`PATCH /v1/flows/{id}`, `POST /v1/actions`, any design row's own write) the header
+`Kipory-Session-Label: <label>` (1–64 characters), beside `Kipory-Change-Note: <why>` (1–500), the
+sentence history shows for that save; text outside ASCII goes percent-encoded. Send the same label
+from the same key on every plan, apply and save of one working session. The label is how a plan
+tells your own writes since your read from someone else's: a save or an apply without it is listed
+under the plan's `moved`, and the apply answers `409 VERSION_CONFLICT` for your own work.
+
+What matters here is that the plan is the apply rolled back, so it answers the same refusals a
 row-by-row change would meet, in one read, and three things a row write never tells you:
 
 - **`consequences`** — how many stored records the change re-stamps or re-indexes, and
@@ -164,9 +173,14 @@ before the edit, so the edit has a baseline (`kipory-prove`). `kipory-build` own
 the flow, so a deleted flow comes back only from an export.
 
 **An export is the nearest thing to a checkpoint of the whole configuration.** Keep the document
-you exported before a change. Planning it and applying it — with the project's CURRENT `version`
-(export again, or take it from the plan), not the old export's, which answers `409` — puts its rows back — a row deleted
-since returns as a new row with a new id, and a row added since stays unless the document says
+you exported before a change. The file still carries the read it was made at, so planned as it is
+it lists every element changed since under `moved` (or answers `409 PLAN_STALE` `read-too-old`) —
+and those refusals' "export again" is not the way back here. Plan the kept file against the
+project as it is now: `POST /v1/projects/{nodeId}/document/plan?basedOn=<version>`, where
+`<version>` is the project's current one (the `version` a fresh `GET …/document` answers). Its
+`moved` is then empty and its `changes` are the rollback; apply that plan, `{ planId, note }`. An
+export in an older format is converted first with `kipory-connect`'s upgrade script. The
+apply puts its rows back — a row deleted since returns as a new row with a new id, and a row added since stays unless the document says
 `prune` — under the same refusals as any other apply. It covers configuration only: no records,
 no vectors, no secret values. Deleting a table leaves the type it took its fields
 from, so the rollback re-creates the table on that same type. A schedule's or trigger's `enabled` travels: one the rollback re-creates comes back in the
@@ -203,7 +217,10 @@ at all:
   rewrites the action an error is on — a save of it, or a document that changes it — is refused for
   it. When `sha` on `GET /health` changes,
   read `GET /v1/flows?project=<nodeId>&expand=health` and fix every error; `GET /v1/platform-status`
-  names the codes the build added or tightened (`rules`). To be told rather than ask, put a trigger on
+  names the codes the build added or tightened (`rules`). A roll can also change what a route or a
+  read answers without failing any flow: read `GET /v1/notices?project=<nodeId>` too (or re-run
+  `kipory-connect`'s sync script, which prints them). A notice reaches only the projects its report
+  names, and says which of your fields or routes the change touches. To be told rather than ask, put a trigger on
   `platform/flow-health.failing` (`kipory-operate`'s triggers pack). And a stated element is whole (document format 8): a field left out of an action, a flow or any
   row you state goes back to its default (the plan warns `FIELD_RESET_TO_DEFAULT` on each), so a run
   setting (`timeoutMs`, `tries`, `onFailure`, `modelId` and the rest) left out is reset. State each one you mean to keep, and `null` to clear one a rule now refuses (a control

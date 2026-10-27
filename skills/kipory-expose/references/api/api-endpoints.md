@@ -196,6 +196,10 @@ Change one endpoint: its contract (method, path, parameters) and its target, bot
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `id`, `project`, `key`, `contractConfig`, `targetConfig`, `invokeUrl`, `access`, `resolutionRank`, `syncWaitMs`, `version`, `createdAt`, `updatedAt`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `health` | `object` | no | How its recent runs went — failing, quiet, about to be paused, paused, or healthy. Present on a read (`GET`); absent on the answer to a write. Running state, not configuration: it never moves `version`. |
@@ -215,10 +219,6 @@ Change one endpoint: its contract (method, path, parameters) and its target, bot
 | `flowLabel` | `object \| null` | no | `expand=flowLabel` — the bound flow's current id, key and label. Null when the target is not flow-backed or the flow cannot be resolved. Absent unless asked for. |
 | `shadowedBy` | `object \| null` | no | `expand=shadowed` — the platform route that has grown over this endpoint's method and path shape, which means YOUR ENDPOINT IS NOT BEING SERVED: the platform route wins the match and the request never reaches you. Re-path the endpoint to fix it. Unlike `signatureDrift`, null here is a real answer and never means undetermined — nothing shadows this endpoint. Absent unless asked for. |
 | `partiallyShadowedBy` | `object[]` | no | `expand=shadowed` — platform routes that take ONE value of a parameter in your path, so your endpoint never receives that value. Empty when none does. Absent unless asked for. A path whose first segment is a parameter is the usual case: it saves, and platform routes under that parameter take their values first. |
-| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
-| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
-| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
-| `derived` | `object` | no | What the write WOULD have computed, derived from the draft by the same functions a read derives them from for a stored row. Present whenever the body was coherent enough to compute them, which is not the same as `ok`. ⚠️ BOTH ARE SNAPSHOTS: `resolutionRank` is a position among the project's OTHER endpoints and a sibling saved first moves it, and `access` is re-derived inside the write's own transaction from the bound flow as it stands then. |
 
 Each item of `partiallyShadowedBy`:
 
@@ -227,6 +227,15 @@ Each item of `partiallyShadowedBy`:
 | `method` | `string` | yes | The platform route's method — always equal to your endpoint's. |
 | `path` | `string` | yes | The platform route's path template. It may LOOK different from yours and still collide: matching ignores parameter names, so `/v1/keys/{apiKeyId}` collides with `/v1/keys/{id}`. |
 | `group` | `string` | yes | Which part of the platform took the path. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
+| `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
+| `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |
+| `derived` | `object` | no | What the write WOULD have computed, derived from the draft by the same functions a read derives them from for a stored row. Present whenever the body was coherent enough to compute them, which is not the same as `ok`. ⚠️ BOTH ARE SNAPSHOTS: `resolutionRank` is a position among the project's OTHER endpoints and a sibling saved first moves it, and `access` is re-derived inside the write's own transaction from the bound flow as it stands then. |
 
 Each item of `diagnostics`:
 
@@ -255,11 +264,20 @@ Delete one endpoint; its path stops answering on the next request and its key is
 
 **Response `200`**
 
+One of 2 shapes:
+
+Shape 1, with `deleted`, `id`, `key`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `key` | `string` | yes | The deleted endpoint's key. The key is free again immediately — a new endpoint may reuse it. |
+
+Shape 2, with `ok`, `diagnostics`, `complete`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
 | `ok` | `boolean` | yes | Whether this body would be accepted. False exactly when some finding below has `severity: "error"`. ⚠️ TRUE IS NOT A GUARANTEE OF A SUCCESSFUL WRITE: a uniqueness rule can still refuse it when another write lands first. Read it as a snapshot, and read `complete` beside it. |
 | `diagnostics` | `object[]` | yes | Every finding, errors and warnings together, worst first. An empty list with `ok: true` means every rule that could be evaluated passed. |
 | `complete` | `boolean` | yes | Whether every rule ran. False means checking stopped early because an earlier finding made the later rules unanswerable — fix what is listed and validate again, because more may appear. ⚠️ A SHORTER LIST IS NOT A HEALTHIER DRAFT. |

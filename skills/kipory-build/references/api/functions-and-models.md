@@ -249,9 +249,9 @@ Each item of `configConstraints`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `kind` | `"all-or-none"` | yes | Every setting in `fields` is set, or none of them is. |
-| `fields` | `string[]` | yes | Set all of these, or none of them. |
-| `field` | `string` | yes | The setting that may have no effect. |
-| `when` | `object` | yes | The condition under which `field` applies at all. |
+| `fields` | `string[]` | no | Set all of these, or none of them. |
+| `field` | `string` | no | The setting that may have no effect. |
+| `when` | `object` | no | The condition under which `field` applies at all. |
 
 Each item of `configOutputSlots`:
 

@@ -60,10 +60,28 @@ Server-Sent Events. Emits `open` with the project's current structure version, `
 
 **Response `200`** (first frame shape, when declared)
 
+One of 3 shapes:
+
+Shape 1, with `project`, `version`:
+
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `type` | `"open"` | yes | Always `open` — the first frame on every connection. ⚠️ ACT ON IT, not only on `changed`: configuration moves while you are disconnected, and every deploy closes every connection, so a client that ignores this is silently stale after each release. |
 | `project` | `string` | yes | The project's NODE id — what you passed as `?project=`, and what to pass back when refetching. Not the project's own id, which is a different value. |
 | `version` | `string` | yes | The configuration version in force right now. Compare it with the one you hold to decide whether to refetch. |
+
+Shape 2, with `project`, `version`, `sections`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"changed"` | yes | Always `changed`. One frame per version advance, no matter how many sections moved. |
+| `project` | `string` | yes | The project's node id, as on the `open` frame. |
+| `version` | `string` | yes | The version this change advanced to. |
 | `sections` | `string[]` | yes | Which parts of the configuration moved. Refetch naming only these. |
+
+Shape 3, with `reason`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `"close"` | yes | Always `close`. The server is ending the stream deliberately — this is an orderly goodbye, not a fault. |
 | `reason` | `"lifetime" \| "transport-unavailable" \| "revoked" \| "terminal" \| "too-slow"` | yes | Why the stream is ending. ⚠️ If you do not recognise the value, treat it as `lifetime` and reconnect with jitter. |

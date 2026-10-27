@@ -118,7 +118,7 @@ Two things catch people:
 - **A run with no signed-in user has no `userInfo` at all** — a key's call, a schedule, a trigger.
   - An action whose only inputs are provider slots still runs: a project-wide read ignores the missing user, and a per-user table refuses.
   - An action reading `userInfo` beside a real slot (a cursor, an optional query filter) waits for that slot, and is skipped when it never arrives. An optional filter is a view's `optional` param instead (`records-and-endpoints.md` §11); `record.view` runs whichever of its inputs arrive.
-  - Preview with `principal: "no-end-user"` to see the run a key or a schedule gets (`checking.md`).
+  - Preview with `input.principal: "no-end-user"` to see the run a key or a schedule gets (`checking.md`).
 - **A condition is judged before the inputs, and it may name any slot of the flow.** The slot does not have to be one of the action's inputs, and the action is ordered after whatever writes it. An action whose condition fails is skipped whatever its inputs hold.
 - **"Run only when a slot is absent" is `not` around `slotPresent`, on the action itself**: `"condition": { "op": "not", "inner": { "op": "slotPresent", "slot": "found" } }`. There is no separate operator for absence — `not` wraps any clause (`inner`), and `and` and `or` take a list (`all`, `any`). Put it on the action that should run — the `record.create` reading its data slot — and name the slot that decides in the condition only. A helper action that turns "absent" into a marker is not needed, and would not work: a transform reading only the absent slot is skipped with it.
 - **A condition that fails is a skip, not a failure.** A condition that throws is different: the action fails with `condition-error`.

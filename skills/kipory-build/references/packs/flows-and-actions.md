@@ -14,7 +14,7 @@ Three facts change a plan more than the rest of this pack, and each sits deep in
   dry run. → _Preview — run it for real, in a sandbox_
 - **A schedule resolves nobody.** `userInfo` is absent. An action reading only provider slots still
   runs (a project-wide read ignores the missing user, a per-user read fails); an action reading
-  `userInfo` beside a slot that never arrives is skipped. Preview as `principal: "no-end-user"` to
+  `userInfo` beside a slot that never arrives is skipped. Preview as `input.principal: "no-end-user"` to
   see it. → the same section
 - **An action can replace its function's cache.** `reuseResultsForMinutes: 0` runs fresh every time,
   which is what polling a source needs. → _How an action runs_
@@ -426,8 +426,8 @@ search, or give the run a real end user to act as. Two settings do that:
 
 <!-- field-ok: record-owner — a VALUE of the preview body's `principal` enum, not a field name -->
 
-`principal: "record-owner"`
-on the preview body itself, which runs as the record's own user and is how you preview a link flow
+`input.principal: "record-owner"`
+on the preview body, which runs as the record's own user and is how you preview a link flow
 the way it will really run, and an eval suite's `runAsUserId`, which names an arbitrary user.
 ⚠️ `record-owner` is an impersonation capability — it needs EDITOR on the record's project as well as
 on the flow, and refuses a record with no owner.
@@ -1143,8 +1143,8 @@ linked records. Each read's `rowType` is on `GET /v1/actions/input-options` and 
   deleted under a linked read is refused with one 422 `VALIDATION_FAILED`: a `TABLE_FIELD_STILL_READ` finding per
   reading action on `details.diagnostics`, beside any `REMOVED_STILL_USED` for other uses. Change the actions first,
   or make both changes in one project document.
-- `examples` on a `value.transform` (up to 5) run at every save with the run's evaluator; an output that changed
-  refuses the save (`TRANSFORM_EXAMPLE_FAILED`). Leave a field with no value out of an example record, as a run
+- `examples` on a `value.transform` (up to 5) run with the run's evaluator at every save that creates or changes
+  the action, and on health; an output that changed refuses the save (`TRANSFORM_EXAMPLE_FAILED`). Leave a field with no value out of an example record, as a run
   does: `null` there is refused.
 - `POST /v1/actions/evaluate` runs one action on given `slots` (or a recorded run's, `fromRun`) and writes
   nothing. It runs four functions free at EDITOR (`value.transform`, `value.first-non-empty`, `list.concat`,
@@ -1164,6 +1164,11 @@ value.
 
 - **Single versus multiple is the union, not a flag.** List variants are the multiple ones, and
   fanning out requires a list-shaped slot.
+- **A `value.transform` left on the default `object` output writes less of the union.** Its result
+  must be text, a list of text, an object or a list of objects: a bare number or boolean, a list of
+  numbers or booleans, and a file or list of files are refused when it runs. Coerce a scalar with
+  `$string(...)`, wrap the value in an object field, or state an `outputSchema` that names the shape
+  (a list of numbers, say), which the result is then checked against instead.
 - **One writer per slot**, enforced by the database. Two actions cannot write the same slot.
 - **An action can write more slots than `outputSlot` names.** A dispatch writes one per branch, an
   invoke one per mapped return, a merge one per lane, a loop opener every carry slot its
