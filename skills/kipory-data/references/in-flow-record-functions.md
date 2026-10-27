@@ -232,6 +232,11 @@ part of the calling run's change set — so if the calling run fails, the record
 it was. A pending record is queued as it stands. A record being processed or deleted is not
 queued: the action answers `false`, so a flow can tell it apart from a record that was queued.
 
+**To re-run a parent when its children change, declare `reprocessOn` on its table** instead of
+queuing it from each child's flow: Kipory waits out a burst, runs a parent still being processed
+once more after its run, and hands the run what joined, left or changed (`runInfo.reprocess`).
+`kipory-build`'s `references/records-and-endpoints.md` §10 has the declaration.
+
 **A flow that sends failed records back reads `processing`.** Every record read, and every record
 a flow reads, carries `processing { attempts, lastFailureClass }`: how many times the record was
 sent to processing, and the class of its last failure (`logic`, `definition`, `vendor`, `limit`,

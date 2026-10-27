@@ -834,8 +834,8 @@ the table with exactly ONE peer table; one that pairs it with several is refused
 A cursor belongs to the order that minted it; passed under another it is refused — 400 on
 `POST /v1/records/query`, `invalid-input` (422 on an endpoint) from `record.query`. ⛔ There is no
 order by something on a LINKED record ("stories by their newest post", "most commented"): keep
-that value on the record itself — a processed `lastPostAt`, a count its processing flow maintains
-— and order by the field.
+that value on the record itself — a computed rollup (the `max` of its posts' time, a `count`) declared
+with a `filter` use, which Kipory keeps current — and order by the field.
 
 **In an action, what a clause compares against is an argument.** A `field` clause's `value` (top
 level or in `peer`), a `where` entry's `value`, a `term`'s `slug`, the `semantic` `text`, a
@@ -992,6 +992,36 @@ operator or link a clause asks about — only the value compared against can com
 cached answer — every query reads the stores as they are now.
 
 An action's clauses are written through the design API (`POST /v1/actions`, `PATCH /v1/actions/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
+
+## Values Kipory keeps: `computed` and `reprocessOn`
+
+A table may declare `computed` fields: a `rollup` over a relation (`count`, `countDistinct`, `sum`,
+`avg`, `min`, `max`, `any`, `all`, `latest`, `distinct`, each optionally narrowed by `where`), a
+`lookup` of the one record a relation links to, or a `formula` over the row's own values. Kipory
+computes each for every stored record when it is declared, keeps it right a few seconds after any
+related record joins, leaves, changes or is deleted, and no writer may set it
+(`FIELD_IS_COMPUTED`). A field a rollup or `where` reads is a `filter` field of the related table,
+one of its computed fields, or a filter the relation's links carry; a computed field may itself be declared `filter` and filtered or ordered by. Reads carry the values
+beside the record's own fields, with `computedAt` (when each was computed) and `computing` (a
+recompute is due); sync on `computedAt`, since a recompute moves neither `updatedAt` nor
+`version`. `GET /v1/tables/{id}?expand=computedState` shows the backfill and the table's health.
+
+A flow-backed table may declare `reprocessOn`: run its processing again for a record when related
+records `join`, `leave` or `change` (named `fields`), once a `debounceSeconds` window passes with
+no further change. The run is an ordinary, billed processing run that reads why it ran in
+`runInfo.reprocess`.
+
+Both are owned collections in a project document: left out, they are kept; `computed: {}` or
+`reprocessOn: []` removes them. A field the type keeps by hand turns computed in one document
+by removing it from the type and declaring it under `computed` with the same name; each record
+that held it moves once — its `updatedAt` and `version` too — as the stored value leaves its
+data, and Kipory computes it from then on. A rollup's `where` takes the query grammar's field
+clauses plus `ne`: a related record with no value for the field counts as not equal, so
+`hidden ne true` keeps the records that never set `hidden`. To rename a computed field, send
+`computed` with it under the new name and `renameComputed: { "old": "new" }` (on the table PATCH
+or the document's table row): its kept values, its filter and every computed field of another
+table that reads it move to the new name without a recompute. A formula that spells the old name
+is yours to change in the same save.
 
 ## What the platform refuses
 

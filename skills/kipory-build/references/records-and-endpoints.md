@@ -19,7 +19,7 @@ Five shapes for flows that read and write the project's records. The section num
 | §7      | the flow a table runs on each record: its contract, a file-to-text example, a file as a flow input                                                                           |
 | §8      | what an endpoint can answer: the body shape, rows, a 404, a 422 with your message, a 403 for a key, optional query filters, a filter on a list field, natural-key collisions |
 | §9      | `record.query`: a per-user feed, "due now", and the clause grammar                                                                                                           |
-| §10     | a value rolled up from linked records                                                                                                                                        |
+| §10     | a value rolled up from linked records: a `computed` field, or a flow output when it needs the parent's flow                                                                  |
 | §11     | views: a read declared once, its sets, params and shapes, `record.view`, the view endpoint that pages itself, ETag, the preview                                              |
 
 ## 7. Process a record on ingest
@@ -273,10 +273,45 @@ A `where[]` entry is `{ property, op, value }` over a filter the relation or the
 
 ## 10. Keep a value rolled up from linked records
 
-A parent that shows its children's count, latest date or common language stores those values itself.
+A parent that shows its children's count, total or average declares it as a **computed** field, and Kipory keeps it:
+
+```json
+"recipes": {
+  "computed": {
+    "reviewCount": {
+      "rollup": {
+        "relation": "review-of",
+        "count": true,
+        "where": [{ "kind": "field", "field": "hidden", "op": "eq", "value": false }]
+      }
+    }
+  }
+}
+```
+
+- **Each field read in a rollup is a `filter` field of the related table** (`hidden` above; `stars` for a `sum` of stars), one of the related table's own computed fields, or a filter the relation's links carry. The plan refuses any other field, and you may add the `filter` use in the same document.
+- **`eq false` skips records where the field is absent**: a missing value never equals `false`. Make the field required (or always write it), or count with no `where`.
+- **The value follows every change, a few seconds later.** A child created, moved to another parent, edited or deleted — through a flow, the records API or an erasure — and the parent is recomputed. Existing records get the value when you declare it; the plan shows a `recompute` line with their count. It is free and is not a run.
+- **Read it as a field of the parent.** A flow's `record.read` / `record.list` / `record.query` row carries it beside the record's own fields; `GET /v1/records/{id}` answers `computed`, `computedAt` and `computing` (true while a recompute is due). Sync on `computedAt`, not `updatedAt`: a recompute moves neither `updatedAt` nor `version`.
+- **Nothing else writes it.** A `record.create`, `record.update` or records-API write naming a computed field is refused (`FIELD_IS_COMPUTED`, `RECORD_FIELD_IS_COMPUTED`); a flow whose writer surely names one is a `FLOW_WRITES_COMPUTED_FIELD` error in the plan.
+- **A field the type already keeps by hand** turns computed in one document: remove it from the type and declare it under `computed` with the same name. The plan's `recompute` line says the held values are replaced. To remove computed fields, state `computed: {}`; leaving `computed` out keeps them.
+
+A value that needs the parent's own flow — an AI judgement, the commonest language — stays a flow output:
 
 - **Output them from the parent's own processing flow.** Compute the roll-up in the flow (`record.read` the parent with a linked read bringing its children — `"direction": "incoming"`, a `limit`, and `"onMore": "fail"` so a parent with more children than the limit fails rather than rolls up a part; or `record.list` the children with `pages` → `value.transform`) and return it as an output slot. A flow output is a `processed` field, and it can carry a `filter` use like a submitted one: it is stored when the parent's run finishes, so it can be filtered and ordered by. Do not copy it into the record's submitted data with `record.update`: that is a second write per run, and the submitted data should hold only what was sent. Until the parent's next run finishes, filters see the value from its last run.
-- **Re-run the parent when a child joins.** The child's flow runs `record.enqueue-process` on the parent, which sets a ready parent back to pending itself; a `record.update` with `setStatus: "PENDING"` before it is not needed. A parent whose own run is under way is not queued again: the action answers `false`, and that run may have read the children before this one joined, so read the answer and queue the parent again later (the next child's run, or a sweep) when it is `false`. Every action runs again under any `replay` value. If the parent's flow files a term on a vocabulary that holds one value and that value can change (the common language, here), set `replay: "clean"`: otherwise the old term stays, the new one is refused, and the run fails. (`record.teardown` is not a substitute here: it fails on a run with no signed-in user and reaches only that user's own records.) `kipory-data`'s `references/in-flow-record-functions.md` has the replay modes. The parent's flow recomputes from all its children, so the value never drifts from a running total. Each re-run is a whole run of the parent's flow and is billed as one (`kipory-operate`).
+- **Re-run the parent when its children change: declare `reprocessOn`**, and Kipory queues the parent's processing for you:
+
+  ```json
+  "recipes": {
+    "flow": "summarize",
+    "reprocessOn": [
+      { "relation": "review-of", "on": ["join", "leave"], "debounceSeconds": 30 }
+    ]
+  }
+  ```
+
+  `on` is `join` (a child links in), `leave` (one unlinks or is deleted) and `change` (one changes a field named in `fields`, any field of the child table). The run starts once no further change has come for `debounceSeconds` (default 30), so a burst of children is one run; a parent whose run is still to come or under way gets exactly one more after it. The run reads what happened in `runInfo.reprocess` (`relations`, `joined`, `left`, `changed`), is billed like any processing run, and the runs list shows it with `source.reason: "reprocess"`. A run's own writes to its record's children queue nothing, a parent is re-run at most `runs.reprocess-per-record-per-hour` times an hour, and a chain of tables queuing each other through other tables' processing is refused at plan time (`REPROCESS_CYCLE`). Do not queue the parent from the child's flow with `record.enqueue-process` for this: that run can miss children that join while it works. If the parent's flow files a term on a vocabulary that holds one value and that value can change (the common language, here), set `replay: "clean"`: otherwise the old term stays, the new one is refused, and the run fails. `kipory-data`'s `references/in-flow-record-functions.md` has the replay modes.
+
 - **Take the majority, not the first.** For a value the children can disagree on (a language, a category), count them and take the commonest, ignoring an unknown while any child has a known value. Copying the first child's value lets one early odd record decide for the rest.
 - **Do not store the children as a list on the parent.** They are the incoming links of the relation; a list in the record grows without bound and cannot be filtered on.
 

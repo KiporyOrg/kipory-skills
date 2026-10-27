@@ -155,7 +155,7 @@ Each item of `columns`:
 | `label` | `string` | yes | What to write in the column heading. |
 | `family` | `"text" \| "number" \| "date" \| "boolean" \| "reference" \| "term"` | yes | How to render the values under it. |
 | `sortable` | `boolean` | yes | True only for the `date` family. |
-| `source` | `"submission" \| "processed"` | yes | Which half of the type's contract the field comes from. |
+| `source` | `"submission" \| "processed" \| "computed"` | yes | Which part of the type's contract the field comes from: submitted, a flow's output, or computed by Kipory. |
 | `ref` | `object` | no | Present only when the type declares BOTH the field and what it points at. With only the field, the column draws plainly and promises no destination. |
 
 Each item of `records`:
@@ -181,6 +181,7 @@ Each item of `records`:
 | `createdAt` | `string` | yes | When the record arrived. |
 | `updatedAt` | `string` | yes | When it last changed. |
 | `version` | `integer` | yes | Its optimistic-concurrency token, for a later write. |
+| `computing` | `boolean` | yes | True while a change to a related record is not yet in this record's computed values; they settle within seconds. Always false for a table with no computed fields. |
 
 ### `POST /v1/records`
 
@@ -620,6 +621,7 @@ Each item of `records`:
 | `createdAt` | `string` | yes | When the record arrived. |
 | `updatedAt` | `string` | yes | When it last changed. |
 | `version` | `integer` | yes | Its optimistic-concurrency token, for a later write. |
+| `computing` | `boolean` | yes | True while a change to a related record is not yet in this record's computed values; they settle within seconds. Always false for a table with no computed fields. |
 | `linked` | `object` | no | The records this record is linked to, one key per linked read of the query's `linked`: a record (absent when there is none) for a linked read that brings one, a list (empty when none) for a linked read that brings several. Each is a record of its own table in this same shape, its `values` holding the fields the linked read names. Present only when the query names `linked`. |
 | `linkedMore` | `object` | no | The `linked` lists cut at their `limit` under `onMore: "stop"`, by linked read name. Absent when none was cut. |
 

@@ -448,7 +448,7 @@ as proof of links.
 It is a flag on the real route rather than a sibling `/validate`, deliberately. One route is one set
 of rules, so a check that passes and a save that refuses cannot come apart.
 
-The findings and consequences these answers carry come from one list the whole design API shares, and it grows: a flow warning (`ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`) and a plan consequence (`fields-unset`) were added. Decide on a finding by its `severity`, not by a fixed list of codes.
+The findings and consequences these answers carry come from one list the whole design API shares, and it grows: a flow warning (`ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`) and the plan consequences `fields-unset` and `recompute` (a table's computed fields computed again for its stored records, at no charge) were added. A relation or pairing change that a table's computed field reads is judged with it: refused with `TABLE_COMPUTED_INVALID` when it breaks one. Decide on a finding by its `severity`, not by a fixed list of codes.
 
 ## What the platform refuses
 

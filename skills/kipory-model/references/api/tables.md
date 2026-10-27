@@ -56,6 +56,9 @@ Each item of `tables`:
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
+| `computed` | `object \| null` | yes | Fields Kipory keeps from related records or the record itself, or null when none. Kept a few seconds after a change; a record shows `computing` meanwhile. |
+| `computedFields` | `object \| null` | yes | DERIVED from `computed`, read-only: each computed field's kind and the type of its values. |
+| `reprocessOn` | `object[] \| null` | yes | When related records join, leave or change, this table's processing flow runs again for the record. Null when never. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -73,6 +76,7 @@ Each item of `tables`:
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
+| `computedState` | `object` | no | How the table's computed fields are kept. Present when `expand=computedState` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 ### `POST /v1/tables`
@@ -90,6 +94,8 @@ Create a table that takes its data shape from an existing type. With `validateOn
 | `flowId` | `string \| null` | no | Processing flow to bind. Supply one to have records processed on creation; omit or null to store them as submitted. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table: `user` for one person's own records, `project` for the project's shared content pool. Required — it is immutable once the table has records. |
 | `uses` | `object` | no | What each field is for. Omit for a table whose fields are stored with the record and read whole. Every projection — `searchable`, `queryable`, `relations`, the natural key, the vocabulary links — is derived from this and cannot be sent directly. |
+| `computed` | `object` | no | Fields Kipory keeps from related records (`rollup`, `lookup`) or the record itself (`formula`). Omit for none. |
+| `reprocessOn` | `object[]` | no | Run the table's processing flow again for a record when its related records join, leave or change. Omit for never. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -129,7 +135,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected" \| "recompute"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. `recompute`: Kipory computes the table's computed fields for its stored records, in the background and at no charge. |
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
@@ -171,6 +177,9 @@ Each item of `renames`:
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
+| `computed` | `object \| null` | yes | Fields Kipory keeps from related records or the record itself, or null when none. Kept a few seconds after a change; a record shows `computing` meanwhile. |
+| `computedFields` | `object \| null` | yes | DERIVED from `computed`, read-only: each computed field's kind and the type of its values. |
+| `reprocessOn` | `object[] \| null` | yes | When related records join, leave or change, this table's processing flow runs again for the record. Null when never. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -188,6 +197,7 @@ Each item of `renames`:
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
+| `computedState` | `object` | no | How the table's computed fields are kept. Present when `expand=computedState` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
 | `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
@@ -199,13 +209,24 @@ Each item of `contentFields`:
 | --- | --- | --- | --- |
 | `name` | `string` | yes | Field name, as a projection would reference it. |
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
-| `source` | `"submission" \| "processed"` | yes | Where the field comes from. `submission` — a property of the record's own data. `processed` — an output the bound flow produces. |
+| `source` | `"submission" \| "processed" \| "computed"` | yes | Where the field comes from. `submission` — a property of the record's own data. `processed` — an output the bound flow produces. `computed` — a value Kipory keeps (the table's `computed`). |
+
+Each item of `reprocessOn`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `relation` | `string` | yes | The relation whose links reach the related records. |
+| `direction` | `"incoming" \| "outgoing" \| "either"` | no | Which end of the relation this table is. Needed only when the relation pairs the table with itself; `either` is the one value for a symmetric relation. |
+| `peerTable` | `string` | no | The related table. Needed only when the relation pairs this table with more than one. |
+| `on` | `"join" \| "leave" \| "change"[]` | yes | `join`: a related record links in; `leave`: one unlinks; `change`: one changes a field in `fields`. |
+| `fields` | `string[]` | no | The related records' fields whose change queues the run. Required with `change`. |
+| `debounceSeconds` | `integer` | no | The run starts once no further change has come for this many seconds. Default 30. |
 
 Each item of `contract`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `family` | `"submission" \| "processed" \| "system"` | yes | Where a referenced field comes from. `submission` — the record's own submitted data. `processed` — an output of the flow bound to its type. `system` — a platform-maintained field. |
+| `family` | `"submission" \| "processed" \| "system" \| "computed"` | yes | Where a referenced field comes from. `submission` — the record's own submitted data. `processed` — an output of the flow bound to its type. `system` — a platform-maintained field. `computed` — a value Kipory keeps from related records or the record itself (the table's `computed`). |
 | `name` | `string` | yes | Field name, as a declaration would reference it. |
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
 | `payloadType` | `"keyword" \| "integer" \| "float" \| "bool" \| "datetime" \| null` | yes | Index type this field would get if made searchable, derived from its schema. Null means it cannot be filtered on at all — see `refusal`. |
@@ -294,7 +315,7 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, vocabularies, uses, restamp, migration, embedding, vectorProgress, diagnostics, processingGaps, processing. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
+| `expand` | `string` | no | Optional expansions, comma-separated. One or more of: drift, flowLabels, outputDefinition, contract, vocabularies, uses, restamp, migration, embedding, vectorProgress, diagnostics, processingGaps, processing, computedState. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
 
 **Response `200`**
 
@@ -318,6 +339,9 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
+| `computed` | `object \| null` | yes | Fields Kipory keeps from related records or the record itself, or null when none. Kept a few seconds after a change; a record shows `computing` meanwhile. |
+| `computedFields` | `object \| null` | yes | DERIVED from `computed`, read-only: each computed field's kind and the type of its values. |
+| `reprocessOn` | `object[] \| null` | yes | When related records join, leave or change, this table's processing flow runs again for the record. Null when never. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -335,6 +359,7 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
+| `computedState` | `object` | no | How the table's computed fields are kept. Present when `expand=computedState` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 
 Each item of `contentFields`:
@@ -343,13 +368,24 @@ Each item of `contentFields`:
 | --- | --- | --- | --- |
 | `name` | `string` | yes | Field name, as a projection would reference it. |
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
-| `source` | `"submission" \| "processed"` | yes | Where the field comes from. `submission` — a property of the record's own data. `processed` — an output the bound flow produces. |
+| `source` | `"submission" \| "processed" \| "computed"` | yes | Where the field comes from. `submission` — a property of the record's own data. `processed` — an output the bound flow produces. `computed` — a value Kipory keeps (the table's `computed`). |
+
+Each item of `reprocessOn`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `relation` | `string` | yes | The relation whose links reach the related records. |
+| `direction` | `"incoming" \| "outgoing" \| "either"` | no | Which end of the relation this table is. Needed only when the relation pairs the table with itself; `either` is the one value for a symmetric relation. |
+| `peerTable` | `string` | no | The related table. Needed only when the relation pairs this table with more than one. |
+| `on` | `"join" \| "leave" \| "change"[]` | yes | `join`: a related record links in; `leave`: one unlinks; `change`: one changes a field in `fields`. |
+| `fields` | `string[]` | no | The related records' fields whose change queues the run. Required with `change`. |
+| `debounceSeconds` | `integer` | no | The run starts once no further change has come for this many seconds. Default 30. |
 
 Each item of `contract`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `family` | `"submission" \| "processed" \| "system"` | yes | Where a referenced field comes from. `submission` — the record's own submitted data. `processed` — an output of the flow bound to its type. `system` — a platform-maintained field. |
+| `family` | `"submission" \| "processed" \| "system" \| "computed"` | yes | Where a referenced field comes from. `submission` — the record's own submitted data. `processed` — an output of the flow bound to its type. `system` — a platform-maintained field. `computed` — a value Kipory keeps from related records or the record itself (the table's `computed`). |
 | `name` | `string` | yes | Field name, as a declaration would reference it. |
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
 | `payloadType` | `"keyword" \| "integer" \| "float" \| "bool" \| "datetime" \| null` | yes | Index type this field would get if made searchable, derived from its schema. Null means it cannot be filtered on at all — see `refusal`. |
@@ -412,6 +448,9 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `flowId` | `string \| null` | no | Omit to keep the current binding, supply an id to re-bind, or send null to remove the flow entirely. |
 | `ownerScope` | `"user" \| "project"` | no | Change who owns records of this table. Refused once the table has records. Omit to keep. |
 | `uses` | `object` | no | Replace the table's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order. Every projection is re-derived from it in the same transaction. |
+| `computed` | `object \| null` | no | Replace the table's computed fields, whole. Omit to keep them; null to remove them all (their values go too). |
+| `reprocessOn` | `object[] \| null` | no | Replace when the table's processing runs again because related records changed. Omit to keep; null for never. |
+| `renameComputed` | `object` | no | Rename computed fields: old name → new name. Send `computed` with the field under its new name; its kept values and every computed field of another table reading it move with it, without a recompute. |
 | `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored table and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
@@ -419,7 +458,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 
 One of 2 shapes:
 
-Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `origin`, `ownerScope`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
+Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `origin`, `ownerScope`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `computed`, `computedFields`, `reprocessOn`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -441,6 +480,9 @@ Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`
 | `relations` | `object \| null` | yes | DERIVED from `uses`, read-only: links this table produces, or null when no field carries `link` and the table declares no join. |
 | `queryable` | `object \| null` | yes | DERIVED from `uses`, read-only: fields records of this table may be filtered on, in slot order, or null when no field carries `filter`. One list serving both stores — a field listed here is filterable in the record store and in the vector index alike. |
 | `naturalKey` | `string \| null` | yes | DERIVED from `uses`, read-only: the field carrying `key`, or null. Declaring it verifies and stamps every existing record; a refusal names the records that fail. |
+| `computed` | `object \| null` | yes | Fields Kipory keeps from related records or the record itself, or null when none. Kept a few seconds after a change; a record shows `computing` meanwhile. |
+| `computedFields` | `object \| null` | yes | DERIVED from `computed`, read-only: each computed field's kind and the type of its values. |
+| `reprocessOn` | `object[] \| null` | yes | When related records join, leave or change, this table's processing flow runs again for the record. Null when never. |
 | `hasRecords` | `boolean` | yes | Whether any records exist. Renames and field removals are refused once this is true. |
 | `recordCount` | `integer` | yes | How many records exist under this table. |
 | `version` | `integer` | yes | Optimistic-lock version, bumped on every write. Send it back on a PATCH to be refused on a concurrent edit rather than overwriting one. |
@@ -458,6 +500,7 @@ Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`
 | `diagnostics` | `object[]` | no | Stored declarations this table's current contract no longer supports, found by running the checks a save runs against what is stored now. Present when `expand=diagnostics` was requested on `GET /v1/tables/{id}`; an empty array means every declaration still holds. The `records` findings (records missing a required field) are left out when reading the records did not finish in time. |
 | `processingGaps` | `object[]` | no | The flows of this project that create records of this table without queuing them for processing, so the records wait PENDING with no run coming. Present when `expand=processingGaps` was requested on `GET /v1/tables/{id}`; always empty for a table that binds no processing flow. |
 | `processing` | `object` | no | How many of this table's records wait for processing and how many are being processed now. Records are processed on the platform's shared worker slots, so how many run at once rises and falls with the load on them; a run's `queued` says what each one waited for. Present when `expand=processing` was requested on `GET /v1/tables/{id}`. |
+| `computedState` | `object` | no | How the table's computed fields are kept. Present when `expand=computedState` was requested on `GET /v1/tables/{id}`. |
 | `migration` | `object` | no | Present when `expand=migration` was requested. |
 | `warnings` | `object[]` | no | Present when the write removed something a use the platform only guessed may still read (`REMOVED_MAY_BE_USED`): each names the user and where. The write went through; check each by hand. |
 | `renames` | `object[]` | no | Present when a PATCH changed `key`: the table renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
@@ -469,13 +512,24 @@ Each item of `contentFields`:
 | --- | --- | --- | --- |
 | `name` | `string` | yes | Field name, as a projection would reference it. |
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
-| `source` | `"submission" \| "processed"` | yes | Where the field comes from. `submission` — a property of the record's own data. `processed` — an output the bound flow produces. |
+| `source` | `"submission" \| "processed" \| "computed"` | yes | Where the field comes from. `submission` — a property of the record's own data. `processed` — an output the bound flow produces. `computed` — a value Kipory keeps (the table's `computed`). |
+
+Each item of `reprocessOn`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `relation` | `string` | yes | The relation whose links reach the related records. |
+| `direction` | `"incoming" \| "outgoing" \| "either"` | no | Which end of the relation this table is. Needed only when the relation pairs the table with itself; `either` is the one value for a symmetric relation. |
+| `peerTable` | `string` | no | The related table. Needed only when the relation pairs this table with more than one. |
+| `on` | `"join" \| "leave" \| "change"[]` | yes | `join`: a related record links in; `leave`: one unlinks; `change`: one changes a field in `fields`. |
+| `fields` | `string[]` | no | The related records' fields whose change queues the run. Required with `change`. |
+| `debounceSeconds` | `integer` | no | The run starts once no further change has come for this many seconds. Default 30. |
 
 Each item of `contract`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `family` | `"submission" \| "processed" \| "system"` | yes | Where a referenced field comes from. `submission` — the record's own submitted data. `processed` — an output of the flow bound to its type. `system` — a platform-maintained field. |
+| `family` | `"submission" \| "processed" \| "system" \| "computed"` | yes | Where a referenced field comes from. `submission` — the record's own submitted data. `processed` — an output of the flow bound to its type. `system` — a platform-maintained field. `computed` — a value Kipory keeps from related records or the record itself (the table's `computed`). |
 | `name` | `string` | yes | Field name, as a declaration would reference it. |
 | `label` | `string` | yes | Display label — the schema's title when it has one, else the name. |
 | `payloadType` | `"keyword" \| "integer" \| "float" \| "bool" \| "datetime" \| null` | yes | Index type this field would get if made searchable, derived from its schema. Null means it cannot be filtered on at all — see `refusal`. |
@@ -587,7 +641,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected" \| "recompute"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. `recompute`: Kipory computes the table's computed fields for its stored records, in the background and at no charge. |
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
@@ -682,7 +736,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected" \| "recompute"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. `recompute`: Kipory computes the table's computed fields for its stored records, in the background and at no charge. |
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |

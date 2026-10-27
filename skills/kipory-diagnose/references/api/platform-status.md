@@ -30,6 +30,7 @@ Whether each of the platform's own vendor and model-provider accounts is answeri
 | `documentFormat` | `object` | yes | The project document format this server reads; a document in any other format is refused with `DOCUMENT_VERSION_UNSUPPORTED`. Compare it with the format your own tools write before exporting or applying a document. |
 | `accounts` | `object[]` | yes | Every vendor and model provider the platform can call on its own key, in a fixed order. This is about the PLATFORM's accounts only: an action that spends a key stored on the project or an organisation above it is not affected by a `refusing` row here. A `degraded` row is the provider failing, and reaches every key. |
 | `rules` | `object` | yes | What this build changed in the diagnostic codes a save and a flow's health are judged by, read off the platform's own registry. A rule that fires in more places under an unchanged code and unchanged words is not listed: each project hears of that through `platform/flow-health.failing` on the flows it reaches. After a change of `sha` on `GET /health`, read `GET /v1/flows?project=…&expand=health` too. |
+| `computedLag` | `object \| null` | yes | How far computed fields trail the records they follow. Null when it cannot be measured right now — never 0. |
 
 Each item of `accounts`:
 

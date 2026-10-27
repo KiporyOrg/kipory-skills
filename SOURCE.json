@@ -1,7 +1,9 @@
 {
-  "source": "6d47bd5bbd386f17648973cf3abf4aaf0a11d8f8",
+  "source": "c30c0650eb30a4b1b227e22a77263659160dc4ce",
   "since": "2026-08-16",
   "history": [
+    {"sha":"c30c0650eb30","skills":"A table can declare computed fields that Kipory keeps right, and processing that runs again when related records change (410) (#3622)"},
+    {"sha":"6f90762d6d9b"},
     {"sha":"6d47bd5bbd38","skills":"The docs, skills and refusal page say what the code does, 405 and 411 tell the projects they reach, and a body of several shapes reads as each shape (readable-flows review C6) (#3630)"},
     {"sha":"ed5b51674365"},
     {"sha":"2c9d10b945d1","skills":"Evaluate wires a draft as a save would and names every misfit at once, slot refusals carry a rule name, and a save with no worker free for its examples answers 503 (readable-flows review C5) (#3627)"},
@@ -999,8 +1001,6 @@
     {"sha":"037385fa9c08"},
     {"sha":"46071e3c909d"},
     {"sha":"7bc2254fd907"},
-    {"sha":"f89e9e5bd882"},
-    {"sha":"7ae2f8627614"},
-    {"sha":"47310d5b1d02"}
+    {"sha":"f89e9e5bd882"}
   ]
 }

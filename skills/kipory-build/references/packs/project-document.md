@@ -231,6 +231,13 @@ document marks them, at most the profile's `searchFieldsPerTable` of them. A pro
 `vectors` states its `modelId`, `keywords` (whether exact words are indexed too) and
 `defaultChunking`, and nothing else about the index: no slot name, no collection.
 
+A table may also state `computed`: fields Kipory keeps from related records (a `rollup` over a
+relation, such as `{ "relation": "review-of", "count": true }`). They are judged once the whole
+document is in place, so the relation, the related table and the `filter` uses a rollup reads may
+arrive in the same document. Declaring one adds a `recompute` consequence that counts the stored
+records it is computed for; values follow later changes within seconds and are read from
+`computedAt`, never `updatedAt`. A field reference's `family` may then be `computed` too.
+
 ## Plan a document before applying it
 
 `POST /v1/projects/{nodeId}/document/plan` takes the document itself as the body — JSON, or YAML
@@ -346,6 +353,12 @@ callers it breaks, and `cost` — a rename calls no model and is not charged, an
 `reembedRecords` says a table's search text names its own key. A swap or a chain (`a`→`b` with
 `b`→`a`) in one document is refused: rename one word to a free name first. The tables pack has the
 whole rule.
+
+A table's row may carry `renameComputed` (`{"<old>": "<new>"}`) beside a `computed` that declares
+the field under its new name: its kept values, stamps and filter move, and every other table's
+computed field reading it reads the new name, without a recompute. Like `renameFields`, it is a
+statement about this apply — never stored, never exported. Plans list a `recompute` consequence
+when a table's stored records get computed values.
 
 A schedule, a trigger and a source carry `enabled`, which their create bodies do not: the row API
 switches it with a `PATCH` (`{enabled, version}`), and the document writes it through that same
