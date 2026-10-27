@@ -40,7 +40,7 @@ Each place comes with address, coordinates, category, rating, phone, website and
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

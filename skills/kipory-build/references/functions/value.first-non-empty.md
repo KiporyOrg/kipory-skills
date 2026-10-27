@@ -31,7 +31,7 @@ The chosen value passes on unchanged, so candidates can be of different kinds.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

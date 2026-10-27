@@ -48,7 +48,7 @@ Keeps the file on the record and returns a reference to it.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

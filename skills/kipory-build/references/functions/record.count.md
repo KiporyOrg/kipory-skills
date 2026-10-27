@@ -46,7 +46,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`value` › an object with `expr`**
 
@@ -73,7 +73,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`peerRecordId` › an object with `expr`**
 
@@ -91,7 +91,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

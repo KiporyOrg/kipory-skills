@@ -27,7 +27,7 @@ Nothing is fetched and no model is called. For prose with holes, use Fill a temp
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `input` | object | yes | — | The values the expression reads, keyed by its input names. |
-| `output` | object | yes | — | What the expression must give for that input. |
+| `output` | any | yes | — | What the expression must give for that input. |
 | `note` | string | no | — | What the example shows, for the next reader. |
 
 **An object with `input`, `absent`, `note`**

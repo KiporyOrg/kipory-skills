@@ -30,7 +30,7 @@ A value becomes one item; a list adds each item. Use it when no fan-out needs me
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

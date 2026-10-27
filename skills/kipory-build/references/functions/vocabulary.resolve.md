@@ -34,7 +34,7 @@ Reuses a matching term or coins a new one when allowed. Wire the output into one
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -52,7 +52,7 @@ Reuses a matching term or coins a new one when allowed. Wire the output into one
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

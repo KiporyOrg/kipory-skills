@@ -32,7 +32,7 @@ The payload comes from the run or is fixed. It writes nothing back, so it can si
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

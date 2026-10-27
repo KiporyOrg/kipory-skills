@@ -32,7 +32,7 @@ Removes one record's watch. The last one switches the source off, never deletes 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -50,7 +50,7 @@ Removes one record's watch. The last one switches the source off, never deletes 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -68,7 +68,7 @@ Removes one record's watch. The last one switches the source off, never deletes 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

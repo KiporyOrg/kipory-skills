@@ -46,7 +46,7 @@ Reads JSON, plain text or an XML feed. A 4xx answer fails the action; its failur
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

@@ -32,7 +32,7 @@ Merged terms count toward the term they point at. Use it to show what someone ha
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

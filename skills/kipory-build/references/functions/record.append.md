@@ -34,7 +34,7 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -52,7 +52,7 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -70,7 +70,7 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -88,7 +88,7 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

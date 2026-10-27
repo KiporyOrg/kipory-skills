@@ -30,7 +30,7 @@ Deletes the user's own and the project's records, never another user's. Deleting
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -48,7 +48,7 @@ Deletes the user's own and the project's records, never another user's. Deleting
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

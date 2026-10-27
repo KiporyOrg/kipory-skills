@@ -35,7 +35,7 @@ Wraps each item in a tagged block, strips control tokens and caps the length.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -53,7 +53,7 @@ Wraps each item in a tagged block, strips control tokens and caps the length.
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

@@ -40,7 +40,7 @@ Sends after the run is saved, so a failed run sends nothing. Previews never send
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -58,7 +58,7 @@ Sends after the run is saved, so a failed run sends nothing. Previews never send
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

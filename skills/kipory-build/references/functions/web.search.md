@@ -47,7 +47,7 @@ Reads pages until it has about `maxResults`; each page is charged. A search that
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

@@ -1,7 +1,8 @@
 {
-  "source": "576c1e462ffe8bc2ea8402c46e960ce5f4def582",
+  "source": "2c9d10b945d1e6aaa05b82fd4c4579a7ca29b6fd",
   "since": "2026-08-16",
   "history": [
+    {"sha":"2c9d10b945d1","skills":"Evaluate wires a draft as a save would and names every misfit at once, slot refusals carry a rule name, and a save with no worker free for its examples answers 503 (readable-flows review C5) (#3627)"},
     {"sha":"576c1e462ffe","skills":"Every action input is an argument — a slot path, a fixed value or an expression — and the project document is format 9, named views included (411) (#3625)"},
     {"sha":"9d35e805ff88"},
     {"sha":"4957739cb793","skills":"A read is declared once as a view and read by name; a GET over a view gets its paging, typed params, OpenAPI and ETag derived (412) (#3612)"},
@@ -1000,7 +1001,6 @@
     {"sha":"7ae2f8627614"},
     {"sha":"47310d5b1d02"},
     {"sha":"619f66099451"},
-    {"sha":"6645f41f7fd3"},
-    {"sha":"7d2066527b87"}
+    {"sha":"6645f41f7fd3"}
   ]
 }

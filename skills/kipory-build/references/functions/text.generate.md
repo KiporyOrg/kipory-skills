@@ -36,7 +36,7 @@ Returns text, or a structured value when the action declares an output shape. Wi
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

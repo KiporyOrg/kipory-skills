@@ -232,8 +232,37 @@ One JSONata `expression`; nothing else in a flow computes.
     ]
   }
   ```
-  Every save runs them with the run's own evaluator and refuses one whose output changed (`TRANSFORM_EXAMPLE_FAILED`, naming the first place they differ); `{ "input": …, "absent": true }` pins "gives nothing". Key `input` by the names the expression reads. Write made-up values, never ones copied from a run.
-- **Try one action without running the flow: `POST /v1/actions/evaluate`** with the action (`{ "id": … }` or a draft) and `slots`, or `fromRun` to use a recorded run's values. It answers the value, its time and its parts, writes nothing and is free for a transform, `value.first-non-empty`, `list.concat` and `text.interpolate`; a record read runs read-only and is billed as a preview. Any other function is refused `ACTION_EVALUATE_UNSUPPORTED` — use the flow preview.
+  Every save runs them with the run's own evaluator and refuses one whose output changed (`TRANSFORM_EXAMPLE_FAILED`, naming the first place they differ); `{ "input": …, "absent": true }` pins "gives nothing". Key `input` by the names the expression reads. Write made-up values, never ones copied from a run. An input from a read is the read's whole answer: a `record.list` input is `{ "records": [...] }`, and a `record.query` input also carries `"bounded": false` and `"explanation": { "clauses": [], "pushdown": { "ids": 0, "cap": 0, "mode": "none" } }` (its `RecordQueryPage` type; `GET /v1/types?project=<nodeId>&key=RecordQueryPage`). A refusal names every member an input is missing.
+- **Try one action without running the flow: `POST /v1/actions/evaluate`** with the action (`{ "id": … }` or a draft) and `slots`, or `fromRun` to use a recorded run's values. It answers the value, its time and its parts, and writes nothing:
+
+  ```json
+  {
+    "project": "<project node id>",
+    "action": {
+      "draft": {
+        "flowId": "<a saved flow's id>",
+        "functionKey": "value.transform",
+        "functionConfig": { "expression": "books.records.{ \"t\": title }" }
+      }
+    },
+    "slots": {
+      "books": {
+        "records": [
+          {
+            "id": "b1",
+            "status": "READY",
+            "createdAt": "2026-01-01T00:00:00Z",
+            "updatedAt": "2026-01-01T00:00:00Z",
+            "title": "Dune"
+          }
+        ]
+      }
+    }
+  }
+  ```
+  - **A draft is not the action create body.** It takes `flowId`, `functionKey`, `functionConfig`, the wiring (`inputStreams`, `inputPaths`, `inputProjectionNames`), `promptTemplate`, `systemPrompt`, `inputSchemas`, `outputSchema`, `key`, and run settings under `run` (`timeoutMs`). No `outputSlot`, `condition` or `taskKey`: an unknown member is 422 `VALIDATION_FAILED`. Leave `inputStreams` out (or empty) and they are read from the expression, as a save does — then leave `inputPaths`, `inputProjectionNames` and `inputSchemas` out too, since they line up with it by position; `slots` is keyed by those names.
+  - **The flow must already be saved**, since the draft names it by id. To try a transform before the document that creates its flow, apply the flow with its reads first, evaluate, then apply the transform.
+  - **Who may call it and what it costs.** A transform, `value.first-non-empty`, `list.concat` and `text.interpolate` (exactly these four) run free at EDITOR. A record read (`record.list`, `record.read`, `record.query`) runs read-only at ADMIN and is billed as a preview; a `record.query` with a `semantic` clause is refused `ACTION_EVALUATE_UNSUPPORTED`, as is any other function — use the flow preview. A project may evaluate 120 times a minute; past that, 429 `RATE_LIMITED`.
 
 - **Top-level identifiers are slot names**, which the save reads into `inputStreams` when you leave it out. A list you send must be exactly those names — the save refuses a difference with `FREE_FORM_INPUT_STREAMS_MISMATCH` (`action-fields.md`, inputs the platform derives).
 - **Only a name at the top of the expression is a slot.** Inside a predicate `[...]`, after a `.` (`docs.{"id": id}`), in a group-by or a sort, a bare name is a field of each item (after a focus binding `list@$e` it reads the outer context instead), and the save does not count it as an input: `meaning.scores[score > 0.5]` reads the slot `meaning` and each score's `score`. A lambda body written at the top counts as the top: `$map(docs, function($d){ title })` reads the slot `title`.

@@ -1147,7 +1147,13 @@ linked records. Each read's `rowType` is on `GET /v1/actions/input-options` and 
   refuses the save (`TRANSFORM_EXAMPLE_FAILED`). Leave a field with no value out of an example record, as a run
   does: `null` there is refused.
 - `POST /v1/actions/evaluate` runs one action on given `slots` (or a recorded run's, `fromRun`) and writes
-  nothing: free for transforms and other pure functions, billed as a preview for a record read.
+  nothing. It runs four functions free at EDITOR (`value.transform`, `value.first-non-empty`, `list.concat`,
+  `text.interpolate`) and the three record reads at ADMIN, billed as a preview; a `record.query` with a
+  `semantic` clause and every other function are refused `ACTION_EVALUATE_UNSUPPORTED`. A project may
+  evaluate 120 times a minute (429 past it). The action is a stored one (`{ "id" }`) or a `draft`, which names
+  a saved flow by `flowId` and takes the dry run's members, not the create body's: no `outputSlot`,
+  `condition` or `taskKey`, run settings under `run`. A draft that leaves `inputStreams` out reads what its
+  expression names, as a save would.
 
 ## What travels between actions
 

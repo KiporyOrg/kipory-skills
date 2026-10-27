@@ -52,7 +52,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`value` › an object with `expr`**
 
@@ -80,7 +80,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`slug` › an object with `expr`**
 
@@ -119,7 +119,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`where` › `value` › an object with `expr`**
 
@@ -169,7 +169,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`window` › `from` › an object with `expr`**
 
@@ -189,7 +189,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`window` › `to` › an object with `expr`**
 
@@ -217,7 +217,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`where` › `value` › an object with `expr`**
 
@@ -263,7 +263,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`text` › an object with `expr`**
 
@@ -283,7 +283,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`likeRecordId` › an object with `expr`**
 
@@ -301,7 +301,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -348,7 +348,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

@@ -31,7 +31,7 @@ Counts one relation's current links reaching each record, across everyone's reco
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 

@@ -51,7 +51,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -69,7 +69,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -87,7 +87,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -122,7 +122,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`value` › an object with `expr`**
 
@@ -149,7 +149,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
@@ -176,7 +176,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **`peerRecordId` › an object with `expr`**
 
@@ -208,7 +208,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `literal` | object | yes | — |  |
+| `literal` | any | yes | — |  |
 
 **An object with `expr`**
 
