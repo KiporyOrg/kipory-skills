@@ -617,7 +617,7 @@ Each item of `operators`:
 
 ### `POST /v1/actions/evaluate`
 
-Run one action — stored (`action.id`) or a draft — on values you give in `slots` or that a past run recorded (`fromRun`), and answer what it gives, how long it took and, for a transform, its size. Nothing is written and no vendor or model is called. Functions that read only their inputs run free at EDITOR; record reads (`record.list`, `record.read`, `record.query` without a meaning search) see the project's saved records, are billed as design-time work and need ADMIN; any other function is refused. A failure answers 200 with `ok: false`. Render a prompt instead: `POST /v1/actions/interpolate` (free) or `POST /v1/actions/preview` (calls the model). Run the whole flow: `POST /v1/flows/{id}/preview`.
+Run one action — stored (`action.id`) or a draft — on values you give in `slots` or that a past run recorded (`fromRun`), and answer what it gives, how long it took and, for a transform, its size. Nothing is written and no vendor or model is called. Functions that read only their inputs run free at EDITOR; record reads (`record.list`, `record.read`, `record.query` without a meaning search) see the project's saved records, are billed as design-time work and need ADMIN; any other function is refused. A failure answers 200 with `ok: false`; a platform too busy to run the action answers 503 `ACTION_EVALUATE_BUSY` with `Retry-After`, and the same request goes through later. Render a prompt instead: `POST /v1/actions/interpolate` (free) or `POST /v1/actions/preview` (calls the model). Run the whole flow: `POST /v1/flows/{id}/preview`.
 
 **Request body**
 

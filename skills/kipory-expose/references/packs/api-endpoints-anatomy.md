@@ -327,12 +327,14 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   to one of those made through a row's own route (adding an action to the flow, say) leaves the
   endpoint answering with no `ETag`, running the flow every time, until its snapshot is derived
   again: by its own save, the next document apply, or the daily sweep. Every
-  view-endpoint answer carries `Cache-Control: private, no-cache` and
-  `Vary: Authorization, Cookie`.
+  view-endpoint answer carries `Vary: Authorization, Cookie`; a `200` or a `304` also carries
+  `Cache-Control: private, no-cache` and the `ETag`, and a refusal carries neither.
 - **A view, shape or flow edit** re-derives the snapshot of every view endpoint it moves in the same
   apply, and the plan lists each as an `update` of `surfaces.endpoints.<key>` whose `fields` name
   what callers see move (`published.query.<param>` for a param renamed, retyped, added or
-  removed). The daily drift sweep re-adopts anything else that left a snapshot behind.
+  removed). A relation pairing added or removed, in a document or through its own route,
+  re-derives the view endpoints whose reads go through that relation. The daily drift sweep
+  re-adopts anything else that left a snapshot behind.
 
 ## The life of a request
 

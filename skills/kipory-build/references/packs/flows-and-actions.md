@@ -700,7 +700,9 @@ save would pin `userInfo`. Omitting them is correct and free for an action you a
 
 `derivedInputStreams` is the slot list this configuration NAMES, sorted — the **same list the save
 pins onto the action**, because the dry run runs the platform's own derivation rather than a second one.
-Send `order.total + shipping` and it answers `["order", "shipping"]`.
+Send `order.total + shipping` and it answers `["order", "shipping"]`. A fixed value (`{literal: …}`)
+or an expression (`{expr: …}`) you wrote at a position comes back in that position as you wrote it,
+so the list can be sent back as the action's `inputStreams` unchanged.
 
 ⭐ **A prompt-shaped action names its inputs in its placeholders, so send the template too.** For a
 function whose inputs come from its template — `derivedFrom: "template"` — send `promptTemplate`, and
@@ -1153,7 +1155,9 @@ linked records. Each read's `rowType` is on `GET /v1/actions/input-options` and 
   evaluate 120 times a minute (429 past it). The action is a stored one (`{ "id" }`) or a `draft`, which names
   a saved flow by `flowId` and takes the dry run's members, not the create body's: no `outputSlot`,
   `condition` or `taskKey`, run settings under `run`. A draft that leaves `inputStreams` out reads what its
-  expression names, as a save would.
+  expression names, as a save would; one that states them takes what a save takes at each position — a
+  slot name, `{ "literal": … }` or `{ "expr": "…" }`. When the platform has no worker free to run it, the
+  evaluate answers 503 `ACTION_EVALUATE_BUSY` with `Retry-After`; send it again then.
 
 ## What travels between actions
 

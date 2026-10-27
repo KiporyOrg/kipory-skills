@@ -879,9 +879,13 @@ const REQUEST_PAIRS = [
   { at: [], literal: "headers", slot: "headerSlots", map: true },
   { at: [], literal: "query", slot: "querySlots", map: true },
 ];
+// `unset`: what format 9 reads when the slot holds nothing usable. Format 8 read
+// the fixed twin there, so a pair whose fixed value differs would change size.
 const MERGED_PAIRS = {
-  "record.list": [{ at: [], literal: "limit", slot: "limitSlot" }],
-  "web.search": [{ at: [], literal: "maxResults", slot: "maxResultsSlot" }],
+  "record.list": [{ at: [], literal: "limit", slot: "limitSlot", unset: 50 }],
+  "web.search": [
+    { at: [], literal: "maxResults", slot: "maxResultsSlot", unset: 10 },
+  ],
   "record.query": CLAUSE_PAIRS,
   "url.fetch": REQUEST_PAIRS,
   "url.fetch-as-file": REQUEST_PAIRS,
@@ -944,6 +948,15 @@ const mergePair = (map, pair, where) => {
     );
     value = Object.fromEntries(sides.flatMap(([, entries]) => entries));
   } else {
+    if (
+      hasSlot &&
+      hasLiteral &&
+      pair.unset !== undefined &&
+      map[literal] !== pair.unset
+    )
+      throw new Error(
+        `${where}: \`${literal}\` ${JSON.stringify(map[literal])} is used when \`${slot}\` holds no usable number, and format 9 uses ${String(pair.unset)} there. Keep one of the two, or write \`${literal}\` as an expression that falls back to ${JSON.stringify(map[literal])}, and run this again.`,
+      );
     // The slot won where both were set, and wins.
     value = hasSlot ? map[slot] : asArgument(map[literal]);
   }

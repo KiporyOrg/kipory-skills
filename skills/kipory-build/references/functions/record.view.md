@@ -4,13 +4,13 @@
 
 Read one page of a view: a read declared once and named by its key.
 
-Takes the view's params from the run's slots, and paging from slots named after the action, like `readAfter`.
+Takes the view's params from flow inputs of the same names, and paging from inputs named after the action.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `the view's params` → `object`
 - **Also found as:** named read, saved query, list records, my feed, page of records
-- **Reads:** The run's slots named like the view's params, plus the action's own `<action>After` or `<action>Before` and `<action>Limit`. _(shape hint: `the view's params`)_
+- **Reads:** The flow's inputs named like the view's params, plus the action's own `<action>After` or `<action>Before` and `<action>Limit`. _(shape hint: `the view's params`)_
 - **Emits:** An object: the page's `records`, with `nextCursor` and `prevCursor` when there is a page after or before it; a view of one record answers `record`.
 
 ## Config

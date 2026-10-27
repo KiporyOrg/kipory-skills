@@ -637,7 +637,7 @@ Each item of `scores`:
 
 ### `POST /v1/views/{key}/preview`
 
-Read one page of a view as a chosen member of the project (`asUserId`), or as the project for a view that reads no person's records, with its params, a cursor and a limit. Answers the page, the JSON Schema of one item, every table the read reaches and the clauses it ran with params and its base merged in. Writes, charges and runs nothing. A view endpoint answers the same page to a caller; `record.view` reads it in a flow. Reads the applied view: to try an edit, plan the document first.
+Read one page of a view as a chosen member of the project (`asUserId`), or as the project for a view that reads no person's records, with its params, a cursor and a limit. Answers the page, the JSON Schema of one item, every table the read reaches and the clauses it ran with params and its base merged in. Writes, charges and runs nothing. A view endpoint answers the same page to a caller; `record.view` reads it in a flow. Reads the applied view: plan and apply the document first to preview a new or edited view.
 
 **Path parameters**
 

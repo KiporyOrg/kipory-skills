@@ -253,8 +253,8 @@ or a bare version of THIS project. The answer's `planId` is what you apply (kept
 you mean to apply without a read is a `422` naming `basedOn`; `?keep=false` plans a preview that
 keeps nothing. `?label=agent-docs` names your session, so two sessions on one key are told apart.
 A plan gives way to real work: when a row it rehearses stays held by another write for more than
-a second, it answers `409 DESIGN_BUSY` with `Retry-After` — not `PLAN_STALE`; your read is still
-good, so send the same plan again after it.
+a second, or the project already has two plans being worked out, it answers `409 DESIGN_BUSY`
+with `Retry-After` — not `PLAN_STALE`; your read is still good, so send the same plan again after it.
 
 ⛔ **A file read from another project is refused, never bound.** Exported from a dev project and
 planned on another, its `basedOn` names the dev project, whose versions say nothing about this
@@ -528,7 +528,9 @@ Authoring needs EDITOR. A document that REMOVES anything — a `delete: true` ro
 map that finds something to remove — needs ADMIN, and is refused with `403` before the first write
 when the caller holds less. The plan says so first: a caller below EDITOR gets
 `DOCUMENT_APPLY_FORBIDDEN`, and one below ADMIN gets `DOCUMENT_DELETE_FORBIDDEN` on each row that
-removes something, so `ok` is false. Every removal still goes through that row's own delete, so whatever
+removes something, so `ok` is false. A plan for a caller below EDITOR lists what the document would
+change and is not rehearsed: it carries no `health`, no `consequences` and no findings about the
+change itself. Every removal still goes through that row's own delete, so whatever
 protects the row there (a flow a schedule still binds, a source something still listens to)
 protects it here, and surfaces as a finding on the row's path.
 

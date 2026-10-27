@@ -51,7 +51,10 @@ a vocabulary, beside the renamed `vocabulary`.
 ## Merged: a fixed field and its slot twin are one field
 
 For a single value (`limit`, `maxResults`, a `record.query` clause's fields), where both were set the
-converter keeps the slot, as the action did when it ran. For a map (`headers`, `query`), it joins the
+converter keeps the slot, as the action did when it ran. Format 8 used a fixed `limit` or `maxResults`
+when the slot held no usable number, and format 9 uses its default there (`limit` 50, `maxResults`
+10): the converter REFUSES a pair whose fixed value is not that default. Keep one, or write the field
+as an expression that falls back to your number, and run it again. For a map (`headers`, `query`), it joins the
 two maps, and REFUSES a name stated in both: keep one and run it again. A fixed value is kept, written
 `{"literal": …}` unless it is a number or `true`/`false`. The platform's own move of stored flows kept
 the slot in every case.
