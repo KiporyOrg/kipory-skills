@@ -115,7 +115,7 @@ none — the platform chunks a `search` field itself (`kipory-model`).
   link's own lifetime. The action's default link never expires, so on such a file the default link is
   the one that breaks: set `neverExpires: false` and a `ttlSeconds` of 7 days or less. To remove the
   file sooner, find its id in `GET /v1/files?project=<node>` and `DELETE /v1/files/{id}`. A record
-  write (`fileIdsSlot`) does not take it: it is a flow's output, not an input. The file belongs to the signed-in person the run acts for, and to
+  write (`fileIds`) does not take it: it is a flow's output, not an input. The file belongs to the signed-in person the run acts for, and to
   the project when there is none (an API key, a public endpoint, a schedule, a trigger). A failed
   run keeps none of its files. To keep a file for good, produce it in a table's processing
   flow: it stays with the record. A preview's files live 7 days.

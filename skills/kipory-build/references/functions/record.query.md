@@ -8,9 +8,9 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `the slots its clauses name` → `RecordQueryPage`
+- **I/O:** `the values its clauses compare against` → `RecordQueryPage`
 - **Also found as:** look up, lookup, find a record, find records, filter records, search records, search rows
-- **Reads:** The slots its clauses name for the values they compare against; optionally a cursor from `cursorSlot`; and on a user-owned type the user id from `userIdSlot`. _(shape hint: `the slots its clauses name`)_
+- **Reads:** The values its clauses compare against, each a slot, a fixed value or an expression; optionally a `cursor`; and on a user-owned type the `userId`. _(shape hint: `the values its clauses compare against`)_
 - **Emits:** A `RecordQueryPage`: the records satisfying every clause, a `nextCursor` when an exact-only query has more, and `bounded` plus `explanation` on every answer.
 - **Rate limit:** 300 per min in bucket `ai-embed`, counted per project — shared with `term.search`
 
@@ -18,8 +18,8 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clauses` | union[], 1 to 16 items | yes | — | Records must match every clause; a value may come from a slot. ⚠️ A semantic clause returns at most topK records, with no further pages. |
-| `cursorSlot` | string | no | — | The slot holding a prior answer's cursor; empty for the first page. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
+| `clauses` | union[], 1 to 16 items | yes | — | Clauses every record must match; values are paths, literals or expressions. ⚠️ A semantic clause returns at most topK records, with no further pages. |
+| `cursor` | union | no | — | A prior answer's cursor; empty for the first page. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the action; with `tableKeys`, each row carries its own table's named fields. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
@@ -27,7 +27,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `pages` | object | no | — | Read every page of an exact question in one action. ⚠️ Only an exact question reads every page; records left after the last page fail the action unless `onMore` is "stop". |
 | `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
-| `userIdSlot` | string | no | — | The slot holding whose records to query; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the action on user-owned tables. |
+| `userId` | union | no | — | The person whose records to query; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the action on user-owned tables. |
 
 ### `clauses` — each item is one of
 
@@ -38,10 +38,27 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `kind` | `field` | yes | — | A condition on a field the type routes with `filter`. |
 | `field` | string | yes | — | A field of the table with a `filter` use. |
 | `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` \| `not-in` | yes | — | Each operator takes one value; `in` takes a list. |
-| `value` | union | no | — | One value, or a list for `in`; dates as ISO 8601. |
-| `valueSlot` | string | no | — | A slot holding the value to compare, instead of `value`. |
+| `value` | union | yes | — | The value to compare (a list for `in`; dates in ISO 8601). |
 
-`value` — one of: `string | number | boolean`; `(string | number | boolean)[]`, 1 to 1000 items.
+`value` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`value` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`value` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 **`kind: term`**
 
@@ -49,8 +66,27 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `kind` | `term` | yes | — | An assignment of a vocabulary term, by slug. |
 | `vocabularyKey` | string | yes | — | A vocabulary the table lists in `uses.vocabularies`. |
-| `slug` | string | no | — | The term, by slug; an alias counts as its term. |
-| `slugSlot` | string | no | — | A slot holding the term's slug, instead of `slug`. |
+| `slug` | union | yes | — | The term, by slug; an alias counts as its term. |
+
+`slug` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`slug` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`slug` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 **`kind: link`**
 
@@ -69,8 +105,27 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `property` | string | yes | — | A declared link filter, or stream filter of the field. |
 | `op` | `eq` \| `ne` \| `in` \| `lt` \| `lte` \| `gt` \| `gte` | yes | — | How the stamped value compares. |
-| `value` | string | no | — | The value to compare, as text; `in` takes up to 1000. |
-| `valueSlot` | string | no | — | A slot holding the text to compare, instead of `value`. |
+| `value` | union | yes | — | The text value to compare; for `in`, up to 1000 values. |
+
+`where` › `value` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`where` › `value` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`where` › `value` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 `count`:
 
@@ -99,10 +154,48 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `from` | string | no | — | Inclusive start of the window, ISO 8601. |
-| `fromSlot` | string | no | — | The slot holding the window's start, in place of `from`. |
-| `to` | string | no | — | Inclusive end of the window, ISO 8601; default now. |
-| `toSlot` | string | no | — | The slot holding the window's end, in place of `to`. |
+| `from` | union | no | — | Inclusive start of the window, an ISO 8601 moment. |
+| `to` | union | no | — | Inclusive end of the window, an ISO 8601 moment; default now. |
+
+`window` › `from` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`window` › `from` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`window` › `from` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+`window` › `to` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`window` › `to` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`window` › `to` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 `where` — each item:
 
@@ -110,8 +203,27 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `property` | string | yes | — | A declared link filter, or stream filter of the field. |
 | `op` | `eq` \| `ne` \| `in` \| `lt` \| `lte` \| `gt` \| `gte` | yes | — | How the stamped value compares. |
-| `value` | string | no | — | The value to compare, as text; `in` takes up to 1000. |
-| `valueSlot` | string | no | — | A slot holding the text to compare, instead of `value`. |
+| `value` | union | yes | — | The text value to compare; for `in`, up to 1000 values. |
+
+`where` › `value` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`where` › `value` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`where` › `value` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 `count` — one of:
 
@@ -132,14 +244,70 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `kind` | `semantic` | yes | — | A phrase ranked by meaning; at most one per query. |
 | `field` | string | no | — | A field with a `search` use to rank on. |
-| `text` | string, at most 8000 characters | no | — | The phrase to resemble. |
-| `textSlot` | string | no | — | The slot whose run-time value is the phrase, in place of `text`. |
-| `likeRecordId` | string | no | — | A record to resemble instead of a phrase; it is left out. |
+| `text` | union | no | — | The phrase to resemble. |
+| `likeRecordId` | union | no | — | A record id to resemble instead of a phrase; excluded from results. |
 | `likeTableKey` | string | no | — | The table of the record to resemble, if not the queried one. |
-| `likeRecordIdSlot` | string | no | — | A slot holding the id of the record to resemble. |
 | `topK` | integer, 1 to 200 | no | — | How many to rank; default 50. |
 | `minScore` | number, -1 to 1 | no | — | Leave out records scoring below this, from −1 to 1. |
 | `passage` | boolean | no | — | `true` also returns the text of each record's best-matching part. |
+
+`text` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`text` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`text` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+`likeRecordId` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`likeRecordId` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`likeRecordId` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `cursor` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `order` — one of
 
@@ -170,6 +338,24 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `max` | integer, 1 to 500 | yes | — | Most pages to read, up to the project's read-pages limit. |
 | `onMore` | `fail` \| `stop` | no | `"fail"` | `"fail"` (default) fails when records remain; `"stop"` answers a `nextCursor`. |
 
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
 ## Worked example
 
 Asks one question across a table's stores and says, on every answer, whether it is complete and which store answered each clause.
@@ -185,12 +371,14 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "person",
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "clauses": [
     {
       "kind": "term",
       "vocabularyKey": "language",
-      "slug": "hebrew"
+      "slug": {
+        "literal": "hebrew"
+      }
     },
     {
       "kind": "link",
@@ -199,13 +387,17 @@ Action settings (`functionConfig`):
         {
           "property": "tag",
           "op": "eq",
-          "value": "close"
+          "value": {
+            "literal": "close"
+          }
         }
       ]
     },
     {
       "kind": "semantic",
-      "text": "loves hiking"
+      "text": {
+        "literal": "loves hiking"
+      }
     }
   ]
 }
@@ -252,7 +444,9 @@ Action settings (`functionConfig`):
       "kind": "field",
       "field": "lang",
       "op": "eq",
-      "value": "en"
+      "value": {
+        "literal": "en"
+      }
     }
   ],
   "fields": [
@@ -306,12 +500,14 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "person",
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "clauses": [
     {
       "kind": "term",
       "vocabularyKey": "language",
-      "slug": "hebrew"
+      "slug": {
+        "literal": "hebrew"
+      }
     },
     {
       "kind": "link",
@@ -320,13 +516,17 @@ Action settings (`functionConfig`):
         {
           "property": "tag",
           "op": "eq",
-          "value": "close"
+          "value": {
+            "literal": "close"
+          }
         }
       ]
     },
     {
       "kind": "semantic",
-      "text": "loves hiking"
+      "text": {
+        "literal": "loves hiking"
+      }
     }
   ]
 }
@@ -371,13 +571,13 @@ Action settings (`functionConfig`):
       "kind": "field",
       "field": "guideId",
       "op": "in",
-      "valueSlot": "followed.guideIds"
+      "value": "followed.guideIds"
     },
     {
       "kind": "field",
       "field": "startsAt",
       "op": "gte",
-      "valueSlot": "runInfo.now"
+      "value": "runInfo.now"
     }
   ],
   "limit": 20,
@@ -432,7 +632,7 @@ Action settings (`functionConfig`):
       "peer": [
         {
           "kind": "semantic",
-          "textSlot": "request.q",
+          "text": "request.q",
           "topK": 50
         }
       ]
@@ -488,10 +688,12 @@ Action settings (`functionConfig`):
       "kind": "field",
       "field": "city",
       "op": "eq",
-      "value": "Tel Aviv"
+      "value": {
+        "literal": "Tel Aviv"
+      }
     }
   ],
-  "cursorSlot": "pageCursor",
+  "cursor": "pageCursor",
   "limit": 50
 }
 ```
@@ -532,13 +734,15 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "person",
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "clauses": [
     {
       "kind": "field",
       "field": "city",
       "op": "eq",
-      "value": "Tel Aviv"
+      "value": {
+        "literal": "Tel Aviv"
+      }
     }
   ],
   "limit": 100,

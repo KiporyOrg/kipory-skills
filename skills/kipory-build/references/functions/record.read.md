@@ -10,7 +10,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `RecordRead[]`
 - **Also found as:** get record, load record, fetch record by id
-- **Reads:** A list of ids from the slot `idsSlot` names — plain ids or objects carrying an `id`. Plus the user id from `userIdSlot`. _(shape hint: `any+`)_
+- **Reads:** A list of ids from `ids` — plain ids or objects carrying an `id`. Plus the user id from `userId`. _(shape hint: `any+`)_
 - **Emits:** A `RecordRead` per record, its submitted and processed fields flattened to the top level. In the order asked, deduplicated; unresolved ids drop.
 
 ## Config
@@ -20,12 +20,12 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A missing key counts as no value; only the submitted value is checked. |
 | `failIfEmpty` | boolean | no | `false` | Fail when nothing is found instead of returning an empty list. ⚠️ Without it, a missing record fails later actions in a confusing way. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ Unknown field names are ignored. |
-| `idsSlot` | string | yes | — | The slot holding a list of ids, or a path like `hits[].recordId`. ⚠️ A lone id reads nothing; wrap it as `[recordId]` in a `value.transform`. |
+| `ids` | union | yes | — | A list of ids, or a path like `hits[].recordId`. ⚠️ A lone id reads nothing; give it as a one-item list: `{"expr": "[recordId]"}`. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `tableKey` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id; others' ids are dropped. ⚠️ On a user-owned type, an empty value fails the action; dropped ids are silent. |
+| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; others' ids are dropped. ⚠️ On a user-owned type, an empty value fails the action; dropped ids are silent. |
 
 ### `dataNullChecks` — each item
 
@@ -33,6 +33,24 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | --- | --- | --- | --- | --- |
 | `path` | string | yes | — | A dotted path inside the record's `data`. |
 | `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows with no value there; `isNotNull` keeps the rest. |
+
+### `ids` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `include`
 
@@ -50,6 +68,24 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
 | `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
 
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
 ## Worked example
 
 Reads the full record behind each id an earlier action produced, so a later action can work with the real text instead of ids.
@@ -64,7 +100,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "idsSlot": "candidates",
+  "ids": "candidates",
   "tableKey": "item"
 }
 ```
@@ -100,9 +136,9 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "idsSlot": "candidates",
+  "ids": "candidates",
   "tableKey": "item",
-  "userIdSlot": "userInfo.userId"
+  "userId": "userInfo.userId"
 }
 ```
 
@@ -131,7 +167,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "idsSlot": "candidates",
+  "ids": "candidates",
   "tableKey": "review",
   "fields": [
     "rating"
@@ -184,7 +220,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "idsSlot": "candidates",
+  "ids": "candidates",
   "tableKey": "item"
 }
 ```

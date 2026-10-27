@@ -10,15 +10,51 @@ Deletes the user's own and the project's records, never another user's. Deleting
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id list` → `boolean`
 - **Also found as:** remove records, erase, delete rows
-- **Reads:** A list of record ids, from the slot `idsSlot` names. A single delete passes a one-element list. _(shape hint: `record id list`)_
+- **Reads:** A list of record ids, from `ids`. A single delete passes a one-element list. _(shape hint: `record id list`)_
 - **Emits:** True when at least one record was removed or accepted for deletion, false when every id was already gone or belonged to another user.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `idsSlot` | string | yes | — | The slot holding the list of record ids to delete. ⚠️ At most 200 ids; a longer list fails before anything is deleted. |
-| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `ids` | union | yes | — | The list of record ids to delete. ⚠️ At most 200 ids; a longer list fails before anything is deleted. |
+| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+
+### `ids` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -34,7 +70,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "idsSlot": "ids"
+  "ids": "ids"
 }
 ```
 
@@ -60,7 +96,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "idsSlot": "ids"
+  "ids": "ids"
 }
 ```
 

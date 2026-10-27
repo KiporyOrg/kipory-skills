@@ -25,20 +25,36 @@ Keeps the file on the record and returns a reference to it.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `allowedMimePatterns` | string[] | no | — | Content types to accept, as RE2 regular expressions; empty accepts anything. |
+| `body` | union | no | — | The request body, usually built by an earlier action. |
 | `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
-| `bodySlot` | string, at most 4096 characters | no | — | The slot holding the request body, built by an earlier action. |
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
 | `failureMode` | `hard` \| `soft` | no | `"hard"` | `hard` fails the action; `soft` returns an empty file and continues. ⚠️ A bad address, private address or storage failure fails the action even under `soft`. |
-| `headerSlots` | object | no | — | Headers read from slots; an empty slot leaves one out. |
-| `headers` | object | no | — | Headers with fixed values; put a credential in `secret` instead. |
+| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
 | `maxBytes` | integer, more than 0, at most 100000000 | no | `25000000` | Largest download in bytes; a bigger one fails. |
 | `maxRedirects` | integer, 0 to 10 | no | `5` | How many redirects to follow at most. |
 | `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that needs it. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
-| `query` | object | no | — | Query parameters with fixed values, added to the address. |
-| `querySlots` | object | no | — | Query parameters read from slots; an empty slot leaves one out. |
+| `query` | object | no | — | Query parameters for the address by name; an empty value omits one. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; if the credential lists hosts, any other host fails. |
 | `timeoutMs` | integer, more than 0 | no | `30000` | HTTP request timeout in milliseconds. ⚠️ This limits the one request, not the action's own `timeoutMs` run setting. |
 | `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
+
+### `body` — one of
+
+- `string`, at most 4096 characters
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

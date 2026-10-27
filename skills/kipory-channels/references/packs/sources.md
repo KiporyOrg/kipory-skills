@@ -101,9 +101,9 @@ channel — do not write a source per follow from outside. A flow does it with t
   `record.delete`, `DELETE /v1/records/{id}`, or the person's account being erased. You do not
   write an unwatch for the delete.
 - **From a schedule or a trigger, name the person.** Such a run acts for nobody, so on its own it
-  may hold only with a shared record, which no account deletion removes. Set `userIdSlot` to the
-  follow's owner and `holderSlot` to the follow: the watch is then held by that person's own record
-  and ends when their account is deleted. In a run that acts for a person, `userIdSlot` may name
+  may hold only with a shared record, which no account deletion removes. Set `userId` to the
+  follow's owner and `holder` to the follow: the watch is then held by that person's own record
+  and ends when their account is deleted. In a run that acts for a person, `userId` may name
   only that person; a name the run may not use answers `HOLDER_NOT_WRITABLE`, and an unwatch with
   it lets nothing go.
 
@@ -165,7 +165,7 @@ for a Telegram message that payload carries:
 
 An edited message is a second event with a different id; a deleted one a third.
 
-**A copy is kept only once something claims it.** Attach it to a record (`fileIdsSlot` on
+**A copy is kept only once something claims it.** Attach it to a record (`fileIds` on
 `record.create`, or `POST /v1/files/{id}/attach`) and it lives with the record. A copy nothing
 claims is deleted after at least 7 days — a video's still too, so attach its `thumbnailFileId` when
 you want to keep it.

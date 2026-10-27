@@ -33,7 +33,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 8`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 9`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
@@ -111,6 +111,10 @@ Write an inline `record.list` or `record.query` only when a value comes from an 
     "order": { "by": "field", "field": "publishedOn", "direction": "desc" },
     "pageSize": { "default": 20, "max": 50 },
     "shape": "bookCard"
+  },
+  "poetryShelf": {
+    "extends": "visibleBooks",
+    "where": [{ "kind": "field", "field": "genre", "op": "eq", "value": { "literal": "poetry" } }]
   }
 }
 ```
@@ -120,6 +124,13 @@ What no schema says:
 - **`where` is `record.query`'s clause grammar written as values** — a view names no run slot. A
   `field` clause takes exactly one operand: a fixed `value`; a `param`, one of the view's params; or a `set` (the
   values of a field across another view's rows, `id` by default, under `in` or `not-in`).
+- ⛔ **A view's fixed text is `{ "literal": … }`.** Write `"value": { "literal": "poetry" }`, a list
+  for `in` / `not-in` as `{ "literal": ["novel", "poetry"] }`; a bare number or `true`/`false` stays
+  as it is. A bare text is refused (in an action a bare string is a slot path, and a view reads no
+  slot), and so is an `{ "expr": … }`; a value the reader gives is a `param`.
+  The same holds at every operand of a view's clause: a `term`'s `slug`, a `semantic` `text` or
+  `likeRecordId`, a `link` or `stream` `where` entry's `value`, a stream `window`'s `from` / `to`,
+  and a `peer` field clause's `value`.
 - **A set is a sub-read, not a list.** It runs in the same statement as the view, as the same
   caller, with no member cap; an empty set matches nothing under `in` and everything under
   `not-in`, and `not-in` keeps a record with no value at all. A set view holds only `field` clauses
@@ -271,7 +282,7 @@ not name. A ROW is stated whole — it is that row's create body, so its require
 required here too (one row asks for more than its create: an `evals` suite must state `scorers`,
 `[]` for a contract suite).
 
-⭐ **A stated element is whole (format 8).** An element you state — a flow, an action, a table, a
+⭐ **A stated element is whole (since format 8).** An element you state — a flow, an action, a table, a
 trigger — is the whole element: an own optional field you leave out goes back to its default, as
 it would on a create (`timeoutMs` left out of an action resets the stored limit; `description` left
 out clears it). The plan shows each reset as a field going to its default, with a
@@ -290,7 +301,7 @@ one field changed. Four kinds of field are not reset by leaving them out:
 - **the project's own `name`** (its `description` resets to `""`).
 
 An action's input wiring — `inputStreams`, `inputPaths`, `inputProjectionNames` — left out is what
-the save derives from the function and its settings (a `flow.invoke`'s input rows, a loop-end's
+the save derives from the function and its settings (a `flow.invoke`'s `inputs` map, a loop-end's
 carry map, the slots a prompt names), and cleared where it derives none; the plan warns on each one it
 clears. A reference left out is cleared too: a table's `flow` unbinds, and an event type's `payload`
 and a suite's `regression` go. A config namespace always states its `type` (`type: null` is
@@ -518,7 +529,7 @@ document that rewrites a sub-flow's actions re-types every action calling it, re
 flow whose signature changes is judged against the actions the document LEAVES, so retyping an input
 and replacing the action that read it is one apply. An action leaves out what a single create lets it
 leave out: `inputStreams` for a function that names its inputs in its settings, prompt or
-`flow.invoke` input rows (derived, as the save derives them), `inputSchemas` (each input typed from
+`flow.invoke` `inputs` map (derived, as the save derives them), `inputSchemas` (each input typed from
 what feeds it, an action of the same document included, and typed again when what feeds it changes),
 `promptTemplate` and `taskKey`, `outputSlot` on a function that writes no named result,
 `description`, `condition`, `enabled` and `outputSchema`. Left out of an action the flow already holds, `taskKey`, `outputSlot` and `outputSchema` keep the value the platform chose, and the author's own — `promptTemplate`, `description`, `condition`, `enabled` — go back to their defaults (a stated element is whole); a new action starts on `""`, `extraction`, no slot, no description, no
@@ -588,9 +599,11 @@ key out for an action that states none.
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 8`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
-  convert a `kipory: 2` to `7` file you hold with the document upgrade script that comes with
-  `kipory-connect`. Version 8 makes a stated element whole (above); the script moves a version-7
+- **A format version other than `kipory: 9`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
+  convert a `kipory: 2` to `8` file you hold with the document upgrade script that comes with
+  `kipory-connect`. Version 9 makes every action input an argument (renamed and merged fields,
+  `{literal}` for a fixed text, views included); the script converts a JSON file fully and refuses a
+  YAML one that needs restructuring. Version 8 makes a stated element whole (above); the script moves a version-7
   file's number only, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`. Version 7 holds the project's types under `types` and names a table's
   and a config namespace's type with `type`; version 6 called them `schema` and `shape`. Version 6
   is also the one whose search models name no slot and whose `search` uses carry no `role`; the

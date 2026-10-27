@@ -32,11 +32,28 @@ Reads pages until it has about `maxResults`; each page is charged. A search that
 | `includeUrlContains` | string[], 1 to 20 items | no | — | Keep only results whose address contains one of these texts. |
 | `languageCode` | `af` \| `sq` \| `sm` \| `ar` \| `az` \| `eu` \| `be` \| `bn` \| `bh` \| `bs` \| `bg` \| `ca` \| `zh-CN` \| `zh-TW` \| `hr` \| `cs` \| `da` \| `nl` \| `en` \| `eo` \| `et` \| `fo` \| `fi` \| `fr` \| `fy` \| `gl` \| `ka` \| `de` \| `el` \| `gu` \| `iw` \| `hi` \| `hu` \| `is` \| `id` \| `ia` \| `ga` \| `it` \| `ja` \| `jw` \| `kn` \| `ko` \| `la` \| `lv` \| `lt` \| `mk` \| `ms` \| `ml` \| `mt` \| `mr` \| `ne` \| `no` \| `nn` \| `oc` \| `fa` \| `pl` \| `pt-BR` \| `pt-PT` \| `pa` \| `ro` \| `ru` \| `gd` \| `sr` \| `si` \| `sk` \| `sl` \| `es` \| `su` \| `sw` \| `sv` \| `tl` \| `ta` \| `te` \| `th` \| `ti` \| `tr` \| `uk` \| `ur` \| `uz` \| `vi` \| `cy` \| `xh` \| `zu` \| `he` \| `jv` \| `nb` \| `fil` | no | — | The search's interface language, like `en`; empty uses the default. ⚠️ Chinese and Portuguese name their variant: zh-CN, zh-TW, pt-BR or pt-PT. |
 | `maxPages` | integer, more than 0, at most 7 | no | — | The most result pages to read, each charged; omit to fill `maxResults`. ⚠️ Past its last real match the engine pads pages, so a page mostly off-query ends the search. |
-| `maxResults` | integer, more than 0, at most 50 | no | `10` | The most results to return, up to 50. ⚠️ Each page read is charged, even for a search finding nothing, which is kept 30 minutes; `maxPages` caps them. |
-| `maxResultsSlot` | string, at most 512 characters | no | — | A slot with this run's whole-number bound, 1 to 50; replaces `maxResults`. ⚠️ An invalid value fails the action; an empty slot falls back to `maxResults`. |
+| `maxResults` | union | no | — | The most results to return, from 1 to 50; default 10. ⚠️ Each page read is charged, even for a search finding nothing, which is kept 30 minutes; `maxPages` caps them. |
 | `resultsLanguage` | `ar` \| `bg` \| `ca` \| `cs` \| `da` \| `de` \| `el` \| `en` \| `es` \| `et` \| `fi` \| `fr` \| `hr` \| `hu` \| `id` \| `is` \| `it` \| `iw` \| `ja` \| `ko` \| `lt` \| `lv` \| `nl` \| `no` \| `pl` \| `pt` \| `ro` \| `ru` \| `sk` \| `sl` \| `sr` \| `sv` \| `th` \| `tr` \| `uk` \| `zh-CN` \| `zh-TW` \| `he` | no | — | Return only pages written in this language, like `en`. |
 | `since` | `day` \| `week` \| `month` \| `year` | no | — | Return only results from the last day, week, month or year. |
 | `sites` | string[], 1 to 20 items | no | — | Keep only results on these hosts, subdomains included. ⚠️ Hosts join the query while its 32 words allow; a result these filters drop is still charged. |
+
+### `maxResults` — one of
+
+- `string`, at most 512 characters
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

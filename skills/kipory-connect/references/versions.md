@@ -6,11 +6,11 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `6c6f3bdfcd58` | `version` on `GET /v1/capability-packs` |
-| functions | `16eef6e52c0a8002588234039463517feeedf1cd8270627c423bad079315d1bd` | `version` on `GET /v1/functions` |
-| api | `17bb36883542` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
-| codes | `5640d823fb6d` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
+| packs | `1c004b9d5f2b` | `version` on `GET /v1/capability-packs` |
+| functions | `2d337e4044aeb06b65dbc84794e5fd93dcb4fd9c2b9f4d7560c7c5c43827cbe5` | `version` on `GET /v1/functions` |
+| api | `3c24162c9f22` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| codes | `56d944aa0b41` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
-Function pages: 120 customer functions, key set `e8b46ad6e9cd`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
+Function pages: 121 customer functions, key set `91a293a6f666`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
 
-Document format: `8` — the `kipory:` version `scripts/upgrade-document.mjs` in this skill converts to and these skills write. The deployment serves the one it reads as `documentFormat.version` on `GET /v1/platform-status`; when they differ, every document in this bundle's format is refused with `DOCUMENT_VERSION_UNSUPPORTED`.
+Document format: `9` — the `kipory:` version `scripts/upgrade-document.mjs` in this skill converts to and these skills write. The deployment serves the one it reads as `documentFormat.version` on `GET /v1/platform-status`; when they differ, every document in this bundle's format is refused with `DOCUMENT_VERSION_UNSUPPORTED`.

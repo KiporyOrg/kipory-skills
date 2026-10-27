@@ -20,7 +20,25 @@ Expires the link between the first and second inputs' records, keeping who state
 | --- | --- | --- | --- | --- |
 | `actor` | string, at most 64 characters | yes | — | The label the links were saved under; only those are removed. ⚠️ Removing links reaches only this label's links, never ones made by hand. |
 | `relationKey` | string | yes | — | The relation's key, not its name. ⚠️ Only a relation whose links are stated by hand works; others are refused. |
-| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

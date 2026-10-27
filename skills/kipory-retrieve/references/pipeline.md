@@ -13,20 +13,20 @@ before it is searchable.
 One action. `record.query` with a `semantic` clause returns the records, ranked, with their fields
 and a score for each:
 
-| #   | Function          | Reads                                  | Emits                                         | Why it is here                             |
-| --- | ----------------- | -------------------------------------- | --------------------------------------------- | ------------------------------------------ |
-| 1   | `record.query`    | the question (`textSlot`), or a record | `records`, `scores`, `bounded`, `explanation` | rank by meaning, narrowed by exact clauses |
-| 2   | `text.rerank`     | question + `{ id, text }[]`            | `{ id, relevance }[]` — no text               | precision the score alone does not give    |
-| 3   | `value.transform` | records, or rerank hits + the texts    | `{ id, text }[]`                              | pick the text the model should read        |
-| 4   | `text.sanitize`   | `itemsSlot`: `{ id, text }[]`          | `{ id, sanitizedText }[]`, or a string        | retrieved text is untrusted input          |
-| 5   | `text.generate`   | question + wrapped sources             | the answer                                    | the answer                                 |
+| #   | Function          | Reads                               | Emits                                         | Why it is here                             |
+| --- | ----------------- | ----------------------------------- | --------------------------------------------- | ------------------------------------------ |
+| 1   | `record.query`    | the question (`text`), or a record  | `records`, `scores`, `bounded`, `explanation` | rank by meaning, narrowed by exact clauses |
+| 2   | `text.rerank`     | question + `{ id, text }[]`         | `{ id, relevance }[]` — no text               | precision the score alone does not give    |
+| 3   | `value.transform` | records, or rerank hits + the texts | `{ id, text }[]`                              | pick the text the model should read        |
+| 4   | `text.sanitize`   | `items`: `{ id, text }[]`           | `{ id, sanitizedText }[]`, or a string        | retrieved text is untrusted input          |
+| 5   | `text.generate`   | question + wrapped sources          | the answer                                    | the answer                                 |
 
 Steps 2–5 are only for an answer a model writes; step 2 is optional among them. A list of matching
 records, or a match-or-new decision, is step 1 and a `value.transform`.
 
-- **Step 1** takes the question as text (`textSlot`) — it embeds the phrase with the model the
+- **Step 1** takes the question as text (`text`) — it embeds the phrase with the model the
   type was indexed with, a model call billed inside the action — or a record id
-  (`likeRecordIdSlot`), which embeds nothing. Its `limit` (1–100, default 50) cuts the ranking
+  (`likeRecordId`), which embeds nothing. Its `limit` (1–100, default 50) cuts the ranking
   after `topK`, so raise both together.
 - **`scores`** lists `{ id, score }` in the order of `records`. With `passage: true` an entry also
   carries `passage: { index, text }`, the record's best-matching part.

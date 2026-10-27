@@ -10,24 +10,115 @@ Merges or replaces the data; can also clear derived output, set a status and att
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record slot + data/derived patches` → `boolean`
 - **Also found as:** edit record, change record, change a row, modify, set field
-- **Reads:** The record id, from the slot `recordIdSlot` names, plus whichever patch slots you wire: the new data, the new derived output, and file ids to attach. _(shape hint: `record slot + data/derived patches`)_
+- **Reads:** The record id (`recordId`) plus the changes you give: new fields (`fields` one by one, or `data` whole), derived output, and file ids. _(shape hint: `record slot + data/derived patches`)_
 - **Emits:** A bare boolean — `true` iff a row was patched, `false` when the record was absent, foreign, or failed the status precondition (mirrors `record.delete`).
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derivedSlot`. |
-| `dataSlot` | string | no | — | The slot holding the new fields; empty leaves the data alone. ⚠️ Nothing is written when it is not an object, or when a field it writes breaks its table's type. |
-| `derivedSlot` | string | no | — | The slot holding new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
+| `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derived`. |
+| `data` | union | no | — | The new fields as one object, or use `fields`; empty changes nothing. ⚠️ Nothing is written when it is not an object, or when a field it writes breaks its table's type. |
+| `derived` | union | no | — | The new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
 | `failIfPreconditionUnmet` | boolean | no | `false` | Fail with a conflict when nothing matched, instead of reporting no change. |
-| `fileIdsSlot` | string | no | — | The slot holding file ids to attach to the record. ⚠️ A file must belong to the record's owner or to the project, and be attached nowhere else. |
+| `fields` | object | no | — | The fields to write, each a slot path, fixed value or expression. |
+| `fileIds` | union | no | — | The file ids to attach to the record. ⚠️ A file must belong to the record's owner or to the project, and be attached nowhere else. |
 | `ifChangedMeanwhile` | `start-again` \| `apply` | no | — | When another run changed the record since this run read it. ⚠️ With `apply` (merge only), the fields this write changes overwrite what another run wrote there meanwhile. |
 | `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) merges over existing values; `replace` overwrites them. ⚠️ In `merge`, a key set to `null` is removed from the record. |
-| `recordIdSlot` | string | yes | — | The slot holding the id of the record to patch. ⚠️ On a per-user type, another user's id changes nothing and reports no error. |
+| `recordId` | union | yes | — | The id of the record to patch. ⚠️ On a per-user type, another user's id changes nothing and reports no error. |
 | `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record currently has this status. |
 | `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Set the record to this status, clearing any earlier error. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` action does that. |
-| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+
+### `data` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `derived` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `fileIds` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `recordId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -43,8 +134,8 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "recordIdSlot": "patch.recordId",
-  "dataSlot": "patch.data",
+  "recordId": "patch.recordId",
+  "data": "patch.data",
   "mode": "merge"
 }
 ```
@@ -74,8 +165,8 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "recordIdSlot": "patch.recordId",
-  "dataSlot": "patch.data",
+  "recordId": "patch.recordId",
+  "data": "patch.data",
   "mode": "merge"
 }
 ```

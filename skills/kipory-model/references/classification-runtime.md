@@ -14,7 +14,7 @@ processing flow, and the vocabulary's resolver flow that `vocabulary.resolve` in
 processing flow:  vocabulary.resolve → term.upsert
                   (a proposal per vocabulary, each dispatched to the resolver; then save)
 resolver flow:    term.search          → candidate terms, best first, each with a score
-                                         (vocabularySlot: "vocabularyKey", textSlot: "proposalSlug")
+                                         (vocabulary: "vocabularyKey", text: "proposalSlug")
                   term.threshold-gate  → { kind: "resolved", resolution } · { kind: "tiebreak" }
                   text.decide          → the tiebreak, on the tiebreak branch only
 ```
@@ -22,7 +22,7 @@ resolver flow:    term.search          → candidate terms, best first, each wit
 `term.search` takes the proposed value as text and the vocabulary's key, and answers the closest terms
 as `{ termId, slug, score }`. It embeds the value itself, with the one model every term of the
 project is indexed with — a resolver has no model to choose and no vector to pass. With
-`parentTermIdSlot` set it searches under that parent only, and the roots when the slot holds
+`parentTermId` set it searches under that parent only, and the roots when the slot holds
 nothing. With no `status` it reads active terms, plus candidates when the vocabulary coins candidates,
 so a second record proposing the same thing reuses the candidate instead of coining its twin.
 Its function page in `kipory-build` has the whole configuration.
@@ -65,7 +65,7 @@ resolver is bound to a platform default at creation and carries `lowThreshold: 0
 value is new (`mint` decides what that means), between them the model decides. The band is wide
 because the score finds candidates and does not decide; the `vocabularies` pack has the tuning.
 
-`parentTermIdSlot` carries the resolved parent for a hierarchical vocabulary, so a term created in
+`parentTermId` carries the resolved parent for a hierarchical vocabulary, so a term created in
 the create-new case lands in the right place in the tree rather than at the root.
 
 ## Reading the vocabulary back
@@ -78,9 +78,9 @@ groups a user's terms per vocabulary and counts them.
   levels**, outermost first — category, then a category's types, then a type's subtypes.
 - `maxEntriesPerVocabulary` caps at 200 by default. Entries sort by count first, so when a group
   runs past the cap the highest-count terms survive.
-- **Every count is scoped to one user**, from `userIdSlot` (default `userInfo.userId`, the run's
+- **Every count is scoped to one user**, from `userId` (default `userInfo.userId`, the run's
   signed-in end user). An empty user id fails the action rather than counting across users — so a
-  run driven by an API key, which carries no end user, fails it unless you point `userIdSlot` at a
+  run driven by an API key, which carries no end user, fails it unless you point `userId` at a
   slot that holds one. The failure is deliberate: the alternative is one user's browse tree quietly
   showing another's data.
 - **It counts only records that user owns.** Records of a project-scoped table are in nobody's

@@ -10,7 +10,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id` → `number`
 - **Also found as:** how many records, number of records, tally
-- **Reads:** The user id, from the slot `userIdSlot` names. Everything else is settings on the action. There is no page size and no cursor. _(shape hint: `user id`)_
+- **Reads:** The user id, from `userId`; each filter's `value` may come from a slot too. There is no page size and no cursor. _(shape hint: `user id`)_
 - **Emits:** A number: how many records match every filter. An empty result is `0`, which is a real answer rather than a missing one.
 
 ## Config
@@ -19,12 +19,11 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | --- | --- | --- | --- | --- |
 | `createdAfter` | string | no | — | Count only rows created at or after this ISO-8601 date. ⚠️ This is when the row was stored; for your own dates use `fieldFilters`. |
 | `createdBefore` | string | no | — | Count only rows created at or before this ISO-8601 date. |
-| `fieldFilterSlots` | object | no | — | Each queryable field with the slot carrying its value or list. ⚠️ If a slot is missing the action is skipped; an empty list counts zero. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A field the table never declared queryable is refused when the action runs. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ An unqueryable field fails the run; a missing slot skips the action, and an empty list counts zero. |
 | `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ If an entry's slot is missing, the action is skipped. |
 | `statuses` | string[], at least 1 item | no | — | Count only rows with these statuses; empty counts them all. |
 | `tableKey` | string | yes | — | The table to count. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The slot holding the signed-in user's id; project-wide tables ignore it. ⚠️ A count can reveal how many records exist outside the user's own. |
+| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; project-wide tables ignore it. ⚠️ A count can reveal how many records exist outside the user's own. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Count only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
 
 ### `fieldFilters` — each item
@@ -32,17 +31,73 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `field` | string | yes | — | A field the table declares queryable. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison; `in` takes a list, the others one value. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison; `in`, or `eq` given a list, matches any listed value. |
 | `value` | union | yes | — | The value to compare with, or the list for `in`. |
 
-`value` — one of: `string`; `number`; `boolean`; `(string | number)[]`, at least 1 item.
+`value` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`value` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`value` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `linkFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `relationKey` | string | yes | — | The relation a row must have a link of, by key. |
-| `peerRecordIdSlot` | string | no | — | The record at the other end; empty means any link. |
+| `peerRecordId` | union | no | — | The record at the other end; empty means any link. |
+
+`peerRecordId` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`peerRecordId` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`peerRecordId` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `vocabularyFilter` — each item
 
@@ -66,7 +121,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "tableKey": "item"
 }
 ```
@@ -93,13 +148,15 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "tableKey": "item",
   "fieldFilters": [
     {
       "field": "kind",
       "op": "eq",
-      "value": "article"
+      "value": {
+        "literal": "article"
+      }
     }
   ]
 }
@@ -128,9 +185,13 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "item",
-  "fieldFilterSlots": {
-    "sourceId": "sourceId"
-  }
+  "fieldFilters": [
+    {
+      "field": "sourceId",
+      "op": "eq",
+      "value": "sourceId"
+    }
+  ]
 }
 ```
 

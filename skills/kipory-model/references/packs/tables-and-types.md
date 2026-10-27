@@ -229,7 +229,7 @@ only when the run succeeds. What does work on a pool table:
   pool table's processing flow; the files they produce are project files.
 - **File attachment.** A pool record takes the project's own files, and a file uploaded through
   `POST /v1/files/upload-url` with `project` (the form an API key uses) is a project file. In a
-  flow, `record.create`'s `fileIdsSlot` attaches it and checks each file against the record's
+  flow, `record.create`'s `fileIds` attaches it and checks each file against the record's
   owner. By hand, `POST /v1/files/{id}/attach` hangs a confirmed file on an existing record.
   `POST /v1/records` itself has no file field.
 
@@ -375,7 +375,7 @@ Three consequences that catch people out, and only the last two are _silent_:
   meaning-based search the same way: the **record store** narrows first, and the ranking runs
   over what it kept.)
 - ⚠️ **A search reads one owner's records, and no clause states which.** A query over a
-  user-scoped table reads as the run's signed-in user (or the user an action's `userIdSlot` names); a
+  user-scoped table reads as the run's signed-in user (or the user an action's `userId` names); a
   pool table reads the project's records. A run with no end user behind it — a preview from an API
   key — finds none of a user-scoped table's records and answers an empty list, not an error.
 - **Turning searchable off does not delete the points immediately.** A background pass notices and
@@ -670,7 +670,9 @@ answer that say how complete it is. One grammar, two places to state it: the con
 `record.query` action inside a flow, and the body of `POST /v1/records/query` (with `project`) from
 outside one. A body, not query-string parameters, because clauses nest. The records list
 (`GET /v1/records?project=&tableKey=`) speaks the same operator words in its `field=name:op:value`
-conditions — `eq`, `gt`, `gte`, `lt`, `lte`.
+conditions — `eq`, `gt`, `gte`, `lt`, `lte`. The examples here are request bodies, where every value
+is fixed as written; in an action a fixed text is `{ "literal": "…" }` and a bare text names a slot
+(below).
 
 ```json
 {
@@ -705,8 +707,8 @@ Each kind of clause is answered by the store its use routed the field to, so eac
   takes a list of up to 1 000 (an OR inside the clause), and `not-in` the same list for the records
   holding none of its values. `not-in` keeps a record with no value in the field: an exclusion removes
   only what it names. `field: "id"` compares the record's own id, with `eq`, `in` or `not-in`, and
-  needs no use. `not-in` is taken by the route's body and by a view's clauses; a `record.query` action's config
-  does not accept it yet. Dates travel as ISO strings.
+  needs no use. `not-in` is taken by the route's body, a view's clauses and a `record.query` action's
+  config alike. Dates travel as ISO strings.
 - **`term`** needs the vocabulary in `uses.vocabularies`. The `slug` may be an alias; it resolves
   one hop to its canonical term, as every term read does. It matches **active** terms only: a record
   filed under a candidate term is not found by a `term` clause, or by the list's `term=` condition,
@@ -764,7 +766,7 @@ fields are spread at its top level. On the clause:
 - `passage: true` adds `passage: { index, text }` to each entry — the record's best-matching
   part — when the record is indexed in more than one part. A record that changed after it was
   indexed carries `passageStale: true` instead.
-- `likeRecordId` (or `likeRecordIdSlot` in an action) names a record to resemble in place of a
+- `likeRecordId` names a record to resemble in place of a
   phrase: the answer ranks the records closest to it, leaves it out, and calls no model.
   `likeTableKey` names the record's type when it is not the queried one; both must use the same
   embedding profile, or the save is refused `QUERY_LIKE_TABLE_MODEL_MISMATCH`. A record with no
@@ -835,12 +837,13 @@ order by something on a LINKED record ("stories by their newest post", "most com
 that value on the record itself — a processed `lastPostAt`, a count its processing flow maintains
 — and order by the field.
 
-**In an action, what a clause compares against can come from the run.** Each operand may be named by
-a slot instead of written in place: `valueSlot` for a `field` clause's `value` (top level or in
-`peer`) and for a `where` entry's `value`, `slugSlot` for a `term`'s `slug`, `textSlot` for the
-`semantic` phrase, `fromSlot` / `toSlot` for a stream `window`. Exactly one of the literal and its
-slot. Which field, operator, vocabulary, relation and count the clause names stays in the config, so
-the routing check at save is the same either way.
+**In an action, what a clause compares against is an argument.** A `field` clause's `value` (top
+level or in `peer`), a `where` entry's `value`, a `term`'s `slug`, the `semantic` `text`, a
+`likeRecordId` and a stream `window`'s `from` / `to` each take a slot path (`"followed.guideIds"`),
+a fixed value (`{ "literal": "hebrew" }`; a bare number or `true`/`false` too) or an expression
+(`{ "expr": "…" }`). A bare string in an action is a slot path, never a fixed text. Which field,
+operator, vocabulary, relation and count the clause names stays in the config, so the routing check
+at save is the same either way.
 
 ```json
 {
@@ -850,19 +853,19 @@ the routing check at save is the same either way.
       "kind": "field",
       "field": "guideId",
       "op": "in",
-      "valueSlot": "followed.guideIds"
+      "value": "followed.guideIds"
     },
     {
       "kind": "field",
       "field": "startsAt",
       "op": "gte",
-      "valueSlot": "runInfo.now"
+      "value": "runInfo.now"
     }
   ]
 }
 ```
 
-A search behind an endpoint is the same move on the phrase — `{ "kind": "semantic", "textSlot":
+A search behind an endpoint is the same move on the phrase — `{ "kind": "semantic", "text":
 "request.q" }` — which composes with any other clause, so "outings resembling what the caller
 typed, among the guides they follow" is one action.
 
@@ -924,7 +927,7 @@ typed, among the guides they follow" is one action.
 
 **Paging.** Only a query WITHOUT a semantic clause pages: on the route, pass back `nextCursor` as
 `after` for the next page and `prevCursor` as `before` for the previous one — never both — and
-`paging` is always null because a query is never counted; in the action, `cursorSlot` in and
+`paging` is always null because a query is never counted; in the action, `cursor` in and
 `nextCursor` out. With a semantic clause the answer is a ranking of at most `topK` with no cursor,
 and `limit` caps what is returned of it.
 

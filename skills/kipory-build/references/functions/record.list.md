@@ -10,7 +10,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `user id + cursor` → `RecordPage`
 - **Also found as:** all records, browse records, page of rows, table rows
-- **Reads:** The user id, from the slot `userIdSlot` names. To read past the first page, wire the previous page's cursor into `cursorSlot`. Everything else is settings on the action. _(shape hint: `user id + cursor`)_
+- **Reads:** The user id, from `userId`. To read past the first page, wire the previous page's cursor into `cursor`. Each filter's `value` may come from a slot too. _(shape hint: `user id + cursor`)_
 - **Emits:** A `RecordPage`: the rows, newest first, each record's fields flattened to the top level, and a cursor when more remain — with `pages`, only under `onMore: "stop"`.
 
 ## Config
@@ -19,18 +19,16 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | --- | --- | --- | --- | --- |
 | `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 date. |
 | `createdBefore` | string | no | — | Keep only rows created at or before this date. |
-| `cursorSlot` | string | no | — | The slot holding a previous page's cursor; empty for the first page. ⚠️ An edited or truncated cursor fails the action. |
-| `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContainsSlot`. ⚠️ This reads every row of the table before narrowing. |
-| `dataContainsSlot` | string | no | — | The slot holding the object to look for in that list. ⚠️ If the slot is missing the action is skipped; a non-object fails it. |
-| `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEqualsSlot`. ⚠️ This reads every row of the table before narrowing. |
-| `dataEqualsSlot` | string | no | — | The slot holding the value to compare: text, number or true/false. ⚠️ If the slot is missing the action is skipped; a wrong kind fails it. |
+| `cursor` | union | no | — | A previous page's cursor; empty for the first page. ⚠️ An edited or truncated cursor fails the action. |
+| `dataContains` | union | no | — | The object to look for in that list. ⚠️ If the slot is missing the action is skipped; a non-object fails it. |
+| `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContains`. ⚠️ This reads every row of the table before narrowing. |
+| `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ If the slot is missing the action is skipped; a wrong kind fails it. |
+| `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEquals`. ⚠️ This reads every row of the table before narrowing. |
 | `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A missing key counts as no value, and every row is read. |
-| `fieldFilterSlots` | object | no | — | Each queryable field with the slot carrying its value or list. ⚠️ If a slot is missing the action is skipped; an empty list matches nothing. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A field the table never declared queryable is refused when the action runs. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ An unqueryable field fails the run; a missing slot skips the action, and an empty list matches nothing. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the action; a run warns from half the limit and a save when one is likely. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
-| `limit` | integer, 1 to 100 | no | `50` | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows that a page was cut short. |
-| `limitSlot` | string | no | — | A slot that sets the page size while the flow runs. ⚠️ A value outside 1 to 100 or not whole is silently ignored. |
+| `limit` | union | no | — | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows a page was cut short; a value outside 1–100 or not whole reads the default. |
 | `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ If an entry's slot is missing, the action is skipped. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
@@ -40,8 +38,62 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
 | `statuses` | string[], at least 1 item | no | — | Keep only rows with these statuses; empty allows every status. |
 | `tableKey` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `userIdSlot` | string | no | `"userInfo.userId"` | The signed-in user's id slot; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the action. |
+| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the action. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
+
+### `cursor` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `dataContains` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `dataEquals` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `dataNullChecks` — each item
 
@@ -55,10 +107,28 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `field` | string | yes | — | A field the table declares queryable. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison; `in` takes a list, the others one value. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` | yes | — | The comparison; `in`, or `eq` given a list, matches any listed value. |
 | `value` | union | yes | — | The value to compare with, or the list for `in`. |
 
-`value` — one of: `string`; `number`; `boolean`; `(string | number)[]`, at least 1 item.
+`value` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`value` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`value` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `include`
 
@@ -69,12 +139,50 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `files` | boolean | no | `false` | Add each row's attached files. |
 | `cost` | boolean | no | `false` | Add what each row's processing cost. |
 
+### `limit` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
 ### `linkFilters` — each item
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `relationKey` | string | yes | — | The relation a row must have a link of, by key. |
-| `peerRecordIdSlot` | string | no | — | The record at the other end; empty means any link. |
+| `peerRecordId` | union | no | — | The record at the other end; empty means any link. |
+
+`peerRecordId` — one of:
+
+- `string`
+- `number`
+- `boolean`
+- an object with `literal` — the table below
+- an object with `expr` — the table below
+
+**`peerRecordId` › an object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**`peerRecordId` › an object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `pages`
 
@@ -89,6 +197,24 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | --- | --- | --- | --- | --- |
 | `statusError` | boolean | no | `false` | Add the row's failure summary, or null when it has none. |
 | `fileCount` | boolean | no | `false` | Add the number of files attached to the row. |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ### `vocabularyFilter` — each item
 
@@ -113,7 +239,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "item",
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "limit": 50
 }
 ```
@@ -148,8 +274,8 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "item",
-  "userIdSlot": "userInfo.userId",
-  "cursorSlot": "pageCursor",
+  "userId": "userInfo.userId",
+  "cursor": "pageCursor",
   "limit": 50
 }
 ```
@@ -181,7 +307,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "item",
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "fields": [
     "title",
     "summary"
@@ -223,7 +349,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "book",
-  "userIdSlot": "userInfo.userId",
+  "userId": "userInfo.userId",
   "fields": [
     "title"
   ],
@@ -270,7 +396,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "item",
-  "userIdSlot": "userInfo.userId"
+  "userId": "userInfo.userId"
 }
 ```
 

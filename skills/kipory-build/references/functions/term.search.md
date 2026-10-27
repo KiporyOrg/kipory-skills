@@ -10,7 +10,7 @@ Results come best first, each with a similarity score. Use it to check for a ter
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `phrase + vocabulary` → `TermHit[]`
 - **Also found as:** similar terms, find term, synonym, closest tag
-- **Reads:** Reads the phrase from `textSlot`, and the vocabulary and a parent term from their slots when those are set. _(shape hint: `phrase + vocabulary`)_
+- **Reads:** Reads the phrase from `text`, and the vocabulary and a parent term from `vocabulary` and `parentTermId` when those are set. _(shape hint: `phrase + vocabulary`)_
 - **Emits:** A list of `TermHit`, best first, at most `topK`: each term's id, slug and closeness. Empty when the phrase is empty or the vocabulary has no terms.
 - **Suggested input streams:** `text`, `vocabulary`, `parentTermId`
 - **Rate limit:** 300 per min in bucket `ai-embed`, counted per project — shared with `record.query`
@@ -20,12 +20,66 @@ Results come best first, each with a similarity score. Use it to check for a ter
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `minScore` | number, -1 to 1 | no | — | Leave out terms scoring below this; it may be negative. |
-| `parentTermIdSlot` | string | no | — | The slot holding a parent term's id, to search only under it. |
+| `parentTermId` | union | no | — | A parent term's id, to search only under it. |
 | `status` | `active` \| `archived` \| `candidate` \| `any` | no | — | Which terms to read by status; `any` reads every status. |
-| `textSlot` | string | yes | — | The slot holding the phrase to search; empty finds nothing. |
+| `text` | union | yes | — | The phrase to search; empty finds nothing. |
 | `topK` | integer, 1 to 200 | no | `5` | How many terms come back, 1 to 200; default 5. |
-| `vocabularyKey` | string | no | — | Which vocabulary to search; give this or `vocabularySlot`, not both. |
-| `vocabularySlot` | string | no | — | The slot holding the vocabulary's key, in place of `vocabularyKey`. |
+| `vocabulary` | union | no | — | The vocabulary's key, read from the run, in place of `vocabularyKey`. |
+| `vocabularyKey` | string | no | — | Which vocabulary to search; give this or `vocabulary`, not both. |
+
+### `parentTermId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `text` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `vocabulary` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -42,7 +96,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "vocabularyKey": "category",
-  "textSlot": "text",
+  "text": "text",
   "topK": 3
 }
 ```
@@ -76,7 +130,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "vocabularyKey": "category",
-  "textSlot": "text",
+  "text": "text",
   "minScore": 0.6
 }
 ```

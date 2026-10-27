@@ -81,7 +81,8 @@ held by the signature guards instead.
 
 The actions a dry run returns (`currentActions`, `restoredActions`) carry each action's `key` as it was
 captured. A read does not apply the action-name rule, so a checkpoint taken before that rule can show
-a key no write would accept today.
+a key no write would accept today. An input that holds a fixed value or an expression comes back inline in
+`inputStreams`, exactly as it was written (`{literal: …}` or `{expr: …}`).
 
 Whatever the verdict, `derived.restore` says what the restore would do. `currentActions` and
 `restoredActions` are the flow's actions now and the checkpoint's — pair them by `key`, never by

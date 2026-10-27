@@ -114,14 +114,15 @@ A project document you hold can be one the platform refuses: one exported before
 were renamed states `kipory: 2`, one exported before the flow words were renamed states
 `kipory: 3`, one exported before the link functions named their relation `relationKey` states
 `kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, one
-exported before a type was called a type in the document states `kipory: 6`, and all five are
-refused (`DOCUMENT_VERSION_UNSUPPORTED`). The deployment reads exactly one format, with no
+exported before a type was called a type in the document states `kipory: 6`, one exported
+before a stated element was whole states `kipory: 7`, one exported before every input took an
+argument states `kipory: 8`, and all seven are refused (`DOCUMENT_VERSION_UNSUPPORTED`). The deployment reads exactly one format, with no
 overlap: `documentFormat` on `GET /v1/platform-status` names it, with a line saying what it is.
 When it is newer than the version below, update these skills first — the skills that write a new
 format are published when the change merges, normally before a deployment rolls it — then
 convert.
 `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
-version 8 in one run, and a second run changes nothing. From 7 to 8 it changes only the number: format
+version 9 in one run, and a second run changes nothing. From 7 to 8 it changes only the number: format
 8 makes a stated element whole, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`
 before you apply it:
 
@@ -134,6 +135,24 @@ before you apply it:
   key; rename it, or set its version back to 6 and run the script. **A script of yours that reads a
   converted document or an export must read `types` and `type` too**: one still reading the old
   key finds nothing and can change its own output without an error.
+- **From 8 to 9 a setting that reads a value takes an argument.** Each such setting drops its
+  `Slot` suffix (`idsSlot` → `ids`, `modelSlot` → `model`); a fixed field and its slot twin become
+  one (`limit`, `maxResults`, a query clause's `value`, `slug`, `text`), the slot winning where both
+  were set; `headers` and `query` join their two maps, refusing a name stated in both; a fixed text,
+  list or object is written `{"literal": …}`;
+  `fieldFilterSlots` becomes `fieldFilters` entries with `op: "eq"`; `flow.invoke` and
+  `flow.start-per-person` input rows become one `inputs` map; `flow.loop` `seedFrom` and
+  `seedLiteral` become one `seed`; a named view's fixed text or list in its `where` is written
+  `{"literal": …}` (a number, `true`/`false`, `param` and `set` stay; `shapes` is unchanged), each view
+  it changes listed. Every renamed, merged and restructured setting, and the ones that
+  keep their name, is in `references/format-9-renames.md`. It refuses, rather than guesses, a name set
+  on both sides of a pair. On YAML it renames line by line and refuses anything restructured: convert the JSON form, or
+  export the project again (`GET /v1/projects/{nodeId}/document` with `Accept: application/yaml`) — the platform moved stored flows to 9 itself.
+  <!-- field-ok: idsSlot — a format-8 config field the converter renames, named so a reader knows what moves -->
+  <!-- field-ok: modelSlot — a format-8 config field the converter renames, named so a reader knows what moves -->
+  <!-- field-ok: fieldFilterSlots — a format-8 config field the converter renames, named so a reader knows what moves -->
+  <!-- field-ok: seedFrom — a format-8 config field the converter renames, named so a reader knows what moves -->
+  <!-- field-ok: seedLiteral — a format-8 config field the converter renames, named so a reader knows what moves -->
 - **Slot and collection names go.** A search model under `vectors.profiles` loses `denseSlots` and
   `sparseSlot` and states `keywords` — `true` where it named a sparse slot, `false` where it named
   none; a `search` use loses `role`; `vectors.collections` is removed. Each removal is listed.
@@ -221,6 +240,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | `references/packs/templates.md`              | when to start a project from a shipped template                                                                                                                                             |
 | `references/api/routes-a-key-cannot-call.md` | every route that refuses a key, with the reason                                                                                                                                             |
 | `references/refusal-codes.md`                | every refusal code once: what it means, what to do, where it appears                                                                                                                        |
+| `references/format-9-renames.md`             | every setting renamed, merged or restructured from document format 8 to 9, and the ones that kept their name                                                                                |
 | `references/api/reports.md`                  | filing a report when something stops you, and reading where it stands                                                                                                                       |
 | `references/api/notices.md`                  | what Kipory tells your project: notices of changes that reach it, and flows it told you are failing                                                                                         |
 | `references/packs/readme.md`                 | the served judgment index — which pack answers which question                                                                                                                               |

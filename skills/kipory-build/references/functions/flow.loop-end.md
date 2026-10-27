@@ -155,6 +155,13 @@ After each round, the outputs become the next round's carry slots. Afterwards, o
 | `slot` | string | yes | — | The slot whose value is tested. |
 | `path` | string | yes | — | A dotted path to the field that is tested. |
 
+**`op: expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `op` | `expr` | yes | — | Holds when the expression's value is not empty, zero, false or null. |
+| `expr` | string | yes | — | A JSONata expression over the visible slots, like `$count(reviews) > 2`. |
+
 **`op: not`**
 
 | Member | Type | Required | Default | Meaning |

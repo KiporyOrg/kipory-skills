@@ -10,17 +10,71 @@ Removes one record's watch. The last one switches the source off, never deletes 
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `channel and holder` → `SourceUnwatch`
 - **Also found as:** unfollow channel, unsubscribe, stop watching, release watch
-- **Reads:** The channel, from the slot `channelSlot` names, and the holder, from `holderSlot` — the same holder `source.watch` was given. _(shape hint: `channel and holder`)_
+- **Reads:** The channel, from `channel`, and the holder, from `holder` — the same holder `source.watch` was given. _(shape hint: `channel and holder`)_
 - **Emits:** A `SourceUnwatch` — the watch as this action left it. A flow preview changes nothing and says what it would have done.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `channelSlot` | string | yes | — | The slot path holding the channel to let go, e.g. `outlet.channel`. ⚠️ Starts within a minute and costs one triggered run per message, until the last holder lets go. |
-| `holderSlot` | string | yes | — | The slot path to the id of the record `source.watch` was given. |
+| `channel` | union | yes | — | The channel to let go, e.g. the path `outlet.channel`. ⚠️ Starts within a minute and costs one triggered run per message, until the last holder lets go. |
+| `holder` | union | yes | — | The id of the record `source.watch` was given. |
 | `provider` | `telegram` | yes | — | What kind of source the channel is. |
-| `userIdSlot` | string | no | — | The slot holding the person whose record held the watch. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `userId` | union | no | — | The person whose record held the watch. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+
+### `channel` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `holder` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -37,8 +91,8 @@ Action settings (`functionConfig`):
 ```json
 {
   "provider": "telegram",
-  "channelSlot": "follow.channel",
-  "holderSlot": "follow.recordId"
+  "channel": "follow.channel",
+  "holder": "follow.recordId"
 }
 ```
 
@@ -72,8 +126,8 @@ Action settings (`functionConfig`):
 ```json
 {
   "provider": "telegram",
-  "channelSlot": "follow.channel",
-  "holderSlot": "follow.recordId"
+  "channel": "follow.channel",
+  "holder": "follow.recordId"
 }
 ```
 

@@ -2,12 +2,12 @@
 
 # Function catalog
 
-120 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+121 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
 - `ingest` (76) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
-- `inline` (38) — runs synchronously inside the flow engine, in order.
+- `inline` (39) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
 - model — calls an AI model.
@@ -171,7 +171,7 @@ _Find the terms of a vocabulary closest in meaning to a phrase._
 
 _Read and change the project's records and terms. Only these actions can change a record._
 
-- [`record.append`](record.append.md) — Add events to a record · `inline` · `record slot + event(s)` → `string`
+- [`record.append`](record.append.md) — Add events to a record · `inline` · `record id + event(s)` → `string`
 - [`record.count`](record.count.md) — Count records · `inline` · `user id` → `number`
 - [`record.create`](record.create.md) — Create a record · `inline` · `submission object` → `RecordCreate`
 - [`record.delete`](record.delete.md) — Delete records · `inline` · `record id list` → `boolean`
@@ -181,7 +181,7 @@ _Read and change the project's records and terms. Only these actions can change 
 - [`record.link-retract`](record.link-retract.md) — Remove a link · `inline` · `string, string` → `RelationRetraction`
 - [`record.links`](record.links.md) — Read a record's links · `inline` · `string` → `RecordLink[]`
 - [`record.list`](record.list.md) — List records · `inline` · `user id + cursor` → `RecordPage`
-- [`record.query`](record.query.md) — Query records · `inline` · model (when it embeds) · `the slots its clauses name` → `RecordQueryPage`
+- [`record.query`](record.query.md) — Query records · `inline` · model (when it embeds) · `the values its clauses compare against` → `RecordQueryPage`
 - [`record.read`](record.read.md) — Read records · `inline` · `any+` → `RecordRead[]`
 - [`record.teardown`](record.teardown.md) — Clear generated data · `inline` · `record id` → `object`
 - [`record.update`](record.update.md) — Update a record · `inline` · `record slot + data/derived patches` → `boolean`
@@ -206,7 +206,7 @@ _Steer the run: branch, loop, call another flow, keep state between actions._
 - [`event.emit`](event.emit.md) — Send an event · `inline` · `event payload` → `nothing`
 - [`flow.dispatch`](flow.dispatch.md) — Pick a branch · `control` · `string | file | object` → `the input, unchanged`
 - [`flow.fan-out`](flow.fan-out.md) — Run once per item · `control` · `T[]` → `T`
-- [`flow.invoke`](flow.invoke.md) — Run another flow · `control` · `the parent slots its inputs name` → `nothing`
+- [`flow.invoke`](flow.invoke.md) — Run another flow · `control` · `the parent slots its inputs read` → `nothing`
 - [`flow.loop`](flow.loop.md) — Start a loop · `control` · `the starting values` → `string`
 - [`flow.loop-end`](flow.loop-end.md) — End a loop · `control` · `the loop's own slots` → `nothing`
 - [`flow.merge`](flow.merge.md) — Gather branch results · `control` · `T[]+` → `T[]`
@@ -214,10 +214,11 @@ _Steer the run: branch, loop, call another flow, keep state between actions._
 - [`state.read`](state.read.md) — Recall a saved value · `inline` · `none` → `string, or string[] for an append or union cell`
 - [`state.write`](state.write.md) — Save a value for later · `inline` · `any` → `string`
 
-## utility (3)
+## utility (4)
 
 _Reshape a value, or pick between values from earlier actions._
 
 - [`list.concat`](list.concat.md) — Join into one list · `inline` · `list+` → `a list of the first input's element type`
+- [`value.build`](value.build.md) — Build a value field by field · `inline` · `any+` → `object`
 - [`value.first-non-empty`](value.first-non-empty.md) — Take the first filled value · `inline` · `any+` → `the first input's type`
 - [`value.transform`](value.transform.md) — Reshape values · `inline` · `any+` → `object`

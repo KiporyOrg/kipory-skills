@@ -4,7 +4,8 @@
  * the platform serves.
  *
  * The platform reads exactly one document version. A document exported before
- * a rename, or before search models stopped naming their slots, is refused
+ * a rename, before search models stopped naming their slots, or before a
+ * config field took an argument (format 9), is refused
  * with `DOCUMENT_VERSION_UNSUPPORTED`; this script rewrites it locally, so
  * nothing you hold is lost. It needs Node 20 and nothing else.
  *
@@ -13,11 +14,11 @@
  * Without `--write` it prints the converted document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
- * It converts in six steps, and a version 2 document takes all six in one
- * run. A version 3 document takes the last five, a version 4 document the
- * last four, a version 5 document the last three, a version 6 document the
- * last two, a version 7 document the last; a version 8 document is returned
- * as it is.
+ * It converts in seven steps, and a version 2 document takes all seven in
+ * one run. A version 3 document takes the last six, a version 4 document the
+ * last five, a version 5 document the last four, a version 6 document the
+ * last three, a version 7 document the last two, a version 8 document the
+ * last; a version 9 document is returned as it is.
  *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
@@ -73,6 +74,44 @@
  *     goes back to its default. A file cannot know what the project stores;
  *     plan the converted document and read each `FIELD_RESET_TO_DEFAULT`.
  *
+ * Version 8 → 9 (a field that reads a value takes an argument):
+ *   - in an action's `functionConfig`, each field that named a slot drops its
+ *     `Slot` / `Slots` suffix (`idsSlot` → `ids`, `recipient.userIdSlot` →
+ *     `recipient.userId`, a `record.query` clause's `valueSlot` → `value`,
+ *     `vocabularySlot` → `vocabulary`, `modelSlot` → `model`, …), known by
+ *     the action's `functionKey` and the field's exact place;
+ *   - where a literal twin sat beside it, the two become one field holding
+ *     an argument: `limit`, `maxResults`, `headers`, `query`, a query
+ *     clause's `value`, `slug`, `text`, `likeRecordId`, `window.from` and
+ *     `window.to`. For a single value where both were set the slot won, and
+ *     wins; `headers` and `query` join their two maps (a name in both is
+ *     refused, below). A slot path
+ *     stays a bare string, a number or a boolean stays itself, and any other
+ *     literal (text, a list, an object, null) is written `{"literal": …}`;
+ *   - `fieldFilterSlots` joins `fieldFilters` as `{field, op: "eq", value:
+ *     <path>}` entries (`eq` still matches any member of a list the slot
+ *     holds);
+ *   - `flow.invoke` and `flow.start-per-person` `inputs` rows become a map
+ *     `{<sub-flow input>: <argument>}`: a slot row's parent slot and path in
+ *     the dotted slot-path grammar (`hit.title`, `items[0].id`), a literal
+ *     row `{"literal": …}`;
+ *   - `flow.loop` `seedFrom` and `seedLiteral` become one `seed` map.
+ *   - a named view's `where` writes a fixed text or list as `{"literal": …}`
+ *     at any depth of a clause (`value`, `slug`, `text`, `likeRecordId`,
+ *     `window.from`, `window.to`); a number, `true`/`false`, `param` and
+ *     `set` stay, and `shapes` is carried as it is. Each view changed is
+ *     listed on stderr.
+ *   It REFUSES rather than guesses: a name stated on both sides of a map pair
+ *   (`headers` and `headerSlots` naming one header, a carry slot in both
+ *   seeds), and an input row whose path has a key holding `.`, `[` or `]`.
+ *   On YAML it makes the renames line by line and REFUSES a document holding
+ *   anything restructured (both halves of a pair, a literal to wrap, the
+ *   field-filter map, input rows, the loop seeds, a view's fixed text or
+ *   list): convert the JSON form, or
+ *   export the project again (`GET /v1/projects/{nodeId}/document` with
+ *   `Accept: application/yaml`) — the platform has already moved stored flows
+ *   and views to format 9.
+ *
  * It does NOT rebuild an action on a function that no longer exists
  * (`vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`,
  * `text.embed`, `text.embed-sparse`): what the action becomes is your
@@ -110,7 +149,7 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /** The version this script converts TO — the format these skills write. */
-export const TARGET_VERSION = 8;
+export const TARGET_VERSION = 9;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -623,6 +662,691 @@ const typeUnder = (mode, key) => {
   }
 };
 
+/* ── version 8 → 9: a field that reads a value takes an argument ─────────
+ *
+ * A function config field that read a slot drops its `Slot` / `Slots`
+ * suffix, and where a literal twin sat beside it the two become one field
+ * holding an argument: a bare string is a slot path, a number or a boolean
+ * is itself, and any other literal is written `{ "literal": … }`. Which
+ * fields move is decided by the action's `functionKey`, read beside its
+ * `functionConfig`, and by the exact place in that config — never by a
+ * key's spelling, so a key of yours named `idsSlot` inside a literal, an
+ * example or a request body stays.
+ *
+ * ARGUMENT_FIELDS: per function, its config's old key → new key; a nested
+ * object names a mapping (or a list of mappings) under that key, with its
+ * own renames.
+ */
+const CLAUSE_OPERANDS = {
+  valueSlot: "value",
+  slugSlot: "slug",
+  textSlot: "text",
+  likeRecordIdSlot: "likeRecordId",
+};
+const QUERY_CLAUSE = {
+  ...CLAUSE_OPERANDS,
+  where: { valueSlot: "value" },
+  peer: { ...CLAUSE_OPERANDS },
+  window: { fromSlot: "from", toSlot: "to" },
+};
+const ACTING = { userIdSlot: "userId" };
+const SOURCE_WATCH = {
+  holderSlot: "holder",
+  channelSlot: "channel",
+  ...ACTING,
+};
+const FILTERED = {
+  ...ACTING,
+  fieldFilterSlots: "fieldFilters",
+  linkFilters: { peerRecordIdSlot: "peerRecordId" },
+};
+const REQUEST = {
+  bodySlot: "body",
+  headerSlots: "headers",
+  querySlots: "query",
+};
+const ARGUMENT_FIELDS = {
+  "email.send": {
+    toSlot: "to",
+    subjectSlot: "subject",
+    textSlot: "text",
+    htmlSlot: "html",
+  },
+  "event.emit": { payloadSlot: "payload" },
+  "place.search": { locationSlot: "location" },
+  "push.send": {
+    titleSlot: "title",
+    bodySlot: "body",
+    dataSlot: "data",
+    recipient: { userIdSlot: "userId", userIdsSlot: "userIds" },
+  },
+  "record.append": {
+    recordIdSlot: "recordId",
+    eventSlot: "event",
+    eventIdSlot: "eventId",
+    ...ACTING,
+  },
+  "record.create": { dataSlot: "data", fileIdsSlot: "fileIds", ...ACTING },
+  "record.update": {
+    recordIdSlot: "recordId",
+    dataSlot: "data",
+    derivedSlot: "derived",
+    fileIdsSlot: "fileIds",
+    ...ACTING,
+  },
+  "record.delete": { idsSlot: "ids", ...ACTING },
+  "record.read": { idsSlot: "ids", ...ACTING },
+  "record.enqueue-process": { recordIdSlot: "recordId", ...ACTING },
+  "record.teardown": { recordIdSlot: "recordId", ...ACTING },
+  "record.link-assert": { ...ACTING },
+  "record.link-retract": { ...ACTING },
+  "record.link-counts": { recordIdsSlot: "recordIds" },
+  "record.list": {
+    ...FILTERED,
+    cursorSlot: "cursor",
+    dataEqualsSlot: "dataEquals",
+    dataContainsSlot: "dataContains",
+    limitSlot: "limit",
+  },
+  "record.count": { ...FILTERED },
+  "record.query": { ...ACTING, cursorSlot: "cursor", clauses: QUERY_CLAUSE },
+  "source.watch": SOURCE_WATCH,
+  "source.unwatch": SOURCE_WATCH,
+  "term.search": {
+    textSlot: "text",
+    parentTermIdSlot: "parentTermId",
+    vocabularySlot: "vocabulary",
+  },
+  "term.threshold-gate": {
+    vocabularySlot: "vocabulary",
+    candidatesSlot: "candidates",
+    parentTermIdSlot: "parentTermId",
+    proposalLabelSlot: "proposalLabel",
+    proposalSlugSlot: "proposalSlug",
+    thresholdsSlot: "thresholds",
+  },
+  "term.upsert": { resolutionsSlot: "resolutions" },
+  "text.generate": { modelSlot: "model" },
+  "text.rerank": { documentItemsSlot: "documentItems" },
+  "text.sanitize": { itemsSlot: "items", nonceSlot: "nonce" },
+  "url.fetch": REQUEST,
+  "url.fetch-as-file": REQUEST,
+  "url.send": { ...REQUEST, idempotencyKeySlot: "idempotencyKey" },
+  "vocabulary.aggregate": { ...ACTING },
+  "vocabulary.resolve": {
+    contextSlots: "context",
+    deterministicSlots: "deterministic",
+    extractedVocabulariesSlots: "extractedVocabularies",
+  },
+  "web.search": { maxResultsSlot: "maxResults" },
+  "flow.start-per-person": {
+    people: { recordIdSlot: "recordId", userIdsSlot: "userIds" },
+  },
+  // Restructured only (`inputs` rows, the seeds): listed so a YAML config
+  // written on one line is read for them.
+  "flow.invoke": {},
+  "flow.loop": {},
+};
+const argumentFieldsOf = (fn) =>
+  typeof fn === "string" && Object.hasOwn(ARGUMENT_FIELDS, fn)
+    ? ARGUMENT_FIELDS[fn]
+    : null;
+const argsMode = (fields) => ({ ...M("args"), fields });
+/** Every old key a fields table renames, at any depth under it. */
+const oldKeysOf = (fields) =>
+  Object.entries(fields).flatMap(([key, to]) =>
+    typeof to === "string" ? [key] : oldKeysOf(to),
+  );
+/** Keys a merge may restructure (a literal to wrap, a list to fold), whatever the function. */
+const RESTRUCTURED_KEYS = [
+  "limit",
+  "maxResults",
+  "headers",
+  "query",
+  "value",
+  "slug",
+  "text",
+  "likeRecordId",
+  "from",
+  "to",
+  "seedLiteral",
+  "seedFrom",
+  "fieldFilters",
+  "inputs",
+];
+/**
+ * Whether a `{ … }` / `[ … ]` written on one line under `mode` names no key
+ * this step renames or restructures, so it is carried as written instead of
+ * refused. Read on the raw text: a quoted key counts too.
+ */
+const argumentFlowSafe = (mode, text) =>
+  mode.name !== "args" ||
+  ![...oldKeysOf(mode.fields), ...RESTRUCTURED_KEYS].some((key) =>
+    new RegExp(`(^|[\\s{,\\["'])${key}["']?\\s*:`).test(text),
+  );
+
+const argumentKeyIn = (mode, key) =>
+  mode.name === "args" &&
+  Object.hasOwn(mode.fields, key) &&
+  typeof mode.fields[key] === "string"
+    ? mode.fields[key]
+    : key;
+const argumentUnder = (mode, key, sibling = noSibling) => {
+  switch (mode.name) {
+    case "root":
+      return key === "flows" ? M("rows", "flow") : UNTOUCHED;
+    case "rows":
+      return M(`${mode.parent}Row`);
+    case "flowRow":
+      return key === "actions" ? M("rows", "action") : UNTOUCHED;
+    case "actionRow": {
+      if (key !== "functionConfig") return UNTOUCHED;
+      const fields = argumentFieldsOf(sibling("functionKey"));
+      return fields === null ? UNTOUCHED : argsMode(fields);
+    }
+    case "args":
+      return Object.hasOwn(mode.fields, key) &&
+        typeof mode.fields[key] === "object"
+        ? argsMode(mode.fields[key])
+        : UNTOUCHED;
+    default:
+      return UNTOUCHED;
+  }
+};
+
+/**
+ * The merged pairs: a literal and a slot that become one argument. `at` is
+ * where the mapping holding them sits under the config (`[]` = the config
+ * itself; a list on the way is walked item by item). A `map` pair holds a
+ * name → value map on each side.
+ */
+const CLAUSE_PAIRS = [
+  ...Object.entries(CLAUSE_OPERANDS).map(([slot, literal]) => ({
+    at: ["clauses"],
+    literal,
+    slot,
+  })),
+  { at: ["clauses", "where"], literal: "value", slot: "valueSlot" },
+  ...Object.entries(CLAUSE_OPERANDS).map(([slot, literal]) => ({
+    at: ["clauses", "peer"],
+    literal,
+    slot,
+  })),
+  { at: ["clauses", "window"], literal: "from", slot: "fromSlot" },
+  { at: ["clauses", "window"], literal: "to", slot: "toSlot" },
+];
+const REQUEST_PAIRS = [
+  { at: [], literal: "headers", slot: "headerSlots", map: true },
+  { at: [], literal: "query", slot: "querySlots", map: true },
+];
+const MERGED_PAIRS = {
+  "record.list": [{ at: [], literal: "limit", slot: "limitSlot" }],
+  "web.search": [{ at: [], literal: "maxResults", slot: "maxResultsSlot" }],
+  "record.query": CLAUSE_PAIRS,
+  "url.fetch": REQUEST_PAIRS,
+  "url.fetch-as-file": REQUEST_PAIRS,
+  "url.send": REQUEST_PAIRS,
+  "flow.loop": [
+    { at: [], literal: "seedLiteral", slot: "seedFrom", map: true, to: "seed" },
+  ],
+};
+const FIELD_FILTER_FUNCTIONS = new Set(["record.list", "record.count"]);
+const INPUT_ROW_FUNCTIONS = new Set(["flow.invoke", "flow.start-per-person"]);
+
+/** A literal as an argument: a number or a boolean is itself, anything else is wrapped. */
+const asArgument = (value) =>
+  typeof value === "number" || typeof value === "boolean"
+    ? value
+    : { literal: value };
+
+/**
+ * `map` with the keys in `from` replaced, at the place of the first of them,
+ * by `to` holding `value`; refused when `to` is already a key of the map that
+ * is not one of `from`.
+ */
+const replaceKeys = (map, from, to, value, where) => {
+  if (Object.hasOwn(map, to) && !from.includes(to))
+    throw new Error(`${where}: holds two names for "${to}"`);
+  const out = {};
+  for (const [key, held] of Object.entries(map)) {
+    if (!from.includes(key)) out[key] = held;
+    else if (!Object.hasOwn(out, to)) out[to] = value;
+  }
+  return out;
+};
+
+/** One pair merged in the mapping `map`. */
+const mergePair = (map, pair, where) => {
+  const { literal, slot } = pair;
+  const to = pair.to ?? literal;
+  const hasLiteral = Object.hasOwn(map, literal);
+  const hasSlot = Object.hasOwn(map, slot);
+  if (!hasLiteral && !hasSlot) return map;
+  let value;
+  if (pair.map) {
+    const literals = hasLiteral ? map[literal] : {};
+    const slots = hasSlot ? map[slot] : {};
+    if (!isMap(literals) || !isMap(slots))
+      throw new Error(
+        `${where}: \`${hasLiteral && !isMap(literals) ? literal : slot}\` is not a map of names`,
+      );
+    for (const name of Object.keys(slots))
+      if (Object.hasOwn(literals, name))
+        throw new Error(
+          `${where}: \`${name}\` is stated in both \`${literal}\` and \`${slot}\`. Keep one and run this again.`,
+        );
+    // The two maps' entries in the order the document wrote the two keys.
+    const sides = [
+      [literal, Object.entries(literals).map(([n, v]) => [n, asArgument(v)])],
+      [slot, Object.entries(slots)],
+    ].sort(
+      ([a], [b]) => Object.keys(map).indexOf(a) - Object.keys(map).indexOf(b),
+    );
+    value = Object.fromEntries(sides.flatMap(([, entries]) => entries));
+  } else {
+    // The slot won where both were set, and wins.
+    value = hasSlot ? map[slot] : asArgument(map[literal]);
+  }
+  return replaceKeys(map, [literal, slot], to, value, where);
+};
+
+/** `fn` applied to each mapping at `at` under `map` (lists walked item by item). */
+const atPath = (value, at, fn, where) => {
+  if (Array.isArray(value))
+    return value.map((item, index) =>
+      atPath(item, at, fn, `${where}[${index}]`),
+    );
+  if (!isMap(value)) return value;
+  if (at.length === 0) return fn(value, where);
+  const [key, ...rest] = at;
+  if (!Object.hasOwn(value, key)) return value;
+  return { ...value, [key]: atPath(value[key], rest, fn, `${where}.${key}`) };
+};
+
+/** `fieldFilters` + `fieldFilterSlots` → one list of `{field, op, value}`. */
+const mergeFieldFilters = (config, where) => {
+  const hasList = Object.hasOwn(config, "fieldFilters");
+  const hasSlots = Object.hasOwn(config, "fieldFilterSlots");
+  if (!hasList && !hasSlots) return config;
+  const list = hasList ? config.fieldFilters : [];
+  const slots = hasSlots ? config.fieldFilterSlots : {};
+  if (!Array.isArray(list))
+    throw new Error(`${where}.fieldFilters: is not a list`);
+  if (!isMap(slots))
+    throw new Error(`${where}.fieldFilterSlots: is not a map of fields`);
+  const merged = [
+    ...list.map((entry) =>
+      isMap(entry) && Object.hasOwn(entry, "value")
+        ? { ...entry, value: asArgument(entry.value) }
+        : entry,
+    ),
+    // A slot entry had no op: `eq` matches the value, or any member of a
+    // list the slot holds — what the slot entry did. Added in field-name
+    // order (a code-unit sort, as the platform orders them; T062a, C4), not
+    // in the order the map was written.
+    ...Object.keys(slots)
+      .sort()
+      .map((field) => ({ field, op: "eq", value: slots[field] })),
+  ];
+  return replaceKeys(
+    config,
+    ["fieldFilters", "fieldFilterSlots"],
+    "fieldFilters",
+    merged,
+    where,
+  );
+};
+
+/** A dotted step name: any key but one holding `.`, `[` or `]` (slot-path grammar). */
+const SLOT_PATH_STEP = /^[^.[\]]+$/;
+/**
+ * A root and its steps in the dotted grammar of a slot path — the inverse of
+ * the platform's slot-path reader (`hits[0].id`, `tags[].name`,
+ * `items[last]`). `path` is null for a step that grammar cannot spell, and
+ * `why` says why.
+ */
+const slotPathOf = (root, segments) => {
+  const fail = (why) => ({ path: null, why });
+  if (!SLOT_PATH_STEP.test(root))
+    return fail(`the parent slot \`${root}\` holds ".", "[" or "]"`);
+  let out = root;
+  for (const segment of segments) {
+    const kind = isMap(segment) ? segment.kind : undefined;
+    switch (kind) {
+      case "field":
+      case "pluck":
+        if (
+          typeof segment.name !== "string" ||
+          !SLOT_PATH_STEP.test(segment.name)
+        )
+          return fail(
+            `its path has the key ${JSON.stringify(segment.name)}, holding ".", "[" or "]", which a slot path cannot spell`,
+          );
+        out += kind === "field" ? `.${segment.name}` : `[].${segment.name}`;
+        break;
+      case "first":
+      case "last":
+      case "distinct":
+      case "compact":
+        out += `[${kind}]`;
+        break;
+      case "index":
+        if (!Number.isInteger(segment.index) || segment.index < 0)
+          return fail(
+            `its path has the index ${JSON.stringify(segment.index)}`,
+          );
+        out += `[${String(segment.index)}]`;
+        break;
+      default:
+        return fail(
+          `its path has a ${JSON.stringify(kind)} step, which a slot path cannot spell`,
+        );
+    }
+  }
+  return { path: out, why: null };
+};
+
+/** `inputs: [{kind, subFlowSlot, …}]` → `inputs: {subFlowSlot: argument}`. */
+const inputRowsToMap = (config, where) => {
+  if (!Array.isArray(config.inputs)) return config;
+  const refuse = (index, why) => {
+    throw new Error(
+      `${where}.inputs[${index}]: ${why}. Rewrite this row as a map entry by hand (\`inputs: { <sub-flow input>: <argument> }\`), or export the project again (\`GET /v1/projects/{nodeId}/document\` with \`Accept: application/yaml\`) — the platform has already moved stored flows to format 9.`,
+    );
+  };
+  const inputs = {};
+  config.inputs.forEach((row, index) => {
+    if (!isMap(row) || typeof row.subFlowSlot !== "string")
+      refuse(index, "the row names no `subFlowSlot`");
+    if (Object.hasOwn(inputs, row.subFlowSlot))
+      refuse(
+        index,
+        `a second row for the sub-flow input \`${row.subFlowSlot}\``,
+      );
+    if (row.kind === "literal") {
+      inputs[row.subFlowSlot] = asArgument(row.value);
+    } else if (row.kind === "slot" && typeof row.parentSlot === "string") {
+      const segments =
+        isMap(row.path) && Array.isArray(row.path.segments)
+          ? row.path.segments
+          : [];
+      if (row.path !== undefined && row.path !== null && !isMap(row.path))
+        refuse(index, "its `path` is not a path");
+      const { path, why } = slotPathOf(row.parentSlot, segments);
+      if (path === null) refuse(index, why);
+      inputs[row.subFlowSlot] = path;
+    } else {
+      refuse(index, `a row of kind ${JSON.stringify(row.kind)}`);
+    }
+  });
+  return { ...config, inputs };
+};
+
+/** One action's config, its merges made (renames follow, by the modes above). */
+const mergeConfig = (fn, config, where) => {
+  let out = config;
+  for (const pair of MERGED_PAIRS[fn] ?? [])
+    out = atPath(out, pair.at, (map, at) => mergePair(map, pair, at), where);
+  if (FIELD_FILTER_FUNCTIONS.has(fn)) out = mergeFieldFilters(out, where);
+  if (INPUT_ROW_FUNCTIONS.has(fn)) out = inputRowsToMap(out, where);
+  return out;
+};
+
+/** Every action's merges, made over a structured document. */
+const mergeArgumentsJson = (doc) => {
+  if (!isMap(doc.flows)) return doc;
+  return {
+    ...doc,
+    flows: mapValues(doc.flows, (flow, flowKey) =>
+      within(flow, "actions", isMap, (actions) =>
+        mapValues(actions, (action, actionKey) =>
+          within(action, "functionConfig", isMap, (config) =>
+            mergeConfig(
+              action.functionKey,
+              config,
+              `flows.${flowKey}.actions.${actionKey}.functionConfig`,
+            ),
+          ),
+        ),
+      ),
+    ),
+  };
+};
+
+/* On YAML: a pair line by line is only a rename. Anything that restructures
+ * — both halves of a pair, a literal to wrap, the field-filter map, invoke
+ * rows, the loop seeds — is refused, naming the line. */
+const YAML_RESTRUCTURE = (line, where, why, stored = "flows") =>
+  new Error(
+    `line ${line} (${where}): ${why}. Format 9 restructures this, which a line-by-line YAML conversion cannot do: convert the JSON form of the document, or export the project again (\`GET /v1/projects/{nodeId}/document\` with \`Accept: application/yaml\`) — the platform has already moved stored ${stored} to format 9.`,
+  );
+/** A one-line YAML value a reader takes for a number or a boolean. */
+const YAML_NUMBER_OR_BOOLEAN =
+  /^(true|false|True|False|TRUE|FALSE|[-+]?(\d+(\.\d*)?|\.\d+)([eE][-+]?\d+)?)$/;
+
+const restructuredYaml = (lines) => {
+  const rows = outline(lines);
+  const functionOf = new Map();
+  rows.forEach((row) => {
+    if (row !== null && row.body !== true && row.key === "functionKey")
+      if (pathIs(row.path, ["flows", "*", "actions", "*", "functionKey"]))
+        functionOf.set(
+          `${row.path[1]}\u0000${row.path[3]}`,
+          unquote(row.value),
+        );
+  });
+  rows.forEach((row, index) => {
+    if (row === null || row.body === true || row.key === null) return;
+    const { path, value } = row;
+    if (
+      path.length < 6 ||
+      !pathIs(path.slice(0, 5), [
+        "flows",
+        "*",
+        "actions",
+        "*",
+        "functionConfig",
+      ])
+    )
+      return;
+    const fn = functionOf.get(`${path[1]}\u0000${path[3]}`);
+    const rest = path.slice(5);
+    const where = path.join(".");
+    const refuseHere = (why) => {
+      throw YAML_RESTRUCTURE(index + 1, where, why);
+    };
+    const restIs = (pattern) => pathIs(rest, pattern);
+    const wraps = !YAML_NUMBER_OR_BOOLEAN.test(value);
+    const hasSibling = (name) =>
+      siblingValue(lines, index, row.column, name) !== null;
+    if (INPUT_ROW_FUNCTIONS.has(fn) && restIs(["inputs"]))
+      refuseHere("its `inputs` rows become a map of sub-flow input → argument");
+    if (FIELD_FILTER_FUNCTIONS.has(fn)) {
+      if (restIs(["fieldFilterSlots"]))
+        refuseHere(
+          "`fieldFilterSlots` joins `fieldFilters` as `{field, op: eq, value}` entries",
+        );
+      if (restIs(["fieldFilters", "value"]) && wraps)
+        refuseHere("a field filter's literal value is written `{literal: …}`");
+    }
+    for (const pair of MERGED_PAIRS[fn] ?? []) {
+      const { at, literal, slot } = pair;
+      if (
+        pair.to !== undefined &&
+        (restIs([...at, literal]) || restIs([...at, slot]))
+      )
+        refuseHere(
+          `\`${literal}\` and \`${slot}\` become one \`${pair.to}\` map`,
+        );
+      if (restIs([...at, slot]) && hasSibling(literal))
+        refuseHere(`\`${literal}\` and \`${slot}\` become one \`${literal}\``);
+      if (pair.map) {
+        if (
+          restIs([...at, literal]) &&
+          value !== "" &&
+          !/^\{\s*\}$/.test(value)
+        )
+          refuseHere(
+            `each value of \`${literal}\` is written \`{literal: …}\``,
+          );
+        if (restIs([...at, literal, "*"]) && wraps)
+          refuseHere(
+            `each value of \`${literal}\` is written \`{literal: …}\``,
+          );
+      } else if (restIs([...at, literal]) && wraps) {
+        refuseHere(`a literal \`${literal}\` is written \`{literal: …}\``);
+      }
+    }
+  });
+};
+
+/* A named view's `where` (FR-038): a view reads no slot, so in format 9 a
+ * fixed text or list is written `{literal: …}`; a bare number,
+ * `true`/`false`, a `param` and a `set` stay. The rule is the platform's own
+ * (`wrapViewOperands`, packages/shared-types/src/view-operands.ts), ported:
+ * at any depth of a clause, an operand under one of VIEW_OPERAND_KEYS that is
+ * a string or a list is wrapped; an object operand is walked into, except an
+ * existing `{literal}`; nothing under `param` or `set` is touched. */
+const VIEW_OPERAND_KEYS = new Set([
+  "value",
+  "slug",
+  "text",
+  "likeRecordId",
+  "from",
+  "to",
+]);
+const VIEW_NOT_OPERANDS = new Set(["param", "set"]);
+const isLiteralArgument = (v) =>
+  isMap(v) && Object.keys(v).length === 1 && Object.hasOwn(v, "literal");
+
+/** One node of a clause, its operands wrapped; `count.n` counts the wraps. */
+const wrapViewNode = (node, count) => {
+  if (Array.isArray(node)) return node.map((n) => wrapViewNode(n, count));
+  if (!isMap(node)) return node;
+  return Object.fromEntries(
+    Object.entries(node).map(([key, v]) => {
+      if (VIEW_NOT_OPERANDS.has(key)) return [key, v];
+      if (VIEW_OPERAND_KEYS.has(key) && (!isMap(v) || isLiteralArgument(v))) {
+        if (typeof v !== "string" && !Array.isArray(v)) return [key, v];
+        count.n += 1;
+        return [key, { literal: v }];
+      }
+      return [key, wrapViewNode(v, count)];
+    }),
+  );
+};
+
+/** Every view's `where` wrapped; a view with nothing to wrap is the same value. */
+const wrapViewsJson = (doc, wrapped) => {
+  if (!isMap(doc.views)) return doc;
+  let changed = false;
+  const views = mapValues(doc.views, (view, key) => {
+    if (!isMap(view) || !Array.isArray(view.where)) return view;
+    const count = { n: 0 };
+    const where = view.where.map((clause) => wrapViewNode(clause, count));
+    if (count.n === 0) return view;
+    changed = true;
+    wrapped.push(
+      `views.${key}.where: ${count.n} fixed value(s) written \`{literal: …}\``,
+    );
+    return { ...view, where };
+  });
+  return changed ? { ...doc, views } : doc;
+};
+
+/** A one-line YAML scalar a reader takes for a number, a boolean or null. */
+const YAML_FIXED_SCALAR = (value) =>
+  YAML_NUMBER_OR_BOOLEAN.test(value) || NULL_SCALAR.test(value);
+/** In one-line `{…}` / `[…]` text: an operand key and the start of its value. */
+const FLOW_OPERAND =
+  /(?:^|[{,\s])["']?(value|slug|text|likeRecordId|from|to)["']?\s*:\s*([^,}\]]*)/g;
+/** Whether one-line `{…}` / `[…]` text holds an operand a view must wrap. */
+const flowNeedsWrap = (text) => {
+  for (const [, , raw] of text.matchAll(FLOW_OPERAND)) {
+    const value = raw.trim();
+    if (value.startsWith("[")) return true;
+    if (value.startsWith("{")) continue; // `{literal}`, `{param}`, or walked into
+    if (!YAML_FIXED_SCALAR(value)) return true;
+  }
+  return false;
+};
+
+/**
+ * On YAML a wrap is a restructure: a view whose `where` holds a fixed text or
+ * list is refused, naming the view; one whose `where` needs nothing passes.
+ */
+const viewsNeedingWrapYaml = (lines) => {
+  const rows = outline(lines);
+  const contentAfter = (index) => {
+    for (let at = index + 1; at < rows.length; at += 1)
+      if (rows[at] !== null && rows[at].body !== true) return at;
+    return -1;
+  };
+  rows.forEach((row, index) => {
+    if (row === null || row.body === true || row.path.length < 2) return;
+    const { path, value } = row;
+    if (path[0] !== "views" || (path.length > 2 && path[2] !== "where")) return;
+    const view = path[1];
+    const refuseHere = (why) => {
+      throw YAML_RESTRUCTURE(
+        index + 1,
+        path.join("."),
+        `view \`${view}\`: ${why}`,
+        "flows and views",
+      );
+    };
+    const flow = /^[{[]/.test(value);
+    // The view itself, written on one line.
+    if (path.length === 2) {
+      if (
+        row.key === view &&
+        flow &&
+        /\bwhere\s*:/.test(value) &&
+        flowNeedsWrap(value)
+      )
+        refuseHere("a fixed text or list is written `{literal: …}`");
+      return;
+    }
+    // Under `where`: nothing below a `param`, a `set` or a `{literal}` moves.
+    const clause = path.slice(3);
+    const above = row.key === null ? clause : clause.slice(0, -1);
+    if (above.some((k) => VIEW_NOT_OPERANDS.has(k))) return;
+    if (
+      clause.some(
+        (k, i) => VIEW_OPERAND_KEYS.has(k) && clause[i + 1] === "literal",
+      )
+    )
+      return;
+    if (row.key !== null && VIEW_NOT_OPERANDS.has(row.key)) return;
+    const operand = row.key !== null && VIEW_OPERAND_KEYS.has(row.key);
+    if (!operand) {
+      if (flow && flowNeedsWrap(value))
+        refuseHere("a fixed text or list is written `{literal: …}`");
+      return;
+    }
+    if (value === "") {
+      // A list under the key (a block sequence may sit at its own column).
+      const next = contentAfter(index);
+      if (
+        next !== -1 &&
+        rows[next].dashed &&
+        indentOf(lines[next]) >= row.column
+      )
+        refuseHere("a fixed text or list is written `{literal: …}`");
+      return;
+    }
+    if (value.startsWith("["))
+      refuseHere("a fixed text or list is written `{literal: …}`");
+    if (value.startsWith("{")) {
+      if (flowNeedsWrap(value))
+        refuseHere("a fixed text or list is written `{literal: …}`");
+      return;
+    }
+    if (!YAML_FIXED_SCALAR(value))
+      refuseHere("a fixed text or list is written `{literal: …}`");
+  });
+};
+
 /**
  * One step of the conversion: the version it reads, the version it writes,
  * and its answers to the questions above.
@@ -708,6 +1432,40 @@ const STAGES = [
     watchedKey: () => false,
     slotNote: () => false,
   },
+  {
+    // A field that reads a value takes an argument: the merges are made
+    // first (JSON only), then the renames by the modes above, on both paths.
+    from: 8,
+    to: 9,
+    keyIn: argumentKeyIn,
+    under: argumentUnder,
+    textOf: () => null,
+    stringAt: (_mode, _key, value) => value,
+    rewrite: (text) => text,
+    needsAPerson: () => false,
+    watchedKey: () => false,
+    slotNote: () => false,
+    flowSafe: argumentFlowSafe,
+    json: (doc, stage, places, wrapped) => {
+      const out = stageJson(mergeArgumentsJson(doc), stage, places);
+      // A section this step left as it was is carried as the same value.
+      for (const key of Object.keys(out))
+        if (
+          key !== "kipory" &&
+          Object.hasOwn(doc, key) &&
+          JSON.stringify(out[key]) === JSON.stringify(doc[key])
+        )
+          out[key] = doc[key];
+      // A view's fixed text and lists are written `{literal: …}` (FR-038).
+      return wrapViewsJson(out, wrapped);
+    },
+    yaml: (text, stage, notes) => {
+      const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+      restructuredYaml(body.split(/\r?\n/));
+      viewsNeedingWrapYaml(body.split(/\r?\n/));
+      return stageYaml(text, stage, notes);
+    },
+  },
 ];
 /* The conversions run one version at a time to TARGET_VERSION, or the script
  * refuses to load: a target raised with no conversion to it would stamp a
@@ -743,10 +1501,11 @@ const versionOf = (stated) =>
 
 /**
  * A structured document (parsed JSON), converted. `notes` collects the places
- * a person must edit, `dropped` the members that were removed. A version 8
- * document is returned as it is, the same object.
+ * a person must edit, `dropped` the members that were removed, `wrapped` each
+ * view whose fixed values were written `{literal: …}`. A version 9 document
+ * is returned as it is, the same object.
  */
-export function upgradeJson(doc, notes = [], dropped = []) {
+export function upgradeJson(doc, notes = [], dropped = [], wrapped = []) {
   if (doc === null || typeof doc !== "object" || Array.isArray(doc)) {
     throw new Error("not a project document: expected an object");
   }
@@ -767,7 +1526,7 @@ export function upgradeJson(doc, notes = [], dropped = []) {
       path: pathAfter(stage, path),
       extra,
     }));
-    out = stageJson(out, stage, places);
+    out = (stage.json ?? stageJson)(out, stage, places, wrapped);
   }
   // One note per place, however many strings under it matched.
   const said = places.map(
@@ -1058,7 +1817,7 @@ const siblingValue = (lines, index, column, name) => {
 /**
  * A YAML document, converted line by line: the indentation says where each
  * key sits, and the same rules as the JSON path say what it becomes. Comments
- * and layout are kept. A version 8 document is returned as it is.
+ * and layout are kept. A version 9 document is returned as it is.
  */
 export function upgradeYaml(text, notes = [], dropped = []) {
   const stated = text
@@ -1080,7 +1839,7 @@ export function upgradeYaml(text, notes = [], dropped = []) {
   // still names that line after the next — the search words too, which
   // remove lines only once every number is said.
   const renamed = stages.reduce(
-    (held, stage) => stageYaml(held, stage, notes),
+    (held, stage) => (stage.yaml ?? stageYaml)(held, stage, notes),
     text,
   );
   const bom = renamed.charCodeAt(0) === 0xfeff ? renamed[0] : "";
@@ -1201,7 +1960,11 @@ const stageYaml = (text, stage, notes) => {
             number,
             "an anchor, alias, tag or merge key is used in a place that is rewritten",
           );
-        if (/^[{[]/.test(bare) && /[:{]/.test(bare.slice(1)))
+        if (
+          /^[{[]/.test(bare) &&
+          /[:{]/.test(bare.slice(1)) &&
+          !(policy === null && (stage.flowSafe?.(mode, value) ?? false))
+        )
           refuse(number, "a mapping is written on one line");
         if (!/^[{["']/.test(value) && /:(\s|$)/.test(bare))
           refuse(number, "this line has a key the script cannot read");
@@ -1264,7 +2027,11 @@ const stageYaml = (text, stage, notes) => {
       const flat = /^\[[^{}[\]:]*\]$/.test(bare) || /^\{\s*\}$/.test(bare);
       // This line's own key is read above; what the mapping holds is
       // rewritten only where the mode under the key says so.
-      if (!flat && (live(child) || policy !== null))
+      if (
+        !flat &&
+        (live(child) || policy !== null) &&
+        !(policy === null && (stage.flowSafe?.(child, value) ?? false))
+      )
         refuse(number, "a mapping is written on one line");
       return `${head}${looseText(rest, policy ?? child.text, note)}`;
     }
@@ -1579,7 +2346,12 @@ function searchWordsYaml(lines, notes, dropped) {
 }
 
 /** Convert a document given as text: JSON when it starts as JSON, YAML otherwise. */
-export function upgradeDocumentText(text, notes = [], dropped = []) {
+export function upgradeDocumentText(
+  text,
+  notes = [],
+  dropped = [],
+  wrapped = [],
+) {
   const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
   if (!/^\s*[{[]/.test(body)) return upgradeYaml(text, notes, dropped);
   let parsed;
@@ -1590,7 +2362,7 @@ export function upgradeDocumentText(text, notes = [], dropped = []) {
       `the file starts like JSON and does not parse as JSON: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  const converted = upgradeJson(parsed, notes, dropped);
+  const converted = upgradeJson(parsed, notes, dropped, wrapped);
   return converted === parsed
     ? text
     : `${JSON.stringify(converted, null, 2)}\n`;
@@ -1612,16 +2384,26 @@ if (isMain) {
   const files = args.filter((arg) => !arg.startsWith("-"));
   if (files.length !== 1 || flags.some((flag) => flag !== "--write")) {
     console.error(
-      "usage: node upgrade-document.mjs <file.kipory.yaml|file.json> [--write]",
+      [
+        "usage: node upgrade-document.mjs <file.kipory.yaml|file.json> [--write]",
+        `  ${CONVERTS}; without --write it prints the result, with it the file is rewritten in place.`,
+        "  A YAML document holding a field format 9 restructures (a view's fixed text included) is refused: convert the JSON form, or export the project again (`GET /v1/projects/{nodeId}/document` with `Accept: application/yaml`).",
+      ].join("\n"),
     );
     process.exit(2);
   }
   const [file] = files;
   const notes = [];
   const dropped = [];
+  const wrapped = [];
   let converted;
   try {
-    converted = upgradeDocumentText(readFileSync(file, "utf8"), notes, dropped);
+    converted = upgradeDocumentText(
+      readFileSync(file, "utf8"),
+      notes,
+      dropped,
+      wrapped,
+    );
   } catch (error) {
     console.error(
       `upgrade-document: ${error instanceof Error ? error.message : String(error)}`,
@@ -1635,6 +2417,14 @@ if (isMain) {
       [
         `upgrade-document: ${dropped.length} member(s) a document no longer carries were removed:`,
         ...dropped.map((line) => `  ${line}`),
+      ].join("\n"),
+    );
+  }
+  if (wrapped.length > 0) {
+    console.error(
+      [
+        `upgrade-document: ${wrapped.length} view(s) now write their fixed text and lists as \`{literal: …}\`:`,
+        ...wrapped.map((line) => `  ${line}`),
       ].join("\n"),
     );
   }

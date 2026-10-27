@@ -17,75 +17,9 @@ Each run acts for its person; the project pays. They start once this run saves; 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | union[] | no | `[]` | What every run starts with: this run's slots or fixed text. |
+| `inputs` | object | no | `{}` | Each input's value: a slot path, fixed value or expression. |
 | `people` | union | yes | — | Whose runs to start. ⚠️ Only from a run that acts for nobody — a schedule, trigger or API key; started runs cannot start more. |
 | `targetFlowId` | string | yes | — | The flow each person's run runs. ⚠️ A project document names it `target`, by key. |
-
-### `inputs` — each item is one of
-
-**`kind: slot`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `slot` | yes | — | Pass a parent slot's value into the sub-flow. |
-| `parentSlot` | string | yes | — | The parent slot to read. |
-| `subFlowSlot` | string | yes | — | The sub-flow input slot the value lands in. |
-| `path` | object | no | — | A path into the parent slot's value, to pass part of it. |
-
-`path`:
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `segments` | union[] | yes | — | Parts applied in order; an empty list takes the whole value. |
-
-`path` › `segments` — each item is one of:
-
-**`path` › `segments` › `kind: field`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `field` | yes | — | Step into a named property of an object. |
-| `name` | string | yes | — | The property to read. |
-
-**`path` › `segments` › `kind: first`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `first` | yes | — | Take the first element of a list. |
-
-**`path` › `segments` › `kind: last`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `last` | yes | — | Take the last element of a list. |
-
-**`path` › `segments` › `kind: index`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `index` | yes | — | Take one element of a list by position. |
-| `index` | integer, at least 0 | yes | — | Zero-based position to take. |
-
-**`path` › `segments` › `kind: pluck`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `pluck` | yes | — | Read one property from every item of a list. |
-| `name` | string | yes | — | Property to read from each element. |
-
-**`path` › `segments` › `kind: wrap`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `wrap` | yes | — | Wrap the current value in a single-element list. |
-
-**`kind: literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `literal` | yes | — | Pass a fixed text into the sub-flow. |
-| `subFlowSlot` | string | yes | — | The sub-flow input slot the text lands in. |
-| `value` | string | yes | — | The text to pass. |
 
 ### `people` — one of
 
@@ -101,14 +35,14 @@ Each run acts for its person; the project pays. They start once this run saves; 
 | --- | --- | --- | --- | --- |
 | `kind` | `linked` | yes | — | The people who own a record linked to one record. |
 | `relationId` | string | yes | — | The relation from the people's records, its near end, to the record. |
-| `recordIdSlot` | string | yes | — | Slot PATH to the id of the record the people link to. |
+| `recordId` | string | yes | — | The id of the record the people link to. |
 
 **`kind: list`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `list` | yes | — | A list of people an earlier action produced. |
-| `userIdsSlot` | string | yes | — | Slot PATH to a person-id list; ids outside the project are dropped. |
+| `userIds` | string | yes | — | A list of person ids; ids outside the project are dropped. |
 
 ## Worked example
 
@@ -125,13 +59,9 @@ Action settings (`functionConfig`):
 ```json
 {
   "targetFlowId": "flow_daily_digest",
-  "inputs": [
-    {
-      "kind": "literal",
-      "subFlowSlot": "edition",
-      "value": "morning"
-    }
-  ],
+  "inputs": {
+    "firedAt": "schedule.firedAt"
+  },
   "people": {
     "kind": "project"
   }
@@ -165,17 +95,13 @@ Action settings (`functionConfig`):
 ```json
 {
   "targetFlowId": "flow_new_item_alert",
-  "inputs": [
-    {
-      "kind": "slot",
-      "parentSlot": "feed",
-      "subFlowSlot": "feed"
-    }
-  ],
+  "inputs": {
+    "feed": "feed"
+  },
   "people": {
     "kind": "linked",
     "relationId": "rel_follows",
-    "recordIdSlot": "feed.recordId"
+    "recordId": "feed.recordId"
   }
 }
 ```

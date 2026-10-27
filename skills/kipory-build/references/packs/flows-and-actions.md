@@ -29,7 +29,7 @@ flow send-weekly-digest (clubId) → sent
   load-picks: record.list pick → picks
   each-member: each member in members (≤500, 10 at once)
     write-note: text.generate "A short note for {{member.name}} on this week's picks." → note
-    send-note: email.send toSlot="member" textSlot="note" → mailed  if not (member.optedOut = true)
+    send-note: email.send to="member" text="note" → mailed  if not (member.optedOut = true)
   collect-mailed: collect mailed → sentList (concat)
   count-sent: transform $count(sentList) → sentCount
   return {sent: sentCount}
@@ -145,6 +145,13 @@ Each diagnostic carries a `message` (what is wrong, in one line) and a `remedy` 
 it; `null` is a real answer, for a finding with nothing to act on from here). The answer's `plan`
 says how big the flow is (`actions`, `topLevelActions`, `depth`, `longestChain`), the same numbers the
 outline answers.
+
+A diagnostic of severity `info` is a hint, never a problem, and `counts.infos` counts them apart from
+`errors` and `warnings`. `TRANSFORM_FEEDS_ONE_INPUT` names a `value.transform` whose slot only one
+input of one other action reads: write the expression at that input as `{"expr": "…"}` (its
+`details.argument` gives it when short) and remove the transform. `TRANSFORM_IS_ONE_OBJECT` names one
+that builds one object: it can be a `value.build` with a declared output type. A plan carries the same
+hints, and they refuse nothing.
 
 For a list, ask the list:
 
@@ -670,7 +677,7 @@ action that sets none behaves as it always has.
 
 ## Asking about an action you have not saved
 
-28 <!-- count: editor-inputs-from-config --> functions do not take their inputs
+29 <!-- count: editor-inputs-from-config --> functions do not take their inputs
 from the action row: they name them INSIDE their own configuration. `value.transform` — the most-used function there is — names them
 inside a JSONata expression, so writing the expression IS writing the action's input list, and there
 is nothing to pick from a list.
@@ -969,7 +976,7 @@ and a type you give is kept for that input wherever the platform places it.
 <!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
 
-- **Provider slots are roots like any other.** `record.list` and `record.read` default `userIdSlot`
+- **Provider slots are roots like any other.** `record.list` and `record.read` default `userId`
   to `userInfo.userId`, so `userInfo` is an input even on a project-wide table; a prompt reading
   `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo`. They are typed by the
   platform's types `UserInfo`, `ProjectInfo`, `RunInfo` and `TableInfo` — by key in a
@@ -989,6 +996,41 @@ and a type you give is kept for that input wherever the platform places it.
   (`$count(text) > 0 ? {"text": text}`). The action then stores no slot: a `slotPresent` guard reads
   it as absent and another expression sees the name unbound. `$now`, `$millis`, `$random`, `$shuffle` and `$eval` are refused with
   `JSONATA_FORBIDDEN_FUNCTION`.
+
+### What a setting takes: a slot, a fixed value or an expression
+
+Every setting that reads a value from the run takes an **argument**, in one of three forms — the
+same in a function's settings (`ids` on a read and `data` on a write, say), a `record.create` /
+`record.update` `fields` entry, a `flow.invoke` or `flow.start-per-person` input, a `flow.loop` `seed`, a
+`fieldFilters` value and a `record.query` operand:
+
+```json
+{
+  "to": "member.email",
+  "subject": { "literal": "This week's picks" },
+  "text": { "expr": "$join(picks.records.title, \", \")" }
+}
+```
+
+- **A bare string is a slot path**: the slot, then `.field` and brackets — `[]` every item,
+  `[0]` / `[first]` / `[last]` one, `[distinct]` repeats dropped, `[compact]` absent and `null`
+  items dropped (`reviews.records[].readerId[distinct]`). A fixed text is never a bare string.
+- **`{ "literal": … }` is a fixed value** of any JSON type; a bare number or `true`/`false` is one
+  too. It reads no slot.
+- **`{ "expr": "…" }` is JSONata** over the slots the action can see, evaluated before the function
+  runs; its time is part of the action's own charge. A failing expression fails the action, naming
+  the setting.
+- **The roots are the action's inputs.** A path's root and an expression's top-level names are
+  derived into `inputStreams` like any setting that names a slot; an argument that comes out absent
+  is not given, exactly as an absent slot.
+- **The plan types each one** against what the setting expects (`ARGUMENT_TYPE_MISMATCH`), and
+  refuses a path naming no slot (`ARGUMENT_PATH_NAMES_NO_SLOT`) and an object that is not exactly
+  `{literal}` or `{expr}` (`ARGUMENT_MALFORMED`).
+- **Settings are named for what they hold.** Format 9 dropped the `Slot` suffix of every setting an
+  action reads (`ids` and `userId` among them), and merged each fixed/slot pair into one setting —
+  `limit` and `headers` among them, and a query clause's `value`. A write holding a retired
+  name is refused with the new name; `kipory-connect`'s upgrade script converts a
+  format-8 document. Settings an action WRITES keep their names (`outputSlot`, `failuresSlot`).
 
 ### What an action's output type follows
 
@@ -1119,7 +1161,7 @@ value.
 - **One writer per slot**, enforced by the database. Two actions cannot write the same slot.
 - **An action can write more slots than `outputSlot` names.** A dispatch writes one per branch, an
   invoke one per mapped return, a merge one per lane, a loop opener every carry slot its
-  `seedFrom` / `seedLiteral` seeds, a loop-end its escaped slots, and any function its declared
+  `seed` names, a loop-end its escaped slots, and any function its declared
   secondary outputs. Every action read carries `producedSlots.slots` — the full list, as the
   validator reads it — and `producedSlots.unknowable` when the config did not parse and the list
   may be missing some. Read that rather than `outputSlot` when you ask "does anything write this?".
@@ -1217,7 +1259,7 @@ never built against. Treat an unrecognised code as a generic refusal and fall ba
   expressions, or template placeholders. The refusal names the streams you are missing, so this
   is a loop worth leaning on rather than avoiding. ⛔ **A prompt edit is a wiring edit.** The set
   is what the template names PLUS every file-shaped wire the action attaches plus any slot named by
-  a non-prompt config field the function declares (`text.generate`'s `modelSlot` is one). A PATCH
+  a non-prompt config field the function declares (`text.generate`'s `model` is one). A PATCH
   sending `promptTemplate` alone — or `functionConfig` alone — re-derives the set for you (keeping
   the action's wired files); a PATCH that also sends `inputStreams` is judged on the list it sends.
 - **`CONFIG_SLOT_PATH_CROSSES_LIST`** — a config slot path takes a bare FIELD segment off a LIST,
@@ -1363,7 +1405,7 @@ you want the objects and `message` when you want a sentence; do not parse either
 `firstErrorCode` and `firstErrorMessage` come off one diagnostic, so they are `null` together.
 
 **A `derived.draft` diagnostic names `fields`, a list.** One entry is the field at fault. Several
-mean the rule is about the relationship between them: `dataEqualsPath` and `dataEqualsSlot` on
+mean the rule is about the relationship between them: `dataEqualsPath` and `dataEquals` on
 `record.list` must be set together or not at all, and a `flow.dispatch` action needs its `rules`
 list, or else a `default` branch. An empty list is a problem with the configuration as a whole.
 

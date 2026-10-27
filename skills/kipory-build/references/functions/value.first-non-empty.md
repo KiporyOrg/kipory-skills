@@ -17,9 +17,27 @@ The chosen value passes on unchanged, so candidates can be of different kinds.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | string[], at least 1 item | yes | — | The slots to try, in order. |
+| `inputs` | union[], at least 1 item | yes | — | The slots to try, in order. |
 | `mimePrefixes` | string[] | no | `[]` | For files, accepted type prefixes such as `image/`; empty accepts all. |
 | `valueKind` | `any` \| `string` \| `file` | no | `"any"` | Which values count: any, non-empty text only, or files only. |
+
+### `inputs` — each item is one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

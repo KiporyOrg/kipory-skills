@@ -31,7 +31,7 @@ slug grammar would refuse included; there is no `422` on this read.
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
-`kipory: 8`, and every rule of that pack holds for it: what a row may state, how each reference is
+`kipory: 9`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused. A template may carry `views` and `shapes` too, spelled as that
 pack spells them (a clause `op` is `in`, `not-in` and the rest): a flow it ships then reads its
 views by key. A `delete: true` row, a config namespace's too, finds nothing to remove in a new

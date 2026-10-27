@@ -114,7 +114,7 @@ Each item of `diagnostics`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
@@ -150,7 +150,7 @@ Each item of `diagnostics`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
@@ -256,7 +256,7 @@ Each item of `diagnostics`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
@@ -294,7 +294,7 @@ Each item of `wiring`:
 | `flowLabel` | `string` | yes | That flow's label (display text). |
 | `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
 | `actionKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministic`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the action's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
@@ -350,7 +350,7 @@ Each item of `wiring`:
 | `flowLabel` | `string` | yes | That flow's label (display text). |
 | `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
 | `actionKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministic`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the action's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
@@ -421,7 +421,7 @@ Each item of `wiring`:
 | `flowLabel` | `string` | yes | That flow's label (display text). |
 | `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
 | `actionKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministicSlots`) and makes no model call for it. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministic`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
 | `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the action's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
@@ -447,7 +447,7 @@ Each item of `diagnostics`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
@@ -456,7 +456,7 @@ Each item of `leavesBehind`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
@@ -514,7 +514,7 @@ Each item of `warnings`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 | `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
@@ -533,7 +533,7 @@ Each item of `diagnostics`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 
@@ -586,7 +586,7 @@ Each item of `diagnostics`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
-| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note about something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way) and is not a finding about your body at all. GATE ON THIS, never on `code`. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
 

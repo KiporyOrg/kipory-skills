@@ -17,8 +17,26 @@ A value becomes one item; a list adds each item. Use it when no fan-out needs me
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | string[], at least 1 item | yes | — | The slots to join in order; lists are flattened in. |
+| `inputs` | union[], at least 1 item | yes | — | The slots to join in order; lists are flattened in. |
 | `strategy` | `concat` \| `dedup-concat` | no | `"concat"` | `concat` keeps everything; `dedup-concat` drops repeats, keeping the first. |
+
+### `inputs` — each item is one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

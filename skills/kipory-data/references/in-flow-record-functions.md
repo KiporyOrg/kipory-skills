@@ -97,14 +97,14 @@ Two things that follow from the run's principal:
 ## Counting
 
 `record.count` answers a number and reads no record. It takes a `tableKey` and the same
-narrowing a list does: `fieldFilters` (the only form that takes a range), `fieldFilterSlots`,
-`vocabularyFilter`, `linkFilters`, `statuses`, `createdAfter` and `createdBefore`.
+narrowing a list does: `fieldFilters` (each entry's `value` a slot path, a fixed value or an
+expression), `vocabularyFilter`, `linkFilters`, `statuses`, `createdAfter` and `createdBefore`.
 
 - **A field filter needs a `filter` use on the field.** One without it fails the action when it
   runs, not at save.
 - **A filter slot that is missing skips the action**; it never counts without that filter. An empty
   list counts `0`.
-- **A per-user table is counted for one user** — `userIdSlot`, default `userInfo.userId` — and the
+- **A per-user table is counted for one user** — `userId`, default `userInfo.userId` — and the
   action fails on a run with none. A project-scoped table ignores the slot.
 
 ## Stating and retracting links
@@ -128,14 +128,14 @@ stands (written, revived or already there), `refused` otherwise, with `reason` o
 ## Appending to a stream
 
 `record.append` adds events to a record's stream field — a field the table's `uses` gives a
-`stream` use. Config: `tableKey`, `field`, `recordIdSlot`, and `eventSlot` holding one event
+`stream` use. Config: `tableKey`, `field`, `recordId`, and `event` holding one event
 object or a list. It answers `appended` when at least one event was new and `unchanged` when
 every one already existed, so a retry converges.
 
 - **Each event carries its time** under the property the stream declares. One event without it,
   or with a value that is not a datetime, fails the action and nothing of the batch is written.
 - **An event's identity is the record, the time and its id.** Left to the action, the id is derived
-  from the event's content; with your own ids in `eventIdSlot`, the same id under another time is
+  from the event's content; with your own ids in `eventId`, the same id under another time is
   a second event.
 - **The record's `data` does not change.** Read the events back with
   `GET /v1/records/{id}/stream/{field}`, or ask about them with a `stream` clause of
@@ -161,7 +161,7 @@ with no links are indistinguishable at this action.
 ## Counting links across everyone
 
 `record.link-counts` answers "how many people follow this": for up to 200 records (one id or a list,
-from `recordIdsSlot`) it returns `{ recordId, count }` — how many current links of one relation reach
+from `recordIds`) it returns `{ recordId, count }` — how many current links of one relation reach
 each, from every owner's records. Numbers only: no far end, no field, no owner. It works in a run
 that acts for nobody (a schedule, a trigger), and stays right after any delete, account erasure
 included, because links go with their records. The records you ask about must be ones the run may
@@ -177,7 +177,7 @@ and never another user's. It returns true when at least one record was removed, 
 every id was already gone or out of reach** — the same answer for "already deleted" and "not
 yours". It never tells you which.
 
-Every writer here takes an optional `userIdSlot`, the two link functions included. In a run that
+Every writer here takes an optional `userId`, the two link functions included. In a run that
 acts for nobody — a schedule, a trigger — it names the person the write is for: a create is owned
 by them; an update, delete, append or teardown reaches their records and the pool; a link may join
 their records and the pool. The person

@@ -23,20 +23,36 @@ Reads JSON, plain text or an XML feed. A 4xx answer fails the action; its failur
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `body` | union | no | — | The request body, usually built by an earlier action. |
 | `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
-| `bodySlot` | string, at most 4096 characters | no | — | The slot holding the request body, built by an earlier action. |
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
-| `headerSlots` | object | no | — | Headers read from slots; an empty slot leaves one out. |
-| `headers` | object | no | — | Headers with fixed values; put a credential in `secret` instead. |
+| `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
 | `maxBytes` | integer, more than 0, at most 100000000 | no | `5000000` | Reject responses larger than this many bytes. ⚠️ A body too long for its slot is cut to fit and ends in `[TRUNCATED]`. |
 | `maxRedirects` | integer, 0 to 10 | no | `3` | Maximum HTTP redirect hops to follow. |
 | `method` | `GET` \| `POST` | no | — | GET (default), or POST for a service that only answers POST. ⚠️ A POST may be sent several times and cached, so use it only where it changes nothing. |
-| `query` | object | no | — | Query parameters with fixed values, added to the address. |
-| `querySlots` | object | no | — | Query parameters read from slots; an empty slot leaves one out. |
+| `query` | object | no | — | Query parameters for the address by name; an empty value omits one. |
 | `responseAs` | `text` \| `json` \| `json-list` | no | — | `text` (default), `json` for an object, or `json-list` for a list. ⚠️ Under `json` a list arrives under `value`; `json-list` fails on anything but a list of objects. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; if the credential lists hosts, any other host fails. |
 | `timeoutMs` | integer, more than 0 | no | `15000` | Request timeout in milliseconds. ⚠️ This limits the one request, not the action's own `timeoutMs` run setting. |
 | `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
+
+### `body` — one of
+
+- `string`, at most 4096 characters
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

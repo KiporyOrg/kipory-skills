@@ -10,7 +10,7 @@ Each place comes with address, coordinates, category, rating, phone, website and
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceCard[]`
 - **Also found as:** places nearby, nearby, near me, local businesses, find businesses
-- **Reads:** One text query that says what and where, like a category and a town. With `locationSlot` set, the slot says where and the text only what. _(shape hint: `string`)_
+- **Reads:** One text query that says what and where, like a category and a town. With `location` set, it says where and the text only what. _(shape hint: `string`)_
 - **Emits:** A list of `PlaceCard`, each with the place ID other place actions take. Empty when the map lists nothing; a `TRUNCATED` warning means more places may exist.
 - **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Suggested input streams:** `query`
@@ -27,8 +27,26 @@ Each place comes with address, coordinates, category, rating, phone, website and
 | `detail` | `summary` \| `full` | no | `"summary"` | How much of each listing to read; `full` reads more, slower. |
 | `includeClosed` | boolean | no | `true` | Keep places the map marks temporarily or permanently closed. ⚠️ A place left out is still charged, and changing this searches again. |
 | `language` | string, at least 2 characters | no | `"en"` | Language for names, addresses and hours, like `en` or `de`. ⚠️ Changing the language changes the cache key, so the next run searches again. |
-| `locationSlot` | string, at most 512 characters | no | — | A slot holding `{lat, lng, radiusMeters}`; empty lets the query say where. ⚠️ Places read outside the circle are left out and still charged: the map searches a wider rectangle than the radius. |
+| `location` | union | no | — | A circle `{lat, lng, radiusMeters}`; empty lets the query say where. ⚠️ Places read outside the circle are left out and still charged: the map searches a wider rectangle than the radius. |
 | `maxItems` | integer, 1 to 200 | no | `20` | How many places to return; at most 200, or 60 on `full`. ⚠️ Each place read is charged; a large search with no area wanders to nearby towns. |
+
+### `location` — one of
+
+- `string`, at most 512 characters
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 

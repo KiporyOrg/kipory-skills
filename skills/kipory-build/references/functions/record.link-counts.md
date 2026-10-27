@@ -10,7 +10,7 @@ Counts one relation's current links reaching each record, across everyone's reco
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record ids` → `RecordLinkCount[]`
 - **Also found as:** count followers, how many links, link count
-- **Reads:** The record ids, from the slot `recordIdsSlot` names: one id or a list of up to 200. More than 200 fails the action. _(shape hint: `record ids`)_
+- **Reads:** The record ids, from `recordIds`: one id or a list of up to 200. More than 200 fails the action. _(shape hint: `record ids`)_
 - **Emits:** A `RecordLinkCount` per record this run may write, with how many current links of the relation reach it. A record no link reaches counts 0.
 
 ## Config
@@ -18,8 +18,26 @@ Counts one relation's current links reaching each record, across everyone's reco
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `direction` | `incoming` \| `outgoing` \| `either` | no | `"incoming"` | Links pointing at the record (`incoming`), from it (`outgoing`), or both. |
-| `recordIdsSlot` | string | yes | — | The slot path to one record id or up to 200. ⚠️ A count says how many link here, never whose; on a niche record a small one can still hint. |
+| `recordIds` | union | yes | — | One record id or a list of up to 200. ⚠️ A count says how many link here, never whose; on a niche record a small one can still hint. |
 | `relationKey` | string | yes | — | The relation whose links are counted, by key. |
+
+### `recordIds` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -37,7 +55,7 @@ Action settings (`functionConfig`):
 {
   "relationKey": "follows",
   "direction": "incoming",
-  "recordIdsSlot": "page.channelIds"
+  "recordIds": "page.channelIds"
 }
 ```
 

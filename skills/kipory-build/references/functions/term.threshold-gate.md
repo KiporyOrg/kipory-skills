@@ -18,13 +18,121 @@ High scores reuse the matching term, low ones coin a new term, and the rest go t
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `candidatesSlot` | string | no | — | Slot path containing the descending similarity candidates from `term.search`. |
-| `parentTermIdSlot` | string | no | — | Optional slot path containing the resolved parent term id for hierarchical vocabularies. |
-| `proposalLabelSlot` | string | no | — | The slot holding the proposed label; empty uses the slug. |
-| `proposalSlugSlot` | string | no | — | The slot holding the slug for a newly created term. |
-| `thresholdsSlot` | string | no | — | The slot holding this vocabulary's `highThreshold` and `lowThreshold`. |
-| `vocabularyKey` | string | no | — | Which vocabulary this gate resolves; ignored when `vocabularySlot` is set. ⚠️ Whether the vocabulary exists is checked when the terms are saved, not here. |
-| `vocabularySlot` | string | no | — | Optional slot path containing the vocabulary to stamp onto the decisive `TermResolution.vocabularyKey`. |
+| `candidates` | union | no | — | The similarity candidates from `term.search`, best first. |
+| `parentTermId` | union | no | — | Optional resolved parent term id, for hierarchical vocabularies. |
+| `proposalLabel` | union | no | — | The proposed label; empty uses the slug. |
+| `proposalSlug` | union | no | — | The slug for a newly created term. |
+| `thresholds` | union | no | — | This vocabulary's `highThreshold` and `lowThreshold`. |
+| `vocabulary` | union | no | — | Optional vocabulary key, read from the run, stamped onto the decisive `TermResolution.vocabularyKey`. |
+| `vocabularyKey` | string | no | — | Which vocabulary this gate resolves; ignored when `vocabulary` is set. ⚠️ Whether the vocabulary exists is checked when the terms are saved, not here. |
+
+### `candidates` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `parentTermId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `proposalLabel` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `proposalSlug` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `thresholds` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `vocabulary` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -41,8 +149,8 @@ Action settings (`functionConfig`):
 ```json
 {
   "vocabularyKey": "type",
-  "candidatesSlot": "candidates.candidates",
-  "thresholdsSlot": "candidates.thresholds"
+  "candidates": "candidates.candidates",
+  "thresholds": "candidates.thresholds"
 }
 ```
 
@@ -72,8 +180,8 @@ Action settings (`functionConfig`):
 ```json
 {
   "vocabularyKey": "type",
-  "candidatesSlot": "candidates.candidates",
-  "thresholdsSlot": "candidates.thresholds"
+  "candidates": "candidates.candidates",
+  "thresholds": "candidates.thresholds"
 }
 ```
 

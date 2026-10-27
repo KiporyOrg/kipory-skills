@@ -18,12 +18,48 @@ Wraps each item in a tagged block, strips control tokens and caps the length.
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `idField` | string | no | `"id"` | Which field on each item carries its id. |
-| `itemsSlot` | string | yes | — | The slot holding the items, each with the fields named below. |
+| `items` | union | yes | — | The items, each with the fields named below. |
 | `maxCharsPerItem` | integer, 100 to 50000 | no | `4000` | Most characters per item, 4000 by default; longer text is cut. ⚠️ A lower cap limits what a poisoned item can say but loses real evidence. |
-| `nonceSlot` | string | no | — | A slot holding the nonce to stamp; unset, one is made. ⚠️ Point it at the run's nonce so every call in the run shares it. |
+| `nonce` | union | no | — | The nonce to stamp; unset, one is made. ⚠️ Point it at the run's nonce so every call in the run shares it. |
 | `outputShape` | `list` \| `joined` | no | `"list"` | `list` gives one entry per item; `joined` gives a single string. |
 | `textField` | string | no | `"text"` | Which field on each item carries its text. |
 | `truncationMarker` | string | no | `" […truncated]"` | Text appended to a body cut at the cap. |
+
+### `items` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `nonce` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -39,7 +75,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "itemsSlot": "candidateRows"
+  "items": "candidateRows"
 }
 ```
 
@@ -77,7 +113,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "itemsSlot": "candidateRows"
+  "items": "candidateRows"
 }
 ```
 
@@ -113,7 +149,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "itemsSlot": "candidateRows"
+  "items": "candidateRows"
 }
 ```
 
@@ -146,7 +182,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "itemsSlot": "candidateRows",
+  "items": "candidateRows",
   "outputShape": "joined"
 }
 ```

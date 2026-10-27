@@ -69,14 +69,16 @@ A flow's `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName,
 }
 ```
 
-| Segment                           | Takes                                  |
-| --------------------------------- | -------------------------------------- |
-| `{ "kind": "field", "name": … }`  | one property                           |
-| `{ "kind": "first" }`             | a list's first item                    |
-| `{ "kind": "last" }`              | its last                               |
-| `{ "kind": "index", "index": … }` | the item at a position                 |
-| `{ "kind": "pluck", "name": … }`  | that property from every item (a list) |
-| `{ "kind": "wrap" }`              | one value lifted into a one-item list  |
+| Segment                           | Takes                                       |
+| --------------------------------- | ------------------------------------------- |
+| `{ "kind": "field", "name": … }`  | one property                                |
+| `{ "kind": "first" }`             | a list's first item                         |
+| `{ "kind": "last" }`              | its last                                    |
+| `{ "kind": "index", "index": … }` | the item at a position                      |
+| `{ "kind": "pluck", "name": … }`  | that property from every item (a list)      |
+| `{ "kind": "wrap" }`              | one value lifted into a one-item list       |
+| `{ "kind": "distinct" }`          | a list with repeats dropped, first kept     |
+| `{ "kind": "compact" }`           | a list with absent and `null` items dropped |
 
 Segments apply in order. **A `field` segment needs a typed source**: the action's `outputSchema` must be a type that declares that field. An action typed as the builtin `object` (or a list) refuses a field path with a type mismatch — give the action a type and bind into it.
 
@@ -103,11 +105,11 @@ The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the pla
 - Omit `inputStreams` (or send `[]`) and the save stores the names the settings or prompt read, each typed from what feeds it.
 - A PATCH that changes the settings or prompt without `inputStreams` re-derives them.
 - A list you DO send must be exactly those names (plus any file a prompt action attaches): the save compares the two as sets and refuses a difference with `FREE_FORM_INPUT_STREAMS_MISMATCH`, whose message names what is missing or extra.
-- `flow.invoke` and `flow.merge` go further: their inputs are mirrored from config — an invoke's `kind: "slot"` rows, a merge's lane sources — and a list you state is replaced (`patterns.md` §2, §3).
+- `flow.invoke` and `flow.merge` go further: their inputs are mirrored from config — the roots an invoke's `inputs` map reads, a merge's lane sources — and a list you state is replaced (`patterns.md` §2, §3).
 
 Two things catch people:
 
-- **Provider slots count.** `record.list` and `record.read` default `userIdSlot` to `userInfo.userId`, so the save adds `userInfo` to their inputs itself, even on a project-wide table a key calls — leave `inputStreams` out, or include it in a list you send. A prompt reading `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo` (schema `ProjectInfo`).
+- **Provider slots count.** `record.list` and `record.read` default `userId` to `userInfo.userId`, so the save adds `userInfo` to their inputs itself, even on a project-wide table a key calls — leave `inputStreams` out, or include it in a list you send. A prompt reading `{{projectInfo.config.<namespace>.<field>}}` needs `projectInfo` (schema `ProjectInfo`).
 - **In JSONata, only a name at the top of an expression is read as a slot**: inside `[…]` or after a `.` it is a field of each item (`$$.name` reads the slot there), and a top-level `undefined` is a slot too. `patterns.md` ("`value.transform`") has the rule, the way round it and the five refused functions.
 
 ## 5. When an action runs
@@ -119,7 +121,8 @@ Two things catch people:
   - Preview with `principal: "no-end-user"` to see the run a key or a schedule gets (`checking.md`).
 - **A condition is judged before the inputs, and it may name any slot of the flow.** The slot does not have to be one of the action's inputs, and the action is ordered after whatever writes it. An action whose condition fails is skipped whatever its inputs hold.
 - **"Run only when a slot is absent" is `not` around `slotPresent`, on the action itself**: `"condition": { "op": "not", "inner": { "op": "slotPresent", "slot": "found" } }`. There is no separate operator for absence — `not` wraps any clause (`inner`), and `and` and `or` take a list (`all`, `any`). Put it on the action that should run — the `record.create` reading its data slot — and name the slot that decides in the condition only. A helper action that turns "absent" into a marker is not needed, and would not work: a transform reading only the absent slot is skipped with it.
-- **A condition that fails is a skip, not a failure**, and so is a condition that throws.
+- **A condition that fails is a skip, not a failure.** A condition that throws is different: the action fails with `condition-error`.
+- **A condition can be a JSONata expression**: `{ "op": "expr", "expr": "$count(reviews.records) > 0" }`, with no `slot`. It works in an action's `condition` and a `flow.loop`'s `until`, alone or inside `and`/`or`/`not`; a trigger's filter refuses it. It holds when the value is true by JavaScript's rule: an expression that gives nothing, `false`, `0`, `""` or `null` fails, and anything else holds — `[]` and `{}` included, so test a list with `$count(x) > 0`, not `x`. Its top-level names are slots like any expression's. An expression that throws does not skip the action: it fails it with `condition-error`.
 - **Which operator tests which kind of value** is `GET /v1/actions/condition-operators` — the table a `condition` is checked against at save and evaluated by at run time.
 - **`flow.dispatch` with no `default` silently skips an unmatched input**, and so does every action below the unwritten branch slot whose inputs all trace back to it. An action that also reads another present slot still runs, so guard a branch action on its branch slot with `slotPresent`.
 
@@ -166,3 +169,44 @@ An action that fails softly, or fails with `"onFailure": "continue"`, leaves its
 - **Read it like any optional slot.** In a `value.transform`: `$exists(pageFailure) ? {"state": pageFailure.code = "dns-not-found" ? "gone" : "unknown"} : {"state": "ok"}`, with `inputStreams` naming a slot that is always there beside it. As a guard: `{ "op": "slotPresent", "slot": "pageFailure" }`.
 - **A fan-out branch's failure slot is that branch's own**; a `flow.merge` lane over it collects one list of the failures. A whole branch the fan-out tolerated is reported on the merge's `failuresSlot` instead (`patterns.md` §2).
 - **It is refused at save** on an action that can never write it — one that does not continue and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's own output (`FAILURE_SLOT_IS_OWN_OUTPUT`), and as the source of a required flow output (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`; an optional output may return it). A slot another action also writes is reported `DUPLICATE_OUTPUT_SLOT`, as two output slots are.
+
+## 7. What a setting takes: a slot, a fixed value or an expression
+
+Every setting that reads a value from the run — a function's `ids`, `data`, `to`, `userId`, a `fields` entry, a `flow.invoke` input, a `flow.loop` seed, a `record.query` operand, a `fieldFilters` value — takes an **argument**, in one of three forms:
+
+| Written                                 | Is                                                                                         |
+| --------------------------------------- | ------------------------------------------------------------------------------------------ |
+| `"book.title"`, `"page.records[].id"`   | a slot path: the slot, then `.field` and brackets. A bare string is always a path          |
+| `{ "literal": "neutral" }`, `5`, `true` | a fixed value. `literal` holds any JSON — text, a list, an object, `null`                  |
+| `{ "expr": "$count(page.records)" }`    | an expression: JSONata, evaluated before the function runs, over the slots the action sees |
+
+- **Brackets**: `[]` every item (`records[].id`), `[0]` / `[first]` / `[last]` one item, `[distinct]` the list with repeats dropped (`reviews.records[].readerId[distinct]`), `[compact]` the list with absent and `null` items dropped. `[distinct]` and `[compact]` after a value that is not a list are refused at save.
+- **A path never reads through a list.** A `.field` read off a list reads nothing and is refused `CONFIG_SLOT_PATH_CROSSES_LIST`: a `record.read` gives a list even for one id, so its title is `book[0].title`, not `book.title`. Name the item (`[0]`, `[first]`, `[last]`) or every item (`book[].title`). JSONata is the other way round: in an `expr`, `book.title` maps over the list, giving the one title for a one-item list.
+- **`[]`, `[distinct]` and `[compact]` over no items give `[]`**, a value, not an absent argument: the action still runs and gets an empty list (a `record.read` given no ids reads nothing and answers `[]`; with `failIfEmpty`, a 404). Only `[0]`, `[first]`, `[last]` on an empty list, or a missing field, come out absent.
+- **A bare number, `true` or `false` is the same as `{ "literal": … }`**: `"urgent": false` and `"urgent": { "literal": false }` are one value. Only text needs the wrapper, because a bare string is a path.
+- **A one-item list is an expression**: `"ids": { "expr": "[bookId]" }` hands a list-taking setting one id — no transform. A path has no such form.
+- **A path's root and an expression's top-level names are the action's inputs**: leave `inputStreams` out and the save derives them (section 4). A fixed value reads nothing.
+- **An argument that comes out absent** is not given: the action behaves as with an absent slot. An expression that fails fails the action, naming the setting.
+- **Each argument is checked at plan** against what the setting expects (`ARGUMENT_TYPE_MISMATCH`); a path naming no slot is `ARGUMENT_PATH_NAMES_NO_SLOT`, an object that is not exactly `{literal}` or `{expr}` is `ARGUMENT_MALFORMED`.
+- **A setting is named for what it holds.** `ids`, `data`, `userId`, `to`, `headers`, `seed` — a setting an action reads carries no `Slot` suffix; where a fixed field and a slot field once sat side by side (`limit`, `headers`, a clause's `value`), the one field takes either. A write holding a retired name is refused with the new one named, and `kipory-connect`'s upgrade script converts a format-8 document.
+
+`record.create` and `record.update` take the record's fields either whole or one by one — `data` (an argument naming the object) or `fields`, never both:
+
+```json
+{
+  "tableKey": "review",
+  "fields": {
+    "bookId": "book.id",
+    "rating": 5,
+    "status": { "literal": "draft" },
+    "readers": "club.members[].userId[distinct]",
+    "title": { "expr": "$uppercase(book.title)" }
+  }
+}
+```
+
+Each `fields` key is a field of the table, checked at plan with the nearest name suggested; an entry that comes out absent is left off the record (on an update in merge mode, the field is untouched).
+
+- **A typed value built field by field is a `value.build`.** Its `fields` map each field of the action's declared `outputSchema` to a JSONata expression — **a bare string there is an expression, not a slot path**, the one place a bare string is not a path (`"stars": "$round(avg, 1)"`, or `{"expr": "…", "when": "…"}` to set the field only when `when` holds); every name and type is checked at plan, and it needs a declared output type. Use `value.transform` for a value with no type of its own.
+- **A condition can be an expression**: `{"op": "expr", "expr": "$count(page.records) > 0"}` in an action's `condition` or a loop's `until`, alone or inside `and`/`or`/`not` (section 5).
+- **Health hints where a transform could go** (severity `info`, never blocking): `TRANSFORM_FEEDS_ONE_INPUT` when one input of one other action is all that reads a `value.transform`'s slot — write the expression there as `{"expr": …}` — and `TRANSFORM_IS_ONE_OBJECT` when a transform builds one object, which a `value.build` can say.

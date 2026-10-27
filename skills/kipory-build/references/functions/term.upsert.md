@@ -10,7 +10,7 @@ Matches existing terms, creates the rest and indexes them for search. A preview 
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `TermResolution[]` → `nothing`
 - **Also found as:** store terms, add tags, create terms
-- **Reads:** One slot, named by `resolutionsSlot`, holding the resolved terms to save — usually what `vocabulary.resolve` emitted. An empty one saves nothing and succeeds. _(shape hint: `TermResolution[]`)_
+- **Reads:** The resolved terms to save, from `resolutions` — usually what `vocabulary.resolve` emitted. An empty list saves nothing and succeeds. _(shape hint: `TermResolution[]`)_
 - **Emits:** Nothing — the terms are saved. Leave `outputSlot` out: a named one is refused, and no later action can wait for this one. A repeat changes nothing.
 - **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Queue:** 3 attempts, exponential from 2 s; waits up to 30 s; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
@@ -19,7 +19,25 @@ Matches existing terms, creates the rest and indexes them for search. A preview 
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `resolutionsSlot` | string | yes | — | The slot holding the resolved terms, usually from `vocabulary.resolve`. ⚠️ An empty bundle saves nothing and still succeeds; a preview writes nothing. |
+| `resolutions` | union | yes | — | The resolved terms to save, usually from `vocabulary.resolve`. ⚠️ An empty bundle saves nothing and still succeeds; a preview writes nothing. |
+
+### `resolutions` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -35,7 +53,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "resolutionsSlot": "termResolutions"
+  "resolutions": "termResolutions"
 }
 ```
 
@@ -65,7 +83,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "resolutionsSlot": "termResolutions"
+  "resolutions": "termResolutions"
 }
 ```
 

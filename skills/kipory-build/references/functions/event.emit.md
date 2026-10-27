@@ -4,13 +4,13 @@
 
 Send an event, with its data, to anything listening.
 
-The payload comes from a slot. It writes nothing back, so it can sit anywhere in the flow.
+The payload comes from the run or is fixed. It writes nothing back, so it can sit anywhere.
 
 - **Group:** flow · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Every emission gets a new event id, so a new run publishes the event again and starts every trigger listening for it again.
 - **I/O:** `event payload` → `nothing`
 - **Also found as:** publish event, notify, trigger, signal, broadcast
-- **Reads:** Reads the configured payload slot; its value becomes the event payload (validated against the event type's payload schema). _(shape hint: `event payload`)_
+- **Reads:** Reads the configured `payload`; its value becomes the event payload (validated against the event type's payload schema). _(shape hint: `event payload`)_
 - **Emits:** Nothing — the event goes onto the live stream. The action needs no `outputSlot`; leave it out.
 - **Suggested input streams:** `payload`
 
@@ -20,7 +20,25 @@ The payload comes from a slot. It writes nothing back, so it can sit anywhere in
 | --- | --- | --- | --- | --- |
 | `category` | string | yes | — | The category of the event to send. |
 | `event` | string | yes | — | Which of your project's events to send. |
-| `payloadSlot` | string | no | — | The slot whose value becomes the payload; empty for none. |
+| `payload` | union | no | — | The event's payload; empty for none. |
+
+### `payload` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -38,7 +56,7 @@ Action settings (`functionConfig`):
 {
   "category": "orders",
   "event": "ready",
-  "payloadSlot": "payload"
+  "payload": "payload"
 }
 ```
 

@@ -31,7 +31,7 @@ the same term.
   nesting under a parent vocabulary, filtering and counting by term (`vocabularyFilter` on
   `record.list` and `record.count`, a `record.query` term clause, `vocabulary.aggregate`), or
   matching by meaning. Its cost: every term write embeds the term, and every record not fed by
-  `deterministicSlots` pays a chat-model proposal in `vocabulary.resolve` — about 600 credits a
+  `deterministic` pays a chat-model proposal in `vocabulary.resolve` — about 600 credits a
   record where a `text.decide` asking the same closed pick measured 30–40, on one deployment.
 - **Against a relation.** A vocabulary classifies a record against its _terms_. A link
   joins a record to _another record_. If the thing on the other end is itself first-class — with

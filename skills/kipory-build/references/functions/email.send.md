@@ -4,13 +4,13 @@
 
 Send one email to one person.
 
-Recipient, subject and body come from slots. It sends only after the run saves, and previews never send.
+Recipient, subject and body come from the run or are fixed. It sends after the run saves; previews never send.
 
 - **Group:** outbound · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own message, so a new run of the same input sends it again.
 - **I/O:** `recipient, subject, body` → `string`
 - **Also found as:** mail, notify by email, email someone, send message, newsletter
-- **Reads:** The recipient — any address, project member or not — plus subject and body, each from the slot its setting names. The sending address is a setting, not a slot. _(shape hint: `recipient, subject, body`)_
+- **Reads:** The recipient (any address, project member or not), subject and body, each a slot path, fixed value or expression. The sending address is fixed. _(shape hint: `recipient, subject, body`)_
 - **Emits:** The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the action fails (`project-mail-cap-reached`).
 - **External dependency:** Kipory mail — Delivered by Kipory's own mail service from the sending address; no key of the project's own.
 
@@ -19,11 +19,83 @@ Recipient, subject and body come from slots. It sends only after the run saves, 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `address` | string | yes | — | The address the message comes from. ⚠️ An unusable sending address only warns on save; the message is refused when sent. |
-| `htmlSlot` | string | no | — | Optional slot holding an HTML version of the message. ⚠️ The plain-text body is still required; an HTML-only message reads blank in text clients. |
+| `html` | union | no | — | Optional HTML version of the message. ⚠️ The plain-text body is still required; an HTML-only message reads blank in text clients. |
 | `replyTo` | string | no | — | Optional address replies go to, instead of the sending address. ⚠️ Left empty, replies go to the catch-all mailbox, which a person must sort by hand. |
-| `subjectSlot` | string | yes | — | The slot holding the subject line. |
-| `textSlot` | string | yes | — | The slot holding the plain-text body, required even with HTML. ⚠️ On a schedule that re-runs every action, this sends again every tick. |
-| `toSlot` | string | yes | — | The slot holding the address to send to. ⚠️ One recipient per action; a list here is refused, not fanned out. |
+| `subject` | union | yes | — | The subject line. |
+| `text` | union | yes | — | The plain-text body, required even with HTML. ⚠️ On a schedule that re-runs every action, this sends again every tick. |
+| `to` | union | yes | — | The address to send to. ⚠️ One recipient per action; a list here is refused, not fanned out. |
+
+### `html` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `subject` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `text` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `to` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -40,9 +112,9 @@ Action settings (`functionConfig`):
 ```json
 {
   "address": "digest@example.com",
-  "toSlot": "draft.to",
-  "subjectSlot": "draft.subject",
-  "textSlot": "draft.body"
+  "to": "draft.to",
+  "subject": "draft.subject",
+  "text": "draft.body"
 }
 ```
 
@@ -69,9 +141,9 @@ Action settings (`functionConfig`):
 ```json
 {
   "address": "digest@example.com",
-  "toSlot": "draft.to",
-  "subjectSlot": "draft.subject",
-  "textSlot": "draft.body"
+  "to": "draft.to",
+  "subject": "draft.subject",
+  "text": "draft.body"
 }
 ```
 
@@ -98,9 +170,9 @@ Action settings (`functionConfig`):
 ```json
 {
   "address": "digest@example.com",
-  "toSlot": "draft.to",
-  "subjectSlot": "draft.subject",
-  "textSlot": "draft.body"
+  "to": "draft.to",
+  "subject": "draft.subject",
+  "text": "draft.body"
 }
 ```
 

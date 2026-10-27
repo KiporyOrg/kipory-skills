@@ -19,8 +19,7 @@ Actions up to its `flow.loop-end` repeat until the stop condition holds or the c
 | --- | --- | --- | --- | --- |
 | `maxIterations` | integer, 1 to 10000 | no | `10` | The most passes the loop may make, as a safety stop. |
 | `onMaxIterations` | `fail` \| `proceed` | no | `"fail"` | What to do if the cap is reached before the stop condition. |
-| `seedFrom` | object | no | `{}` | Where each carry slot gets its first value, instead of a literal. |
-| `seedLiteral` | object | no | `{}` | A fixed starting text for each carry slot, instead of `seedFrom`. |
+| `seed` | object | no | `{}` | Each carry slot's first value: a slot path, fixed value or expression. |
 
 ## Worked example
 
@@ -34,7 +33,7 @@ Action settings (`functionConfig`):
 
 ```json
 {
-  "seedFrom": {
+  "seed": {
     "draft": "firstDraft"
   },
   "maxIterations": 5,

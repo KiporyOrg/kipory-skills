@@ -2,6 +2,103 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261027.90023 — 2026-10-27
+
+Synced from the Kipory monorepo at `576c1e462`.
+
+Functions added: `value.build`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/action-fields.md`
+- changed: `skills/kipory-build/references/api/actions.md`
+- changed: `skills/kipory-build/references/api/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/api/flows.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- changed: `skills/kipory-build/references/functions/email.send.md`
+- changed: `skills/kipory-build/references/functions/event.emit.md`
+- changed: `skills/kipory-build/references/functions/flow.invoke.md`
+- changed: `skills/kipory-build/references/functions/flow.loop-end.md`
+- changed: `skills/kipory-build/references/functions/flow.loop.md`
+- changed: `skills/kipory-build/references/functions/flow.start-per-person.md`
+- changed: `skills/kipory-build/references/functions/list.concat.md`
+- changed: `skills/kipory-build/references/functions/place.search.md`
+- changed: `skills/kipory-build/references/functions/push.send.md`
+- changed: `skills/kipory-build/references/functions/record.append.md`
+- changed: `skills/kipory-build/references/functions/record.count.md`
+- changed: `skills/kipory-build/references/functions/record.create.md`
+- changed: `skills/kipory-build/references/functions/record.delete.md`
+- changed: `skills/kipory-build/references/functions/record.enqueue-process.md`
+- changed: `skills/kipory-build/references/functions/record.link-assert.md`
+- changed: `skills/kipory-build/references/functions/record.link-counts.md`
+- changed: `skills/kipory-build/references/functions/record.link-retract.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- changed: `skills/kipory-build/references/functions/record.read.md`
+- changed: `skills/kipory-build/references/functions/record.teardown.md`
+- changed: `skills/kipory-build/references/functions/record.update.md`
+- changed: `skills/kipory-build/references/functions/source.unwatch.md`
+- changed: `skills/kipory-build/references/functions/source.watch.md`
+- changed: `skills/kipory-build/references/functions/term.search.md`
+- changed: `skills/kipory-build/references/functions/term.threshold-gate.md`
+- changed: `skills/kipory-build/references/functions/term.upsert.md`
+- changed: `skills/kipory-build/references/functions/text.generate.md`
+- changed: `skills/kipory-build/references/functions/text.rerank.md`
+- changed: `skills/kipory-build/references/functions/text.sanitize.md`
+- changed: `skills/kipory-build/references/functions/url.fetch-as-file.md`
+- changed: `skills/kipory-build/references/functions/url.fetch.md`
+- changed: `skills/kipory-build/references/functions/url.send.md`
+- added: `skills/kipory-build/references/functions/value.build.md`
+- changed: `skills/kipory-build/references/functions/value.first-non-empty.md`
+- changed: `skills/kipory-build/references/functions/vocabulary.aggregate.md`
+- changed: `skills/kipory-build/references/functions/vocabulary.resolve.md`
+- changed: `skills/kipory-build/references/functions/web.search.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-channels/references/api/sources.md`
+- changed: `skills/kipory-channels/references/packs/sources.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- added: `skills/kipory-connect/references/format-9-renames.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/upgrade-document.mjs`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- changed: `skills/kipory-data/references/pitfalls.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-extract/SKILL.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-model/references/api/embedding-profiles.md`
+- changed: `skills/kipory-model/references/api/relations.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/api/types.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/classification-runtime.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+- changed: `skills/kipory-operate/references/api/events.md`
+- changed: `skills/kipory-operate/references/api/project-config.md`
+- changed: `skills/kipory-operate/references/api/schedules.md`
+- changed: `skills/kipory-operate/references/api/triggers.md`
+- changed: `skills/kipory-plan/references/build-sheet-example.md`
+- changed: `skills/kipory-prove/references/api/evals.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+- changed: `skills/kipory-retrieve/references/pipeline.md`
+
 ## 1.20261026.230926 — 2026-10-26
 
 Synced from the Kipory monorepo at `4957739cb`.

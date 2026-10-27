@@ -10,18 +10,73 @@ With a processing flow, the record is not queued: follow with Queue for processi
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`
 - **Also found as:** save, save to table, store, add a row, insert, new record, spreadsheet
-- **Reads:** The new record's fields, from the slot `dataSlot` names, and optional uploaded file ids to attach. Fields off the type's shape fail the action, each named, as through the API. _(shape hint: `submission object`)_
+- **Reads:** The new record's fields (`fields` one by one, or the object `data` names) and optional file ids. Fields off the type's shape fail the action, each named. _(shape hint: `submission object`)_
 - **Emits:** A `RecordCreate` — the new record's id and what it was created as. A retry under the same key reuses that id rather than minting another.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `dataSlot` | string | yes | — | The slot holding the new record's data object. |
-| `fileIdsSlot` | string | no | — | The slot holding uploaded file ids to attach to the new record. ⚠️ Each file must be the record owner's or the project's, fully uploaded, and attached nowhere else. |
+| `data` | union | no | — | The new record's data object, whole; or use `fields`. |
+| `fields` | object | no | — | The new record's fields, each a slot path, fixed value or expression. |
+| `fileIds` | union | no | — | The uploaded file ids to attach to the new record. ⚠️ Each file must be the record owner's or the project's, fully uploaded, and attached nowhere else. |
 | `onKeyTaken` | `refuse` \| `skip` | no | — | What to do when another record already holds the natural key. ⚠️ With `skip`, a key another record holds writes nothing and answers that record; one run claiming a key twice fails. |
 | `tableKey` | string | yes | — | The table to create a record in. |
-| `userIdSlot` | string | no | — | The slot holding the person a run for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+| `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
+
+### `data` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `fileIds` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `userId` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | object | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
 
 ## Worked example
 
@@ -38,7 +93,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "item",
-  "dataSlot": "submission"
+  "data": "submission"
 }
 ```
 
@@ -71,7 +126,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "tableKey": "item",
-  "dataSlot": "submission"
+  "data": "submission"
 }
 ```
 

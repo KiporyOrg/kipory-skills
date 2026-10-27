@@ -8,84 +8,18 @@ Only the slots you map cross between the two flows, in and out.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `the parent slots its inputs name` → `nothing`
+- **I/O:** `the parent slots its inputs read` → `nothing`
 - **Also found as:** call a flow, subflow, reuse a flow, run flow
-- **Reads:** Reads the parent slots its `inputs` rows name. A save fills `inputStreams` from them. _(shape hint: `the parent slots its inputs name`)_
+- **Reads:** Reads the parent slots its `inputs` entries name, a path's root or an expression's. A save fills `inputStreams` from them. _(shape hint: `the parent slots its inputs read`)_
 - **Emits:** Whatever `outputs` copies back from the sub-flow, into the parent slots it names. The action writes no slot of its own.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | union[] | no | `[]` | Parent slots to pass in, and where each one lands. |
+| `inputs` | object | no | `{}` | Each sub-flow input's value: a parent slot path, fixed value or expression. |
 | `outputs` | object[] | no | `[]` | Sub-flow outputs to copy back, and the parent slots receiving them. ⚠️ Each row's `derivedShape` is filled in on every save, so never set it. |
 | `targetFlowId` | string | yes | — | The saved flow to run, never this flow itself. |
-
-### `inputs` — each item is one of
-
-**`kind: slot`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `slot` | yes | — | Pass a parent slot's value into the sub-flow. |
-| `parentSlot` | string | yes | — | The parent slot to read. |
-| `subFlowSlot` | string | yes | — | The sub-flow input slot the value lands in. |
-| `path` | object | no | — | A path into the parent slot's value, to pass part of it. |
-
-`path`:
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `segments` | union[] | yes | — | Parts applied in order; an empty list takes the whole value. |
-
-`path` › `segments` — each item is one of:
-
-**`path` › `segments` › `kind: field`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `field` | yes | — | Step into a named property of an object. |
-| `name` | string | yes | — | The property to read. |
-
-**`path` › `segments` › `kind: first`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `first` | yes | — | Take the first element of a list. |
-
-**`path` › `segments` › `kind: last`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `last` | yes | — | Take the last element of a list. |
-
-**`path` › `segments` › `kind: index`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `index` | yes | — | Take one element of a list by position. |
-| `index` | integer, at least 0 | yes | — | Zero-based position to take. |
-
-**`path` › `segments` › `kind: pluck`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `pluck` | yes | — | Read one property from every item of a list. |
-| `name` | string | yes | — | Property to read from each element. |
-
-**`path` › `segments` › `kind: wrap`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `wrap` | yes | — | Wrap the current value in a single-element list. |
-
-**`kind: literal`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `literal` | yes | — | Pass a fixed text into the sub-flow. |
-| `subFlowSlot` | string | yes | — | The sub-flow input slot the text lands in. |
-| `value` | string | yes | — | The text to pass. |
 
 ### `outputs` — each item
 
@@ -154,18 +88,10 @@ Action settings (`functionConfig`):
 ```json
 {
   "targetFlowId": "flow_a1b2c3",
-  "inputs": [
-    {
-      "kind": "slot",
-      "parentSlot": "currentUrl",
-      "subFlowSlot": "entryUrl"
-    },
-    {
-      "kind": "slot",
-      "parentSlot": "dateRange",
-      "subFlowSlot": "window"
-    }
-  ],
+  "inputs": {
+    "entryUrl": "currentUrl",
+    "window": "dateRange"
+  },
   "outputs": [
     {
       "subFlowSlot": "summary",
@@ -200,18 +126,10 @@ Action settings (`functionConfig`):
 ```json
 {
   "targetFlowId": "flow_d4e5f6",
-  "inputs": [
-    {
-      "kind": "slot",
-      "parentSlot": "currentArticle",
-      "subFlowSlot": "article"
-    },
-    {
-      "kind": "slot",
-      "parentSlot": "sourceUrl",
-      "subFlowSlot": "url"
-    }
-  ],
+  "inputs": {
+    "article": "currentArticle",
+    "url": "sourceUrl"
+  },
   "outputs": []
 }
 ```
@@ -236,7 +154,7 @@ Action settings (`functionConfig`):
 ```json
 {
   "targetFlowId": "flow_g7h8i9",
-  "inputs": [],
+  "inputs": {},
   "outputs": [
     {
       "subFlowSlot": "users",
