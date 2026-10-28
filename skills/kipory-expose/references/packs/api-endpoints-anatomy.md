@@ -170,6 +170,9 @@ stay behind a credential, and so does a flow whose signature takes the calling u
 The flow may write: that is what a sign-up form is. `validateOnly` warns `PUBLIC_ENDPOINT_WRITES`
 when it does, and always warns `PUBLIC_ENDPOINT_SPENDS`, naming the model and vendor actions the flow
 reaches — the same list an endpoint read carries as `spends` inside its `access`, beside `public`.
+It also warns `PUBLIC_ENDPOINT_NAMES_PERSON` when a `record.query`, `record.count`, `record.list`
+or `record.aggregate` of a person-owned table takes its `userId` from the request: anyone could
+then read anyone's records. Read a fixed person, or keep such an endpoint behind a credential.
 
 Going back to `auth: "required"` takes effect on the next request. Going public can take up to 30
 seconds to be served.

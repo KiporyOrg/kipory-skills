@@ -19,7 +19,7 @@ Five shapes for flows that read and write the project's records. The section num
 | ------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | §7      | the flow a table runs on each record: its contract, a file-to-text example, a file as a flow input                                                                           |
 | §8      | what an endpoint can answer: the body shape, rows, a 404, a 422 with your message, a 403 for a key, optional query filters, a filter on a list field, natural-key collisions |
-| §9      | `record.query`: a per-user feed, "due now", and the clause grammar                                                                                                           |
+| §9      | `record.query`: a per-user feed, "due now", the clause grammar, and totals with `record.aggregate`                                                                           |
 | §10     | a value rolled up from linked records: a `computed` field, or a flow output when it needs the parent's flow                                                                  |
 | §11     | views: a read declared once, its sets, params and shapes, `record.view`, the view endpoint that pages itself, ETag, the preview                                              |
 
@@ -147,7 +147,7 @@ What a flow endpoint can answer besides its bound output — and nothing else re
   - `$assert` itself returns nothing, so that transform stores no slot. To check a value and pass it on in one action, return it after the assert — `($assert($length(text) >= 200, "The page has too little text to summarise."); text)` with `outputSchema` `string` — and read that slot downstream.
   - When the deciding value may itself be absent — a merge that collected `[]`, a lookup that found nothing — a transform reading only it is skipped and never asserts. Read an always-present slot beside it and return that: `($assert($count(allPoints) > 0, "None of the URLs could be read."); topic)` with `inputStreams: ["topic", "allPoints"]` — both names, because the expression reads both.
 - **422 without a message of your own**: a required output a skipped action never produced is refused `422 FLOW_OUTPUT_MISSING`, `details.missing` naming the output, and the run's writes are discarded. Nothing is filled in. So a guard that skips a write already refuses the call; use `$assert` when the caller should read why. A flow whose honest answer can be "nothing" produces that value (a transform emitting `0` or `[]`) or declares the output optional. There is no fail action and no configurable error status; `successStatus` takes only a 2xx.
-- **403 for a key on a per-user read or write.** An action that reads or writes a table owned by its users (`record.list`, `record.read`, `record.count`, `record.query`, `record.create`, `record.append`; `vocabulary.aggregate` and `record.teardown` whatever the table) needs a signed-in user. An API key acts as the project and has none, so the call is refused `403 FORBIDDEN` with a message saying a signed-in user is required — before the flow runs. The endpoint read says so beforehand: `access.requiresUser`, with the functions in `access.requiresUserBy`. An action counts on any branch — one the key's call would skip included — so a key needs a flow of its own, and a flow cannot turn this into another status. What does not count: a read whose `userId` names a slot other than `userInfo` (a path parameter, for a key reading on a user's behalf), a disabled action, and an action set to `"onFailure": "continue"` — which only `record.count` and `vocabulary.aggregate` accept. Three ways to serve more than one kind of caller:
+- **403 for a key on a per-user read or write.** An action that reads or writes a table owned by its users (`record.list`, `record.read`, `record.count`, `record.query`, `record.aggregate`, `record.create`, `record.append`; `vocabulary.aggregate` and `record.teardown` whatever the table) needs a signed-in user. An API key acts as the project and has none, so the call is refused `403 FORBIDDEN` with a message saying a signed-in user is required — before the flow runs. The endpoint read says so beforehand: `access.requiresUser`, with the functions in `access.requiresUserBy`. An action counts on any branch — one the key's call would skip included — so a key needs a flow of its own, and a flow cannot turn this into another status. What does not count: a read whose `userId` names a slot other than `userInfo` (a path parameter, for a key reading on a user's behalf), a disabled action, and an action set to `"onFailure": "continue"` — which a read that writes nothing accepts (`record.count`, `record.query`, `record.aggregate`, `vocabulary.aggregate`). Three ways to serve more than one kind of caller:
   - **Shared data with a personal extra** (a catalog item plus "do I follow it") is two endpoints over two flows. One flow reads only project-owned tables, so its endpoint reads `requiresUser: false` and takes a key and a signed-in user alike. The other adds the per-user action and takes only a signed-in user. The client calls the second when it holds a session and the first when it does not. Share the common actions by putting them in a flow both invoke (`flow.invoke`).
   - **Anonymous visitors and signed-in users** are two endpoints for the same reason, the first one public (`contractConfig.auth: "none"`, `kipory-expose`). A public endpoint ignores a session sent along, so its run never has a user and the personal part cannot ride on it; a public endpoint over a flow that needs a user is refused at the save (`PUBLIC_ENDPOINT_NEEDS_USER`).
   - **A key acting for a named user** reads that user's records through a flow input: declare an input (`userId`), bind it from a path parameter (`{ "userId": { "from": "path.userId" } }`), and set `"userId": "userId"` on the read. The endpoint reads `requiresUser: false` and a key's call runs. Whoever holds the key can then read any user's records of that table, so hand it only to your own server.
@@ -271,6 +271,52 @@ The query is asked of the parent, with the link coming IN:
 A text `field` clause finds a value of any length with `eq` and `in`; `lt`/`lte`/`gt`/`gte` compare only values up to 2,000 bytes, and the clause's explanation row says how many records it left out (`longTextSkipped`). Keep a field you range over short (`maxLength` 500 or fewer); find long text by meaning with `semantic`. `record.list` and `record.count` take no range on a text field: saving one is refused `RECORD_FILTER_TEXT_RANGE`.
 
 A `where[]` entry is `{ property, op, value }` over a filter the relation or the stream declares. Only a query without a `semantic` clause pages (`cursor`); `limit` is 1 to 100. `POST /v1/records/query` asks the same clauses from outside a flow (`kipory-data`).
+
+### Totals: `record.aggregate`
+
+A figure over many records — how many, a sum, an average, per day or per source — is one `record.aggregate` action, never a page reduced in `value.transform`: a page holds at most 100 records, so a total read from one is right while the table is small and quietly wrong after. `record.aggregate` takes `record.query`'s `clauses` (none totals the whole table), up to two `groupBy` keys and named `measures`, and answers one row per group:
+
+```json
+{
+  "functionKey": "record.aggregate",
+  "functionConfig": {
+    "tableKey": "loan",
+    "clauses": [
+      {
+        "kind": "field",
+        "field": "decision",
+        "op": "eq",
+        "value": { "literal": "approved" }
+      }
+    ],
+    "groupBy": [
+      { "field": "region" },
+      { "field": "approvedAt", "bucket": "month" }
+    ],
+    "measures": {
+      "loans": { "count": true },
+      "principal": { "sum": "amount" }
+    },
+    "order": { "by": "principal", "direction": "desc" },
+    "limit": 10,
+    "timeZone": "Europe/Berlin"
+  }
+}
+```
+
+→ `{ "groups": [{ "region": "north", "approvedAt": "2026-08-31T22:00:00.000Z", "loans": 212, "principal": 2650000 }, …], "complete": false }`
+
+- **Every field it reads carries `filter`** — a measure's field and a group key's. A field without one is refused at save. `sum` and `avg` take a number field; `min` and `max` a number or a date.
+- **A group key** is `{ "field" }`, `{ "field", "bucket": "day" | "week" | "month" }` (a date; a week starts on Monday), `{ "created": "day" }`, `{ "vocabulary" }` (the record's active terms: a record with two terms counts in both groups) or `{ "status": true }`. `timeZone` is an IANA name such as `Europe/Berlin`; an offset is refused. `as` renames it in the answer — give a vocabulary key one when its name has a hyphen (`risk-band`), so a transform reads `groups[0].risk` rather than a subtraction. Records with no value form one group whose key is `null`. A term key is the term's slug: two terms with one slug under different parents count as one group. A `status` key holds the status as flow records spell it (`READY`); `POST /v1/records/aggregate` answers it lowercase (`ready`).
+- **Of nothing**, a count and a sum are `0`; an average, minimum or maximum is left out of the row.
+- **`complete: false`** means more groups exist than `limit` (default 100, at most 1,000); the ones answered come first in `order`.
+- **A `semantic` clause is refused**: a meaning search ranks a few records, it does not total them. So is a text range (`gt` / `lt` on a text field): it compares values up to 2,000 bytes only, so a total could not be exact — compare text with `eq` or `in`.
+- **Sums and averages are exact decimals**: 0.1 + 0.2 totals 0.3.
+- **A date-only field** (`format: date`) is cut by its calendar date, whatever `timeZone` says; a timestamp and `created` are cut in `timeZone`.
+- **A term, link or stream clause** is read a moment before the rows it counts; a field clause is read with them.
+- **At most two totals run at once per project, in each server process.** A third flow action waits up to 10 s for a turn, then fails as the platform busy and the run is tried again; a third `POST /v1/records/aggregate` answers 429 `RATE_LIMITED` — retry after `retryAfterSeconds`.
+- **On a large table** (about 250,000 records and up) a whole-table total can pass its 4 s budget (`QUERY_AGGREGATE_TOO_BROAD`): narrow it with a clause or a date window (`gte` on a date field).
+- On a table each user owns, the action totals one user's records: the signed-in user's, or the one `userId` names. ⚠️ On a public endpoint, a `userId` read from the request lets anyone total anyone's records; the save warns `PUBLIC_ENDPOINT_NAMES_PERSON`. `POST /v1/records/aggregate` asks the same from outside a flow, reading every user's records as `POST /v1/records/query` does: its body takes each clause value as itself (no `{literal}` or `{expr}`), and `clauses: []` totals all.
 
 ## 10. Keep a value rolled up from linked records
 

@@ -2,6 +2,30 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261028.211154 — 2026-10-28
+
+Synced from the Kipory monorepo at `232c96c1a`.
+
+Functions added: `record.aggregate`.
+
+Routes added: `POST /v1/records/aggregate`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- added: `skills/kipory-build/references/functions/record.aggregate.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/api/api-endpoints.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261027.204607 — 2026-10-27
 
 Synced from the Kipory monorepo at `68f9dee64`.

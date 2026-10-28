@@ -837,6 +837,21 @@ order by something on a LINKED record ("stories by their newest post", "most com
 that value on the record itself — a computed rollup (the `max` of its posts' time, a `count`) declared
 with a `filter` use, which Kipory keeps current — and order by the field.
 
+**Totals, not records: `record.aggregate`.** The same question, answered with figures: a count, a
+sum, an average, a minimum or maximum, over every matching record (no page in between), split by up
+to two `groupBy` keys — a field, a date by `day`/`week`/`month` in a `timeZone`, the creation time,
+a vocabulary's terms, the status. Each measure and each key names a field with a `filter` use. The
+answer is `{ "groups": [ { "region": "north", "loans": 41, "principal": 1203000 } ], "complete": true }`;
+records with no value form one group keyed `null`, and a count or sum of nothing is `0`. ⛔ A
+`semantic` clause is refused: a ranking is a top few, not a set to total. From outside a flow,
+`POST /v1/records/aggregate` takes the same fields (without `userId`), each clause value given as
+itself (no `{literal}` or `{expr}`), as `POST /v1/records/query` takes it, and reads every user's
+records, as the query route does; `clauses: []` totals all. A term, link or stream clause is read a
+moment before the rows it counts; a field clause is read with them. A date-only field is cut by its
+calendar date. At most two totals run at once per project in each server process: the route answers a third 429
+`RATE_LIMITED`, a flow's third waits. Over a large table (about 250,000 records and up), narrow by a
+clause or a date window, or the total may pass its 4 s budget (`QUERY_AGGREGATE_TOO_BROAD`).
+
 **In an action, what a clause compares against is an argument.** A `field` clause's `value` (top
 level or in `peer`), a `where` entry's `value`, a `term`'s `slug`, the `semantic` `text`, a
 `likeRecordId` and a stream `window`'s `from` / `to` each take a slot path (`"followed.guideIds"`),

@@ -2,7 +2,7 @@
   "$note": "Generated: one content hash per item the reference pages were built from, and the page that documents it. The deployment serves the same hashes live; scripts/sync.mjs in this skill compares them and names the items that differ. Regenerated on every publish, so an edit here is overwritten.",
   "packs": {
     "api-endpoints-anatomy": {
-      "hash": "e3ae352fc55f",
+      "hash": "5f552bfd26f5",
       "page": "kipory-expose/references/packs/api-endpoints-anatomy.md"
     },
     "authoring-order": {
@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "5c7906ddd998",
+      "hash": "7200b53690b2",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "5e0424510ece",
+      "hash": "1c2c01c5bb2d",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -74,7 +74,7 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
-      "hash": "f19c62a6a774",
+      "hash": "bb1941f72ac0",
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
@@ -270,6 +270,10 @@
     "push.send": {
       "hash": "eff97314e0c7",
       "page": "kipory-build/references/functions/push.send.md"
+    },
+    "record.aggregate": {
+      "hash": "9710f1533148",
+      "page": "kipory-build/references/functions/record.aggregate.md"
     },
     "record.append": {
       "hash": "ff16c5b14075",
@@ -1486,7 +1490,7 @@
       "page": "kipory-build/references/api/actions.md"
     },
     "POST /v1/api-endpoints/": {
-      "hash": "4c95f02876cd",
+      "hash": "21448f7b1c4a",
       "page": "kipory-expose/references/api/api-endpoints.md"
     },
     "POST /v1/auth/handoff/exchange": {
@@ -1652,6 +1656,10 @@
       "hash": "79aa54765f6e",
       "page": "kipory-data/references/api/records.md"
     },
+    "POST /v1/records/aggregate": {
+      "hash": "39835a3de127",
+      "page": "kipory-data/references/api/records.md"
+    },
     "POST /v1/records/bulk": {
       "hash": "606424927628",
       "page": "kipory-data/references/api/records.md"
@@ -1790,7 +1798,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "01ec994e3c73",
+      "hash": "973f00510f5e",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

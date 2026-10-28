@@ -23,6 +23,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `POST` | [`/v1/records/{id}/reprocess`](#post-v1-records-id-reprocess) |  |
 | `GET` | [`/v1/records/{id}/stream/{field}`](#get-v1-records-id-stream-field) |  |
 | `PUT` | [`/v1/records/{id}/vocabularies/{vocabularyKey}`](#put-v1-records-id-vocabularies-vocabularykey) |  |
+| `POST` | [`/v1/records/aggregate`](#post-v1-records-aggregate) |  |
 | `POST` | [`/v1/records/bulk`](#post-v1-records-bulk) |  |
 | `POST` | [`/v1/records/query`](#post-v1-records-query) |  |
 | `POST` | [`/v1/views/{key}/preview`](#post-v1-views-key-preview) |  |
@@ -514,6 +515,30 @@ Each item of `terms`:
 | `key` | `string` | yes | The term's CANONICAL key — alias-resolved ONE hop, so a record filed under a merged-away term shows its merge target and agrees with what a filter on it would match. |
 | `label` | `string` | yes | The term's own display name. |
 | `status` | `"active" \| "candidate" \| "archived"` | yes | Where the term stands in its vocabulary. `candidate` is a term a `mint: candidate` vocabulary coined for this record and no one has admitted yet; only that vocabulary's own proposals reuse it. `archived` is a retired term the record still carries. Like `key`, it is the merge target's when the term was merged away. |
+
+### `POST /v1/records/aggregate`
+
+Total a project's records: the records one question selects — `POST /v1/records/query`'s clauses, none for the whole table — split by up to two `groupBy` keys (a field, a date by day, week or month, the creation time, a vocabulary's terms, the status) and measured by named `measures` (`count`, `countDistinct`, `sum`, `avg`, `min`, `max`). The answer is one row per group, exact over every matching record with no page in between; `complete` is false when more groups exist than `limit`. A flow asks the same with `record.aggregate`. Reads as every user, as the query route does. A project runs two totals at once; a third answers 429 `RATE_LIMITED`, to send again in a moment. For the records themselves, `POST /v1/records/query`; for one number, a flow's `record.count`.
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `project` | `string` | yes | The project's node id — the id `POST /v1/projects` answers and every `/v1/projects/{nodeId}` path takes. |
+| `tableKey` | `string` | yes | The table whose records are totalled. |
+| `clauses` | `object[]` | no | Which records count: `POST /v1/records/query`'s clauses, every one holding, each value given as itself (no `{ literal }`). Left out or empty, every record of the table counts. A `semantic` clause, at any depth, is 422 `AGGREGATE_SEMANTIC_CLAUSE`: a meaning search ranks a few records and does not total them. |
+| `groupBy` | `object[]` | no | Up to two keys to split the records by: `{ field }` (a field with a `filter` use), `{ field, bucket }` (a date field cut into `day`, `week` or `month`), `{ created }` (when the record was created), `{ vocabulary }` (the record's active terms; a record with two counts in both groups) or `{ status: true }`. `as` renames a key in the answer. Records with no value form one group keyed `null`. Left out, the answer is one row of totals. |
+| `measures` | `object` | yes | The totals, by the name each row carries them under: `{ count: true }`, or `countDistinct`, `sum`, `avg`, `min` or `max` naming a field with a `filter` use. `sum` and `avg` take a number field; `min` and `max` a number or a date. Of no records, a count and a sum are `0` and the rest are left out. |
+| `order` | `object` | no | Orders the groups by a key's or a measure's name. Left out: by the group keys, ascending, a `null` key last. |
+| `limit` | `integer` | no | How many groups come back at most; more groups answer the first ones in order with `complete: false`. |
+| `timeZone` | `string` | no | The IANA time zone days, weeks and months are cut in; a period's key is the instant it starts. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `groups` | `object[]` | yes | The groups, in `order`. Without `groupBy`, exactly one. |
+| `complete` | `boolean` | yes | False when more groups exist than `limit`. |
 
 ### `POST /v1/records/bulk`
 
