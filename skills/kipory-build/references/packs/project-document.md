@@ -534,6 +534,10 @@ change itself. Every removal still goes through that row's own delete, so whatev
 protects the row there (a flow a schedule still binds, a source something still listens to)
 protects it here, and surfaces as a finding on the row's path.
 
+A term in `terms` may carry `labels` (by language) and `attributes` (the values the vocabulary's
+`termAttributes` declares); the export leaves out empty ones, and a stated term with none holds none.
+Changes to them on a term that already exists land with the post-commit relabel.
+
 A vocabulary's `terms` are stated whole, like every owned collection: an active term the document
 does not name is REMOVED, inside the apply, through the term's own delete. A term a record still
 carries — or one that is canonical for an alias — refuses that, and so refuses the apply, with a

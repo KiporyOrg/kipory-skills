@@ -89,6 +89,8 @@ Every function this deployment runs — what each reads, emits and accepts as co
 | `functions` | `object[]` | yes | Every function this deployment registers, sorted by key. With `?project=`, each also carries `inputContract`, `variadicInputContract`, `staticOutputSchema`, `contractUnresolved`, `configDefaults`, `configDefaultsValid` and `freeFormInput`, resolved against that project's types; without it those are absent. |
 | `groups` | `object[]` | yes | Every picker group, IN DISPLAY ORDER, with the one sentence that says what it is for. Order is meaningful: it runs roughly from what a flow produces toward what it is plumbed with. |
 | `valueKinds` | `object[]` | yes | The whole closed list of value kinds, each with its words, its parent and the type it sits on. Every kind named anywhere in this response is one of these. |
+| `expressionFunctions` | `object[]` | yes | Every function the platform adds to JSONata, callable in any expression a flow holds and in a table's computed-field formulas. Besides these, every JSONata 2.2 function works except the ones in `forbiddenExpressionFunctions`. |
+| `forbiddenExpressionFunctions` | `object[]` | yes | JSONata functions an expression may not call: a save naming one is refused. |
 | `askAi` | `object` | yes | The function for free instructions, named by the platform. |
 
 Each item of `functions`:
@@ -154,6 +156,25 @@ Each item of `valueKinds`:
 | `parent` | `"text" \| "long-text" \| "search-phrase" \| "language-code" \| "country-code" \| "region-code" \| "email-address" \| "handle" \| "id" \| "record-id" \| "user-id" \| "video-id" \| "place-id" \| "web-address" \| "file-address" \| "image-address" \| "post-link" \| "profile-link" \| "ad-link" \| "date" \| "file" \| "image" \| "audio" \| "video" \| "document" \| "number" \| "count" \| "money" \| "boolean" \| null` | yes | The kind this one is a case of; `null` for a root. |
 | `base` | `"string" \| "file" \| "number" \| "boolean" \| "object" \| "list"` | yes | The type the kind sits on; a child sits on its parent's. |
 | `scoped` | `boolean` | yes | Whether the kind takes a network (an Instagram handle). |
+
+Each item of `expressionFunctions`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `name` | `string` | yes | The name, without the `$`: `hostOf`. |
+| `family` | `"value" \| "list" \| "text" \| "url" \| "date" \| "locale" \| "parse" \| "term" \| "format"` | yes | What kind of work it does. |
+| `usage` | `string` | yes | How a call reads: `$formatDate(date, pattern, [locale], [timeZone])`; optional arguments in brackets. |
+| `signature` | `string` | yes | Its JSONata signature string (`<(sla)-:s>`): the types each argument takes and the type it answers. |
+| `description` | `string` | yes | What it does, in one line. |
+| `absent` | `string` | yes | What it answers when its first argument has no value: missing, null, empty text or an empty list. |
+| `examples` | `object[]` | yes | Worked calls, each checked against the real evaluator. |
+
+Each item of `forbiddenExpressionFunctions`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `name` | `string` | yes | The JSONata function, without the `$`. |
+| `why` | `string` | yes | Why it is refused, and what to use instead. |
 
 ### `GET /v1/functions/{key}`
 

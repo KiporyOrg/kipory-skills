@@ -4,7 +4,7 @@
 
 Reshape or combine values with a short expression.
 
-Nothing is fetched and no model is called. For prose with holes, use Fill a template.
+No fetch, no model call; besides JSONata's functions it may call the platform's (`expressionFunctions`). For prose, use Fill a template.
 
 - **Group:** utility · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`

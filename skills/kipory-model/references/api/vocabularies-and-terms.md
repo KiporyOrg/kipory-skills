@@ -56,6 +56,8 @@ Each item of `terms`:
 | `vocabularyKey` | `string` | yes | Key of the vocabulary this term is a value of. |
 | `key` | `string` | yes | The term's key. IMMUTABLE — a rename changes `label`, never this. |
 | `label` | `string` | yes | Display label — the only field a rename changes. |
+| `labels` | `object` | yes | The term's label in other languages: a language tag (`he`, `pt-BR`) to text. `label` stays the default label; `$termLabel(term, lang)` picks from these. |
+| `attributes` | `object` | yes | The term's values for the attributes its vocabulary declares: key to text, a number or true/false. |
 | `parentId` | `string \| null` | yes | Parent term, for a hierarchical vocabulary. Null for a top-level vocabulary or for a root term. |
 | `parentKey` | `string \| null` | yes | Parent's key, hydrated on the LIST read only. Null on single-term mutation responses even when `parentId` is set — absence here does not mean the term has no parent. |
 | `parentLabel` | `string \| null` | yes | Parent's label, hydrated on the LIST read only. See `parentKey`. |
@@ -82,7 +84,7 @@ Each item of `findings`:
 
 ### `PATCH /v1/terms/{id}`
 
-Rename a term (`label`, which re-embeds it for search), archive it (`status: archived`), or restore or admit it (`status: active`) — both in one call is one write. Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. Restoring a merged alias is refused (409). With `validateOnly: true` it answers whether the patch would be accepted, writing and embedding nothing. To fold one term into another use `POST /v1/terms/{id}/merge`; to remove an unused one, `DELETE /v1/terms/{id}`; to state a vocabulary's whole term list, its `terms` in `POST /v1/projects/{nodeId}/document`.
+Rename a term (`label`, which re-embeds it for search), set its labels in other languages (`labels`) or its attribute values (`attributes`, checked against the vocabulary's `termAttributes`), archive it (`status: archived`), or restore or admit it (`status: active`) — both in one call is one write. Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. Restoring a merged alias is refused (409). With `validateOnly: true` it answers whether the patch would be accepted, writing and embedding nothing. To fold one term into another use `POST /v1/terms/{id}/merge`; to remove an unused one, `DELETE /v1/terms/{id}`; to state a vocabulary's whole term list, its `terms` in `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -95,7 +97,9 @@ Rename a term (`label`, which re-embeds it for search), archive it (`status: arc
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `label` | `string` | no | Rename the term. A rename re-embeds it for search; a status change alone does not. |
-| `status` | `"active" \| "archived"` | no | Change the term's status. `active` both RESTORES an archived term and ADMITS a candidate one into the vocabulary; `archived` withdraws it. `candidate` is not settable — it is where minting puts a term, not a state you move one into. Does not touch the term's entry in the search index. |
+| `labels` | `object` | no | Replace the term's labels in other languages, whole: a language tag (`he`, `pt-BR`) to text. `{}` removes them. Not re-embedded for search. |
+| `attributes` | `object` | no | Replace the term's attribute values, whole, checked against its vocabulary's `termAttributes`. `{}` removes them. |
+| `status` | `"active" \| "archived"` | no | Change the term's status. `active` both RESTORES an archived term and ADMITS a candidate one into the vocabulary; `archived` withdraws it; restoring or admitting one asks for every required attribute, held or given in `attributes` beside it. `candidate` is not settable — it is where minting puts a term, not a state you move one into. Does not touch the term's entry in the search index. |
 | `version` | `integer` | yes | The term's `version` as you last read it. REQUIRED: the patch is refused with 409 `VERSION_CONFLICT` if the term changed since. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored term and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a `version` the row has moved past — answers the status it always did. Default false. |
 
@@ -224,6 +228,7 @@ Each item of `vocabularies`:
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
+| `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
@@ -252,6 +257,7 @@ Create one vocabulary. With `validateOnly: true` it answers whether the vocabula
 | `key` | `string` | yes | The vocabulary's key, unique within the project. Renameable later, with its terms (`PATCH /v1/vocabularies/{id}` with `key`). camelCase letters and digits starting with a lowercase letter, like `personRole`, up to 64 characters. |
 | `label` | `string` | yes | Display text. Editable later with PATCH; the rest of a vocabulary's settings are fixed at creation. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
+| `termAttributes` | `object[]` | no | The attributes this vocabulary's terms carry, such as a `group`: each a key, a type (`text`, `number`, `boolean`) and whether every term must give it. Omit for none. |
 | `parentVocabularyKey` | `string \| null` | no | Key of a vocabulary to nest this one under. Omit or pass null for a top-level vocabulary. Permanent. |
 | `mint` | `"none" \| "active" \| "candidate"` | no | Defaults to `active` when omitted. |
 | `matching` | `"exact" \| "semantic"` | no | Defaults to `semantic` when omitted. |
@@ -287,6 +293,7 @@ Each item of `diagnostics`:
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
+| `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
@@ -302,6 +309,14 @@ Each item of `diagnostics`:
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
 | `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+
+Each item of `termAttributes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The attribute's key, as a row reads it: `group`. |
+| `type` | `"text" \| "number" \| "boolean"` | yes | What its values are: `text`, `number` or `boolean`. |
+| `required` | `boolean` | yes | Every term of the vocabulary must give it a value. |
 
 Each item of `wiring`:
 
@@ -343,6 +358,7 @@ Read one vocabulary by id, with the `version` its PATCH takes; `expand` adds its
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
+| `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
@@ -358,6 +374,14 @@ Read one vocabulary by id, with the `version` its PATCH takes; `expand` adds its
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
 | `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+
+Each item of `termAttributes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The attribute's key, as a row reads it: `group`. |
+| `type` | `"text" \| "number" \| "boolean"` | yes | What its values are: `text`, `number` or `boolean`. |
+| `required` | `boolean` | yes | Every term of the vocabulary must give it a value. |
 
 Each item of `wiring`:
 
@@ -376,7 +400,7 @@ Each item of `wiring`:
 
 ### `PATCH /v1/vocabularies/{id}`
 
-Relabel a vocabulary, rename its key, or change how it admits values (`mint`, `matching`, `proposal`, the resolver binding). A new `key` is a rename: its terms and their assignments keep their ids, the tables surfacing it and every reference move with it, it needs ADMIN, and the answer lists what moved and what breaks (`renames[]`). Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted, writing nothing. Its terms are written through `POST /v1/vocabularies/{id}/terms` and `/v1/terms/{id}`; several vocabularies at once, through the vocabularies section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Relabel a vocabulary, rename its key, declare the attributes its terms carry (`termAttributes`), or change how it admits values (`mint`, `matching`, `proposal`, the resolver binding). A new `key` is a rename: its terms and their assignments keep their ids, the tables surfacing it and every reference move with it, it needs ADMIN, and the answer lists what moved and what breaks (`renames[]`). Requires the `version` you last read; a stale one answers 409 `VERSION_CONFLICT`. With `validateOnly: true` it answers whether the patch would be accepted, writing nothing. Its terms are written through `POST /v1/vocabularies/{id}/terms` and `/v1/terms/{id}`; several vocabularies at once, through the vocabularies section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -391,6 +415,7 @@ Relabel a vocabulary, rename its key, or change how it admits values (`mint`, `m
 | `key` | `string` | no | The vocabulary's new key, unique within the project. Its terms and their assignments keep their ids, the tables surfacing it and every reference to the old key are rewritten in the same transaction; external callers using the old key break (see `renames[].exposures`). Requires ADMIN. camelCase letters and digits starting with a lowercase letter, like `personRole`, up to 64 characters. |
 | `keepExpressions` | `string[]` | no | Actions (or eval assertions) whose expression and template candidates this rename leaves AS WRITTEN — every other candidate is changed. Each one must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
 | `label` | `string` | no | New display text for the vocabulary. Display only: no term, link or stored resolution moves (a new `key` is the rename that does). Not nullable: a vocabulary always has a label. |
+| `termAttributes` | `object[]` | no | Replace the attributes this vocabulary's terms carry, whole. An attribute left out is removed with its values on every term; a new `required` one is refused while a term has no value for it. |
 | `mint` | `"none" \| "active" \| "candidate" \| null` | no | Change what a value this vocabulary has never seen may become. |
 | `matching` | `"exact" \| "semantic" \| null` | no | Change how this vocabulary finds a term you already have. Switching to `semantic` needs a resolver flow bound. |
 | `proposal` | `object \| null` | no | Change how ingest may propose new terms. |
@@ -403,7 +428,7 @@ Relabel a vocabulary, rename its key, or change how it admits values (`mint`, `m
 
 One of 2 shapes:
 
-Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `parentVocabularyKey`, `mint`, `matching`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`:
+Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, `parentVocabularyKey`, `mint`, `matching`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -412,6 +437,7 @@ Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `parentVocabularyK
 | `key` | `string` | yes | The vocabulary's key within its project, unique there. Renameable by ADMIN (`PATCH /v1/vocabularies/{id}` with `key`): its terms, their assignments and every reference move with it. |
 | `label` | `string` | yes | Display text. Editable — changing it touches nothing but this string. |
 | `cardinality` | `"one" \| "many"` | yes | How many terms one record may carry in this vocabulary — exactly one, or any number. Fixed when the vocabulary is created. |
+| `termAttributes` | `object[]` | yes | The attributes this vocabulary's terms carry, such as a `group`. Each term's values are checked against it. Removing one removes its values from every term, and changing its type removes the values archived terms hold that no longer fit; both need ADMIN. |
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
@@ -428,6 +454,14 @@ Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `parentVocabularyK
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
 | `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 | `renames` | `object[]` | no | Present when the PATCH changed `key`: the vocabulary renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
+
+Each item of `termAttributes`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The attribute's key, as a row reads it: `group`. |
+| `type` | `"text" \| "number" \| "boolean"` | yes | What its values are: `text`, `number` or `boolean`. |
+| `required` | `boolean` | yes | Every term of the vocabulary must give it a value. |
 
 Each item of `wiring`:
 

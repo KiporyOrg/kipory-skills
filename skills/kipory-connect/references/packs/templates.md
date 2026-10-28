@@ -82,6 +82,8 @@ project document, with the document's own rules. Two of them decide what lands:
 
 - A vocabulary that omits `resolver` takes the platform's default binding on the deployment it lands
   on; one that states `resolver: null` lands unbound everywhere.
+- A vocabulary that omits `termAttributes` declares none, and a term that states no labels in other
+  languages or attribute values holds none: a stated element is whole.
 - A relation that omits `properties`, or states `null`, lands with no properties type — over a
   relation the project already holds too, since a stated element is whole.
 

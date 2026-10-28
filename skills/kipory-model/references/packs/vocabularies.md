@@ -517,6 +517,39 @@ one of them is a status a form can render under an input.
 look up and no readiness to forecast. Absent and "full of defaults" are
 different claims, and only one of them is true.
 
+## Labels in other languages, and term attributes
+
+A term has one default `label`. When readers read in several languages, give each term `labels`: a
+language tag (`he`, `pt-BR`) to text, at most 20. When a project needs facts about each term (a
+`group`, a sort `rank`), declare them on the vocabulary as `termAttributes` — each a `key`, a `type`
+(`text`, `number` or `boolean`) and whether it is `required` — and give each term its `attributes`.
+Keep both here rather than in a copy in project config: the copy drifts, and the vocabulary is what
+records are filed under.
+
+- Set them on the seed (`POST /v1/vocabularies/{id}/terms`, on a term it creates; a re-sent key keeps
+  what it holds), on `PATCH /v1/terms/{id}` (each replaces the whole map, one `version` bump, no
+  re-embedding), or in the document's `vocabularies.<key>.terms`.
+- A value the declaration does not allow — an undeclared key, a wrong type, text longer than 1,000
+  characters, a required one missing on a term you write — is refused: a `422 VALIDATION_FAILED`
+  whose message starts `TERM_ATTRIBUTE_INVALID:`. `required` binds what you write (a new term, a
+  patch, a term a document states, a term you restore or admit from candidates — give the values
+  in the same `PATCH`); a term the platform mints from a record carries no attributes, and a
+  document may not remove a required value an existing term holds.
+- Dropping an attribute from `termAttributes` removes its values from every term, so it needs ADMIN
+  (a document that drops one asks ADMIN too, and its plan warns `DOCUMENT_DELETE_CASCADED` with how
+  many terms lose values). Changing an attribute's `type` needs ADMIN too: an
+  active term whose value no longer fits refuses the change, and an archived or merged-away term
+  loses that value (the plan warns `DOCUMENT_DELETE_CASCADED` with the count). Adding one is EDITOR.
+  A document term that
+  leaves out the labels or attributes it holds loses them, and the plan warns
+  `FIELD_RESET_TO_DEFAULT` on it.
+- Language tags are compared without case, and two that differ only in case are refused.
+- A record's term carries `labels` and `attributes` in flows and in API reads, each left out when
+  empty. Pick the reader's language in an expression with `$termLabel(term, lang)`: the exact tag,
+  then its language (`he-IL` → `he`), then `label`. The platform keeps no language for a person —
+  pass it, typically from your own profile field.
+- Search matches a term by its default `label` only.
+
 ## Renaming a vocabulary
 
 A vocabulary's terms move with its key. State the new key on the same vocabulary; never delete the

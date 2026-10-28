@@ -712,7 +712,8 @@ Each kind of clause is answered by the store its use routed the field to, so eac
 - **`term`** needs the vocabulary in `uses.vocabularies`. The `slug` may be an alias; it resolves
   one hop to its canonical term, as every term read does. It matches **active** terms only: a record
   filed under a candidate term is not found by a `term` clause, or by the list's `term=` condition,
-  until the term is admitted (`PATCH /v1/terms/{id}`).
+  until the term is admitted (`PATCH /v1/terms/{id}`). Each answered row's term carries the term's
+  `labels` and `attributes` when it has them.
 - **`link`** needs a `link` use for the `relation`, on the field that points. `direction` is
   `outgoing` unless you say `incoming` or `either` (a symmetric link matches on either side
   whatever you ask). Asked `outgoing`, the link is on a field of the queried table. Asked `incoming`
@@ -1012,7 +1013,8 @@ An action's clauses are written through the design API (`POST /v1/actions`, `PAT
 
 A table may declare `computed` fields: a `rollup` over a relation (`count`, `countDistinct`, `sum`,
 `avg`, `min`, `max`, `any`, `all`, `latest`, `distinct`, each optionally narrowed by `where`), a
-`lookup` of the one record a relation links to, or a `formula` over the row's own values. Kipory
+`lookup` of the one record a relation links to, or a `formula` over the row's own values (a JSONata
+expression, which may call the platform's expression functions, `functions/expressions.md`). Kipory
 computes each for every stored record when it is declared, keeps it right a few seconds after any
 related record joins, leaves, changes or is deleted, and no writer may set it
 (`FIELD_IS_COMPUTED`). A field a rollup or `where` reads is a `filter` field of the related table,

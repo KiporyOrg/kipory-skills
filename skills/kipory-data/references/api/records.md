@@ -514,6 +514,8 @@ Each item of `terms`:
 | `vocabularyKey` | `string` | yes | Key of the vocabulary the term belongs to. |
 | `key` | `string` | yes | The term's CANONICAL key — alias-resolved ONE hop, so a record filed under a merged-away term shows its merge target and agrees with what a filter on it would match. |
 | `label` | `string` | yes | The term's own display name. |
+| `labels` | `object` | no | The term's label in other languages; left out when it has none. |
+| `attributes` | `object` | no | The term's values for its vocabulary's attributes; left out when it has none. |
 | `status` | `"active" \| "candidate" \| "archived"` | yes | Where the term stands in its vocabulary. `candidate` is a term a `mint: candidate` vocabulary coined for this record and no one has admitted yet; only that vocabulary's own proposals reuse it. `archived` is a retired term the record still carries. Like `key`, it is the merge target's when the term was merged away. |
 
 ### `POST /v1/records/aggregate`

@@ -2,6 +2,26 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261028.214936 — 2026-10-28
+
+Synced from the Kipory monorepo at `875f01433`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- added: `skills/kipory-build/references/functions/expressions.md`
+- changed: `skills/kipory-build/references/functions/value.transform.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-model/references/api/vocabularies-and-terms.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-model/references/packs/vocabularies.md`
+
 ## 1.20261028.211154 — 2026-10-28
 
 Synced from the Kipory monorepo at `232c96c1a`.

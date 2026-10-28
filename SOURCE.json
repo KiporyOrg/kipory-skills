@@ -1,7 +1,8 @@
 {
-  "source": "232c96c1accd30233b8d9f2e8325e05b39e4b8d3",
+  "source": "875f01433bf3d55e687dc182209610018d6dde16",
   "since": "2026-08-16",
   "history": [
+    {"sha":"875f01433bf3","skills":"Expressions call a documented standard library of 18 functions, and a vocabulary's terms carry labels by language and typed attributes (416, readable-flows R11) (#3634)"},
     {"sha":"232c96c1accd","skills":"record.aggregate totals a table's matching records exactly in one action, and POST /v1/records/aggregate asks the same over the API (415, readable-flows R12) (#3633)"},
     {"sha":"68f9dee64c32","skills":"An action output named like a view read's paging input is refused, linked reads read only what they keep, and the rest of #3631's follow-ups (#3632)"},
     {"sha":"03b46e676f8a","skills":"Every finding of the readable-flows deep review and its re-checks is fixed: example budgets, the 406 prover, view params, computed fields in views, document halves, recompute locking, and the migration fence lint (#3631)"},
@@ -1000,7 +1001,6 @@
     {"sha":"80000f14f5a4"},
     {"sha":"dada8c45521d"},
     {"sha":"76b3ee611d5a"},
-    {"sha":"41ab6f397636"},
-    {"sha":"037385fa9c08"}
+    {"sha":"41ab6f397636"}
   ]
 }
