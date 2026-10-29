@@ -20,6 +20,7 @@ runs as **the run's principal**. That single difference explains most of what su
 | `record.link-retract`    | retracts one                                                         | idempotent side effect |
 | `record.append`          | adds events to a record's stream field                               | record mutation        |
 | `record.delete`          | deletes by id                                                        | record mutation        |
+| `record.merge`           | folds a duplicate into the record that stays                         | record mutation        |
 | `record.teardown`        | strips generated files and term assignments                          | idempotent side effect |
 | `record.enqueue-process` | hands the record to its processing flow                              | idempotent side effect |
 
@@ -184,6 +185,17 @@ their records and the pool. The person
 must be an active member of the project (`PERSON_NOT_IN_PROJECT` otherwise, with one answer
 whatever the reason). In a run that acts for a person it may name only that person
 (`PERSON_NOT_THE_RUNS`). Without it, each writer behaves as above.
+
+A delete also follows each reference's delete rule (`onTargetDelete` on the `link` use): records
+naming a deleted one are deleted too (`delete`), lose the reference (`clear`), or stop the delete
+(`refuse`) — then the action fails with `RECORD_REFERENCED` and nothing is deleted. Over HTTP,
+`DELETE /v1/records/{id}?validateOnly=true` says what a delete would do first.
+
+`record.merge` folds a duplicate (`merge`) into the record that stays (`keep`), both of one table and
+owner: every record naming the duplicate then names `keep`, and the duplicate becomes a redirect —
+lists and queries leave it out, and reading it by id answers `keep`. Over HTTP it is
+`POST /v1/records/{id}/merge` with `{ into }`. Merging the same pair again is harmless; there is no
+unmerge.
 
 `record.teardown` is the one people reach for when they mean "reprocess this". It strips a record's
 **generated** files and its term assignments — `targets` defaults to both — and leaves the record

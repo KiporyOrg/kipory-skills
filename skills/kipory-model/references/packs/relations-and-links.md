@@ -531,8 +531,8 @@ The findings and consequences these answers carry come from one list the whole d
 
 ⚠️ **Passing that check does not promise your links will be written.** It asks the only question
 answerable before any record exists: whether the SOURCE table is paired. The target's table comes
-from the record's own data, so a record naming a target of an undeclared table still produces no
-link — silently, per the rule below that a bad reference never fails a record write.
+from the record's own data, so a record naming a record of a table the relation does not point at
+is refused at the write (`REFERENCE_UNRESOLVED`, reason `wrong-table`; see the rule below).
 
 ⚠️ **But a plain-string field is a WARNING, not a refusal** (`RELATION_SOURCE_FIELD_UNTYPED`).
 Pointing a declaration at an unannotated string saves successfully and works. Requiring the
@@ -584,12 +584,29 @@ refused while the relation's link restamp is still running.
 - **Editing a relation REQUIRES the `version` you last read**, and a stale one is a 409.
   Cardinality and the source/target tables are what every existing link was admitted against, so an
   overwritten edit here is not a lost sentence — it is a rule the stored links no longer match.
-- ⭐ **A bad reference never fails the record write.** A field naming a record that does not exist,
-  lives in another project, or is the writing record itself produces no link and no error.
-  References may dangle, because out-of-order ingest makes that routine rather than exceptional.
-  Your write succeeds and your link is simply absent.
-- ⚠️ **"Missing" and "belongs to another project" are one refusal, deliberately.** Telling them
-  apart would confirm that a foreign id is real.
+- ⭐ **A reference a write sets or changes is checked, and a bad one fails the write.** Every
+  path that writes record fields — a flow's `record.create` / `record.update`, a processed field
+  a flow returns, the records API's create, patch, upsert and bulk — refuses a reference naming a
+  record it may not point at with `REFERENCE_UNRESOLVED`, writing nothing. `details.reason` says
+  which: `missing` (no such record in this project), `wrong-table` (a record of a table the
+  relation does not point at), `deleting` (a record being deleted), `unreachable` (one the
+  record's owner cannot reach; a write acting for a person answers `missing` instead). A bulk
+  refuses the whole batch and names each item; a record an earlier item of the same bulk or change
+  set creates resolves. A value the record already held is never re-checked, so an old dangling
+  value does not block an edit of another field. A record naming itself produces no link and no
+  error.
+- **Out-of-order ingest** — a child written before its parent exists — declares
+  `unresolved: allow` on that link: the value is kept with no link until the parent exists. Until
+  the daily reference sweep links it, such a holder is invisible to a delete and a merge of the
+  record it names: no `clear`, `delete` or `refuse` reaches it, and a merge does not move it. See
+  References (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) for
+  `onTargetDelete`, `unresolved` and `scope`.
+- **A merged record still answers for its key.** After `record.merge`, a `record.create` or upsert
+  carrying the duplicate's key value lands on the survivor: a create meets the key as taken by the
+  survivor, and an upsert updates the survivor and keeps the survivor's own key. See
+  References (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`).
+- ⚠️ **"Missing" and "belongs to another project" are one refusal, deliberately** (`missing`).
+  Telling them apart would confirm that a foreign id is real.
 - **Link identity is the relation, the source, the target and the producer** — so a field naming the
   same target twice is **one** link. That is what the data means: naming a target twice states one
   relationship, and two rows would double-count it in every traversal and every cardinality check.

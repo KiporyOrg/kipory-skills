@@ -181,6 +181,9 @@ Records are written by flows; an operator or an importer writes them over HTTP a
   the payload carries, the default refuses 409 `RECORD_NATURAL_KEY_TAKEN`;
   `onKeyTaken: "update"` replaces that record's `data` instead (an **upsert**, `outcome: "updated"`,
   same id, re-indexed, flow not re-run). A table with no natural key refuses the upsert 422.
+  A key that belonged to a record since merged away lands on the record it was merged into: the
+  create is refused as taken by that survivor, and the upsert updates the survivor and keeps the
+  survivor's own key.
 - `PATCH /v1/records/{id}` — one correction: `version` (the lock every list row and detail
   carries) and either `data` (the whole document; keys left out are removed) or `merge` (only the
   keys that change; `null` removes one). The result is judged by the table's type either way.
@@ -1008,6 +1011,43 @@ operator or link a clause asks about — only the value compared against can com
 cached answer — every query reads the stores as they are now.
 
 An action's clauses are written through the design API (`POST /v1/actions`, `PATCH /v1/actions/{id}`), which refuses an unrouted clause at save with 422 and names the field and the use that would route it.
+
+## References: what a `link` use says about the record it names
+
+A `link` use on a reference field may state three things (all optional; the table read with
+`expand=uses` shows each resolved, with whether it is the default):
+
+- **`onTargetDelete`** — what deleting the named record does to the records holding the reference:
+  `delete` (they are deleted too, their own references acting in turn), `clear` (the reference is
+  removed from them), `refuse` (the delete answers 409 `RECORD_REFERENCED` while any names it).
+  Default: `delete` for a `scope: lifecycle` reference; `refuse` when the field is required, is
+  the table's key field, or is an element reference whose list is required and each element must
+  carry it; `clear` otherwise. `clear` is refused on a required field or the table's key field.
+  Account erasure and the background pages of an accepted delete are never refused: a holder a
+  `refuse` reference turns up there is cleared, or deleted when that reference is its table's key
+  field, since a key cannot be cleared.
+- **`unresolved`** — `refuse` (default): a write naming a record that does not exist, is of a table
+  the relation does not point at, is being deleted or is out of the writer's reach fails with
+  `REFERENCE_UNRESOLVED`. `allow`: the value is kept with no link until the record exists — for
+  ingest that names a parent created later. Until the daily reference sweep links such a value, a
+  delete or merge of the record it names does not see it. A value the record already held is never
+  re-checked.
+- **`scope`** — `lifecycle` lets a project-owned table name a person's record only to follow its
+  deletion: no read, clause, count or computed value sees it; only `delete` or `clear`. A write
+  acting for a person may not name another person's record this way.
+
+`DELETE /v1/records/{id}?validateOnly=true` answers what a delete would do — its `effects` and any references that `refused` it —
+and changes nothing. `GET /v1/tables/{id}?expand=references` lists every reference that can name the
+table's records (`referencedBy`) and what the daily reference sweep counted (`references`); a field
+whose stored values name no record is a `REFERENCES_UNRESOLVED` finding there (`expand=diagnostics`)
+and in `GET /v1/projects/{nodeId}/alerts`.
+
+To fold a duplicate into the record that stays, use `record.merge` in a flow or
+`POST /v1/records/{id}/merge {into}`: every reference moves to `into`, the duplicate becomes a
+redirect that lists and queries leave out and reads by id follow (`redirectedFrom`).
+A create or upsert carrying the duplicate's key value lands on the survivor, as though the survivor
+held that key: a create meets the key as taken by the survivor (`RECORD_NATURAL_KEY_TAKEN` names
+it, `onKeyTaken` acts on it), and an upsert updates the survivor and keeps the survivor's own key.
 
 ## Values Kipory keeps: `computed` and `reprocessOn`
 

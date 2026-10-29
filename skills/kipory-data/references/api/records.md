@@ -19,6 +19,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/records/{id}/links/{relationKey}`](#get-v1-records-id-links-relationkey) |  |
 | `POST` | [`/v1/records/{id}/links/{relationKey}`](#post-v1-records-id-links-relationkey) |  |
 | `DELETE` | [`/v1/records/{id}/links/{relationKey}/{peerRecordId}`](#delete-v1-records-id-links-relationkey-peerrecordid) |  |
+| `POST` | [`/v1/records/{id}/merge`](#post-v1-records-id-merge) |  |
 | `GET` | [`/v1/records/{id}/processing-stream`](#get-v1-records-id-processing-stream) | SSE |
 | `POST` | [`/v1/records/{id}/reprocess`](#post-v1-records-id-reprocess) |  |
 | `GET` | [`/v1/records/{id}/stream/{field}`](#get-v1-records-id-stream-field) |  |
@@ -119,7 +120,7 @@ One page of a project's records of one table (`tableKey`), with that table's dec
 | `field` | `string \| string[]` | no | A condition on a declared field, as `name:operator:value`. Repeat for more than one; they are combined with AND. Split on the FIRST TWO colons — the value is everything after the second, so a timestamp keeps its own. Operators by field family: text, reference and boolean take `eq`; number takes `eq`, `gt`, `gte`, `lt`, `lte`; date takes `gt`, `gte`, `lt`, `lte` — the words `POST /v1/records/query` and link filters use. Refused, by name, when the field is not declared queryable, when the operator does not belong to its family, or when it has no resolved storage behind it. |
 | `term` | `string \| string[]` | no | A vocabulary condition, as `vocabulary:key`. Repeat for more than one. |
 | `owner` | `string` | no | Narrow to the records ONE end-user owns, by their user id. Omitted, the list reads across every owner in the project. ⚠️ Records owned by the PROJECT rather than a person are excluded when this is set: they have no owner to match. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed"` | no | Narrow to one processing state. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "merged"` | no | Narrow to one processing state. |
 | `createdAfter` | `string` | no | Inclusive lower bound on when the record arrived, regardless of how the result is ordered. |
 | `createdBefore` | `string` | no | Inclusive upper bound on when the record arrived. |
 | `sort` | `string` | no | OMIT IT TO TAKE THE MODE'S OWN ORDERING, which the response's `sort` names: `createdAt` within one type, `id` under `subject=any`, `closeness` under `mode=semantic`. A SENT word must be one the mode accepts. Within one type: `createdAt`, `updatedAt`, or `declared:<name>`. Under `subject=any`: `id`, and ONLY `id`. Under `mode=semantic`: `closeness`, and ONLY `closeness`. ⛔ A SENT WORD THE MODE DOES NOT ACCEPT IS REFUSED, NEVER REINTERPRETED. ⚠️ `id` is refused within one type and `createdAt` is refused under a sweep — the accepted sets do not overlap. ⚠️ A declared sort is accepted ONLY for a field whose family is `date`. Any other family is a refusal naming the field, not a silent fallback. |
@@ -167,7 +168,7 @@ Each item of `records`:
 | `identity` | `object` | yes | What to CALL this row — its declared natural key where the type has one, a fragment of its own content where it does not, and its id where neither is readable. Carries which of the three it was. |
 | `preview` | `string \| null` | yes | Null when the identity IS the record's own content. |
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | Where the record is in processing. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
 | `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the action that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
 | `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
@@ -207,7 +208,7 @@ Write one record by hand into a project, judged by its type's declared shape exa
 | `tableKey` | `string` | yes | The type written, echoed from the request. |
 | `ownerScope` | `"user" \| "project"` | yes | Whose the row is, as the TYPE declares it — never as the request asked. |
 | `userId` | `string \| null` | yes | The owner, or null for a pool record. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | The record's status as it stands. With `outcome: "created"` that is where the type starts a record: one that binds a processing flow is born pending and handed to the queue; one that binds none is ready the moment it is written and is never enqueued. With `outcome: "existed"` it is the CURRENT status of the record this request converged onto, which may be anywhere in its lifecycle. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | The record's status as it stands. With `outcome: "created"` that is where the type starts a record: one that binds a processing flow is born pending and handed to the queue; one that binds none is ready the moment it is written and is never enqueued. With `outcome: "existed"` it is the CURRENT status of the record this request converged onto, which may be anywhere in its lifecycle. |
 | `outcome` | `"created" \| "existed" \| "updated"` | yes | `existed` means the derived id was already present — a converging resend, reported as the success it is; nothing was overwritten. `updated` answers only `onKeyTaken: "update"`: another record held the natural key, and its `data` was replaced by this one's — `id` is that record's. |
 | `queued` | `boolean` | yes | Whether processing was handed off. False for a flow-less type (there is nothing to run), false for a converging resend onto a record that is already past pending, and false for an upsert that updated (an update re-indexes, it does not re-run). |
 
@@ -221,10 +222,17 @@ One record, whole: its `data`, what its flow derived, its terms, files and links
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `redirect` | `"follow" \| "report"` | no | When the id is of a record merged into another: `follow` (the default) answers the record it was merged into, with `redirectedFrom`; `report` answers 409 `RECORD_MERGED` naming it in `details.mergedInto`. |
+
 **Response `200`**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
+| `redirectedFrom` | `string` | no | Present when the id asked for is of a record merged into this one: that id. A client holding it may store this record's id instead. |
 | `project` | `string` | yes | The project the record belongs to — its node id, the value `project` takes on `GET /v1/records`. `/v1/records/{id}` names no project, so a client that opened the id under one checks it here. |
 | `record` | `object` | yes | The record itself — its identity, its declared fields in the type's own order, its terms, its files and where it stands in the index. |
 | `contract` | `object \| null` | yes | What the record's TYPE declares, which the record cannot say about itself. Null when the type is gone from under the record. |
@@ -256,12 +264,12 @@ Correct one record: send its `version` and either `data` (the document whole —
 | `id` | `string` | yes | The record, unchanged — a patch never re-mints it. |
 | `tableKey` | `string` | yes | Its type, echoed. |
 | `version` | `integer \| null` | yes | The row's version AFTER this write, measured by re-reading it; the next patch's `version`. Null when it could not be read — re-open the record before saving again rather than reusing the version you sent. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | Its processing state, which this write did not change: a patch re-indexes but never re-runs. `derived` therefore still describes the content as it was, until something re-runs the flow. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Its processing state, which this write did not change: a patch re-indexes but never re-runs. `derived` therefore still describes the content as it was, until something re-runs the flow. |
 | `reindexed` | `boolean` | yes | Whether a vector projection was enqueued. False for a type nothing indexes; true does not mean the points are written yet. |
 
 ### `DELETE /v1/records/{id}`
 
-Delete one record and everything derived from it (terms, links, files it produced, vector points). Answers `deleted: true` with `outcome`: `removed` when it is gone, `draining` when a flow was running over it — it is marked `deleting` and removed at the run's next step boundary. Irreversible; ADMIN.
+Delete one record and everything derived from it (terms, links, files it produced, vector points), and apply each reference's delete rule to the records naming it: `delete` deletes them too, `clear` removes the reference, `refuse` answers 409 `RECORD_REFERENCED` with nothing deleted. Answers `deleted: true` with `outcome` (`removed`, or `draining` when a flow was running over it or more records name it than one delete handles — it is marked `deleting` and removed in the background) and `effects`, what it did to the records naming it. `validateOnly=true` answers what it would do and changes nothing. Irreversible; ADMIN. To fold a duplicate into another record instead, use `POST /v1/records/{id}/merge`.
 
 **Path parameters**
 
@@ -269,13 +277,63 @@ Delete one record and everything derived from it (terms, links, files it produce
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
 
+**Query**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — a record this project does not hold (404) — answers the status it always did. Default false. |
+
 **Response `200`**
+
+One of 2 shapes:
+
+Shape 1, with `deleted`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record this answers about, echoed. |
 | `deleted` | `true` | yes | Always true: the record is gone, or is going (`outcome`). |
-| `outcome` | `"removed" \| "draining"` | yes | `removed` — the row and everything derived from it are gone. `draining` — a flow was running over it, so it is marked `deleting` and is removed at the run's next action boundary. |
+| `outcome` | `"removed" \| "draining"` | yes | `removed` — the row and everything derived from it are gone. `draining` — a flow was running over it, or more records name it than one delete handles, so it is marked `deleting` and removed once its run reaches an action boundary and every record naming it is handled. |
+| `effects` | `object[]` | yes | What the delete did to the records naming this one, one line per reference that reached any. Empty when nothing names it. |
+
+Each item of `effects`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `relation` | `string` | yes | The relation the reference's links carry. |
+| `table` | `string` | yes | The table whose records hold the reference. |
+| `field` | `string` | yes | The field holding it. |
+| `policy` | `"delete" \| "clear" \| "refuse"` | yes | What it did to those records: deleted them, removed the reference from them, or (in a dry run) would refuse the delete. |
+| `count` | `integer` | yes | How many records it reached. |
+
+Shape 2, with `validated`, `refused`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record this answers about, echoed. |
+| `validated` | `true` | yes | Always true: this is the answer to `validateOnly`; nothing was deleted or changed. |
+| `outcome` | `"would-remove" \| "would-drain" \| "refused"` | yes | `would-remove` — the delete would remove it now; `would-drain` — it would be marked `deleting` and removed in the background; `refused` — a reference whose delete rule is `refuse` names it (`refused`). |
+| `effects` | `object[]` | yes | What the delete would do to the records naming this one, one line per reference that would reach any. Empty when nothing names it. |
+| `refused` | `object[]` | yes | The references that would refuse the delete, each with how many records hold it. Empty when none would. |
+
+Each item of `effects`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `relation` | `string` | yes | The relation the reference's links carry. |
+| `table` | `string` | yes | The table whose records hold the reference. |
+| `field` | `string` | yes | The field holding it. |
+| `policy` | `"delete" \| "clear" \| "refuse"` | yes | What it did to those records: deleted them, removed the reference from them, or (in a dry run) would refuse the delete. |
+| `count` | `integer` | yes | How many records it reached. |
+
+Each item of `refused`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `relation` | `string` | yes | The relation the reference's links carry. |
+| `table` | `string` | yes | The table whose records hold the reference. |
+| `field` | `string` | yes | The field holding it. |
+| `count` | `integer` | yes | How many records it reached. |
 
 ### `GET /v1/records/{id}/links/{relationKey}`
 
@@ -374,6 +432,32 @@ Retract the curated link this caller stated between the two records: it EXPIRES 
 | `deleted` | `true` | yes | Always `true`: the link no longer holds. See `retracted` for what that means here. |
 | `retracted` | `true` | yes | Always `true`. The link is EXPIRED, not deleted — who asserted it and when both survive, and it can be read again with `includeExpired`. |
 
+### `POST /v1/records/{id}/merge`
+
+Fold this record into another of its table and owner (`into`): every record naming it through a reference now names `into`, its curated links move to `into`, and it becomes a redirect — lists and queries leave it out, and `GET /v1/records/{id}` answers `into` with `redirectedFrom`. `into` processes once more. Answers `outcome: merged`, or `moving` when more records name it than one call moves (the rest move in the background). Merging the same pair again is harmless. Irreversible; ADMIN. To remove a record instead, use `DELETE /v1/records/{id}`; inside a flow, `record.merge`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record's id. Derived from its content at creation, not minted — and NOT re-derived by an edit, so an edited record keeps the id its original content produced. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `into` | `string` | yes | The id of the record that stays. Both records must be of one table and one owner. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `id` | `string` | yes | The record merged, echoed: now a redirect to `into`. |
+| `into` | `string` | yes | The record that stays. |
+| `outcome` | `"merged" \| "moving"` | yes | `merged` — every record that named it now names `into`. `moving` — more records named it than one call moves; the rest move in the background, and reading the old id already answers `into`. |
+| `moved` | `integer` | yes | How many records naming it this call moved to `into`. |
+| `remaining` | `integer` | yes | How many still name it and move in the background; 0 when `merged`. |
+
 ### `GET /v1/records/{id}/processing-stream`
 
 Watch one record's processing live, as Server-Sent Events: a `snapshot` of where it stood when you connected, a `status` frame per transition (`pending`, `processing` with the action now starting, `ready`, `failed` with why), then `done`. A failed run is a `status` frame followed by a clean `done` — read the status, not the close. To read the record's result afterwards, `GET /v1/records/{id}`.
@@ -395,7 +479,7 @@ Shape 1, with `recordId`, `status`, `statusError`, `statusUpdatedAt`, `at`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `recordId` | `string` | yes | The record being watched. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | Where the record stood WHEN YOU CONNECTED — the starting point, not a live tick. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record stood WHEN YOU CONNECTED — the starting point, not a live tick. |
 | `statusError` | `string \| null` | yes | Why it failed, when it has. Null in every other state. |
 | `statusUpdatedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `at` | `integer` | yes | When the server emitted this frame, in unix milliseconds. For correlating logs, not for ordering. |
@@ -404,7 +488,7 @@ Shape 2, with `status`, `at`, `requestId`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | The record's new state. ⚠️ A record FAILING is one of these frames followed by `done` — the STREAM completed fine, so do not read a clean close as a successful run. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | The record's new state. ⚠️ A record FAILING is one of these frames followed by `done` — the STREAM completed fine, so do not read a clean close as a successful run. |
 | `actionId` | `string` | no | Id of the action now starting. Present only while processing is under way. |
 | `error` | `string` | no | Why it failed. Present only on the failing frame. |
 | `at` | `integer` | yes | When the publisher emitted this frame, in unix milliseconds. For correlating logs. |
@@ -634,7 +718,7 @@ Each item of `records`:
 | `identity` | `object` | yes | What to CALL this row — its declared natural key where the type has one, a fragment of its own content where it does not, and its id where neither is readable. Carries which of the three it was. |
 | `preview` | `string \| null` | yes | Null when the identity IS the record's own content. |
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting"` | yes | Where the record is in processing. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
 | `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the action that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
 | `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |

@@ -122,7 +122,7 @@ Record one of the platform's own events by hand, to see your failure trigger run
 
 ### `GET /v1/projects/{nodeId}/alerts`
 
-What needs attention in one project. With `include=required-gaps`, also the stored records that break their own type's required fields. `subjects` lists, read live, every schedule, trigger, table or endpoint that is failing, quiet, about to be paused or paused, each with its `health` — and a failing trigger on a `platform` event is marked `failureTrigger: true`, because while it fails the project is not being told about anything else. `alerts` are the platform's durable conditions scoped to this project (a spend cap reached, a wallet that cannot pay); read `degraded`, `evaluatedAt` and `neverEvaluated` before treating an empty `alerts` as healthy. The platform sends no mail about a subject's health: bind a trigger to a `platform` event to be told, and call this to ask. A paused row comes back only with `POST /v1/schedules/{id}/resume` or `POST /v1/triggers/{id}/resume`.
+What needs attention in one project. With `include=required-gaps`, also the stored records that break their own type's required fields. `unresolvedReferences` lists each reference field whose stored values name no record, as the daily reference sweep last counted them. `subjects` lists, read live, every schedule, trigger, table or endpoint that is failing, quiet, about to be paused or paused, each with its `health` — and a failing trigger on a `platform` event is marked `failureTrigger: true`, because while it fails the project is not being told about anything else. `alerts` are the platform's durable conditions scoped to this project (a spend cap reached, a wallet that cannot pay); read `degraded`, `evaluatedAt` and `neverEvaluated` before treating an empty `alerts` as healthy. The platform sends no mail about a subject's health: bind a trigger to a `platform` event to be told, and call this to ask. A paused row comes back only with `POST /v1/schedules/{id}/resume` or `POST /v1/triggers/{id}/resume`.
 
 **Path parameters**
 
@@ -148,6 +148,7 @@ What needs attention in one project. With `include=required-gaps`, also the stor
 | `degraded` | `boolean` | yes | True when a source you can see failed to evaluate, so this list is INCOMPLETE. An empty `alerts` alongside this is unknown, not clear. |
 | `subjects` | `object[]` | yes | One entry per schedule, trigger, table or endpoint of the project that is failing, quiet, about to be paused or paused — read live, so it is current to this call whatever `evaluatedAt` says. Empty when every one is healthy. |
 | `requiredGaps` | `object[]` | no | Stored records that break their own type: each required field some of a table's records have no value for, with how many. A flow reading such a field gets nothing on those records. Present when `include=required-gaps` was asked for and the read of every table's records finished in time; left out when it did not, so absent is unknown, not none. An empty list means none. One table's are in `GET /v1/tables/{id}?expand=diagnostics`. |
+| `unresolvedReferences` | `object[]` | yes | One finding per reference field whose stored values name no record they may point at: left from before references were checked, or written under `unresolved: allow`, as the daily reference sweep last counted them. Empty when the last sweep found none, or none has run. Fix each with `PATCH /v1/records/{id}`; one table's are in `GET /v1/tables/{id}?expand=diagnostics`. |
 
 Each item of `alerts`:
 
@@ -201,3 +202,14 @@ Each item of `requiredGaps`:
 | `table` | `string` | yes | The table's key. |
 | `field` | `string` | yes | A field the table's type marks required. |
 | `missing` | `integer` | yes | How many of its stored records have no value for it. |
+
+Each item of `unresolvedReferences`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `code` | `"REFERENCES_UNRESOLVED"` | yes | The finding's code, as a table's diagnostics name it. |
+| `table` | `string` | yes | The table's key. |
+| `field` | `string` | yes | The reference field. |
+| `family` | `"submission" \| "processed"` | yes | Which family the field comes from: `submission` or `processed`. |
+| `count` | `integer` | yes | How many stored references in the field name no record they may point at. |
+| `sweptAt` | `string` | yes | When the daily reference sweep counted them. |

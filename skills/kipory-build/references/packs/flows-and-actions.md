@@ -677,7 +677,7 @@ action that sets none behaves as it always has.
 
 ## Asking about an action you have not saved
 
-30 <!-- count: editor-inputs-from-config --> functions do not take their inputs
+31 <!-- count: editor-inputs-from-config --> functions do not take their inputs
 from the action row: they name them INSIDE their own configuration. `value.transform` — the most-used function there is — names them
 inside a JSONata expression, so writing the expression IS writing the action's input list, and there
 is nothing to pick from a list.

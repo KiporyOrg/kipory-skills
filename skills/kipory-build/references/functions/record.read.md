@@ -11,7 +11,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 - **I/O:** `any+` → `RecordRead[]`
 - **Also found as:** get record, load record, fetch record by id
 - **Reads:** A list of ids from `ids` — plain ids or objects carrying an `id`. Plus the user id from `userId`. _(shape hint: `any+`)_
-- **Emits:** A `RecordRead` per record, its submitted and processed fields flattened to the top level. In the order asked, deduplicated; unresolved ids drop.
+- **Emits:** A `RecordRead` per record, its fields flattened to the top level, in the order asked and deduplicated; unresolved ids drop, and a merged id reads its survivor.
 
 ## Config
 
@@ -23,6 +23,7 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `ids` | union | yes | — | A list of ids, or a path like `hits[].recordId`. ⚠️ A lone id reads nothing; give it as a one-item list: `{"expr": "[recordId]"}`. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on the record. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
+| `redirect` | `follow` \| `report` | no | `"follow"` | A merged id: `follow` reads its survivor; `report` fails the read. ⚠️ With `follow`, two ids merged into one record read as that record once. |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `tableKey` | string | yes | — | The table to read. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; others' ids are dropped. ⚠️ On a user-owned type, an empty value fails the action; dropped ids are silent. |
