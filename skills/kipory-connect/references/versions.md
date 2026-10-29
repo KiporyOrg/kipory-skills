@@ -7,9 +7,9 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 | Source | Version | Served live as |
 | --- | --- | --- |
 | packs | `8da40eada3d8` | `version` on `GET /v1/capability-packs` |
-| functions | `10f6f05d9b5ea06fd3d48ac5cb9f10543a3499ac046771e1cc453b35ae7a74ee` | `version` on `GET /v1/functions` |
+| functions | `84f6406778f7fcd4d736299d7c2bbb0ab47a1972f7917008141e9fd94a102f08` | `version` on `GET /v1/functions` |
 | api | `c16f5d7edc94` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
-| codes | `fad93e3a1e09` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
+| codes | `1f5939dae3db` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
 Function pages: 123 customer functions, key set `92a9544ced11`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
 

@@ -1,7 +1,12 @@
 {
-  "source": "41eee9f8186cbec4a9161a6511d14235191cc6f8",
+  "source": "b72642695411772d1e31c9a31c2acc8e32d748bb",
   "since": "2026-08-16",
   "history": [
+    {"sha":"b72642695411","skills":"A run that read a record no longer overwrites a concurrent run's write to it: every precondition is compared before any write, under the row lock its write takes (#3642)"},
+    {"sha":"6065d7218d75"},
+    {"sha":"3d88a59685b5"},
+    {"sha":"47ad693f4e3e"},
+    {"sha":"44770fe4c446"},
     {"sha":"41eee9f8186c","skills":"A reference names a real record and says what its target's delete does, and duplicates merge into one (417, readable-flows R6) (#3635)"},
     {"sha":"875f01433bf3","skills":"Expressions call a documented standard library of 18 functions, and a vocabulary's terms carry labels by language and typed attributes (416, readable-flows R11) (#3634)"},
     {"sha":"232c96c1accd","skills":"record.aggregate totals a table's matching records exactly in one action, and POST /v1/records/aggregate asks the same over the API (415, readable-flows R12) (#3633)"},
@@ -996,11 +1001,6 @@
     {"sha":"5d36094f1cd7"},
     {"sha":"4c21da51fdc0"},
     {"sha":"e245e259ae2a"},
-    {"sha":"5893dffb738e"},
-    {"sha":"2c7790379d4a"},
-    {"sha":"013739796fd0"},
-    {"sha":"80000f14f5a4"},
-    {"sha":"dada8c45521d"},
-    {"sha":"76b3ee611d5a"}
+    {"sha":"5893dffb738e"}
   ]
 }

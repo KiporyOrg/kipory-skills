@@ -332,7 +332,7 @@
       "page": "kipory-build/references/functions/record.teardown.md"
     },
     "record.update": {
-      "hash": "115f6f2f7fa7",
+      "hash": "0a1102339348",
       "page": "kipory-build/references/functions/record.update.md"
     },
     "record.view": {
@@ -1806,7 +1806,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "fad93e3a1e09",
+      "hash": "1f5939dae3db",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

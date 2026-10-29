@@ -23,7 +23,7 @@ Merges or replaces the data; can also clear derived output, set a status and att
 | `failIfPreconditionUnmet` | boolean | no | `false` | Fail with a conflict when nothing matched, instead of reporting no change. |
 | `fields` | object | no | — | The fields to write, each a slot path, fixed value or expression. |
 | `fileIds` | union | no | — | The file ids to attach to the record. ⚠️ A file must belong to the record's owner or to the project, and be attached nowhere else. |
-| `ifChangedMeanwhile` | `start-again` \| `apply` | no | — | When another run changed the record since this run read it. ⚠️ With `apply` (merge only), the fields this write changes overwrite what another run wrote there meanwhile. |
+| `ifChangedMeanwhile` | `start-again` \| `apply` | no | — | When another run changed the record since this run read it. ⚠️ On a conflict `start-again` writes nothing, while `apply` (merge only) overwrites what another run wrote to these fields meanwhile. |
 | `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) merges over existing values; `replace` overwrites them. ⚠️ In `merge`, a key set to `null` is removed from the record. |
 | `recordId` | union | yes | — | The id of the record to patch. ⚠️ On a per-user type, another user's id changes nothing and reports no error. |
 | `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record currently has this status. |
