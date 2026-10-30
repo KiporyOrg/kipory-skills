@@ -1,7 +1,12 @@
 {
-  "source": "b72642695411772d1e31c9a31c2acc8e32d748bb",
+  "source": "515052ce37bfd45262d8246e3e806816dad962b2",
   "since": "2026-08-16",
   "history": [
+    {"sha":"515052ce37bf","skills":"The project map is compact: no empty member, reads and writes keyed by table, callers counted, and its budget is per flow (#3647)"},
+    {"sha":"b10a45399675"},
+    {"sha":"b9bb8a2f1946"},
+    {"sha":"7710aa64025a"},
+    {"sha":"0489526e86ca"},
     {"sha":"b72642695411","skills":"A run that read a record no longer overwrites a concurrent run's write to it: every precondition is compared before any write, under the row lock its write takes (#3642)"},
     {"sha":"6065d7218d75"},
     {"sha":"3d88a59685b5"},
@@ -996,11 +1001,6 @@
     {"sha":"a6dee2249a57"},
     {"sha":"574039cbd667"},
     {"sha":"c06bc68ef4dc"},
-    {"sha":"221824b72460"},
-    {"sha":"ed8dbb633fc1"},
-    {"sha":"5d36094f1cd7"},
-    {"sha":"4c21da51fdc0"},
-    {"sha":"e245e259ae2a"},
-    {"sha":"5893dffb738e"}
+    {"sha":"221824b72460"}
   ]
 }

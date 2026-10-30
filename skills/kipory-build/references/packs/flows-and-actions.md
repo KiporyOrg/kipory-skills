@@ -182,9 +182,14 @@ Two things to know before you reach for it:
 
 For who uses what across the whole project, two reads answer from one index of the configuration:
 
-- `GET /v1/projects/{nodeId}/map` — one entry per flow: what starts it, the flows it calls, the
-  tables and fields it reads and writes, the relations it follows, the config keys it reads, what it
-  announces. Under about 100 KB where the whole configuration is megabytes; read it first in a session.
+- `GET /v1/projects/{nodeId}/map` — one entry per flow: what starts it from outside a flow (an
+  endpoint, a schedule, a trigger, a table's processing, a vocabulary's resolver), how many
+  switched-on actions call it (`calledFrom`; each caller lists it among the flows it calls), the
+  flows it calls, the tables and fields it reads and writes, the relations it follows, the config
+  keys it reads, what it announces. A member with nothing to say is left out, so read an absent one
+  as none. About 400 bytes a flow where the whole configuration is megabytes; read it first in a
+  session. A flow's outline is `GET /v1/flows/{id}/outline` for the id in its `ref`; which actions
+  call it, and which eval suites test it, are in `references?of=flow:<key>`.
 - `GET /v1/projects/{nodeId}/references?of=field:review.stars` — every use of up to 20 things (a
   field, a config key, a relation, a flow, a flow input or output, an action output), each with the
   action's outline path, its `role` and how sure the platform is. A `named` use is a name matched

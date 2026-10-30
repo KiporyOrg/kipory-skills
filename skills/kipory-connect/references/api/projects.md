@@ -598,20 +598,23 @@ Each item of `flows`:
 | --- | --- | --- | --- |
 | `key` | `string` | yes | The flow's key. |
 | `label` | `string` | yes | The flow's label. |
-| `ref` | `string` | yes | Its element ref (`flow:<id>`). |
-| `outline` | `string` | yes | Where to read the flow as an outline. |
-| `startedByNothing` | `boolean` | yes | True when nothing in the project starts it. |
-| `startedBy` | `object[]` | yes | What starts the flow. |
-| `switchedOff` | `string[]` | yes | Its actions that are switched off, by outline path. |
-| `calls` | `object` | yes | What it calls. |
-| `reads` | `object[]` | yes | The tables it reads. |
-| `writes` | `object[]` | yes | The tables it writes, creates records in or deletes from. |
-| `traverses` | `string[]` | yes | The relations it follows or filters by. |
-| `config` | `string[]` | yes | The config keys it reads (`club.digestHour`). |
-| `emits` | `string[]` | yes | The event types it announces (`<category>.<key>`). |
-| `listens` | `string[]` | yes | The event types it waits for or reads (`<category>.<key>`). |
-| `serves` | `string[]` | yes | The endpoints that answer with it. |
-| `unresolved` | `string[]` | yes | Actions whose uses cannot be stated — their function is unknown, or they act on ids of no stated table. |
+| `ref` | `string` | yes | Its element ref (`flow:<id>`); read it as an outline at `GET /v1/flows/{id}/outline`. |
+| `startedBy` | `object[]` | no | What starts the flow from outside a flow: an endpoint, a schedule, a trigger, a table's processing, a vocabulary's resolver. Left out when nothing does. |
+| `calledFrom` | `integer` | no | How many switched-on actions call it; each of their flows lists it in `calls.flows`, which lists no switched-off call either. Left out when none does. Which actions they are: `GET /v1/projects/{nodeId}/references?of=flow:<key>`. |
+| `evalCases` | `integer` | no | How many switched-on eval suites test it (a suite that only scores with it does not count). Left out when none does. A flow with no `startedBy`, `calledFrom` or `evalCases` is started by nothing. |
+| `switchedOff` | `string[]` | no | Its actions that are switched off, by outline path. |
+| `calls` | `object` | no | What it calls. Left out when it calls nothing. |
+| `reads` | `object` | no | The tables it reads. Table key → the fields the platform is sure of (a stated or typed position); a field only guessed at is never listed, and a table touched with no sure field has an empty list. |
+| `readsWhole` | `string[]` | no | Tables it reads as whole records, not only the fields `reads` lists. |
+| `writes` | `object` | no | The tables it writes, creates records in or deletes from. Table key → the fields the platform is sure of (a stated or typed position); a field only guessed at is never listed, and a table touched with no sure field has an empty list. |
+| `writesWhole` | `string[]` | no | Tables it writes as whole records, not only the fields `writes` lists. |
+| `creates` | `string[]` | no | Tables it creates records in. |
+| `traverses` | `string[]` | no | The relations it follows or filters by. |
+| `config` | `string[]` | no | The config keys it reads (`club.digestHour`). |
+| `emits` | `string[]` | no | The event types it announces (`<category>.<key>`). |
+| `listens` | `string[]` | no | The event types it waits for or reads (`<category>.<key>`). |
+| `serves` | `string[]` | no | The endpoints that answer with it. |
+| `unresolved` | `string[]` | no | Actions whose uses cannot be stated — their function is unknown, or they act on ids of no stated table. |
 
 ### `POST /v1/projects/{nodeId}/purge`
 
