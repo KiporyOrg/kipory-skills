@@ -1,6 +1,6 @@
 ---
 name: kipory-gather
-description: Bring data into a Kipory project from outside it, in a flow action — fetch or scrape a web page, poll a feed, call an API with or without a stored key, send a request to an outside system (`url.send`), run a web search, read YouTube, X, TikTok, Instagram, LinkedIn, Reddit and Threads profiles, posts, comments and transcripts, search the Facebook, Google, TikTok and LinkedIn ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, turn coordinates into a place. Use when a flow needs something the project does not hold, when choosing which source function fits, when a source action is slow, empty, refused, rate-limited or returns an old answer (its cache), or when a vendor bill is larger than expected. Not for storing a vendor key or deciding whose key pays (kipory-secrets), not for subscribing to a Telegram channel (kipory-channels), not for opening a downloaded file (kipory-extract).
+description: Bring data into a Kipory project from outside it, in a flow action — fetch or scrape a web page, poll a feed, call an API with or without a stored key, send a request to an outside system (`url.send`), run a web search, read YouTube, X, TikTok and Instagram profiles, posts and comments and YouTube transcripts, search Reddit, search the Facebook and Google ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, turn coordinates into a place. Use when a flow needs something the project does not hold, when choosing which source function fits, when a source action is slow, empty, refused, rate-limited or returns an old answer (its cache), or when a vendor bill is larger than expected. Not for storing a vendor key or deciding whose key pays (kipory-secrets), not for subscribing to a Telegram channel (kipory-channels), not for opening a downloaded file (kipory-extract).
 license: MIT
 ---
 
@@ -31,36 +31,34 @@ mentions.
 
 ## The sources
 
-| Function                                                        | Brings back                                                                                 | Vendor         | Bucket             | Cached |
-| --------------------------------------------------------------- | ------------------------------------------------------------------------------------------- | -------------- | ------------------ | ------ |
-| `url.fetch`                                                     | raw text or JSON, nothing rendered                                                          | the site       | `outbound-request` | 24h    |
-| `url.fetch-as-file`                                             | the bytes, saved as a file                                                                  | the site       | `outbound-request` | 24h    |
-| `url.metadata`                                                  | title, description, icon, social preview                                                    | the site       | `url.metadata`     | 24h    |
-| `url.scrape`                                                    | the rendered page as clean markdown                                                         | Firecrawl      | `firecrawl`        | 24h    |
-| `url.screenshot`                                                | a full-page image file                                                                      | Firecrawl      | `firecrawl`        | 24h    |
-| `web.search`                                                    | organic search results, ten to a page                                                       | Apify          | `apify`            | 24h    |
-| `web.rankings`                                                  | a country's most-visited sites, ranked                                                      | Apify          | `apify`            | 30d    |
-| `web.traffic`                                                   | one site's visits, ranking and audience                                                     | Apify          | `apify`            | 7d     |
-| `x.posts`                                                       | a tweet, profile or search URL as posts                                                     | Apify ¹        | `apify` ¹          | 24h    |
-| `telegram.search-channels`                                      | public channels matching search terms                                                       | Apify          | `apify`            | 7d     |
-| `telegram.resolve-channel`                                      | one public channel by handle: name, members, description, picture                           | the platform   | none               | 6h     |
-| `place.details`                                                 | one place's map listing: address, hours, rating                                             | Apify          | `apify`            | 7d     |
-| `place.reviews`                                                 | what people wrote about one place                                                           | Apify          | `apify`            | 24h    |
-| `place.search`                                                  | the places a map lists for a query, each as the card `place.details` returns                | Apify          | `apify`            | 24h    |
-| `youtube.video`                                                 | a video's metadata and stats                                                                | YouTube        | `youtube`          | 7d     |
-| `youtube.channel`                                               | a channel's metadata and stats                                                              | YouTube        | `youtube`          | 7d     |
-| `youtube.trending`                                              | the channels behind a region's trending videos                                              | YouTube        | `youtube`          | 6h     |
-| `youtube.transcript`                                            | a video's captions as text                                                                  | Supadata ²     | `supadata` ²       | 24h    |
-| `youtube.posts` · `youtube.comments` · `youtube.search`         | a channel's videos, a video's comments, a video search                                      | ScrapeCreators | `scrapecreators`   | 24h    |
-| `x.profile` · `x.transcript`                                    | an X account; the words spoken in a video post                                              | ScrapeCreators | `scrapecreators`   | 24h    |
-| `tiktok.*` (11 <!-- count: functions-in-family-tiktok -->)      | profile, posts, post, transcript, comments, search, followers, following, audience, ads, ad | ScrapeCreators | `scrapecreators`   | 24h    |
-| `instagram.*` (7 <!-- count: functions-in-family-instagram -->) | profile, posts, post, transcript, comments, search, search-profiles                         | ScrapeCreators | `scrapecreators`   | 24h    |
-| `linkedin.*` (6 <!-- count: functions-in-family-linkedin -->)   | profile, company, posts, post, ads, ad                                                      | ScrapeCreators | `scrapecreators`   | 24h    |
-| `reddit.*` (4 <!-- count: functions-in-family-reddit -->)       | posts, post, comments, search                                                               | ScrapeCreators | `scrapecreators`   | 24h    |
-| `threads.*` (4 <!-- count: functions-in-family-threads -->)     | profile, posts, post, search                                                                | ScrapeCreators | `scrapecreators`   | 24h    |
-| `facebook.page` · `facebook.posts`                              | a public Facebook page; its recent posts, three to a paid request                           | ScrapeCreators | `scrapecreators`   | 24h    |
-| `facebook.ads` · `facebook.ad` · `google.ads` · `google.ad`     | ads from a platform's public ad library                                                     | ScrapeCreators | `scrapecreators`   | 24h    |
-| `location.resolve`                                              | a place from latitude and longitude                                                         | OpenStreetMap  | `location.resolve` | 7d     |
+| Function                                                        | Brings back                                                                  | Vendor         | Bucket             | Cached |
+| --------------------------------------------------------------- | ---------------------------------------------------------------------------- | -------------- | ------------------ | ------ |
+| `url.fetch`                                                     | raw text or JSON, nothing rendered                                           | the site       | `outbound-request` | 24h    |
+| `url.fetch-as-file`                                             | the bytes, saved as a file                                                   | the site       | `outbound-request` | 24h    |
+| `url.metadata`                                                  | title, description, icon, social preview                                     | the site       | `url.metadata`     | 24h    |
+| `url.scrape`                                                    | the rendered page as clean markdown                                          | Firecrawl      | `firecrawl`        | 24h    |
+| `url.screenshot`                                                | a full-page image file                                                       | Firecrawl      | `firecrawl`        | 24h    |
+| `web.search`                                                    | organic search results, ten to a page                                        | Apify          | `apify`            | 24h    |
+| `web.rankings`                                                  | a country's most-visited sites, ranked                                       | Apify          | `apify`            | 30d    |
+| `web.traffic`                                                   | one site's visits, ranking and audience                                      | Apify          | `apify`            | 7d     |
+| `x.posts`                                                       | a tweet, profile or search URL as posts                                      | Apify ¹        | `apify` ¹          | 24h    |
+| `telegram.search-channels`                                      | public channels matching search terms                                        | Apify          | `apify`            | 7d     |
+| `telegram.resolve-channel`                                      | one public channel by handle: name, members, description, picture            | the platform   | none               | 6h     |
+| `place.details`                                                 | one place's map listing: address, hours, rating                              | Apify          | `apify`            | 7d     |
+| `place.reviews`                                                 | what people wrote about one place                                            | Apify          | `apify`            | 24h    |
+| `place.search`                                                  | the places a map lists for a query, each as the card `place.details` returns | Apify          | `apify`            | 24h    |
+| `youtube.video`                                                 | a video's metadata and stats                                                 | YouTube        | `youtube`          | 7d     |
+| `youtube.channel`                                               | a channel's metadata and stats                                               | YouTube        | `youtube`          | 7d     |
+| `youtube.trending`                                              | the channels behind a region's trending videos                               | YouTube        | `youtube`          | 6h     |
+| `youtube.transcript`                                            | a video's captions as text                                                   | Supadata ²     | `supadata` ²       | 24h    |
+| `youtube.posts` · `youtube.comments` · `youtube.search`         | a channel's videos, a video's comments, a video search                       | ScrapeCreators | `scrapecreators`   | 24h    |
+| `x.profile`                                                     | an X account                                                                 | ScrapeCreators | `scrapecreators`   | 24h    |
+| `tiktok.*` (4 <!-- count: functions-in-family-tiktok -->)       | profile, posts, comments, search                                             | ScrapeCreators | `scrapecreators`   | 24h    |
+| `instagram.*` (6 <!-- count: functions-in-family-instagram -->) | profile, posts, post, comments, search, search-profiles                      | ScrapeCreators | `scrapecreators`   | 24h    |
+| `reddit.search`                                                 | search posts                                                                 | ScrapeCreators | `scrapecreators`   | 24h    |
+| `facebook.page`                                                 | a public Facebook page                                                       | ScrapeCreators | `scrapecreators`   | 24h    |
+| `facebook.ads` · `google.ads`                                   | ads from a platform's public ad library                                      | ScrapeCreators | `scrapecreators`   | 24h    |
+| `location.resolve`                                              | a place from latitude and longitude                                          | OpenStreetMap  | `location.resolve` | 7d     |
 
 ¹ `x.posts` runs on Apify by default; an action may choose twitterapi.io
 (`provider: "twitterapi"`, key purpose `twitterapi`) or ScrapeCreators

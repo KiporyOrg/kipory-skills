@@ -2,11 +2,11 @@
 
 # Function catalog
 
-123 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+98 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
-- `ingest` (76) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
+- `ingest` (51) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
 - `inline` (41) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
@@ -31,20 +31,17 @@ _Work on text without a model: split, match, fill a template, clean._
 - [`text.interpolate`](text.interpolate.md) — Fill a template · `inline` · `any+` → `string`
 - [`text.sanitize`](text.sanitize.md) — Make text safe for a prompt · `inline` · `any+` → `object`
 
-## sources (65)
+## sources (40)
 
 _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost money._
 
 ### facebook
 
-- [`facebook.ad`](facebook.ad.md) — Fetch a Facebook ad · `ingest` · vendor key · `string` → `SocialAd`
 - [`facebook.ads`](facebook.ads.md) — Fetch Facebook ads · `ingest` · vendor key · `string` → `SocialAd[]`
 - [`facebook.page`](facebook.page.md) — Fetch a Facebook page · `ingest` · vendor key · `string` → `FacebookPage`
-- [`facebook.posts`](facebook.posts.md) — Fetch a Facebook page's posts · `ingest` · vendor key · `string` → `SocialPost[]`
 
 ### google
 
-- [`google.ad`](google.ad.md) — Fetch a Google ad · `ingest` · vendor key · `string` → `SocialAd`
 - [`google.ads`](google.ads.md) — Fetch Google ads · `ingest` · vendor key · `string` → `SocialAd[]`
 
 ### instagram
@@ -55,16 +52,6 @@ _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost 
 - [`instagram.profile`](instagram.profile.md) — Fetch an Instagram profile · `ingest` · vendor key · `string` → `SocialProfile`
 - [`instagram.search`](instagram.search.md) — Search Instagram posts · `ingest` · vendor key · `string` → `SocialPost[]`
 - [`instagram.search-profiles`](instagram.search-profiles.md) — Search Instagram accounts · `ingest` · vendor key · `string` → `SocialProfile[]`
-- [`instagram.transcript`](instagram.transcript.md) — Fetch an Instagram transcript · `ingest` · vendor key · `string` → `string`
-
-### linkedin
-
-- [`linkedin.ad`](linkedin.ad.md) — Fetch a LinkedIn ad · `ingest` · vendor key · `string` → `SocialAd`
-- [`linkedin.ads`](linkedin.ads.md) — Fetch LinkedIn ads · `ingest` · vendor key · `string` → `SocialAd[]`
-- [`linkedin.company`](linkedin.company.md) — Fetch a LinkedIn company page · `ingest` · vendor key · `string` → `SocialProfile`
-- [`linkedin.post`](linkedin.post.md) — Fetch a LinkedIn post · `ingest` · vendor key · `string` → `SocialPost`
-- [`linkedin.posts`](linkedin.posts.md) — Fetch a LinkedIn company's posts · `ingest` · vendor key · `string` → `SocialPost[]`
-- [`linkedin.profile`](linkedin.profile.md) — Fetch a LinkedIn profile · `ingest` · vendor key · `string` → `SocialProfile`
 
 ### location
 
@@ -78,9 +65,6 @@ _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost 
 
 ### reddit
 
-- [`reddit.comments`](reddit.comments.md) — Fetch a Reddit post's comments · `ingest` · vendor key · `string` → `SocialComment[]`
-- [`reddit.post`](reddit.post.md) — Fetch a Reddit post · `ingest` · vendor key · `string` → `SocialPost`
-- [`reddit.posts`](reddit.posts.md) — Fetch a subreddit's posts · `ingest` · vendor key · `string` → `SocialPost[]`
 - [`reddit.search`](reddit.search.md) — Search Reddit posts · `ingest` · vendor key · `string` → `SocialPost[]`
 
 ### source
@@ -94,26 +78,12 @@ _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost 
 - [`telegram.search-channels`](telegram.search-channels.md) — Search Telegram channels · `ingest` · vendor key · `string` → `TelegramChannelSearchResults`
 - [`telegram.stats`](telegram.stats.md) — Read Telegram member count · `inline` · `string` → `TelegramChannelStats`
 
-### threads
-
-- [`threads.post`](threads.post.md) — Fetch a Threads post · `ingest` · vendor key · `string` → `SocialPost`
-- [`threads.posts`](threads.posts.md) — Fetch a Threads account's posts · `ingest` · vendor key · `string` → `SocialPost[]`
-- [`threads.profile`](threads.profile.md) — Fetch a Threads profile · `ingest` · vendor key · `string` → `SocialProfile`
-- [`threads.search`](threads.search.md) — Search Threads posts · `ingest` · vendor key · `string` → `SocialPost[]`
-
 ### tiktok
 
-- [`tiktok.ad`](tiktok.ad.md) — Fetch a TikTok ad · `ingest` · vendor key · `string` → `SocialAd`
-- [`tiktok.ads`](tiktok.ads.md) — Fetch TikTok ads · `ingest` · vendor key · `string` → `SocialAd[]`
-- [`tiktok.audience`](tiktok.audience.md) — Fetch a TikTok account's audience · `ingest` · vendor key · `string` → `SocialAudience`
 - [`tiktok.comments`](tiktok.comments.md) — Fetch a TikTok video's comments · `ingest` · vendor key · `string` → `SocialComment[]`
-- [`tiktok.followers`](tiktok.followers.md) — Fetch a TikTok account's followers · `ingest` · vendor key · `string` → `SocialProfile[]`
-- [`tiktok.following`](tiktok.following.md) — Fetch who a TikTok account follows · `ingest` · vendor key · `string` → `SocialProfile[]`
-- [`tiktok.post`](tiktok.post.md) — Fetch a TikTok video · `ingest` · vendor key · `string` → `SocialPost`
 - [`tiktok.posts`](tiktok.posts.md) — Fetch a TikTok account's videos · `ingest` · vendor key · `string` → `SocialPost[]`
 - [`tiktok.profile`](tiktok.profile.md) — Fetch a TikTok profile · `ingest` · vendor key · `string` → `SocialProfile`
 - [`tiktok.search`](tiktok.search.md) — Search TikTok videos · `ingest` · vendor key · `string` → `SocialPost[]`
-- [`tiktok.transcript`](tiktok.transcript.md) — Fetch a TikTok transcript · `ingest` · vendor key · `string` → `string`
 
 ### url
 
@@ -133,7 +103,6 @@ _Fetch data from outside — pages, videos, feeds, places. Can be slow and cost 
 
 - [`x.posts`](x.posts.md) — Fetch X posts · `ingest` · vendor key · `string` → `XPost[]`
 - [`x.profile`](x.profile.md) — Fetch an X profile · `ingest` · vendor key · `string` → `SocialProfile`
-- [`x.transcript`](x.transcript.md) — Fetch an X transcript · `ingest` · vendor key · `string` → `string`
 
 ### youtube
 

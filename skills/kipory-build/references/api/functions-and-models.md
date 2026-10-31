@@ -72,7 +72,7 @@ Each item of `models`:
 
 ### `GET /v1/functions`
 
-Every function this deployment runs — what each reads, emits and accepts as config — with a `version` hash to cache on. Pass `?project=` to have each function's declared types resolved against that project's type registry (VIEWER on the project), which is what an action editor needs when picking a function; without it the catalog is the same for every caller. One function with its worked example is `GET /v1/functions/{key}`.
+Every function this deployment runs — what each reads, emits and accepts as config — with a `version` hash to cache on. Pass `?project=` to have each function's declared types resolved against that project's type registry (VIEWER on the project), which is what an action editor needs when picking a function; without it the catalog is the same for every caller. One function with its worked example is `GET /v1/functions/{key}`. A hidden function is left out — on a project's list, unless that project's own actions use it, where it stays marked `run.hidden` — and `GET /v1/functions/{key}` still answers for it.
 
 **Query**
 

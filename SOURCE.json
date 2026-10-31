@@ -1,7 +1,8 @@
 {
-  "source": "515052ce37bfd45262d8246e3e806816dad962b2",
+  "source": "102b3b01477ee40520c36d950a5a1dd8ce78f2dd",
   "since": "2026-08-16",
   "history": [
+    {"sha":"102b3b01477e","skills":"Each vendor account's balance is reconciled against what dev and staging billed for it, and the 25 integrations no action uses are hidden (418, S1) (#3648)"},
     {"sha":"515052ce37bf","skills":"The project map is compact: no empty member, reads and writes keyed by table, callers counted, and its budget is per flow (#3647)"},
     {"sha":"b10a45399675"},
     {"sha":"b9bb8a2f1946"},
@@ -1000,7 +1001,6 @@
     {"sha":"b738683b6bc9"},
     {"sha":"a6dee2249a57"},
     {"sha":"574039cbd667"},
-    {"sha":"c06bc68ef4dc"},
-    {"sha":"221824b72460"}
+    {"sha":"c06bc68ef4dc"}
   ]
 }

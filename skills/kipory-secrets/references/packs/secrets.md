@@ -64,8 +64,8 @@ Which vendor a given function needs is part of that function's own description â
 `GET /v1/functions`, never against a pack. The provider keys that resolve this way today are stored
 under a purpose matching the vendor's name. The external web-fetch vendors: `firecrawl`, `apify`,
 `twitterapi`, `youtube`, `supadata`, and `scrapecreators` â€” the last for every social-platform
-read (`tiktok.*`, `instagram.*`, `linkedin.*`, `reddit.*`, `threads.*`, `facebook.*`, `google.*`,
-`x.profile`, `x.transcript`, `youtube.posts`, `youtube.comments`, `youtube.search`) and for
+read (`tiktok.*`, `instagram.*`, `reddit.*`, `facebook.*`, `google.*`,
+`x.profile`, `youtube.posts`, `youtube.comments`, `youtube.search`) and for
 `x.posts` and `youtube.transcript` on an action that chose it. The two model vendors: `cohere` and
 `typesafe`. Each is a credential of the catalog's plain bearer-key type.
 

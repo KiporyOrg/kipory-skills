@@ -2,6 +2,64 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261031.61324 — 2026-10-31
+
+Synced from the Kipory monorepo at `102b3b014`.
+
+Functions removed: `facebook.ad`, `facebook.posts`, `google.ad`, `instagram.transcript`, `linkedin.ad`, `linkedin.ads`, `linkedin.company`, `linkedin.post`, `linkedin.posts`, `linkedin.profile`, `reddit.comments`, `reddit.post`, `reddit.posts`, `threads.post`, `threads.posts`, `threads.profile`, `threads.search`, `tiktok.ad`, `tiktok.ads`, `tiktok.audience`, `tiktok.followers`, `tiktok.following`, `tiktok.post`, `tiktok.transcript`, `x.transcript`.
+
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- removed: `skills/kipory-build/references/functions/facebook.ad.md`
+- changed: `skills/kipory-build/references/functions/facebook.ads.md`
+- changed: `skills/kipory-build/references/functions/facebook.page.md`
+- removed: `skills/kipory-build/references/functions/facebook.posts.md`
+- removed: `skills/kipory-build/references/functions/google.ad.md`
+- changed: `skills/kipory-build/references/functions/google.ads.md`
+- changed: `skills/kipory-build/references/functions/instagram.comments.md`
+- changed: `skills/kipory-build/references/functions/instagram.post.md`
+- changed: `skills/kipory-build/references/functions/instagram.posts.md`
+- changed: `skills/kipory-build/references/functions/instagram.profile.md`
+- changed: `skills/kipory-build/references/functions/instagram.search-profiles.md`
+- changed: `skills/kipory-build/references/functions/instagram.search.md`
+- removed: `skills/kipory-build/references/functions/instagram.transcript.md`
+- removed: `skills/kipory-build/references/functions/linkedin.ad.md`
+- removed: `skills/kipory-build/references/functions/linkedin.ads.md`
+- removed: `skills/kipory-build/references/functions/linkedin.company.md`
+- removed: `skills/kipory-build/references/functions/linkedin.post.md`
+- removed: `skills/kipory-build/references/functions/linkedin.posts.md`
+- removed: `skills/kipory-build/references/functions/linkedin.profile.md`
+- removed: `skills/kipory-build/references/functions/reddit.comments.md`
+- removed: `skills/kipory-build/references/functions/reddit.post.md`
+- removed: `skills/kipory-build/references/functions/reddit.posts.md`
+- changed: `skills/kipory-build/references/functions/reddit.search.md`
+- removed: `skills/kipory-build/references/functions/threads.post.md`
+- removed: `skills/kipory-build/references/functions/threads.posts.md`
+- removed: `skills/kipory-build/references/functions/threads.profile.md`
+- removed: `skills/kipory-build/references/functions/threads.search.md`
+- removed: `skills/kipory-build/references/functions/tiktok.ad.md`
+- removed: `skills/kipory-build/references/functions/tiktok.ads.md`
+- removed: `skills/kipory-build/references/functions/tiktok.audience.md`
+- changed: `skills/kipory-build/references/functions/tiktok.comments.md`
+- removed: `skills/kipory-build/references/functions/tiktok.followers.md`
+- removed: `skills/kipory-build/references/functions/tiktok.following.md`
+- removed: `skills/kipory-build/references/functions/tiktok.post.md`
+- changed: `skills/kipory-build/references/functions/tiktok.posts.md`
+- changed: `skills/kipory-build/references/functions/tiktok.profile.md`
+- changed: `skills/kipory-build/references/functions/tiktok.search.md`
+- removed: `skills/kipory-build/references/functions/tiktok.transcript.md`
+- changed: `skills/kipory-build/references/functions/x.profile.md`
+- removed: `skills/kipory-build/references/functions/x.transcript.md`
+- changed: `skills/kipory-build/references/functions/youtube.comments.md`
+- changed: `skills/kipory-build/references/functions/youtube.posts.md`
+- changed: `skills/kipory-build/references/functions/youtube.search.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20261030.234017 — 2026-10-30
 
 Synced from the Kipory monorepo at `515052ce3`.
