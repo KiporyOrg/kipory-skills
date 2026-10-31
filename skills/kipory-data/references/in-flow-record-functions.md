@@ -321,6 +321,11 @@ only the user's own and fails outright with no user. A record belonging to anoth
 nothing. An action that appears to do nothing is usually operating on records it cannot see,
 and it reports that as an ordinary empty result rather than a permission error.
 
+**A `userId` names someone else only in a run that acts for nobody** — a schedule, a trigger, a
+key's call. In a run that acts for a signed-in user, a read or a write whose `userId` names anyone
+but that user fails `PERSON_NOT_THE_RUNS`, so a value the caller sends cannot open another user's
+records.
+
 This is the opposite of the HTTP routes in this skill, which run with your key's grant and reach
 every record in the project. A flow tested with your own records and shipped to end users will
 behave differently for each of them, and correctly so.
