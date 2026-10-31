@@ -1,7 +1,8 @@
 {
-  "source": "063b8ec7f083049aaed59393b3fe03320fefa3e5",
+  "source": "6148c86678942edd4a505ba0b5f1551f52892442",
   "since": "2026-08-16",
   "history": [
+    {"sha":"6148c8667894","skills":"A linked read names its far table as peerTable and reads only when its `when` is true; a list past its declared maxItems fails its action (419) (#3652)"},
     {"sha":"063b8ec7f083","skills":"Anton's open-call rulings and the agent-test fixes are built: one writer per derived projection, a plan that names whose processing loses links, one reference index, a project-wide report cap, and a list bound to a one-value output is refused (#3651)"},
     {"sha":"d401a9d8dd9b","skills":"A run's save protects what it read and looked up, a counter adds at the save, filtered pages read only their rows, and view endpoints stream to many watchers (convex-comparison gaps) (#3650)"},
     {"sha":"29bfae7e9628"},
@@ -1000,7 +1001,6 @@
     {"sha":"b0fec8941378"},
     {"sha":"2bda2689488e"},
     {"sha":"d37587559e52"},
-    {"sha":"efcdc17cefb6"},
-    {"sha":"b738683b6bc9"}
+    {"sha":"efcdc17cefb6"}
   ]
 }

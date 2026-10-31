@@ -757,7 +757,11 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   one each for a linked read that brings one record — summed over every linked read (`LINKED_TOO_MANY_ROWS`).
   A read the save accepted never fails `RECORD_LINKED_TOO_MANY`; with `onMore: "stop"` every full
   list is cut and marked. For a list of `limit₁` with a list of `limit₂` inside, keep
-  `limit₁ × (1 + limit₂)` at 100 or less and a 200-id read fits.
+  `limit₁ × (1 + limit₂)` at 100 or less and a 200-id read fits. A `record.read` whose ids come from
+  a slot is counted at 200 unless the flow says the slot holds fewer: it reads a `record.list` or
+  `record.query`'s `records` (or their `id`s) with a fixed `limit` — `limit` times the most `pages` it reads — or the
+  action writing it declares an output type that is a list with `maxItems`. Then it is counted at that, and the run
+  holds it: an action returning more items than its type's `maxItems` fails, naming the slot.
 - **With `pages`, the budget is per page.** The save counts one page (the read's `limit`), and each
   page of a `record.list` or `record.query` that reads every page brings up to 20,000 linked records
   of its own: `pages` does not multiply the check. The whole answer is still bounded by `pages`’ `max`
@@ -771,14 +775,55 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   records API it is refused `LINKED_VOCABULARIES_UNAVAILABLE`. So a second read for the linked
   records' terms is not needed:
   `"author": { "relation": "written-by", "fields": ["name"], "include": { "vocabularies": true } }`.
-- **`table` is needed only when the relation reaches more than one table from here**
-  (`LINKED_TABLE_UNCLEAR`); a `table` the relation does not reach is `LINKED_TABLE_NOT_AT_END`.
+- **`peerTable` names the table at the other end when one relation reaches more than one from here.**
+  A relation `under` paired `event → event` and `story → event` reaches both events and stories
+  from an event, read `incoming`. Without `peerTable` the save refuses it
+  (`LINKED_PEER_TABLE_UNCLEAR`, naming both). With `peerTable` the linked read brings that table's
+  records only, and its `limit`, `onMore` and `linkedMore` count them alone: a topic with 3 child
+  events and 1,700 stories answers 3 events. Need both? Write two linked reads, one per table, each
+  with its own `limit`:
+
+  ```json
+  "linked": {
+    "events":  { "relation": "under", "direction": "incoming", "peerTable": "event", "limit": 50 },
+    "stories": { "relation": "under", "direction": "incoming", "peerTable": "story", "limit": 20, "onMore": "stop" }
+  }
+  ```
+
+  Naming the only table is accepted; a `peerTable` the relation does not reach is
+  `LINKED_PEER_TABLE_NOT_AT_END`. It is the word computed fields use for the same thing.
+
+- **`when` reads a linked read only on the calls that need it.** It is a setting like `limit`: a
+  slot, a fixed `true`/`false`, or an expression, and it must be a boolean (the save refuses a slot or
+  a value of another type; an expression's type is checked when it runs). It may sit on a linked read at either level. One feed flow serving
+  several tabs:
+
+  ```json
+  "stories": {
+    "relation": "in-category", "direction": "incoming", "limit": 20, "onMore": "stop",
+    "when": { "expr": "tab = 'category'" }
+  }
+  ```
+
+  A linked read is read only when `when` is `true`. When it is `false`, or gives nothing (an absent
+  slot), nothing is read for it, nor for a linked read under it, and no record carries `stories`
+  under `linked` or `linkedMore`: the key is ABSENT, not an empty list (an empty list means "read,
+  none found"). Any other value (`"yes"`, `1`) fails the action, `LINKED_WHEN_NOT_BOOLEAN`, naming
+  the linked read. A slot only `when` reads never holds the read back or starts it early. The save
+  counts a linked read with `when` in the worst case below as if it were read. A view's linked read
+  takes `when` too, as `true`, `false` or `{"param": "withStories"}` naming a boolean param of the
+  view (an optional param left out leaves it out); `POST /v1/records/query` takes none.
+
 - **Two levels, at most 8 linked reads in one map.** A level-2 linked read takes no `linked`. A relation whose
   links are records of a join table is not followed (`LINKED_JOIN_RECORD`): link from the join
   table's records instead.
+- **A merged record is answered as its survivor.** While a merge is still moving the records that
+  point at the merged one, a link that reaches it brings the record it was merged into, once, never
+  the merged record itself — as a read by id does.
 - **A linked record is exactly what a plain read of its table would answer in that run.** A run
   acting for nobody (a schedule, a trigger, an API key) that follows a link into a table whose
-  records belong to people fails as that plain read fails, even when nothing is linked.
+  records belong to people fails as that plain read fails, even when nothing is linked — unless
+  its `when` is not true, so it is not read at all.
 - **Records the run wrote itself.** A `record.read` of a record this run created or changed brings
   its outgoing linked record through the field that produces the link, so create-then-read-back in
   one run works. A link the run made with `record.link-assert` is not followed until the run ends;

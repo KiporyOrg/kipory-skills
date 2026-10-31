@@ -83,8 +83,30 @@ many-to-one) and `linked.reviews` (a list, `[]` when none; `linkedMore.reviews: 
 more than ten). `limit` is per record — ten reviews for EACH book. One read brings at most 20,000
 linked records over all its linked reads, checked at save: per linked read, the records it hangs off times its
 `limit` (one each for a one-record linked read), summed over every linked read at both levels; a list of `a` with
-a list of `b` inside fits a 200-id read when `a × (1 + b)` is 100 or less. With `pages`, the budget is per page: the check counts one page (the read's `limit`), and each page brings up to 20,000 linked records of its own — `pages` does not multiply it. Name `table` only when the relation reaches more
-than one table. One more level of `linked` is allowed, not two. The relations pack (`kipory-model`'s
+a list of `b` inside fits a 200-id read when `a × (1 + b)` is 100 or less. With `pages`, the budget is per page: the
+check counts one page (the read's `limit`), and each page brings up to 20,000 linked records of its own — `pages` does
+not multiply it. A `record.read` fed ids from a slot counts
+as 200 unless the slot is bounded: ids read off a `record.list`'s `records` with a fixed `limit` count as
+`limit` × `pages.max`, and a writer whose output type is a list with `maxItems` counts as that (an action returning more fails at run, naming the slot). One more level
+of `linked` is allowed, not two.
+
+**One relation, two tables at the other end: name `peerTable`.** A relation paired `event → event` and
+`story → event` reaches both from an event, read `incoming`. The save refuses the linked read until it
+names one (`LINKED_PEER_TABLE_UNCLEAR`), and with `"peerTable": "event"` it brings events only, its `limit`
+counting them alone, however many stories point at the same event. For both, write two linked reads:
+
+```json
+"linked": {
+  "events": { "relation": "under", "direction": "incoming", "peerTable": "event", "limit": 50 },
+  "stories": { "relation": "under", "direction": "incoming", "peerTable": "story", "limit": 20, "onMore": "stop" }
+}
+```
+
+**Read a linked read only on the calls that need it: `when`.** A setting like `limit` — a slot, a
+fixed `true`/`false`, or `{ "expr": "tab = 'category'" }` — on a linked read at either level. Only
+`true` reads it; `false` or nothing (an absent slot) leaves it out, so no record carries its name
+under `linked` (absent, not `[]`; `linked` itself stays, empty when nothing is left); any other value fails the action (`LINKED_WHEN_NOT_BOOLEAN`). A
+slot only `when` reads never holds the read back. The relations pack (`kipory-model`'s
 `references/packs/relations-and-links.md`, "Linked records in one read") has every rule.
 
 Two things that follow from the run's principal:

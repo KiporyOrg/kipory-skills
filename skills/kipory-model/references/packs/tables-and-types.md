@@ -978,8 +978,8 @@ records it is linked to, under `linked.<name>`:
 ```
 
 - Each linked read follows one `relation`, `outgoing` (default: the records this one points at) or
-  `incoming` (the records pointing at it). `table` names the far table only when the relation
-  reaches several from here.
+  `incoming` (the records pointing at it). `peerTable` names the far table only when the relation
+  reaches several from here. The route takes no `when`: a caller asks for what it needs.
 - A linked read brings ONE record — an object, absent when there is none — when it is `outgoing` on a
   directed relation declared many-to-one; otherwise a LIST, which needs `limit` (at most 100 per
   record) and may take `sortField` (a date field of the far table), `order` (`desc` default) and
@@ -996,8 +996,8 @@ records it is linked to, under `linked.<name>`:
   and on a flow's `record.query` (`record.read` and `record.list` carry them).
 - The route has no save step, so a linked read the project's relations cannot answer is refused before
   anything is read: 422 `VALIDATION_FAILED` with the rule in the `reason` of its `details` —
-  `LINKED_RELATION_UNKNOWN`, `LINKED_NO_PAIRING`, `LINKED_TABLE_UNCLEAR`, `LINKED_LIST_NEEDS_LIMIT`,
-  `LINKED_ONE_TAKES_NO_LIST_OPTIONS`, `LINKED_SORT_NOT_DATE`, `LINKED_TABLE_NOT_AT_END`,
+  `LINKED_RELATION_UNKNOWN`, `LINKED_NO_PAIRING`, `LINKED_PEER_TABLE_UNCLEAR`, `LINKED_LIST_NEEDS_LIMIT`,
+  `LINKED_ONE_TAKES_NO_LIST_OPTIONS`, `LINKED_SORT_NOT_DATE`, `LINKED_PEER_TABLE_NOT_AT_END`,
   `LINKED_JOIN_RECORD`, `LINKED_TOO_MANY_ROWS` (for each linked read, the records it hangs off times
   its `limit`, summed over every linked read at both levels, passes the most linked records one read
   may bring). `RECORD_LINKED_TOO_SLOW` arrives when the linked reads take too long.

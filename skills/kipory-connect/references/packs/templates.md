@@ -33,8 +33,8 @@ hidden part, and no parameters: a template is applied as written. `Accept: appli
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
 `kipory: 9`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused. A template may carry `views` and `shapes` too, spelled as that
-pack spells them (a clause `op` is `in`, `not-in` and the rest): a flow it ships then reads its
-views by key. A `delete: true` row, a config namespace's too, finds nothing to remove in a new
+pack spells them (a clause `op` is `in`, `not-in` and the rest; a linked read's far table is
+`peerTable`, and a view's linked read may say `when`): a flow it ships then reads its views by key. A `delete: true` row, a config namespace's too, finds nothing to remove in a new
 project. A template that breaks one is refused like any other document. A table there names its
 type by key with `type` — the type stated under `types` — never inline. Check
 each `evals` suite's `applyWrites` before you run it: `true` means a run saves the records the

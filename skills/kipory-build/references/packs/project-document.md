@@ -143,6 +143,11 @@ What no schema says:
   clauses naming it are left out; with neither the read fails `VIEW_PARAM_MISSING` before reading.
   A bad value fails `VIEW_PARAM_INVALID`. A param of a set or a base needs a `default`: nothing
   passes it one. This is how an optional filter is written — one action, not a branch per case.
+- **A linked read the reader asks for.** A view's linked read (either level) takes `when`: `true`,
+  `false`, or `{ "param": "withAuthor" }` naming a boolean param of the view. It is read only when
+  that is `true`; `false`, or an optional param left out, leaves it out (each row's `linked` then
+  lacks its name). Its far table, when the relation reaches several, is `peerTable`. A view's
+  `when` names no slot, so it is never `{ "expr": … }` or a bare text.
 - **Who it reads as is the view's `scope`.** `"caller"`, the default, reads a person-owned table as
   the signed-in person — the identity is never wired. A flow that can start with no person (a
   schedule, a trigger, a project table's processing) and reaches such a view is refused at plan,
