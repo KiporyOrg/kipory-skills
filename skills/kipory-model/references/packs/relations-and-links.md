@@ -448,7 +448,7 @@ as proof of links.
 It is a flag on the real route rather than a sibling `/validate`, deliberately. One route is one set
 of rules, so a check that passes and a save that refuses cannot come apart.
 
-The findings and consequences these answers carry come from one list the whole design API shares, and it grows: a flow warning (`ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`) and the plan consequences `fields-unset` and `recompute` (a table's computed fields computed again for its stored records, at no charge) were added. A relation or pairing change that a table's computed field reads is judged with it: refused with `TABLE_COMPUTED_INVALID` when it breaks one. Decide on a finding by its `severity`, not by a fixed list of codes.
+The findings and consequences these answers carry come from one list the whole design API shares, and it grows: a flow warning (`ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`) and the plan consequences `fields-unset` and `recompute` (a table's computed fields computed again for its stored records, at no charge) were added, then `links-removed`: a link field dropped or pointed at another field removes its stored links, and the line counts the records whose processing read them — not run again; reprocess one on purpose with `POST /v1/records/{id}/reprocess`. A relation or pairing change that a table's computed field reads is judged with it: refused with `TABLE_COMPUTED_INVALID` when it breaks one. Decide on a finding by its `severity`, not by a fixed list of codes.
 
 ## What the platform refuses
 
@@ -758,6 +758,19 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   A read the save accepted never fails `RECORD_LINKED_TOO_MANY`; with `onMore: "stop"` every full
   list is cut and marked. For a list of `limit₁` with a list of `limit₂` inside, keep
   `limit₁ × (1 + limit₂)` at 100 or less and a 200-id read fits.
+- **With `pages`, the budget is per page.** The save counts one page (the read's `limit`), and each
+  page of a `record.list` or `record.query` that reads every page brings up to 20,000 linked records
+  of its own: `pages` does not multiply the check. The whole answer is still bounded by `pages`’ `max`
+  and the slot size.
+- **`fields` narrows what each linked record carries.** Absent or empty is every field; `["id"]` is
+  none of its fields — the linked record carries only the record's base members (its id, status,
+  processing state and created and updated times; on a computed table, when its values were
+  computed and whether they are being computed again), enough to know the link is there.
+- **`include: { vocabularies: true }` brings each linked record's vocabulary terms**, as a plain read
+  of its table carries them. Only `record.read` and `record.list` can; on `record.query` and the
+  records API it is refused `LINKED_VOCABULARIES_UNAVAILABLE`. So a second read for the linked
+  records' terms is not needed:
+  `"author": { "relation": "written-by", "fields": ["name"], "include": { "vocabularies": true } }`.
 - **`table` is needed only when the relation reaches more than one table from here**
   (`LINKED_TABLE_UNCLEAR`); a `table` the relation does not reach is `LINKED_TABLE_NOT_AT_END`.
 - **Two levels, at most 8 linked reads in one map.** A level-2 linked read takes no `linked`. A relation whose
@@ -770,6 +783,13 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   its outgoing linked record through the field that produces the link, so create-then-read-back in
   one run works. A link the run made with `record.link-assert` is not followed until the run ends;
   `record.list` and `record.query` read only what earlier runs committed.
+- **A linked read follows links as they stand; it does not follow a merge's redirect itself.** A
+  merge moves every reference naming the merged record to the survivor, and each moved field's link
+  then leads to the survivor, so a linked read through that field brings the survivor. While a
+  merge answers `moving` — more records named the duplicate than one call moves; the rest move in
+  the background — a record not moved yet still names the duplicate, and its linked read can bring
+  the merged record rather than the survivor. Read `remaining` on the merge, or wait for `merged`,
+  before relying on linked reads through it.
 - Linked records count toward the slot size of the answer (Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
 
 ## What the read half still does not do

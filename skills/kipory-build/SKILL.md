@@ -94,6 +94,14 @@ GET   /v1/project-document/schema             the format, public
 GET   /v1/project-document/example            a complete document that belongs to no project, public
 ```
 
+The JSON export is an envelope, and `basedOn` is inside `document`, not beside it:
+
+```json
+{ "version": "42", "document": { "kipory": 9, "basedOn": "<nodeId>@42", "types": { … }, … } }
+```
+
+Plan the `document` alone, never the envelope. `?basedOn=` takes the envelope's `version` (`?basedOn=42`) or the whole `<nodeId>@42`; leave it out and the plan reads the `basedOn` inside the document.
+
 The loop is **export → edit → plan with `basedOn` → read the plan → apply `{planId, note}`**. Documents are format 9 (`"kipory": 9`); a format-8 document is refused with what to rename — `kipory-connect`'s upgrade script converts it ("A project document you hold"). A plan is not a simulation: the platform applies the document through every row's own write, in one transaction, and rolls it back — so what a plan refuses is exactly what an apply refuses.
 
 - **Read the plan before you apply it**: `changes` (only what changes; each `update` says `fields` from → to), `moved` (what someone else changed after your read — any here and `ok` is false), `diagnostics` (what this document introduces; gate on `severity`, never on `code`), `health` (errors and warnings before and after, over the flows it reaches), `consequences` (what it does to stored data) and the `delete` rows. A platform release that breaks a live flow is not in any plan: the project hears it as the `platform/flow-health.failing` event.

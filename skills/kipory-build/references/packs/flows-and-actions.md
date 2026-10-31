@@ -1225,7 +1225,8 @@ for a finding about one step, its `outlinePath` in the flow as the change leaves
 `consequences` says what the change does to stored data — including `rename`, the
 rows a rename moves in place, when the change is one (tables pack, renaming a field),
 and `recompute`, a table whose computed fields Kipory computes again for its stored
-records because an output they read moved (tables pack, computed fields).
+records because an output they read moved (tables pack, computed fields). The kinds are the
+project-document pack's list, which now holds `links-removed` too.
 Neither decides `ok`,
 which stays whether the PATCH itself would save; a create does not rehearse and
 carries neither. A platform flow's PATCH is rehearsed too, with both empty:

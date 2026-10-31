@@ -41,7 +41,7 @@ A plan is not a simulation: the platform applies the document through every row'
 
 ## The apply
 
-- **Plan from your read, apply the plan.** The export writes `basedOn: <nodeId>@<version>` into the document; plan with it (or `?basedOn=`, which overrides it), read the plan, then apply `{planId, note, label?}` — the note says why, in history. Never resend a document to the apply.
+- **Plan from your read, apply the plan.** The JSON export answers `{ version, document }` and writes `basedOn: <nodeId>@<version>` inside `document`, not beside it; plan with it (or `?basedOn=`, which overrides it and takes the envelope's `version` or the whole `<nodeId>@<version>`), read the plan, then apply `{planId, note, label?}` — the note says why, in history. Never resend a document to the apply.
 - **A file from another project is refused, not bound** (`422`, `details.reason: "BASED_ON_OTHER_PROJECT"`, naming both projects and this one's `version`). To promote a dev project's file to another project, plan it there with that project's current version: `?basedOn=<version>`.
 - **Only what someone else changed in YOUR elements stops you.** The plan lists it under `moved` (who, when, why, what); the apply refuses it `409 VERSION_CONFLICT` with the same. Read again, make the change on what the project says now, plan, apply. A change to an element your document does not touch never refuses it.
 - **`404 PLAN_UNKNOWN`**: the plan was applied, is over 24 hours old, or was dropped to make room — a key keeps at most 50 open plans per session label, 200 in all and 64 MB of documents per project, oldest dropped first; reading a kept plan an earlier release made answers `outdated`. Plan again.

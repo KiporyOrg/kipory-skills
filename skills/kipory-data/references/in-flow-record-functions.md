@@ -41,6 +41,7 @@ page and bringing linked records, which the three reads share, comes first below
   instead answers what it read and a `nextCursor` to continue from — it covers the size bound as well as `max`, except when the first page alone passes the slot, which fails whatever `onMore` says: lower `limit` or name fewer `fields`. `max` is at most the project's
   read-pages limit (50 unless Kipory set another); above it the save is refused
   `READ_PAGES_OVER_LIMIT`.
+- **With `cursor`, `pages` starts at that cursor**, not at the first page: `max` pages from there, and `"onMore": "stop"` answers the `nextCursor` to continue from.
 - **A first page plus N passes is `max: N + 1`.** A flow that read a page and then looped up to 9
   more times on `nextCursor` is `"pages": { "max": 10 }` on the one action, and the loop goes.
 - **A one-page read on purpose is `"pages": { "max": 1, "onMore": "stop" }`.** A read without
@@ -82,7 +83,7 @@ many-to-one) and `linked.reviews` (a list, `[]` when none; `linkedMore.reviews: 
 more than ten). `limit` is per record — ten reviews for EACH book. One read brings at most 20,000
 linked records over all its linked reads, checked at save: per linked read, the records it hangs off times its
 `limit` (one each for a one-record linked read), summed over every linked read at both levels; a list of `a` with
-a list of `b` inside fits a 200-id read when `a × (1 + b)` is 100 or less. Name `table` only when the relation reaches more
+a list of `b` inside fits a 200-id read when `a × (1 + b)` is 100 or less. With `pages`, the budget is per page: the check counts one page (the read's `limit`), and each page brings up to 20,000 linked records of its own — `pages` does not multiply it. Name `table` only when the relation reaches more
 than one table. One more level of `linked` is allowed, not two. The relations pack (`kipory-model`'s
 `references/packs/relations-and-links.md`, "Linked records in one read") has every rule.
 

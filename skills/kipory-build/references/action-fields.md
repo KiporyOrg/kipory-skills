@@ -41,7 +41,7 @@ What an action body carries, how a type is referenced, how an output is bound, a
 - **`taskKey` outside the five is a 422** listing them. `extraction` is right for an action that makes no model call.
 - **For merge, invoke, dispatch and loop-end the row's `outputSlot` is a mirror**, not the truth: their real outputs are in config — lanes, output maps, branches, escape slots. `flow.invoke` writes no primary slot at all.
 
-A flow's `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName, slot?, isList?, required? }`, not bare names.
+A flow's `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName, slot?, isList?, required? }`, not bare names. A flow output that carries a list says `"isList": true` (§3).
 
 **A signature change states the side it changes.** A `PATCH /v1/flows/{id}` carrying only `outputTypeNames` changes the outputs and keeps the inputs as stored (and the reverse). The stored binding is carried, pruned to the outputs that remain, unless you send `outputBinding`. While an endpoint or a flow-backed table holds a snapshot of the old signature the PATCH is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an `ok: false` verdict with that code) unless it adds `adoptSnapshots: true`, which re-publishes those endpoints' contracts to their callers — read `kipory-evolve` first.
 
@@ -97,6 +97,8 @@ What `inputSchemas[]` and `outputSchema` hold. On the row API a named type is `{
 | `{ "kind": "recordRef", "tableKey": "<type>" }`  | one stored record's id                                                                                                             |
 
 The built-ins (`string`, `number`, `boolean`, `object`, `file`, …) and the platform's own types (`RecordRead`, `RecordPage`, `UserInfo`, `ProjectInfo`, …) work like yours: in a document name them by key; on the row API read the id with `GET /v1/types?project={nodeId}&key=<Key>`. `GET /v1/flows/{id}/scope` lists every slot an action may read, already typed.
+
+**A list on a flow output is `isList: true`.** `object` covers a list only in an action's `outputSchema`. A flow output carrying a list is declared `{ "slot": "books", "typeName": "BookCard", "isList": true }`. A single item arriving there is taken as a one-item list, and a missing value stays missing: a path such as `books.records.{…}` gives a bare object when the page holds one record, and the output still answers a one-item list. Typed `object` alone, the output fails the call with `502 FLOW_FAILED` whenever a list arrives — from a path, whenever more than one item matches — so it passes on one-record pages and fails on the first fuller one. The plan refuses a certain list bound to a non-list output (`OUTPUT_BINDING_TYPE_MISMATCH`): a list `outputSchema`, or a transform whose expression's form plainly makes one (`[…]`, or a plain path through a list such as `books.records.{…}`). It reads the expression's form, not a run's result; a list it cannot tell from the form still fails at run time, and so does an output bound by a `path` that reaches into a list, which the plan does not check: declare that output `isList: true` too. The lifting is the flow output's only: an action whose own `outputSchema` is a list still needs its expression wrapped in `[ … ]` to stay a list for one item (`patterns.md`).
 
 ## 4. Inputs the platform derives
 

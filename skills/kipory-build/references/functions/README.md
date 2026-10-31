@@ -152,7 +152,7 @@ _Read and change the project's records and terms. Only these actions can change 
 - [`record.link-counts`](record.link-counts.md) — Count a record's links · `inline` · `record ids` → `RecordLinkCount[]`
 - [`record.link-retract`](record.link-retract.md) — Remove a link · `inline` · `string, string` → `RelationRetraction`
 - [`record.links`](record.links.md) — Read a record's links · `inline` · `string` → `RecordLink[]`
-- [`record.list`](record.list.md) — List records · `inline` · `user id + cursor` → `RecordPage`
+- [`record.list`](record.list.md) — List records · `inline` · `table + cursor` → `RecordPage`
 - [`record.merge`](record.merge.md) — Merge records · `inline` · `two record ids` → `RecordMerge`
 - [`record.query`](record.query.md) — Query records · `inline` · model (when it embeds) · `the values its clauses compare against` → `RecordQueryPage`
 - [`record.read`](record.read.md) — Read records · `inline` · `any+` → `RecordRead[]`

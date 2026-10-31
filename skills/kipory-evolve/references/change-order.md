@@ -331,15 +331,16 @@ thing you were trying to change.
 
 A cascade succeeded. The response says what else moved, and nothing will say it again.
 
-| The response carries | Means                                                                                           |
-| -------------------- | ----------------------------------------------------------------------------------------------- |
-| `deletedRelations`   | relations that applied only to the pair you removed are gone                                    |
-| `because: "cascade"` | a document plan's row a delete takes along — named or not                                       |
-| a deleted relation   | every link of the relation is gone — a plan's `links-deleted` says how many                     |
-| `invalidatedJoins`   | other tables' join declarations are now void — go and fix them                                  |
-| `restamp` (plan)     | every record's filter columns are being rewritten; nothing is embedded and no credits are spent |
-| `reindex` (plan)     | an index reconcile is queued; it may redo nothing, or rewrite payloads only                     |
-| `reembed` (plan)     | every record of the table is being embedded again; it is billed                                 |
+| The response carries | Means                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------ |
+| `deletedRelations`   | relations that applied only to the pair you removed are gone                                     |
+| `because: "cascade"` | a document plan's row a delete takes along — named or not                                        |
+| a deleted relation   | every link of the relation is gone — a plan's `links-deleted` says how many                      |
+| `links-removed`      | a dropped or re-pointed link field's links go; records whose processing read them are not re-run |
+| `invalidatedJoins`   | other tables' join declarations are now void — go and fix them                                   |
+| `restamp` (plan)     | every record's filter columns are being rewritten; nothing is embedded and no credits are spent  |
+| `reindex` (plan)     | an index reconcile is queued; it may redo nothing, or rewrite payloads only                      |
+| `reembed` (plan)     | every record of the table is being embedded again; it is billed                                  |
 
 What starts each one:
 

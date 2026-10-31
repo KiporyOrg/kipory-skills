@@ -62,6 +62,47 @@ Returns records in the order of the ids given; on user-owned types, only the use
 | `files` | boolean | no | `false` | Add each row's attached files. |
 | `cost` | boolean | no | `false` | Add what each row's processing cost. |
 
+### `linked` — each entry, under a name you choose
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `relation` | string | yes | — | The relation whose links bring the records. |
+| `direction` | `outgoing` \| `incoming` | no | `"outgoing"` | `"outgoing"` (default) brings the records this record points at; `"incoming"` brings the records that point at it. |
+| `table` | string | no | — | The table at the other end; needed only when the relation reaches several. |
+| `fields` | string[] | no | — | Which fields each linked record carries; `["id"]` carries none of its fields, only its base members (id, status, processing state, times); empty or absent carries all. |
+| `include` | object | no | — | What else each linked record carries. |
+| `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
+| `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
+| `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+| `linked` | object | no | — | The records linked to each linked record: one more level, which takes no `linked`. |
+
+each entry › `include`:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+
+each entry › `linked` — each entry, under a name you choose:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `relation` | string | yes | — | The relation whose links bring the records. |
+| `direction` | `outgoing` \| `incoming` | no | `"outgoing"` | `"outgoing"` (default) brings the records this record points at; `"incoming"` brings the records that point at it. |
+| `table` | string | no | — | The table at the other end; needed only when the relation reaches several. |
+| `fields` | string[] | no | — | Which fields each linked record carries; `["id"]` carries none of its fields, only its base members (id, status, processing state, times); empty or absent carries all. |
+| `include` | object | no | — | What else each linked record carries. |
+| `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
+| `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
+| `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+
+each entry › `linked` › each entry › `include`:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+
 ### `scalars`
 
 | Member | Type | Required | Default | Meaning |

@@ -2,15 +2,15 @@
 
 # `record.list` — List records
 
-List a user's records, newest first, one page at a time.
+List a table's records, newest first, one page at a time.
 
 Read one page and its cursor, or every page. Filter by status, date, vocabulary, field or link.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `user id + cursor` → `RecordPage`
+- **I/O:** `table + cursor` → `RecordPage`
 - **Also found as:** all records, browse records, page of rows, table rows
-- **Reads:** The user id, from `userId`. To read past the first page, wire the previous page's cursor into `cursor`. Each filter's `value` may come from a slot too. _(shape hint: `user id + cursor`)_
+- **Reads:** `userId`, on a user-owned table only. To read past the first page, wire the previous page's cursor into `cursor`. Each filter's `value` may come from a slot too. _(shape hint: `table + cursor`)_
 - **Emits:** A `RecordPage`: the rows, newest first, each record's fields flattened to the top level, and a cursor when more remain — with `pages`, only under `onMore: "stop"`.
 
 ## Config
@@ -32,7 +32,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ If an entry's slot is missing, the action is skipped. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
-| `pages` | object | no | — | Read every page in one action; unset reads one page. ⚠️ Records left after the last page fail the action unless `onMore` is "stop". |
+| `pages` | object | no | — | Read every page, from `cursor` if set; unset reads one page. ⚠️ Records left after the last page fail the action unless `onMore` is "stop". |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order by when a row was created (default) or last changed. |
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
@@ -183,6 +183,47 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+### `linked` — each entry, under a name you choose
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `relation` | string | yes | — | The relation whose links bring the records. |
+| `direction` | `outgoing` \| `incoming` | no | `"outgoing"` | `"outgoing"` (default) brings the records this record points at; `"incoming"` brings the records that point at it. |
+| `table` | string | no | — | The table at the other end; needed only when the relation reaches several. |
+| `fields` | string[] | no | — | Which fields each linked record carries; `["id"]` carries none of its fields, only its base members (id, status, processing state, times); empty or absent carries all. |
+| `include` | object | no | — | What else each linked record carries. |
+| `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
+| `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
+| `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+| `linked` | object | no | — | The records linked to each linked record: one more level, which takes no `linked`. |
+
+each entry › `include`:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+
+each entry › `linked` — each entry, under a name you choose:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `relation` | string | yes | — | The relation whose links bring the records. |
+| `direction` | `outgoing` \| `incoming` | no | `"outgoing"` | `"outgoing"` (default) brings the records this record points at; `"incoming"` brings the records that point at it. |
+| `table` | string | no | — | The table at the other end; needed only when the relation reaches several. |
+| `fields` | string[] | no | — | Which fields each linked record carries; `["id"]` carries none of its fields, only its base members (id, status, processing state, times); empty or absent carries all. |
+| `include` | object | no | — | What else each linked record carries. |
+| `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
+| `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
+| `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+
+each entry › `linked` › each entry › `include`:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
 
 ### `pages`
 

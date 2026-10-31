@@ -200,7 +200,7 @@ if you meant to keep yours. `version` is required on every vocabulary patch. A p
 **`validateOnly: true`** too: it answers a 200 verdict (narrow on `ok`) saying whether the patch
 would be accepted, and writes nothing. A finding it leaves on a flow action carries that action's
 `outlinePath`. Its `consequences` use the kinds the project-document pack lists (`recompute`
-among them). The dry run does not judge the lock; the save answers a stale `version` with 409
+and `links-removed` among them). The dry run does not judge the lock; the save answers a stale `version` with 409
 `VERSION_CONFLICT`.
 
 ## How a value actually reaches a record

@@ -24,7 +24,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | union | no | — | Order by `created`, `meaning`, or a date field of the type. ⚠️ A field order leaves out records with no value in that field. |
-| `pages` | object | no | — | Read every page of an exact question in one action. ⚠️ Only an exact question reads every page; records left after the last page fail the action unless `onMore` is "stop". |
+| `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the action unless `onMore` is "stop". |
 | `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
 | `userId` | union | no | — | The person whose records to query; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the action on user-owned tables. |
@@ -308,6 +308,47 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+### `linked` — each entry, under a name you choose
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `relation` | string | yes | — | The relation whose links bring the records. |
+| `direction` | `outgoing` \| `incoming` | no | `"outgoing"` | `"outgoing"` (default) brings the records this record points at; `"incoming"` brings the records that point at it. |
+| `table` | string | no | — | The table at the other end; needed only when the relation reaches several. |
+| `fields` | string[] | no | — | Which fields each linked record carries; `["id"]` carries none of its fields, only its base members (id, status, processing state, times); empty or absent carries all. |
+| `include` | object | no | — | What else each linked record carries. |
+| `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
+| `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
+| `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+| `linked` | object | no | — | The records linked to each linked record: one more level, which takes no `linked`. |
+
+each entry › `include`:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
+
+each entry › `linked` — each entry, under a name you choose:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `relation` | string | yes | — | The relation whose links bring the records. |
+| `direction` | `outgoing` \| `incoming` | no | `"outgoing"` | `"outgoing"` (default) brings the records this record points at; `"incoming"` brings the records that point at it. |
+| `table` | string | no | — | The table at the other end; needed only when the relation reaches several. |
+| `fields` | string[] | no | — | Which fields each linked record carries; `["id"]` carries none of its fields, only its base members (id, status, processing state, times); empty or absent carries all. |
+| `include` | object | no | — | What else each linked record carries. |
+| `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
+| `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
+| `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+
+each entry › `linked` › each entry › `include`:
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `vocabularies` | boolean | no | `false` | Carry each linked record's vocabulary terms, as a plain read does; only `record.read` and `record.list` can. |
 
 ### `order` — one of
 

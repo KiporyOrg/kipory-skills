@@ -422,7 +422,11 @@ The answer holds the `version` the plan was computed against, its `planId` and `
   which spends credits on embedding usage (billed by tokens, so it grows with the records and the
   text each holds), because what its search indexes moved. It is per table, a plan reports it (an
   apply's answer does not repeat it), and it is the one to ask a person about before applying.
-  `reindex` is not that: it says a reconcile is queued, which may find nothing to redo. `rename`
+  `reindex` is not that: it says a reconcile is queued, which may find nothing to redo.
+  `links-removed` comes from a link field you dropped or pointed at another field: its stored links
+  are removed, and `rows` counts the records whose processing (`reprocessOn` on a leave) read them.
+  Their computed values are recomputed, but their processing is not run again — reprocess one on
+  purpose with `POST /v1/records/{id}/reprocess` if it should be. `rename`
   counts the stored rows a rename rewrites in place, per store; ids, embeddings and stamps are kept,
   and the plan's `renames[]` says what else moves and what it breaks. A `filter`
   use added, removed or moved reports `restamp` — every record's filter columns are rewritten — and

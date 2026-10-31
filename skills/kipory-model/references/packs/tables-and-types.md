@@ -484,7 +484,9 @@ Things to know before you declare one:
 - ⚠️ **A date only behaves like a date if you say so.** A timestamp declared as a plain string is
   a _text_ field: it matches exactly and it does not compare. Give it the `date-time` format in
   its type and it becomes a date — which is what makes "before" and "after" mean what you
-  expect, and what moves it out of your text budget.
+  expect, and what moves it out of your text budget. The `date` format (`"2026-05-01"`, a day with
+  no time) is a date too: it filters by range, sorts, and is allowed as a `sortField`, compared as
+  midnight UTC of that day. Use `date` for a day and `date-time` for a moment.
 - **A text filter has a length line at 2,000 bytes.** Equals and any-of find a value of any
   length. Greater-than and less-than on text belong to `record.query`: they compare only values up
   to 2,000 bytes, and the clause's explanation counts the longer ones left out (`longTextSkipped`);
@@ -534,7 +536,7 @@ your data means by a date rather than by when the row arrived. Two things to kno
 
 - **Only date fields.** The continuation token a page hands back carries a date, so that is what a
   page can resume from. A timestamp stored as a plain string is a text field until its type
-  declares the `date-time` format — declare it and sorting works.
+  declares the `date-time` or `date` format — declare it and sorting works.
 - ⚠️ **Records with no value for that field are left out of the page.** The field's index only
   covers records that have a value, and including the rest would mean sorting every record of the
   table on every request. Sorting by a date a record does not have has no answer anyway.
@@ -1053,7 +1055,8 @@ it, `onKeyTaken` acts on it), and an upsert updates the survivor and keeps the s
 ## Values Kipory keeps: `computed` and `reprocessOn`
 
 A table may declare `computed` fields: a `rollup` over a relation (`count`, `countDistinct`, `sum`,
-`avg`, `min`, `max`, `any`, `all`, `latest`, `distinct`, each optionally narrowed by `where`), a
+`avg`, `min`, `max`, `any`, `all`, `latest`, `distinct`, each optionally narrowed by `where`; a
+`distinct` list keeps at most 100 values, and a larger `max` is refused `COMPUTED_DISTINCT_TOO_LONG`), a
 `lookup` of the one record a relation links to, or a `formula` over the row's own values (a JSONata
 expression, which may call the platform's expression functions, `functions/expressions.md`). Kipory
 computes each for every stored record when it is declared, keeps it right a few seconds after any
@@ -1128,7 +1131,10 @@ is yours to change in the same save.
   included — until the numbers are fixed.
 - **A table delete's `validateOnly=true`** rehearses the delete and rolls it back: `ok` is
   false when it would leave an error it introduces in a flow, as a document plan of the same delete
-  answers, with the findings in `leavesBehind` and what it takes along in `consequences`.
+  answers, with the findings in `leavesBehind` and what it takes along in `consequences`. A
+  table update's `validateOnly` that drops a link field, or points it at another field, answers
+  `links-removed` when records' processing read the links it removes: they are recomputed, not
+  processed again.
 - **Deleting a type** while it is a table's type
   (`TYPE_REFERENCED_BY_TABLE`) or referenced by the type-reference graph
   (`SCHEMA_REFERENCED_BY_GRAPH`). ⭐ Ask the delete with `validateOnly=true` in the query: it runs
