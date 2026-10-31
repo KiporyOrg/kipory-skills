@@ -2,7 +2,7 @@
 
 # Expression functions
 
-Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 25 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
+Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 27 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
 
 No value means missing, `null`, empty text or an empty list: a function given none answers nothing (the action's slot stays empty) unless its entry says otherwise. A wrong type fails the action at the call. No function reads the clock, the host's time zone or its locale: `runInfo.now` is the time, and a date or locale function takes its zone and locale as arguments (UTC and `en` when left out).
 
@@ -18,6 +18,15 @@ The fallback when the value is missing, null, empty text or an empty list; else 
 - `$default(count, 0)` over `{"count":3}` → `3`
 
 ## Lists
+
+### `$chunk(list, size)`
+
+The items in groups of `size`, in order; the last group may be shorter. One pass over the list, where a filter by position per group reads the whole list for each group. Loop over the groups with `$map` inside `[…]`: `$map` answers one group's result bare, and a path step (`$chunk(xs, 2).{…}`) reads a one-item group as its item.
+
+- **No value:** Nothing (an action reading only it is skipped).
+- **Signature:** `<xn:a>`
+- `$chunk(ids, 2)` over `{"ids":["a","b","c","d","e"]}` → `[["a","b"],["c","d"],["e"]]`
+- `[$map($chunk(ids, 10), function($g){ {"ids": $g} })]` over `{"ids":["a","b"]}` → `[{"ids":["a","b"]}]`
 
 ### `$compact(value)`
 
@@ -55,6 +64,15 @@ Always a list: a list as it is, one value as a list of one, no value as an empty
 - `$count($list(topics))` over `{"topics":{"slug":"sailing"}}` → `1`
 - `$list(missing)` over `{}` → `[]`
 - `$list([1, 2])` → `[1,2]`
+
+### `$slice(list, start[, end])`
+
+The items from position `start` up to, not including, `end` (the first is 0). A negative position counts from the end; without `end`, to the end. Text is one item, so for part of a text use `$substring`.
+
+- **No value:** Nothing; also when no item is in the range.
+- **Signature:** `<xnn?:a>`
+- `$slice(posts, 0, 2).id` over `{"posts":[{"id":"p1"},{"id":"p2"},{"id":"p3"}]}` → `["p1","p2"]`
+- `$slice(seen, -2)` over `{"seen":["a","b","c","d"]}` → `["c","d"]`
 
 ### `$uniqBy(list, key)`
 
