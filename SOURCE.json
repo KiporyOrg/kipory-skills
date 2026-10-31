@@ -1,7 +1,8 @@
 {
-  "source": "bf26ba65234de67123cdd03277875839fb5e45a8",
+  "source": "a4fb82f2911bbf5fbc61d453fed9eab775b91eab",
   "since": "2026-08-16",
   "history": [
+    {"sha":"a4fb82f2911b","skills":"x.posts reads twitterapi.io and ScrapeCreators through one vendor engine that records and bills every request from a ledger, with the vendors and their mappings as data (418, S2) (#3654)"},
     {"sha":"bf26ba65234d","skills":"A signed-in person's run reads only that person's records: a read naming anyone else refuses PERSON_NOT_THE_RUNS, as writes do (#3655)"},
     {"sha":"5b81f0afc222"},
     {"sha":"6148c8667894","skills":"A linked read names its far table as peerTable and reads only when its `when` is true; a list past its declared maxItems fails its action (419) (#3652)"},
@@ -1000,7 +1001,6 @@
     {"sha":"d349376d808d"},
     {"sha":"2dc5ef38b870"},
     {"sha":"29f6a1f2c2c6"},
-    {"sha":"b0fec8941378"},
-    {"sha":"2bda2689488e"}
+    {"sha":"b0fec8941378"}
   ]
 }
