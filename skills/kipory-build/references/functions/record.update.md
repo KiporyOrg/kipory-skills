@@ -17,11 +17,12 @@ Merges or replaces the data; can also clear derived output, set a status and att
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `add` | object | no | — | Numbers to add to declared number fields, not fixed lists; negative subtracts. ⚠️ Not with `replace` or `start-again`; later actions see estimates; a sum past the bounds refuses; a resent request adds twice. |
 | `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derived`. |
 | `data` | union | no | — | The new fields as one object, or use `fields`; empty changes nothing. ⚠️ Nothing is written when it is not an object, or when a field it writes breaks its table's type. |
 | `derived` | union | no | — | The new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
 | `failIfPreconditionUnmet` | boolean | no | `false` | Fail with a conflict when nothing matched, instead of reporting no change. |
-| `fields` | object | no | — | The fields to write, each a slot path, fixed value or expression. |
+| `fields` | object | no | — | The fields to write, each a slot path, fixed value or expression. ⚠️ Beside `add`, this and `data` apply at the save, overwriting another run's change to them meanwhile. |
 | `fileIds` | union | no | — | The file ids to attach to the record. ⚠️ A file must belong to the record's owner or to the project, and be attached nowhere else. |
 | `ifChangedMeanwhile` | `start-again` \| `apply` | no | — | When another run changed the record since this run read it. ⚠️ On a conflict `start-again` writes nothing, while `apply` (merge only) overwrites what another run wrote to these fields meanwhile. |
 | `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) merges over existing values; `replace` overwrites them. ⚠️ In `merge`, a key set to `null` is removed from the record. |

@@ -1,7 +1,9 @@
 {
-  "source": "102b3b01477ee40520c36d950a5a1dd8ce78f2dd",
+  "source": "d401a9d8dd9bce8c56cd5f4b6234adbc354547c1",
   "since": "2026-08-16",
   "history": [
+    {"sha":"d401a9d8dd9b","skills":"A run's save protects what it read and looked up, a counter adds at the save, filtered pages read only their rows, and view endpoints stream to many watchers (convex-comparison gaps) (#3650)"},
+    {"sha":"29bfae7e9628"},
     {"sha":"102b3b01477e","skills":"Each vendor account's balance is reconciled against what dev and staging billed for it, and the 25 integrations no action uses are hidden (418, S1) (#3648)"},
     {"sha":"515052ce37bf","skills":"The project map is compact: no empty member, reads and writes keyed by table, callers counted, and its budget is per flow (#3647)"},
     {"sha":"b10a45399675"},
@@ -999,8 +1001,6 @@
     {"sha":"d37587559e52"},
     {"sha":"efcdc17cefb6"},
     {"sha":"b738683b6bc9"},
-    {"sha":"a6dee2249a57"},
-    {"sha":"574039cbd667"},
-    {"sha":"c06bc68ef4dc"}
+    {"sha":"a6dee2249a57"}
   ]
 }

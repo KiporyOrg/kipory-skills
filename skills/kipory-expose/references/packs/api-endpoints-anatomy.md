@@ -330,8 +330,31 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   to one of those made through a row's own route (adding an action to the flow, say) leaves the
   endpoint answering with no `ETag`, running the flow every time, until its snapshot is derived
   again: by its own save, the next document apply, or the daily sweep. Every
-  view-endpoint answer carries `Vary: Authorization, Cookie`; a `200` or a `304` also carries
+  view-endpoint answer carries `Vary: Authorization, Cookie, Accept`; a `200` or a `304` also carries
   `Cache-Control: private, no-cache` and the `ETag`, and a refusal carries neither.
+- **Live**: a view endpoint that answers an `ETag` also streams. Send the same `GET` with
+  `Accept: text/event-stream` — preferred over JSON: `application/json, text/event-stream` gets the
+  `200` — and the answer is a stream: a `page` frame with what the `200` would answer, then a new
+  `page` frame each time that answer changes — with no refetch and no `event.emit` in the flows
+  that write. Callers asking the same — the same query and path values, as the project (every API
+  key of it) or as the same person — share one read of the view per change: a change costs one run
+  for the project's keys together and one per person watching, however many streams each has
+  open. Two people watching are two reads. Each read is charged like the `200` (to the newest of those callers), takes one of the
+  project's running requests and counts against its requests per minute; a busy project's reads
+  wait their turn rather than fail. Each stream's first page is its own run, so a refusal (a `one`
+  view with no record, a wallet refusal, a suspended project) answers before the stream opens, as
+  the `200` would. A page arrives about a tenth of a second after a run that changed it settles,
+  and within about a second after any other write; a joiner may get its first page twice. A frame
+  reflects the newest answer; a client that reads slowly gets the newest page, not every one in
+  between. How a stream ends: an edit that re-derives the endpoint closes it with `close` reason
+  `lifetime` — reconnect **with jitter**, and the stream reads the new contract; a later refusal
+  (the record gone, the wallet empty) ends it with an `error` frame carrying the refusal's `code` —
+  do not reconnect blindly, a reconnect is answered the same refusal as JSON; a run that fails is
+  retried quietly, the last page standing. A key revoked while its stream is open keeps it until
+  the stream's lifetime (10–12 minutes). Streams count against the project's open streams
+  (`endpoints.streams-at-once`). A public endpoint (`auth: "none"`) does not stream: it answers the
+  `200`. `GET /v1/openapi.json` publishes the stream's frames as the operation's
+  `text/event-stream` answer.
 - **A view, shape or flow edit** re-derives the snapshot of every view endpoint it moves in the same
   apply, and the plan lists each as an `update` of `surfaces.endpoints.<key>` whose `fields` name
   what callers see move (`published.query.<param>` for a param renamed, retyped, added or

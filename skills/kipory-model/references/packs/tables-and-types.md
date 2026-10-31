@@ -921,7 +921,8 @@ typed, among the guides they follow" is one action.
   plain ranking).
 - `explanation` — `clauses`, one row per clause in the order it ran, with the `store` that answered
   it, the `index` it used, the `rank` it was ordered by, the `candidates` it produced after the
-  clauses before it narrowed it, and its `freshness`; and `pushdown` with the `ids` pushed, the
+  clauses before it narrowed it (a broad clause under a page stops counting at 10,000 and says so
+  with `candidatesCapped: true` — at least that many), and its `freshness`; and `pushdown` with the `ids` pushed, the
   `cap` in force and the `mode`. An exact clause is `transactional`. The semantic clause is
   `{ eventual: true, watermark, unindexed }`: a ready record not yet in the meaning index is absent
   from it, `watermark` is the instant the index is current to, and `unindexed` is how many of the
