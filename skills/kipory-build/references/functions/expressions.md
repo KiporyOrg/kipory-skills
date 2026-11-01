@@ -21,7 +21,7 @@ The fallback when the value is missing, null, empty text or an empty list; else 
 
 ### `$chunk(list, size)`
 
-The items in groups of `size`, in order; the last group may be shorter. One pass over the list, where a filter by position per group reads the whole list for each group. Loop over the groups with `$map` inside `[…]`: `$map` answers one group's result bare, and a path step (`$chunk(xs, 2).{…}`) reads a one-item group as its item.
+The items in groups of `size`, in order; the last group may be shorter. One pass over the list, where a filter by position per group reads the whole list for each group. Loop over the groups with `$map` inside `[…]`: `$map` answers one group's result bare, and a path step (`$chunk(xs, 2).{…}`) reads a one-item group as its item. With its default `object` output, a transform cannot answer the groups themselves — a list of lists is refused at the top of a result, though an object's field may hold one — so wrap them: each group in an object, `[$map($chunk(ids, 25), function($g){ {"ids": $g} })]`, or all of them in one, `{"groups": $chunk(ids, 25)}`.
 
 - **No value:** Nothing (an action reading only it is skipped).
 - **Signature:** `<xn:a>`

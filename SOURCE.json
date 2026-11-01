@@ -1,7 +1,8 @@
 {
-  "source": "d390f502758b10c5d07c774a362b6c44b381bf25",
+  "source": "6af6fbbd9f2cad08df1030cfe88e067452f15a1f",
   "since": "2026-08-16",
   "history": [
+    {"sha":"6af6fbbd9f2c","skills":"$chunk's note, its save hint and the refusal message say what is really refused — a list of lists at the top of a default-output transform — and how to wrap it (#3657)"},
     {"sha":"d390f502758b","skills":"A search inside a loop, a filter by position, and a list cut into groups are hinted with their one-pass rewrite, and expressions gain $slice and $chunk (#3656)"},
     {"sha":"a4fb82f2911b","skills":"x.posts reads twitterapi.io and ScrapeCreators through one vendor engine that records and bills every request from a ledger, with the vendors and their mappings as data (418, S2) (#3654)"},
     {"sha":"bf26ba65234d","skills":"A signed-in person's run reads only that person's records: a read naming anyone else refuses PERSON_NOT_THE_RUNS, as writes do (#3655)"},
@@ -1000,7 +1001,6 @@
     {"sha":"f9471124244a"},
     {"sha":"a2c800d7e49f"},
     {"sha":"d349376d808d"},
-    {"sha":"2dc5ef38b870"},
-    {"sha":"29f6a1f2c2c6"}
+    {"sha":"2dc5ef38b870"}
   ]
 }
