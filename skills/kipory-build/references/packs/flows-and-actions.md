@@ -547,7 +547,7 @@ than binding a reference to nothing. State the type in the same document to copy
 model the target does not have fails there rather than silently falling back.
 
 ⚠️ **The run settings travel with the action** — `timeoutMs`, `tries`, `tryDelayMs`, `onFailure`,
-`onOversize` and `reuseResultsForMinutes`, in the document. Checkpoints and run
+`onOversize`, `reuseResultsForMinutes`, `vendor` and `onTransient`, in the document. Checkpoints and run
 flow-snapshots record them only for anything captured since each was added, so there an absent value
 means "this record does not say", NOT "the run had none". Do not read an older snapshot as evidence
 about a deadline, and expect restoring an older checkpoint to clear one. The restore preview shows the
@@ -673,6 +673,21 @@ action that sets none behaves as it always has.
   ranking over it computes on the rows that were kept, which is why a list fails by default. Choose
   `cut` only where the first elements are enough, and otherwise narrow the read — name the fields a
   row carries, or ask for fewer rows — so it fits.
+- **`vendor`** — on a function more than one vendor can serve (`GET /v1/functions/{key}` lists them:
+  under `servedBy` for one the platform routes, such as `x.posts`, with what each keeps of an
+  action's settings; under `providers` for one whose vendors are chosen in code, such as
+  `youtube.transcript`): `use` is the vendor to ask first
+  (null: the platform's order picks), and `switch` when the action may move to its next vendor —
+  `never` (the default), `when-kipory-account-fails` (every one of Kipory's accounts at that vendor
+  refused for its key or credit) or `when-vendor-fails` (also when the vendor itself fails). A vendor
+  that cannot keep the action's settings, or settings no vendor keeps, is refused at save
+  (`VENDOR_DOES_NOT_COVER`); on a function with one vendor or none the setting is refused
+  (`ACTION_VENDOR_SETTING_UNUSED`).
+- **`onTransient`** — on a function whose vendors the platform routes between: `fail` (the default)
+  or `retry-later`, which tries the action again up to three times within an hour, from where it got
+  to, when a vendor fails for a while (a timeout, a rate limit, a vendor that is down). It acts only
+  in a run a schedule or a trigger started; a run an endpoint call started fails at once. The run
+  waits for the tries.
 - **`reuseResultsForMinutes`** — how long a result the action saved stays reusable: null is the
   function's own period, `0` always runs fresh and saves nothing. It is checked when a result is
   READ, so a result another action with identical settings saved counts only within this action's own

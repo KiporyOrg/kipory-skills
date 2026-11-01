@@ -14,9 +14,10 @@ Takes an 11-character video id, not a link. Reads automatic and manual captions.
 - **Emits:** The transcript as text — plain prose, or lines prefixed with timestamps when you ask for them. An empty string when the video has no captions.
 - **Softens these failures:** `rate-limited`, `not-found`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
 - **Suggested input streams:** `youtubeVideoId`
-- **External dependency:** Supadata or ScrapeCreators — Each action picks its vendor (`provider`): Supadata, the default, or ScrapeCreators. Each vendor uses its own API key: the project's own, stored in its secrets, or Kipory's. With `fallback` on — the default — a vendor that fails hands the video to the other; a video with no captions is an answer and is not retried elsewhere, and a key the chosen vendor refuses fails the action.
-- **Credential:** one per vendor the action's `provider` names, each resolved from the secrets vault and falling through to the platform's own key when no node holds one: `supadata` (the default) — type `api_key`, purpose `supadata`; `scrapecreators` — type `api_key`, purpose `scrapecreators`.
-- **Charged as:** with `provider: "supadata"` (the default): `supadata/transcript` per call · with `provider: "scrapecreators"`: `scrapecreators/credit` per item — one of the vendor's own credits, as each response reports them — an answer served from the vendor's cache takes none; a request takes 1, and an action makes one request. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it. An action answered by another vendor through `fallback` is charged that vendor's rows, not its chosen one's.
+- **External dependency:** Supadata or ScrapeCreators — Each action may name its vendor (`vendor.use`): Supadata, the default, or ScrapeCreators, and say when it may move to the other (`vendor.switch`, never by default). Each vendor uses its own API key: the project's own, stored in its secrets, or Kipory's. A video with no captions is an answer and is not retried elsewhere, and a key of your own the chosen vendor refuses fails the action.
+- **Credential:** one per vendor the action's `vendor.use` names, each resolved from the secrets vault and falling through to Kipory's own accounts when no node holds one: `supadata` (the default) — type `api_key`, purpose `supadata`; `scrapecreators` — type `api_key`, purpose `scrapecreators`.
+- **Vendor settings:** an action may name its vendor in `vendor.use` (`supadata`, the default; `scrapecreators`) and say when it may move to the other in `vendor.switch` (`never`, the default; `when-kipory-account-fails`; `when-vendor-fails`) — `action-fields.md` §1. `onTransient` is refused here: this function's vendors are not routed by the platform.
+- **Charged as:** with `vendor.use: "supadata"` (the default): `supadata/transcript` per call · with `vendor.use: "scrapecreators"`: `scrapecreators/credit` per item — one of the vendor's own credits, as each response reports them — an answer served from the vendor's cache takes none; a request takes 1, and an action makes one request. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it. An action its `vendor.switch` moved to another vendor is charged that vendor's rows, not its chosen one's.
 - **Rate limit:** 30 per min in bucket `supadata`, counted per project
 - **Queue:** 2 attempts, exponential from 2 s; waits up to 2 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
@@ -24,10 +25,8 @@ Takes an 11-character video id, not a link. Reads automatic and manual captions.
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `fallback` | boolean | no | `true` | If the chosen vendor fails, try the other vendors. ⚠️ A fallback bills the vendor that answered; a refused key of your own fails the action. |
 | `includeTimestamps` | boolean | no | `false` | When true, prefix each line with its start timestamp; otherwise return prose. |
 | `lang` | string | no | — | Caption language code, like `en`; empty takes the default track. |
-| `provider` | `supadata` \| `scrapecreators` | no | `"supadata"` | Which vendor does the work; each bills at its own rate. |
 
 ## Worked example
 

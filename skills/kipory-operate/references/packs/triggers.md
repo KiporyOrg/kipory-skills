@@ -258,7 +258,7 @@ Each logged `event` names its project `project`, the node id every `?project=` t
 
 ## Being told when a run fails: a trigger on a platform event
 
-Every project has the event category `platform`, with sixteen types the platform records itself.
+Every project has the event category `platform`, with seventeen types the platform records itself.
 You cannot add to it, change it or emit into it; `GET /v1/event-types` lists them, and a project
 document neither creates nor prunes them. **A failure trigger is an ordinary trigger on one of
 them, bound to an ordinary flow** — one that posts to your chat, opens a ticket, writes a record.
@@ -280,6 +280,7 @@ them, bound to an ordinary flow** — one that posts to your chat, opens a ticke
 | `flow-health.recovered` | That flow's health has no errors again                                        | `PlatformFlowHealthChange`    |
 | `vendor.unavailable`    | A service the platform provides stopped serving                               | `PlatformVendorServingChange` |
 | `vendor.available`      | That service serves again                                                     | `PlatformVendorServingChange` |
+| `vendor.changed`        | The vendor behind a function this project uses changed                        | `PlatformVendorChanged`       |
 | `notice.published`      | Kipory announced a breaking change that reaches this project                  | `PlatformNoticePublished`     |
 
 An unattended run is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call, or
@@ -381,6 +382,13 @@ that found the outage over; on `unavailable`, the same as `since`), a `message` 
 that stored its own key for that vendor is told too, and the message says it is not affected. No
 mail is sent. The model providers behind `text.generate` and the other model functions are not
 covered by these events yet.
+
+**What `vendor.changed` carries.** Kipory changed which vendor serves a function this project uses,
+what a result of it costs, or who processes the data it sends — a reorder, an offer switched off or
+on, a version promoted or taken back. The project hears it once per change, and only when the change
+moved its own enabled actions: an action that names a vendor still serving it hears nothing. `data` carries the `functionKey`, `vendorBefore` and
+`vendorAfter` (null for none), `creditsPerResultBefore` and `creditsPerResultAfter` (null when
+unpriced or unserved), `dataProcessingChanged`, and `test` (true on a test event). No mail is sent.
 
 **Nothing is recorded** for an attempt the platform is about to start again, for a run a person
 cancelled, for a preview, or for a synchronous call — whose caller already has the answer.

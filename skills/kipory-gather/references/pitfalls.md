@@ -25,8 +25,8 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   fixes it; to keep working meanwhile, store your own key under the vendor's name as purpose and
   the action runs on your account from the next call. The project hears it too: a trigger on
   `platform/vendor.unavailable` fires once when the account stops serving, naming the `functions`
-  your flows use on it (only actions that cannot run elsewhere count: an `x.posts` action with
-  `fallback` on is not one), and `platform/vendor.available` once when it serves again. A fan-out
+  your flows use on it (only actions that cannot run elsewhere count: an `x.posts` action whose
+  `vendor.switch` is not `never` is not one), and `platform/vendor.available` once when it serves again. A fan-out
   over many `x.posts` reads can carry on past an empty platform account: state a tolerance
   (`maxFailedBranches` or `maxFailedShare`) and the failed branches are dropped whole, the run
   closes `partial`, and the merge's `failuresSlot` holds each failure (phase `platform-fault`,
@@ -35,13 +35,20 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   first such branch still fails the run. `GET /v1/platform-status` lists every platform account as
   `ok`, `refusing`, `degraded` (a model provider failing calls on its own side) or `unknown` with
   `since`: read it before spending a run to find out, and again to see the account come back. While an account is `refusing`, an action on it fails at
-  once without calling the vendor. A function with a second vendor and `fallback` on
-  (`x.posts`, `youtube.transcript`) does not fail on the platform's refused key: the next
-  vendor answers, at its own price, and the result carries a `PROVIDER_FALLBACK` warning whose
-  message says the platform's key was refused — the action fails on the platform's account only
-  when `fallback` is off or no vendor answers. A key of your **own** that the chosen vendor refuses
-  still fails the action, fallback or not; a fallback vendor that refuses is one more miss and
-  the next is tried. The YouTube Data API reads
+  once without calling the vendor. Kipory may hold several accounts at one vendor, and a call
+  moves to the next of them on empty credit or a refused key, so an action may be served on any of
+  them. An action of a function with a second vendor (`x.posts`, `youtube.transcript`) whose
+  `vendor.switch` is `when-kipory-account-fails` or `when-vendor-fails` does not fail when every
+  one of Kipory's accounts at its vendor is refused: the next vendor answers, at its own price,
+  and the result carries a `PROVIDER_FALLBACK` warning whose message says Kipory's key was
+  refused — the action fails on Kipory's account only when `vendor.switch` is `never` (the
+  default) or no vendor answers. A key of your **own** that the chosen vendor refuses still fails
+  the action, whatever `vendor.switch` says; a later vendor that refuses is one more miss and
+  the next is tried. A vendor's passing failure (a timeout, a rate limit, a vendor that is down)
+  fails the action unless it sets `onTransient: "retry-later"` (accepted only on a function whose
+  vendors the platform routes, the ones its page lists under `servedBy`): a run started by a
+  schedule or a trigger then tries the action again later, up to three times within an hour, and
+  waits for those tries before it fails; a run started by an endpoint call fails at once either way. The YouTube Data API reads
   (`youtube.video`, `youtube.channel`, `youtube.search`, `youtube.trending`) are the exception:
   their daily quota wall fails `quota-exhausted` whoever's key it was.
   A refused scrape is **not charged** — the function bills only a
@@ -104,14 +111,15 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   the most requests an action makes, and `GET /v1/functions/{key}` carries the same as
   `charges.vendorCredits`. Multiply by the `scrapecreators/credit` row of
   `GET /v1/nodes/{nodeId}/vendor-prices` for the most one action can be charged.
-- **`x.posts` on its default vendor charges a flat fee per call, large beside a small profile.**
-  The default vendor bills each call a fixed amount that already covers a few dozen posts, then
-  each post beyond them. `provider: "twitterapi"` bills per post returned plus a small account
-  lookup, so for a profile read of a few posts it costs far less. The figures are the
-  deployment's: read them from `GET /v1/nodes/{nodeId}/vendor-prices` and compare the vendors for
-  the number of posts one poll returns. Set `provider` on the action, and
-  `fallback: false` if a failure there should not be answered — and billed — by the default
-  vendor (footnote ¹).
+- **The vendors serving `x.posts` bill differently: compare them for your poll size.**
+  One vendor may bill each call a fixed amount that already covers a few dozen posts; another
+  bills per post returned, which for a profile read of a few posts costs far less. The vendors
+  are `servedBy` on `GET /v1/functions/{key}` (key `x.posts`) and the figures are the
+  deployment's: read them from `GET /v1/nodes/{nodeId}/vendor-prices` and compare the vendors
+  for the number of posts one poll returns. Name the cheaper one in the action's `vendor.use`,
+  and leave `vendor.switch` at `never` if a failure there should not be answered — and billed —
+  by another vendor. A run's
+  action detail names the vendor that served it in `servedBy` (footnote ¹).
 - **A screenshot is the full page, and a long page is a very large image.** `url.screenshot`
   always captures the whole page at the width you set; it has no height limit. A vision action
   reading it (`text.generate` with the file attached) is slower and dearer the larger the image,

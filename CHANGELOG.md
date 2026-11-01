@@ -2,6 +2,41 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261101.190057 — 2026-11-01
+
+Synced from the Kipory monorepo at `a9a9efcbe`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/action-fields.md`
+- changed: `skills/kipory-build/references/api/actions.md`
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/functions/x.posts.md`
+- changed: `skills/kipory-build/references/functions/youtube.transcript.md`
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-connect/scripts/upgrade-document.mjs`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/pitfalls.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/packs/triggers.md`
+- changed: `skills/kipory-operate/references/spend.md`
+- changed: `skills/kipory-operate/references/when-a-run-fails.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20261101.110221 — 2026-11-01
 
 Synced from the Kipory monorepo at `6af6fbbd9`.

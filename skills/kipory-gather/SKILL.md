@@ -41,7 +41,7 @@ mentions.
 | `web.search`                                                    | organic search results, ten to a page                                        | Apify          | `apify`            | 24h    |
 | `web.rankings`                                                  | a country's most-visited sites, ranked                                       | Apify          | `apify`            | 30d    |
 | `web.traffic`                                                   | one site's visits, ranking and audience                                      | Apify          | `apify`            | 7d     |
-| `x.posts`                                                       | a tweet, profile or search URL as posts                                      | Apify ¹        | `apify` ¹          | 24h    |
+| `x.posts`                                                       | a tweet, profile or search URL as posts                                      | several ¹      | each vendor's ¹    | 24h    |
 | `telegram.search-channels`                                      | public channels matching search terms                                        | Apify          | `apify`            | 7d     |
 | `telegram.resolve-channel`                                      | one public channel by handle: name, members, description, picture            | the platform   | none               | 6h     |
 | `place.details`                                                 | one place's map listing: address, hours, rating                              | Apify          | `apify`            | 7d     |
@@ -60,23 +60,30 @@ mentions.
 | `facebook.ads` · `google.ads`                                   | ads from a platform's public ad library                                      | ScrapeCreators | `scrapecreators`   | 24h    |
 | `location.resolve`                                              | a place from latitude and longitude                                          | OpenStreetMap  | `location.resolve` | 7d     |
 
-¹ `x.posts` runs on Apify by default; an action may choose twitterapi.io
-(`provider: "twitterapi"`, key purpose `twitterapi`) or ScrapeCreators
-(`provider: "scrapecreators"`), which reads a post or a profile but not a search —
-and its profile read is about a hundred of the account's most popular posts, not
-its latest. With `fallback` on — the default — a failed vendor hands the URL to
-the next, and each post's `provider` says which one answered. A key the
-chosen vendor refuses fails the action instead. A fallback is billed by the vendor
-that answered: with your own key for one vendor only, a failure there spends the
-platform's key for the next. Store a key for each vendor, or set `fallback: false`.
+¹ `x.posts` is served by more than one vendor, and which ones, in what order and
+reading what, change without a release: `servedBy` on `GET /v1/functions/{key}` (key
+`x.posts`) lists the vendors serving it in this deployment, in the platform's order, and
+what each keeps of an action's settings (`keeps`, `why`). Read it before you choose. An
+action may name one in its `vendor.use`; a vendor that cannot keep the action's settings
+(a search it does not run, an order it does not read) is refused at save with
+`VENDOR_DOES_NOT_COVER`. `vendor.switch` says when the action may
+move to the next vendor: `never` (the default) — the chosen vendor's answer is the
+action's; `when-kipory-account-fails` — only when every one of Kipory's accounts at
+that vendor failed (out of credit, key refused); `when-vendor-fails` — also when the
+vendor itself fails. Nothing moves on an answer about the thing asked for (a post
+not found). Each post's `provider` says which vendor answered. A key of your own
+the chosen vendor refuses fails the action. A switched action is billed by the
+vendor that answered: with your own key for one vendor only, a switch spends
+Kipory's key at the next. Store a key for each vendor you allow, or leave
+`vendor.switch` at `never`.
 
-² `youtube.transcript` runs on Supadata by default; an action may choose
-ScrapeCreators (`provider: "scrapecreators"`). With `fallback` on — the default —
-a vendor that fails hands the video to the other; a key the chosen vendor refuses
-fails the action instead. A video with no captions is an
-answer, and is not retried on the second vendor. The fallback is billed as in ¹:
-your own Supadata key does not stop the platform's ScrapeCreators key being spent
-unless you store both or set `fallback: false`.
+² `youtube.transcript` runs on Supadata unless an action names ScrapeCreators
+(`vendor.use: "scrapecreators"`). With `vendor.switch` other than `never`, a vendor
+that fails hands the video to the other; a key of your own the chosen vendor
+refuses fails the action instead. A video with no captions is an answer, and is
+not retried on the second vendor. A switch is billed as in ¹: your own Supadata
+key does not stop Kipory's ScrapeCreators key being spent unless you store both
+or leave `vendor.switch` at `never`.
 
 The social-platform reads return shared types — `SocialProfile`, `SocialPost`,
 `SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
@@ -198,7 +205,7 @@ Each of these is a trap with its explanation and remedy in [references/pitfalls.
 - Polling a source needs the action's own period.
 - A listing is paid for on every poll, new items or not.
 - A read billed in the vendor's own credits states how many a request takes.
-- `x.posts` on its default vendor charges a flat fee per call, large beside a small profile.
+- The vendors serving `x.posts` bill differently: compare them for your poll size.
 - A screenshot is the full page, and a long page is a very large image.
 - There is no feed reader, and no upsert.
 - A vendor bills you even though the platform queued the call.

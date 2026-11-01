@@ -40,7 +40,7 @@ In a document:
 
 ```json kipory:request=project-document
 {
-  "kipory": 9,
+  "kipory": 10,
   "types": {
     "Note": {
       "definition": {
@@ -373,7 +373,7 @@ A reading circle: `author` and `book` are the project's, `follow` and `hide` are
 
 ```json kipory:request=project-document
 {
-  "kipory": 9,
+  "kipory": 10,
   "types": {
     "Author": {
       "description": null,

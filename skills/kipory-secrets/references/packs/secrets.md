@@ -74,11 +74,11 @@ that names it in `secret`, or sign-in.** A vendor with no function of its own is
 request credential on `url.fetch`, `url.fetch-as-file` or `url.send` — see the request credential
 below.
 
-⚠️ **An action that can reach two vendors resolves each vendor's key separately.** `x.posts` and
-`youtube.transcript` fall back to another vendor when the chosen one fails, and the fallback is
-billed by the vendor that answered — so your own key for one vendor does not stop the platform's
-key being spent for the next. Store a key for each vendor the action can reach, or set
-`fallback: false` on the action.
+⚠️ **An action that can reach two vendors resolves each vendor's key separately.** An `x.posts` or
+`youtube.transcript` action whose `vendor.switch` lets it move on asks another vendor when its own
+fails, and is billed by the vendor that answered — so your own key for one vendor does not stop the
+platform's key being spent for the next. Store a key for each vendor the action can reach, or leave
+its `vendor.switch` at `never`.
 
 **Read the function's `credential` field, not its `requiredApiKey`.** A function that resolves a
 tenant key carries `credential` — the catalog `type` and the `purpose` to store it under, plus the

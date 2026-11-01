@@ -33,7 +33,7 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 9`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 10`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
@@ -648,9 +648,12 @@ key out for an action that states none.
 A document you kept from an earlier export, or wrote from an older example, can state things the
 current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
 
-- **A format version other than `kipory: 9`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
-  convert a `kipory: 2` to `8` file you hold with the document upgrade script that comes with
-  `kipory-connect`. Version 9 makes every action input an argument (renamed and merged fields,
+- **A format version other than `kipory: 10`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
+  convert a file you hold that states `kipory: 2` to `9` with the document upgrade script that
+  comes with `kipory-connect`, which brings it to `10`. Version 10 moves an `x.posts` or `youtube.transcript` action's `provider` and
+  `fallback` out of its config into the action's own `vendor`: `use` is the vendor `provider` named,
+  and `switch` is `never` where `fallback` was `false`, else `when-vendor-fails`; a current document
+  that still states either key in the config is refused at its path. Version 9 makes every action input an argument (renamed and merged fields,
   `{literal}` for a fixed text, views included); the script converts a JSON file fully and refuses a
   YAML one that needs restructuring. Version 8 makes a stated element whole (above); the script moves a version-7
   file's number only, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`. Version 7 holds the project's types under `types` and names a table's

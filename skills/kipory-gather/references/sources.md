@@ -35,16 +35,18 @@
 ## The budgets
 
 ```
-apify      30/min   web.search · web.rankings · web.traffic · x.posts · telegram.search-channels
+apify      30/min   web.search · web.rankings · web.traffic · telegram.search-channels
                     · place.details · place.reviews · place.search
 youtube    60/min   youtube.video · youtube.channel · youtube.trending    + a daily unit quota
 firecrawl  10/min   url.scrape · url.screenshot
 supadata   30/min   youtube.transcript
-twitterapi 60/min   x.posts, on an action that chose twitterapi.io
 scrapecreators 120/min   every tiktok.*, instagram.*, reddit.*, facebook.*, google.* read;
                     x.profile · youtube.posts · youtube.comments · youtube.search;
-                    x.posts and youtube.transcript on an action that chose it
+                    youtube.transcript when ScrapeCreators serves it
 ```
+
+`x.posts` spends the budget of the vendor that serves the call; which vendors those are is
+`servedBy` on `GET /v1/functions/{key}` (key `x.posts`).
 
 The functions with no vendor are far wider. `url.metadata` has its own bucket at 120 a minute and
 `location.resolve` its own at 60. `url.fetch`, `url.fetch-as-file` and `url.send` share one budget,
@@ -55,7 +57,7 @@ Two consequences worth designing around:
 
 1. **A YouTube video plus its transcript is two vendors.** The metadata comes from the YouTube Data
    API against a daily unit quota; the captions come from Supadata against a separate per-minute
-   bucket, or from ScrapeCreators when Supadata fails and the action's `fallback` is on. Either can be
+   bucket, or from ScrapeCreators when the action names it in `vendor.use`, or when Supadata fails and the action's `vendor.switch` is not `never`. Either can be
    exhausted while the other is fine, so a flow that reads both fails in two distinct ways.
 2. **Scraping does not scale by fan-out.** Ten pages a minute is the ceiling for `url.scrape` and
    `url.screenshot` together. A fan-out of twenty pages is a two-minute run at best, and it is

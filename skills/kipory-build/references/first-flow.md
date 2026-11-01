@@ -264,7 +264,7 @@ State steps 1, 2, 3 and 6 as one document. Inside a document everything is addre
 
 ```json kipory:request=project-document
 {
-  "kipory": 9,
+  "kipory": 10,
   "flows": {
     "summarise": {
       "label": "Summarise",

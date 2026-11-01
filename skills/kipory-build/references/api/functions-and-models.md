@@ -128,7 +128,7 @@ Each item of `functions`:
 | `credential` | `object` | no | The secret-vault credential this function resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU function, and ALSO of the AI ones: a model call runs on the platform's own key for its provider, and no project can bring one. For a function whose vendor is chosen per action, the DEFAULT vendor's -- see `providers`. |
 | `charges` | `object` | no | The vendor operations an action on this function is charged under, beside its compute. Absent means it bills no vendor fetch — true of every pure-CPU function and of the AI ones, whose model calls are priced by `GET /v1/nodes/{nodeId}/model-prices`. An action spending a stored vendor key is not charged these. For a function whose vendor is chosen per action, the DEFAULT vendor's — see `providers`. |
 | `actionCredential` | `object` | no | Present when an ACTION may name a stored secret of its own. Unlike `credential`, the purpose is the author's: store a secret of this type under any purpose, and write that purpose in the config field. The stored secret says where in the request it goes and which hosts may receive it. |
-| `providers` | `object` | no | Present only when each action chooses the vendor (`functionConfig.provider`): every vendor it may name and the credential each spends. Absent means the function has one vendor, the one `credential` names. |
+| `providers` | `object` | no | Present only when each action chooses the vendor (its `vendor.use`): every vendor it may name and the credential each spends. Absent means the function has one vendor, the one `credential` names. |
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` functions; an inline or control function runs in the pipeline with neither. |
 | `run` | `object` | yes | How an action using this function is run: what its time limit bounds, where the default comes from, and any limit the function keeps whatever the action says. Always present. |
 | `inputContract` | `object[] \| null` | no | The structural bound on each input position, resolved against this project's registry. Position N bounds `inputStreams[N]`. Null means the function declares no contract — every position is unconstrained. Distinguish that from `contractUnresolved` below, which means the function DOES declare one and it could not be computed. |
@@ -180,6 +180,7 @@ Each item of `forbiddenExpressionFunctions`:
 
 One function's catalog entry — what it reads, emits and accepts as config, its `group` (lowercase, such as `ai` or `text`) — plus a worked example. An unknown key is a 404.
 The whole catalog, without examples, is `GET /v1/functions`; pass `?project=` there to resolve types against one project.
+`servedBy` lists the vendors serving it in this environment, in the order an action naming none asks them, and what each keeps of an action's settings; an action names one in its `vendor.use`.
 Any authenticated caller; the answer is the same for everyone.
 
 **Path parameters**
@@ -223,10 +224,11 @@ Any authenticated caller; the answer is the same for everyone.
 | `credential` | `object` | no | The secret-vault credential this function resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU function, and ALSO of the AI ones: a model call runs on the platform's own key for its provider, and no project can bring one. For a function whose vendor is chosen per action, the DEFAULT vendor's -- see `providers`. |
 | `charges` | `object` | no | The vendor operations an action on this function is charged under, beside its compute. Absent means it bills no vendor fetch — true of every pure-CPU function and of the AI ones, whose model calls are priced by `GET /v1/nodes/{nodeId}/model-prices`. An action spending a stored vendor key is not charged these. For a function whose vendor is chosen per action, the DEFAULT vendor's — see `providers`. |
 | `actionCredential` | `object` | no | Present when an ACTION may name a stored secret of its own. Unlike `credential`, the purpose is the author's: store a secret of this type under any purpose, and write that purpose in the config field. The stored secret says where in the request it goes and which hosts may receive it. |
-| `providers` | `object` | no | Present only when each action chooses the vendor (`functionConfig.provider`): every vendor it may name and the credential each spends. Absent means the function has one vendor, the one `credential` names. |
+| `providers` | `object` | no | Present only when each action chooses the vendor (its `vendor.use`): every vendor it may name and the credential each spends. Absent means the function has one vendor, the one `credential` names. |
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` functions; an inline or control function runs in the pipeline with neither. |
 | `run` | `object` | yes | How an action using this function is run: what its time limit bounds, where the default comes from, and any limit the function keeps whatever the action says. Always present. |
 | `example` | `object` | no | The worked example, when this function ships one. |
+| `servedBy` | `object[]` | yes | The vendors serving this function in this environment, in the platform's routing order, not adjusted for the caller; at run time an action naming none asks a vendor the project holds its own key for first, then this order. Empty for a function no vendor serves, or one whose vendors are chosen in code (`providers`). An action names one in `vendor.use`, and says when it may move to the next in `vendor.switch`. |
 
 Each item of `essentials`:
 
@@ -280,6 +282,15 @@ Each item of `configOutputSlots`:
 | --- | --- | --- | --- |
 | `kind` | `"name" \| "record-keys" \| "record-values"` | yes | How slot names sit at `path`: the value itself (a string, an object's member, or each list item's member), the KEYS of a map there, or its VALUES. |
 | `path` | `string` | yes | The config setting, or `setting.member` for a member of an object or of each item of a list. |
+
+Each item of `servedBy`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `vendor` | `string` | yes | The vendor, as an action's `vendor.use` names it to ask this one first. |
+| `version` | `integer` | yes | The version of the vendor's definition serving now. |
+| `keeps` | `object` | yes | What this vendor keeps of an action's settings, per setting: the values or the prefixes it serves. A setting it does not name it serves whatever its value. An action naming this vendor with a setting outside it is refused at save (`VENDOR_DOES_NOT_COVER`). |
+| `why` | `object` | yes | Per setting it limits, what this vendor does not do, in words. |
 
 ### `POST /v1/functions/missed-searches`
 
@@ -556,7 +567,7 @@ Each item of `prices`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `provider` | `string` | yes | The vendor the operation is fetched from — the value a function's `provider` config field names where an action may choose one. |
+| `provider` | `string` | yes | The vendor the operation is fetched from — the value an action's `vendor.use` names where an action may choose one. |
 | `operation` | `string` | yes | The billable operation at that vendor. A function's reference page lists the `provider/operation` pairs an action on it is charged under. |
 | `unit` | `"call" \| "item"` | yes | What `credits` is the price OF: one call to the vendor, or one item it returns or counts (a post, a place, a review, a credit of the vendor's own). `countedAs` says which item. |
 | `countedAs` | `string \| null` | yes | What one item is, where `unit` is `item`: a post returned, a place read, a page of search results. Null where `unit` is `call`. |

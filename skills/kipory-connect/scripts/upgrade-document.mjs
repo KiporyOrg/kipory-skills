@@ -14,11 +14,12 @@
  * Without `--write` it prints the converted document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
- * It converts in seven steps, and a version 2 document takes all seven in
- * one run. A version 3 document takes the last six, a version 4 document the
- * last five, a version 5 document the last four, a version 6 document the
- * last three, a version 7 document the last two, a version 8 document the
- * last; a version 9 document is returned as it is.
+ * It converts in eight steps, and a version 2 document takes all eight in
+ * one run. A version 3 document takes the last seven, a version 4 document
+ * the last six, a version 5 document the last five, a version 6 document the
+ * last four, a version 7 document the last three, a version 8 document the
+ * last two, a version 9 document the last; a version 10 document is returned
+ * as it is.
  *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
@@ -112,6 +113,17 @@
  *   `Accept: application/yaml`) — the platform has already moved stored flows
  *   and views to format 9.
  *
+ * Version 9 → 10 (an action names its vendor as a setting of its own):
+ *   - on an `x.posts` or `youtube.transcript` action, `functionConfig.provider`
+ *     and `functionConfig.fallback` leave the config and become the action's
+ *     `vendor`: `use` is the vendor `provider` named, and `switch` is `never`
+ *     where `fallback` was `false`, else `when-vendor-fails` (fallback was on
+ *     by default, and moved on any vendor failure). An action that named
+ *     neither keeps no `vendor`, and never switches.
+ *   On YAML it REFUSES a document holding either field on such an action:
+ *   convert the JSON form, or export the project again — the platform has
+ *   already moved stored flows to format 10.
+ *
  * It does NOT rebuild an action on a function that no longer exists
  * (`vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`,
  * `text.embed`, `text.embed-sparse`): what the action becomes is your
@@ -149,7 +161,7 @@ import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
 /** The version this script converts TO — the format these skills write. */
-export const TARGET_VERSION = 9;
+export const TARGET_VERSION = 10;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -1479,7 +1491,100 @@ const STAGES = [
       return stageYaml(text, stage, notes);
     },
   },
+  {
+    // Renames nothing: two config fields move to the action's own `vendor`
+    // (JSON); a YAML document holding one is refused.
+    from: 9,
+    to: 10,
+    keyIn: (_mode, key) => key,
+    under: () => UNTOUCHED,
+    textOf: () => null,
+    stringAt: (_mode, _key, value) => value,
+    rewrite: (text) => text,
+    needsAPerson: () => false,
+    watchedKey: () => false,
+    slotNote: () => false,
+    json: (doc, stage, places) =>
+      vendorSettingsJson(stageJson(doc, stage, places)),
+    yaml: (text, stage, notes) => {
+      const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+      vendorFieldsYaml(body.split(/\r?\n/));
+      return stageYaml(text, stage, notes);
+    },
+  },
 ];
+/* ── version 9 → 10: an action names its vendor as a setting of its own ────── */
+
+/** The functions whose `provider` and `fallback` left their config. */
+const VENDOR_CHOICE_FUNCTIONS = new Set(["x.posts", "youtube.transcript"]);
+
+/** Each `x.posts` / `youtube.transcript` action's `provider` and `fallback`, moved to `vendor`. */
+const vendorSettingsJson = (doc) => {
+  const flows = doc.flows;
+  if (flows === null || typeof flows !== "object" || Array.isArray(flows))
+    return doc;
+  let changed = false;
+  const nextFlows = {};
+  for (const [flowKey, flow] of Object.entries(flows)) {
+    const actions = flow?.actions;
+    if (actions === null || typeof actions !== "object" || Array.isArray(actions)) {
+      nextFlows[flowKey] = flow;
+      continue;
+    }
+    const nextActions = {};
+    for (const [actionKey, action] of Object.entries(actions)) {
+      const config = action?.functionConfig;
+      if (
+        !VENDOR_CHOICE_FUNCTIONS.has(action?.functionKey) ||
+        config === null ||
+        typeof config !== "object" ||
+        Array.isArray(config) ||
+        !(Object.hasOwn(config, "provider") || Object.hasOwn(config, "fallback"))
+      ) {
+        nextActions[actionKey] = action;
+        continue;
+      }
+      const { provider, fallback, ...rest } = config;
+      nextActions[actionKey] = {
+        ...action,
+        functionConfig: rest,
+        vendor: {
+          use: typeof provider === "string" ? provider : null,
+          switch: fallback === false ? "never" : "when-vendor-fails",
+        },
+      };
+      changed = true;
+    }
+    nextFlows[flowKey] = { ...flow, actions: nextActions };
+  }
+  return changed ? { ...doc, flows: nextFlows } : doc;
+};
+
+/** A YAML document holding `provider` or `fallback` on such an action is refused, with its line. */
+const vendorFieldsYaml = (lines) => {
+  const rows = outline(lines);
+  const functionOf = new Map();
+  rows.forEach((row) => {
+    if (row !== null && row.body !== true && row.key === "functionKey")
+      if (pathIs(row.path, ["flows", "*", "actions", "*", "functionKey"]))
+        functionOf.set(`${row.path[1]}\u0000${row.path[3]}`, unquote(row.value));
+  });
+  rows.forEach((row, index) => {
+    if (row === null || row.body === true || row.key === null) return;
+    const { path } = row;
+    if (
+      !pathIs(path, ["flows", "*", "actions", "*", "functionConfig", "provider"]) &&
+      !pathIs(path, ["flows", "*", "actions", "*", "functionConfig", "fallback"])
+    )
+      return;
+    if (!VENDOR_CHOICE_FUNCTIONS.has(functionOf.get(`${path[1]}\u0000${path[3]}`)))
+      return;
+    throw new Error(
+      `line ${String(index + 1)} (${path.join(".")}): \`${String(path[5])}\` leaves the config and becomes the action's \`vendor\` setting. Format 10 moves it, which a line-by-line YAML conversion cannot do: convert the JSON form of the document, or export the project again (\`GET /v1/projects/{nodeId}/document\` with \`Accept: application/yaml\`) — the platform has already moved stored flows to format 10.`,
+    );
+  });
+};
+
 /* The conversions run one version at a time to TARGET_VERSION, or the script
  * refuses to load: a target raised with no conversion to it would stamp a
  * document with the old version and refuse every file in the previous one. */

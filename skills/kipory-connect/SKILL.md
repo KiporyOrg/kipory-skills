@@ -116,13 +116,14 @@ were renamed states `kipory: 2`, one exported before the flow words were renamed
 `kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, one
 exported before a type was called a type in the document states `kipory: 6`, one exported
 before a stated element was whole states `kipory: 7`, one exported before every input took an
-argument states `kipory: 8`, and all seven are refused (`DOCUMENT_VERSION_UNSUPPORTED`). The deployment reads exactly one format, with no
+argument states `kipory: 8`, one exported before an action named its vendor in its own `vendor`
+setting states `kipory: 9`, and all eight are refused (`DOCUMENT_VERSION_UNSUPPORTED`). The deployment reads exactly one format, with no
 overlap: `documentFormat` on `GET /v1/platform-status` names it, with a line saying what it is.
 When it is newer than the version below, update these skills first — the skills that write a new
 format are published when the change merges, normally before a deployment rolls it — then
 convert.
 `node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
-version 9 in one run, and a second run changes nothing. From 7 to 8 it changes only the number: format
+version 10 in one run, and a second run changes nothing. From 7 to 8 it changes only the number: format
 8 makes a stated element whole, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`
 before you apply it:
 
