@@ -653,8 +653,9 @@ action that sets none behaves as it always has.
   none, so "output absent, failure absent" still means it found nothing. A later action reads it as
   any optional slot. On an action that says `onOversize: "cut"` (below) and whose result was cut, it
   holds `code: "value-cut"` beside the cut value — the one failure-slot value that comes with an
-  output. On a `flow.fan-out` that ran fewer branches than its list held (its `maxItems`, or the
-  platform's ceiling — never a preview's own branch cap), it holds `code: "fan-out-capped"`, written before the branches start, so every
+  output. On a `flow.fan-out` that ran fewer branches than its list held (its own `maxItems` — never a
+  preview's own branch cap; a list past the project's fan-out limit fails the fan-out instead, with
+  `FAN_OUT_OVER_LIMIT`), it holds `code: "fan-out-capped"`, written before the branches start, so every
   branch and what follows the merge can tell a whole list from a capped one.
   Refused at save on an action that can never write it — one that is not a fan-out, does not
   continue, does not say `onOversize: "cut"`, and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's
@@ -697,7 +698,7 @@ action that sets none behaves as it always has.
 
 ## Asking about an action you have not saved
 
-31 <!-- count: editor-inputs-from-config --> functions do not take their inputs
+32 <!-- count: editor-inputs-from-config --> functions do not take their inputs
 from the action row: they name them INSIDE their own configuration. `value.transform` — the most-used function there is — names them
 inside a JSONata expression, so writing the expression IS writing the action's input list, and there
 is nothing to pick from a list.

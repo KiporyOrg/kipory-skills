@@ -1,7 +1,9 @@
 {
-  "source": "4a2a9340871ed28d4e6728cb0e016bf440d52116",
+  "source": "768ece34d2563e3e071d25b95eed7b490c5a87e1",
   "since": "2026-08-16",
   "history": [
+    {"sha":"768ece34d256","skills":"A new backend starts from one page that plans clean, the plan refuses at save what used to fail every run, and long jobs continue page by page (#3664)"},
+    {"sha":"fa81e603b052"},
     {"sha":"4a2a9340871e","skills":"A type test on a value whose input type already says it is text, a number or true/false is hinted as $default (#3661)"},
     {"sha":"a9a9efcbe53a","skills":"x.posts reads Apify, twitterapi.io and ScrapeCreators on the vendor engine; an action names its vendor and when it may switch, Kipory holds several accounts per vendor, and staff manage offers and routing (418, S3) (#3660)"},
     {"sha":"33b698a10d8d"},
@@ -999,8 +1001,6 @@
     {"sha":"fa87b503e4b7"},
     {"sha":"e12ffb602eae"},
     {"sha":"b408345775ee"},
-    {"sha":"a093ba83b782"},
-    {"sha":"b8dd8fd02640"},
-    {"sha":"680f33de2663"}
+    {"sha":"a093ba83b782"}
   ]
 }

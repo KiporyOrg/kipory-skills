@@ -2,12 +2,12 @@
 
 # Function catalog
 
-98 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+99 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
 - `ingest` (51) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
-- `inline` (41) — runs synchronously inside the flow engine, in order.
+- `inline` (42) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
 - model — calls an AI model.
@@ -178,11 +178,12 @@ _Reach a person or a system outside the platform. Nothing is sent until the run'
 - [`push.send`](push.send.md) — Send a push notification · `inline` · `people and text` → `PushSendResult`
 - [`url.send`](url.send.md) — Send a request · `inline` · `string` → `boolean`
 
-## flow (10)
+## flow (11)
 
 _Steer the run: branch, loop, call another flow, keep state between actions._
 
 - [`event.emit`](event.emit.md) — Send an event · `inline` · `event payload` → `nothing`
+- [`flow.continue`](flow.continue.md) — Continue with the next page · `inline` · `cursor and inputs` → `ContinueResult`
 - [`flow.dispatch`](flow.dispatch.md) — Pick a branch · `control` · `string | file | object` → `the input, unchanged`
 - [`flow.fan-out`](flow.fan-out.md) — Run once per item · `control` · `T[]` → `T`
 - [`flow.invoke`](flow.invoke.md) — Run another flow · `control` · `the parent slots its inputs read` → `nothing`

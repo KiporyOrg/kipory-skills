@@ -17,7 +17,7 @@
 - **The `platform` event types are not yours to state.** Every project has them; a document neither creates nor prunes them, and a trigger row may select one (`categoryKey: platform`) like any other type — that trigger is how the project hears of its failures.
 - **A type is stated under `types`, and a table names it with `type`.** State both in one document to make a table and its type together; any other row may use the same type.
 - **YAML in, JSON out.** Send `content-type: application/yaml` or JSON; a document is at most 8 MiB and 6 000 rows, refused with `413` past either.
-- **The YAML export prints each flow's outline as comments above it** (`# outline (format 6), derived at export; plan ignores it`) — the same lines `GET /v1/flows/{id}/outline` answers. A plan ignores comments, so they never change what a plan does; edit the actions, and the next export redraws the outline. A plan finding about one flow action carries its `outlinePath` in that outline.
+- **The YAML export prints each flow's outline as comments above it** (`# outline (format 7), derived at export; plan ignores it`) — the same lines `GET /v1/flows/{id}/outline` answers. A plan ignores comments, so they never change what a plan does; edit the actions, and the next export redraws the outline. A plan finding about one flow action carries its `outlinePath` in that outline.
 
 ## What a plan tells you
 
@@ -66,4 +66,4 @@ A plan is not a simulation: the platform applies the document through every row'
   - A function whose settings or prompt name its inputs gets them derived (`action-fields.md`).
   - An action's `inputPaths` is the same positional list of path objects, `[{ "segments": [{ "kind": "first" }] }]`.
 - **A flow's new signature is judged against the actions the document leaves**, so retyping an input and replacing its reader is one apply.
-- **A signature or type change that live dependents hold needs its grant on the row that changes**: `adoptSnapshots: true` on the flow's row for a signature change, and on the `types.<Name>` row for a type edit refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` (`kipory-evolve`).
+- **A signature or type change that live dependents hold needs its grant on the row that changes**: `adoptSnapshots: true` on the flow's row for a signature change, and on the `types.<Name>` row for a type edit refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` (`kipory-evolve`). A change that only adds optional fields (or a new output) needs none: the plan adopts it and says so (`DOCUMENT_ADOPTED_ADDITIVE`).

@@ -17,52 +17,13 @@ Two things, and **both come from the human**:
 | The **base URL** of the api host | Kipory is deployed per installation. There is no canonical host. |
 | An **API key**                   | Only a signed-in person can mint one — a key cannot mint a key.  |
 
-A trailing slash on the base URL is harmless: the api reads `//health` as `/health`.
+A project has **one id**: the `id` its create returns, its node in the ownership tree. Every route takes it — `{nodeId}` in a path, `?project=` on a list, `project` in a body — and the key tells you it (step 2).
 
-The third thing, the **project's id**, the key tells you itself — step 2. A project has **one id**: the `id` its create call returns, which is its node in the ownership tree. Every route takes it — `{nodeId}` in a `/v1/projects/…` path, `?project=` on a list, `project` in a create body.
-
-**Where the human gets the key:** in the operator UI, the project's **Keys** page → **New key**, choosing the role the work needs (viewer unless they pick one; previewing or testing a flow needs admin) and an expiry. The plaintext is shown once, with the project's id beside it. The id is also on the project's **Settings** page; a human who reads it there must be on _this_ project's settings.
-
-> Never ask the human to paste the key into a file you will write, a commit, or a log line. Read it from the environment.
+**Where the human gets the key:** the project's **Keys** page in the operator UI → **New key**, with the role the work needs (viewer unless they pick one; previewing or testing a flow needs admin) and an expiry. The plaintext is shown once, with the project's id beside it; the id is also on the project's **Settings** page. **Never ask the human to paste the key into a file you will write, a commit, or a log line.** Read it from the environment.
 
 ## The sequence
 
-**1. Prove the deployment is there — no credential.**
-
-```
-GET /health                 → 200; `sha` is the build's commit, or null
-GET /v1/capability-packs    → 200, the pack index and a `version`
-```
-
-`/health` is a liveness probe: `status` is a constant and no dependency is checked. `sha` is null on an unstamped build, which is not an error.
-
-Run `node <this skill's directory>/scripts/sync.mjs` now, with `KIPORY_BASE_URL` (and `KIPORY_API_KEY`, to compare functions and the document format) in the environment. It compares four layers bundled with these skills — the packs, the function catalog, the API pages and the refusal-code page — against what this deployment serves, and writes nothing.
-
-Right after the line naming the deployment it prints a `notices` line: what the platform tells each project your key reaches (`GET /v1/grant`, then `GET /v1/notices?project=` for each), and only for a project it tells something. That is a flow a platform build turned red, with its codes; a count of flows your own changes turned red; and a notice of a change that reaches your project, which you have not read yet. **Read each one with the call printed under it** — a flow's health names every error and how to fix it; a notice says what changed and carries a report on which of your project's fields or routes it touches. That first read of a notice is also how Kipory knows your project heard. A change that breaks nothing you stored is not a notice: when this build added or raised a save rule, one `rules` line names the codes. While a change is still ahead, a key's responses on a route its notice names carry `Deprecation`, `Sunset` and `Link` headers; a removed route answers 410 `ROUTE_REMOVED` for 90 days. The routes are on `references/api/notices.md`.
-
-Its `document` line compares the project document format these skills write with the one format the deployment reads, `documentFormat.version` on `GET /v1/platform-status` (it needs `KIPORY_API_KEY`). A new format replaces the old one with no overlap, so ✗ on that line means every document these skills write is refused with `DOCUMENT_VERSION_UNSUPPORTED` until the two match; the line says which side is newer and what to install.
-
-Its first line names the bundle that ran: `skills bundle <version> — <directory>`. Several versions of these skills can sit side by side on one machine (a plugin cache keeps old ones), and each copy of the script compares its own pages, so a run from an older copy reports every layer as differing. If the directory on that line is not the one this skill was loaded from, run the script from this skill's directory.
-
-Then a `skills` line says whether these skills are ahead of the deployment. They are published when a change to them merges into the platform's code, and a deployment rolls later, so a skill can describe behaviour your deployment does not run yet. The line names each skill change merged after the deployment's build, and reads ✓ when the deployment runs them all — including a build newer than these skills, which is the usual case. Until the deployment rolls the changes it names, where a refusal contradicts what a skill says about one of them, the deployment is right. `not known` on that line changes no exit code.
-
-| Exit | Means                                                                                                                                                                                               |
-| ---- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `0`  | every layer was compared and is current                                                                                                                                                             |
-| `1`  | at least one layer differs, or these skills carry changes the deployment does not run yet. It does not mean the others matched: a layer marked `not compared` can sit beside it, so read every line |
-| `2`  | nothing differs, and something could not be compared — the deployment was unreachable, or a layer could not be read; the line says which                                                            |
-
-Without `KIPORY_API_KEY` the function catalog and the document format cannot be read, so the best outcome is exit 2. Under a layer that differs it prints one line per pack, function or route:
-
-- `changed` — both sides have it, with different content;
-- `added` — the deployment has it, these files do not;
-- `removed` — these files have it, the deployment does not.
-
-Each `changed` or `removed` line names the bundled page that documents the item, when it has one, as a path from the directory that holds these skills (`kipory-build/references/functions/…`); an `added` item has no page. Read those items live; the rest of the layer is what the deployment serves. A deployment too old to serve per-item hashes gets `which items differ: not known`, and then the whole layer is read live. A difference does not say which side is newer — a deployment older than these files is ordinary — and either way **the deployment wins**.
-
-Keep the `sha` you read. A deployment is rolled while you work — several times a day on a busy one — and a roll can change the function catalog, the model catalog and the task bindings your actions inherit. When something that worked starts failing with no edit of yours, read `/health` again first: a different `sha` means re-run `scripts/sync.mjs`, update these skills from their source if it reports a layer that differs (not when its `skills` line says they are ahead — then updating changes nothing, and the deployment wins until it rolls), and re-read the page for whatever failed before changing your own work.
-
-Installed as a Claude Code plugin, these skills update only when someone updates them: auto-update is off for this marketplace until the user turns it on. Updating is `claude plugin marketplace update kipory-skills`, then `claude plugin update kipory@kipory-skills` (with `--scope project` for an install made in one project's folder), and the updated skills load only in a new session. Updating changes the user's machine, so tell the user what `scripts/sync.mjs` reported and give them the two commands rather than running them yourself; then mention that auto-update can be turned on for `kipory-skills`, in their user settings or under Marketplaces in `/plugin`.
+**1. Prove the deployment is there.** `GET /health` → 200 (`sha` is the build's commit, or null). Then run `node <this skill's directory>/scripts/sync.mjs` with `KIPORY_BASE_URL` and `KIPORY_API_KEY` set: it compares these skills with what the deployment serves, prints what the platform tells your project (`notices`), and says on its `document` line whether the deployment reads the document format these skills write. Where it says a layer differs, **the deployment wins**. `references/session-start.md` explains every line.
 
 **2. Prove the key is alive, and ask it what it holds.**
 
@@ -80,23 +41,7 @@ Keep the project's `baseUrl`: it is the **project's host**, where the endpoints 
 
 If the human also gave you a project id, compare it with `projects` before using it. An id from another project is the commonest wrong input, and without this read it shows up only as a 403.
 
-**3. Read the map first, then only what you will change.**
-
-```
-GET /v1/projects/{nodeId}                         → 200 and you are connected
-GET /v1/projects/{nodeId}/map                     → one entry per flow: what starts it, what it reads, writes, calls, announces
-GET /v1/flows/{id}/outline                        → one flow as an indented outline, when you need its shape
-GET /v1/bootstrap?project={nodeId}&sections=flows → the authored configuration, one section at a time
-GET /v1/bootstrap?project={nodeId}&sections=tenancy   → your grant: the nodes you reach, with your role on each
-```
-
-Read the map at the start of a session **instead of** the whole bootstrap or document. It is small (about 0.5 KB a flow, against megabytes for the whole configuration) and names a table's fields only where the platform is sure of them. A member with nothing to say is left out: read an absent one as none. Then read a flow's outline when you need its shape, and the bootstrap's `sections=` only for what you are about to edit. Before you rename or remove anything, ask who uses it: `GET /v1/projects/{nodeId}/references?of=field:review.stars` (the kipory-evolve skill says how to read the answer).
-
-The bootstrap read returns ten sections <!-- count: bootstrap-sections --> — project, schema, relations, views, events, flows, surfaces, vectors, evals, tenancy — each the resource's own envelope, with a `structureVersion` to cache against and a `sections` map that says which moved. The `tenancy` section is the same grant as step 2, drawn as a tree: the shallowest node in `nodes[]` is the grant node and `role` on every node is the grant's role. Do not probe ids to discover reach.
-
-The platform also writes a plain-language description of each element of a project. `GET /v1/descriptions?project={nodeId}` reads the newest of each, with `describer` saying whether it is switched on, how far it has described and how its last run ended. `GET /v1/descriptions/history?project={nodeId}&element=<elementRef>` pages one element's earlier ones (`elementRef` is on each row of the first read). `POST /v1/descriptions/describe { project }` (EDITOR) asks for a run now, at no charge; it answers 202 either way, and `enqueued: false` with a `reason` means none started. An element's own authored `description` is on the element's route, not here. The three routes are on `references/api/projects.md`.
-
-You can also keep your own notes on any element as metadata: free key-values such as who owns a flow or the ticket an endpoint was built for. `POST /v1/metadata { project, element, key, value }` (EDITOR) sets one key; `element` is the same `elementRef`, and `value` is any JSON. Leave `version` out to create the key and send the `version` you read to replace it; a stale one is 409 `VERSION_CONFLICT` with the stored entry in `details.current`. `GET /v1/metadata?project={nodeId}` reads every key with the `limits` a write is held to (add `&element=<elementRef>` for one element), and `DELETE /v1/metadata/{id}` (ADMIN) removes one. Metadata is not configuration: no flow reads it and setting it changes nothing the project does. Keys starting `kipory.` are the platform's and are refused. The three routes are on `references/api/projects.md`.
+**3. On a project that already holds work, read the map first.** `GET /v1/projects/{nodeId}/map` is one entry per flow — what starts it, what it reads, writes and calls — at about 0.5 KB a flow; `GET /v1/flows/{id}/outline` is one flow's shape. An empty project has nothing to read: go to the build.
 
 **If you must create the project** you need `owner` at the parent organisation node:
 
@@ -106,71 +51,11 @@ POST /v1/projects  { name, slug, parentNodeId }       → 201 { id, slug, name }
 
 ⚠️ Pass `parentNodeId` explicitly. It defaults to the platform organisation, which your grant almost certainly does not reach, so omitting it turns a correct request into a 403 that looks like a broken key.
 
-The create also takes a `template` slug (`GET /v1/templates` lists them) or a whole `document`
-(`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
-transaction — a refused one leaves no project behind.
+**4. Check the models your actions will run on.** `GET /v1/nodes/{nodeId}/task-models` lists each task an action inherits its model through; a row with `callable: false` fails every action on that task (`kipory-build`'s `references/models.md`). When a run fails with `detail.phase: "platform-fault"`, `GET /v1/platform-status` says whether the platform's provider account is refusing — the deployment's fault, not the flow's. Confirm facts live, never from memory: `GET /v1/functions`, `GET /v1/openapi.json`, `GET /v1/coded-routes` (`references/session-start.md`).
 
-A project document you hold can be one the platform refuses: one exported before the data words
-were renamed states `kipory: 2`, one exported before the flow words were renamed states
-`kipory: 3`, one exported before the link functions named their relation `relationKey` states
-`kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, one
-exported before a type was called a type in the document states `kipory: 6`, one exported
-before a stated element was whole states `kipory: 7`, one exported before every input took an
-argument states `kipory: 8`, one exported before an action named its vendor in its own `vendor`
-setting states `kipory: 9`, and all eight are refused (`DOCUMENT_VERSION_UNSUPPORTED`). The deployment reads exactly one format, with no
-overlap: `documentFormat` on `GET /v1/platform-status` names it, with a line saying what it is.
-When it is newer than the version below, update these skills first — the skills that write a new
-format are published when the change merges, normally before a deployment rolls it — then
-convert.
-`node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
-version 10 in one run, and a second run changes nothing. From 7 to 8 it changes only the number: format
-8 makes a stated element whole, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`
-before you apply it:
+## Build the backend
 
-- **It renames only the names the platform defines**, never one you chose, and lists the prompts
-  and expressions that name a renamed field, which are yours to edit.
-- **`schema` becomes `types`, a table's and a config namespace's `shape` becomes `type`** — nothing
-  else named `shape` or `schema` moves: not a function's config, not an action's `outputSchema`,
-  not a property of one of your types, not a table or action you named `shape`. A current
-  document that still holds one of the old keys is refused with `DOCUMENT_KEY_RENAMED` at that
-  key; rename it, or set its version back to 6 and run the script. **A script of yours that reads a
-  converted document or an export must read `types` and `type` too**: one still reading the old
-  key finds nothing and can change its own output without an error.
-- **From 8 to 9 a setting that reads a value takes an argument.** Each such setting drops its
-  `Slot` suffix (`idsSlot` → `ids`, `modelSlot` → `model`); a fixed field and its slot twin become
-  one (`limit`, `maxResults`, a query clause's `value`, `slug`, `text`), the slot winning where both
-  were set; `headers` and `query` join their two maps, refusing a name stated in both; a fixed text,
-  list or object is written `{"literal": …}`;
-  `fieldFilterSlots` becomes `fieldFilters` entries with `op: "eq"`; `flow.invoke` and
-  `flow.start-per-person` input rows become one `inputs` map; `flow.loop` `seedFrom` and
-  `seedLiteral` become one `seed`; a named view's fixed text or list in its `where` is written
-  `{"literal": …}` (a number, `true`/`false`, `param` and `set` stay; `shapes` is unchanged), each view
-  it changes listed. Every renamed, merged and restructured setting, and the ones that
-  keep their name, is in `references/format-9-renames.md`. It refuses, rather than guesses, a name set
-  on both sides of a pair. On YAML it renames line by line and refuses anything restructured: convert the JSON form, or
-  export the project again (`GET /v1/projects/{nodeId}/document` with `Accept: application/yaml`) — the platform moved stored flows to 9 itself.
-  <!-- field-ok: idsSlot — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: modelSlot — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: fieldFilterSlots — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: seedFrom — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: seedLiteral — a format-8 config field the converter renames, named so a reader knows what moves -->
-- **Slot and collection names go.** A search model under `vectors.profiles` loses `denseSlots` and
-  `sparseSlot` and states `keywords` — `true` where it named a sparse slot, `false` where it named
-  none; a `search` use loses `role`; `vectors.collections` is removed. Each removal is listed.
-- **An action whose function the catalog does not have is left as written and listed** — one that
-  searched, wrote or read a collection, or made an embedding. What it becomes is your decision:
-  `record.query` with a `semantic` clause, `term.search`, or no action (`kipory-retrieve`). The plan
-  refuses the document until each is rebuilt or removed.
-
-It refuses, with the line number, a YAML mapping written on one line (`{ … }`) in a place it would
-have to rewrite — write that mapping out as a block, or convert the file to JSON, and run it again.
-
-`GET /v1/projects/address-availability?candidate=` says whether a slug is free before you send it. A
-project's address — its subdomain — can move later and its slug never does; moving it is `kipory-evolve`.
-
-**4. Confirm facts live, never from memory.** Function keys come from `GET /v1/functions`, request shapes from `GET /v1/openapi.json`, the platform's own paths from `GET /v1/coded-routes` — all on _this_ deployment. The bundled `references/` are a snapshot of the same sources with the hash they were taken at; step 1 told you whether it is current.
-
-Models the same way. `GET /v1/nodes/{nodeId}/task-models`, at the project's id, lists each task an action inherits its model through. A row with `callable: false` fails every action on that task until the task is bound at the project (`kipory-build`'s `references/models.md`). Read it before the first run and again after a `sha` change: a roll can move a binding above the project that the project never chose. `callable: true` says the deployment holds an account for the model and it is switched on — not that the account has credit. Model calls run on the platform's own provider accounts; when one runs out, every call on it fails with `… provider account exhausted (quota/billing)` under `detail.phase: "platform-fault"`, uncharged, while the row still reads `callable: true`. The row's `serving.state` is what turns to `refusing` (with `since`), and `GET /v1/platform-status` reads the same for every vendor and model-provider account the platform holds — check it when a run fails with that phase, before changing anything. That is a fault of the deployment, not of the flow: tell whoever runs it, and see `references/models.md` in `kipory-build` for moving a task meanwhile.
+**Read `kipory-build`'s `references/quickstart-document.md` next, before anything else.** It is one complete project — per-person data, create and list endpoints, a kept total, a model call, a daily job and email — as one document this deployment planned, applied and ran, with every name and field that refuses a plan. For most backends it is the only page you need; it says when to open another.
 
 ## Reading a refusal
 
@@ -181,51 +66,19 @@ Models the same way. `GET /v1/nodes/{nodeId}/task-models`, at the project's id, 
 | `404` | On the api host: the node resolved and hosts no project, or the route is served on the other host — or, on an item route, an id you cannot see (missing, or in a project your key doesn't reach) | Check the path first — a mistyped design route gets the same answer. Then the host. Then whether the id is an organisation's, or one your key cannot see |
 | `402` | Something that pays is out of credits or at a ceiling — one of five codes <!-- count: api-402-codes -->, each with a different remedy                                                            | Branch on `code`: `references/conventions.md`, Refusals; the gates themselves are `kipory-operate`                                                       |
 
-A role-floor `403` carries `details: { reason: "insufficient_project_role", requiredRole, grant: { nodeId, role } }` — what the route needs, and what your key holds. Compare the two roles: if `grant.role` is below `requiredRole`, ask the human for a key with that role. If it is at or above it, the role was never the problem: the node you addressed is not `grant.nodeId` or beneath it — you were given another project's id, or one that does not exist. The body cannot say which of those two, deliberately: an unresolvable node, a project never created and an insufficient role all refuse identically, so a `403` is not an existence oracle. A key holds **one node and one role**. Reach is plain descent — a grant at an organisation reaches every project beneath it; a grant at one project reaches that project only. The role is uniform over the whole reach and cumulative: read → `viewer`, design mutation → `editor`, destructive or structural → `admin`; creating a project needs `owner` at the parent. **A key is minted at `viewer` unless a role was asked for**, so if every write refuses while reads succeed, suspect the role first. Previewing or testing a flow — preview, eval runs, vector search — is `admin`. A record write that queues processing, a reprocess and a trigger replay are `editor`, and are charged like any live run.
+A role-floor `403` carries `details: { reason: "insufficient_project_role", requiredRole, grant: { nodeId, role } }`. If `grant.role` is below `requiredRole`, ask the human for a key with that role; if not, the node you addressed is outside the key's reach — another project's id. A key is minted at `viewer` unless a role was asked for; previewing or testing a flow needs `admin`.
 
 ## When something stops you
 
-Tell Kipory with `POST /v1/reports`, then carry on with whatever workaround you have. Any key of the project files one, whatever its role. File a report when:
-
-- an answer was unexpected — a `500`, or a `platform-fault` in a run's timeline that `GET /v1/platform-status` does not already show (one report per outage, not one per run, with the run ids in `runIds`);
-- a workaround cost you more than a few minutes;
-- a doc or skill said something untrue, or left out what you needed;
-- something you need does not exist;
-- an answer told you something went wrong but not what to do about it.
-
-Do not file a refusal whose remedy you can apply — a `422` that names your field, a `403` whose `requiredRole` you lack — nor a failure your own configuration caused, such as your `$assert`, a `FLOW_OUTPUT_MISSING` or a wrong binding: `kipory-diagnose` first. Fix those.
-
-One problem per report: the second problem is a second report, and a summary of your session is not a report. The body needs `project`, `trying` (the goal, not the call), `happened` (the answer, the code, what you tried next) and `impact` — `blocked`, `worked-around` or `annoyance`. Add `kind` (one of `bug`, `missing-capability`, `docs-wrong`, `unclear-message`, `question` or `praise`; any other value is refused `VALIDATION_FAILED`), `surface` (the route or function key), `expected`, the `requestId` of each failing answer in `requestIds`, a failing run's id in `runIds`, the skill you were following in `skill`, your model and host in `agent`, and about how many minutes it cost in `timeLostMinutes`. Never paste a key or a secret: it is replaced before the report is kept, and the report is less useful for it.
-
-The answer carries the report's `id` and `statusUrl`. **At the start of every session, read `GET /v1/reports?project=<nodeId>`** and look at what changed — `&state=received&state=looking&state=planned` narrows it to the open ones. A report reads `fixed` when its fix shipped, `answered` when Kipory answered it without one, and `staffAnswer` says what to do. The same text from the same key or person within 24 hours answers `200` with the first report. A key or person files at most 10 a minute and 20 in any 24 hours in one project, and the project takes at most 100 reports in any 24 hours from every key and person together; past either cap a report answers `429 RATE_LIMITED`, with `details.scope: "project"` for the project's and `details.retryAfterSeconds` saying when to file again.
-
-## What the platform refuses a key, always
-
-<!-- key-unreachable-ok: GET /v1/projects — named ONLY to warn it is refused, never prescribed -->
-<!-- key-unreachable-ok: GET /v1/credits/events — named ONLY to warn it is refused, never prescribed -->
-
-The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The ones you will meet:
-
-- **A key cannot mint a key.** Key management accepts a signed-in session only. The human mints it, on the api host; `GET /v1/grant` tells you the node, the role and the expiry.
-- **A key is never platform staff.** `GET /v1/projects` — every project on the installation — answers 403 to every customer key. `GET /v1/grant` lists the ones your key reaches.
-- **A key has no `me`.** Every `/v1/me*` route and the charges statement `GET /v1/credits/events` answer 401 from inside the function. Reading a node's members, or the node itself through `/v1/nodes`, is a human's surface too; `GET /v1/grant` and the bootstrap's `tenancy` section are yours.
-- **A key cannot act as an end user.** A flow that reads or writes person-owned records, or an events subscription scoped to a user or a record, refuses a key with 403; a key's runs are project-owned.
+File a report — `POST /v1/reports { project, trying, happened, impact }` — then carry on with your workaround. Do it for a `500`, a doc that said something untrue, a missing capability, or a workaround that cost more than a few minutes; not for a refusal whose remedy you can apply. One problem per report; read `GET /v1/reports?project=<nodeId>` at the start of each session. `references/session-start.md` has the full rules.
 
 ## What will bite you
 
-- **Silence about the node id.** Nothing at mint time tells the key its grant. Read `GET /v1/grant` at turn zero, not at the first 403.
-- **`parentNodeId` omitted on create** — defaults to the platform organisation, refuses, and reads like an auth failure.
-- **The 201 is not proof of everything.** Project creation is atomic, but the flow-provider types are seeded afterwards, best-effort. Read them back before referencing one, or call `POST /v1/types/seed`.
-- **A retired project stops its own keys.** A key granted at the project answers `401` to every call, reads included, until the project is restored. A key granted at the organisation above still reads it, and a write naming it answers 409 — except the restore and the purge, switching off a schedule, trigger or source, and deleting a secret.
-- **A declared query string is strict.** On a route whose reference lists query parameters, an unlisted key or value — `expand` on a resource that has none, an `expand` value that resource does not offer, a typo — is a 422. A read whose reference lists no query parameters ignores any you send, so a misspelled flag there is silent. A write — POST, PUT, PATCH or DELETE — refuses any query key it does not list (422) and writes nothing, and one that takes no body refuses a body with any key. Your project's own endpoints (defined with `/v1/api-endpoints`) are not part of this rule: what each accepts is set by its own definition.
-- **A new build can turn an untouched flow red.** When `sha` on `GET /health` changes, read
-  `GET /v1/flows?project=<nodeId>&expand=health` and fix any errors: a rule the build added or
-  tightened can fail a flow nobody edited while its runs keep succeeding, and the next write that
-  rewrites the action it is on is refused for it. `GET /v1/platform-status` names those codes
-  (`rules`); a trigger on
-  `platform/flow-health.failing` is told without asking.
-- **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.
-- **Working around a problem in silence.** Kipory cannot fix what nobody tells it. When something stops you, file a report — see "When something stops you" above — and read your open reports at the start of the next session.
+- **The two hosts.** Design routes answer on the api host with your key; your project's endpoints answer on its `baseUrl`. Each on the other host is a 404 that looks like a typo.
+- **A key cannot act as an end user, mint a key, or read `/v1/me*`.** Test as a person with a test user's session (`kipory-build`'s quickstart, "Try it as a person").
+- **A declared query string is strict**: an unlisted key on a design route is a 422, and a write refuses any query key it does not list.
+- **A new build can turn an untouched flow red.** When `sha` on `/health` changes, read `GET /v1/flows?project=<nodeId>&expand=health`.
+- Everything else that bites at turn zero — retired projects, seeded types, version strings, every route a key cannot call — is in `references/session-start.md`.
 
 ## References
 
@@ -248,11 +101,8 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 | `references/packs/limits.md`                 | what Kipory cannot do, read before designing around it                                                                                                                                      |
 | `references/packs/project-provisioning.md`   | creating a project and finding its node id, in depth                                                                                                                                        |
 | `scripts/sync.mjs`                           | compares the bundled snapshot with the live deployment and names the packs, functions and routes that differ, the skill changes it does not run yet, and a document format it does not read |
-
-## Your first flow
-
-`kipory-build`'s `references/first-flow.md` is one small product built end to end — a flow, its one action, its output binding, a preview, the endpoint, and the call a client makes — with every body exact, then the same project as one document. Read it before authoring anything on a new project; it is the layout every other skill assumes you know.
+| `references/session-start.md`                | what `scripts/sync.mjs` prints, descriptions and metadata, creating a project and converting an older document, filing a report                                                             |
 
 ## Then
 
-`kipory-plan` if the human described a product rather than an endpoint — it turns an idea into a build sheet before anything is authored. If a plan exists, go to the skill each part of it calls for: `kipory-model` for the data, `kipory-build` for flows, `kipory-data` for the records and files a project already holds, `kipory-expose` to put a flow on HTTP, `kipory-channels` for mail and Telegram, `kipory-prove` to pin what working means, `kipory-secrets` when a function needs a vendor credential or an action calls an outside API with a stored key, `kipory-operate` for schedules, triggers, events, config, and what the project spent or may still spend (the balance, a `402`), and `kipory-diagnose` when something ran and came back wrong. For what a flow's actions actually do: `kipory-gather` to bring data in from outside the project, `kipory-extract` to turn a file into text or data, and `kipory-retrieve` to search the project's own records and answer over them. `kipory-evolve` the moment the project is no longer empty — changing something that already holds records is a different discipline from authoring it.
+`kipory-build` for anything you author — start at its `references/quickstart-document.md`. `kipory-plan` if the human described a product rather than a change. `kipory-evolve` the moment the project holds records you will reshape. `kipory-diagnose` when something ran and came back wrong. The other skills — `kipory-model`, `kipory-data`, `kipory-expose`, `kipory-channels`, `kipory-prove`, `kipory-secrets`, `kipory-operate`, `kipory-gather`, `kipory-extract`, `kipory-retrieve` — go deep on one subject each; the quickstart says when you need one.

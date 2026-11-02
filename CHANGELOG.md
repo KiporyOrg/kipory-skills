@@ -2,6 +2,30 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261102.212559 — 2026-11-02
+
+Synced from the Kipory monorepo at `768ece34d`.
+
+Functions added: `flow.continue`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/document.md`
+- changed: `skills/kipory-build/references/functions/README.md`
+- added: `skills/kipory-build/references/functions/flow.continue.md`
+- changed: `skills/kipory-build/references/functions/flow.fan-out.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- added: `skills/kipory-build/references/quickstart-document.md`
+- added: `skills/kipory-build/references/row-by-row.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- added: `skills/kipory-connect/references/session-start.md`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261102.173659 — 2026-11-02
 
 Synced from the Kipory monorepo at `4a2a93408`.

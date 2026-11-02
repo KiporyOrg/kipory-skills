@@ -22,7 +22,7 @@ Each branch runs the rest of the flow with its item in the output slot. Any list
 | `dedupe` | boolean | no | `true` | Drop repeated items before starting branches. ⚠️ Text is compared exactly, case included, a file by its storage key and anything else by its value. |
 | `maxFailedBranches` | integer, at least 0 | no | — | Branches that may fail; each is dropped, the run ends `partial`. ⚠️ Set this or `maxFailedShare`, not both; with neither, one failure fails the run; a tolerated branch keeps nothing it staged. |
 | `maxFailedShare` | number, more than 0, at most 1 | no | — | That tolerance as a share, rounded down: 0.2 of 10 is 2. ⚠️ Platform failures, spend caps and cancels are never tolerated; one branch must succeed; none sees a sibling's staged writes. |
-| `maxItems` | integer, 1 to 1000 | no | `20` | The most branches one run starts; later items are dropped. ⚠️ At most the project's fan-out limit (100 as standard) run; items past it or `maxItems` warn `fan-out-capped`. |
+| `maxItems` | integer, 1 to 1000 | no | — | Cut the list to this many items; empty means the project's limit. ⚠️ Past `maxItems` items drop with a warning; past the project's limit (1000) the run fails. |
 | `maxParallelBranches` | integer, 1 to 64 | no | — | How many branches run at once; empty decides from the branches. ⚠️ Empty runs branches together only when none can affect another, sub-flows included, else one at a time. |
 
 ## Worked example
