@@ -119,7 +119,8 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   for the number of posts one poll returns. Name the cheaper one in the action's `vendor.use`,
   and leave `vendor.switch` at `never` if a failure there should not be answered — and billed —
   by another vendor. A run's
-  action detail names the vendor that served it in `servedBy` (footnote ¹).
+  action detail names the vendor that served it in `servedBy`, or the one it ended on in `failedOn`
+  when none returned items (footnote ¹).
 - **A screenshot is the full page, and a long page is a very large image.** `url.screenshot`
   always captures the whole page at the width you set; it has no height limit. A vision action
   reading it (`text.generate` with the file attached) is slower and dearer the larger the image,

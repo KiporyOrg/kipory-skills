@@ -291,6 +291,7 @@ Each item of `servedBy`:
 | `version` | `integer` | yes | The version of the vendor's definition serving now. |
 | `keeps` | `object` | yes | What this vendor keeps of an action's settings, per setting: the values or the prefixes it serves. A setting it does not name it serves whatever its value. An action naming this vendor with a setting outside it is refused at save (`VENDOR_DOES_NOT_COVER`). |
 | `why` | `object` | yes | Per setting it limits, what this vendor does not do, in words. |
+| `ceiling` | `object \| null` | yes | The most one action can cost at this vendor, derived from its definition. Each answer's count is compared with its request's share of it. Null when it cannot be derived. |
 
 ### `POST /v1/functions/missed-searches`
 

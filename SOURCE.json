@@ -1,7 +1,8 @@
 {
-  "source": "768ece34d2563e3e071d25b95eed7b490c5a87e1",
+  "source": "af3adcf453c8329cc4a777927a0412e9325166b7",
   "since": "2026-08-16",
   "history": [
+    {"sha":"af3adcf453c8","skills":"A vendor offer version passes its checks before it may be promoted, and a vendor-catalog change pages as a warning; a failed x.posts action names its vendor, a dated refusal benches to its date, and vendor.changed judges who moved as the engine routes (418, S4) (#3665)"},
     {"sha":"768ece34d256","skills":"A new backend starts from one page that plans clean, the plan refuses at save what used to fail every run, and long jobs continue page by page (#3664)"},
     {"sha":"fa81e603b052"},
     {"sha":"4a2a9340871e","skills":"A type test on a value whose input type already says it is text, a number or true/false is hinted as $default (#3661)"},
@@ -1000,7 +1001,6 @@
     {"sha":"30c336201b74"},
     {"sha":"fa87b503e4b7"},
     {"sha":"e12ffb602eae"},
-    {"sha":"b408345775ee"},
-    {"sha":"a093ba83b782"}
+    {"sha":"b408345775ee"}
   ]
 }
