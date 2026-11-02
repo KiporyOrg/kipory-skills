@@ -1,7 +1,8 @@
 {
-  "source": "a9a9efcbe53a01727bb579802e632c8e4d4b62fb",
+  "source": "4a2a9340871ed28d4e6728cb0e016bf440d52116",
   "since": "2026-08-16",
   "history": [
+    {"sha":"4a2a9340871e","skills":"A type test on a value whose input type already says it is text, a number or true/false is hinted as $default (#3661)"},
     {"sha":"a9a9efcbe53a","skills":"x.posts reads Apify, twitterapi.io and ScrapeCreators on the vendor engine; an action names its vendor and when it may switch, Kipory holds several accounts per vendor, and staff manage offers and routing (418, S3) (#3660)"},
     {"sha":"33b698a10d8d"},
     {"sha":"b2d628ed5676"},
@@ -1000,7 +1001,6 @@
     {"sha":"b408345775ee"},
     {"sha":"a093ba83b782"},
     {"sha":"b8dd8fd02640"},
-    {"sha":"680f33de2663"},
-    {"sha":"f9471124244a"}
+    {"sha":"680f33de2663"}
   ]
 }
