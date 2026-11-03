@@ -20,16 +20,16 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 date. |
 | `createdBefore` | string | no | — | Keep only rows created at or before this date. |
 | `cursor` | union | no | — | A previous page's cursor; empty for the first page. ⚠️ An edited or truncated cursor fails the action. |
-| `dataContains` | union | no | — | The object to look for in that list. ⚠️ If the slot is missing the action is skipped; a non-object fails it. |
+| `dataContains` | union | no | — | The object to look for in that list. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a non-object fails it; a never-produced input skips the action. |
 | `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContains`. ⚠️ This reads every row of the table before narrowing. |
-| `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ If the slot is missing the action is skipped; a wrong kind fails it. |
+| `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a wrong kind fails it; a never-produced input skips the action. |
 | `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEquals`. ⚠️ This reads every row of the table before narrowing. |
 | `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A missing key counts as no value, and every row is read. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ An unqueryable field fails the run; a missing slot skips the action, and an empty list matches nothing. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list answers an empty page; a never-produced input skips the action. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the action; a run warns from half the limit and a save when one is likely. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
 | `limit` | union | no | — | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows a page was cut short; a value outside 1–100 or not whole reads the default. |
-| `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ If an entry's slot is missing, the action is skipped. |
+| `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the action. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
 | `pages` | object | no | — | Read every page, from `cursor` if set; unset reads one page. ⚠️ Records left after the last page fail the action unless `onMore` is "stop". |

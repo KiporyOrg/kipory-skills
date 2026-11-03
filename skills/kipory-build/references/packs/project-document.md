@@ -241,7 +241,9 @@ relation, such as `{ "relation": "review-of", "count": true }`). They are judged
 document is in place, so the relation, the related table and the `filter` uses a rollup reads may
 arrive in the same document. Declaring one adds a `recompute` consequence that counts the stored
 records it is computed for; values follow later changes within seconds and are read from
-`computedAt`, never `updatedAt`. A field reference's `family` may then be `computed` too.
+`computedAt`, never `updatedAt`. A field reference's `family` may then be `computed` too. A `min`,
+`max` or `latest` rollup may state `ifNone` (`"createdAt"` or `{ "value": … }`), its value when it has
+none (tables-and-types pack).
 
 ## Plan a document before applying it
 

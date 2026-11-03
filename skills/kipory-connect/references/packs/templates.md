@@ -96,7 +96,8 @@ and send the sections you mean.
 
 A template's actions carry the same fields a document's do, an action's optional `failureSlot`
 and `onOversize` included: a project created from the template gets it as written. Its tables
-likewise carry `computed` and `reprocessOn` as a document's do — `renameComputed` too, though a
+likewise carry `computed` (a rollup's `ifNone` included) and `reprocessOn` as a document's do —
+`renameComputed` too, though a
 template rarely renames — and a plan of one lists the `recompute` consequence for a table whose
 stored records get computed values. Its search is stated as a
 document states it too: a profile under `vectors` is a `modelId`, `keywords` and

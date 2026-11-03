@@ -19,8 +19,8 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | --- | --- | --- | --- | --- |
 | `createdAfter` | string | no | — | Count only rows created at or after this ISO-8601 date. ⚠️ This is when the row was stored; for your own dates use `fieldFilters`. |
 | `createdBefore` | string | no | — | Count only rows created at or before this ISO-8601 date. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ An unqueryable field fails the run; a missing slot skips the action, and an empty list counts zero. |
-| `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ If an entry's slot is missing, the action is skipped. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list counts zero; a never-produced input skips the action. |
+| `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the action. |
 | `statuses` | string[], at least 1 item | no | — | Count only rows with these statuses; empty counts them all. |
 | `tableKey` | string | yes | — | The table to count. |
 | `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; project-wide tables ignore it. ⚠️ A count can reveal how many records exist outside the user's own. |

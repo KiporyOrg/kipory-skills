@@ -6,10 +6,10 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `051faa0389d9` | `version` on `GET /v1/capability-packs` |
-| functions | `6ccbc66d98b15cbb743a69eff69618e40686cfa400dea9c9b195dd756dbe41a1` | `version` on `GET /v1/functions` |
-| api | `cc5e26232de2` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
-| codes | `1c643020a3f7` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
+| packs | `0ab7a1662705` | `version` on `GET /v1/capability-packs` |
+| functions | `164c6dae9b52a5447ba6c44b6d4b2b492533e2cb695ade5ef49896805e029518` | `version` on `GET /v1/functions` |
+| api | `880b1ee854a5` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| codes | `b40b560cbff7` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
 Function pages: 99 customer functions, key set `d74878316ea9`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
 

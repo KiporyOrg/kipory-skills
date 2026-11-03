@@ -2,6 +2,22 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261103.132450 — 2026-11-03
+
+Synced from the Kipory monorepo at `45de622be`.
+
+- changed: `skills/kipory-build/references/functions/record.count.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/functions/record.read.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261103.111848 — 2026-11-03
 
 Synced from the Kipory monorepo at `46c691c7a`.

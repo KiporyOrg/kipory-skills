@@ -1,7 +1,9 @@
 {
-  "source": "46c691c7a47720ed511f6835f89fa41eae85fbc7",
+  "source": "45de622be3586ffc6685d4c412babbb8184e7b5f",
   "since": "2026-08-16",
   "history": [
+    {"sha":"45de622be358","skills":"Computed fields stay readable while Kipory computes them: a backfill is done only when its values are, a converted field keeps its hand value, an empty roll-up can declare ifNone, and a record.update's table is followed through transforms (FeedThat findings a–h) (#3671)"},
+    {"sha":"e8291ab5e074"},
     {"sha":"46c691c7a477","skills":"A draft vendor version's checks run in the worker, a failed x.posts action names its vendor on a cache hit and an outright failure, and the vendor.changed notice judges a fixed link as a run would (418, S4 leftovers) (#3667)"},
     {"sha":"045ea4e84500","skills":"A large run's save no longer times out at 5 s and writes nothing when it does; a failed R2 upload and a stale drill page once per stage; staging's prune exits 0 (#3668)"},
     {"sha":"26b6bf6be787"},
@@ -999,8 +1001,6 @@
     {"sha":"cea07b1761fb"},
     {"sha":"7e721699817e"},
     {"sha":"f3df64393e7f"},
-    {"sha":"bf099a5053ac"},
-    {"sha":"f07873911a4c"},
-    {"sha":"1f7e6d9fd17f"}
+    {"sha":"bf099a5053ac"}
   ]
 }

@@ -1062,7 +1062,11 @@ it, `onKeyTaken` acts on it), and an upsert updates the survivor and keeps the s
 
 A table may declare `computed` fields: a `rollup` over a relation (`count`, `countDistinct`, `sum`,
 `avg`, `min`, `max`, `any`, `all`, `latest`, `distinct`, each optionally narrowed by `where`; a
-`distinct` list keeps at most 100 values, and a larger `max` is refused `COMPUTED_DISTINCT_TOO_LONG`), a
+`distinct` list keeps at most 100 values, and a larger `max` is refused `COMPUTED_DISTINCT_TOO_LONG`;
+a `min`, `max` or `latest` with no value — no matching record, or none holding the field — leaves
+the field out, so a list sorted by it leaves the record out, unless it declares `ifNone`:
+`"createdAt"` for a date field, or `{ "value": … }` of the field's type; `ifNone` on another
+aggregate, or of the wrong type, is refused `COMPUTED_IF_NONE_INVALID`), a
 `lookup` of the one record a relation links to, or a `formula` over the row's own values (a JSONata
 expression, which may call the platform's expression functions, `functions/expressions.md`). Kipory
 computes each for every stored record when it is declared, keeps it right a few seconds after any
@@ -1071,7 +1075,9 @@ related record joins, leaves, changes or is deleted, and no writer may set it
 one of its computed fields, or a filter the relation's links carry; a computed field may itself be declared `filter` and filtered or ordered by. Reads carry the values
 beside the record's own fields, with `computedAt` (when each was computed) and `computing` (a
 recompute is due); sync on `computedAt`, since a recompute moves neither `updatedAt` nor
-`version`. `GET /v1/tables/{id}?expand=computedState` shows the backfill and the table's health.
+`version`. `GET /v1/tables/{id}?expand=computedState` shows the backfill and the table's health;
+its `backfill` stays set until every stored record it covers has its value computed or has failed
+to get one three times (`lastFailure` names such a record, which is still retried).
 
 A flow-backed table may declare `reprocessOn`: run its processing again for a record when related
 records `join`, `leave` or `change` (named `fields`), once a `debounceSeconds` window passes with
@@ -1082,7 +1088,9 @@ Both are owned collections in a project document: left out, they are kept; `comp
 `reprocessOn: []` removes them. A field the type keeps by hand turns computed in one document
 by removing it from the type and declaring it under `computed` with the same name; each record
 that held it moves once — its `updatedAt` and `version` too — as the stored value leaves its
-data, and Kipory computes it from then on. A rollup's `where` takes the query grammar's field
+data, and Kipory computes it from then on. Until the backfill reaches a record, the record keeps
+the value it held, marked `computing` and with no `computedAt`, so filters and sorted reads keep
+finding it. A rollup's `where` takes the query grammar's field
 clauses plus `ne`: a related record with no value for the field counts as not equal, so
 `hidden ne true` keeps the records that never set `hidden`. To rename a computed field, send
 `computed` with it under the new name and `renameComputed: { "old": "new" }` (on the table PATCH

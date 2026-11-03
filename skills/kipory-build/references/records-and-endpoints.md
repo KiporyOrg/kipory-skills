@@ -254,6 +254,7 @@ The query is asked of the parent, with the link coming IN:
 - **`in` takes at most 1,000 values.** Past that the action fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
 - **Each collection with its newest items is `linked`, not a second query.** Add `"linked": { "latest": { "relation": "in-collection", "direction": "incoming", "limit": 3, "onMore": "stop" } }` to the query: each collection then carries `linked.latest`, its three newest items (`limit` is per collection), and `linkedMore.latest` when it has more. For each linked read, the records it hangs off times its `limit`, summed over every linked read, must stay within 20,000 — checked at save.
 - **Order by a date the record carries.** `order` takes `created`, or one of the table's own date fields with a `filter` use; a record with no value there is left out. To order by something a linked record holds (the newest item's date), keep it on the record — the next pattern.
+- **Filter or look up only by a field with a `filter` use**, your own markers too.
 - **"Due now" is the same shape.** `{ "kind": "field", "field": "nextRunAt", "op": "lte", "value": "runInfo.now" }` reads only the due records; listing them all and filtering in a transform reads the whole table.
 
 ### The clause grammar
@@ -338,6 +339,7 @@ A parent that shows its children's count, total or average declares it as a **co
 
 - **Each field read in a rollup is a `filter` field of the related table** (`hidden` above; `stars` for a `sum` of stars), one of the related table's own computed fields, or a filter the relation's links carry. The plan refuses any other field, and you may add the `filter` use in the same document.
 - **A `distinct` list keeps at most 100 values.** Its `max` is required and may not pass 100; a larger one is refused `COMPUTED_DISTINCT_TOO_LONG`. Past `max` values, the list keeps the first ones in its order (`by`, `order`) and drops the rest.
+- **A valueless `min`/`max`/`latest` leaves sorts** unless it has `ifNone`: `"createdAt"` or `{ "value": … }` (else `COMPUTED_IF_NONE_INVALID`).
 - **`eq false` skips records where the field is absent**: a missing value never equals `false`. Make the field required (or always write it), or count with no `where`.
 - **The value follows every change, a few seconds later.** A child created, moved to another parent, edited or deleted — through a flow, the records API or an erasure — and the parent is recomputed. Existing records get the value when you declare it; the plan shows a `recompute` line with their count. It is free and is not a run.
 - **Read it as a field of the parent.** A flow's `record.read` / `record.list` / `record.query` row carries it beside the record's own fields; `GET /v1/records/{id}` answers `computed`, `computedAt` and `computing` (true while a recompute is due). Sync on `computedAt`, not `updatedAt`: a recompute moves neither `updatedAt` nor `version`.
