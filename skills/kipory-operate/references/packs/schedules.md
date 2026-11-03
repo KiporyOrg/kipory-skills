@@ -206,7 +206,10 @@ run's invocation. Reach for them in this order:
     that wrote it) and, for a create, `tableKey`; on `natural-key-collision` the `holderRecordId`
     that already holds the key; on `precondition-conflict` the `recordId` another run wrote and the
     `readByActionKey` whose read went stale. The key's value is never named — read that record for
-    it. The run's `run-finished` row in `GET /v1/runs/{runId}/timeline` carries the same `failure`.
+    it. A save that ran past its time budget (10 ms per change, between 1 and 2 minutes) closes with
+    the cause `timed-out` and its `budgetMs`: `platform-fault`, `retryable: false`, nothing written,
+    and the run is not started again — stage fewer changes per run. The run's `run-finished` row in
+    `GET /v1/runs/{runId}/timeline` carries the same `failure`.
   - `reason` — set only for a refusal a caller may read: the rule the failing action's function
     named, a code `kipory-connect`'s `references/refusal-codes.md` lists (`RECORD_READ_HAS_MORE`
     beside `code: "invalid-input"`, `STREAM_MIGRATING` beside `precondition-unmet`), or a mail

@@ -209,7 +209,9 @@ Three kinds:
   meanwhile, and `FAILED` only if the last attempt fails the same way. One exception: when one of
   the platform's own vendor accounts is out of credit or refused the platform's key (class
   `platform-account`, `retryable: false`), the run fails at once, since a second try seconds later
-  cannot differ; a throttled account is run again and waits with `reason: "platform-account"`.
+  cannot differ; a throttled account is run again and waits with `reason: "platform-account"`. The
+  same holds for a save that ran past its time budget (cause `timed-out`, with `budgetMs`): the
+  same changes would take as long, so the run fails once and is not started again.
 - **Stream** — server-sent events, naming which output slot streams as deltas, with an optional
   allowlist of events to surface. Deltas come only from a `text.generate` action with structured
   output whose text field carries the same name as that slot; any other flow streams `stage`

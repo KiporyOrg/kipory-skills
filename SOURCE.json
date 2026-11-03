@@ -1,7 +1,10 @@
 {
-  "source": "af3adcf453c8329cc4a777927a0412e9325166b7",
+  "source": "045ea4e845005aeb59a3c3037ac606fb352e494f",
   "since": "2026-08-16",
   "history": [
+    {"sha":"045ea4e84500","skills":"A large run's save no longer times out at 5 s and writes nothing when it does; a failed R2 upload and a stale drill page once per stage; staging's prune exits 0 (#3668)"},
+    {"sha":"26b6bf6be787"},
+    {"sha":"db9c0bf5968b"},
     {"sha":"af3adcf453c8","skills":"A vendor offer version passes its checks before it may be promoted, and a vendor-catalog change pages as a warning; a failed x.posts action names its vendor, a dated refusal benches to its date, and vendor.changed judges who moved as the engine routes (418, S4) (#3665)"},
     {"sha":"768ece34d256","skills":"A new backend starts from one page that plans clean, the plan refuses at save what used to fail every run, and long jobs continue page by page (#3664)"},
     {"sha":"fa81e603b052"},
@@ -998,9 +1001,6 @@
     {"sha":"bf099a5053ac"},
     {"sha":"f07873911a4c"},
     {"sha":"1f7e6d9fd17f"},
-    {"sha":"30c336201b74"},
-    {"sha":"fa87b503e4b7"},
-    {"sha":"e12ffb602eae"},
-    {"sha":"b408345775ee"}
+    {"sha":"30c336201b74"}
   ]
 }

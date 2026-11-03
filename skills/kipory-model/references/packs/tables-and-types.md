@@ -192,6 +192,12 @@ Records are written by flows; an operator or an importer writes them over HTTP a
   item (`details.issues[].path` = `items.<n>`). `validateOnly: true` answers the verdict and writes
   nothing.
 
+A run's writes to records are saved as one change set too. A save that runs past its time budget
+(10 ms per change, between 1 and 2 minutes) is refused whole with the cause `timed-out` and its
+`budgetMs`: nothing is written, it is the platform's fault, and the run is not started again —
+the same changes would take as long, so a flow that stages thousands of changes per run should
+stage fewer.
+
 ⭐ **Adding a required field to a table that already holds records is four calls**, not two per
 record: widen the type (the field optional), read the ids and versions (`GET /v1/records`, one
 page of up to 100), set the field on all of them (`POST /v1/records/bulk`, one `merge` item per
