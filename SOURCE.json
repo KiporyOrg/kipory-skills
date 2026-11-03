@@ -1,7 +1,8 @@
 {
-  "source": "045ea4e845005aeb59a3c3037ac606fb352e494f",
+  "source": "46c691c7a47720ed511f6835f89fa41eae85fbc7",
   "since": "2026-08-16",
   "history": [
+    {"sha":"46c691c7a477","skills":"A draft vendor version's checks run in the worker, a failed x.posts action names its vendor on a cache hit and an outright failure, and the vendor.changed notice judges a fixed link as a run would (418, S4 leftovers) (#3667)"},
     {"sha":"045ea4e84500","skills":"A large run's save no longer times out at 5 s and writes nothing when it does; a failed R2 upload and a stale drill page once per stage; staging's prune exits 0 (#3668)"},
     {"sha":"26b6bf6be787"},
     {"sha":"db9c0bf5968b"},
@@ -1000,7 +1001,6 @@
     {"sha":"f3df64393e7f"},
     {"sha":"bf099a5053ac"},
     {"sha":"f07873911a4c"},
-    {"sha":"1f7e6d9fd17f"},
-    {"sha":"30c336201b74"}
+    {"sha":"1f7e6d9fd17f"}
   ]
 }

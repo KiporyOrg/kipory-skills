@@ -120,7 +120,8 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   and leave `vendor.switch` at `never` if a failure there should not be answered — and billed —
   by another vendor. A run's
   action detail names the vendor that served it in `servedBy`, or the one it ended on in `failedOn`
-  when none returned items (footnote ¹).
+  when none returned items or the action failed on that vendor (a refused key), a cached answer
+  included (footnote ¹).
 - **A screenshot is the full page, and a long page is a very large image.** `url.screenshot`
   always captures the whole page at the width you set; it has no height limit. A vision action
   reading it (`text.generate` with the file attached) is slower and dearer the larger the image,
