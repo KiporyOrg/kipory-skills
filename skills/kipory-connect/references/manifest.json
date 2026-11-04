@@ -220,15 +220,15 @@
       "page": "kipory-build/references/functions/pdf.screenshot.md"
     },
     "place.details": {
-      "hash": "217bb8f2b776",
+      "hash": "5d11dc68800a",
       "page": "kipory-build/references/functions/place.details.md"
     },
     "place.reviews": {
-      "hash": "88a5cca0f0c4",
+      "hash": "f55867299984",
       "page": "kipory-build/references/functions/place.reviews.md"
     },
     "place.search": {
-      "hash": "c308fdb61047",
+      "hash": "cabf5d2bec31",
       "page": "kipory-build/references/functions/place.search.md"
     },
     "push.send": {
@@ -336,7 +336,7 @@
       "page": "kipory-build/references/functions/telegram.resolve-channel.md"
     },
     "telegram.search-channels": {
-      "hash": "cf55b768c70a",
+      "hash": "66f9262d858a",
       "page": "kipory-build/references/functions/telegram.search-channels.md"
     },
     "telegram.stats": {
@@ -448,15 +448,15 @@
       "page": "kipory-build/references/functions/vocabulary.resolve.md"
     },
     "web.rankings": {
-      "hash": "59b98ba18d96",
+      "hash": "8389586d490a",
       "page": "kipory-build/references/functions/web.rankings.md"
     },
     "web.search": {
-      "hash": "3071107b3298",
+      "hash": "ed906c07f5a4",
       "page": "kipory-build/references/functions/web.search.md"
     },
     "web.traffic": {
-      "hash": "90013ab9fac7",
+      "hash": "e69429e02b05",
       "page": "kipory-build/references/functions/web.traffic.md"
     },
     "x.posts": {

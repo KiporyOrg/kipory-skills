@@ -2,6 +2,20 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261104.182926 — 2026-11-04
+
+Synced from the Kipory monorepo at `99661285d`.
+
+- changed: `skills/kipory-build/references/functions/place.details.md`
+- changed: `skills/kipory-build/references/functions/place.reviews.md`
+- changed: `skills/kipory-build/references/functions/place.search.md`
+- changed: `skills/kipory-build/references/functions/telegram.search-channels.md`
+- changed: `skills/kipory-build/references/functions/web.rankings.md`
+- changed: `skills/kipory-build/references/functions/web.search.md`
+- changed: `skills/kipory-build/references/functions/web.traffic.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261104.112952 — 2026-11-04
 
 Synced from the Kipory monorepo at `8c53c8ed0`.

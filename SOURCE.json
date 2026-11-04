@@ -1,7 +1,9 @@
 {
-  "source": "8c53c8ed03e14dacd585e76a31cac74a61329191",
+  "source": "99661285dbf7811a7ba33dfbf5d146a0b778b88b",
   "since": "2026-08-16",
   "history": [
+    {"sha":"99661285dbf7","skills":"Kipory's seven Apify reads run on the vendor engine, every started run is billed or left on the ledger with its id, and every vendor charge is priced by the general multipliers (418, S6, 2 of 5) (#3676)"},
+    {"sha":"1d93054389f7"},
     {"sha":"8c53c8ed03e1","skills":"Endpoint calls are cheaper, view reads come from a watermark-keyed cache, live views wake only the watchers a write touched, a run can be undone and a project rewound, record.query sorts, contains and ORs, a record can be shared with a person or a team, and enum comparison is leakproof (#3662)"},
     {"sha":"62cde5c9e9db"},
     {"sha":"ae65fe45c058","skills":"record.read's `ids` caution says a slot holding `[]` as the action's only input skips it, not that it answers `[]` (#3673)"},
@@ -999,8 +1001,6 @@
     {"sha":"48a0df5673fa"},
     {"sha":"e283c0f4868d"},
     {"sha":"4e0917a4dc19"},
-    {"sha":"610b9a18850a"},
-    {"sha":"e2313435d6b1"},
-    {"sha":"f5fcb4a7b166"}
+    {"sha":"610b9a18850a"}
   ]
 }
