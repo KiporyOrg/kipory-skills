@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "377a03f67b36",
+      "hash": "92ccd1d0f4a6",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -1272,7 +1272,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PATCH /v1/actions/{id}": {
-      "hash": "39b7ff819888",
+      "hash": "1977f23d942a",
       "page": "kipory-build/references/api/actions.md"
     },
     "PATCH /v1/api-endpoints/{id}": {
@@ -1382,7 +1382,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/actions/": {
-      "hash": "5ca9ec6b3c80",
+      "hash": "1ac2cb089501",
       "page": "kipory-build/references/api/actions.md"
     },
     "POST /v1/actions/batch": {
@@ -1726,7 +1726,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "9d38ee36b1bd",
+      "hash": "85efb3234f30",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

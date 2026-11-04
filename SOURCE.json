@@ -1,7 +1,8 @@
 {
-  "source": "99661285dbf7811a7ba33dfbf5d146a0b778b88b",
+  "source": "3fb1a00b60cbe0e405cde0d31c621549e0a11596",
   "since": "2026-08-16",
   "history": [
+    {"sha":"3fb1a00b60cb","skills":"An action's JSONata expressions can be read and edited as ordinary TypeScript, and only the JSONata is stored (#3677)"},
     {"sha":"99661285dbf7","skills":"Kipory's seven Apify reads run on the vendor engine, every started run is billed or left on the ledger with its id, and every vendor charge is priced by the general multipliers (418, S6, 2 of 5) (#3676)"},
     {"sha":"1d93054389f7"},
     {"sha":"8c53c8ed03e1","skills":"Endpoint calls are cheaper, view reads come from a watermark-keyed cache, live views wake only the watchers a write touched, a run can be undone and a project rewound, record.query sorts, contains and ORs, a record can be shared with a person or a team, and enum comparison is leakproof (#3662)"},
@@ -1000,7 +1001,6 @@
     {"sha":"d726b386e841"},
     {"sha":"48a0df5673fa"},
     {"sha":"e283c0f4868d"},
-    {"sha":"4e0917a4dc19"},
-    {"sha":"610b9a18850a"}
+    {"sha":"4e0917a4dc19"}
   ]
 }
