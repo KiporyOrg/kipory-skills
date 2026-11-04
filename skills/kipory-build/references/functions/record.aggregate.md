@@ -34,7 +34,7 @@ One exact answer over every matching record, grouped by a field, a date, a term 
 | --- | --- | --- | --- | --- |
 | `kind` | `field` | yes | — | A condition on a field the type routes with `filter`. |
 | `field` | string | yes | — | A field of the table with a `filter` use. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` \| `not-in` | yes | — | Each operator takes one value; `in` takes a list. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` \| `not-in` \| `contains` | yes | — | Each operator takes one value; `in` takes a list. |
 | `value` | union | yes | — | The value to compare (a list for `in`; dates in ISO 8601). |
 
 `value` — one of:
@@ -287,6 +287,20 @@ One exact answer over every matching record, grouped by a field, a date, a term 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
+
+**`kind: any`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `any` | yes | — | Records matching ANY of its alternatives — an OR, one level deep. |
+| `of` | union[], 2 to 8 items | yes | — | 2 to 8 field, term, link or stream clauses. |
+
+`of` — each item is one of:
+
+- `kind: field` — the same members as `kind: field` of `clauses`
+- `kind: term` — the same members as `kind: term` of `clauses`
+- `kind: link` — the same members as `kind: link` of `clauses`
+- `kind: stream` — the same members as `kind: stream` of `clauses`
 
 ### `groupBy` — each item is one of
 

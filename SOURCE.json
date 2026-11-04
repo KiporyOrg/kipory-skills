@@ -1,7 +1,9 @@
 {
-  "source": "ae65fe45c05834e8c39cee6cd8bbf0abd3c2d16e",
+  "source": "8c53c8ed03e14dacd585e76a31cac74a61329191",
   "since": "2026-08-16",
   "history": [
+    {"sha":"8c53c8ed03e1","skills":"Endpoint calls are cheaper, view reads come from a watermark-keyed cache, live views wake only the watchers a write touched, a run can be undone and a project rewound, record.query sorts, contains and ORs, a record can be shared with a person or a team, and enum comparison is leakproof (#3662)"},
+    {"sha":"62cde5c9e9db"},
     {"sha":"ae65fe45c058","skills":"record.read's `ids` caution says a slot holding `[]` as the action's only input skips it, not that it answers `[]` (#3673)"},
     {"sha":"f026a763e975"},
     {"sha":"45de622be358","skills":"Computed fields stay readable while Kipory computes them: a backfill is done only when its values are, a converted field keeps its hand value, an empty roll-up can declare ifNone, and a record.update's table is followed through transforms (FeedThat findings a–h) (#3671)"},
@@ -999,8 +1001,6 @@
     {"sha":"4e0917a4dc19"},
     {"sha":"610b9a18850a"},
     {"sha":"e2313435d6b1"},
-    {"sha":"f5fcb4a7b166"},
-    {"sha":"cea07b1761fb"},
-    {"sha":"7e721699817e"}
+    {"sha":"f5fcb4a7b166"}
   ]
 }

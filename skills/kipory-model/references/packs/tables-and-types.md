@@ -219,6 +219,14 @@ spelling (`USER`, `PROJECT`) is refused on the wire.
 **Scope freezes once records exist** (`TABLE_PINNED_BY_RECORDS`). Decide it before you
 write anything, because unwinding it means deleting the data.
 
+**Sharing is not a third scope.** A user-scoped table with `sharing: true` keeps every record its
+owner's and lets each one be shared with another person or a team record, to read, write or
+manage (`record.grant`, `record.revoke`; a team is a record a person joins with a `member`
+grant, one level). Every read of the table as a person then answers their own records and those
+shared with them or a team of theirs. Unlike the scope it can be turned on with records in place,
+and off again (the grants go inert). A project table refuses it
+(`TABLE_SHARING_NEEDS_PERSON_OWNER`), and so does a `project`-scope view over a sharing table.
+
 ⛔ **`ownerScope` is therefore REQUIRED on `POST /v1/tables`.** A body without it is refused:
 a default would make this permanent decision on your behalf, and you could not undo it after the
 first write.
@@ -540,9 +548,11 @@ record at all.
 A listing action can also **order** by a declared date field, which is the only way to sort by what
 your data means by a date rather than by when the row arrived. Two things to know:
 
-- **Only date fields.** The continuation token a page hands back carries a date, so that is what a
-  page can resume from. A timestamp stored as a plain string is a text field until its type
-  declares the `date-time` or `date` format — declare it and sorting works.
+- **Only date fields in a listing action.** Its continuation token carries a date, so that is what
+  its page can resume from. A timestamp stored as a plain string is a text field until its type
+  declares the `date-time` or `date` format — declare it and sorting works. To order by a number, a
+  true/false or a text field, ask a query or a view: its `order` takes any field with a `filter`
+  use, and its cursor carries the value (see the order of the answer, below).
 - ⚠️ **Records with no value for that field are left out of the page.** The field's index only
   covers records that have a value, and including the rest would mean sorting every record of the
   table on every request. Sorting by a date a record does not have has no answer anyway.
@@ -719,7 +729,13 @@ Each kind of clause is answered by the store its use routed the field to, so eac
   holding none of its values. `not-in` keeps a record with no value in the field: an exclusion removes
   only what it names. `field: "id"` compares the record's own id, with `eq`, `in` or `not-in`, and
   needs no use. `not-in` is taken by the route's body, a view's clauses and a `record.query` action's
-  config alike. Dates travel as ISO strings.
+  config alike. `contains` matches text anywhere in a text field, ignoring case, `%` and `_`
+  literal; the text is at least 3 characters with a word in them (`"50%"` and `"a-b"` are found,
+  signs alone like `"%%%"` are refused: the index has nothing to find them by). Dates travel as ISO strings.
+- **`any`** is an OR of 2 to 8 `field`, `term`, `link` or `stream` clauses, one level deep: a record
+  matching any one of them is in the answer. Each alternative needs what it would need alone, and
+  counts toward the query's 16 clauses. It holds no `semantic` clause, no `any`, and no stream
+  clause a record with no event satisfies. A view takes no `any` (`VIEW_ANY_UNSUPPORTED`).
 - **`term`** needs the vocabulary in `uses.vocabularies`. The `slug` may be an alias; it resolves
   one hop to its canonical term, as every term read does. It matches **active** terms only: a record
   filed under a candidate term is not found by a `term` clause, or by the list's `term=` condition,
@@ -838,9 +854,13 @@ the table with exactly ONE peer table; one that pairs it with several is refused
 - `{ "by": "meaning" }` — closest first. The default with a semantic clause of the query's own,
   and refused without one (a peer's phrase chooses which records are in reach; it does not order
   them).
-- `{ "by": "field", "field": "startsAt", "direction": "desc" }` — by one of the table's own DATE
-  fields carrying a `filter` use. An exact-only query pages by it. A record with no value in the
-  field is left out. Beside a semantic clause it re-orders the ranking: the same at-most-`topK`
+- `{ "by": "field", "field": "startsAt", "direction": "desc" }` — by one of the table's own fields
+  carrying a `filter` use: a date, a number, a true/false, or a text field whose type declares
+  `maxLength` of at most 500 (`QUERY_ORDER_TEXT_UNBOUNDED` otherwise, at save and on every read,
+  `POST /v1/records/query` too — a longer text value is indexed by its fingerprint and would sort
+  out of place). Records with the same value come newest
+  first under `asc`, oldest first under `desc`. An exact-only query pages by it. A record with no
+  value in the field is left out. Beside a semantic clause it re-orders the ranking: the same at-most-`topK`
   records, listed by the field, with no cursor.
 
 A cursor belongs to the order that minted it; passed under another it is refused — 400 on
@@ -901,8 +921,9 @@ typed, among the guides they follow" is one action.
   with one condition missing is a wider question, and it is never asked. There is no optional
   clause in an inline query: an optional filter is a view's `optional` param, whose clause is left
   out when no value comes, in one `record.view` action (the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)).
-- **An empty list is not missing.** It matches nothing, so the answer is empty with `emptiedBy`
-  naming that clause, and the action runs even when that list is its only input.
+- **An empty list is not missing.** Under `in` it matches nothing, so the answer is empty with
+  `emptiedBy` naming that clause, and the action runs even when that list is its only input. Inside
+  an `any` it drops only its own alternative; under `not-in` it removes nothing.
 - **A value of the wrong kind fails the action**, `QUERY_OPERAND_INVALID`, before any store is read:
   a single value where `in` needs a list (or the reverse), more than 1 000 distinct members, a
   link or stream filter value that is not text, a window bound that is not an ISO moment with an
@@ -1011,7 +1032,8 @@ records it is linked to, under `linked.<name>`:
 - `GET /v1/records` takes no `linked`, its rows carry no `linked` / `linkedMore`, and neither route
   takes `pages` — both are 422 as unknown members.
 
-**Not built — do not promise these.** OR across clauses (only `in` inside a field clause). A second
+**Not built — do not promise these.** OR across clauses anywhere but a query's `any` — a view, a
+linked read's `where` and the listing actions take none (OR one field's values with `in`). A second
 hop through `peer`. Ordering by how closely a LINKED record matches, or by any value on a linked
 record. A similarity cut-off on a ranking. An answer carrying records of two tables, except a
 ranking by meaning across `tableKeys`. A query
@@ -1299,8 +1321,8 @@ and create another, which is refused while it holds records.
 - **How:** `PATCH /v1/tables/{id}` with the new `key`, or the table's row in a project document
   stated by its `id` under the new key (`dish` → `recipe`).
 - **What moves, in one transaction:**
-  - every record, keeping its id, with its stream events, pending vector deletions and the links
-    its fields produce; relation pairings and vocabulary bindings follow;
+  - every record, keeping its id, with its stream events, pending vector deletions, its shares
+    and the links its fields produce; relation pairings and vocabulary bindings follow;
   - every configuration position that names the table, such as an action's `tableKey` or a
     `record.query` semantic clause's `likeTableKey`;
   - every `x-record-ref` in another type, every `recordRef` in action, flow and table schemas, and

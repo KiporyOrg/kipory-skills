@@ -33,7 +33,7 @@ hidden part, and no parameters: a template is applied as written. `Accept: appli
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
 `kipory: 10`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused. A template may carry `views` and `shapes` too, spelled as that
-pack spells them (a clause `op` is `in`, `not-in` and the rest; a linked read's far table is
+pack spells them (a clause `op` is `in`, `not-in`, `contains` and the rest, and a view holds no `any`; a linked read's far table is
 `peerTable`, and a view's linked read may say `when`): a flow it ships then reads its views by key. A `delete: true` row, a config namespace's too, finds nothing to remove in a new
 project. A template that breaks one is refused like any other document. A table there names its
 type by key with `type` — the type stated under `types` — never inline. Check
@@ -96,7 +96,7 @@ and send the sections you mean.
 
 A template's actions carry the same fields a document's do, an action's optional `failureSlot`
 and `onOversize` included: a project created from the template gets it as written. Its tables
-likewise carry `computed` (a rollup's `ifNone` included) and `reprocessOn` as a document's do —
+likewise carry `computed` (a rollup's `ifNone` included), `reprocessOn` and `sharing` as a document's do —
 `renameComputed` too, though a
 template rarely renames — and a plan of one lists the `recompute` consequence for a table whose
 stored records get computed values. Its search is stated as a

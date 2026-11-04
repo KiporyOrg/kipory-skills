@@ -23,7 +23,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the action; with `tableKeys`, each row carries its own table's named fields. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
-| `order` | union | no | — | Order by `created`, `meaning`, or a date field of the type. ⚠️ A field order leaves out records with no value in that field. |
+| `order` | union | no | — | Order by `created`, `meaning`, or a filterable field. ⚠️ A field order leaves out records with no value in that field. |
 | `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the action unless `onMore` is "stop". |
 | `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
@@ -37,7 +37,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `kind` | `field` | yes | — | A condition on a field the type routes with `filter`. |
 | `field` | string | yes | — | A field of the table with a `filter` use. |
-| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` \| `not-in` | yes | — | Each operator takes one value; `in` takes a list. |
+| `op` | `eq` \| `lt` \| `lte` \| `gt` \| `gte` \| `in` \| `not-in` \| `contains` | yes | — | Each operator takes one value; `in` takes a list. |
 | `value` | union | yes | — | The value to compare (a list for `in`; dates in ISO 8601). |
 
 `value` — one of:
@@ -291,6 +291,20 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
+**`kind: any`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `kind` | `any` | yes | — | Records matching ANY of its alternatives — an OR, one level deep. |
+| `of` | union[], 2 to 8 items | yes | — | 2 to 8 field, term, link or stream clauses. |
+
+`of` — each item is one of:
+
+- `kind: field` — the same members as `kind: field` of `clauses`
+- `kind: term` — the same members as `kind: term` of `clauses`
+- `kind: link` — the same members as `kind: link` of `clauses`
+- `kind: stream` — the same members as `kind: stream` of `clauses`
+
 ### `cursor` — one of
 
 - `string`
@@ -410,9 +424,9 @@ each entry › `linked` › each entry › `when` — one of:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `by` | `field` | yes | — | By one of the table's own date fields. |
-| `field` | string | yes | — | A date field with a `filter` use; empty dates are left out. |
-| `direction` | `asc` \| `desc` | no | `"desc"` | `desc` (latest first, the default) or `asc`. |
+| `by` | `field` | yes | — | By a `filter` field; records without a value are left out. |
+| `field` | string | yes | — | A date, number, text or boolean field with a `filter` use. |
+| `direction` | `asc` \| `desc` | no | `"desc"` | `desc` (latest or largest first, the default) or `asc`. |
 
 ### `pages`
 

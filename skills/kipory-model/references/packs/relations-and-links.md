@@ -853,8 +853,8 @@ Do not promise these:
   cannot reach into the peer record's own declared fields. That question is a query: the `link`
   clause of a query takes a `peer` list of `field`, `term` and at most one `semantic` clause on the
   record at the far end, one hop — see the query section of
-  Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`). OR across clauses is not
-  built anywhere.
+  Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`). OR across clauses is a query's `any`
+  alone: a link read's `where`, a linked read and a view take none.
 
 ## Related
 

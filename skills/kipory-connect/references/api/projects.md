@@ -28,6 +28,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `POST` | [`/v1/projects/{nodeId}/purge`](#post-v1-projects-nodeid-purge) |  |
 | `GET` | [`/v1/projects/{nodeId}/references`](#get-v1-projects-nodeid-references) |  |
 | `POST` | [`/v1/projects/{nodeId}/restore`](#post-v1-projects-nodeid-restore) |  |
+| `POST` | [`/v1/projects/{nodeId}/rewind`](#post-v1-projects-nodeid-rewind) |  |
 | `GET` | [`/v1/projects/{nodeId}/settings`](#get-v1-projects-nodeid-settings) |  |
 | `PATCH` | [`/v1/projects/{nodeId}/settings`](#patch-v1-projects-nodeid-settings) |  |
 | `GET` | [`/v1/projects/address-availability`](#get-v1-projects-address-availability) |  |
@@ -695,6 +696,42 @@ Bring a retired project back before its `purgeAfter`: its node, keys, schedules 
 | `nodeId` | `string` | yes | The restored project's id (its node id). |
 | `slug` | `string` | yes | The restored project's slug. |
 | `subdomain` | `string` | yes | The address label the project's own API is served under again. A label, not a host — its URL is `baseUrl` on `GET /v1/projects/{nodeId}`. |
+
+### `POST /v1/projects/{nodeId}/rewind`
+
+Put every record, link and term changed after `at` back to how it was then — a point-in-time restore for this project only. A row that cannot go back is skipped and named in `refusedRows`. `at` lies inside `kept-for.row-history-days` and no earlier than the project's oldest history (422 `REWIND_BEFORE_HISTORY`, with `details.earliest`); at most `runs.rewind-rows` rows (422 `REWIND_TOO_LARGE` — choose a later time). `at` is compared with each write's time, not its commit, so pick a time a minute before the trouble. Mail, requests and runs started since are not reversed. Send `validateOnly: true` first: it tries the rewind, rolls it back and answers the same counts with `restored` 0. The rewind is recorded, so a later rewind to just before it reverses it. OWNER.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | The project's node id. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `at` | `string` | yes | The time to rewind to (ISO 8601). Inside the history window, and in the past. |
+| `validateOnly` | `boolean` | no | Answer how many rows would go back and write nothing. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `applied` | `boolean` | yes | Whether anything was written. False on `validateOnly`. |
+| `at` | `string` | yes | The time rewound to. |
+| `planned` | `integer` | yes | Records, links and terms changed since then, each once. |
+| `restored` | `integer` | yes | Rows put back. 0 on `validateOnly`. |
+| `refused` | `integer` | yes | Rows skipped because they cannot go back. |
+| `refusedRows` | `object[]` | yes | Up to 20 rows skipped, and why. |
+| `notReversed` | `object` | yes | Rows removed since then that no rewind puts back, counted by kind: `record.files.removed`, `record.references.removed`, `record.holds.removed`, `record.grants.removed`. |
+
+Each item of `refusedRows`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `row` | `string` | yes | The row, as `record:<id>`, `link:<id>` or `term:<recordId>\|<termId>`. |
+| `why` | `"changed" \| "in-use" \| "conflict"` | yes | `in-use`: a record created since that files, references, holds or stream events still name. `conflict`: putting it back collides with a row there now, or names a record or term that is gone. |
 
 ### `GET /v1/projects/{nodeId}/settings`
 

@@ -19,6 +19,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/runs/{runId}/timeline`](#get-v1-runs-runid-timeline) |  |
 | `GET` | [`/v1/runs/{runId}/timeline/stream`](#get-v1-runs-runid-timeline-stream) |  |
 | `GET` | [`/v1/runs/{runId}/trace`](#get-v1-runs-runid-trace) |  |
+| `POST` | [`/v1/runs/{runId}/undo`](#post-v1-runs-runid-undo) |  |
 
 ### `GET /v1/activity/stream`
 
@@ -389,3 +390,38 @@ The VALUES half of one run — flow inputs and output, slot outputs and each act
 | `durationMs` | `integer \| null` | yes | How long the run took, in milliseconds. ⚠️ NULL MEANS UNTIMED, not instant — an old row, or a run that crashed before it got going. Render the difference. |
 | `createdAt` | `string` | yes | When the run happened. |
 | `expiresAt` | `string` | yes | When this trace will be deleted. Reading it after this point returns 404 by design, not because the reference is broken. |
+
+### `POST /v1/runs/{runId}/undo`
+
+Put back what one run wrote: each record, link and term it touched returns to its state before the run, if it is still as the run left it. A row changed since, a record later rows still name, or a row that conflicts with what is there now refuses the whole undo (409 `UNDO_ROWS_CHANGED_SINCE`, nothing written) unless `partial: true`; `validateOnly: true` answers 200 with the same refusals and writes nothing. What the run did outside the database — mail, requests, pushes, events, runs started, files — is not reversed and is counted in `notReversed`. History is kept `kept-for.row-history-days` (409 `UNDO_NOTHING_RECORDED` past it); at most `runs.undo-rows` rows (422 `UNDO_TOO_LARGE`). The undo is not a run: a rewind to just before it reverses it. ADMIN.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `runId` | `string` | yes | The run to undo. |
+
+**Request body**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `partial` | `boolean` | no | Restore the rows that can go back and skip the rest. Off: one row that cannot go back refuses the whole undo and nothing is written. |
+| `validateOnly` | `boolean` | no | Try the undo and roll it back: the answer counts exactly what it would refuse, `restored` is 0 and nothing is written. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `applied` | `boolean` | yes | Whether anything was written. False on `validateOnly`, and on an all-or-nothing undo that met a refusal (answered 409). |
+| `planned` | `integer` | yes | Records, links and terms the run touched, each once, that history still holds. |
+| `restored` | `integer` | yes | Rows put back. 0 on `validateOnly`. |
+| `refused` | `integer` | yes | Rows that cannot go back, so left as they are. |
+| `refusedRows` | `object[]` | yes | Up to 20 rows not put back, and why. |
+| `notReversed` | `object` | yes | What the run did that no undo reverses, counted by kind: `mail.deliver`, `request.deliver`, `push.deliver`, `event.publish`, `job.enqueue`, `run.start`, `record.files.attach`, `record.files.detach`, `record.stream.append`, `source.hold`, `source.release`, `record.grant.set`, `record.grant.remove` (effects), and `record.files.removed`, `record.references.removed`, `record.holds.removed`, `record.grants.removed` (a record's files, lifecycle references, source holds and shares the run removed, which a restored record comes back without). |
+
+Each item of `refusedRows`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `row` | `string` | yes | The row, as `record:<id>`, `link:<id>` or `term:<recordId>\|<termId>`. |
+| `why` | `"changed" \| "in-use" \| "conflict"` | yes | `changed`: changed since the run. `in-use`: a record the undo would delete that later links, terms, files, references, holds or stream events still name. `conflict`: putting it back collides with a row there now (a natural key, a link), or names a record or term that is gone. |

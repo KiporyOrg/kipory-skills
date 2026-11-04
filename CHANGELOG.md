@@ -2,6 +2,39 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261104.112952 — 2026-11-04
+
+Synced from the Kipory monorepo at `8c53c8ed0`.
+
+Functions added: `record.grant`, `record.revoke`.
+
+Routes added: `POST /v1/projects/{nodeId}/rewind`, `POST /v1/runs/{runId}/undo`.
+
+- changed: `skills/kipory-build/references/functions/README.md`
+- changed: `skills/kipory-build/references/functions/record.aggregate.md`
+- added: `skills/kipory-build/references/functions/record.grant.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- added: `skills/kipory-build/references/functions/record.revoke.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/quickstart-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/packs/templates.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/api/records.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- added: `skills/kipory-data/references/sharing-records.md`
+- added: `skills/kipory-data/references/undo-and-rewind.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-model/SKILL.md`
+- changed: `skills/kipory-model/references/api/tables.md`
+- changed: `skills/kipory-model/references/packs/relations-and-links.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+
 ## 1.20261103.151622 — 2026-11-03
 
 Synced from the Kipory monorepo at `ae65fe45c`.

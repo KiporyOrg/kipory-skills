@@ -57,6 +57,11 @@ page and bringing linked records, which the three reads share, comes first below
   (`RECORD_FILTER_TEXT_RANGE`): a range on text compares only values up to 2,000 bytes, and only
   `record.query` says how many it left out (`longTextSkipped` on its clause row). `eq` and `in`
   find a text value of any length in all three.
+- `record.query` also takes `contains` on a text field (text anywhere, ignoring case, at least 3
+  characters with a word in them, not signs alone), an `any` clause (2 to 8 field, term, link or stream alternatives, one level deep, an
+  OR), and an `order` by a number, true/false or text field with a `filter` use. A text order needs
+  the type's `maxLength` of at most 500 on the field (`QUERY_ORDER_TEXT_UNBOUNDED`), and reading
+  every page (`pages` above 1) still needs a date or `created` order.
 
 `linked` brings each record's linked records with it — on `record.read`, `record.list` and
 `record.query` alike:
@@ -325,6 +330,11 @@ and it reports that as an ordinary empty result rather than a permission error.
 key's call. In a run that acts for a signed-in user, a read or a write whose `userId` names anyone
 but that user fails `PERSON_NOT_THE_RUNS`, so a value the caller sends cannot open another user's
 records.
+
+**On a table that shares, a person reaches more.** A read answers their own records and every
+record shared with them or a team of theirs; an update, an append or a link reaches a record shared
+at `write` or `manage`. `record.grant` and `record.revoke` share and unshare
+(`references/sharing-records.md`).
 
 This is the opposite of the HTTP routes in this skill, which run with your key's grant and reach
 every record in the project. A flow tested with your own records and shipped to end users will

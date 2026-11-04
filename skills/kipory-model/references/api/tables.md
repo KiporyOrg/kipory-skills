@@ -49,6 +49,7 @@ Each item of `tables`:
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
@@ -98,6 +99,7 @@ Create a table that takes its data shape from an existing type. With `validateOn
 | `uses` | `object` | no | What each field is for. Omit for a table whose fields are stored with the record and read whole. Every projection — `searchable`, `queryable`, `relations`, the natural key, the vocabulary links — is derived from this and cannot be sent directly. |
 | `computed` | `object` | no | Fields Kipory keeps from related records (`rollup`, `lookup`) or the record itself (`formula`). Omit for none. |
 | `reprocessOn` | `object[]` | no | Run the table's processing flow again for a record when its related records join, leave or change. Omit for never. |
+| `sharing` | `boolean` | no | `true` lets each record be shared with people and teams (`record.grant`); they then read it as its owner does. A `user` table only. Omit for off. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -172,6 +174,7 @@ Each item of `renames`:
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
@@ -346,6 +349,7 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |
@@ -476,6 +480,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 | `uses` | `object` | no | Replace the table's whole `uses` statement. Omit to keep the current one. Sent WHOLE, never merged: the order of `filter` fields is the slot order. Every projection is re-derived from it in the same transaction. |
 | `computed` | `object \| null` | no | Replace the table's computed fields, whole. Omit to keep them; null to remove them all (their values go too). |
 | `reprocessOn` | `object[] \| null` | no | Replace when the table's processing runs again because related records changed. Omit to keep; null for never. |
+| `sharing` | `boolean` | no | Turn sharing records with people and teams on or off. A `user` table only. Omit to keep. |
 | `renameComputed` | `object` | no | Rename computed fields: old name → new name. Send `computed` with the field under its new name; its kept values and every computed field of another table reading it move with it, without a recompute. |
 | `version` | `integer` | yes | The version you last read. REQUIRED; a stale one is refused 409. A write on another resource can move this version; the response of that write lists the rows it touched under `touched`. |
 | `validateOnly` | `boolean` | no | Check this patch against the stored table and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
@@ -484,7 +489,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 
 One of 2 shapes:
 
-Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `origin`, `ownerScope`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `computed`, `computedFields`, `reprocessOn`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
+Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `origin`, `ownerScope`, `sharing`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `computed`, `computedFields`, `reprocessOn`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -499,6 +504,7 @@ Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
 | `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
+| `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
 | `contentFields` | `object[]` | yes | Every field a read or list may project, submitted and processed together. Base fields like `id` and `createdAt` are not listed — they always emit and are not selectable. |
 | `uses` | `object` | yes | What each field is FOR — the one authored statement this table carries. Every use routes the field to a store: `filter` to an indexed column, `search` to the vector index, `link` to the link store, `key` to the natural-key index, `stream` to the stream store; the table-level `vocabularies` list routes to the term vocabulary. `searchable`, `relations`, `queryable`, `naturalKey` and the vocabulary links below are DERIVED from it and read-only. |

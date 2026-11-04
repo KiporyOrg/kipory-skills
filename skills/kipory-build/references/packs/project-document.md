@@ -39,7 +39,7 @@ unchanged project answers `304`.
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
   `basedOn` inside the document, whole or by section, so a file edited for hours still names it.
 - In the YAML form each flow is preceded by its outline as comment lines
-  (`# outline (format 7), derived at export; plan ignores it`, then the lines
+  (`# outline (format 8), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
   unchanged; edit the actions, never the outline.
 - A value saved before a rule that now refuses it is exported as stored, never as an error.
@@ -62,7 +62,8 @@ another row. So a field a surface grows appears in the document the same day, sp
 an endpoint's `contractConfig.responseBody` (one flow output sent as the whole body) is written here
 as on `POST /v1/api-endpoints`, a
 table's `ownerScope` is `user` or `project` here as on `POST /v1/tables` and on a
-record (the stored `USER` / `PROJECT` is refused, in a document as on the row), and a
+record (the stored `USER` / `PROJECT` is refused, in a document as on the row) — with
+`sharing: true` beside it on a `user` table whose records are shared by grants — and a
 relation's `producer` / `cardinality` are `join-record`, `many-to-one`, … as on
 `POST /v1/relations` (the camelCase `joinRecord` / `manyToOne` is refused; `producer` is
 required on every relation row, as on the create), and an eval
@@ -135,6 +136,13 @@ What no schema says:
   caller, with no member cap; an empty set matches nothing under `in` and everything under
   `not-in`, and `not-in` keeps a record with no value at all. A set view holds only `field` clauses
   and sets, two levels deep at most, and no view with a `semantic` clause uses one.
+- **`contains` yes, `any` no.** A view's field clause takes `contains` (text anywhere, ignoring
+  case, at least 3 characters with a word in them, not signs alone — a param that does not hold
+  that is refused when the view is read, and a param of another type at save). A view
+  holding an `any` clause is refused at save, `VIEW_ANY_UNSUPPORTED`: OR one field's values with
+  `in`, or ask the OR in a `record.query` action. A view's `order` may name a number, true/false or
+  text field with a `filter` use; a text field needs the type's `maxLength` of at most 500
+  (`QUERY_ORDER_TEXT_UNBOUNDED`).
 - **The exclusion runs before the page is cut**, so a base view that drops what the caller hid
   (`visibleBooks`) gives every view that extends it full pages. `extends` takes the base's table,
   scope and `where` and adds its own clauses; its `order`, `pageSize`, `shape` replace the base's.
