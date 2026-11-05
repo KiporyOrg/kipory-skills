@@ -1,7 +1,8 @@
 {
-  "source": "86ce1813ce69b9c9c9c9be0c9289b3a8586609e2",
+  "source": "eef62f79764fc2da434b23207230a8a5d4900416",
   "since": "2026-08-16",
   "history": [
+    {"sha":"eef62f79764f","skills":"youtube.transcript's two vendors run on the vendor engine, a project's own refused key fails the run on every function, and every vendor is priced at its charge × 1.5 (418, S6, 4 of 5) (#3680)"},
     {"sha":"86ce1813ce69","skills":"url.scrape and url.screenshot run on the vendor engine as Firecrawl offers, billed at the credits Firecrawl charged × 1.5 (418, S6, 3 of 5) (#3679)"},
     {"sha":"addf9242ec1a"},
     {"sha":"3fb1a00b60cb","skills":"An action's JSONata expressions can be read and edited as ordinary TypeScript, and only the JSONata is stored (#3677)"},
@@ -1000,7 +1001,6 @@
     {"sha":"fd9508503feb"},
     {"sha":"2d4cbf3c94db"},
     {"sha":"f06df3fd69d5"},
-    {"sha":"d726b386e841"},
-    {"sha":"48a0df5673fa"}
+    {"sha":"d726b386e841"}
   ]
 }

@@ -228,7 +228,7 @@ Any authenticated caller; the answer is the same for everyone.
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` functions; an inline or control function runs in the pipeline with neither. |
 | `run` | `object` | yes | How an action using this function is run: what its time limit bounds, where the default comes from, and any limit the function keeps whatever the action says. Always present. |
 | `example` | `object` | no | The worked example, when this function ships one. |
-| `servedBy` | `object[]` | yes | The vendors serving this function in this environment, in the platform's routing order, not adjusted for the caller; at run time an action naming none asks a vendor the project holds its own key for first, then this order. Empty for a function no vendor serves, or one whose vendors are chosen in code (`providers`). An action names one in `vendor.use`, and says when it may move to the next in `vendor.switch`. |
+| `servedBy` | `object[]` | yes | The vendors serving this function in this environment, in the platform's routing order, not adjusted for the caller; at run time an action naming none asks a vendor the project holds its own key for first, then this order. Empty for a function no vendor serves. An action names one in `vendor.use`, and says when it may move to the next in `vendor.switch`. |
 
 Each item of `essentials`:
 

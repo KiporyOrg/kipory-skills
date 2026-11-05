@@ -674,10 +674,9 @@ action that sets none behaves as it always has.
   ranking over it computes on the rows that were kept, which is why a list fails by default. Choose
   `cut` only where the first elements are enough, and otherwise narrow the read — name the fields a
   row carries, or ask for fewer rows — so it fits.
-- **`vendor`** — on a function more than one vendor can serve (`GET /v1/functions/{key}` lists them:
-  under `servedBy` for one the platform routes, such as `x.posts`, with what each keeps of an
-  action's settings; under `providers` for one whose vendors are chosen in code, such as
-  `youtube.transcript`): `use` is the vendor to ask first
+- **`vendor`** — on a function more than one vendor can serve (`GET /v1/functions/{key}` lists them
+  under `servedBy`, such as `x.posts` and `youtube.transcript`, with what each keeps of an
+  action's settings): `use` is the vendor to ask first
   (null: the platform's order picks), and `switch` when the action may move to its next vendor —
   `never` (the default), `when-kipory-account-fails` (every one of Kipory's accounts at that vendor
   refused for its key or credit) or `when-vendor-fails` (also when the vendor itself fails). A vendor
