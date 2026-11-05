@@ -416,11 +416,11 @@
       "page": "kipory-build/references/functions/url.metadata.md"
     },
     "url.scrape": {
-      "hash": "a64887988c8d",
+      "hash": "215c37c10b67",
       "page": "kipory-build/references/functions/url.scrape.md"
     },
     "url.screenshot": {
-      "hash": "d6f409378e82",
+      "hash": "d312127847b4",
       "page": "kipory-build/references/functions/url.screenshot.md"
     },
     "url.send": {

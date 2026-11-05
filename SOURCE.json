@@ -1,7 +1,9 @@
 {
-  "source": "3fb1a00b60cbe0e405cde0d31c621549e0a11596",
+  "source": "86ce1813ce69b9c9c9c9be0c9289b3a8586609e2",
   "since": "2026-08-16",
   "history": [
+    {"sha":"86ce1813ce69","skills":"url.scrape and url.screenshot run on the vendor engine as Firecrawl offers, billed at the credits Firecrawl charged × 1.5 (418, S6, 3 of 5) (#3679)"},
+    {"sha":"addf9242ec1a"},
     {"sha":"3fb1a00b60cb","skills":"An action's JSONata expressions can be read and edited as ordinary TypeScript, and only the JSONata is stored (#3677)"},
     {"sha":"99661285dbf7","skills":"Kipory's seven Apify reads run on the vendor engine, every started run is billed or left on the ledger with its id, and every vendor charge is priced by the general multipliers (418, S6, 2 of 5) (#3676)"},
     {"sha":"1d93054389f7"},
@@ -999,8 +1001,6 @@
     {"sha":"2d4cbf3c94db"},
     {"sha":"f06df3fd69d5"},
     {"sha":"d726b386e841"},
-    {"sha":"48a0df5673fa"},
-    {"sha":"e283c0f4868d"},
-    {"sha":"4e0917a4dc19"}
+    {"sha":"48a0df5673fa"}
   ]
 }
