@@ -42,7 +42,9 @@ through a share takes no files from the writer (`RECORD_SHARED_NO_FILES`).
 
 `record.grant` takes the record, then whom to share it with (a person's user id or a team record's
 id), with `level` in its config; `record.revoke` takes the same two and removes that share. Both
-apply with the run's change set, so a run that fails shares nothing. The record's owner may grant,
+apply with the run's change set, so a run that fails shares nothing. Each record a run shares or
+unshares also stages one change for its search index, once per record however many shares, and that
+change counts toward the run's limit of changes (`runs.change-set-effects`). The record's owner may grant,
 and so may anyone holding `manage` on it. A run that acts for nobody (a schedule, a trigger, a key's
 call) acts for the project and may grant on any record of a sharing table. Each function's page is in
 `kipory-build` under `references/functions/` (`record.grant.md`, `record.revoke.md`).
@@ -59,7 +61,11 @@ Every read of a sharing table as a person — `record.read`, `record.list`, `rec
 `record.query`, `record.aggregate`, linked reads and a view endpoint called by that person — answers
 their own records and every record shared with them or with a team they are a member of. A search
 (`semantic` clause) reaches the same set. A share or a revoke counts on the next read: a view's ETag
-and a live view move with it.
+and a live view move with it. A search finds a newly shared record by meaning once its search index learns the new reader,
+normally seconds after the run that shared it. While many shares of one record keep landing, the
+index catches up a few times and then leaves the rest to the next reconcile: the daily one, unless
+a save that changes what the project indexes starts one sooner. A revoked record is never answered,
+even before that.
 
 ## What is refused
 

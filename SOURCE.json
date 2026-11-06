@@ -1,7 +1,8 @@
 {
-  "source": "d2265a217b7d50b504e14c3b5b809c7b4565c669",
+  "source": "071dca9d14dd4eb0e37d8b7920967df253b230aa",
   "since": "2026-08-16",
   "history": [
+    {"sha":"071dca9d14dd","skills":"A share reaches search at its commit, an edit during indexing is not lost, the reconciler finds every edit and runs one resilient chain per project, filtered meaning search keeps its recall, and a project's own rate limit answers 429 (#3686)"},
     {"sha":"d2265a217b7d","skills":"A function vendor is a row: its identity, key check, balance read, meters, rate limit and mark are read from the catalog, so a vendor added through the staff API needs no deploy (418, S8) (#3685)"},
     {"sha":"512a9ae06004","skills":"Parallel writes to one record wait their turn instead of answering 409, and every refused save's 409 carries Retry-After (422) (#3684)"},
     {"sha":"1a7f36fa0004","skills":"Endpoints shape their own response: a flow refuses with its own status, redirects, verifies a signed webhook, and sets status and headers (421) (#3683)"},
@@ -1000,7 +1001,6 @@
     {"sha":"717dc8810b94"},
     {"sha":"8dcd839d1741"},
     {"sha":"ba155990932f"},
-    {"sha":"3058534ef98c"},
-    {"sha":"25c4256ec547"}
+    {"sha":"3058534ef98c"}
   ]
 }
