@@ -1,7 +1,8 @@
 {
-  "source": "1a7f36fa000403fa2a51a1c3f36c4d360410d68d",
+  "source": "512a9ae06004195de29ff7de77e23456e3e4339c",
   "since": "2026-08-16",
   "history": [
+    {"sha":"512a9ae06004","skills":"Parallel writes to one record wait their turn instead of answering 409, and every refused save's 409 carries Retry-After (422) (#3684)"},
     {"sha":"1a7f36fa0004","skills":"Endpoints shape their own response: a flow refuses with its own status, redirects, verifies a signed webhook, and sets status and headers (421) (#3683)"},
     {"sha":"4f8d5416a64b"},
     {"sha":"eef62f79764f","skills":"youtube.transcript's two vendors run on the vendor engine, a project's own refused key fails the run on every function, and every vendor is priced at its charge × 1.5 (418, S6, 4 of 5) (#3680)"},
@@ -1000,7 +1001,6 @@
     {"sha":"ba155990932f"},
     {"sha":"3058534ef98c"},
     {"sha":"25c4256ec547"},
-    {"sha":"fd9508503feb"},
-    {"sha":"2d4cbf3c94db"}
+    {"sha":"fd9508503feb"}
   ]
 }
