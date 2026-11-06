@@ -39,7 +39,7 @@ unchanged project answers `304`.
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
   `basedOn` inside the document, whole or by section, so a file edited for hours still names it.
 - In the YAML form each flow is preceded by its outline as comment lines
-  (`# outline (format 8), derived at export; plan ignores it`, then the lines
+  (`# outline (format 9), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
   unchanged; edit the actions, never the outline.
 - A value saved before a rule that now refuses it is exported as stored, never as an error.
@@ -59,8 +59,9 @@ The schema is COMPOSED from the design surfaces' own create bodies, never restat
 the surface's create body minus the addressing the document supplies by position (`project` and
 the element's `key`), the request-only `validateOnly` flag, and every field that holds an id of
 another row. So a field a surface grows appears in the document the same day, spelled the same way —
-an endpoint's `contractConfig.responseBody` (one flow output sent as the whole body) is written here
-as on `POST /v1/api-endpoints`, a
+an endpoint's `contractConfig.responseBody` (one flow output sent as the whole body), `redirect`,
+`statusOutput` and `headers`, and an input bound `from: "header.<name>"` or `"rawBody"`, are written
+here as on `POST /v1/api-endpoints`, a
 table's `ownerScope` is `user` or `project` here as on `POST /v1/tables` and on a
 record (the stored `USER` / `PROJECT` is refused, in a document as on the row) — with
 `sharing: true` beside it on a `user` table whose records are shared by grants — and a

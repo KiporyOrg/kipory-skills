@@ -101,7 +101,23 @@ refer to this endpoint by for its whole life.
 ## The contract
 
 The path must start with `/v1/`, each segment being a literal or a single parameter, with no two
-parameters adjacent. Path and query parameters can only carry string slots.
+parameters adjacent.
+
+**Where each input comes from** is its binding's `from`:
+
+| `from`                     | Gives the input                                                                                     |
+| -------------------------- | --------------------------------------------------------------------------------------------------- |
+| `body`                     | the JSON body's field named like the input                                                          |
+| `path.<name>`              | a declared path parameter                                                                           |
+| `query.<name>`, or `query` | a declared query parameter; bare `query` means the one named like the input                         |
+| `header.<name>`            | a request header, its name in lower case; absent when not sent                                      |
+| `rawBody`                  | the body's exact text as sent — what a webhook signs; the body may then carry fields no input binds |
+
+A path or query value is converted to the input's type — text, a number, an integer or
+true/false — and a value that does not convert answers 422 before the flow runs: `?limit=20`
+feeds an integer `limit`. A header or the raw body binds a text input. `authorization`,
+`cookie`, `proxy-authorization` and any `x-kipory-` header cannot be bound: a flow never sees a
+credential.
 
 Collisions are computed on the **parameter-name-agnostic template**, so `/v1/x/{id}` and
 `/v1/x/{key}` are the same path. It must not collide with a coded platform route or with a sibling
@@ -177,9 +193,51 @@ then read anyone's records. Read a fixed person, or keep such an endpoint behind
 Going back to `auth: "required"` takes effect on the next request. Going public can take up to 30
 seconds to be served.
 
-⚠️ **A public endpoint is not a webhook receiver.** The contract takes path and query parameters
-and a JSON body; it does not carry headers or the raw body, so a third party's signature cannot be
-verified in the flow. It also answers JSON only, so it is not a link someone clicks.
+**A public endpoint can be a webhook receiver or a link someone clicks.** Bind the signature header
+and `rawBody`, and check them with `request.verify-signature` (below); answer a click with a
+`redirect`. A public endpoint's own refusals — a `request.refuse`, a bad signature — reach the
+caller as written, 403 included. An endpoint whose `publicRpm` you set above the project's
+per-address figure lets one address make up to that many calls a minute to it, at most 120, and
+hold more of the project's public calls running at once in the same proportion (at most four
+fifths of them); one left unset keeps the project's figures. A refusal of the
+flow's own is an answer, not a failure: it does not count against the endpoint's health or its
+failed-calls alert.
+
+## Refusing a call, and shaping the answer
+
+**A flow refuses with the status it means** through a `request.refuse` action, given a condition so
+it runs only when the call must be refused:
+`{ "status": 403, "code": "NOT_OWNER", "message": { "literal": "Only the owner can do that." } }`
+— `message` is an argument, so fixed text is a `literal`; a bare string names a slot. The status is
+one of 401, 403, 404, 409, 410, 413, 415, 422 or 429; `retryAfterSeconds` adds `Retry-After`. The
+caller gets that status, the platform's word for it as `code` (`FORBIDDEN`, `GONE`,
+`RATE_LIMITED`…), your code as `details.reason` and your message. The run fails, so nothing it
+would have written is kept. Never set it to keep the run going on failure: the save refuses that. A
+refusal, and a signature check, run before any action beside them and stop the run: nothing
+started after them runs, so a forged call spends nothing. They run first only among the actions
+of their own level, though: make costly work (an AI call, a fetch, a sub-flow) read the check's
+`true`, so it waits for the check whatever the flow's shape.
+
+**A signed webhook** is checked by `request.verify-signature`:
+`{ "payload": "raw", "signature": "sig", "secret": "shop.record.data.paymentSecret" }`, with `raw`
+bound to `rawBody` <!-- field-ok: rawBody — an input binding's `from` value, not a field --> and `sig` to `header.x-signature`. It compares the HMAC (sha256 hex by default,
+or another hash, encoding and prefix as configured) in constant time, and a wrong or missing signature
+answers 401 `SIGNATURE_INVALID` and stops the run, nothing written. On a match it outputs `true`: wire
+an action to it to run only for a signed call. `onMismatch: "output"` gives the flow `false` instead of refusing. Read the record the secret is on first, so an unknown sender gets 404 before
+the signature is checked.
+
+**The answer's shape** (a synchronous invoke only, not a view endpoint) — each names a flow output,
+and the outputs it names are not in the body:
+
+| `contractConfig`                        | Answers                                                                                                                                                                            |
+| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `successStatus: 204`                    | 204, no body                                                                                                                                                                       |
+| `redirect: { "location": "url" }`       | 302 (or `status`: 301, 303, 307, 308) with `Location` set to the output: an `http(s)` address or a path starting with `/`. A GET whose flow writes (a click count) may redirect    |
+| `statusOutput: "status"`                | the status the run outputs: 200, 201, 202, 204 or 206 — 201 for a new event, 200 for a replay                                                                                      |
+| `headers: { "Cache-Control": "cache" }` | each header from its output, up to 10: Cache-Control, Content-Disposition, Content-Language, ETag, Expires, Last-Modified, Link, Retry-After, or an `X-` name (not `X-RateLimit-`) |
+
+An output the answer cannot carry — a `Location` that is no address, a status outside the list, a
+header value with a line break — answers 502 and nothing is written.
 
 ## The target
 
@@ -229,10 +287,10 @@ Three kinds:
     `maxParallelBranches` set above 1.
 - **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
 
-**An endpoint answers JSON or server-sent events, and nothing else.** A buffered invoke answers
-JSON; a stream and a subscription answer `text/event-stream`. There is no HTML response, no
-redirect and no file download — hand a file out as a link from a `file.download-url` action —
-see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
+**An endpoint answers JSON, a redirect, an empty 204 or server-sent events.** A buffered invoke
+answers JSON (or the shape above); a stream and a subscription answer `text/event-stream`. There
+is no HTML response and no file download — hand a file out as a link from a `file.download-url`
+action — see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
 
 **A retry is made safe with an `Idempotency-Key` header.** On an asynchronous invoke a second call
 with the same key gets the first call's acknowledgement and starts no second run, while the run's

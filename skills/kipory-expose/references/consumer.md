@@ -8,7 +8,7 @@ How a request to `<baseUrl>/v1/<your-path>` is served. This is what your product
 
 - **`baseUrl` is the project's own origin.** Read it from `GET /v1/projects/{nodeId}` or from the project's entry in `GET /v1/grant`; an endpoint's `invokeUrl` is `baseUrl` plus its path. Do not infer either from the base URL you were handed: they follow the deployment's own configured address (`kipory-connect`'s `references/conventions.md` owns the two-hosts rule).
 - **Where it is `null`** — a deployment configured on a bare `localhost`, with no host name to derive a project host from — send the same request to the api's base URL with the header `x-kipory-project-slug: <project slug>`; without it that host answers 404 `No project matched this request's host`, naming the header. That header is read on a local or development stack only; a production deployment never reads it.
-- **A response is JSON or server-sent events.** No endpoint answers HTML, a redirect or a file.
+- **A response is JSON, a redirect, an empty 204 or server-sent events.** No endpoint answers HTML or a file. A refusal's `code` is the platform's word for its status (`FORBIDDEN`, `GONE`…); the endpoint's own word for it is `details.reason`.
 
 ## Matching
 

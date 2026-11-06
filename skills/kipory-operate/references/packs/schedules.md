@@ -221,6 +221,8 @@ run's invocation. Reach for them in this order:
     its daily push allowance; `statusError` then names it too.
   - `limitKey` — set when a limit refused the run: the limit's key, which
     `GET /v1/projects/{nodeId}/limits` lists (limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
+  - `refusalStatus` — set when an action of the flow refused the call (`phase: "refused"`, a
+    `request.refuse` or a signature check): the HTTP status it chose, such as 403 or 410.
 - **`queued`** (on the runs list and `GET /v1/runs/{runId}`) — how long the latest attempt waited
   before a worker started it, `ms`, and `waitedFor`: each thing that held it, with its `ms` and how
   many `times` the run was put back for it — `project-limit` (as many of the project's runs going

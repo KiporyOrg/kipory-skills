@@ -2,6 +2,27 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261106.34500 — 2026-11-06
+
+Synced from the Kipory monorepo at `1a7f36fa0`.
+
+Functions added: `request.refuse`, `request.verify-signature`.
+
+- changed: `skills/kipory-build/references/functions/README.md`
+- added: `skills/kipory-build/references/functions/request.refuse.md`
+- added: `skills/kipory-build/references/functions/request.verify-signature.md`
+- changed: `skills/kipory-build/references/packs/flows-and-actions.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+
 ## 1.20261105.152321 — 2026-11-05
 
 Synced from the Kipory monorepo at `eef62f797`.
