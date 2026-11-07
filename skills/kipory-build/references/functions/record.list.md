@@ -40,6 +40,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `tableKey` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the action. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
+| `whose` | `all` \| `own` \| `shared` | no | `"all"` | Sharing tables: `all` (default), `own`, or `shared` (newest share first). |
 
 ### `cursor` — one of
 

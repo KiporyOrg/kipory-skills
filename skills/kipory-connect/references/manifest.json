@@ -74,7 +74,7 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
-      "hash": "02502ba52691",
+      "hash": "67fe25fbaa8e",
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
@@ -260,8 +260,12 @@
       "page": "kipory-build/references/functions/record.enqueue-process.md"
     },
     "record.grant": {
-      "hash": "b1a970a5d025",
+      "hash": "40223b81ce1d",
       "page": "kipory-build/references/functions/record.grant.md"
+    },
+    "record.grants": {
+      "hash": "11a5a2c5b28d",
+      "page": "kipory-build/references/functions/record.grants.md"
     },
     "record.link-assert": {
       "hash": "55821647ea1d",
@@ -280,7 +284,7 @@
       "page": "kipory-build/references/functions/record.links.md"
     },
     "record.list": {
-      "hash": "c8a7d946979c",
+      "hash": "959ad9f60e6c",
       "page": "kipory-build/references/functions/record.list.md"
     },
     "record.merge": {
@@ -296,7 +300,7 @@
       "page": "kipory-build/references/functions/record.read.md"
     },
     "record.revoke": {
-      "hash": "b496c9cb31cf",
+      "hash": "360fd2da6a0b",
       "page": "kipory-build/references/functions/record.revoke.md"
     },
     "record.teardown": {
@@ -1280,7 +1284,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PATCH /v1/actions/{id}": {
-      "hash": "f709dcad918f",
+      "hash": "849e6f0cc242",
       "page": "kipory-build/references/api/actions.md"
     },
     "PATCH /v1/api-endpoints/{id}": {
@@ -1390,7 +1394,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/actions/": {
-      "hash": "3fc565241bd6",
+      "hash": "630e09764e3b",
       "page": "kipory-build/references/api/actions.md"
     },
     "POST /v1/actions/batch": {
@@ -1734,7 +1738,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "1252f7b0d21e",
+      "hash": "ffa7d5e83b36",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

@@ -331,10 +331,14 @@ key's call. In a run that acts for a signed-in user, a read or a write whose `us
 but that user fails `PERSON_NOT_THE_RUNS`, so a value the caller sends cannot open another user's
 records.
 
+<!-- field-ok: ownerId — a member of a flow's record row read through a share (423-record-sharing-gaps), not a wire field -->
+
 **On a table that shares, a person reaches more.** A read answers their own records and every
-record shared with them or a team of theirs; an update, an append or a link reaches a record shared
-at `write` or `manage`. `record.grant` and `record.revoke` share and unshare
-(`references/sharing-records.md`).
+record shared with them or a team of theirs, each carrying `access` (what they may do) and
+`ownerId`; an update, an append or a link reaches a record shared at `write` or above, a delete at
+`delete` or above, and a lower level answers 403 by itself. `record.list` takes `whose: "own"` or
+`"shared"` (newest share first). `record.grant`, `record.revoke` and `record.grants` share, unshare
+and list the shares (`references/sharing-records.md`).
 
 This is the opposite of the HTTP routes in this skill, which run with your key's grant and reach
 every record in the project. A flow tested with your own records and shipped to end users will

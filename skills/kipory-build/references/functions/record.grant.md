@@ -4,7 +4,7 @@
 
 Share one record with a person or a team.
 
-Gives a person or team record read, write or manage on one sharing-table record; a new grant replaces theirs.
+Gives a person or team record read, write, delete or manage on one sharing-table record; a new grant replaces theirs.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -18,7 +18,8 @@ Gives a person or team record read, write or manage on one sharing-table record;
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `level` | `read` \| `write` \| `manage` \| `member` | no | `"read"` | What they may do: `read`, `write`, `manage`, or `member` of a team. ⚠️ `member` joins a person to a team record, never a team to a team; `manage` shares onward. |
+| `level` | `read` \| `write` \| `delete` \| `manage` \| `member` | no | `"read"` | Their level: `read`, `write`, `delete`, `manage`, or `member` of a team. ⚠️ `member` joins a person to a team record, capped at `memberLevel`; `delete` deletes; `manage` shares onward. |
+| `memberLevel` | `read` \| `write` \| `delete` \| `manage` | no | — | With `member` only: the most the team's shares give them (default: all). |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `userId` — one of

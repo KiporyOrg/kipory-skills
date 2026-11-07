@@ -11,13 +11,14 @@ Removes the second input's grant — a person, or a team record — on the first
 - **I/O:** `string, string` → `boolean`
 - **Also found as:** unshare record, revoke access, remove member
 - **Reads:** Two slots: the record, then whom to stop sharing it with — a person's user id, or a team record's id. _(shape hint: `string, string`)_
-- **Emits:** `true` once the revoke is staged, also when there was no grant to remove.
+- **Emits:** `true` once the revoke of an existing share is staged; `false` when the record was not shared with them (or `ifAbsent: "refuse"` stops the run with a 404).
 - **Suggested input streams:** `recordId`, `principal`
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `ifAbsent` | `ignore` \| `refuse` | no | `"ignore"` | If not shared with them: `ignore` answers `false`; `refuse` answers 404. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `userId` — one of

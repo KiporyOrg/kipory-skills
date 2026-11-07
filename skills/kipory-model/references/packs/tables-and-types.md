@@ -220,10 +220,12 @@ spelling (`USER`, `PROJECT`) is refused on the wire.
 write anything, because unwinding it means deleting the data.
 
 **Sharing is not a third scope.** A user-scoped table with `sharing: true` keeps every record its
-owner's and lets each one be shared with another person or a team record, to read, write or
-manage (`record.grant`, `record.revoke`; a team is a record a person joins with a `member`
-grant, one level). Every read of the table as a person then answers their own records and those
-shared with them or a team of theirs. Unlike the scope it can be turned on with records in place,
+owner's and lets each one be shared with another person or a team record, to read, write,
+delete or manage (`record.grant`, `record.revoke`, `record.grants`; a team is a record a person
+joins with a `member` grant and a member level, one level deep). Every read of the table as a
+person then answers their own records and those shared with them or a team of theirs, each with
+its `access` and `ownerId`, and a share too low for an act answers 403. The table may not declare a
+field named `access`, `ownerId` or `sharedAt` (`TABLE_FIELD_RESERVED_BY_SHARING`). <!-- field-ok: ownerId — a member of a record row read through a share (423-record-sharing-gaps), not a wire field --> <!-- field-ok: sharedAt — a member of a record row read through a share (423-record-sharing-gaps), not a wire field --> Unlike the scope it can be turned on with records in place,
 and off again (the grants go inert). A project table refuses it
 (`TABLE_SHARING_NEEDS_PERSON_OWNER`), and so does a `project`-scope view over a sharing table.
 
