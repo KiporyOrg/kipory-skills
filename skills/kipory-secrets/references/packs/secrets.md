@@ -65,10 +65,15 @@ Which vendor a given function needs is part of that function's own description â
 under a purpose matching the vendor's slug, as the function's own description names it. The external
 web-fetch vendors today are Firecrawl, Apify, twitterapi.io, the YouTube Data API, Supadata and
 ScrapeCreators (`scrapecreators`) â€” the last for every social-platform
-read (`tiktok.*`, `instagram.*`, `reddit.*`, `facebook.*`, `google.*`,
-`x.profile`, `youtube.posts`, `youtube.comments`, `youtube.search`) and for
-`x.posts` and `youtube.transcript` on an action that chose it. The two model vendors: `cohere` and
-`typesafe`. Each is a credential of the catalog's plain bearer-key type.
+read (`tiktok.profile`, `tiktok.posts`, `tiktok.post`, `tiktok.comments`, `tiktok.search`,
+`tiktok.followers`, `tiktok.following`, `tiktok.audience`, `instagram.profile`, `instagram.posts`,
+`instagram.post`, `instagram.comments`, `instagram.search`, `instagram.search-profiles`,
+`reddit.posts`, `reddit.comments`, `reddit.search`, `facebook.page`, `facebook.posts`,
+`facebook.ads`, `google.ads`, `linkedin.profile`, `linkedin.company`, `linkedin.posts`,
+`linkedin.ad`, `threads.profile`, `threads.posts`, `threads.search`, `x.profile`, `youtube.posts`,
+`youtube.comments`, `youtube.search`) and for `x.posts` and `youtube.transcript` on an action that
+chose it. The two model vendors: `cohere` and `typesafe`. Each is a credential of the catalog's
+plain bearer-key type.
 
 **A secret is used only where the platform looks it up: a function that names its purpose, an action
 that names it in `secret`, or sign-in.** A vendor with no function of its own is reached with a

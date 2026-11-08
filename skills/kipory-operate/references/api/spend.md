@@ -579,6 +579,7 @@ The project's statement — every charge under the same window and narrowings as
 | `paging` | `null` | yes | Always NULL here: walk with `after`/`before`. Read `null` as `cursor walking only`, never as `not measured yet`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
+| `providerName` | `string \| null` | yes | The name of the provider the rows are narrowed to, as it writes it — `null` with no provider narrowing. |
 
 Each item of `events`:
 

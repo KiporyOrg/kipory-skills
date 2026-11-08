@@ -2,6 +2,52 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261108.204222 — 2026-11-08
+
+Synced from the Kipory monorepo at `2828ab189`.
+
+Functions added: `facebook.posts`, `linkedin.ad`, `linkedin.company`, `linkedin.posts`, `linkedin.profile`, `reddit.comments`, `reddit.posts`, `threads.posts`, `threads.profile`, `threads.search`, `tiktok.audience`, `tiktok.followers`, `tiktok.following`, `tiktok.post`.
+
+- changed: `skills/kipory-build/references/functions/README.md`
+- changed: `skills/kipory-build/references/functions/facebook.ads.md`
+- changed: `skills/kipory-build/references/functions/facebook.page.md`
+- added: `skills/kipory-build/references/functions/facebook.posts.md`
+- changed: `skills/kipory-build/references/functions/google.ads.md`
+- changed: `skills/kipory-build/references/functions/instagram.comments.md`
+- changed: `skills/kipory-build/references/functions/instagram.post.md`
+- changed: `skills/kipory-build/references/functions/instagram.posts.md`
+- changed: `skills/kipory-build/references/functions/instagram.profile.md`
+- changed: `skills/kipory-build/references/functions/instagram.search-profiles.md`
+- changed: `skills/kipory-build/references/functions/instagram.search.md`
+- added: `skills/kipory-build/references/functions/linkedin.ad.md`
+- added: `skills/kipory-build/references/functions/linkedin.company.md`
+- added: `skills/kipory-build/references/functions/linkedin.posts.md`
+- added: `skills/kipory-build/references/functions/linkedin.profile.md`
+- added: `skills/kipory-build/references/functions/reddit.comments.md`
+- added: `skills/kipory-build/references/functions/reddit.posts.md`
+- changed: `skills/kipory-build/references/functions/reddit.search.md`
+- added: `skills/kipory-build/references/functions/threads.posts.md`
+- added: `skills/kipory-build/references/functions/threads.profile.md`
+- added: `skills/kipory-build/references/functions/threads.search.md`
+- added: `skills/kipory-build/references/functions/tiktok.audience.md`
+- changed: `skills/kipory-build/references/functions/tiktok.comments.md`
+- added: `skills/kipory-build/references/functions/tiktok.followers.md`
+- added: `skills/kipory-build/references/functions/tiktok.following.md`
+- added: `skills/kipory-build/references/functions/tiktok.post.md`
+- changed: `skills/kipory-build/references/functions/tiktok.posts.md`
+- changed: `skills/kipory-build/references/functions/tiktok.profile.md`
+- changed: `skills/kipory-build/references/functions/tiktok.search.md`
+- changed: `skills/kipory-build/references/functions/x.profile.md`
+- changed: `skills/kipory-build/references/functions/youtube.comments.md`
+- changed: `skills/kipory-build/references/functions/youtube.posts.md`
+- changed: `skills/kipory-build/references/functions/youtube.search.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- changed: `skills/kipory-operate/references/api/spend.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20261108.194103 — 2026-11-08
 
 Synced from the Kipory monorepo at `66c5faa6c`.
