@@ -62,8 +62,9 @@ use your own account's limits or terms, not to save money: you pay for the call 
 
 Which vendor a given function needs is part of that function's own description — confirm it against
 `GET /v1/functions`, never against a pack. The provider keys that resolve this way today are stored
-under a purpose matching the vendor's name. The external web-fetch vendors: `firecrawl`, `apify`,
-`twitterapi`, `youtube`, `supadata`, and `scrapecreators` — the last for every social-platform
+under a purpose matching the vendor's slug, as the function's own description names it. The external
+web-fetch vendors today are Firecrawl, Apify, twitterapi.io, the YouTube Data API, Supadata and
+ScrapeCreators (`scrapecreators`) — the last for every social-platform
 read (`tiktok.*`, `instagram.*`, `reddit.*`, `facebook.*`, `google.*`,
 `x.profile`, `youtube.posts`, `youtube.comments`, `youtube.search`) and for
 `x.posts` and `youtube.transcript` on an action that chose it. The two model vendors: `cohere` and

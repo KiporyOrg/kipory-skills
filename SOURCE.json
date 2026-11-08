@@ -1,7 +1,8 @@
 {
-  "source": "5f606c602af35d0d5ae98d892d01c169a7ba616a",
+  "source": "2017f951e71efe2b553065d595b6b8a141d25dfa",
   "since": "2026-08-16",
   "history": [
+    {"sha":"2017f951e71e","skills":"Every vendor-engine function's answer is built by its offer's data, on one generic runner, so a second vendor for an ability needs no code (418, S9) (#3692)"},
     {"sha":"5f606c602af3","skills":"An action's expressions can be read and edited as TypeScript or Python, and each edit is answered with the JSONata it means (#3682)"},
     {"sha":"e35afa08401d"},
     {"sha":"6f752a17828a","skills":"A save refused for whose: shared on a table that does not share names RECORD_LIST_WHOSE_NOT_SHARING in its answer (423) (#3690)"},
@@ -1000,7 +1001,6 @@
     {"sha":"0fa340ea328f"},
     {"sha":"b61e935a65b2"},
     {"sha":"8fd1bbf7e4e7"},
-    {"sha":"105eaf0173f5"},
-    {"sha":"37584f88b3e1"}
+    {"sha":"105eaf0173f5"}
   ]
 }
