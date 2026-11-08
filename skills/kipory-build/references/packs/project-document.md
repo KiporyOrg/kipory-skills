@@ -49,6 +49,14 @@ unchanged project answers `304`.
   you apply.
 - The floor is VIEWER, like the bootstrap read.
 
+**What a project holds, in a few KB:** `GET /v1/projects/{nodeId}/document/summary` answers the
+same read as `{ version, lines }`, one line per element in document order. A type lists its
+fields (`name:type`, `*` when required); a table its owner, type and the fields it keys, filters
+and links; a flow `(inputs) → outputs` and its `action:function`s; an endpoint its method, path,
+auth, target and success status; a schedule its cron, flow and whether it runs. The platform's
+own event types are left out. Read it first when a session starts on a project that already
+holds something, and the whole document only for the rows you will change. The floor is VIEWER.
+
 ## Learn the format
 
 `GET /v1/project-document/schema` publishes the document's JSON Schema with a content-hash

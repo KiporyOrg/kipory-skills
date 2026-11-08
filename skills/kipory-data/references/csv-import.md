@@ -1,6 +1,6 @@
 # A CSV file into records: the parse action
 
-The "one file, many records" import in this skill's main page is four actions: `file.read-text` →
+The "one file, many records" import in `files-and-imports.md` is four actions: `file.read-text` →
 `value.transform` (parse) → `flow.fan-out` over the valid rows, with `record.create` in the branch →
 `flow.merge`. The parse is the action with no function of its own. This page is one worked expression
 for it and the four things that go wrong around it.
@@ -76,7 +76,7 @@ row type only when the items are a named type — an inline `items` object is th
   discarded, the first row with it. Reject the repeat in the parse, as `$why` does.
 - **A changed row on re-import.** The same file again converges on the same records. A row whose
   key a record already holds but whose data differs is that same 409. To update on re-import, look
-  the key up first and branch (`kipory-build`'s `references/records-and-endpoints.md`), or send the rows as
+  the key up first and branch (`kipory-build`'s `references/endpoint-answers.md`), or send the rows as
   `POST /v1/records/bulk` with `onKeyTaken: "update"`.
 - **More rows than the fan-out takes.** `maxItems` defaults to 20 and its ceiling is 100 unless the
   deployment raised it. Rows past it start no branch (a preview names the cut in `fanOutCaps`);

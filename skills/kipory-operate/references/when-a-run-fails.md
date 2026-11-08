@@ -1,6 +1,20 @@
 # When a run fails — being told, health and pausing, whose failure, `partial`
 
-The detail behind `SKILL.md`'s "When a run fails": each bullet says what the platform does and what to do. `SKILL.md` lists them by their first line.
+Read this to be told when an unattended run fails, or to learn why a schedule or trigger was paused: the routes, then bullets that each say what the platform does and what to do.
+
+## The routes
+
+```
+GET  /v1/failed-runs?project={nodeId}      the runs whose latest close is `failed` or `partial`, newest first (cursor-paged)
+GET  /v1/failed-runs/summary?project={nodeId}&from=…   the same runs grouped by flow, class and code, the commonest first
+GET  /v1/projects/{nodeId}/alerts          every schedule, trigger, table or endpoint that is failing, quiet, about to be paused or paused
+GET  /v1/projects/{nodeId}/alerts?include=required-gaps   also the stored records that lack a field their type requires, counted by table and field
+POST /v1/platform-events/test              { project, type, subject?: { kind, key } } — record one example event and fire the triggers on it
+```
+
+An **unattended run** is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call or a record's processing: nobody is waiting on the answer. `references/packs/triggers.md` ("Being told when a run fails") and `references/packs/schedules.md` ("health, and being paused") have the detail; `references/api/failures.md` the fields.
+
+## What the platform does
 
 **Being told**
 
@@ -37,5 +51,5 @@ The detail behind `SKILL.md`'s "When a run fails": each bullet says what the pla
 
 **`partial`, and the list**
 
-- **A run that carried on past a failure closes `partial`**, a third result beside `succeeded` and `failed`: an action set to `"onFailure": "continue"`, a sub-flow call set to it, or a fan-out branch within the fan-out's tolerance failed (`kipory-build`'s `references/patterns.md`). Its changes are applied and its invocation reads finished; `closing.verdict` is `partial` and `closing.absorbed { actions, calls, branches }` counts what it carried on past. A schedule's or trigger's `status` and `lastRunStatus` read `partial`, and the project is told in `platform/run.partial` summaries.
+- **A run that carried on past a failure closes `partial`**, a third result beside `succeeded` and `failed`: an action set to `"onFailure": "continue"`, a sub-flow call set to it, or a fan-out branch within the fan-out's tolerance failed (`kipory-build`'s `references/patterns.md` §1 and `fan-out.md` §2). Its changes are applied and its invocation reads finished; `closing.verdict` is `partial` and `closing.absorbed { actions, calls, branches }` counts what it carried on past. A schedule's or trigger's `status` and `lastRunStatus` read `partial`, and the project is told in `platform/run.partial` summaries.
 - **`GET /v1/failed-runs?project={nodeId}` is the list a summary points at**: unattended runs whose latest close is `failed` or `partial`, newest first. Filter by `subjectKind` with `subjectKey`, by `class`, by `verdict`, and by when the run closed (`from`, and `to`, which is exclusive); walk `after=<nextCursor>`. A run the platform is about to start again is not on it, nor is a cancelled one. It keeps a run for a limited time, and a `partial` occurrence old enough to have left it reads `succeeded`.

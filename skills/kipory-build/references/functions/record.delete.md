@@ -10,14 +10,14 @@ Deletes the user's own and the project's records, never another user's. Deleting
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record id list` → `boolean`
 - **Also found as:** remove records, erase, delete rows
-- **Reads:** A list of record ids, from `ids`. A single delete passes a one-element list. _(shape hint: `record id list`)_
+- **Reads:** A list of record ids, or one id, from `ids`. _(shape hint: `record id list`)_
 - **Emits:** True when at least one record was removed or accepted for deletion, false when every id was already gone or belonged to another user.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `ids` | union | yes | — | The list of record ids to delete. ⚠️ At most 200 ids; a longer list fails before anything is deleted. |
+| `ids` | union | yes | — | The record ids to delete: a list, or one id. ⚠️ At most 200 ids; a longer list fails before anything is deleted. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `ids` — one of

@@ -1,7 +1,12 @@
 {
-  "source": "2017f951e71efe2b553065d595b6b8a141d25dfa",
+  "source": "66c5faa6cb8fdc92adb61750cb6521848d84a424",
   "since": "2026-08-16",
   "history": [
+    {"sha":"66c5faa6cb8f","skills":"A coding agent builds a Kipory backend for less and gets it right more often: a kipory command, entry skills that answer every build's questions, a compact project summary and one-pass plans, and four run-plane fixes the benchmarks found (424) (#3697)"},
+    {"sha":"ed273feccd20"},
+    {"sha":"7969951b67b7"},
+    {"sha":"c0fbde5b4911"},
+    {"sha":"f4191bb405d9"},
     {"sha":"2017f951e71e","skills":"Every vendor-engine function's answer is built by its offer's data, on one generic runner, so a second vendor for an ability needs no code (418, S9) (#3692)"},
     {"sha":"5f606c602af3","skills":"An action's expressions can be read and edited as TypeScript or Python, and each edit is answered with the JSONata it means (#3682)"},
     {"sha":"e35afa08401d"},
@@ -996,11 +1001,6 @@
     {"sha":"19c669e338fc"},
     {"sha":"3cb19be837cd"},
     {"sha":"ecb09357fd56"},
-    {"sha":"47dad3406255"},
-    {"sha":"71e56aa6be22"},
-    {"sha":"0fa340ea328f"},
-    {"sha":"b61e935a65b2"},
-    {"sha":"8fd1bbf7e4e7"},
-    {"sha":"105eaf0173f5"}
+    {"sha":"47dad3406255"}
   ]
 }

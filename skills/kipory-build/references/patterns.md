@@ -5,9 +5,21 @@
 <!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
 
-Six control shapes cover how most flows are wired. Each names the control functions involved and the one rule each has that is not obvious from its config table. Field names are the function's own config keys — see `functions/<key>.md` for the full table and a worked example.
+Four of the control shapes that wire most flows are here; fan-out and merge, and accumulating across branches, are `fan-out.md`. Each names the control functions involved and the one rule each has that is not obvious from its config table. Field names are the function's own config keys — see `functions/<key>.md` for the full table and a worked example.
 
-The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7 (a record's processing flow), §8 (what an endpoint answers: 404, 422, optional filters), §9 (`record.query` and a per-user feed), §10 (roll-ups) and §11 (views: a read declared once, and the endpoint that pages itself); `models.md` holds which model function to use, `text.decide` questions, model bindings and prices.
+The flow and record shapes are split by topic:
+
+| Section   | Page                            | Answers                                                                                                                                                                      |
+| --------- | ------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| §1, §3–§5 | `patterns.md`                   | an ingest pipeline, a sub-flow, a loop, a branch                                                                                                                             |
+| §2, §6    | `fan-out.md`                    | fan-out and merge, accumulating across branches                                                                                                                              |
+| —         | `utilities.md`                  | the small functions most flows use (`value.first-non-empty`, `text.interpolate`, `list.concat`, `record.read`) and `value.transform`'s JSONata habits                        |
+| §7, §10   | `records-and-endpoints.md`      | a record's processing flow; a value rolled up from linked records                                                                                                            |
+| §8        | `endpoint-answers.md`           | what an endpoint can answer: the body shape, rows, a 404, a 422 with your message, a 403 for a key, optional query filters, a filter on a list field, natural-key collisions |
+| §9        | `record-query.md`               | `record.query`: a per-user feed, "due now", the clause grammar, and totals with `record.aggregate`                                                                           |
+| §11       | `views.md`, `view-endpoints.md` | views: a read declared once, its sets, params and shapes; then `record.view` in a flow, the view endpoint that pages itself, ETag, the preview                               |
+
+The section numbers are one sequence across these pages, so "§8" means the same section wherever it is cited. `models.md` holds which model function to use, `text.decide` questions, model bindings and prices.
 
 ## The three grammars, once
 
@@ -17,7 +29,7 @@ The numbering runs on in two sibling files: `records-and-endpoints.md` holds §7
 | A prompt template (`promptTemplate`)         | `{{slot}}`, `{{slot.field}}`, `{{slot[0]}}`, sections `{{#slot}}…{{/slot}}`, filters `{{slot\|truncate:200}}`; never a numbered field (`{{appts.0.service}}` is sent as written — compute one item's field in a `value.transform` first) | `Summarise: {{pageText}}`                          |
 | An input projection (`inputPaths[i]`)        | a structured path object with segments `field`, `first`, `last`, `index`, `pluck`, `wrap`, `distinct`, `compact` — never a string                                                                                                        | pluck `id` from a list, wrap one value into a list |
 | A condition (`condition`)                    | a clause `{ op, slot, path?, … }`; `path` here **is** a dot-string. `not` wraps one clause (`inner`), `and` and `or` a list (`all`, `any`)                                                                                               | `{ op: "slotPresent", slot: "summary" }`           |
-| A setting that reads a value (an argument)   | a slot path string, `{ "literal": … }` (a bare number or `true`/`false` too) or `{ "expr": "…" }` — `action-fields.md` §7                                                                                                                | `"page.records[].id[distinct]"`                    |
+| A setting that reads a value (an argument)   | a slot path string, `{ "literal": … }` (a bare number or `true`/`false` too) or `{ "expr": "…" }` — `action-inputs.md` §7                                                                                                                | `"page.records[].id[distinct]"`                    |
 | A computation                                | JSONata, in `value.transform`, in an argument's `expr`, in every `value.build` field (a bare string there too) and in an `expr` condition                                                                                                | `$count(items)`                                    |
 
 A fixed value enters a flow as an argument — `{ "literal": … }` (or a bare number or `true`/`false`) in any setting that reads a value, a `flow.invoke` input and a `flow.loop` seed included — or as a JSONata expression's own constants. A bare string in a setting is a slot path, never a text: a fixed text is `{ "literal": "neutral" }`. The one exception is `value.build`'s `fields`, where every value is a JSONata expression — `"book.title"` there is JSONata, and `"$count(reviews.records)"` beside it is too.
@@ -36,36 +48,12 @@ url.scrape (pageUrl → page) → text.generate (page → summary) → record.up
 
 - Ingest-phase functions run in the async worker and carry a **queue**: retries, a wait ceiling, and a cache keyed on their input. Inline and control functions have neither retry nor cache.
 - `text.generate`'s config `temperature` and `reasoningEffort` are part of the cache key: changing either discards every cached answer for the same prompt. Higher reasoning effort dominates both time and the token bill.
-- Two actions write a record. `record.update` (above) patches the record the run is processing — `recordId`, then `data` and/or `derived`. `record.create` makes a new one — `tableKey`, `data` and an optional `fileIds`; a per-user table refuses a key-driven run. Lifecycle is decided by the table: with no processing flow the new record is `READY`; with one it is `PENDING` until that flow has processed it, and a record a flow created is queued for it only by an `record.enqueue-process` action (`records-and-endpoints.md` §7).
+- Two actions write a record. `record.update` (above) patches the record the run is processing — `recordId`, then `data` and/or `derived`. `record.create` makes a new one — `tableKey`, `data` and an optional `fileIds`; a run acting for nobody writes a per-user table only for a person it names in `userId`. Lifecycle is decided by the table: with no processing flow the new record is `READY`; with one it is `PENDING` until that flow has processed it, and a record a flow created is queued for it only by an `record.enqueue-process` action (`records-and-endpoints.md` §7).
 - Bind the last slot. A flow whose required output is unbound is refused `422 FLOW_OUTPUT_MISSING` on every live call, and preview names the slot in `missingRequiredOutput`.
 - **An action runs when any one of its inputs is present**, so a writer downstream of an action that produced nothing still runs on its other inputs. A provider slot counts when present: `projectInfo` and `runInfo` always are, and `userInfo` is on a signed-in run, so an action reading one beside a real slot runs without waiting for it — only an absent `userInfo` (a key, a schedule, a trigger) leaves the action waiting on its other inputs. "Present" means non-empty: `""` and `[]` count as absent, both here and for a `slotPresent` condition, and an action that produced `{}` or an empty file stored no slot at all. A source that fails softly (a vendor out of credit answers a warning and an empty page) then leads to a record written with a hole in it. Guard the write: `"condition": { "op": "slotPresent", "slot": "summary" }` on the writer.
-- **To run an action only when a slot is absent, negate the guard on that action**: `"condition": { "op": "not", "inner": { "op": "slotPresent", "slot": "found" } }`. A condition is judged before the action's inputs and may name a slot the action does not read, so the action keeps its own inputs and no helper action is needed (`action-fields.md` §5).
-- **One failed action fails the run** (502, its writes discarded) even when a sibling succeeded, unless the action carries `"onFailure": "continue"`. `continue` is allowed on an action that writes nothing and on a sub-flow call (§3); it is refused on every other control action, on an action whose function may write, and on an action that writes a slot a required flow output is bound to. A run that carried on past a failure closes `partial`, not `succeeded`.
+- **To run an action only when a slot is absent, negate the guard on that action**: `"condition": { "op": "not", "inner": { "op": "slotPresent", "slot": "found" } }`. A condition is judged before the action's inputs and may name a slot the action does not read, so the action keeps its own inputs and no helper action is needed (`action-inputs.md` §5).
+- **One failed action fails the run** (502, its writes discarded) even when a sibling succeeded, unless the action carries `"onFailure": "continue"`. `continue` is allowed on an action that writes nothing and on a sub-flow call (§3, below); it is refused on every other control action, on an action whose function may write, and on an action that writes a slot a required flow output is bound to. A run that carried on past a failure closes `partial`, not `succeeded`.
 - A fallback for a page is `url.scrape` and `url.fetch` side by side into `value.first-non-empty`, with `"onFailure": "continue"` on the fetch (it fails the action on a 4xx or an unresolvable host) and a `slotPresent` guard on **every** action that reads the result beside another slot — a model action reading the page and the `url` otherwise runs on the URL alone and invents the page. `kipory-gather` owns the recipe: the strip expression, the types to coalesce and a no-vendor variant.
-
-## 2. Fan-out and merge
-
-**Shape:** a list slot → `flow.fan-out` → the body → `flow.merge`.
-
-- `flow.fan-out` reads one **list-shaped** slot and emits the element schema, one branch per element.
-- Any list fans out — text, files, objects, numbers or booleans — and each branch carries its element as it is, so a list of rows needs no flattening: the branch slot is typed as the list's element, and a body action reads a field of it like any object slot. That needs the element to be a named type: a list whose `items` are written inline in its parent's definition has the anonymous `object` as its element, so the branch is an `object`, a `field` path into it is refused, and stating a named `outputSchema` on the fan-out is a `NOMINAL_MISMATCH`. Give the row its own type and reference it from `items` (`kipory-model` has the form). `flow.merge` folds every one of those kinds back into a list of the same kind. Config: `dedupe` (default true: text compared exactly, a file by its key, an object by its value, so two identical rows run once), `maxItems` (optional: cuts the list on purpose), `maxParallelBranches`, `branchTargetsAreDisjoint` (default false).
-- **One run fans out over at most the project's `runs.fan-out-items`: 1,000 unless the project's limit was changed** (`GET /v1/projects/{nodeId}/limits`). A fan-out handed more runs no branch and fails with `FAN_OUT_OVER_LIMIT` (`errorDetails` carries `requested` and `limit`); the run is not retried, and the failed-run alert names it. The plan warns `FANOUT_MAY_PASS_LIMIT` when the fan-out's list is a read whose `limit` × `pages.max` passes the limit. So one run handles at most 1,000 rows; a longer job continues page by page (next point).
-- **A job longer than one run continues page by page with `flow.continue`.** Give the flow an optional text input for the cursor (say `after`), read with `cursor: "after"`, `limit: 100` and `pages: {max: 10, onMore: "stop"}`, fan out over `<read>.records`, close the fan-out with a `flow.merge` (without one, every action after a fan-out runs in each branch, and a page of 1,000 would start 1,000 next pages), and end with `flow.continue` (`cursor: "<read>.nextCursor"`, `cursorInput: "after"`, `inputs` for anything else the next run needs). Once this run's changes are saved, the next run of the same flow starts from the cursor, acting for nobody; an empty cursor ends the job, and the action answers `{continued, page}`. Each page is its own run: saved whole, retried whole, listed on its own in the runs. A failed page starts nothing, so the job stops there; a write keyed on the table's natural key with `onKeyTaken: "skip"` lets a page be run again safely. One job runs at most `runs.continue-pages` pages (100 unless changed): the action that would start one more fails `CONTINUE_PAGES_OVER_LIMIT`. It refuses inside a fan-out or loop (`FLOW_CONTINUE_IN_BRANCH`), in a sub-flow (`CONTINUE_IN_SUB_FLOW`) and in a run that acts for a person (`START_NEEDS_NO_PERSON`); the plan warns `FLOW_CONTINUE_READ_FAILS_ON_MORE` when the read would fail instead of stopping. A preview starts no page and answers the page it would have.
-- **`maxItems` cuts the list on purpose, and the run still succeeds.** A fan-out handed 30 items with `maxItems: 20` runs the first 20. Two signs: an `action-warned` row on the fan-out action — `detail.kind` `fan-out-capped`, with `requested`, `branches` and `cappedBy: "config"` — and, when the fan-out names a `failureSlot`, `code: "fan-out-capped"` there, which every branch and what follows the merge can read. Leave `maxItems` out where every item must be handled. A preview's own five-branch cap warns with `cappedBy: "preview"` and is reported in `fanOutCaps`, but writes no `fan-out-capped` to the failure slot, so the flow takes the path it takes live.
-- **Absent `maxParallelBranches` means "decide from the graph"**: up to 8 branches at once (the project's `runs.parallel-branches` limit) when nothing in a branch can reach a sibling, and **one at a time otherwise** — so most fan-outs run their branches one by one. A branch is held to one at a time by an action that changes or deletes an existing record (`record.update`, `record.delete`, … — unless the fan-out sets `branchTargetsAreDisjoint`), by another lasting write such as `email.send` or `source.watch`, by `event.emit`, `state.write` (unless its `op` is `union`), or a sub-flow you cannot read. A sub-flow call counts by what the sub-flow does: one that only reads or creates runs together like those actions would. Creating records (`record.create`, `term.upsert`) does not hold it. **A change to the item's own record runs together without a setting**: a `record.update` or `record.append` whose `recordId` is `<item>.id` (in the branch, or in a sub-flow handed the item), with no `fileIds` and no record read (`record.read`, `record.list`, `record.query`, …) in the branch, runs branches together whenever the listed records are distinct — and one at a time, without saying so, when one record appears twice. The flow's health warns `FANOUT_RUNS_ONE_AT_A_TIME` naming the action that held it, and the sub-flow it sits in (`details.holdingFlowIds`), until you set `maxParallelBranches` to say what you want. Two branches of 9 s and 2 s take about 11 s one at a time and 9 s together. `1` is the only setting where a branch reliably sees what earlier ones wrote. `branchTargetsAreDisjoint` is a promise about the data, not a bigger number — it waives only the same-record check. Tick it when no two branches ever change one record and the rule above does not already run them together: a record the item points at, or the item's own record in a branch that also reads records or attaches files (the tick then also answers for what those reads see). If two branches do hit one record, the last write wins.
-- **Inside one branch, as in a whole flow, actions run in waves by `level`** — each level waits for its slowest action before the next starts (`packs/flows-and-actions.md`). Work that must not wait for a slow sibling goes in a branch of its own.
-- `flow.merge` is **multi-lane**: `lanes[]` of `{ sourceSlots, outputSlot, strategy }` with strategy `concat`, `list-union` or `dedup-concat`. The output is always a list. The row's `inputStreams` is the dedup of every lane's sources and its `outputSlot` mirrors the first lane.
-- **Whether a failed branch fails the run is the fan-out's to say, once**: `maxFailedBranches` (a whole number) or `maxFailedShare` (above 0, at most 1 — a share of the branches run, rounded down). State one, never both. With neither, the first failed branch stops the fan-out: no further branch starts, and neither the merge nor anything after it runs.
-- **A branch within the tolerance is dropped whole.** Nothing it staged is kept, the merge gathers the other branches only, and the run closes `partial`. At least one branch must succeed whatever is stated. A branch that failed for the platform's own reasons, a spend cap or a cancel is never tolerated.
-- **Under a tolerance a branch does not read what a sibling still running has staged.** Two parallel branches that would each find-or-create one record both stage a create, and the run fails when its changes are applied — set `maxParallelBranches: 1` where branches can meet on a record. A tolerance is refused when a branch reads or writes run state (`FANOUT_TOLERANCE_SHARED_RUN_STATE`).
-- **The merge's `failuresSlot` lists what was tolerated**: one `{ index, failure }` per failed branch, `index` its position in the list from 0 and `failure` an `ActionFailure`. It is absent when no branch failed, so guard on it with `slotPresent`. Naming it under a fan-out that states no tolerance is refused (`FAILURE_SLOT_NEVER_WRITTEN`).
-- **`flow.merge` no longer takes `onBranchFailure`**; a config that still carries it is refused with `INVALID_FUNCTION_CONFIG`.
-- **A `partial` run kept its changes.** Its `closing.verdict` is `partial` and `closing.absorbed.branches` counts the branches dropped; an unattended one is listed on `GET /v1/failed-runs` and reported to the project in `platform/run.partial` summaries (`kipory-operate`). A fan-out over an empty list fails nothing.
-- A merge must pair with an enclosing fan-out, and the pairing is derived from slot lineage, not creation order. A lane naming a slot no action in the branch writes always merges nothing — the validator says so.
-- A fan-out inside another fan-out's branch multiplies: the plan warns `NESTED_FANOUT` with the worst case, the product of their `maxItems` (the project's fan-out limit where one is left out). A fan-out that reads what an earlier one's merge gathered runs after it, not inside it, and draws no warning.
-- Preview runs at most 5 branches per fan-out by default. `fanOutCap` on the preview body sets that preview-only cap — a number or `"uncapped"` — but never lifts an action's own `maxItems`, the ceiling a live run also has. It reports each truncation in `fanOutCaps` with what capped it.
-
-<!-- field-ok: onBranchFailure — a `flow.merge` function-config key this release REMOVED, named so a reader knows what to delete -->
 
 ## 3. Sub-flow
 
@@ -150,144 +138,3 @@ Each person's run writes only their own records, a person who left the project b
   "default": { "outputSlot": "textFile" }
 }
 ```
-
-## 6. Accumulate across branches
-
-**Shape:** `state.write` in the branch body, `state.read` after the merge.
-
-A fan-out's branches cannot see each other's slots, and a merge lane only collects what an action in
-the branch wrote to a named slot. Run-state cells are the way a run accumulates a total, a set or a
-running list across branches that otherwise never meet.
-
-- `state.write` names a **fixed** `key` — chosen when you author the action, never computed at run
-  time — and an `op`: `set` overwrites, `add` sums, `append` builds a list, `union` builds a
-  deduplicated set. `state.read` reads the same key back.
-- **A cell is scoped to one run.** It is not project state, it does not persist, and a second run
-  starts empty. For state that outlives a run, write a record (`record.update`).
-- `state.read` reads no slots of its own, which means **nothing orders it against the writes**
-  until you give it an input. Skip that and you will read a cell before the branch that filled it
-  ran.
-  - **Writes inside a fan-out, read after it:** the read must list a slot the `flow.merge` writes
-    in its `inputStreams`, which places it after every branch. A `state.write`'s marker is a branch
-    slot, so a read wired straight to it belongs to the branch body and runs once per branch.
-  - **Write and read on the trunk:** wire the write's marker — the slot `state.write` emits — into
-    the read. Left at the same stage, health reports `STATE_READ_WRITE_SAME_STAGE` on the read.
-- The shape depends on the op: `set` and `add` cells read back as a string, `append` and `union` as
-  a list (`union` sorted). `state.read`'s output type defaults to `string`, so for an `append` or
-  `union` cell set the read's `outputSchema` to a list of `string`, or health warns
-  `STATE_READ_SHAPE_MISMATCH`.
-- **Cells hold text.** An object is stored as its JSON text, and `add` needs a number or a numeric
-  string.
-- The other save-time findings: `STATE_KEY_OP_CONFLICT` (two writes to one key with different
-  ops), `STATE_DANGLING_READ` (a read of a key nothing writes, a warning), `STATE_SET_CONFLICT`
-  (two `set` writes of one key at the same stage) and `STATE_WRITE_VALUE_SOURCE_MISSING` (a
-  `state.write` with no input wired to the value it writes).
-- **Run state and a failure tolerance do not mix.** A cell is one store the whole run shares, and a dropped branch cannot take back what it wrote there, so a fan-out that states `maxFailedBranches` or `maxFailedShare` is refused when a branch — or any flow a branch calls — reads or writes run state (`FANOUT_TOLERANCE_SHARED_RUN_STATE`), and so is a sub-flow call set to `continue` (`RUN_CONTINUE_NOT_ALLOWED`).
-- Under `flow.fan-out` the ordering rules still apply — with `maxParallelBranches` unset, branches
-  may run in parallel, and only `1` makes a branch reliably see what an earlier one wrote. `add`
-  and `union` are the ops that are safe regardless of order; `set` is the one that is not.
-
-## Utilities you will reach for
-
-- `value.first-non-empty` — an ordered `inputs` list of slots or paths; emits the first non-empty **preserving its runtime shape**, which is what lets it coalesce a URL string and a file. `valueKind` narrows to `string` or `file`. `inputStreams` must list the root slot of every entry in `inputs`, no more and no fewer.
-- `text.interpolate` — a prompt template and nothing else; makes no model call and cannot emit a list. Use it for prose with holes, and `value.transform` for computation.
-- `record.read` — `ids` must hold a **list** of ids, or of objects carrying `id` (a `RecordPage`'s rows: `"page.records"`). A record search's hits carry `recordId`, not `id`: name `hits[].recordId`. A single id string — or a path that resolves to one, such as `created.recordId` — reads nothing, and with `failIfEmpty` that is a 404: give it as a one-item list in the setting itself, `"ids": { "expr": "[bookId]" }` — no transform.
-- `list.concat` — an ordered `inputs` list of slots; flattens lists, lifts scalars to one-element lists, and joins them in the order given. `strategy` is `concat` or `dedup-concat`. It collects contributions from parallel sources **without needing a fan-out and merge pair**, which is the cheaper answer whenever the branches were never really a fan-out.
-- `record.query` — the one function that joins: records matching several clauses at once (a field, a term, a link to a matching peer, a phrase by meaning), with values read from slots. `records-and-endpoints.md` §9 has the clause grammar.
-- `record.view` — the same read declared once as a view and named by key; prefer it whenever the read's values are the caller's own sets or the request's params rather than something an earlier action computed (`records-and-endpoints.md` §11).
-
-### `value.transform`
-
-One JSONata `expression`; nothing else in a flow computes.
-
-- **A read's records are typed by their table, and the save checks what you read off them.** A `record.list`, `record.read` or `record.query` knows the fields it asks for in `fields` (every field when it names none), the members its `include` adds, and its `linked` records. `GET /v1/actions/input-options` and `GET /v1/flows/{id}/scope` show each read's `rowType`. A path naming a field the record does not have — `books.records.titel`, or `linked.author.nmae` — is refused `JSONATA_FIELD_UNKNOWN` with the field's nearest name (`"did you mean title?"`); a field the table has but the read leaves out says to add it to `fields`. The same holds for an input path (`records[0].titel`) and a condition on a record field (`CONDITION_FIELD_UNKNOWN`). Only a sure miss is reported: through `$map`/`$each` results, a computed `$lookup`, `*`, `**` or a sub-flow's output nothing is checked.
-- **Old actions are warned, new and changed ones are refused.** An action saved before this check, or one a table edit made wrong, is `JSONATA_FIELD_UNKNOWN_STORED` on health and never blocks a save; the error is for an action you create or whose expression, inputs or condition you change. Removing a table field that actions still read, retyping it, or dropping a processing flow's output they read is refused with one 422 `VALIDATION_FAILED`, a `TABLE_FIELD_STILL_READ` finding per reading action on `details.diagnostics`: change the readers first, or state the change and the readers together in one project document (its plan judges what both leave). A retype or a flow output change cannot be done row by row — the reader you change first is judged against the field as it still is — so use the document. To rename a type's own field, `PATCH /v1/types/{id}` with `renameFields` moves the stored values and rewrites the readers it can.
-- **Pin what an expression does with `examples`.** Up to 5 per action:
-  ```json
-  {
-    "expression": "books.records.{ \"t\": title }",
-    "examples": [
-      {
-        "input": {
-          "books": {
-            "records": [
-              {
-                "id": "b1",
-                "status": "READY",
-                "createdAt": "2026-01-01T00:00:00Z",
-                "updatedAt": "2026-01-01T00:00:00Z",
-                "title": "Dune"
-              },
-              {
-                "id": "b2",
-                "status": "READY",
-                "createdAt": "2026-01-01T00:00:00Z",
-                "updatedAt": "2026-01-01T00:00:00Z",
-                "title": "Emma"
-              }
-            ]
-          }
-        },
-        "output": [{ "t": "Dune" }, { "t": "Emma" }]
-      }
-    ]
-  }
-  ```
-  Every save runs them with the run's own evaluator and refuses one whose output changed (`TRANSFORM_EXAMPLE_FAILED`, naming the first place they differ); `{ "input": …, "absent": true }` pins "gives nothing". Key `input` by the names the expression reads. Write made-up values, never ones copied from a run. An input from a read is the read's whole answer: a `record.list` input is `{ "records": [...] }`, and a `record.query` input also carries `"bounded": false` and `"explanation": { "clauses": [], "pushdown": { "ids": 0, "cap": 0, "mode": "none" } }` (its `RecordQueryPage` type; `GET /v1/types?project=<nodeId>&key=RecordQueryPage`). A refusal names every member an input is missing.
-- **Try one action without running the flow: `POST /v1/actions/evaluate`** with the action (`{ "id": … }` or a draft) and `slots`, or `fromRun` to use a recorded run's values. It answers the value, its time and its parts, and writes nothing:
-
-  ```json
-  {
-    "project": "<project node id>",
-    "action": {
-      "draft": {
-        "flowId": "<a saved flow's id>",
-        "functionKey": "value.transform",
-        "functionConfig": { "expression": "books.records.{ \"t\": title }" }
-      }
-    },
-    "slots": {
-      "books": {
-        "records": [
-          {
-            "id": "b1",
-            "status": "READY",
-            "createdAt": "2026-01-01T00:00:00Z",
-            "updatedAt": "2026-01-01T00:00:00Z",
-            "title": "Dune"
-          }
-        ]
-      }
-    }
-  }
-  ```
-  - **A draft is not the action create body.** It takes `flowId`, `functionKey`, `functionConfig`, the wiring (`inputStreams`, `inputPaths`, `inputProjectionNames`), `promptTemplate`, `systemPrompt`, `inputSchemas`, `outputSchema`, `key`, and run settings under `run` (`timeoutMs`). No `outputSlot`, `condition` or `taskKey`: an unknown member is 422 `VALIDATION_FAILED`. Leave `inputStreams` out (or empty) and they are read from the expression, as a save does — then leave `inputPaths`, `inputProjectionNames` and `inputSchemas` out too, since they line up with it by position; `slots` is keyed by those names.
-  - **The flow must already be saved**, since the draft names it by id. To try a transform before the document that creates its flow, apply the flow with its reads first, evaluate, then apply the transform.
-  - **Who may call it and what it costs.** A transform, `value.first-non-empty`, `list.concat` and `text.interpolate` (exactly these four) run free at EDITOR. A record read (`record.list`, `record.read`, `record.query`) runs read-only at ADMIN and is billed as a preview; a `record.query` with a `semantic` clause is refused `ACTION_EVALUATE_UNSUPPORTED`, as is any other function — use the flow preview. A project may evaluate 120 times a minute; past that, 429 `RATE_LIMITED`.
-
-- **Top-level identifiers are slot names**, which the save reads into `inputStreams` when you leave it out. A list you send must be exactly those names — the save refuses a difference with `FREE_FORM_INPUT_STREAMS_MISMATCH` (`action-fields.md`, inputs the platform derives).
-- **Only a name at the top of the expression is a slot.** Inside a predicate `[...]`, after a `.` (`docs.{"id": id}`), in a group-by or a sort, a bare name is a field of each item (after a focus binding `list@$e` it reads the outer context instead), and the save does not count it as an input: `meaning.scores[score > 0.5]` reads the slot `meaning` and each score's `score`. A lambda body written at the top counts as the top: `$map(docs, function($d){ title })` reads the slot `title`.
-- **To read a slot from inside a predicate or after a `.`, write `$$.name`** (or bind it first). `cached.records[expiresAt > runInfo.now]` reads `runInfo` off each record, finds nothing, and filters every item out; `cached.records[expiresAt > $$.runInfo.now]` compares with the run's clock. The plan warns `JSONATA_ITEM_FIELD_NAMED_LIKE_SLOT` when an item field there is spelled like a slot the flow has; `$.name` reads the item's field and says so.
-- **Index or filter an array constructor in parentheses.** `[$filter(xs, f)][0].id` is nothing, and so is `[xs][id = 1].name` when one item matches; `([$filter(xs, f)])[0].id` is the first item's `id`. The run says nothing, so the plan warns `JSONATA_INDEXED_LIST_FIELD_READS_NOTHING`.
-- **A regex is read as a regex**: a backslash escapes the next character, and inside a class `[...]` only `]` ends it, so `[^)]`, `[^"\\]` and `\\(\[|\])` all read. A regex that never ends is refused `JSONATA_SYNTAX_ERROR` naming it ("The regular expression starting `/[a(b/…` has no closing `/`"), and an invalid one with the regex engine's own sentence.
-- **JSONata has no `undefined` literal.** `undefined` at the top of an expression is read as a slot name, and the save refuses it as a missing input.
-- **An expression is capped at 1,000 parts.** A part is one node of the parsed expression — roughly each name, operator, literal and function call — and a save over the cap is refused `JSONATA_EXPRESSION_TOO_COMPLEX` with the count in the message ("1,006 parts, and the limit is 1,000"). A plan shows every stated expression's size on its action's row (`expressionParts`), and warns `JSONATA_EXPRESSION_NEAR_LIMIT` from 800. Split the work into two or three transforms, each with a typed `outputSchema`, the later ones reading the earlier ones' slots. An expression cannot share a function with another action: before writing a helper, look for it among the platform's expression functions (`functions/expressions.md`) — `$list`, `$indexBy`, `$hostOf`, `$htmlText`, `$fold`, `$parseDate`, `$formatDate`, `$termLabel` and more.
-- **An action's inputs together are capped at 1,000,000 characters of JSON**, and over it the action fails ("JSONata input bag is … exceeding the maximum of 1000000"; the message says bytes and counts characters). The count is the JSON of every input slot the action lists, so quotes and line breaks count twice, and each slot can itself hold up to 500,000 characters: two fetched pages, or a text beside the list of its own chunks, are enough. Read one large slot per transform, reduce it there, and combine the reduced values in a second action. `"onFailure": "continue"` on a transform that reads a fetched page keeps one oversized page from failing the run.
-- **`x ?? d` gives `d` when `x` is missing** (`book[0].tags ?? []`); `$default(x, d)` also replaces `null`, empty text and an empty list. Both work in every expression: a transform, an `expr` argument, a `value.build` field and a condition.
-- **`$sum` over nothing is nothing, not 0.** A path that matches no value is absent, and `$sum`, `$max`, `$min` and `$average` of an absent value are absent too, so `{"total": $sum(rows.amount)}` has no `total` when `rows` is empty and an action output typed `number` then fails. Arithmetic on nothing is nothing too, so `own.count + $sum(kids.n)` loses the whole count. Give the empty case its value: `$sum([rows.amount])` is 0 for no rows, `$max(rows.amount) ?? 0` gives a default, or `$count(rows) > 0 ? $sum(rows.amount) : 0`. `$count` of nothing is 0. The plan warns `JSONATA_AGGREGATE_OF_NO_ITEMS_IS_NOTHING` when such a call reaches arithmetic, directly or through a variable; and when the output check refuses a missing field, its message names the inputs that were empty on that run (`childEvents.records`).
-- **`!=` against nothing is false, not true.** Any comparison with a missing value is false, so `$type(rows[0].id) != "string" ? row` gives nothing when there is no row — a "create it when it is missing" action that never creates. Write `$not($type(rows[0].id) = "string") ? row`, which is true when the value is missing. The plan warns `JSONATA_NOT_EQUAL_ON_MISSING_IS_FALSE` for `$type(…) != …` and for a field read through an index (`rows[0].status != "done"`), unless `$exists(…) and` or a `$count(…) > 0` guards it. A record row read by `record.read`, `record.list` or `record.query` leaves a field with no value out, so `$r.flag != true` over rows is false for an unset `flag` too, and the row drops out of a filter: write `$not($r.flag = true)`. The plan warns `JSONATA_ROW_FIELD_ABSENT_NOT_NULL` on such reads of a row's field, and `$default(x, d)` gives a value for one that is missing, `null`, empty text or an empty list.
-- **A filter that matches nothing is nothing, not `[]`.** `$filter(rows, function($r){ $r.kept })` and `rows[kept]` yield no value when no element matches, so the action produces nothing: no slot is stored and an action reading only that slot is skipped. Where a reader needs a list every time, wrap the expression — `[rows[kept]]` is a list for none, one or many — and remember that `[]`, though stored and visible to a transform, still counts as absent to `slotPresent` and to an action's input gate.
-- **A search inside a loop reads the whole list for every item.** `$map(posts, function($p){ $filter(sources, function($s){ $s.id = $p.sourceId })[0] })` checks every source for every post: 3,000 of each is 9 million checks, about 18 s, and the 5-second limit fails the action. Build the table once — `$t := $indexBy(sources, "id")` for the first match, `$groupBy` for every match — and read it inside with `$lookup($t, $string($p.sourceId))`: 25 ms. The same holds for a list cut into groups by one position filter per group (`$i >= $k * 10 and $i < ($k + 1) * 10`): `$chunk(ids, 10)` is one pass. With the default `object` output a transform cannot answer the groups themselves (a list of lists is refused at the top of a result), so it wraps them: `[$map($chunk(ids, 10), function($g){ {"ids": $g} })]`, or `{"groups": $chunk(ids, 10)}`. The plan hints each of these (`JSONATA_USE_BUILTIN`) with the rewrite.
-- **Five functions are refused**, at save and at run time, with `JSONATA_FORBIDDEN_FUNCTION`: `$now`, `$millis`, `$random` and `$shuffle` (they break caching) and `$eval` (a sandbox escape — there is no parsing a JSON string back into an object).
-- **The result is checked at run time against the action's `outputSchema`.** Left at the default `object`, it must be text, an object — whose fields may nest lists and objects — or a list of text or of objects; a bare number, boolean or `null`, a mixed list or a list of lists fails the action. That latitude is the action's only: a flow output bound to a list result is declared `isList: true`, or the call fails `502 FLOW_FAILED` whenever a list arrives (from a path, whenever more than one item matches). A list `outputSchema` and an `isList: true` output each take a single item as a one-item list.
-- **To emit nothing**, so a `slotPresent` guard downstream holds, write a conditional with no else — `$count(words) > 50 ? {"text": body}`. An action that produces nothing stores no slot, so every reader sees what a skipped action leaves:
-  - an action reading only that slot is skipped, and a `slotPresent` condition on it is false;
-  - in another `value.transform` the name is unbound — `$exists(page)` is false, a field read off `page` is nothing, and `{"a": page}` has no `a`;
-  - a `flow.merge` gets no element from a fan-out branch that produced nothing;
-  - a setting that reads it (a `fieldFilters` value, `ids`) sees a missing slot.
-- **`{}` and an empty file are "nothing" from any action**, not only from a transform: a literal `{}` an expression returns, an object action that answered `{}`, and a file action whose vendor refused (`url.screenshot`, `url.fetch-as-file`) all store no slot. `""` and `[]` are different: they are stored, a transform sees them as an empty string and an empty list, and they still count as absent to `slotPresent` and to an action's inputs.
-- An empty result skips the `outputSchema` check; a literal `{}` is checked against `outputSchema` first (and refused by a type with required fields). This holds whatever the declared type: an action declared `string` whose expression gives nothing (`$join` over no items, a path that matches nothing) stores no text, and a `{{name}}` reading it in a prompt leaves its place empty. Where a prompt needs the text every time, give the expression a fallback (`$exists(x) ? x : ""`).
-- **A result that should be a list must be built as one.** JSONata returns a one-item sequence as the bare item, so a path, `$filter` or `$map` that matches exactly one element yields an object. Give the action a list `outputSchema` and bind it to an `isList: true` flow output: both take that single item as a one-item list. Absent stays absent — a path that matches nothing gives no value, not `[]`. Wrapping the expression in `[ … ]` makes a list for none, one or many: `[$filter(hits, function($h){ $h.score > 0.5 })]`.
-- **A flow output bound to a slot whose action produced nothing is not set.** An optional output is left out of the response; a required one fails the run. Have the expression return a real value on every path, or mark the output optional. An empty list is a value: an output bound to a list that came back empty answers `[]`, and the run succeeds. Health warns `FLOW_REQUIRED_OUTPUT_MAY_BE_MISSING` when every action writing a required output may write nothing: it has a condition, answers a test with no `else`, is a dispatch branch or switched off, or is skipped — it reads only slots that may each be missing or an empty list, or a setting it needs (a query's operand, a loop's seed) may be missing. When it reads only possibly-empty slots, have it also read `runInfo` and it runs either way.
-- **Preview both branches of any conditional before trusting it**: these result shapes are judged only when a run produces them.
-- **`$assert(condition, "message")` refuses the call with your words** — a `422 VALIDATION_FAILED` (`records-and-endpoints.md` §8).

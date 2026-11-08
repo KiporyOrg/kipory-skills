@@ -33,7 +33,7 @@ A plan is not a simulation: the platform applies the document through every row'
 - **The plan judges the state it leaves, not only the rows it writes.** Every flow the document can move — the ones it writes, the ones invoking them, the ones reading a type or a table it changes — is checked with `GET /v1/flows/{id}/health`'s own rules, and so are the schedules, triggers and endpoints that start them.
 - **`introduced` says whose finding it is.** `true` when this document causes it, `false` when it was already there; a finding about the document itself (a refused row, a bad reference) has no `introduced` and counts as introduced. Only an introduced error makes `ok` false and refuses the apply; one already there is reported so you can fix it when you choose. An error an action you leave as it is already had does not refuse the document, even when you change its neighbours in the same flow; a new one your change causes on it still does. An action you DO change is judged whole: an error it already had refuses the change (`introduced: true`, its message saying it was already stored), so fix it in the same edit.
 - **A plan says when nobody would be told of a failure.** A project that runs schedules or triggers and has no enabled trigger on `platform/run.failed` gets `DOCUMENT_NO_FAILURE_LISTENER`. It is information and blocks nothing — but such a project is told of no failed run, and none of its schedules or triggers is ever paused.
-- **The failure settings are judged like any other.** A fan-out's `maxFailedBranches` or `maxFailedShare`, a merge's `failuresSlot` and a continuing `flow.invoke` are refused in a plan on the same rules as on an action save (`patterns.md` §2, §3); a document whose `flow.merge` action still states `onBranchFailure` is refused `INVALID_FUNCTION_CONFIG` — say it on the fan-out instead.
+- **The failure settings are judged like any other.** A fan-out's `maxFailedBranches` or `maxFailedShare`, a merge's `failuresSlot` and a continuing `flow.invoke` are refused in a plan on the same rules as on an action save (`fan-out.md` §2, `patterns.md` §3); a document whose `flow.merge` action still states `onBranchFailure` is refused `INVALID_FUNCTION_CONFIG` — say it on the fan-out instead.
 - **So an `ok` plan leaves no flow with an error the plan did not name** — `/health` after the apply is a confirmation, not the check.
 - **Plan a large document as it grows, not all at once.** A section you leave out is untouched, so plan the types and vocabularies alone, then add the tables and plan again, then the flows, then the endpoints — each plan carrying everything before it. One mistake then shows in the section that introduced it, and a refusal that is not a finding (a 5xx) is found in one call instead of by bisecting the whole. Apply once, when the full document plans clean.
 
@@ -67,3 +67,23 @@ A plan is not a simulation: the platform applies the document through every row'
   - An action's `inputPaths` is the same positional list of path objects, `[{ "segments": [{ "kind": "first" }] }]`.
 - **A flow's new signature is judged against the actions the document leaves**, so retyping an input and replacing its reader is one apply.
 - **A signature or type change that live dependents hold needs its grant on the row that changes**: `adoptSnapshots: true` on the flow's row for a signature change, and on the `types.<Name>` row for a type edit refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` (`kipory-evolve`). A change that only adds optional fields (or a new output) needs none: the plan adopts it and says so (`DOCUMENT_ADOPTED_ADDITIVE`).
+
+## The document loop, route by route
+
+```
+GET   /v1/projects/{nodeId}/document          the project now; the document carries `basedOn` (`<nodeId>@<version>`), your read
+POST  /v1/projects/{nodeId}/document/plan     ?basedOn=&label= — what applying it would do, kept as `planId`
+GET   /v1/projects/{nodeId}/document/plans/{planId}   a kept plan read back — for a reviewer, before it is applied
+POST  /v1/projects/{nodeId}/document          { planId, note, label? } — one transaction, one version, one history entry
+GET   /v1/project-document/schema             the format, public
+GET   /v1/project-document/example            a complete document that belongs to no project, public
+```
+
+- **Read the plan before you apply it**: `changes` (only what changes; each `update` says `fields` from → to), `moved` (what someone else changed after your read — any here and `ok` is false), `diagnostics` (what this document introduces; gate on `severity`, never on `code`), `health` (errors and warnings before and after, over the flows it reaches), `consequences` (what it does to stored data) and the `delete` rows. A platform release that breaks a live flow is not in any plan: the project hears it as the `platform/flow-health.failing` event.
+- **The format is 10** (`"kipory": 10`). Plan the `document` alone, never an export's envelope `{ "version", "document" }`.
+- **Everything is addressed by `key`**; a schema reference is `{ "kind": "ref", "ref": "<type key>" }`.
+- **A partial document is fine, and absence never deletes.** Removal is `delete: true` on a row or `prune: true` on a map, and needs ADMIN. Owned collections — a flow's `actions`, a vocabulary's `terms` — are stated whole, so an action you leave out of a flow's `actions` IS removed.
+- **Apply the plan you read, with a note**: `{planId, note: "Shorten the reminder copy", label: "agent-docs"}`. The note and label show in history. The answer carries no document; keep its `basedOn` and plan the next part from it. Never resend an old document.
+- **On `409 VERSION_CONFLICT`**: read `details.moved` (who changed what after your read), read the project again, make your change on what it says now, plan, apply. **On `409 PLAN_STALE`**: plan again. Changes to elements your document does not touch never refuse it.
+- **Plan a large document as it grows**: types and vocabularies, then tables, then flows, then endpoints. Apply once, when the whole plans clean — or in parts from one read, each under the same `label`, so your own parts never count as moves.
+- **An `ok` plan has already run health** on every flow the document can move, so `/health` after the apply is a confirmation.

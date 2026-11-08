@@ -91,7 +91,7 @@ Every generated file opens with a stamp naming its source, and the content hashe
 
 | Skill             | For                                                                                                                                                                               |
 | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `kipory-connect`  | **Start here.** Prove the deployment and the key, read the project in one call, learn the conventions every route shares                                                          |
+| `kipory-connect`  | **Start here.** Prove the deployment and the key, see what the project holds, and the `kipory` command that plans, applies and tests in single calls                              |
 | `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                                                                                    |
 | `kipory-model`    | Tables and types, vocabularies and terms, relations, the embedding profile that makes records searchable                                                                          |
 | `kipory-build`    | Build and edit flows over the function catalog: actions, slots, output binding, health, preview, checkpoints                                                                      |
@@ -113,6 +113,8 @@ You need two things, and **an agent cannot discover either of them** — they co
 
 1. **The base URL** of your Kipory deployment's api host.
 2. **An API key.** Only a signed-in human can mint one: a key cannot mint another key, so that a leaked key cannot manufacture siblings that outlive revoking the original. Mint it with the role the work needs — a key is `viewer` unless you ask, and previewing or testing a flow needs `admin`.
+
+Put them in `.env` beside your work as `KIPORY_BASE_URL` and `KIPORY_API_KEY` (and `KIPORY_PROJECT_ID` when the key reaches more than one project). `kipory-connect` ships a small command that reads them, `node .claude/skills/kipory-connect/scripts/kipory.mjs`: it plans and applies a project document, makes test users and calls the project as them, previews a flow, prints what a project holds, and finds the section of these skills that answers a question, each in one call with a short answer. Node 18 or later, nothing to install.
 
 The project's id is not one of them. The key reads its own grant — its node, its role and the projects it reaches — from `GET /v1/grant`, which `kipory-connect` does at turn zero.
 

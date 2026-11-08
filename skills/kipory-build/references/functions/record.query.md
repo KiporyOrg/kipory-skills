@@ -19,7 +19,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `clauses` | union[], 1 to 16 items | yes | — | Clauses every record must match; values are paths, literals or expressions. ⚠️ A semantic clause returns at most topK records, with no further pages. |
-| `cursor` | union | no | — | A prior answer's cursor; empty for the first page. ⚠️ A cursor that has been edited or truncated fails the action; an absent one starts from the newest record. |
+| `cursor` | union | no | — | A prior answer's cursor; empty for the first page. ⚠️ An edited cursor fails the action; another read's absent `nextCursor` answers an empty page, a flow input's the newest records. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the action; with `tableKeys`, each row carries its own table's named fields. |
 | `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |

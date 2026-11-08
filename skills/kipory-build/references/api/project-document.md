@@ -16,6 +16,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `POST` | [`/v1/projects/{nodeId}/document`](#post-v1-projects-nodeid-document) |  |
 | `POST` | [`/v1/projects/{nodeId}/document/plan`](#post-v1-projects-nodeid-document-plan) |  |
 | `GET` | [`/v1/projects/{nodeId}/document/plans/{planId}`](#get-v1-projects-nodeid-document-plans-planid) |  |
+| `GET` | [`/v1/projects/{nodeId}/document/summary`](#get-v1-projects-nodeid-document-summary) |  |
 
 ### `GET /v1/project-document/example`
 
@@ -408,3 +409,20 @@ Each item of `renames`:
 | `exposures` | `object[]` | yes | What callers of this project see change. Every kind that applies is listed, on the plan and on the apply answer. |
 | `pauseMs` | `integer` | yes | The expected pause, in milliseconds, while the rename holds runs at the fence: the wait cap plus an apply estimate scaled from the rows to rewrite. |
 | `cost` | `object` | yes | What the rename spends. Its records, links and terms move by `UPDATE`: no model call, and no embedding unless `reembedRecords` says otherwise. |
+
+### `GET /v1/projects/{nodeId}/document/summary`
+
+What a project holds, in one compact line per type, table, relation, view, flow, endpoint, trigger and schedule — the first read for a session that starts on an existing project, a few KB where the whole document runs to hundreds. For whole rows read `GET …/document` (all of it, or `?section=`); to change the project plan a document with `POST …/document/plan`. The address the project's own endpoints answer at is `baseUrl` on `GET /v1/grant`.
+
+**Path parameters**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `nodeId` | `string` | yes | Node id of the project. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `version` | `string` | yes | The project's structure version the lines were read at, as `version` on `GET …/document`. A plan of a change made from this read sends it as `basedOn`. |
+| `lines` | `string[]` | yes | One line per element, in document order: `type`, `table`, `relation`, `shape`, `view`, `vocabulary`, `event`, `vector`, `flow`, `endpoint`, `source`, `trigger`, `schedule`, `eval`. Each starts with its kind and key; two spaces separate its parts. A type lists its fields (`name:type`, `*` when required); a table its owner, type and the fields it keys, filters and links; a flow its inputs (`?` when optional), outputs and `action:function`s; an endpoint its method, path, auth, target and success status; a schedule its cron, time zone, flow and whether it runs. The platform's own event types are left out. |

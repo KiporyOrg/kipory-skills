@@ -10,7 +10,7 @@ Five capabilities that only matter once something works, and one fact most peopl
 
 ## Before the first call
 
-- Fetch the pack for the capability you touch: `references/packs/schedules.md`, `triggers.md`, `events.md`, `project-config.md`, `credits.md`. For anything about cost, read `references/spend.md`.
+- Fetch the pack for the capability you touch: `references/packs/schedules.md`, `triggers.md`, `events.md`, `project-config.md`, `credits.md`. For anything about cost, start at `references/spend-reads.md`; it points to `references/spend.md` and `references/balance.md`.
 - `GET /v1/bootstrap?project={nodeId}&sections=surfaces,events,project` returns every schedule, every trigger, every event type (each with its namespace), the route enablement and the config namespaces in one call.
 - Writes here are EDITOR; deletes, and the project settings that hold the spend ceiling, are ADMIN.
 
@@ -64,50 +64,7 @@ A trigger fires a flow every time a matching event is **recorded** in the projec
 
 ## When a run fails
 
-```
-GET  /v1/failed-runs?project={nodeId}      the runs whose latest close is `failed` or `partial`, newest first (cursor-paged)
-GET  /v1/failed-runs/summary?project={nodeId}&from=…   the same runs grouped by flow, class and code, the commonest first
-GET  /v1/projects/{nodeId}/alerts          every schedule, trigger, table or endpoint that is failing, quiet, about to be paused or paused
-GET  /v1/projects/{nodeId}/alerts?include=required-gaps   also the stored records that lack a field their type requires, counted by table and field
-POST /v1/platform-events/test              { project, type, subject?: { kind, key } } — record one example event and fire the triggers on it
-```
-
-An **unattended run** is a schedule's occurrence, a trigger's fire, an asynchronous endpoint call or a record's processing: nobody is waiting on the answer. `references/packs/triggers.md` ("Being told when a run fails") and `references/packs/schedules.md` ("health, and being paused") have the detail; `references/api/failures.md` the fields.
-
-Each of these is explained in [references/when-a-run-fails.md](references/when-a-run-fails.md). Read the entry before you rely on the thing it names:
-
-**Being told**
-
-- A failed run cannot report itself.
-- Seventeen `platform` event types, and they are the platform's.
-- The failure trigger is an ordinary trigger on one of those `platform` events, bound to an ordinary flow
-- Listen to `run.failures` as well.
-- Nothing is recorded for an attempt about to run again, a cancelled run, a preview or a synchronous call
-- A failure trigger's flow is never handed its own failure.
-- Prove the failure trigger before something fails.
-- ⚠️ Nothing is mailed.
-
-**Health, and being paused**
-
-- Every schedule and trigger read carries `health`
-- Only the subject's own failures count
-- The pause rule.
-- ⚠️ Pausing needs a listener.
-- Paused is a state of its own, beside `enabled`.
-
-**Whose failure it is**
-
-- A failed run's closing record names a `class` and an `owner`
-- Waiting for a worker is not a failure.
-- The platform runs its own failures again.
-- ⚠️ What a run started again repeats, and charges.
-- A run started again runs the flow it first started with.
-- A deployment of the platform lets runs finish.
-
-**`partial`, and the list**
-
-- A run that carried on past a failure closes `partial`
-- `GET /v1/failed-runs?project={nodeId}` is the list a summary points at
+**Being told of a failure, health and pausing** — the failed-runs, alerts and test-event routes, whose failure it is, and `partial` runs: `references/when-a-run-fails.md`.
 
 ## Events
 
@@ -136,81 +93,30 @@ Reach for this instead of editing a flow whenever the thing being changed is a t
 
 ## Spend
 
-<!-- key-unreachable-ok: GET /v1/credits/events — named ONLY to warn that it 401s an API key, never prescribed -->
-
-```
-GET /v1/runs/{runId}/spend                        every charge one run made, by action, model calls included — api host
-GET /v1/eval-runs/{id}/spend                      the same for an eval run: subject and scorer actions alike
-GET /v1/nodes/{nodeId}/model-prices               what each model costs, in credits, at the project's id
-GET /v1/projects/{nodeId}/settings                the two spend ceilings, and `designSpend` consumed in the current window
-GET /v1/projects/{nodeId}/usage?window=7d          credits and events over a window, by kind and action
-GET /v1/projects/{nodeId}/usage?window=7d&flows=1  the same per flow, with what failed runs spent (`failedRuns`, `failedCredits`)
-GET /v1/ai-calls?project={nodeId}                 every model call, filterable; GET /v1/ai-calls/rollup?project= by hour or day; GET /v1/ai-calls/{id}?payload=prompt for one
-GET /v1/organizations/{nodeId}/quota              today's use of each shared vendor allowance — the ORGANISATION's id, and a key granted at the organisation
-GET /v1/projects/{nodeId}/limits                  every limit the project meets: the number in force, the default, and how much is used where counted
-GET /v1/credits/balance                            the wallet — on the PROJECT's host only
-```
-
-A call or a run refused at a limit names it: `details.limitKey` on the error, `limitKey` on the run's `closing` failure. Look the key up in `GET /v1/projects/{nodeId}/limits`. Only Kipory changes a limit's number; to ask for more, name the key.
-
-`references/spend.md` is the full statement: what an action is charged, what a cache hit, a preview, an eval run and a reprocess cost, model prices, the balance's fields, member wallets and the 402 codes. The short version:
-
-- **Every amount is credits, and one credit is one micro-USD.** `x-credits-charged: 5139` is about half a US cent.
-- **Compute is charged for the time an action ran, to the millisecond.** There is no minimum: an action that ran a few milliseconds costs a fraction of a credit, and a fraction under one credit is charged as nothing.
-- **Waiting is not billed.** A queued action — a model action, a fetch — is charged for the time its job ran, not for the wait for a worker or a rate-limit allowance, so its `durationMs` on `/timeline` can be far longer than the time it was charged.
-- **The compute rate is the deployment's and no route lists it.** <!-- absent: GET /v1/nodes/{nodeId}/compute-rate --> Read it off a `function-run` charge on `/spend` of a second or more: `credits ÷ units` is credits per millisecond, so `× 1000` is per second.
-- **Model prices are a read**: `GET /v1/nodes/{nodeId}/model-prices`, at the project's id, quotes each model in credits per million tokens, minute or search (`kipory-build`'s `references/models.md` for choosing one).
-- **A cache hit is cheaper, not always free.** An action answered from the action-result cache — which only some functions keep, and previews, eval runs and a reprocess never read — is charged nothing; one answered from a function's input-keyed cache pays the compute of its lookup and no model or vendor charge.
-- **Previews, eval runs and reprocesses cost what a live run costs.** Flow previews, `POST /v1/actions/preview` and eval runs are design-time work, bounded by the design-time ceiling; a reprocess is not. The one record processing the ceiling does bound is a record handed over by an `record.enqueue-process` action of a preview or an eval run.
-
-**The spend read says what each action was charged for.** Every entry of `byAction` names its action in `actionName` and `actionId` and carries `charges`, one per kind, that sum to the action's `credits` (`references/spend.md` lists the kinds).
-
-The reads count different things, so they disagree by design. `references/spend.md` has the table of which read answers which question; the two to remember are that `x-credits-charged` holds only what was charged by the time the response was sent — so not an asynchronous call's run, which is read on `/spend` with the 202's `id` — and that `GET /v1/ai-calls` hides previews, evals and the platform's own describing calls unless you send `origins=all`.
-
-A machine caller has no statement of its own: `GET /v1/credits/events` scopes to a person and answers 401 to a key. Account for key-driven spend per run, or per project through `usage`.
+**Spend** — the spend routes, the short version of billing, and which read answers which question: `references/spend-reads.md`; what each action and run is charged: `references/spend.md`; the balance, the 402 codes and the ceilings: `references/balance.md`.
 
 ## What will bite you
 
-Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
-
-- Working around a problem in silence.
-- The balance read 404s on the api host.
-- The wallet may not be the project's.
-- Five 402 codes, five remedies. <!-- count: api-402-codes -->
-- A refusing wallet stops more than the call.
-- Both ceilings live on project settings and are ADMIN.
-- `credits: 0` on `/spend` is a price only when `uncharged` is 0.
-- A reprocess is charged
-- An empty `/spend` is not a zero.
-- A schedule's `key` never changes
-- `runs` is one page, newest first.
-- Choose `overlapPolicy` deliberately.
-- A schedule's run keeps the flows it started with.
-- A paused schedule or trigger is not a disabled one.
-- A trigger never catches up.
-- A trigger's `skip` overlap looks at its 20 most recent fires, not only the last.
-- A trigger's filter reads a payload field as `{ "op": "slotEquals", "slot": "data", "path": "source", "value": "telegram" }`.
-- Seeded event types cannot be deleted (409) but can be patched.
-- A type's `status` does not gate emitting.
-- Config `version` is required when the namespace exists and ignored on create.
-- `usage` defaults to seven days and excludes platform-paid work
-- Previews and eval runs start no trigger of their own — a processing handoff still does.
-- Model prices and vendor prices are reads; the compute rate and the held-storage rates are not.
+**The traps of operating a project** — each with what happens and what to do, from the balance read that 404s on the api host to the trigger that never catches up: `references/pitfalls.md`.
 
 ## References
 
-| File                                                                                           | What it answers                                                                                                                                                                                                                                                                                                   |
-| ---------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `references/packs/schedules.md`                                                                | time-triggered runs and their history                                                                                                                                                                                                                                                                             |
-| `references/packs/triggers.md`                                                                 | event-triggered runs, the log they read, and the record of every decision                                                                                                                                                                                                                                         |
-| `references/packs/events.md`                                                                   | the registry, emitting, the difference between a run signal and a bus signal                                                                                                                                                                                                                                      |
-| `references/packs/project-config.md`                                                           | tunables typed by a bound type                                                                                                                                                                                                                                                                                    |
-| `references/spend.md`                                                                          | billing in full: compute, cache hits, previews, evals, reprocess, prices, which read answers which question, the 402 codes                                                                                                                                                                                        |
-| `references/packs/credits.md`                                                                  | the balance, member wallets, the per-person statement, and the gate `status` does not show                                                                                                                                                                                                                        |
-| `references/api/failures.md`                                                                   | the failed-runs list, the test event and the alerts read                                                                                                                                                                                                                                                          |
-| `references/api/schedules.md` · `triggers.md` · `events.md` · `project-config.md` · `spend.md` | every route's fields. Project settings are in `kipory-connect`'s `references/api/projects.md`, the member routes in `kipory-expose`'s `references/api/end-users.md`, model prices in `kipory-build`'s `references/api/functions-and-models.md`, an eval run's spend in `kipory-prove`'s `references/api/evals.md` |
-| `references/when-a-run-fails.md`                                                               | being told of a failure, health and pausing, whose failure it is, `partial` runs                                                                                                                                                                                                                                  |
-| `references/pitfalls.md`                                                                       | each trap of operating a project, with what happens and what to do                                                                                                                                                                                                                                                |
+| File                                                                                           | What it answers                                                                                         |
+| ---------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `references/packs/schedules.md`                                                                | time-triggered runs and their history                                                                   |
+| `references/packs/triggers.md`                                                                 | event-triggered runs, the log they read, and the record of every decision                               |
+| `references/packs/events.md`                                                                   | the registry, emitting, the difference between a run signal and a bus signal                            |
+| `references/packs/project-config.md`                                                           | tunables typed by a bound type                                                                          |
+| `references/spend.md`                                                                          | what an action and each kind of run is charged: compute, cache hits, previews, evals, reprocess, prices |
+| `references/spend-reads.md`                                                                    | the spend routes, billing in short, which read answers which question                                   |
+| `references/balance.md`                                                                        | the balance, member wallets, the 402 codes and the ceilings                                             |
+| `references/packs/credits.md`                                                                  | the balance, member wallets, the per-person statement, and the gate `status` does not show              |
+| `references/api/failures.md`                                                                   | the failed-runs list, the test event and the alerts read                                                |
+| `references/api/schedules.md` · `triggers.md` · `events.md` · `project-config.md` · `spend.md` | every route's fields                                                                                    |
+| `references/when-a-run-fails.md`                                                               | being told of a failure, health and pausing, whose failure it is, `partial` runs                        |
+| `references/pitfalls.md`                                                                       | each trap of operating a project, with what happens and what to do                                      |
+
+Project settings are in `kipory-connect`'s `references/api/projects.md`, the member routes in `kipory-expose`'s `references/api/end-users.md`, model prices in `kipory-build`'s `references/api/functions-and-models.md`, an eval run's spend in `kipory-prove`'s `references/api/evals.md`.
 
 ## Then
 

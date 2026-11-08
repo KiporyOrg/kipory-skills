@@ -4,19 +4,18 @@ This page is the way in for a new backend, and for most changes to one. It is on
 
 ## The loop
 
-Every call below is on the **api host** with `Authorization: Bearer <key>`; the product's own endpoints answer on the **project host** (`baseUrl` from `GET /v1/grant`).
+Write the document (a `.json` file, or a `.mjs` script that prints it, as most builds do), then use the `kipory` command `kipory-connect` ships: `node .claude/skills/kipory-connect/scripts/kipory.mjs <command>`, written in full in every shell call and `kipory <command>` below.
 
 ```
-GET  /v1/grant                                          the project's id (node.id) and its baseUrl
-GET  /v1/projects/{nodeId}/document?section=project     basedOn: "<nodeId>@<version>" — your read
-POST /v1/projects/{nodeId}/document/plan?basedOn=<version>&label=<yours>   body: the document → ok, planId, diagnostics
-POST /v1/projects/{nodeId}/document  { "planId": "…", "note": "why", "label": "<yours>" }   apply the plan you read
+kipory plan app.mjs       plan it against the project now: "plan ok <planId>", or one line per error with its path
+kipory apply              apply the plan you just read; prints the new version and the project's host
+kipory ship app.mjs       both, when you expect a clean plan
 ```
 
-- **A plan you mean to apply needs `basedOn`** — your read — once the project holds anything; on an empty one the plan takes the version it was built from. After an apply, the answer's `basedOn` is your next read.
-- **Gate on `ok` and on each diagnostic's `severity`.** Only `error` refuses; `warning` and `info` block nothing. Fix every error a plan lists in one edit, then plan again.
-- **Plan the `document` alone, never an export's envelope** `{ "version", "document" }`. The format is 10 (`"kipory": 10`).
-- **A document is partial and every element you state is whole.** Send the sections you change; state each row you send completely (an export states them all). An omitted row is untouched — absence never deletes.
+Underneath, on the api host with your key: `GET /v1/projects/{nodeId}/document?section=project` (your read, `basedOn`), `POST /v1/projects/{nodeId}/document/plan?basedOn=<version>` (the document as the body), `POST /v1/projects/{nodeId}/document { "planId", "note" }`. The product's own endpoints answer on the project's host (`baseUrl` on `GET /v1/grant`).
+
+- **Gate on each diagnostic's `severity`.** Only `error` refuses; `warning` and `info` block nothing. Fix every error a plan lists in one edit, then plan again.
+- **The format is 10** (`"kipory": 10`). A document is partial, and every element you state is whole: send the sections you change, each row complete. Absence never deletes.
 - **Sending mail needs an address first**: `POST /v1/managed-email-addresses { "node": "<nodeId>", "localPart": "tasks", "domain": "<a domain you send from>", "grade": "relay", "displayName": "Tasks" }`. The plan warns `EMAIL_SEND_ADDRESS_UNAVAILABLE` until it exists.
 
 ## The example
@@ -141,21 +140,18 @@ POST /v1/projects/{nodeId}/document  { "planId": "…", "note": "why", "label": 
 
 - **Ownership is a table setting, not a filter.** `ownerScope: "user"` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that is a `404` (`create-task` › `own-project`). Write no owner field and no owner filter.
 - **A total that must stay right is `computed`, not a read-time sum.** `project.hoursDone` is a `rollup` over the relation `in-project`; the platform recomputes it a few seconds after any task is created, changed or deleted, and no writer can set it. It needs the relation (`relations.in-project`) and a `link` use on the field that holds the parent's id (`task.projectId`). `rollup` also takes `count`, `avg`, `min`, `max`, `latest`; a `formula` (JSONata over the row) and a `lookup` (a field of the linked row) are the other two kinds.
-- **A list endpoint is a view.** `views.openTasks` is the read; `list-open-tasks` is one `record.view` action; its `GET` endpoint declares only its path. The query takes the view's params (`?projectId=`, optional: absent reads everything) and pages by `?after=` / `?limit=`. The flow declares the paging inputs `readAfter`, `readBefore`, `readLimit` (named after the action `read`). A view's fixed text is `{ "literal": … }`; it reads no slot and no clock, so "due after now" is a flow (`notify-due`), not a view. **A view orders by `created`, meaning, or a field with a `filter` use**: a date, number, true/false, or text with `maxLength` of at most 500 (`QUERY_ORDER_TEXT_UNBOUNDED` otherwise). For "highest first" on a number, order the view: `{ "by": "field", "field": "total", "direction": "desc" }`.
 - **A setting reads a slot by its path**: `"recordId": "taskId"`, `"to": "message.to"`. A fixed value is `{ "literal": "done" }`; an expression is `{ "expr": "[projectId]" }` (JSONata over the slots). A read result is a list: the first record is `found[0]` in an expression. A prompt reads `{{slot}}`, `{{slot.field}}` or `{{slot[0]}}` (a whole text item, no field below it); compute any other value in a `value.transform` first, as `complete-task` › `title` does.
-- **A list you return stays a list when it is empty or holds one item.** JSONata turns an empty result into no value and a one-item list into the item, and a required output left with no value refuses the whole call (`422 FLOW_OUTPUT_MISSING`). Return a list an expression builds inside an object, wrapped: `{'items': $list(…)}`, with the flow output typed `object` — `[]` and `[x]` then come back as lists.
-- **Leave `inputStreams` out** everywhere but on `flow.fan-out`: the save derives each action's inputs from what its settings, expression or prompt read. In a document, a stated list that differs is replaced by that set, with a `DOCUMENT_INPUTS_REPLACED` warning. A fan-out states its one input as stream and path (`"inputStreams": ["found.records"]` is read that way, and the plan says so with `DOCUMENT_FORM_READ`).
 - **Give a model action and an object-building transform an `outputSchema`** (`text.generate` → `{ "kind": "ref", "ref": "string" }`; `window` and `mail` → a named type), or the plan warns that nothing checks what reads it.
 - **`record.update` names no table**: it takes `recordId` and the fields to write (`fields`, or `data` as one object; `add` for numbers) — the record knows its table. In a document a `tableKey` there is dropped, said as `DOCUMENT_FORM_READ`.
-- **Never once, by the platform**: `dueNotice.taskId` has the `key` use, and `record.create` with `onKeyTaken: "skip"` answers `keyTaken` instead of a second row. Gate the mail on it (`mail`): a re-run of the job creates and sends nothing twice.
+- **Never once, by the platform**: `dueNotice.taskId` has the `key` use, and `record.create` with `onKeyTaken: "skip"` answers `keyTaken` instead of a second row. Gate the mail on it (`mail`): a re-run of the job, overlapping or not, creates and sends nothing twice.
 - **A daily job for each person**: the schedule starts `notify-everyone`, whose `flow.start-per-person` runs `notify-due` once per project member, as that member — so its reads see that member's rows.
 - **Read every page, loudly.** `record.query` reads one page unless `pages` says more; `onMore: "fail"` fails the run when rows remain instead of dropping them in silence (`"stop"` drops them).
-- **One run fans out over at most 1,000 items** (the project's `runs.fan-out-items`). Handed more, the fan-out runs none and fails with `FAN_OUT_OVER_LIMIT`; the plan warns `FANOUT_MAY_PASS_LIMIT` when a read can return more. Size the read (`limit` × `pages.max`) to the limit; a longer job continues page by page with `flow.continue` (`patterns.md`): one per flow, after the fan-out's `flow.merge`, in a flow a schedule or trigger starts directly — it refuses a run that acts for a person, so not under `flow.start-per-person` (`START_NEEDS_NO_PERSON`), and refuses inside a sub-flow. Leave `maxItems` out unless you mean to cut the list: items past it are dropped.
 
 ## Names and fields that refuse a plan
 
 - **Reserved field names**: `id`, `status`, `statusError`, `createdAt`, `updatedAt`, `processing` — every record already has them. Call yours `state` or `phase`.
-- **Keys**: a table key and a slot name are letters and digits, starting with a letter — no `-` or `_` (`dueNotice`, not `due-notice`). Type keys are written like `Task`. Flow and relation keys are lowercase words joined by `-` (`notify-due`); endpoint and schedule keys may use `-`.
+- **Keys**: a table key and a slot name are letters and digits, starting with a letter — no `-` or `_` (`dueNotice`, not `due-notice`). Type keys are written like `Task`. Flow and relation keys are lowercase words joined by `-` (`notify-due`). **Action keys are lowercase words joined by `-`, optionally grouped with `.`** (`own-project`, `extract.species`; never camelCase). Endpoint, schedule and trigger keys are letters, digits, `.`, `-` and `_`.
+- **Endpoint paths start with `/v1/`**, and their first word may not be one the platform serves itself (`ENDPOINT_PATH_RESERVED_WORD`: `/v1/records/…` is taken).
 - **Filled in when left out** (each said as `DOCUMENT_FORM_READ`): a prompt action's `functionConfig`, an endpoint's `params` (its path's own parameters) and `inputs`, a schedule's `inputs`, a relation's `description` — on a row the project already holds, with the value it holds. A flow's `inputTypeNames` and `outputTypeNames` are still required (`[]` for a flow nobody calls).
 - **An expression names record fields exactly as the type has them**; a field the record lacks is refused `JSONATA_FIELD_UNKNOWN`. Inside a filter `[…]` a bare name is the item's field: write `$$.slot` for a flow slot.
 - **A list input is a list**: `{ "slot": "tags", "typeName": "string", "isList": true }`, never `object` — the endpoint publishes the type you declare. **"Left out" is `$not($exists(tag))`**: `$not(tag)` of an absent input is nothing, not true.
@@ -163,9 +159,8 @@ POST /v1/projects/{nodeId}/document  { "planId": "…", "note": "why", "label": 
 
 ## Try it as a person, then change it
 
-- **Test users** sign in for you: `POST /v1/test-users { "project": "<nodeId>", "name": "alice" }` answers a `session`; call the project host with `Authorization: Bearer <session>`. A second user proves isolation.
-- **A schedule never starts a run for a test user** (test memberships are not the project's people). Rehearse the per-person flow instead: `POST /v1/flows/{id}/preview-runs { "input": { "kind": "slots", "inputs": {}, "principal": "end-user", "runAsUserId": "<test user id>" }, "apply": false }`, then `GET /v1/runs/{runId}/trace`.
-- **Changing a type or a flow that an endpoint serves**: a change that only adds optional fields (a new optional field on `Project`, an optional input to `create-task`, a new output) is adopted by the plan for every endpoint serving it (`DOCUMENT_ADOPTED_ADDITIVE`). Any other change — a field removed, retyped or made required — is refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` / `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until the row you change carries `"adoptSnapshots": true`.
+- **Test users** sign in for you: `kipory user alice`, then `kipory call alice GET "/v1/tasks"` on the project's host (`POST /v1/test-users { "project": "<nodeId>", "name": "alice" }` answers the `session` the command keeps). A second user proves isolation.
+- **A schedule never starts a run for a test user** (test memberships are not the project's people). Rehearse the per-person flow instead: `kipory preview notify-due --as alice` (`POST /v1/flows/{id}/preview-runs` with `"principal": "end-user", "runAsUserId"`, `"apply": false`, then `GET /v1/runs/{runId}/trace`).
 - **Adding a field**: state the type whole with the new field optional; add a `filter` use if a view, a query or a total reads it.
 
 ## When to open another page
@@ -175,5 +170,7 @@ POST /v1/projects/{nodeId}/document  { "planId": "…", "note": "why", "label": 
 | a function this example does not use                  | `functions/README.md` (one line each), then that function's page |
 | a refusal you cannot read                             | `kipory-connect`'s `references/refusal-codes.md`, by code        |
 | a project that already holds records you will reshape | `kipory-evolve`                                                  |
+| what a project already holds, in a few KB             | `kipory summary` (`GET /v1/projects/{nodeId}/document/summary`)  |
+| a question this page does not answer                  | `answers.md`, then `kipory docs <words>`                         |
 | search by meaning, files, outside APIs                | `kipory-retrieve`, `kipory-extract`, `kipory-gather`             |
 | every rule of the document                            | `document.md`                                                    |

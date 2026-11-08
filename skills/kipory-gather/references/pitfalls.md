@@ -10,7 +10,7 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   skips only when **every** input it reads is absent — it runs while **any one** is present — so a
   `text.generate` reading only the empty page skips, but a transform or `record.create` that also
   reads the URL still runs and can write a record with the summary missing. Read `warnings` on the
-  preview, use the plain-fetch fallback (`SKILL.md`, "A page read that must not come back empty"; `references/sources.md` has the actions), and put `slotPresent` conditions on writes.
+  preview, use the plain-fetch fallback (`references/reading-a-page.md`, "A page read that must not come back empty"; `references/recipes.md` has the actions), and put `slotPresent` conditions on writes.
 - **A refused key or an account out of credit is not about the page, and it fails the action** —
   on every fetch-from-a-vendor function (`url.scrape`, `url.screenshot`, the search, place,
   traffic and social reads). Whose key decides what you read. With a key of your own stored
@@ -143,7 +143,7 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
 - **There is no feed reader, and no upsert.** An RSS or Atom feed is `url.fetch` with its own
   period, a regex cut into items and a fan-out that looks each item up by its link, then creates
   or updates it — a `key` use on the link does not make a re-poll update the item, it makes a
-  changed item fail the run. `references/sources.md` (Reading an RSS or Atom feed) has the actions.
+  changed item fail the run. `references/recipes.md` (Reading an RSS or Atom feed) has the actions.
 - **A vendor bills you even though the platform queued the call.** Apify actor runs are billed and
   queued by Apify. The action's own compute time is charged on top, and bringing
   your own key removes the vendor pass-through but not that charge.

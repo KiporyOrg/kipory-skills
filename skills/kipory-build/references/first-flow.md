@@ -102,7 +102,7 @@ POST /v1/actions
 - `promptTemplate` fills `{{text}}` from the slot of that name.
 - `outputSchema` set to the built-in `string` makes `text.generate` return plain text. Any other type switches it to structured output parsed into that type. `text.generate` derives no output type of its own, so state it.
 - `functionConfig` for `text.generate` is optional throughout (`temperature`, `reasoningEffort`, `model`, …); `{}` takes the defaults. See `functions/text.generate.md`.
-- A setting that reads a value from the run takes an argument: a slot path (`"text"`, `"page.records[].id"`), a fixed value (`{ "literal": "…" }`) or an expression (`{ "expr": "…" }`). `"model": { "literal": "<model id>" }` would fix this action's model per call; `action-fields.md` §7 has the forms.
+- A setting that reads a value from the run takes an argument: a slot path (`"text"`, `"page.records[].id"`), a fixed value (`{ "literal": "…" }`) or an expression (`{ "expr": "…" }`). `"model": { "literal": "<model id>" }` would fix this action's model per call; `action-inputs.md` §7 has the forms.
 - `taskKey` decides the model: this action runs on whatever model the project binds to `summarization` (`GET /v1/nodes/{nodeId}/task-models` at the project's id). It is one of `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`; omitted, a single create starts the action on `extraction`. Do not set `modelId` unless you mean to pin this one action.
 - An action whose function sends no prompt — `value.transform`, `record.create`, `url.fetch` — leaves `promptTemplate` out; it is stored as `""`.
 - `key` is the action's name: lower-case kebab, dots allowed. `outputSlot` is a slot name — no hyphens, no underscores.

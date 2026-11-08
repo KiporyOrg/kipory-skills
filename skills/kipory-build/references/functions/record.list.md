@@ -19,7 +19,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | --- | --- | --- | --- | --- |
 | `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 date. |
 | `createdBefore` | string | no | — | Keep only rows created at or before this date. |
-| `cursor` | union | no | — | A previous page's cursor; empty for the first page. ⚠️ An edited or truncated cursor fails the action. |
+| `cursor` | union | no | — | A previous page's cursor; empty for the first page. ⚠️ An edited cursor fails the action; another read's absent `nextCursor` answers an empty page, a flow input's the first. |
 | `dataContains` | union | no | — | The object to look for in that list. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a non-object fails it; a never-produced input skips the action. |
 | `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContains`. ⚠️ This reads every row of the table before narrowing. |
 | `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a wrong kind fails it; a never-produced input skips the action. |

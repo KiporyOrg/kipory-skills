@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "0b540482e567",
+      "hash": "f7df02b8c29b",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -248,11 +248,11 @@
       "page": "kipory-build/references/functions/record.count.md"
     },
     "record.create": {
-      "hash": "4c6b7f65a296",
+      "hash": "5ad6335afe05",
       "page": "kipory-build/references/functions/record.create.md"
     },
     "record.delete": {
-      "hash": "790518446c36",
+      "hash": "cab374b64413",
       "page": "kipory-build/references/functions/record.delete.md"
     },
     "record.enqueue-process": {
@@ -284,7 +284,7 @@
       "page": "kipory-build/references/functions/record.links.md"
     },
     "record.list": {
-      "hash": "959ad9f60e6c",
+      "hash": "04e07f2fd73c",
       "page": "kipory-build/references/functions/record.list.md"
     },
     "record.merge": {
@@ -292,11 +292,11 @@
       "page": "kipory-build/references/functions/record.merge.md"
     },
     "record.query": {
-      "hash": "823e8ae07ece",
+      "hash": "bee4cedaa6e5",
       "page": "kipory-build/references/functions/record.query.md"
     },
     "record.read": {
-      "hash": "57a9d0864e42",
+      "hash": "5dc47669846e",
       "page": "kipory-build/references/functions/record.read.md"
     },
     "record.revoke": {
@@ -1037,6 +1037,10 @@
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
       "hash": "f9b0a5498b2c",
+      "page": "kipory-build/references/api/project-document.md"
+    },
+    "GET /v1/projects/{nodeId}/document/summary": {
+      "hash": "02ff80027aa2",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/history": {

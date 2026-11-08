@@ -1,0 +1,9 @@
+# The embedding profile's fields, and activation
+
+Read this when you create an embedding profile, change its model or chunking, or activate a generation — step 1 of `SKILL.md`'s order, in full.
+
+- **`modelId`** is an embedding model's id from `GET /v1/ai-models?type=embedding` — nothing else lists them. A listed model is not a working one: before you choose, read `GET /v1/ai-calls?project={nodeId}&origins=all&outcome=error` for recent rows with `errorCode: "quota-exhausted"` by provider and pick another provider's model if its account is out. On a project with no history the first failed embed is the probe — see the indexing failure in `references/pitfalls.md`.
+- **`keywords`** is required: `true` also indexes each record's exact words, so a `semantic` clause weighs a literal match beside meaning (names, codes); `false` is meaning alone. It is fixed for a generation. You name no slot anywhere: a `search` use is `{ "kind": "search" }` with no `role`, each `search` field is indexed on its own, and a `semantic` clause picks one by `field`. The profile read's `searchFieldsPerTable` is how many fields of one table may be marked `search` (4 on every profile); one more is refused `USES_SEARCH_FIELDS_OVER_LIMIT`.
+- **`defaultChunking`** is exactly one of two forms: `{ "kind": "whole" }` (one point per record) or `{ "kind": "chunks", "tokens": 400, "overlap": 50 }` (token-sized pieces, `overlap` strictly below `tokens`). Any other `kind` — `tokens`, `fixed` — is a 422 `Expected 'whole' | 'chunks'`. A table's `uses.search.chunking` takes the same two forms.
+
+Activation is direction-agnostic — pointing at a superseded generation is the rollback, and it is a second reindex: records that already moved are embedded and billed again. Its response names `movedTables` and `touched`. An empty `movedTables` means it was already active; repeating is safe.

@@ -67,7 +67,7 @@ processing flow the record still goes `ready`, with an empty body and no `status
 trace is an `action-warned` row in that run's timeline (`GET /v1/runs/{runId}/timeline`), whose
 `detail.message` says what the parser reported. To fail the
 record with a reason instead, `$assert` on the extracted text in the action that picks the body
-(`kipory-build`'s `references/records-and-endpoints.md`). Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
+(`kipory-build`'s `references/endpoint-answers.md`). Branch on that (`flow.dispatch`, see `kipory-build`) instead of assuming either shape.
 `pdf.screenshot` renders **one page**, and that page is the static config field `page` — no slot
 sets it, so fanning out over page numbers renders the same page in every branch. A multi-page scan
 needs one `pdf.screenshot` action per page you want, each a separate vision call with a separate bill.

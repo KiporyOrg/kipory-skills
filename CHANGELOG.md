@@ -2,6 +2,93 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261108.194103 — 2026-11-08
+
+Synced from the Kipory monorepo at `66c5faa6c`.
+
+Routes added: `GET /v1/projects/{nodeId}/document/summary`.
+
+- changed: `README.md`
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/action-fields.md`
+- added: `skills/kipory-build/references/action-inputs.md`
+- added: `skills/kipory-build/references/answers.md`
+- changed: `skills/kipory-build/references/api/project-document.md`
+- changed: `skills/kipory-build/references/document.md`
+- added: `skills/kipory-build/references/endpoint-answers.md`
+- added: `skills/kipory-build/references/fan-out.md`
+- changed: `skills/kipory-build/references/first-flow.md`
+- changed: `skills/kipory-build/references/functions/record.create.md`
+- changed: `skills/kipory-build/references/functions/record.delete.md`
+- changed: `skills/kipory-build/references/functions/record.list.md`
+- changed: `skills/kipory-build/references/functions/record.query.md`
+- changed: `skills/kipory-build/references/functions/record.read.md`
+- changed: `skills/kipory-build/references/models.md`
+- changed: `skills/kipory-build/references/packs/project-document.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/quickstart-document.md`
+- added: `skills/kipory-build/references/record-query.md`
+- changed: `skills/kipory-build/references/records-and-endpoints.md`
+- changed: `skills/kipory-build/references/row-by-row.md`
+- added: `skills/kipory-build/references/utilities.md`
+- added: `skills/kipory-build/references/view-endpoints.md`
+- added: `skills/kipory-build/references/views.md`
+- added: `skills/kipory-build/references/which-function.md`
+- changed: `skills/kipory-channels/SKILL.md`
+- added: `skills/kipory-channels/references/pitfalls.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/references/conventions.md`
+- added: `skills/kipory-connect/references/expand.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- added: `skills/kipory-connect/references/turn-zero.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- added: `skills/kipory-connect/scripts/kipory.mjs`
+- changed: `skills/kipory-data/SKILL.md`
+- changed: `skills/kipory-data/references/csv-import.md`
+- added: `skills/kipory-data/references/files-and-imports.md`
+- changed: `skills/kipory-data/references/in-flow-record-functions.md`
+- added: `skills/kipory-data/references/in-flow-reprocess.md`
+- added: `skills/kipory-data/references/reading-records.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- added: `skills/kipory-diagnose/references/how-a-run-closed.md`
+- added: `skills/kipory-diagnose/references/trace-values.md`
+- changed: `skills/kipory-evolve/SKILL.md`
+- changed: `skills/kipory-evolve/references/change-order.md`
+- added: `skills/kipory-evolve/references/pitfalls.md`
+- added: `skills/kipory-evolve/references/refusals-and-cascades.md`
+- added: `skills/kipory-evolve/references/rehearsals.md`
+- added: `skills/kipory-evolve/references/rolling-back.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- added: `skills/kipory-expose/references/account.md`
+- changed: `skills/kipory-expose/references/consumer.md`
+- added: `skills/kipory-expose/references/errors.md`
+- added: `skills/kipory-expose/references/pitfalls.md`
+- changed: `skills/kipory-expose/references/sign-in.md`
+- changed: `skills/kipory-extract/SKILL.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/pitfalls.md`
+- added: `skills/kipory-gather/references/reading-a-page.md`
+- added: `skills/kipory-gather/references/recipes.md`
+- changed: `skills/kipory-gather/references/sources.md`
+- added: `skills/kipory-gather/references/url-send.md`
+- changed: `skills/kipory-model/SKILL.md`
+- added: `skills/kipory-model/references/embedding-profile-setup.md`
+- added: `skills/kipory-model/references/pitfalls.md`
+- added: `skills/kipory-model/references/vocabulary-setup.md`
+- changed: `skills/kipory-operate/SKILL.md`
+- added: `skills/kipory-operate/references/balance.md`
+- changed: `skills/kipory-operate/references/pitfalls.md`
+- added: `skills/kipory-operate/references/spend-reads.md`
+- changed: `skills/kipory-operate/references/spend.md`
+- changed: `skills/kipory-operate/references/when-a-run-fails.md`
+- changed: `skills/kipory-prove/SKILL.md`
+- added: `skills/kipory-prove/references/pitfalls.md`
+- changed: `skills/kipory-retrieve/SKILL.md`
+- added: `skills/kipory-retrieve/references/like-a-record.md`
+- added: `skills/kipory-retrieve/references/pitfalls.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+- added: `skills/kipory-secrets/references/pitfalls.md`
+
 ## 1.20261108.152409 — 2026-11-08
 
 Synced from the Kipory monorepo at `2017f951e`.

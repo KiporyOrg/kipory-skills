@@ -39,8 +39,8 @@ reach for when the change touches more than a handful of rows.
 
 ## Rehearse first
 
-Every rehearsal, route by route, with what each answers, is the first table of
-`references/change-order.md`. The short form:
+Every rehearsal, route by route, with what each answers, is `references/rehearsals.md`. The short
+form:
 
 | To learn                                       | Ask                                                                                                                                                       |
 | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -134,161 +134,25 @@ the class decides the sequence, and every sequence is written out once, in
 
 ## What refuses, and what cascades instead
 
-Some destructive changes are refused outright:
-
-- deleting a table that holds records, or re-pointing its type or owner scope
-  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold; deleting a
-  seeded table, whatever it holds;
-- deleting a flow something still references, or an action whose output later actions read;
-- deleting a term that is assigned, is a parent, or is the canonical of aliases;
-- deleting a vocabulary without `confirm=true`, or while another vocabulary nests under it;
-- deleting a built-in event type, or a relation's last pairing.
-
-Others do not refuse. They cascade, and the response tells you what else moved:
-
-- deleting a table takes relations and voids other tables' joins;
-- renaming a table moves its records and rewrites every reference to its key, and needs ADMIN;
-- renaming a relation moves its links (each keeps its id) and rewrites every reference to its key,
-  and needs ADMIN;
-- changing a table's `search` uses queues a reindex or a billed re-embed, and its `filter` uses a
-  rewrite of every record's filter columns;
-- a slot rename rewrites its readers only when you confirm it, and never the flow's outputs;
-- editing a processing flow re-runs nothing.
-
-What each refusal carries, the way round where one exists, and what each cascade reports are in
-`references/change-order.md`, "Reading a refusal" and "Reading a cascade".
-
-The pattern is worth internalising: a refusal protects you, a cascade informs you, and the second
-one is the one that costs money while you are not looking.
+**What refuses, and what cascades instead** — which destructive changes are refused outright, which cascade instead, and what each refusal and cascade carries: `references/refusals-and-cascades.md`.
 
 ## Rolling back
 
-**Flows have checkpoints; nothing else does.** Take one before a risky edit — `POST /v1/flow-checkpoints`
-with the flow and a `label` — and restore through `POST /v1/flow-checkpoints/{id}/restore` after
-asking it the same with `validateOnly: true` (both take the flow's `version`). A restore keeps each action's id by key (a
-action deleted since comes back with a new one) and moves a changed action's version forward, so re-read the actions
-before your next action edit. A capture or a restore also makes each eval suite's next run on that flow
-incomparable with the one before (`delta.suppressedReason`): run the suite once after the capture,
-before the edit, so the edit has a baseline (`kipory-prove`). `kipory-build` owns the detail. A flow's checkpoints are deleted with
-the flow, so a deleted flow comes back only from an export.
-
-**An export is the nearest thing to a checkpoint of the whole configuration.** Keep the document
-you exported before a change. The file still carries the read it was made at, so planned as it is
-it lists every element changed since under `moved` (or answers `409 PLAN_STALE` `read-too-old`) —
-and those refusals' "export again" is not the way back here. Plan the kept file against the
-project as it is now: `POST /v1/projects/{nodeId}/document/plan?basedOn=<version>`, where
-`<version>` is the project's current one (the `version` a fresh `GET …/document` answers). Its
-`moved` is then empty and its `changes` are the rollback; apply that plan, `{ planId, note }`. An
-export in an older format is converted first with `kipory-connect`'s upgrade script. The
-apply puts its rows back — a row deleted since returns as a new row with a new id, and a row added since stays unless the document says
-`prune` — under the same refusals as any other apply. It covers configuration only: no records,
-no vectors, no secret values. Deleting a table leaves the type it took its fields
-from, so the rollback re-creates the table on that same type. A schedule's or trigger's `enabled` travels: one the rollback re-creates comes back in the
-state the export recorded. What it does not restore as you left them:
-
-- **A field added since the export cannot be rolled back off records that hold it.** Re-applying
-  the older type removes the field, and a type edit that removes a declared field some record
-  holds is refused `TYPE_UNSAFE_FOR_TABLE`, naming how many records hold it and skipping the
-  rows that depend on it. Keep the new field in the rollback document's type, or remove it from
-  those records first.
-- **Links are data, not configuration.** A relation the change deleted comes back EMPTY:
-  every link asserted by hand (`POST /v1/records/{id}/links/{relationKey}`) is gone for good, and
-  only re-asserting it restores it. Save them (`GET /v1/links?project=<node>&relation=<key>`)
-  before any change that deletes a relation, and count the links again after the rollback.
-
-For everything else, the undo is a forward change you author yourself, and some things have no undo
-at all:
-
-- **Deleted records are gone.** No checkpoint covers the records plane.
-- **Re-embedding cannot be un-run.** It can only be run again, and it is billed each time.
-- **A secret's old value is unrecoverable** — nothing reads one back (`kipory-secrets`).
-- **A term merge cannot be taken back through the API** — the alias it sets stays.
+**Rolling back** — flow checkpoints, an export planned against the project as it is now, and what has no undo: `references/rolling-back.md`.
 
 ## What will bite you
 
-- **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report: `kipory-connect`, "When something stops you".
-- **Ask the PATCH's dry run about the edit, not the stored table.** `expand=contract` answers for
-  what is stored; an agent holding an edited-but-unsaved type must send it — the drafted
-  `definition`, or the proposed `dataTypeId`/`flowId`, with `validateOnly: true` — or it derives
-  declarations against a field vocabulary it is about to replace. Send the `uses` the save would
-  send too: the dry run re-derives them against the proposed contract.
-- **A flow nobody edited can start failing health after a roll.** A new build can add a rule or
-  tighten one, and its health then reads errors though its runs keep succeeding; a write that
-  rewrites the action an error is on — a save of it, or a document that changes it — is refused for
-  it. When `sha` on `GET /health` changes,
-  read `GET /v1/flows?project=<nodeId>&expand=health` and fix every error; `GET /v1/platform-status`
-  names the codes the build added or tightened (`rules`). A roll can also change what a route or a
-  read answers without failing any flow: read `GET /v1/notices?project=<nodeId>` too (or re-run
-  `kipory-connect`'s sync script, which prints them). A notice reaches only the projects its report
-  names, and says which of your fields or routes the change touches. To be told rather than ask, put a trigger on
-  `platform/flow-health.failing` (`kipory-operate`'s triggers pack). And a stated element is whole (document format 8): a field left out of an action, a flow or any
-  row you state goes back to its default (the plan warns `FIELD_RESET_TO_DEFAULT` on each), so a run
-  setting (`timeoutMs`, `tries`, `onFailure`, `modelId` and the rest) left out is reset. State each one you mean to keep, and `null` to clear one a rule now refuses (a control
-  action's `timeoutMs`).
-- **A refused delete is the good outcome.** The dangerous ones are the changes that succeed and
-  quietly invalidate something — a join declaration, a cached digest, an endpoint whose flow no
-  longer returns what it promised.
-- **A stale token is refused, not merged.** Re-read and re-apply rather than retrying the same body,
-  and reach for `overwriteConcurrentEdit` only when you actually mean to discard whatever the other
-  writer did — it is an override, not a retry.
-- **`structureVersion` moves on every one of these**, so every client caching against it must
-  re-read. If you built something that caches configuration, this is the signal it was waiting for.
-- **A flow's signature is frozen by what publishes it.** Changing its input or output slots (a
-  rename, a new required input, a type) while an endpoint — or a table processing through it
-  — holds a snapshot answers `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an
-  `ok: false` verdict with that code).
-  `PATCH /v1/flows/{id}` with `adoptSnapshots: true` lands it and re-publishes those contracts in
-  the same transaction: every client of that endpoint sees the new response keys at once. Treat it
-  as an API change to the product's callers, not an internal edit (`kipory-expose`). A change to
-  `outputBinding` alone is not a signature change.
-- **Never send `validateOnly` to a delete whose route reference does not list it.** Such a delete
-  has no rehearsal: the flag — query or body — answers `422`, and a deployment older than these
-  files may ignore it and delete. A delete route either names its rehearsal or has none.
-- **A flow PATCH carries the flow's `version`.** `PATCH /v1/flows/{id}` without it is a `422`, and
-  a stale one a `409 VERSION_CONFLICT` — a checkpoint restore and a document apply move it too (a
-  restore names the flow's new `version` in its `touched`), so re-read the flow after either. A signature PATCH may state one side alone; the other is kept.
-- **A `502` from a sync endpoint wrote nothing; a `200` with an empty output did.** A failed action
-  discards every write the run staged, so a retry on a 5xx does not write twice (it is charged
-  again). A `200` applied its writes even when its output came back empty, and a client that
-  retries it writes twice unless the write is idempotent — give the table a natural key, or send an
-  `Idempotency-Key` (`kipory-expose`'s `references/consumer.md` says what it guarantees).
-- **An `record.create` pointed at the wrong table is caught only when a declared field misfits.**
-  Switching its `tableKey` saves. Health and a document plan warn `RECORD_CREATE_DATA_MISMATCH`,
-  and the run fails the action naming each field — the check `POST /v1/records` makes — when the
-  incoming slot lacks a field the table requires or carries one under a different type. Fields the
-  table's type does not declare are not a misfit unless the type sets
-  `"additionalProperties": false`: the warning stays silent, the action does not fail, and the run
-  writes a record in the wrong table. Close the type if that matters, and preview with
-  `apply: false` after such an edit, reading the `tableKey` it reports.
-- **A schedule PATCH's dry run does not check `version`.** `validateOnly: true` answers `ok: true`
-  on a stale one, and the same body sent for real answers `409 VERSION_CONFLICT`. Re-read the
-  schedule's `version` after a document apply or any other write that touched it.
-- **Eval suites pin the old behaviour.** After a deliberate change their contracts will break, and
-  that failure is correct. Re-baseline them on purpose (`kipory-prove`) rather than deleting the ones
-  that went red — a suite deleted because it was inconvenient is the one that would have caught the
-  next change.
-- **A project's retire is rehearsable and undoable; a purge is final.** Ask
-  `DELETE /v1/projects/{nodeId}?validateOnly=true` first; the real call carries `{ confirmSlug }`,
-  the project's slug. A retire holds every key granted at the project: they answer `401` from that
-  moment, so a key granted at the project cannot undo its own retire. A person, or a key granted at
-  the organisation, restores it until `purgeAfter` with `POST /v1/projects/{nodeId}/restore` — its
-  keys, schedules and sources come back as they were — and
-  `POST /v1/projects/{nodeId}/purge { confirmSlug, confirmForce }` destroys it before then. All
-  three are ADMIN. There is no checkpoint for a project.
-- **Moving a project's address moves every client.** `PUT /v1/projects/{nodeId}/address { subdomain }`
-  (ADMIN) changes `baseUrl` and every endpoint's `invokeUrl`. The old address does not redirect: it
-  stops answering within a few minutes, and for those minutes nobody else can claim it. Ask `GET /v1/projects/address-availability?candidate=&project=` first. The slug never
-  changes.
-- **What was applied is a read, not a way back.** `GET /v1/projects/{nodeId}/history` lists the applied
-  changes to the configuration, newest first, one action per entry, and
-  `GET /v1/projects/{nodeId}/history/{structureVersion}` is one action with every row it changed. To
-  keep a flow as it is and restore it later, take a checkpoint first.
+**What will bite you** — the traps of changing a live project: dry runs, health after a roll, stale tokens, frozen signatures, retries, retire and purge, address moves: `references/pitfalls.md`.
 
 ## References
 
-| File                         | What it answers                                                                                                                                                                                                                                                                                                                                                                      |
-| ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| `references/change-order.md` | every rehearsal route and what it answers; a change request → its class, then the full sequence for each: additive, narrowing a type (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, renaming a slot, retiring a term, removing through a document; what each refusal carries and the way round it; what each cascade reports |
+| File                                  | What it answers                                                                                                                                                                                                                                                |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/rehearsals.md`            | every rehearsal route and what it answers                                                                                                                                                                                                                      |
+| `references/change-order.md`          | a change request → its class, then the full sequence for each: additive, narrowing a type (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, renaming a slot, retiring a term, removing through a document |
+| `references/refusals-and-cascades.md` | what refuses and what cascades instead; what each refusal carries and the way round it; what each cascade reports                                                                                                                                              |
+| `references/rolling-back.md`          | flow checkpoints, an export as the rollback, and what has no undo                                                                                                                                                                                              |
+| `references/pitfalls.md`              | what will bite you when changing a live project                                                                                                                                                                                                                |
 
 ## Then
 

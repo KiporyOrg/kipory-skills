@@ -110,87 +110,11 @@ real browser.
 
 ## Choosing between the four ways to read a page
 
-- **`url.fetch`** when the URL returns data — an API, a JSON or RSS feed, a text file. It renders nothing
-  and re-encodes nothing. No vendor. A plain GET needs no config; an API that needs more takes
-  `query`, `headers`, a POST `body` and a stored key named in `secret` (the `kipory-secrets`
-  skill says how to store one). Set `responseAs` to `json` to address an object's fields, or to `json-list` for an API that returns
-  a list of objects, which a fan-out can then walk. It is a
-  read: it may be sent several times and is cached, so a POST here must change nothing.
-  <!-- field-ok: body — a `url.fetch` config field, listed on the function's reference page -->
-- **`url.metadata`** when you only need the head: title, description, icon. It reads the page's head
-  over plain HTTP with no JS render, so it is cheap and it is wrong about pages that build their
-  own title in the browser. It is also the liveness check: a site that cannot be reached does not
-  fail the action. The output carries `failure.code` instead of `httpStatus`, one of
-  `dns-not-found` (the name has no address), `connection-refused` (the host answered that nothing
-  listens there), `tls-failed` (the certificate or handshake was refused), `redirect-limit` (more
-  redirects than `maxRedirects`, or one that names no target), `timeout` (no answer within
-  `timeoutMs`), `connection-reset` (the connection was dropped mid-request) and `unreachable`
-  (anything else). Wire `failure.code` to store why; an action wired to `httpStatus` is skipped when
-  the site never answered. To stop a flow on a dead site, put a condition on `failure`: the action
-  itself no longer fails. An HTTP error such as 404 is an answer: it has `httpStatus` and no
-  `failure`. A live page often reads `206`, not `200`, because the function asks for the head of the
-  page only: test for a status below 400, or for `failure` being absent, never for `200`. A
-  `flow.dispatch` that matches on `contentType` sends a dead site to its `default` branch, since
-  the field is absent: branch on `failure` first. Only a missing name and a redirect dead end are
-  remembered for the cache period; every other failure is read afresh next time.
-- **`url.scrape`** when you need the readable body of a modern page. It renders JavaScript, which is
-  why it costs a vendor call and sits in the tightest bucket.
-- **`url.fetch-as-file`** when you want the bytes rather than the text — a PDF, an image, an
-  archive. It stores them and emits a file reference for `kipory-extract` to open.
-
-`url.send` is not a fifth way to read: it writes to an outside system, and has its own section
-below.
-
-**A page read that must not come back empty** runs `url.scrape` and `url.fetch` side by side off
-the same `url` slot and keeps whichever filled, with `value.first-non-empty`. Three things make it
-work, and `references/sources.md` (Scrape with a plain-fetch fallback) has the actions, the
-tag-stripping expression and the no-vendor variant:
-
-- coalesce text with text — `page.content` against the stripped fetch, never the bare objects;
-- set `"onFailure": "continue"` on the `fetch` action, because `url.fetch` fails the action on a 4xx
-  or an unresolvable address and one failed action fails the run; its `failureSlot` then says which,
-  with `httpStatus` — 403 is a site refusing the fetch, 404 a page that is not there;
-- guard every action that reads the body beside another slot with a `slotPresent` condition, model
-  actions included — an action runs while any one input is present.
-
-`url.fetch`, `url.fetch-as-file` and `url.metadata` go through an SSRF guard: they reach the open
-web, not the deployment's own network. On `url.fetch` a host name that does not resolve is refused
-by the same guard, so a typo in a URL reaches the caller as `400 BAD_REQUEST` "The flow attempted a
-blocked network request.", not as a network error. `url.metadata` reports it as a value
-(`failure.code: "dns-not-found"`), and `url.fetch-as-file` softens it when its `failureMode` is
-`soft`. A private address is refused by all three, always.
+**Choosing between the four ways to read a page** — `url.fetch`, `url.metadata`, `url.scrape` or `url.fetch-as-file`, a page read that must not come back empty, and the SSRF guard: `references/reading-a-page.md`.
 
 ## Telling an outside system something: `url.send`
 
-`url.send` is not a read. It sends a POST, PUT, PATCH or DELETE to an outside system; never reach
-for `url.fetch` to do that, because a read is cached and may be sent several times.
-
-- **Staged once per run, delivered after the run has saved everything else.** A run that fails
-  sends nothing, and the flow never sees the answer.
-- **The receiver may see a request twice.** A transient failure — no answer, a 5xx, a 429 — is
-  retried for about ten minutes, every attempt with the same `Idempotency-Key` header. A 3xx or
-  4xx is final: a redirect is not followed. A new run of the same input stages a new request;
-  name an `idempotencyKey` so the receiving system can recognise that repeat too.
-  <!-- field-ok: idempotencyKey — a `url.send` config field, listed on the function's reference page -->
-- **In a preview or an eval run the action checks and does not send.** It answers `true` with a
-  `PREVIEWED_NOT_SENT` warning naming the method and host, and the rest of the flow runs. A secret
-  that is not stored fails it as `api-key-missing`, and an address outside the secret's hosts fails
-  it as the delivery would. Prove the delivery with one live run.
-- **Nothing reports the delivery.** The action's `true` means staged. No run read, timeline or
-  spend read says whether the request left or what it was answered: a wrong host, a private
-  address, a credential that does not list the host, a credential removed since and a 4xx all
-  look like success in the run. Confirm on the receiving system, with one live run, before
-  relying on it.
-- **With a `secret`, the address must be `https` on the default port**, or the action fails before
-  anything is staged (`kipory-secrets` has the credential's own rules).
-
-`url.fetch`, `url.fetch-as-file` and `url.send` share one budget, `outbound-request`: 60 requests a
-minute **per project and per host**. Two projects never share it, and two hosts are two budgets. A
-read in a fan-out wider than that over one host is delayed, but only up to the function's wait
-ceiling — a minute for `url.fetch`, a minute and a half for `url.fetch-as-file`; a call still
-waiting then fails its action, so bound the fan-out or set `maxParallelBranches`. A `url.send`
-delivery over the budget is put back and sent later. The service's own limit is its 429, which a
-read waits out once when the wait is short.
+**Telling an outside system something: `url.send`** — a write, not a read: staged once per run, possibly seen twice, never reported, and the `outbound-request` budget: `references/url-send.md`.
 
 ## What will bite you
 
@@ -222,10 +146,13 @@ Each of these is a trap with its explanation and remedy in [references/pitfalls.
 
 ## References
 
-| File                     | What it answers                                                                                           |
-| ------------------------ | --------------------------------------------------------------------------------------------------------- |
-| `references/sources.md`  | a source per question, the shared budgets, the scrape-with-fallback and feed recipes, what a source costs |
-| `references/pitfalls.md` | each trap of bringing data in, with what happens and what to do                                           |
+| File                           | What it answers                                                                         |
+| ------------------------------ | --------------------------------------------------------------------------------------- |
+| `references/sources.md`        | a source per question, the shared budgets, what a source costs                          |
+| `references/reading-a-page.md` | the four ways to read a page, a page read that must not come back empty, the SSRF guard |
+| `references/recipes.md`        | the scrape-with-fallback and feed recipes                                               |
+| `references/url-send.md`       | `url.send`: a write to an outside system, and the shared `outbound-request` budget      |
+| `references/pitfalls.md`       | each trap of bringing data in, with what happens and what to do                         |
 
 Per-function config tables live with the function catalog in `kipory-build`.
 
