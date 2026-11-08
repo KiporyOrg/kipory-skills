@@ -2,6 +2,12 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261108.101422 — 2026-11-08
+
+Synced from the Kipory monorepo at `6f752a178`.
+
+- changed: `skills/kipory-data/references/sharing-records.md`
+
 ## 1.20261107.190604 — 2026-11-07
 
 Synced from the Kipory monorepo at `544a65073`.

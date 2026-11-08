@@ -1,7 +1,8 @@
 {
-  "source": "544a65073f3b9221b2649dccdf96e808e1230f8a",
+  "source": "6f752a17828acdd1fe3aad0a4526cb4cade70984",
   "since": "2026-08-16",
   "history": [
+    {"sha":"6f752a17828a","skills":"A save refused for whose: shared on a table that does not share names RECORD_LIST_WHOSE_NOT_SHARING in its answer (423) (#3690)"},
     {"sha":"544a65073f3b","skills":"A shared record tells each reader what they may do with it, refuses what they may not with 403, and every write through a share is asked again at the save (423) (#3688)"},
     {"sha":"3b42634cb1c8"},
     {"sha":"08c6bc3b438d"},
@@ -1000,7 +1001,6 @@
     {"sha":"105eaf0173f5"},
     {"sha":"37584f88b3e1"},
     {"sha":"8e2b45783e11"},
-    {"sha":"ce54909242df"},
-    {"sha":"717dc8810b94"}
+    {"sha":"ce54909242df"}
   ]
 }

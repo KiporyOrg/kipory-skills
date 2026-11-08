@@ -139,8 +139,8 @@ A `record.delete` of several ids, one of which the person reaches below `delete`
 A merge stays the owner's: no level lets a person merge someone else's record.
 
 A refusal's own code rides as `details.reason` beside the status's envelope code (`FORBIDDEN`,
-`NOT_FOUND`); `QUERY_COUNT_REACHES_SHARED` is the envelope's `code` itself. A save-time refusal answers 422 `VALIDATION_FAILED`, its own code leading the message
-(`TABLE_FIELD_RESERVED_BY_SHARING: …`).
+`NOT_FOUND`); `QUERY_COUNT_REACHES_SHARED` is the envelope's `code` itself. A save-time refusal answers 422 `VALIDATION_FAILED` and names its code in the message: a table's leads
+it (`TABLE_FIELD_RESERVED_BY_SHARING: …`), an action's follows the action's name (`list: RECORD_LIST_WHOSE_NOT_SHARING: …`).
 When your product wants a 404 where the built-in answers 403 (say, "anyone but the recipient gets 404"),
 check `access` first and answer with `request.refuse`.
 
