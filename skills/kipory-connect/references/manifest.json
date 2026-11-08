@@ -30,7 +30,7 @@
       "page": "kipory-build/references/packs/flow-checkpoints.md"
     },
     "flows-and-actions": {
-      "hash": "e4501284955b",
+      "hash": "107210d86cfd",
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
@@ -1284,7 +1284,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "PATCH /v1/actions/{id}": {
-      "hash": "849e6f0cc242",
+      "hash": "987bd90fd9c8",
       "page": "kipory-build/references/api/actions.md"
     },
     "PATCH /v1/api-endpoints/{id}": {
@@ -1394,7 +1394,7 @@
       "page": "kipory-model/references/api/vocabularies-and-terms.md"
     },
     "POST /v1/actions/": {
-      "hash": "630e09764e3b",
+      "hash": "f8a7a49a95f2",
       "page": "kipory-build/references/api/actions.md"
     },
     "POST /v1/actions/batch": {

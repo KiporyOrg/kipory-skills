@@ -793,16 +793,21 @@ warning on correct work.
 ⭐ **Every expression the action holds comes back as TypeScript too: `derived.draft.expressionNotations`.**
 One entry per JSONata expression, named as its findings name it: `expression`, a build row
 `fields.<name>` and its condition `fields.<name>.when`, an `{expr}` argument (`payload`, `urls[0]`,
-`input 0`), a condition test (`condition.all[1].expr`). Each carries `typescript` — ordinary
-TypeScript that gives the same answer, importing from `"kipory"` the functions TypeScript has no
-word for, or `null` when the expression has no TypeScript form — `formatted`, the platform's layout
-of the expression, and `library`, one line on each imported function. Send `condition` on the dry
-run to have its tests printed and checked.
+`input 0`), a condition test (`condition.all[1].expr`). Each carries `typescript` and `python` —
+the expression as TypeScript and as Python, statements ending in `return`, or `null` when it has no
+such form — `formatted`, the platform's layout of the expression, and `library`, one line on each
+function it calls. Send `condition` on the dry run to have its tests printed and checked.
 
-⚠️ **"The same answer" has three named exceptions.** A field read through a value nothing types
-reads differently when that value turns out to be a list; a function's parameter is taken as
-given; and a missing value becomes `undefined` in TypeScript where JSONata leaves it out (an object
-key, a list item). Give the inputs types and the first goes away.
+Both mean what the JSONata means: the engine runs the JSONata. Each uses its own spelling where
+there is one (`if` / `return`, loops, `.map` or comprehensions, templates or f-strings) and calls
+JSONata's functions and the platform's by name without the `$` (`round(x, 1)`, `hostOf(url)`; in
+Python a platform function Python names itself, such as `list`, is `list_`); none of JSONata's
+functions is imported or defined. Send an edited TypeScript text in the `typescript` field and a Python one in the `python`
+field; `fromTypeScript` and `fromPython` answer the JSONata, keeping the action's JSONata text of every
+statement you did not change. Send each field once, in one language. Anything that reaches outside
+the expression is refused with its place — a request, files, the console, timers, the environment,
+`async`, a class, `try`, a callback that changes a name outside itself — and so is a construct that
+would run with another meaning (`==` in TypeScript, `x || "default"`, `x or "default"`).
 
 ⭐ **A slot path and an expression can trade places where they read the same value.**
 `derived.draft.slotPathExpressions` names each setting or input position holding a slot path, with
@@ -811,13 +816,16 @@ has steps JSONata reads otherwise (`.first`, an index, `[distinct]`). An `{expr}
 notation carries `slotPath`: the slot path that reads the same, or `null`. Set one in place of the
 other only where these say so, and the action reads what it read before.
 
-⭐ **And TypeScript can be sent instead.** Add `typescript: [{ "field": "<as named above>", "text":
-"<TypeScript>" }]` to the dry run; `derived.draft.fromTypeScript` answers each one with the JSONata
-it means (`jsonata`), or why there is none (`refusal`, with the `start`/`end` of the part it refuses
-in your text), and the rest of `derived.draft` judges the config with that JSONata in place. Save
-the JSONata: a save that sends `typescript` is a 422. A construct JSONata cannot answer the same is
-refused, not guessed at — a loop, `==`, `.length` on text, or `+` and `.includes` on a value nothing
-types.
+⭐ **And TypeScript or Python can be sent instead.** Add `typescript: [{ "field": "<as named
+above>", "text": "<TypeScript>" }]` or `python: [{ "field": …, "text": "<Python>" }]` to the dry
+run; `derived.draft.fromTypeScript` / `fromPython` answers each one with the JSONata it means
+(`jsonata`), or why there is none (`refusal`, with the `start`/`end` of the part it refuses in your
+text), and the rest of `derived.draft` judges the config with that JSONata in place. Save the
+JSONata: a save that sends either field is a 422. A construct the expression cannot
+answer the same is refused, not guessed at — `==` in TypeScript, a `return` inside a loop, a
+`break` with no loop around it (a `continue` too), `++` inside an expression, a generator — and the refusal says
+what to write instead. Loops, `.length` and `.includes` are read: where nothing says whether a
+value is a list or text, the JSONata asks as it runs.
 
 ⛔ **An empty `derived.draft.diagnostics` list means the configuration is well-formed. It does NOT
 mean the action will save.** Dangling slots, cycles and output collisions are questions about the

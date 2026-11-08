@@ -1,7 +1,9 @@
 {
-  "source": "6f752a17828acdd1fe3aad0a4526cb4cade70984",
+  "source": "5f606c602af35d0d5ae98d892d01c169a7ba616a",
   "since": "2026-08-16",
   "history": [
+    {"sha":"5f606c602af3","skills":"An action's expressions can be read and edited as TypeScript or Python, and each edit is answered with the JSONata it means (#3682)"},
+    {"sha":"e35afa08401d"},
     {"sha":"6f752a17828a","skills":"A save refused for whose: shared on a table that does not share names RECORD_LIST_WHOSE_NOT_SHARING in its answer (423) (#3690)"},
     {"sha":"544a65073f3b","skills":"A shared record tells each reader what they may do with it, refuses what they may not with 403, and every write through a share is asked again at the save (423) (#3688)"},
     {"sha":"3b42634cb1c8"},
@@ -999,8 +1001,6 @@
     {"sha":"b61e935a65b2"},
     {"sha":"8fd1bbf7e4e7"},
     {"sha":"105eaf0173f5"},
-    {"sha":"37584f88b3e1"},
-    {"sha":"8e2b45783e11"},
-    {"sha":"ce54909242df"}
+    {"sha":"37584f88b3e1"}
   ]
 }
