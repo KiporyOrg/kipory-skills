@@ -225,11 +225,13 @@ run's invocation. Reach for them in this order:
     `request.refuse` or a signature check): the HTTP status it chose, such as 403 or 410.
 - **`queued`** (on the runs list and `GET /v1/runs/{runId}`) — how long the latest attempt waited
   before a worker started it, `ms`, and `waitedFor`: each thing that held it, with its `ms` and how
-  many `times` the run was put back for it — `project-limit` (as many of the project's runs going
-  as `runs.queued-at-once` allows, `runs.started-at-once` for a run started per person),
-  `person-limit`, `rename-hold`, `database-outage`, `restart` (started again after one of the
-  platform's own failures, or after the worker running it stopped) — and `worker-slots`, the rest
-  of the time: mostly every worker slot busy with other runs. A run started again shows that
+  many `times` the run was put back for it — `project-limit` (a run started per person, as many
+  of those going as `runs.started-at-once` allows), `person-limit`, `rename-hold`,
+  `database-outage`, `restart` (started again after one of the platform's own failures, or after
+  the worker running it stopped) — and `worker-slots`, the rest of the time: every worker slot busy
+  with other runs, the run waiting its project's turn while the projects waiting take the free
+  slots in turn, and the project at the number of runs at once Kipory set for it
+  (`runs.queued-at-once`). A run started again shows that
   attempt's wait. Null on a run that records none (a synchronous call, a stream, a flow preview).
 - **`waiting`** — set while the platform is about to start the run again. When one of the
   platform's own failures closes an attempt (`platform-busy`, `platform-interrupted`,

@@ -2,7 +2,7 @@
 
 # Ingest
 
-What the async ingest workers did with a project's records and what they cached; the read to check before concluding a processing flow never ran.
+What the project's ingest calls fetched, cached and failed, wherever they ran; the read to check before concluding a processing flow never ran.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 

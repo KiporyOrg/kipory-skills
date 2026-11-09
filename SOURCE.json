@@ -1,7 +1,8 @@
 {
-  "source": "2828ab1893ff2e114763e72076d56dc7e71c1301",
+  "source": "cd31378dedd9b8fe1ea2771c01eda1bc29a9dda0",
   "since": "2026-08-16",
   "history": [
+    {"sha":"cd31378dedd9","skills":"A run's model calls and fetches run in the run's own process, deduplicated by a fenced call claim with derived billing keys, and record and endpoint runs are admitted fairly per project (425) (#3699)"},
     {"sha":"2828ab1893ff","skills":"A function vendor is named by its row everywhere, an unreadable vendor row alerts staff, x.posts' Apify version 2 is drafted, and 14 ScrapeCreators reads are shown (418) (#3698)"},
     {"sha":"66c5faa6cb8f","skills":"A coding agent builds a Kipory backend for less and gets it right more often: a kipory command, entry skills that answer every build's questions, a compact project summary and one-pass plans, and four run-plane fixes the benchmarks found (424) (#3697)"},
     {"sha":"ed273feccd20"},
@@ -1000,7 +1001,6 @@
     {"sha":"e6e1765026c8"},
     {"sha":"5e83025857b6"},
     {"sha":"19c669e338fc"},
-    {"sha":"3cb19be837cd"},
-    {"sha":"ecb09357fd56"}
+    {"sha":"3cb19be837cd"}
   ]
 }

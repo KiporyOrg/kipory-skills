@@ -6,7 +6,7 @@
 
 Each line carries the function's phase, then what an action on it spends:
 
-- `ingest` (65) — runs in the async ingest worker: queued, retried, cached — the heavy, paid, IO-bound actions.
+- `ingest` (65) — the heavy, paid, IO-bound actions: cached, retried, and run inside the run that waits on them.
 - `inline` (47) — runs synchronously inside the flow engine, in order.
 - `control` (6) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
