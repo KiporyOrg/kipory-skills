@@ -66,7 +66,7 @@
       "page": "kipory-operate/references/packs/schedules.md"
     },
     "secrets": {
-      "hash": "78214942c2c2",
+      "hash": "15dbd0c126a2",
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
@@ -106,6 +106,10 @@
     "event.emit": {
       "hash": "fc43e71b6b1c",
       "page": "kipory-build/references/functions/event.emit.md"
+    },
+    "facebook.ad": {
+      "hash": "3b9d4c5eb8d9",
+      "page": "kipory-build/references/functions/facebook.ad.md"
     },
     "facebook.ads": {
       "hash": "16b0120c6aaf",
@@ -167,6 +171,10 @@
       "hash": "4cd304b81203",
       "page": "kipory-build/references/functions/flow.start-per-person.md"
     },
+    "google.ad": {
+      "hash": "5a6c64db1ffa",
+      "page": "kipory-build/references/functions/google.ad.md"
+    },
     "google.ads": {
       "hash": "0fa22999bf1d",
       "page": "kipory-build/references/functions/google.ads.md"
@@ -207,13 +215,25 @@
       "hash": "7423132a373b",
       "page": "kipory-build/references/functions/instagram.search-profiles.md"
     },
+    "instagram.transcript": {
+      "hash": "40c4fc120831",
+      "page": "kipory-build/references/functions/instagram.transcript.md"
+    },
     "linkedin.ad": {
       "hash": "ee50944b517d",
       "page": "kipory-build/references/functions/linkedin.ad.md"
     },
+    "linkedin.ads": {
+      "hash": "113f5251be5f",
+      "page": "kipory-build/references/functions/linkedin.ads.md"
+    },
     "linkedin.company": {
       "hash": "6e47b1624693",
       "page": "kipory-build/references/functions/linkedin.company.md"
+    },
+    "linkedin.post": {
+      "hash": "b7aa2a28e209",
+      "page": "kipory-build/references/functions/linkedin.post.md"
     },
     "linkedin.posts": {
       "hash": "a4ca697c443f",
@@ -339,6 +359,10 @@
       "hash": "e491bc18071d",
       "page": "kipory-build/references/functions/reddit.comments.md"
     },
+    "reddit.post": {
+      "hash": "8b2cefe7d854",
+      "page": "kipory-build/references/functions/reddit.post.md"
+    },
     "reddit.posts": {
       "hash": "3cca3a454939",
       "page": "kipory-build/references/functions/reddit.posts.md"
@@ -427,6 +451,10 @@
       "hash": "d689d73bc2af",
       "page": "kipory-build/references/functions/text.sanitize.md"
     },
+    "threads.post": {
+      "hash": "903740ed8bb3",
+      "page": "kipory-build/references/functions/threads.post.md"
+    },
     "threads.posts": {
       "hash": "0ff3db27b80d",
       "page": "kipory-build/references/functions/threads.posts.md"
@@ -438,6 +466,10 @@
     "threads.search": {
       "hash": "0c40ce08bf2f",
       "page": "kipory-build/references/functions/threads.search.md"
+    },
+    "tiktok.ads": {
+      "hash": "ff382bc934c1",
+      "page": "kipory-build/references/functions/tiktok.ads.md"
     },
     "tiktok.audience": {
       "hash": "9c85efcdf6d4",
@@ -470,6 +502,10 @@
     "tiktok.search": {
       "hash": "e9155c23b886",
       "page": "kipory-build/references/functions/tiktok.search.md"
+    },
+    "tiktok.transcript": {
+      "hash": "a1007cce7060",
+      "page": "kipory-build/references/functions/tiktok.transcript.md"
     },
     "url.fetch": {
       "hash": "b99438267dcb",
@@ -534,6 +570,10 @@
     "x.profile": {
       "hash": "fd166ee54a1c",
       "page": "kipory-build/references/functions/x.profile.md"
+    },
+    "x.transcript": {
+      "hash": "2f1ba28c209e",
+      "page": "kipory-build/references/functions/x.transcript.md"
     },
     "youtube.channel": {
       "hash": "3d9c51134c96",

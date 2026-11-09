@@ -68,9 +68,11 @@ ScrapeCreators (`scrapecreators`) — the last for every social-platform
 read (`tiktok.profile`, `tiktok.posts`, `tiktok.post`, `tiktok.comments`, `tiktok.search`,
 `tiktok.followers`, `tiktok.following`, `tiktok.audience`, `instagram.profile`, `instagram.posts`,
 `instagram.post`, `instagram.comments`, `instagram.search`, `instagram.search-profiles`,
-`reddit.posts`, `reddit.comments`, `reddit.search`, `facebook.page`, `facebook.posts`,
-`facebook.ads`, `google.ads`, `linkedin.profile`, `linkedin.company`, `linkedin.posts`,
-`linkedin.ad`, `threads.profile`, `threads.posts`, `threads.search`, `x.profile`, `youtube.posts`,
+`reddit.posts`, `reddit.post`, `reddit.comments`, `reddit.search`, `facebook.page`,
+`facebook.posts`, `facebook.ads`, `facebook.ad`, `google.ads`, `google.ad`, `linkedin.profile`,
+`linkedin.company`, `linkedin.posts`, `linkedin.post`, `linkedin.ad`, `linkedin.ads`,
+`threads.profile`, `threads.posts`, `threads.post`, `threads.search`, `tiktok.transcript`,
+`tiktok.ads`, `instagram.transcript`, `x.profile`, `x.transcript`, `youtube.posts`,
 `youtube.comments`, `youtube.search`) and for `x.posts` and `youtube.transcript` on an action that
 chose it. The two model vendors: `cohere` and `typesafe`. Each is a credential of the catalog's
 plain bearer-key type.

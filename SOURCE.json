@@ -1,7 +1,8 @@
 {
-  "source": "c8f37988e59687c3dcc5d1f3b2184c31b3d26843",
+  "source": "f6f343aa8cb4305f351391d7ab46d2182d40a749",
   "since": "2026-08-17",
   "history": [
+    {"sha":"f6f343aa8cb4","skills":"10 more ScrapeCreators reads are shown: each passed its daily test on staging with a real input (418, rulings 29 and 33) (#3705)"},
     {"sha":"c8f37988e596","skills":"A retry key belongs to its caller, a record keeps the times its run reported, and a query value keeps its type's bounds (426) (#3704)"},
     {"sha":"bea94a03dcfb"},
     {"sha":"ce78ef3a3c58","skills":"A vendor run left unbilled is settled from the vendor's own record and billed as its run was, a late answer is kept, admission can go per request, and no function vendor is listed in code (418, S10) (#3702)"},
@@ -1000,7 +1001,6 @@
     {"sha":"978f7d21432a"},
     {"sha":"8bfcd880f073"},
     {"sha":"ad6636a69bb7"},
-    {"sha":"85039bcb835e"},
-    {"sha":"b47f00575fe2"}
+    {"sha":"85039bcb835e"}
   ]
 }
