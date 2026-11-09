@@ -12,8 +12,8 @@ A file with no tags still gets the technical fields; an unreadable one gets noth
 - **Also found as:** audio length, duration, song details, audio info
 - **Reads:** One audio file. A non-audio mime fails rather than being guessed at. _(shape hint: `file`)_
 - **Emits:** An `AudioMetadata`. Every field is independently optional, so a file with no tags still returns its length and format. An empty object means nothing was readable.
-- **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Inputs (`with`):** `audio`
+- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

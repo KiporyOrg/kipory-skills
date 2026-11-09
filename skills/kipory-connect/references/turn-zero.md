@@ -26,7 +26,9 @@ Keep the project's `baseUrl`: it is the **project's host**, where the endpoints 
 
 If the human also gave you a project id, compare it with `projects` before using it. An id from another project is the commonest wrong input, and without this read it shows up only as a 403.
 
-**3. On a project that already holds work, read the map first.** `GET /v1/projects/{nodeId}/map` is one entry per flow — what starts it, what it reads, writes and calls — at about 0.5 KB a flow; `GET /v1/flows/{id}/outline` is one flow's shape. An empty project has nothing to read: go to the build.
+**2b. Check the wallet can pay.** `GET <baseUrl>/v1/credits/balance` with the same key, on the project's host (the api host answers 404): `status` is `active` and `creditsRemaining` is above `-softCapCredits`. It takes no `?node=`; the host names the project. An empty wallet stops your endpoints' POSTs, previews and schedule fires while plan, apply and `POST /v1/records` still work, so a dry wallet looks like a broken flow. With no `baseUrl`, `GET /v1/projects/{nodeId}/usage` on the api host has `payer.wallet` (`balance`, `overdraft`, `status`), but only when the key administers the node that pays; a key at a project that does not hold its own wallet reads `wallet: null`.
+
+**3. On a project that already holds work, read the map first.** `GET /v1/projects/{nodeId}/map` is one entry per flow — what starts it, what it reads, writes and calls — at about 0.5 KB a flow; `GET /v1/flows/{id}/outline` is one flow's steps as an outline. An empty project has nothing to read: go to the build. A flow with no `steps` yet is not started (`FLOW_NOT_AUTHORED`) until they are written (`kipory-build`). A project from before format 11 is gone: `references/session-start.md`.
 
 **If you must create the project** you need `owner` at the parent organisation node:
 
@@ -36,7 +38,7 @@ POST /v1/projects  { name, slug, parentNodeId }       → 201 { id, slug, name }
 
 ⚠️ Pass `parentNodeId` explicitly. It defaults to the platform organisation, which your grant almost certainly does not reach, so omitting it turns a correct request into a 403 that looks like a broken key.
 
-**4. Check the models your actions will run on.** `GET /v1/nodes/{nodeId}/task-models` lists each task an action inherits its model through; a row with `callable: false` fails every action on that task (`kipory-build`'s `references/models.md`). When a run fails with `detail.phase: "platform-fault"`, `GET /v1/platform-status` says whether the platform's provider account is refusing — the deployment's fault, not the flow's. Confirm facts live, never from memory: `GET /v1/functions`, `GET /v1/openapi.json`, `GET /v1/coded-routes` (`references/session-start.md`).
+**4. Check the models your steps will run on.** `GET /v1/nodes/{nodeId}/task-models` lists each task a step inherits its model through; a row with `callable: false` fails every step on that task (`kipory-build`'s `references/models.md`). When a run fails with `detail.phase: "platform-fault"`, `GET /v1/platform-status` says whether the platform's provider account is refusing — the deployment's fault, not the flow's. Confirm facts live, never from memory: `GET /v1/functions`, `GET /v1/openapi.json`, `GET /v1/coded-routes` (`references/session-start.md`).
 
 ## Reading a refusal
 

@@ -1,6 +1,6 @@
 ---
 name: kipory-evolve
-description: Change a Kipory project that already holds records or serves callers, without breaking it — rename a table or change its type, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or type change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary action edit (kipory-build, kipory-model).
+description: Change a Kipory project that already holds records or serves callers, without breaking it — rename a table or change its type, add a required field (a migration), change a flow's inputs or outputs behind a live endpoint (a breaking change), re-run stored records after their processing flow changed, delete a flow, vocabulary, term, relation or table that something depends on, and undo a change. Use before any delete, rename or type change on a project that is not empty, when a write is refused naming dependents, pinned records or a locked signature (a 409), when asking what a change would break before making it (`validateOnly`, a document plan's consequences and cascades), or when an edit has to be rolled back. Not for authoring on an empty project or an ordinary step edit (kipory-build, kipory-model).
 license: MIT
 ---
 
@@ -29,11 +29,9 @@ reach for when the change touches more than a handful of rows.
   it holds.
 - **Concurrency control is per-resource, and you have to know which kind you are facing.** Tables,
   vocabularies and their neighbours require the `version` you last read on a patch and refuse a
-  stale one. An action in a flow is optimistic-locked the same way and answers **409**
-  with one of three kinds — `stale-version`, `concurrent-consumer-write` or `unique-collision`. The
-  first two are re-read-and-retry, or resubmit with `overwriteConcurrentEdit`, which skips the
-  pre-check **and nothing else**: it never clears a `unique-collision`, and it never relaxes
-  validation. Read the resource's own contract before assuming either form.
+  stale one. A flow's steps are locked by the flow's own `version`: a step write
+  (`PUT /v1/flows/{id}/steps`, `POST /v1/flows/{id}/steps/edit`) against any other answers **409**
+  and saves nothing. Re-read the flow and apply your change again; there is no override.
 
   <!-- field-ok: version — the optimistic-concurrency token, named on several design resources -->
 
@@ -46,16 +44,17 @@ form:
 | ---------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | what the project holds                         | `GET /v1/bootstrap?project={nodeId}`, then `GET /v1/tables/{id}` for each table's `hasRecords` / `recordCount`                                            |
 | what points at an element                      | `GET /v1/projects/{nodeId}/connections` — computed from the configuration, so current after every write                                                   |
-| who uses a field, config key, relation or flow | `GET /v1/projects/{nodeId}/references?of=field:review.stars` — every use, at its action's outline path, with how sure the platform is                     |
+| who uses a field, config key, relation or flow | `GET /v1/projects/{nodeId}/references?of=field:review.stars` — every use, at its step's outline path, with how sure the platform is                       |
 | what each flow does, in one small read         | `GET /v1/projects/{nodeId}/map`                                                                                                                           |
 | whether a delete would be refused              | the same `DELETE` with `?validateOnly=true` — every design-row delete has one, and its reference lists it; a record, file, link or secret delete has none |
-| what a patch would derive, break or queue      | the same `PATCH` with `validateOnly: true` — flows, actions, types, tables, relations, and every other design row whose reference lists the flag          |
+| what a patch would derive, break or queue      | the same `PATCH` with `validateOnly: true` — flows, types, tables, relations, and every other design row whose reference lists the flag                   |
+| what a step change would break                 | `PUT /v1/flows/{id}/steps` or `POST /v1/flows/{id}/steps/edit` with `validateOnly: true` — the verdict, each finding with its ready fix                   |
 | what a checkpoint restore would undo           | `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`                                                                                        |
 | what a whole change would do                   | `POST /v1/projects/{nodeId}/document/plan` — every refusal, every cascade, and what it does to stored records, without writing                            |
 
 **Before a rename or a removal, ask who uses it.** `GET /v1/projects/{nodeId}/references?of=<subject>`
 takes up to 20 subjects by key — `field:review.stars`, `config:club.digestHour`, `relation:review-of-book`,
-`flow-output:book-card.card`, `action-output:book-card.reviews` — and answers every use: the action (with its
+`flow-output:book-card.card`, `step-output:book-card.reviews` (a step's value) — and answers every use: the step (with its
 outline path) or the endpoint, schedule, trigger or declaration, its `role` and the `path` inside it. Read
 `certainty` before you act: `declared` and `typed` are certain; `named` is a name matched inside an expression
 or on a value of unknown type, and `whole` means the whole record is read or written, so check those by hand.
@@ -70,21 +69,21 @@ run, not a rehearsal. `kipory-build` covers it.
 
 ## Change many things at once: the document
 
-**Check the format first.** A document states its format in its `kipory:` key (`kipory: 10`), and the
+**Check the format first.** A document states its format in its `kipory:` key (`kipory: 11`), and the
 deployment reads exactly one, with no overlap: `documentFormat.version` on
 `GET /v1/platform-status`, beside a line saying what it is. A document in any other format — one
 you hold, or one older skills would write — is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`
 before anything is planned. The `kipory-connect` skill's sync script compares the format these
 skills write with the deployment's, and its `document` line says plainly when they differ: update
-these skills when the deployment's is newer, then convert a held file with that skill's upgrade
-script.
+these skills when the deployment's is newer, then export the project again: nothing converts a
+held file to format 11, so write a held flow's steps in format 11.
 
 Export the project (`GET /v1/projects/{nodeId}/document` — the file carries `basedOn`, your read),
 edit the file, plan it (the body is the document itself; it binds to that read), read the plan,
 and apply `{ planId, note }` — never the document again. `kipory-build` owns that loop and the document's format.
 
 **Name your session on every write.** A plan takes `?label=`, an apply `label`, and a row save
-(`PATCH /v1/flows/{id}`, `POST /v1/actions`, any design row's own write) the header
+(`PATCH /v1/flows/{id}`, `PUT /v1/flows/{id}/steps`, any design row's own write) the header
 `Kipory-Session-Label: <label>` (1–64 characters), beside `Kipory-Change-Note: <why>` (1–500), the
 sentence history shows for that save; text outside ASCII goes percent-encoded. Send the same label
 from the same key on every plan, apply and save of one working session. The label is how a plan
@@ -94,10 +93,11 @@ under the plan's `moved`, and the apply answers `409 VERSION_CONFLICT` for your 
 What matters here is that the plan is the apply rolled back, so it answers the same refusals a
 row-by-row change would meet, in one read, and three things a row write never tells you:
 
-- **`consequences`** — how many stored records the change re-stamps or re-indexes, and
-  `records-invalid`: the records that would no longer fit a type you changed, found by reach
-  (a type another type references is checked through every table that reaches it). A
-  consequence is never a refusal; the platform tells you and lets you. Deleting a relation
+- **`consequences`** — how many stored records the change re-stamps or re-indexes. A
+  consequence is never a refusal; the platform tells you and lets you. A type change stored
+  records would break is not a consequence: it is refused `TYPE_UNSAFE_FOR_TABLE`, judged by reach
+  (a type another type references is checked through every table that reaches it). Widen,
+  backfill, then narrow. Deleting a relation
   deletes every stored link of that relation, and the plan counts them as `links-deleted` on the
   relation's path — save them first (`GET /v1/links?project=<node>&relation=<key>`) if they matter.
   `flows-affected` names every flow your document does not state that reads or writes a type
@@ -128,9 +128,9 @@ the class decides the sequence, and every sequence is written out once, in
 | **Adding**                                                    | the dependency exists before the thing that names it: type → flow → table → endpoint → schedule                                                      |
 | **Removing**                                                  | the reverse: delete the leaf, then what it hung from. A flow delete is `409 FLOW_HAS_DEPENDENTS` while anything names it, a disabled schedule too    |
 | **Changing a type under live records**                        | four moves: widen (add the field as optional), backfill, patch the fixed inputs of schedules and triggers, then narrow. Narrowing first is an outage |
-| **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old actions wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing    |
-| **Renaming an action's output slot**                          | rehearse, then one document carrying the action, its readers and the flow's `outputBinding`                                                          |
-| **Changing a flow's own input or output slots**               | a change to the product's API: `409` until `adoptSnapshots: true`                                                                                    |
+| **Editing the processing flow of a table that holds records** | the edit saves and stored records keep what the old steps wrote. Reprocess them (`kipory-data`); a reprocess is charged like a first processing      |
+| **Renaming a step's key**                                     | its key is its value's name: one steps write that renames it and every reader, rehearsed with `validateOnly` first                                   |
+| **Changing a flow's own inputs or outputs**                   | a change to the product's API: `409` until `adoptSnapshots: true`                                                                                    |
 
 ## What refuses, and what cascades instead
 
@@ -146,18 +146,18 @@ the class decides the sequence, and every sequence is written out once, in
 
 ## References
 
-| File                                  | What it answers                                                                                                                                                                                                                                                |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `references/rehearsals.md`            | every rehearsal route and what it answers                                                                                                                                                                                                                      |
-| `references/change-order.md`          | a change request → its class, then the full sequence for each: additive, narrowing a type (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, renaming a slot, retiring a term, removing through a document |
-| `references/refusals-and-cascades.md` | what refuses and what cascades instead; what each refusal carries and the way round it; what each cascade reports                                                                                                                                              |
-| `references/rolling-back.md`          | flow checkpoints, an export as the rollback, and what has no undo                                                                                                                                                                                              |
-| `references/pitfalls.md`              | what will bite you when changing a live project                                                                                                                                                                                                                |
+| File                                  | What it answers                                                                                                                                                                                                                                                        |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `references/rehearsals.md`            | every rehearsal route and what it answers                                                                                                                                                                                                                              |
+| `references/change-order.md`          | a change request → its class, then the full sequence for each: additive, narrowing a type (who owns it, `adoptSnapshots`, the backfill), editing a processing flow under live records, removing, changing a flow's steps, retiring a term, removing through a document |
+| `references/refusals-and-cascades.md` | what refuses and what cascades instead; what each refusal carries and the way round it; what each cascade reports                                                                                                                                                      |
+| `references/rolling-back.md`          | flow checkpoints, an export as the rollback, and what has no undo                                                                                                                                                                                                      |
+| `references/pitfalls.md`              | what will bite you when changing a live project                                                                                                                                                                                                                        |
 
 ## Then
 
 `kipory-model` for the table, vocabulary, term or relation itself; what each delete reports
-is on that skill's `references/api/` pages. `kipory-build` for checkpoints, flow health and the action-level dependents report.
+is on that skill's `references/api/` pages. `kipory-build` for checkpoints, flow health and writing steps.
 `kipory-expose` when the change reaches an endpoint's contract. `kipory-prove` to re-baseline what a
 deliberate change made red. `kipory-data` for the backfill, for reprocessing stored records after
 their flow changed, and for deleting records before a table can go. `kipory-diagnose` when the change landed and something downstream started answering wrongly.

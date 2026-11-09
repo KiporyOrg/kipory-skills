@@ -53,15 +53,22 @@ give them. Share a record with the team record and every member reaches it at th
 
 ```json
 {
-  "functionKey": "record.grant",
-  "functionConfig": { "level": "member", "memberLevel": "read" }
+  "key": "joinTeam",
+  "function": "record.grant",
+  "with": {
+    "recordId": "team.id",
+    "principal": "person.userId",
+    "level": "member",
+    "memberLevel": "read"
+  }
 }
 ```
 
-with the team record id first and the person's user id second, makes them a reading member. A page
-shared with the space at `delete` is then read by that member, and updated and deleted by a member
-whose `memberLevel` is `delete`. A `member` grant without `memberLevel` gives them whatever the team
-holds. One level only: a team granted to another team does not pass the second team's records on.
+with the team record as `recordId` and the person's user id as `principal`, makes them a reading
+member. A page shared with the space at `delete` is then read by that member, and updated and deleted
+by a member whose `memberLevel` is `delete`. A `member` grant without `memberLevel` gives them whatever
+the team holds. One level only: a team granted to another team does not pass the second team's
+records on.
 
 A person shares with a team they can see: their own team record, one they are a member of, or one
 shared with them. Any other team answers as an id that does not exist. A run that acts for nobody (a
@@ -104,12 +111,12 @@ meet it again.
 
 ## Granting, revoking and listing, inside a flow
 
-`record.grant` takes the record, then whom to share it with (a person's user id or a team record's
-id), with `level` in its config. `record.revoke` takes the same two and removes that share: it answers
+`record.grant` takes the record (`recordId`), then whom to share it with (`principal`: a person's
+user id or a team record's id), with `level` beside them in its `with`. `record.revoke` takes the same two and removes that share: it answers
 `true` when it removed one and `false` when there was none — or, with `ifAbsent: "refuse"`, a 404. Both
 apply with the run's change set, so a run that fails shares nothing. Each record a run shares or unshares also
 stages one change for its search index, once per record however many shares, and that change counts
-toward the run's limit of changes (`runs.change-set-effects`). The run's later actions still read the shares as
+toward the run's limit of changes (`runs.change-set-effects`). The run's later steps still read the shares as
 they were when it began: share a record and write to it as the new sharee in two runs, not one. `record.grants` lists a record's
 shares: whom, the level, a member's own level and when, oldest first. The record's owner may do all
 three, and so may anyone holding `manage` on it. A run that acts for nobody (a schedule, a trigger, a
@@ -140,7 +147,7 @@ A merge stays the owner's: no level lets a person merge someone else's record.
 
 A refusal's own code rides as `details.reason` beside the status's envelope code (`FORBIDDEN`,
 `NOT_FOUND`); `QUERY_COUNT_REACHES_SHARED` is the envelope's `code` itself. A save-time refusal answers 422 `VALIDATION_FAILED` and names its code in the message: a table's leads
-it (`TABLE_FIELD_RESERVED_BY_SHARING: …`), an action's follows the action's name (`list: RECORD_LIST_WHOSE_NOT_SHARING: …`).
+it (`TABLE_FIELD_RESERVED_BY_SHARING: …`), a step's follows the step's key (`list: RECORD_LIST_WHOSE_NOT_SHARING: …`).
 When your product wants a 404 where the built-in answers 403 (say, "anyone but the recipient gets 404"),
 check `access` first and answer with `request.refuse`.
 

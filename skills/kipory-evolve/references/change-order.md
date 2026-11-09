@@ -5,20 +5,20 @@ refusal or a cascade carries is in `refusals-and-cascades.md`. `SKILL.md` gives 
 
 ## Start by classifying the change
 
-| The request                                                   | Class       | What it needs                                                                            |
-| ------------------------------------------------------------- | ----------- | ---------------------------------------------------------------------------------------- |
-| add a field, a table, a flow, an endpoint                     | additive    | dependency order, nothing else                                                           |
-| add a **required** field to a table with records              | narrowing   | widen → backfill → patch fixed inputs → narrow, four moves                               |
-| change the actions of a flow that processes a table's records | re-run      | the edit saves; stored records keep what the old actions wrote until each is reprocessed |
-| rename an action's output slot                                | cascade     | rehearse, then one document carrying the action, its readers and the flow binding        |
-| rename a field or a table                                     | rename      | ADMIN; the records move with the new name, and callers of the old one break              |
-| change what is searchable                                     | reindex     | rehearse; a `reembed` bills per record                                                   |
-| remove anything                                               | subtractive | rehearse, expect a refusal naming dependents                                             |
-| retire a term records carry                                   | merge       | merge it into the term that survives, or archive it                                      |
-| rename or change a flow's own input or output slots           | contract    | `409` until `adoptSnapshots: true` re-publishes the endpoints in front of it             |
+| The request                                                 | Class       | What it needs                                                                          |
+| ----------------------------------------------------------- | ----------- | -------------------------------------------------------------------------------------- |
+| add a field, a table, a flow, an endpoint                   | additive    | dependency order, nothing else                                                         |
+| add a **required** field to a table with records            | narrowing   | widen → backfill → patch fixed inputs → narrow, four moves                             |
+| change the steps of a flow that processes a table's records | re-run      | the edit saves; stored records keep what the old steps wrote until each is reprocessed |
+| rename, move or remove a step                               | steps       | rehearse; one steps write that changes the step and its readers together               |
+| rename a field or a table                                   | rename      | ADMIN; the records move with the new name, and callers of the old one break            |
+| change what is searchable                                   | reindex     | rehearse; a `reembed` bills per record                                                 |
+| remove anything                                             | subtractive | rehearse, expect a refusal naming dependents                                           |
+| retire a term records carry                                 | merge       | merge it into the term that survives, or archive it                                    |
+| rename or change a flow's own inputs or outputs             | contract    | `409` until `adoptSnapshots: true` re-publishes the endpoints in front of it           |
 
 Misclassifying is the usual failure. "Add a field" and "add a required field" look identical in a
-request and are a create and a migration respectively. "Edit an action" and "edit an action of the flow
+request and are a create and a migration respectively. "Edit a step" and "edit a step of the flow
 that already processed ten thousand records" look identical too.
 
 ## The sequences
@@ -39,14 +39,17 @@ all of it for you.
 
 ### Narrowing under live records
 
-Removing a field is refused once the table has records, and a field made required at once
-invalidates every record that lacks it. So it is four changes, never one, in this order:
+A table's stored records always fit its type. Removing a field records hold, making a field
+required, or any other tightening stored records would break (a narrower type, a new `minLength`,
+`enum`, `maxLength`, …) is refused 422 `TYPE_UNSAFE_FOR_TABLE`, and a table too big to check in time
+is refused with `details.reason` `RECORDS_CHECK_TOO_SLOW` (change the type in smaller steps). So it
+is widen, backfill, narrow — four changes, never one, in this order:
 
 ```
 1  add the field as optional            → existing records stay valid
 2  backfill it                          → the loop below
 3  patch every schedule's and trigger's fixed inputs that feed the type
-4  make it required                     → now nothing is invalidated
+4  make it required                     → accepted, since every record now fits
 ```
 
 **Two routes edit a type.** `PATCH /v1/types/{id}` (or the type under `types` in a
@@ -73,12 +76,12 @@ holders (`details` only counts them by kind), unless it carries `adoptSnapshots:
 - Through the type: the type PATCH with `validateOnly: true` (and `adoptSnapshots: true`)
   answers whether the edit is allowed and what it does to stored data. It is the same type
   either way, and an edit reaches every table, event and relation that uses it.
-- Either way the answer carries `records-invalid` under `consequences`, and the flows, schedules
-  and triggers the edit would break — the PATCH lists them under `leavesBehind`, the plan among its
-  findings, each with `introduced`.
+- Either way a tightening stored records would break is refused `TYPE_UNSAFE_FOR_TABLE`, and the
+  answer names the flows, schedules and triggers the edit would break — the PATCH lists them under
+  `leavesBehind`, the plan among its findings, each with `introduced`.
 
 Step 3 is the fix for what the rehearsal of step 4 names: a schedule's or trigger's stored `inputs`
-that would no longer fit its slot's type is `SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`,
+that would no longer fit its input's type is `SCHEDULE_INPUT_MISTYPED` / `TRIGGER_INPUT_MISTYPED`,
 an error the narrowing introduces, so the rehearsal answers `ok: false` until step 3 is done. The
 PATCH itself does not refuse on them; a schedule or trigger write that sends such a value is
 refused with the same code.
@@ -100,19 +103,18 @@ POST /v1/records/bulk   { project, items: [ { id, version, merge: { <the new fie
 - A bulk re-indexes but never re-runs the processing flow.
 
 A flow can do the same write for up to 100 records a run: `record.list` over the table (`limit` up
-to 100, filtered to the rows still to change) → `flow.fan-out` over the records' ids (an
-`inputPaths` projection plucking `id` from `records`; `maxItems` defaults to 20, at most 100) →
-`record.update`. Past 100, run it again and the filter picks up the rest (`kipory-data`).
+to 100, filtered to the rows still to change) → an `each`
+over its `records` whose steps hold the `record.update` (`maxItems` caps the elements). Past 100, run it again and the filter picks up the rest (`kipory-data`).
 
 ### Editing the processing flow of a table that holds records
 
-An action added, removed or re-configured in a table's processing flow saves like any action edit —
-unless it changes the flow's input or output slots, which is the contract class below. What the
+A step added, removed or re-configured in a table's processing flow saves like any steps write —
+unless it changes the flow's `inputs` or `outputs`, which is the contract class below. What the
 edit does not do is touch a stored record:
 
-- **Records processed from now on run the new actions.** That includes a record created after the
+- **Records processed from now on run the new steps.** That includes a record created after the
   edit and one queued again by `record.enqueue-process`.
-- **Records already processed keep what the old actions wrote** — their fields, their terms, their
+- **Records already processed keep what the old steps wrote** — their fields, their terms, their
   vectors. Nothing re-runs them: `GET /v1/tables/{id}` (`recordCount`) is the number the
   edit left behind.
 - **To bring one forward, reprocess it**: `POST /v1/records/{id}/reprocess`. It clears what the
@@ -120,13 +122,13 @@ edit does not do is touch a stored record:
   processing — nothing is answered from a cache and every model call is billed again — so reprocess
   one record, read its result and its spend, then decide how many of the rest are worth it.
   `kipory-data` owns the route, its modes and what it sweeps.
-- **A retry after the edit is not refused.** Every re-run of a record runs all of the flow's actions
+- **A retry after the edit is not refused.** Every re-run of a record runs all of the flow's steps
   again, on the flow as it is now; nothing is carried over from the attempt before the edit.
 
 So the sequence is: take a checkpoint, run the flow's eval suite once for a baseline, make the
 edit, preview it on one input with `apply: false` (`kipory-build`), reprocess one stored record and
 read it back, then reprocess the rest or leave them — and say in your report which you chose,
-because a project whose old and new records were written by different actions looks inconsistent to
+because a project whose old and new records were written by different steps looks inconsistent to
 whoever reads it next.
 
 ### Subtractive
@@ -163,45 +165,31 @@ ignore the flag and **delete** (`200 {"deleted": true}`).
 
 ### A rename
 
-Rehearse, then commit. Three different things are called a rename:
+Rehearse, then commit. Four different things move like a rename:
 
-**An action's output slot, on a live endpoint — one document apply.** State the action's new
-`outputSlot`, every reader rewritten to the new name, and the flow's re-pointed `outputBinding`:
-one transaction, and the endpoint never answers from a dangling binding. A document writes each
-action as stated and cascades nothing, so the readers to restate (each one's prompt, config or
-`inputStreams`) are the ones the action PATCH's `validateOnly` lists in `derived.rename`.
+**A step's key.** A step's key is also the name its value is read by, so renaming it renames a
+value: write the step under its new key and every reader re-pointed in ONE write — a whole-list
+`PUT /v1/flows/{id}/steps`, or one document — rehearsed first with `validateOnly: true`. Find the
+readers with `GET /v1/flows/{id}?include=reads`. A reader left on the old name is refused at save
+(`STEP_READS_UNKNOWN`), so a half-done rename never saves. A step whose value a `return` step gives
+is renamed the same way: the `return` is one of its readers, and the flow's outputs keep their names.
 
-**The same rename, row by row:**
+**Moving or removing a step** is a step edit: `POST /v1/flows/{id}/steps/edit` with
+`{move: <key>, after: <key>}` or `{remove: <key>}`. A removal is refused while a later step still
+reads its value, unless the same batch changes those readers; a move that puts a reader above the
+step it reads is `STEP_READS_LATER`. The batch saves whole or not at all, and the answer's `changes`
+lists each step by key (`added`, `removed`, `changed`, `moved`). A document plan diffs a flow's steps
+by key the same way, a moved step as a `move`.
 
-```
-PATCH /v1/actions/{id}             the new outputSlot + validateOnly — derived.rename names every action it would rewrite
-PATCH /v1/actions/{id}             the new outputSlot + confirmedOutputSlotRenames — one transaction
-PATCH /v1/flows/{id}              { outputBinding, version } — give every output bound to the old name its new `fromSlot`
-GET   /v1/flows/{id}/health       whether the flow is still whole
-```
-
-- `confirmedOutputSlotRenames` is `[{ flowId, oldSlotName, newSlotName }]`. With it, every sibling
-  action that reads the old name is rewritten in the same transaction. Without it the rename lands
-  and every reader is left on a slot that no longer exists.
-- The flow's `outputBinding` is never rewritten, and `derived.rename` does not list it. The save
-  lands with `OUTPUT_BINDING_DANGLING_SLOT` as an error in its `outstandingIssues`.
-- The `validateOnly` rehearsal says so beforehand by answering `ok: false`: an error the edit
-  introduces — this one, or `INPUT_STREAM_DANGLING_SLOT` for a reader left on the old name — is in
-  `diagnostics` and in `leavesBehind` with `introduced: true`. That verdict is the expected one
-  when the binding is re-pointed in the following write.
-- Skip the third call and the endpoint in front answers `422 FLOW_OUTPUT_MISSING`
-  (`details.missing` names the output) and writes nothing — a required output nothing produces is
-  refused, never filled. Health names the dangling binding before a call does.
-
-**A flow's own input or output slot** is its signature, not an action rename:
+**A flow's own input or output** is its signature:
 `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until `PATCH /v1/flows/{id}` carries
 `adoptSnapshots: true`, and then every client of the endpoint sees the new key at once. That PATCH
-may send `outputTypeNames` alone; the inputs stay as stored (and the same the other way round).
+may send `outputs` alone; the inputs stay as stored (and the same the other way round).
 
 **A table's key and fields** rename with their records: a table's new `key` (its PATCH, or its
 row stated by `id` under the new key in a document) or a type's `renameFields`. Both need ADMIN.
 The plan's `renames[]` lists the references rewritten, the expressions you settle (change each in
-the same document or name its action in `keepExpressions`) and the exposures: a caller still using
+the same document or name its step in `keepExpressions`) and the exposures: a caller still using
 the old name gets no alias. The inverse rename is the undo (the `tables-and-types` pack).
 
 ### Retiring a term records carry

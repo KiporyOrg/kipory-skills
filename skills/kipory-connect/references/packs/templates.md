@@ -31,7 +31,7 @@ slug grammar would refuse included; there is no `422` on this read.
 Read the document before you choose. It is exactly what the new project will hold — there is no
 hidden part, and no parameters: a template is applied as written. `Accept: application/yaml`
 answers YAML. It is an ordinary project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) in the current format,
-`kipory: 10`, and every rule of that pack holds for it: what a row may state, how each reference is
+`kipory: 11`, and every rule of that pack holds for it: what a row may state, how each reference is
 spelled, and what is refused. A template may carry `views` and `shapes` too, spelled as that
 pack spells them (a clause `op` is `in`, `not-in`, `contains` and the rest, and a view holds no `any`; a linked read's far table is
 `peerTable`, and a view's linked read may say `when`): a flow it ships then reads its views by key. A `delete: true` row, a config namespace's too, finds nothing to remove in a new
@@ -73,7 +73,10 @@ Four things to know about the result:
   first version. Nothing records which template it came from: the project is yours from the first
   moment, and the link is deliberately not kept.
 
-A template's actions are judged as a document's are: a `taskKey` no task names, or a condition whose list key is misspelled, is refused when the project is created.
+A template is written in the current document format (`kipory: 11`), so its flows are stated as
+`steps` in written order, and they are judged as a document's are: a step the save refuses — a read
+it cannot prove, a condition whose list key is misspelled — refuses the project's creation, and
+nothing is made.
 
 ## A template on a project that already exists
 
@@ -94,8 +97,8 @@ project (`?basedOn=<version>`), then apply the kept plan by `{planId, note}`. Ro
 are UPDATED to the template's, which is rarely what you want for a whole template — plan first,
 and send the sections you mean.
 
-A template's actions carry the same fields a document's do, an action's optional `failureSlot`
-and `onOversize` included: a project created from the template gets it as written. Its tables
+A template's flows carry the same fields a document's do — each step's `with` and its run settings
+(`onOversize` among them) included: a project created from the template gets them as written. Its tables
 likewise carry `computed` (a rollup's `ifNone` included), `reprocessOn` and `sharing` as a document's do —
 `renameComputed` too, though a
 template rarely renames — and a plan of one lists the `recompute` consequence for a table whose

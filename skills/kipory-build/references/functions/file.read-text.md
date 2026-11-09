@@ -4,7 +4,7 @@
 
 Read a text file and return what it says.
 
-Anything that is not text fails rather than being mangled; PDFs have their own action.
+Anything that is not text fails rather than being mangled; PDFs have their own step.
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -12,10 +12,10 @@ Anything that is not text fails rather than being mangled; PDFs have their own a
 - **Also found as:** open text file, csv text, file contents, txt
 - **Reads:** One text file. Anything binary fails rather than being decoded into nonsense. _(shape hint: `file`)_
 - **Emits:** The file's contents as text. A file over the size cap fails before decoding — nothing is ever silently cut short. Empty when there is no file.
-- **Suggested input streams:** `currentFile`
+- **Inputs (`with`):** `file`
 - **External dependency:** S3 / MinIO — Downloads the object's bytes from the store. S3-compatible rather than S3: the deployment runs MinIO on its own box.
 - **Rate limit:** 240 per min in bucket `file.read-text`, counted per project
-- **Queue:** 3 attempts, exponential from 500 ms; waits up to 1 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 3 attempts, exponential from 500 ms; waits up to 1 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

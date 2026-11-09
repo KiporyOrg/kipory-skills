@@ -38,9 +38,9 @@ POST /v1/embedding-profiles/{id}/activate      { version } — repoint every dec
 { "type": "array", "items": { "$ref": "#/$defs/<dataTypeId>" } }
 ```
 
-- **The id, never the key** — on the row API and inside a document alike. A key there (`"$ref": "Row"`, `"#/$defs/Row"`) is refused `SCHEMA_DEFINITION_INVALID_JSON_SCHEMA`. A document re-spells action and table references by key, but not this one.
+- **The id, never the key** — on the row API and inside a document alike. A key there (`"$ref": "Row"`, `"#/$defs/Row"`) is refused `SCHEMA_DEFINITION_INVALID_JSON_SCHEMA`. A document re-spells flow and table references by key, but not this one.
 - **Two new types where one refers to the other are two applies.** A new type has no id until it is applied: apply the referenced type first, read its `id` from the apply's returned `document`, then apply the type that refers to it.
-- **Inline fields need one apply but name nothing.** An inline object is the anonymous `object`, not a named type, and a `flow.fan-out` over such a list cannot read its rows' fields (`kipory-build`'s `references/fan-out.md`, fan-out).
+- **Inline fields need one apply but name nothing.** An inline object is the anonymous `object`, not a named type, so a step reading a row's field of such a list gets no type for it: the save warns `STEP_INPUT_FIELD_UNTYPED` (`kipory-build`'s `references/utilities.md`, `value.transform`).
 
 ```
 POST /v1/types                        a reusable set of fields
@@ -54,7 +54,7 @@ PATCH /v1/tables/{id} validateOnly:true  what your PATCH body would do — deriv
 PATCH /v1/tables/{id} definition         rewrite the definition of the type the table points at — for every type, event and link that uses it
 ```
 
-**A table and its processing flow name each other, so one of them goes first.** The flow's actions name the table by key and its input uses the table's type; the table names the flow by id. Create the table without `flowId`, build the flow (`kipory-build`), then `PATCH /v1/tables/{id} { flowId, version }` — or state the type, the table and the flow in one project document, which orders them for you. Add a `processed` field to `uses` only after the flow is bound: until then the table has no such field to name.
+**A table and its processing flow name each other, so one of them goes first.** The flow's steps name the table by key and its input uses the table's type; the table names the flow by id. Create the table without `flowId`, build the flow (`kipory-build`), then `PATCH /v1/tables/{id} { flowId, version }` — or state the type, the table and the flow in one project document, which orders them for you. Add a `processed` field to `uses` only after the flow is bound: until then the table has no such field to name.
 
 A field reference inside `uses` (a `search` field's `source`, a template) names a `family` and a `field`. The families are `submission` (the record's submitted data), `processed` (an output of the flow bound to the table — how a searchable `body` extracted from a file is named) and `system` (platform fields such as the id and creation time). `search`, `link` and `filter` take either of the first two; **`key` takes a `submission` field only** (on a processed one it is refused `USES_KEY_NOT_SUBMITTED`). A `filter` on a processed field lets you filter, order and count on a value the flow computes, with no copy into the submitted data: it holds the record's stored flow output (what the last finished run wrote, or a flow's later `record.update` of it), and moves when that output changes. Two refusals are its own, both `TABLE_QUERYABLE_INVALID`: a submitted and a processed field of the same name cannot both be filters (`QUERYABLE_FIELD_NAME_CLASH`), and a processed field cannot become one while the table's copy of the flow's output no longer matches the flow (`QUERYABLE_PROCESSED_FIELD_DRIFTED`). Once a processed field is a filter, a flow change that drops it or changes its type is refused (`TABLE_FILTER_BROKEN_BY_SIGNATURE`) until the filter goes; pointing the table at a new flow from the table itself re-fills it instead.
 
@@ -110,4 +110,4 @@ GET  /v1/vocabularies/{id}?expand=readiness
 
 ## Then
 
-`kipory-retrieve` once records are embedded and a flow has to search them. `kipory-evolve` before changing any of this on a project that already holds records. `kipory-build` for the flows this action referenced — the processing flow a table binds (then come back and PATCH its `flowId` onto the table), and any vocabulary resolver you left unbound. `kipory-data` to write, see and query the records a table holds and the links between them. `kipory-diagnose` if a search action returns nothing after a profile change.
+`kipory-retrieve` once records are embedded and a flow has to search them. `kipory-evolve` before changing any of this on a project that already holds records. `kipory-build` for the flows these rows reference — the processing flow a table binds (then come back and PATCH its `flowId` onto the table), and any vocabulary resolver you left unbound. `kipory-data` to write, see and query the records a table holds and the links between them. `kipory-diagnose` if a search step returns nothing after a profile change.

@@ -12,7 +12,7 @@ Shows the record on the other end, the direction, and the relation's properties.
 - **Also found as:** related records, linked records, what links here
 - **Reads:** One slot carrying the record id to read links for. An empty or non-text slot gives an empty list rather than an error. _(shape hint: `string`)_
 - **Emits:** A `RecordLink` per link, with the far end, the relation, the direction, and any declared properties. A record with no links gives an empty list.
-- **Suggested input streams:** `recordId`
+- **Inputs (`with`):** `recordId`
 
 ## Config
 

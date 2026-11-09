@@ -6,7 +6,7 @@ license: MIT
 
 # Read and write a project's data
 
-A project's records are normally written by **flows**: a record comes into being when an action such as `record.create` runs — inside a dynamic endpoint your product's users call, a schedule, or a processing flow. That is still the path that scales, and the one your product should use.
+A project's records are normally written by **flows**: a record comes into being when a step such as `record.create` runs — inside a dynamic endpoint your product's users call, a schedule, or a processing flow. That is still the path that scales, and the one your product should use.
 
 The design API also writes records directly, at one prefix, `/v1/records`: `POST /v1/records` creates one by hand (or upserts it by natural key), `POST /v1/records/bulk` writes up to 500 in one change set, and `GET /v1/records/{id}`, `PATCH`, `DELETE`, `POST …/reprocess` and `PUT …/vocabularies/{vocabularyKey}` read, correct, end, re-run and re-file an existing one. Alongside those it gives you the **read side** (list, search, one hop of links, the processing stream), the **file handshake**, curated links, and the ingest report. The fact most people get wrong: a key-driven run writes the **project's shared pool** — a table whose owner scope is per-user refuses a key with a 403, because a key carries no user.
 
@@ -65,7 +65,7 @@ POST  /v1/records/bulk     { "project": "<node>", "items": [ { "id", "version", 
 
 ⭐ **Adding a required field to a table with records is four calls**: widen the type with the field optional (`kipory-evolve`), list the ids and versions, one bulk `merge` setting the field on each, then make it required.
 
-**Delete a record.** `DELETE /v1/records/{id}` (ADMIN, irreversible) removes the record and everything derived from it — terms, links, files it produced, vector points — and answers `{ id, deleted: true, outcome }`: `removed`, or `draining` when a run was over it (it goes at that run's next action). The bulk route takes creates and updates only, so to clear a table, page `GET /v1/records?project=<node>&tableKey=<type>` and delete each id.
+**Delete a record.** `DELETE /v1/records/{id}` (ADMIN, irreversible) removes the record and everything derived from it — terms, links, files it produced, vector points — and answers `{ id, deleted: true, outcome }`: `removed`, or `draining` when a run was over it (it goes at that run's next step). The bulk route takes creates and updates only, so to clear a table, page `GET /v1/records?project=<node>&tableKey=<type>` and delete each id.
 
 **Run a record's processing flow again.**
 
@@ -73,7 +73,7 @@ POST  /v1/records/bulk     { "project": "<node>", "items": [ { "id", "version", 
 POST /v1/records/{id}/reprocess   → { id, status: "pending", mode: "full" }
 ```
 
-- **It is a clean slate.** The record's term assignments are removed before the run — a vocabulary filed by hand with `PUT …/vocabularies/{vocabularyKey}` included — and a failed run does not bring them back. Its processed fields and generated files are replaced only when the run succeeds; a successful run removes each earlier generated file it did not attach again and its processed fields do not name. Its previous output is dropped, nothing is answered from an action cache, and every action runs against the flow as it is now. So it is the call to make after you edit a flow, attach a file, or correct a record's data: an edit to the flow since the record last ran is no reason for it to be refused.
+- **It is a clean slate.** The record's term assignments are removed before the run — a vocabulary filed by hand with `PUT …/vocabularies/{vocabularyKey}` included — and a failed run does not bring them back. Its processed fields and generated files are replaced only when the run succeeds; a successful run removes each earlier generated file it did not attach again and its processed fields do not name. Its previous output is dropped, nothing is answered from a step cache, and every step runs against the flow as it is now. So it is the call to make after you edit a flow, attach a file, or correct a record's data: an edit to the flow since the record last ran is no reason for it to be refused.
 - **It is charged like the record's first processing** — every model call is billed again, and so is every run it queues through `record.enqueue-process`. It settles to the project's wallet unless the record's own owner asked for it (`kipory-operate` has what a run costs).
 - **It refuses what it cannot start.** `409 RECORD_NOT_RERUNNABLE`: a run is already queued or under way (or the queue could not be read to tell), the record is being deleted, or a person-owned record's owner no longer exists. `409 RECORD_STATUS_MOVED`: something else moved the record first; read it and ask again. `422 RECORD_NOT_PROCESSABLE`: the table binds no processing flow. `503 RECORD_NOT_QUEUED`: the run could not be queued; ask again.
 - **Inside a flow** the same thing is `record.enqueue-process`, whose `replay` chooses what the run keeps — `references/in-flow-reprocess.md` has the three modes.

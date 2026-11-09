@@ -17,7 +17,7 @@ Writes time-stamped events to a record's stream field, not its data. A retry nev
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `event` | union | yes | — | One event object or a list, each with its time property. ⚠️ An event with no valid time fails the action, and nothing is written. |
+| `event` | union | yes | — | One event object or a list, each with its time property. ⚠️ An event with no valid time fails the step, and nothing is written. |
 | `eventId` | union | no | — | Your own event id, or a list; empty means one is derived. ⚠️ The same id under another time counts as a second event, not a retry. |
 | `field` | string | yes | — | The stream field of that type that receives the events. |
 | `recordId` | union | yes | — | The id of the record to append to. ⚠️ The record must be the user's own or the project's, of this type. |
@@ -106,7 +106,7 @@ Each event becomes one row under the record, keyed by its time. The record itsel
 
 Reads `list` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -141,7 +141,7 @@ A retry derives the same ids, so every row already exists and nothing is written
 
 Reads `list` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

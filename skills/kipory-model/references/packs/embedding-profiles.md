@@ -129,7 +129,7 @@ Because the two halves cost completely different things, and collapsing them wou
 - **Activating is the expensive half.** It repoints every searchable declaration on that key onto
   the generation, moves the default, and enqueues the reindex. The new generation's index starts
   **empty**, so searches return less while it drains. It answers the profile, `movedTables` and
-  `touched`, and changes no flow: no action names where a table is indexed.
+  `touched`, and changes no flow: no step names where a table is indexed.
 
 Do not collapse them to save a round trip. The split is what makes the costly half a deliberate
 act.

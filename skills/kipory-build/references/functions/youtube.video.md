@@ -12,13 +12,13 @@ Takes a video link or id. Each part costs one daily quota unit.
 - **Also found as:** video views, video stats, youtube link
 - **Reads:** One string naming a video — a full URL in any of its forms, or a bare video id. Anything unrecognisable is dropped without a call. _(shape hint: `string`)_
 - **Emits:** A `YoutubeVideo`. Which fields arrive depends on the parts you asked for, and every one is optional. Empty when it could not be read — missing, private, or refused.
-- **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `currentUrl`
+- **Softens these failures:** `rate-limited`, `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `url`
 - **External dependency:** YouTube Data API — Reads video metadata and statistics from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube function. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
 - **Charged as:** `youtube/video` (not charged). An action makes no vendor charge; it is charged its compute only.
 - **Rate limit:** 60 per min in bucket `youtube`, counted per project — shared with `youtube.channel`, `youtube.trending`
-- **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 7 days — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 7 days — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

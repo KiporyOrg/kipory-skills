@@ -12,8 +12,8 @@ Tags come back only for formats that carry them. It never fails on a file that d
 - **Also found as:** exif, photo location, camera details, image size
 - **Reads:** One image file. The type is not checked — anything that is not a readable image comes back with only its `byteSize`. _(shape hint: `file`)_
 - **Emits:** A `FileMetadata`, every field optional. A corrupt image never fails — it comes back as `{ byteSize }` alone; one without EXIF still has its dimensions and format.
-- **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Inputs (`with`):** `image`
+- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

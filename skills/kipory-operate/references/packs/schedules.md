@@ -13,12 +13,12 @@ asynchronous path a dynamic endpoint uses.
 
 The fire is attributed to the **project**, not to a person, and billed to the project's payer.
 
-<!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire field a caller sends -->
+<!-- field-ok: userInfo — a run-ambient value seeded by the engine, not a wire field a caller sends -->
 
-**A fire has no end user.** `userInfo` is absent from the run. An action that reads only provider
-slots still runs, with no user behind it — so a per-user table refuses there, a project-wide
-one reads normally, and a `user`-scoped emit is dropped. An action that reads `userInfo` beside
-another slot waits on that other slot. Carry the person you mean as an input, and preview the flow
+**A fire has no end user.** `userInfo` is nothing in the run, so a per-user table refuses there, a
+project-wide one reads normally, and a `user`-scoped emit is dropped. `userInfo` is optional
+everywhere: a required read of it is refused at save (`STEP_INPUT_MAY_BE_ABSENT`) until it sits under
+`if` + `{has: userInfo}` or reads `{path: userInfo.userId, optional: true}`. Carry the person you mean as an input, and preview the flow
 with `"principal": "no-end-user"`, which is the run a fire makes.
 
 ## When you need it — and when you don't
@@ -42,7 +42,7 @@ PATCH /v1/schedules/{id}            { enabled: false, version } stops it; { enab
                                       starts it, recomputing the next run from now
 ```
 
-Scoped by `project`. Create takes a **key**, the flow, the inputs keyed by input slot, the cron
+Scoped by `project`. Create takes a **key**, the flow, the inputs keyed by the flow's input names, the cron
 pattern and the timezone; optionally a display **label**, a start, an end, a maximum number of runs,
 and an overlap policy of `skip` or `allow` — ⚠️ omitting the policy means `skip`, which is the one
 that suppresses fires, so state it when you meant `allow`.
@@ -120,17 +120,20 @@ read the one schedule you are about to show from it when the list left it `null`
 
 ## What the platform refuses
 
-- **Every declared input slot must have a value.** A scheduled fire has no request to fill gaps,
-  so there is no such thing as an optional slot here — and a blank is not a value: an empty
+- **Every input the flow requires must have a value.** A scheduled fire has no request to fill
+  gaps — and a blank is not a value: an empty
   string, `null` or an empty list is refused with a 422 `FLOW_INPUT_BLANK`, in the save and the
-  `validateOnly` dry run, carrying one issue per blank slot whose `field` is its place in the body
-  (`inputs.<slot>`). A missing slot is addressed the same way under
+  `validateOnly` dry run, carrying one issue per blank input whose `field` is its place in the body
+  (`inputs.<name>`). A missing input is addressed the same way under
   `VALIDATION_FAILED`. The flow's _live_ signature is read at save
   time to check it, and **nothing is stored** — the same question is asked again at fire time,
-  from the same code, so the two cannot drift apart.
+  from the same code, so the two cannot drift apart. To ask it of a stored schedule without
+  saving, read it with `expand=drift`: `uncoveredInputs` lists the inputs the flow requires today
+  that its stored `inputs` do not supply. `[]` means it can still fire; `null` means the question
+  could not be answered (the flow is gone or belongs to another project), never "nothing missing".
 
-  Coverage is presence; the TYPE is judged where inputs are stored. A value its slot's type
-  refuses is refused at the schedule's save (`SCHEDULE_INPUT_MISTYPED`, one issue per slot), and
+  Coverage is presence; the TYPE is judged where inputs are stored. A value its input's type
+  refuses is refused at the schedule's save (`SCHEDULE_INPUT_MISTYPED`, one issue per input), and
   a change that narrows the flow or a type under it — a document plan, or a type or flow
   PATCH with `validateOnly` — reports every schedule and trigger it would leave unable to fire,
   with the same code, even when it never names them. The fire itself asks only presence, so a
@@ -189,12 +192,13 @@ run's invocation. Reach for them in this order:
   - `retryable` — whether running it again, unchanged, could end differently.
   - `attempt` — the attempt whose closing record this is; more than 1 when the platform started the
     run again.
-  - `actionKey` and `functionKey`, with `phase` and `code` — the action that failed, when one did.
-    `code` is never `value-cut` or `fan-out-capped`: those mark a cut result or a capped fan-out in
-    a failure slot, not a failure.
+  - `stepKey` and `functionKey`, with `phase` and `code` — the key of the step that failed, when one did,
+    and `flowId`, the flow that holds that step: a flow the run called when the step is one of its own,
+    so a called flow's step is told from the run's own step with the same key.
     A run stopped from outside, refused before it started, or whose changes were refused names no
-    action; `cause` then says what closed it instead.
-  - `cause` — what closed the run when no action failed, such as: a stop (`shutdown`, `watchdog`,
+    step; `cause` then says what closed it instead. A run stopped from outside lists the keys of the
+    steps that were running in `runningSteps`.
+  - `cause` — what closed the run when no step failed, such as: a stop (`shutdown`, `watchdog`,
     `worker-crash`, `deadline`, `cancelled`), a fault of the platform (`engine-error`), a flow that
     cannot run as stored (`flow-unresolved`, `definition-drift`), or its changes refused when they
     were saved: `precondition-conflict` (a record it read was written by another run meanwhile —
@@ -202,18 +206,18 @@ run's invocation. Reach for them in this order:
     another record already holds), `unique-violation`, `write-refused` (a write the platform
     refused, such as a person's own record written by a run that acts for nobody),
     `bound-exceeded`.
-  - `refusedWrite` — with a refused save, what it can name of the write: `actionKey` (the action
+  - `refusedWrite` — with a refused save, what it can name of the write: `stepKey` (the step
     that wrote it) and, for a create, `tableKey`; on `natural-key-collision` the `holderRecordId`
     that already holds the key; on `precondition-conflict` the `recordId` another run wrote and the
-    `readByActionKey` whose read went stale. The key's value is never named — read that record for
+    `readByStepKey`, the step whose read went stale (with `readByFlowId` when that step is a called flow's). The key's value is never named — read that record for
     it. A save that ran past its time budget (10 ms per change, between 1 and 2 minutes) closes with
     the cause `timed-out` and its `budgetMs`: `platform-fault`, `retryable: false`, nothing written,
     and the run is not started again — stage fewer changes per run. The run's `run-finished` row in
     `GET /v1/runs/{runId}/timeline` carries the same `failure`.
-  - `reason` — set only for a refusal a caller may read: the rule the failing action's function
+  - `reason` — set only for a refusal a caller may read: the rule the failing step's function
     named, a code `kipory-connect`'s `references/refusal-codes.md` lists (`RECORD_READ_HAS_MORE`
     beside `code: "invalid-input"`, `STREAM_MIGRATING` beside `precondition-unmet`), or a mail
-    action's sender refusal, or
+    step's sender refusal, or
     `recipient-not-an-address` for a mail recipient that is no email address, or
     `more-than-one-recipient` for a mail recipient that is a list, or
     `recipient-is-a-test-user` for a mail recipient that is a test user's address, which no mail reaches, or
@@ -221,7 +225,7 @@ run's invocation. Reach for them in this order:
     its daily push allowance; `statusError` then names it too.
   - `limitKey` — set when a limit refused the run: the limit's key, which
     `GET /v1/projects/{nodeId}/limits` lists (limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
-  - `refusalStatus` — set when an action of the flow refused the call (`phase: "refused"`, a
+  - `refusalStatus` — set when a step of the flow refused the call (`phase: "refused"`, a
     `request.refuse` or a signature check): the HTTP status it chose, such as 403 or 410.
 - **`queued`** (on the runs list and `GET /v1/runs/{runId}`) — how long the latest attempt waited
   before a worker started it, `ms`, and `waitedFor`: each thing that held it, with its `ms` and how
@@ -247,18 +251,19 @@ run's invocation. Reach for them in this order:
   to its own flow, or to a sub-flow that flow calls by a fixed reference — is not taken by a run
   already under way; the next run takes it. A sub-flow chosen at run time and first reached on a
   later attempt, types, model bindings, vocabularies and secrets are read as they are then.
-- **`statusError`** — a short message built only from safe facts. On an action failure it reads
-  _The flow failed at action "<key>": <code>._ — the action's key and its failure code (no code when
-  it is `error`), with a caller-readable `reason` when there is one. The action's own words, which
+- **`statusError`** — a short message built only from safe facts. On a step's failure it reads
+  _The flow failed at step "<key>": <code>._ — the step's key and its failure code (no code when
+  it is `error`), with a caller-readable `reason` when there is one. The step's own words, which
   can carry provider bodies and prompt fragments, are never put there; cut to 500 characters, they
-  are on its `action-failed` row in `GET /v1/runs/{runId}/timeline`. Three other shapes exist:
+  are on its `step-failed` row in `GET /v1/runs/{runId}/timeline`. Three other shapes exist:
   a validation failure surfaces the operator-authored message verbatim, a missing record says so,
   and a flow that produced none of its declared output reports that instead.
 
-`failure.class` says whose failure it is, and `failure.actionKey` names the action `statusError`
-names. `failure` is `null` only for a run that failed before the class was recorded. For the action's own words,
-take the occurrence's invocation id to `GET /v1/runs/{runId}/timeline`: that is the per-action
-execution record, it says which actions ran and what happened to each, and unlike a flow trace it
+`failure.class` says whose failure it is, and `failure.stepKey` names the step `statusError`
+names. A run whose flow has no steps yet fails with `reason` `FLOW_NOT_AUTHORED` and names that flow in
+`failure.flowKey`; it is the flow's own state, so the schedule does not retry it. `failure` is `null` only for a run that failed before the class was recorded. For the step's own words,
+take the occurrence's invocation id to `GET /v1/runs/{runId}/timeline`: that is the per-step
+execution record, it says which steps ran and what happened to each, and unlike a flow trace it
 is **never sampled**.
 
 Outcomes worth telling apart:
@@ -267,9 +272,11 @@ Outcomes worth telling apart:
 - **skipped** — with an overlap policy of `skip`, the previous fire was still going.
 - **blocked** — refused after claiming, with a reason. Usually a suspended or over-cap payer.
 
-A run that finished and kept its changes after carrying on past a failure it was set to tolerate
+A run that finished and kept its changes after carrying on past a failure it was set to tolerate (one a `try`
+caught, a `repeat` stopped at, or an `each` within its `maxFailedBranches` or `maxFailedShare`)
 closes with `closing.verdict: "partial"` on `GET /v1/runs` — a third value beside `succeeded` and
-`failed` — and `closing.absorbed { actions, calls, branches }` counts what it carried on past. Its
+`failed` — and `closing.absorbed { steps, calls, branches, owner }` counts what it carried on past, and whose those
+failures mostly were. Its
 invocation still reads finished; here its `status`, and the list's `lastRunStatus`, read
 `partial`. ⚠️ That word comes from the project's list of failed and partial runs
 (triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`), `GET /v1/failed-runs`), which keeps a run for a limited time: an
@@ -433,7 +440,7 @@ Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) sa
 
 ## Related
 
-- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the flow being bound, and why its signature is locked
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the flow being bound, and why its signature is locked
   while you are bound to it.
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the caller-triggered sibling.
 - Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — when the trigger is something happening rather than a time.

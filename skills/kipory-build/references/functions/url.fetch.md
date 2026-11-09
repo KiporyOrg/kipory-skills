@@ -4,7 +4,7 @@
 
 Download the text behind a web address.
 
-Reads JSON, plain text or an XML feed. A 4xx answer fails the action; its failure value carries the `httpStatus`.
+Reads JSON, plain text or an XML feed. A 4xx answer fails the step; its failure value carries the `httpStatus`.
 
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -12,18 +12,18 @@ Reads JSON, plain text or an XML feed. A 4xx answer fails the action; its failur
 - **Also found as:** http, api call, json, rest api, get request, download text
 - **Reads:** One URL to fetch. Anything that is not `http` or `https`, resolves to a private address, or does not resolve at all is refused as a blocked request. _(shape hint: `string`)_
 - **Emits:** The body as text, or parsed: an object under `json`, a list of objects under `json-list`. Empty, with a warning, on no URL or a 5xx; a 4xx fails.
-- **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `currentUrl`
+- **Softens these failures:** `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `url`
 - **External dependency:** the open web — Fetches whatever the URL points at, through the SSRF guard. No vendor — the site itself is the dependency. A service that needs a key takes a stored request credential, named in `secret`.
-- **Action credential:** an action may name a stored secret of type `http_credential` in `secret`, by its purpose; resolved from the project's node and the organisations above it, with no platform fallback.
+- **Step credential:** a step may name a stored secret of type `http_credential` in `secret`, by its purpose; resolved from the project's node and the organisations above it, with no platform fallback.
 - **Rate limit:** 60 per min in bucket `outbound-request`, counted per project and host addressed — shared with `url.fetch-as-file`
-- **Queue:** 3 attempts, exponential from 500 ms; waits up to 1 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 3 attempts, exponential from 500 ms; waits up to 1 min; cache 1 day — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `body` | union | no | — | The request body, usually built by an earlier action. |
+| `body` | union | no | — | The request body, usually built by an earlier step. |
 | `bodyAs` | `json` \| `form` \| `text` | no | — | How to send the body: `json` (default), `form` or `text`. ⚠️ Under `json` a string is sent quoted; for your own text use `text` and `contentType`. |
 | `contentType` | string, at most 128 characters | no | — | The content type of a `text` body. |
 | `headers` | object | no | — | Headers by name; an empty value omits one; credentials go in `secret`. |
@@ -33,7 +33,7 @@ Reads JSON, plain text or an XML feed. A 4xx answer fails the action; its failur
 | `query` | object | no | — | Query parameters for the address by name; an empty value omits one. |
 | `responseAs` | `text` \| `json` \| `json-list` | no | — | `text` (default), `json` for an object, or `json-list` for a list. ⚠️ Under `json` a list arrives under `value`; `json-list` fails on anything but a list of objects. |
 | `secret` | string, at most 128 characters | no | — | The name of a stored request credential to send. ⚠️ Sent only over `https`; if the credential lists hosts, any other host fails. |
-| `timeoutMs` | integer, more than 0 | no | `15000` | Request timeout in milliseconds. ⚠️ This limits the one request, not the action's own `timeoutMs` run setting. |
+| `timeoutMs` | integer, more than 0 | no | `15000` | Request timeout in milliseconds. ⚠️ This limits the one request, not the step's own `timeoutMs` run setting. |
 | `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
 
 ### `body` — one of
@@ -106,7 +106,7 @@ Sitemap: https://example.com/sitemap.xml
 
 #### Bad address
 
-Non-`http(s)` URL — refused before any request fires. The action fails, and an endpoint over it answers 400.
+Non-`http(s)` URL — refused before any request fires. The step fails, and an endpoint over it answers 400.
 
 Reads `string` → emits `string` · 1 in → (empty)
 

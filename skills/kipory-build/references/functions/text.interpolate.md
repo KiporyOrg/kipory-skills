@@ -2,7 +2,7 @@
 
 # `text.interpolate` — Fill a template
 
-Fill a text template with values from earlier actions.
+Fill a text template with values from earlier steps.
 
 No model is called. To walk, sort, filter or reshape a list, use Reshape values.
 
@@ -11,7 +11,7 @@ No model is called. To walk, sort, filter or reshape a list, use Reshape values.
 - **I/O:** `any+` → `string`
 - **Also found as:** template, format text, combine text, message text
 - **Reads:** Any slots you wire in — text verbatim, a list joined with commas, an object's fields via `{{slot.field}}`. A slot nothing has written yet fills in as empty. _(shape hint: `any+`)_
-- **Emits:** The interpolated prompt template. Every `{{slot}}` reference is replaced by the slot bag's current value; the result is written to the action's output slot verbatim.
+- **Emits:** The interpolated prompt template. Every `{{slot}}` reference is replaced by the slot bag's current value; the result is written to the step's output slot verbatim.
 
 ## Config
 
@@ -27,10 +27,12 @@ One slot, no surrounding prose. Use it to rename or repackage an upstream value.
 
 Reads `object` → emits `string` · 1 in → 1 out
 
-Prompt template:
+Step settings (`with`):
 
-```
-{{title}}
+```json
+{
+  "template": "{{title}}"
+}
 ```
 
 Input:
@@ -53,12 +55,12 @@ Newlines in the template survive. The usual use is assembling one string out of 
 
 Reads `object` → emits `string` · 1 in → 1 out
 
-Prompt template:
+Step settings (`with`):
 
-```
-Article: {{title}}
-
-{{summary}}
+```json
+{
+  "template": "Article: {{title}}\n\n{{summary}}"
+}
 ```
 
 Input:
@@ -84,10 +86,12 @@ A list referenced bare is joined with commas. Use it to flatten a list back into
 
 Reads `object` → emits `string` · 1 in → 1 out
 
-Prompt template:
+Step settings (`with`):
 
-```
-Tags: {{tags}}
+```json
+{
+  "template": "Tags: {{tags}}"
+}
 ```
 
 Input:
@@ -110,10 +114,12 @@ Tags: #engineering, #metrics, #q2
 
 Reads `object` → emits `string` · 1 in → 1 out
 
-Prompt template:
+Step settings (`with`):
 
-```
-Top tag: {{tags.first}} (out of {{tags.length}})
+```json
+{
+  "template": "Top tag: {{tags.first}} (out of {{tags.length}})"
+}
 ```
 
 Input:

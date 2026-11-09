@@ -66,7 +66,7 @@ One id belongs to another user, so two records go and the third is untouched.
 
 Reads `string[]` → emits `boolean` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -88,11 +88,11 @@ true
 
 #### Already deleted
 
-Every id was already deleted, so nothing happens and the action reports it plainly.
+Every id was already deleted, so nothing happens and the step reports it plainly.
 
 Reads `string[]` → emits `boolean` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

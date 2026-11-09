@@ -42,11 +42,11 @@ A 402 is not a flow problem. Branch on the error `code`; the remedies do not sub
 
 A fifth code is answered only by a **public endpoint** — one saved `auth: "none"`, called with no credential — and it is the one a caller cannot branch further on:
 
-- `PUBLIC_ENDPOINT_UNAVAILABLE` carries **no `details`**. Either the wallet refused, or public calls have spent the project's `publicSpendCapCredits` for the UTC day (or the cap is not set). The caller is nobody the project knows, so the body is the same for both. Which it was is on the project's own log: `GET /v1/rejected-requests?project={nodeId}` has the row with `gate: "wallet"` or `gate: "public-spend-cap"`. A row with this code and no `gate` was not refused for money: the project is suspended, or the endpoint's flow reaches an action that needs a signed-in user, which a public call never has. The remedy follows the gate: credit for the wallet; for the cap, raise `publicSpendCapCredits` on `PATCH /v1/projects/{nodeId}/settings` or wait for 00:00 UTC. Today's public spend is `publicSpend.consumed` on the settings read, and the usage scope `public`.
+- `PUBLIC_ENDPOINT_UNAVAILABLE` carries **no `details`**. Either the wallet refused, or public calls have spent the project's `publicSpendCapCredits` for the UTC day (or the cap is not set). The caller is nobody the project knows, so the body is the same for both. Which it was is on the project's own log: `GET /v1/rejected-requests?project={nodeId}` has the row with `gate: "wallet"` or `gate: "public-spend-cap"`. A row with this code and no `gate` was not refused for money: the project is suspended, or the endpoint's flow reaches a step that needs a signed-in user, which a public call never has. The remedy follows the gate: credit for the wallet; for the cap, raise `publicSpendCapCredits` on `PATCH /v1/projects/{nodeId}/settings` or wait for 00:00 UTC. Today's public spend is `publicSpend.consumed` on the settings read, and the usage scope `public`.
 
 Amounts inside `details` are decimal strings, not numbers — unlike the integers on every read.
 
-**Design-time work** is flow previews (inline and queued), `POST /v1/actions/preview` and eval runs. A reprocess, a record's processing and a schedule or trigger run are not design-time work, and the design-time ceiling never refuses them — with one exception: a record handed to its processing flow by an `record.enqueue-process` action of a preview or an eval run is charged as design-time work, counts toward the ceiling, and is refused by it when a worker takes the job.
+**Design-time work** is flow previews (inline and queued), step previews (`POST /v1/flows/{id}/steps/{key}/preview`) and eval runs. A reprocess, a record's processing and a schedule or trigger run are not design-time work, and the design-time ceiling never refuses them — with one exception: a record handed to its processing flow by a `record.enqueue-process` step of a preview or an eval run is charged as design-time work, counts toward the ceiling, and is refused by it when a worker takes the job.
 
 Which can reach which caller:
 
@@ -56,12 +56,12 @@ Which can reach which caller:
 
 What a refusing wallet stops, beyond the 402 on a call:
 
-- **Reads still answer.** A GET is not refused up front, so an over-cap project degrades to read-only; a GET whose flow reaches a paid action (a model call, a search, an outside call) is asked at that action and answers `BALANCE_BELOW_SOFT_CAP` before it runs.
+- **Reads still answer.** A GET is not refused up front, so an over-cap project degrades to read-only; a GET whose flow reaches a paid step (a model call, a search, an outside call) is asked at that step and answers `BALANCE_BELOW_SOFT_CAP` before it runs. A run the wallet stops partway is stopped, not failed: a synchronous call answers `402 BALANCE_BELOW_SOFT_CAP` (a public endpoint answers `PUBLIC_ENDPOINT_UNAVAILABLE`), a stream ends on an error frame with no result, and the run closes as stopped with the reason `payer-refused`.
 - **A write is refused at the request.** Every non-GET call made with a key granted at the project answers the 402 before anything is queued — `POST /v1/records` and `POST /v1/records/{id}/reprocess` included.
 - **A queued job is refused when a worker takes it** — an async endpoint run, a record's processing, a reprocess that was queued before the wallet closed — and is not retried. The record or invocation stays `pending` (a record reads `pendingRun: unqueued`) until the platform marks it failed. After the wallet is reopened, `POST /v1/records/{id}/reprocess`, or call the endpoint again.
 - **A schedule occurrence or a trigger's fire is not started.** The occurrence, or the trigger's decision, is recorded `blocked` with the reason (`GET /v1/schedules/{id}/runs`, `GET /v1/triggers/{id}/runs`). Nothing catches it up afterwards; replay a trigger's decision with `POST /v1/triggers/{id}/replay`.
-- **A run in flight stops spending.** The wallet is asked again at each action boundary once the run has billed something; when it refuses, every remaining action is skipped and the run ends short. `kipory-diagnose` reads that run.
-- **The design-time ceiling is not re-asked at action boundaries.** A preview or eval run that crosses it part-way keeps running its in-process actions; each queued action (a model action, a fetch) is refused when a worker takes its job and fails, without a retry.
+- **A run in flight stops spending.** The wallet is asked again at each step boundary once the run has billed something; when it refuses, every remaining step is skipped and the run ends short. `kipory-diagnose` reads that run.
+- **The design-time ceiling is not re-asked at step boundaries.** A preview or eval run that crosses it part-way keeps running its in-process steps; each queued step (a model step, a fetch) is refused when a worker takes its job and fails, without a retry.
 
 ## The ceilings
 

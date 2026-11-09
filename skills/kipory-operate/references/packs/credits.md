@@ -42,11 +42,11 @@ call, and it is the wallet, which `status` summarises. For an end-user session t
 apply.
 
 ⚠️ **A key's design-time calls meet a different second gate.** Flow previews,
-`POST /v1/actions/preview` and eval runs are bounded
+`POST /v1/flows/{id}/steps/{key}/preview` and eval runs are bounded
 by the project's design-time ceiling (`402 DESIGN_SPEND_CAP_EXCEEDED`), which the balance does not
 show: read `designSpend` on `GET /v1/projects/{nodeId}/settings` for what the current window has
 consumed, and `designSpendCapCredits` and `designSpendCapPeriod` beside it for the ceiling. A
-record that an `record.enqueue-process` action of a preview or an eval run hands to its processing
+record that a `record.enqueue-process` step of a preview or an eval run hands to its processing
 flow counts toward the same ceiling.
 
 ⚠️ **The wallet may not be the project's.** A project without a wallet of its own draws on the
@@ -205,8 +205,8 @@ deliberate about which credential the question is being asked with.
 | Attribute a machine-driven charge to what caused it | `GET /v1/runs/{runId}/spend`                           |
 | Total one schedule occurrence's billed charges      | the occurrence's `creditCost` on the schedule's `runs` |
 
-`/runs/{runId}/spend` holds every charge the run made, by action — a model call an action makes on a
-worker included. Each action's `charges` says what it was charged for, by kind (`function-run` is the
+`/runs/{runId}/spend` holds every charge the run made in `byStep`, one entry per step by `flowId` and
+`stepKey` — a model call a step makes on a worker included. Each entry's `charges` says what it was charged for, by kind (`function-run` is the
 compute fee, `llm-call` the model), and its `uncharged` counts the operations the platform paid
 for: ⚠️ `credits: 0` is a price only when `uncharged` is 0. `GET /v1/eval-runs/{id}/spend` answers
 the same for an eval run.

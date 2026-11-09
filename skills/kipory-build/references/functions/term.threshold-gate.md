@@ -12,7 +12,6 @@ High scores reuse the matching term, low ones coin a new term, and the rest go t
 - **Also found as:** reuse or create term, match threshold, new term decision
 - **Reads:** Reads the candidate hits, the vocabulary's high/low thresholds, and the proposed slug/label/parent for the create-new case. _(shape hint: `candidates + thresholds + proposal`)_
 - **Emits:** A `GateDecision`: either the finished resolution, or a signal that the score landed in the middle and something else has to decide.
-- **Suggested input streams:** `candidates`, `thresholds`, `proposalSlug`, `proposalLabel`, `parentTermId`, `vocabularyKey`
 
 ## Config
 
@@ -144,7 +143,7 @@ The top candidate is reused as a match on the `type` vocabulary — no LLM call.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -171,11 +170,11 @@ Output:
 
 #### Too close
 
-Neither reuse nor coin is safe, so the tiebreak action decides.
+Neither reuse nor coin is safe, so the tiebreak step decides.
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

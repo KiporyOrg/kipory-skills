@@ -11,9 +11,9 @@ Matches existing terms, creates the rest and indexes them for search. A preview 
 - **I/O:** `TermResolution[]` → `nothing`
 - **Also found as:** store terms, add tags, create terms
 - **Reads:** The resolved terms to save, from `resolutions` — usually what `vocabulary.resolve` emitted. An empty list saves nothing and succeeds. _(shape hint: `TermResolution[]`)_
-- **Emits:** Nothing — the terms are saved. Leave `outputSlot` out: a named one is refused, and no later action can wait for this one. A repeat changes nothing.
-- **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Queue:** 3 attempts, exponential from 2 s; waits up to 30 s; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Emits:** Nothing — the terms are saved. The step gives no value for a later step to read. A repeat changes nothing.
+- **Softens these failures:** `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 30 s; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -45,11 +45,11 @@ Saves a bundle of resolved terms and links them to the record. Nothing comes bac
 
 #### One new term
 
-The matched term is reused and the new one is created and embedded. The action writes no slot.
+The matched term is reused and the new one is created and embedded. The step writes no slot.
 
 Reads `TermResolution[]` → emits `nothing` · 1 in → (empty)
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -75,11 +75,11 @@ Output:
 
 #### Nothing to save
 
-Nothing was resolved, so nothing is written and the action still succeeds.
+Nothing was resolved, so nothing is written and the step still succeeds.
 
 Reads `TermResolution[]` → emits `nothing` · 1 in → (empty)
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

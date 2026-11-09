@@ -4,7 +4,7 @@
 
 Link one record to another.
 
-Links the first input's record to the second's, under this action's label; only that label can undo it.
+Links the first input's record to the second's, under this step's label; only that label can undo it.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -12,13 +12,13 @@ Links the first input's record to the second's, under this action's label; only 
 - **Also found as:** connect records, relate, associate, add link
 - **Reads:** Two slots: the record the link runs FROM, then the one it runs TO. They are read by position, so order decides which way a directed link points. _(shape hint: `string, string`)_
 - **Emits:** A `RelationAssertion`: `stated` when the link stands — written, revived, or already there — and `refused` when it does not, with `reason` saying why.
-- **Suggested input streams:** `sourceRecordId`, `targetRecordId`
+- **Inputs (`with`):** `sourceRecordId`, `targetRecordId`
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `actor` | string, at most 64 characters | yes | — | A label saved on every link this action writes. ⚠️ Removing links reaches only this label's links, never ones made by hand. |
+| `actor` | string, at most 64 characters | yes | — | A label saved on every link this step writes. ⚠️ Removing links reaches only this label's links, never ones made by hand. |
 | `relationKey` | string | yes | — | The relation's key, not its name. ⚠️ Only a relation whose links are stated by hand works; others are refused. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
@@ -50,7 +50,7 @@ The link stands under this node's label — written now, revived, or already the
 
 Reads `mixed` → emits `RelationAssertion` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -80,7 +80,7 @@ One end names no record this run may read. `UNRESOLVABLE` covers every such caus
 
 Reads `mixed` → emits `RelationAssertion` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

@@ -8,13 +8,13 @@ Fits within the maximum width and height. A file that is not an image fails, so 
 
 - **Group:** files · **Phase:** `ingest` · **Effect class:** `idempotent-side-effect`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A new run that keeps the record's files saves this file again under the new attempt's key.
-- **Not undone when a run fails:** `file` — The file's bytes are stored while the action runs. A later attempt of the run stores them again under its own key; a file no record keeps is removed by the platform later. Doing it twice is not harmless; a failed run lists it in `closing.unstagedEffects`.
+- **Not undone when a run fails:** `file` — The file's bytes are stored while the step runs. A later attempt of the run stores them again under its own key; a file no record keeps is removed by the platform later. Doing it twice is not harmless; a failed run lists it in `closing.unstagedEffects`.
 - **I/O:** `file` → `file`
 - **Also found as:** thumbnail, shrink, smaller image, compress image
 - **Reads:** One image file. A non-image input throws, so route those elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A file holding the resized image. A retry on the same item reuses the previous encode. An empty input gives an empty file back.
-- **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 2 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Inputs (`with`):** `image`
+- **Queue:** 1 attempt, no backoff; waits up to 2 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -61,7 +61,7 @@ Re-encoded as WebP: smaller bytes than the source PNG at equal visual quality.
 
 Reads `file` → emits `file` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -87,7 +87,7 @@ Output:
 
 #### Not an image
 
-With a mime condition wired upstream the action is skipped. Without one it throws, so the missing routing shows up.
+With a mime condition wired upstream the step is skipped. Without one it throws, so the missing routing shows up.
 
 Reads `file` → emits `file` · 1 in → 1 out
 

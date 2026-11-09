@@ -73,19 +73,19 @@ read (`tiktok.profile`, `tiktok.posts`, `tiktok.post`, `tiktok.comments`, `tikto
 `linkedin.company`, `linkedin.posts`, `linkedin.post`, `linkedin.ad`, `linkedin.ads`,
 `threads.profile`, `threads.posts`, `threads.post`, `threads.search`, `tiktok.transcript`,
 `tiktok.ads`, `instagram.transcript`, `x.profile`, `x.transcript`, `youtube.posts`,
-`youtube.comments`, `youtube.search`) and for `x.posts` and `youtube.transcript` on an action that
+`youtube.comments`, `youtube.search`) and for `x.posts` and `youtube.transcript` on a step that
 chose it. The two model vendors: `cohere` and `typesafe`. Each is a credential of the catalog's
 plain bearer-key type.
 
-**A secret is used only where the platform looks it up: a function that names its purpose, an action
+**A secret is used only where the platform looks it up: a function that names its purpose, a step
 that names it in `secret`, or sign-in.** A vendor with no function of its own is reached with a
 request credential on `url.fetch`, `url.fetch-as-file` or `url.send` — see the request credential
 below.
 
-⚠️ **An action that can reach two vendors resolves each vendor's key separately.** An `x.posts` or
-`youtube.transcript` action whose `vendor.switch` lets it move on asks another vendor when its own
+⚠️ **A step that can reach two vendors resolves each vendor's key separately.** An `x.posts` or
+`youtube.transcript` step whose `vendor.switch` lets it move on asks another vendor when its own
 fails, and is billed by the vendor that answered — so your own key for one vendor does not stop the
-platform's key being spent for the next. Store a key for each vendor the action can reach, or leave
+platform's key being spent for the next. Store a key for each vendor the step can reach, or leave
 its `vendor.switch` at `never`.
 
 **Read the function's `credential` field, not its `requiredApiKey`.** A function that resolves a
@@ -95,12 +95,12 @@ answer to "what do I store, and under what name". `requiredApiKey` beside it is 
 person** ("a Firecrawl API key"), not an address; deriving a purpose from it is a guess that has no
 reason to keep working.
 
-⚠️ **A function with neither `credential` nor `actionCredential` cannot use a key you store, at any
+⚠️ **A function with neither `credential` nor `stepCredential` cannot use a key you store, at any
 price.** Most model calls are
 the population that matters: text generation, embedding and transcription reach their provider
 through the platform's own configuration and never consult the vault, so a credential stored for
 one of those is a row nothing will ever read. Absence of both fields is the whole signal — there is
-no error, and every other sign the row is healthy will be present. (`actionCredential` is the other
+no error, and every other sign the row is healthy will be present. (`stepCredential` is the other
 way a function reads a key: see the request credential below.)
 
 The `custom` type is in the same position: it stores a value under a name of your choosing, and no
@@ -109,11 +109,11 @@ service reachable from a flow — store it as an `http_credential` instead.
 
 ## A key for a service that has no function: `http_credential`
 
-A function whose catalog entry carries `actionCredential` lets an **action** name a secret of its own.
-Today that is `url.fetch`, `url.fetch-as-file` and `url.send`. The purpose is yours to choose; the action writes
-it in the config field `actionCredential.configPath` names (`secret`).
+A function whose catalog entry carries `stepCredential` lets a **step** name a secret of its own.
+Today that is `url.fetch`, `url.fetch-as-file` and `url.send`. The purpose is yours to choose; the step writes
+it in the setting `stepCredential.configPath` names (`secret`).
 
-The stored value says where it goes in a request, so the action never does:
+The stored value says where it goes in a request, so the step never does:
 
 | Field       | Required | What it is                                                                                                    |
 | ----------- | -------- | ------------------------------------------------------------------------------------------------------------- |
@@ -141,28 +141,28 @@ POST /v1/secrets
 - `scheme` with `placement: "query"` is a 422.
 - `purpose` is up to 128 characters with no space at either end.
 
-The action then sets `"secret": "crm"`. The request carries `Authorization: Bearer <the key>`; with
+The step then sets `with: { secret: crm }`. The request carries `Authorization: Bearer <the key>`; with
 `placement: "query"` the address gains `name=<the key>` instead.
 
-⚠️ **Leave `hosts` empty and the secret goes to whatever address an action reads.** Anyone who can edit
+⚠️ **Leave `hosts` empty and the secret goes to whatever address a step reads.** Anyone who can edit
 a flow in a project the secret reaches can then send it to a server of their own, and read it. List
 the service's hosts unless you have a reason not to.
 
 How it behaves:
 
-- An action addressed to a host the secret does not list fails before any request is made.
+- A step addressed to a host the secret does not list fails before any request is made.
 - It is sent over `https` on the default port only. On a redirect it travels only to a host the
   secret lists; a secret with no host list is sent on the first request alone, and no redirect
   carries it.
-- An answer that comes back compressed fails the action: it could not be checked for the value.
+- An answer that comes back compressed fails the step: it could not be checked for the value.
 - It resolves from the project's node and the organisations above it. Kipory holds none, so
   there is no platform fallback: with none stored and switched on, a read fails `api-key-missing`
-  and a `url.send` request is not delivered. A flow whose action names a purpose no node holds
-  carries a `ACTION_SECRET_NOT_HELD` warning when it is saved.
-- `GET /v1/secrets/resolution` does not list it: its purpose is whatever an action names. Check it
+  and a `url.send` request is not delivered. A flow whose step names a purpose no node holds
+  carries a `STEP_SECRET_NOT_HELD` warning when it is saved.
+- `GET /v1/secrets/resolution` does not list it: its purpose is whatever a step names. Check it
   on the node list (`GET /v1/secrets`).
 - Replacing the secret replaces every field: enter the hosts again, or they are gone.
-- The value never appears in an action's output, a warning, an error or a log line.
+- The value never appears in a step's output, a warning, an error or a log line.
 - `url.send` reads it when the request is delivered, after the run. A secret removed or narrowed by
   then fails that delivery, the run has already finished, and no read reports it.
 
@@ -207,7 +207,7 @@ A project's id is its node id — the `id` its create answered — so for a proj
   restrictive over the node and every ancestor, so a suspended or archived organisation anywhere
   up the chain admits no secret at all. While it is not active, every live run — an endpoint
   call, a record's processing, a schedule or trigger run — is refused `403 WORKLOAD_SUSPENDED`
-  before any action; a design-time preview is not behind that gate. `GET /v1/secrets/resolution`
+  before any step; a design-time preview is not behind that gate. `GET /v1/secrets/resolution`
   reports `branch-inactive`. Check the branch before you go looking
   for a deleted credential.
 - **A secret that cannot be used is skipped, not substituted from an ancestor.** If the applicable
@@ -238,7 +238,7 @@ Apple still signs people in and loses only the later revocation of the grant.
 
 The list of keys here is the list of vendor and sign-in purposes actually read: one of those
 stored under a purpose that appears nowhere in it is never used. A request credential
-(`http_credential`) is not listed — an action reads it by the name in its `secret`.
+(`http_credential`) is not listed — a step reads it by the name in its `secret`.
 
 ⛔ **Do not rebuild this by listing every ancestor and taking the first active row.** That
 reconstruction cannot see the effective-status gate, so it reports a suspended organisation's key
@@ -326,6 +326,6 @@ re-save leaves `status` alone, so a record someone disabled stays disabled.)
 - Project provisioning (capability pack `project-provisioning` — `GET /v1/capability-packs/project-provisioning`) — finding the node id this surface is
   addressed by.
 - Project config (capability pack `project-config` — `GET /v1/capability-packs/project-config`) — the tunable, readable sibling, and the line between them.
-- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the functions that consume a credential, and where a
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the functions that consume a credential, and where a
   missing-key failure surfaces.
 - Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) — what the platform will not do for you regardless of whose key pays.

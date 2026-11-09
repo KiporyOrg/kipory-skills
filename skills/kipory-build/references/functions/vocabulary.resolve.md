@@ -4,14 +4,14 @@
 
 Pick the right terms for a record in each vocabulary you choose.
 
-Reuses a matching term or coins a new one when allowed. Wire the output into one `term.upsert` action.
+Reuses a matching term or coins a new one when allowed. Wire the output into one `term.upsert` step.
 
 - **Group:** records · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record context` → `TermResolution[]`
 - **Also found as:** tag, auto tag, categorise record, assign terms
 - **Reads:** Reads the record context object it proposes vocabulary values from (the configured vocabulary keys drive which vocabularies are resolved). _(shape hint: `record context`)_
-- **Emits:** A list of `TermResolution`, one per resolved value. Wire this into exactly one `term.upsert` action to save them.
+- **Emits:** A list of `TermResolution`, one per resolved value. Wire this into exactly one `term.upsert` step to save them.
 
 ## Config
 
@@ -22,7 +22,7 @@ Reuses a matching term or coins a new one when allowed. Wire the output into one
 | `extractedVocabularies` | union[] | no | — | Vocabulary values already extracted; they are read, not proposed. |
 | `maxValues` | object | no | — | Most values per multi-value vocabulary; leave one out for no cap. ⚠️ Only applies to vocabularies that accept many values. |
 | `model` | string | no | — | The proposal model by catalog id; default is the extraction model. |
-| `vocabularyKeys` | string[] | no | — | Which of the project's vocabularies to propose values for. ⚠️ A key the project does not declare is refused when the action runs. |
+| `vocabularyKeys` | string[] | no | — | Which of the project's vocabularies to propose values for. ⚠️ A key the project does not declare is refused when the step runs. |
 
 ### `context` — each item is one of
 
@@ -70,7 +70,7 @@ One value matched a term that already exists; the other is new and carries what 
 
 Reads `object` → emits `TermResolution[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -108,7 +108,7 @@ The model proposed no value for any configured vocabulary, so an empty list come
 
 Reads `object` → emits `TermResolution[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

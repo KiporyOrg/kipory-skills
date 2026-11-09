@@ -1,12 +1,12 @@
 ---
 name: kipory-diagnose
-description: Work out why a Kipory flow behaved the way it did — find the run, read its never-sampled timeline, see what it wrote, open its trace to learn what each output slot actually held, and compare a good run with a bad one. Use when a flow returns the wrong thing, an endpoint 502s, a scheduled run failed, a record failed or is stuck in processing, output changed and nobody knows which action moved, or the user asks to debug a run, see its logs, or "what happened". Not for fixing the flow (kipory-build), not for asserting it stays fixed (kipory-prove), and not for re-running or correcting the record once the cause is known (kipory-data).
+description: Work out why a Kipory flow behaved the way it did — find the run, read its never-sampled timeline, see what it wrote, open its trace to learn what each step's value actually held, and compare a good run with a bad one. Use when a flow returns the wrong thing, an endpoint 502s, a scheduled run failed, a record failed or is stuck in processing, output changed and nobody knows which step moved, or the user asks to debug a run, see its logs, or "what happened". Not for fixing the flow (kipory-build), not for asserting it stays fixed (kipory-prove), and not for re-running or correcting the record once the cause is known (kipory-data).
 license: MIT
 ---
 
 # Diagnose a run
 
-Every execution is a **run** with one id, whatever started it — an endpoint call, a schedule, a record being processed, a preview. Three records describe it, and they answer different questions: the **timeline** (which actions ran, in order, and how each ended — never sampled), the **change set** (what the run wrote), and the **trace** (what each output slot held — sampled per project and dropped on a TTL). The fact most people get wrong: **an empty trace list is not evidence the flow did not run.** Check the sampling rates before you interpret the count.
+Every execution is a **run** with one id, whatever started it — an endpoint call, a schedule, a record being processed, a preview. Three records describe it, and they answer different questions: the **timeline** (which steps ran, in order, and how each ended — never sampled), the **change set** (what the run wrote), and the **trace** (what each step's value held — sampled per project and dropped on a TTL). The fact most people get wrong: **an empty trace list is not evidence the flow did not run.** Check the sampling rates before you interpret the count.
 
 ## Before the first call
 
@@ -23,8 +23,8 @@ Every execution is a **run** with one id, whatever started it — an endpoint ca
   | a record being processed      | the `runId` of an event it emitted; otherwise start from the record, below                                   |
 
 - **Looking for what failed, not for one run: ask the list.** `GET /v1/failed-runs?project={nodeId}` is every unattended run — a schedule's, a trigger's, an asynchronous endpoint call, a record's processing — whose latest close is `failed` or `partial`, newest first, each with its `runId`, its `subject` and its `closing`. Narrow with `subjectKind` and `subjectKey` (`table` with the table's key finds failed processing runs), `flowId`, `class` and `code`, `owner` or `verdict` (`kipory-operate`'s `references/api/failures.md`). Which flow fails most, and why: `GET /v1/failed-runs/summary?project={nodeId}&from={instant}` groups the same runs by flow, class and code, the commonest first.
-- **A record that failed or is stuck: read the record first.** `GET /v1/records/{id}` carries `status`, `statusError` (what went wrong, on a failed record), `failure` (on a failed record: how its latest processing run failed — `class`, `owner`, `retryable`, `attempt`, `actionKey` — the shape a run read serves as `closing.failure`), `processing { attempts, lastFailureClass }` (how many times it was sent to processing, and the class of its last failure — kept after a later success) and, on a `pending` record, `pendingRun`: `queued` means a processing job is waiting or running, `unqueued` means nothing will process it until `POST /v1/records/{id}/reprocess` (`kipory-data`), `unreadable` means the queue could not be read. Then find the run: `GET /v1/runs?project={nodeId}&flowKey=<the type's processing flow>` and take the row whose `source.kind` is `record` and `source.targetId` is the record's id. The list filters by flow and time, not by record.
-- **An inline preview leaves no run.** `POST /v1/flows/{id}/preview` writes no timeline and no trace, so `…/timeline`, `…/trace` and `…/spend` answer 404 for its `previewSessionId` as for a run that does not exist, and it is not in `GET /v1/runs`. Its action detail is the preview response itself — `transcript`, `errors` and `branches`. When you want a previewed run you can read afterwards, queue it instead.
+- **A record that failed or is stuck: read the record first.** `GET /v1/records/{id}` carries `status`, `statusError` (what went wrong, on a failed record), `failure` (on a failed record: how its latest processing run failed — `class`, `owner`, `retryable`, `attempt`, `stepKey` — the shape a run read serves as `closing.failure`), `processing { attempts, lastFailureClass }` (how many times it was sent to processing, and the class of its last failure — kept after a later success) and, on a `pending` record, `pendingRun`: `queued` means a processing job is waiting or running, `unqueued` means nothing will process it until `POST /v1/records/{id}/reprocess` (`kipory-data`), `unreadable` means the queue could not be read. Then find the run: `GET /v1/runs?project={nodeId}&flowKey=<the type's processing flow>` and take the row whose `source.kind` is `record` and `source.targetId` is the record's id. The list filters by flow and time, not by record.
+- **An inline preview leaves no run.** `POST /v1/flows/{id}/preview` writes no timeline and no trace, so `…/timeline`, `…/trace` and `…/spend` answer 404 for its `previewSessionId` as for a run that does not exist, and it is not in `GET /v1/runs`. Its step detail is the preview response itself — `transcript`, `errors` and `branches`. When you want a previewed run you can read afterwards, queue it instead.
 - **A logged event's `runId` is the run id.** An event in `GET /v1/project-events` carries the id of the run that emitted it — the one `GET /v1/runs/{runId}` reads and a run's `startedRuns` lists. Its `correlationId` is not: that is the run's idempotency key, the caller's `Idempotency-Key` header when one was sent. A `run`-scoped event on a live stream carries the idempotency key as its `runId` too; find that run in `GET /v1/runs?project=` by flow and time. For a trigger's fire, the run id is the `invocation.id` on `GET /v1/triggers/{id}/runs`.
 - **A 404 `NOT_FOUND` on a run read means "no run you can see".** Every run read except the change set finds its project through the run's own timeline, and an id with none — a wrong id, an inline preview, a reaped run, an async invocation that failed before its run started (the ack's `statusPath` says why, e.g. `INVOKE_INPUTS_UNCOVERED`) — collapses to that one answer, and so does a run in a project your key does not reach. A 403 is a real role problem: your key reaches no project at all, or it can see the run and its role is too low (`details.requiredRole` names the floor).
 - Every read here is VIEWER and answers on the api host.
@@ -32,41 +32,43 @@ Every execution is a **run** with one id, whatever started it — an endpoint ca
 ## The sequence
 
 ```
-GET /v1/runs?project={nodeId}&flowKey={key}&window=24h   recent runs, newest first — flow, source, lifecycle, closing; `flowKey` is optional (runs that called it as a sub-flow count), an unknown one is a 404, not an empty page; `record={id}` for one record's runs; `causes=1` (needs `window` or `since`) adds `causes`, why the range's runs failed grouped by the action that failed and whose failure it was, each with its `lastRunId` — the cheapest first read when many runs failed
+GET /v1/runs?project={nodeId}&flowKey={key}&window=24h   recent runs, newest first — flow, source, lifecycle, closing; `flowKey` is optional (runs that called it as a sub-flow count), an unknown one is a 404, not an empty page; `record={id}` for one record's runs; `causes=1` (needs `window` or `since`) adds `causes`, why the range's runs failed grouped by the step that failed and whose failure it was, each with its `lastRunId` — the cheapest first read when many runs failed
 GET /v1/runs/{runId}                               one run and how many attempts it took
-GET /v1/runs/{runId}/timeline                         the ordered timeline: run-started / run-finished / run-aborted; action-started, action-applied, action-skipped, action-not-reached, action-no-op, action-failed, action-warned; cache-hit or cache-miss; log-truncated
+GET /v1/runs/{runId}/timeline                      the ordered timeline, one row per step event, each naming `flowId` and `stepKey`: run-started / run-finished / run-aborted; step-started, step-applied (`detail.answeredNothing` when it gave nothing), step-not-run (`detail.notRun` says why), step-failed, step-warned; cache-hit or cache-miss; log-truncated
 GET /v1/runs/{runId}/change-set                    what it wrote: captured · applied · rejected · discarded
-GET /v1/runs/{runId}/flow-snapshots                the graph version that actually ran
-GET /v1/runs/{runId}/trace                         the run's values: inputs, output, slotOutputs, actionOutputs (a queued preview writes it live)
+GET /v1/runs/{runId}/flow-snapshots                each flow as it actually ran
+GET /v1/runs/{runId}/trace                         the run's values: inputs, output, stepOutputs (a queued preview writes it live)
 GET /v1/flows/{id}/traces?source=production&limit=20   the sampled traces, each with its runId, cursor-paged — read the rates in the response first
-GET /v1/flows/{id}/traces/{traceId}                one trace: runId, inputs, output, slotOutputs, actionOutputs
+GET /v1/flows/{id}/traces/{traceId}                one trace: runId, inputs, output, stepOutputs
 POST /v1/flows/{id}/preview-runs                   { input, apply: false } → 202 { runId }: a previewed run every read above answers, with nothing written (ADMIN)
 ```
 
-A product call that came back 4xx may never have started a run at all — a bad credential, a body the contract refused, a limit. Every 4xx a product endpoint answered is logged apart: `GET /v1/rejected-requests?project={nodeId}`, narrowed by `class` (`auth`, `validation`, `not-found`, `limit`, `other`) or `endpointKey`, newest first and cursor-paged (walk `after=<nextCursor>` until it is `null`); each row's `credential` is `api-key`, `session` or `none`. A refusal raised by the run itself — `422 FLOW_OUTPUT_MISSING`, an `$assert` — is listed there too, and its `requestId` is the run's id: try it on `GET /v1/runs/{runId}/timeline` before concluding no run started. To learn what a refusal's `code` (or its `details.reason`) means and what to do about it, look it up in `kipory-connect`'s `references/refusal-codes.md`.
+A product call that came back 4xx may never have started a run at all — a bad credential, a body the contract refused (422 `VALIDATION_FAILED`; a body that breaks the flow's inputs says `FLOW_INPUT_INVALID` in `details.reason`, naming the input), a limit. Every 4xx a product endpoint answered is logged apart: `GET /v1/rejected-requests?project={nodeId}`, narrowed by `class` (`auth`, `validation`, `not-found`, `limit`, `other`) or `endpointKey`, newest first and cursor-paged (walk `after=<nextCursor>` until it is `null`); each row's `credential` is `api-key`, `session` or `none`. A refusal raised by the run itself — `422 FLOW_OUTPUT_MISSING`, a `fail` step (its own status, as `REQUEST_REFUSED` when that status has no code of its own, with the step's `code` in `details.reason`) — is listed there too, and its `requestId` is the run's id: try it on `GET /v1/runs/{runId}/timeline` before concluding no run started. To learn what a refusal's `code` (or its `details.reason`) means and what to do about it, look it up in `kipory-connect`'s `references/refusal-codes.md`.
 
 A run that sends mail closes when its message is committed, not when it is delivered, so a run can read `succeeded` while a message it sent never went. `messages` on `GET /v1/runs/{runId}` counts the messages the run committed (`owed`) and how many of them were refused, failed or bounced (`failed`). `GET /v1/mail-messages?project={nodeId}&run={runId}` lists them, newest first and cursor-paged: each row carries its `status` (`queued`, `retrying`, `sent`, `refused`, `failed`, `bounced`) and, once it failed or is being retried, the `reason`, whose `fault` it is (`platform`, `sender` or `recipient`) and the reason in a sentence (`message`). `sent` means the mail relay accepted the message, which is not proof it reached an inbox. `GET /v1/mail-messages/{id}` reads one message by its id. A row says who the message was for and never holds its subject or body.
 
-**How the run closed** — read `closing` on `GET /v1/runs/{runId}` before its actions: its verdict, whose failure it was, `waiting`, and which flow versions a run keeps: `references/how-a-run-closed.md`.
+**How the run closed** — read `closing` on `GET /v1/runs/{runId}` before its steps: its verdict, whose failure it was, `waiting`, and which flow versions a run keeps: `references/how-a-run-closed.md`.
 
-Then the timeline — it is complete, and it names the failing **action**.
+Then the timeline — it is complete, and it names the failing **step** by its key.
 
 Each of these is explained in [references/reading-the-timeline.md](references/reading-the-timeline.md). Read the entry for what the timeline shows you:
 
-- Which action a row is about.
-- Why an action failed.
+- Which step a row is about.
+- Why a step failed.
 - `platform-fault` is not yours to fix.
-- An action that produced nothing without failing.
+- A step whose required input was missing.
+- A step that did not run.
+- A step that gave an empty answer without failing.
 - "Could not look" and "looked, found nothing" are two kinds.
-- Which action came back empty.
+- How big each step's value was.
 - A saved answer keeps its warnings.
 - A flow cannot read a warning.
 - Longer error text.
-- A failed run with no failed action failed at apply.
+- A failed run with no failed step failed at apply.
 
-Reach for the trace when you need the **values** an action emitted, which is the one thing only a trace carries.
+Reach for the trace when you need the **values** a step gave, which is the one thing only a trace carries.
 
-**Reading a trace** — `output`, then `slotOutputs`, then `actionOutputs`, then compare a good run with a bad one: `references/trace-values.md`.
+**Reading a trace** — `output`, then `stepOutputs.writes`, then compare a good run with a bad one: `references/trace-values.md`.
 
 **When there is no trace to read** — replay the record, queue a preview, record the next runs whole, or read `failedInputs`: `references/trace-values.md`.
 
@@ -85,31 +87,31 @@ Each of these is a trap with its explanation and remedy in [references/pitfalls.
 - A slow sync call is not always a slow model.
 - Records stuck `indexState: never` or a `vectorProgress` that does not move is an embedding failure you will not see on the record.
 - `GET /v1/runs/{runId}/spend` answers an empty breakdown, not a 404, for a real run.
-- `credits: 0` on an action is not always a free action.
+- `credits: 0` on a step is not always a free step.
 - A 402 is not a flow problem, and at admission it leaves no run to read.
-- Which actions processing actually runs is a read.
-- A flow that saved with blocking issues still runs
+- Which steps processing actually runs is a read.
+- A flow can turn red after it saved
 - To reproduce, take a trace's `inputs` to a preview — with `apply: false`, or it writes again
 - `GET /v1/activity/stream?project=` tells you that something moved
 
 ## References
 
-| File                                  | What it answers                                                                                  |
-| ------------------------------------- | ------------------------------------------------------------------------------------------------ |
-| `references/reading-a-trace.md`       | a worked walk from a wrong answer to the action that produced it                                 |
-| `references/api/runs.md`              | the runs list, one run, actions, the timeline stream, change set, snapshots, the activity stream |
-| `references/api/traces.md`            | the trace list and one trace                                                                     |
-| `references/api/rejected-requests.md` | the product endpoint calls that answered 4xx — by class, by endpoint                             |
-| `references/api/mail-messages.md`     | what happened to each message a run sent — by run, by status, one by id                          |
-| `references/reading-the-timeline.md`  | what each part of a run's timeline tells you, and what to do about it                            |
-| `references/pitfalls.md`              | each trap of diagnosing a run, with what happens and what to do                                  |
-| `references/how-a-run-closed.md`      | `closing`: the verdict, whose failure it was, `waiting`, and the flow versions a run keeps       |
-| `references/trace-values.md`          | reading a trace in order, and getting the values when no trace was kept                          |
+| File                                  | What it answers                                                                                    |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------- |
+| `references/reading-a-trace.md`       | a worked walk from a wrong answer to the step that produced it                                     |
+| `references/api/runs.md`              | the runs list, one run, its steps, the timeline stream, change set, snapshots, the activity stream |
+| `references/api/traces.md`            | the trace list and one trace                                                                       |
+| `references/api/rejected-requests.md` | the product endpoint calls that answered 4xx — by class, by endpoint                               |
+| `references/api/mail-messages.md`     | what happened to each message a run sent — by run, by status, one by id                            |
+| `references/reading-the-timeline.md`  | what each part of a run's timeline tells you, and what to do about it                              |
+| `references/pitfalls.md`              | each trap of diagnosing a run, with what happens and what to do                                    |
+| `references/how-a-run-closed.md`      | `closing`: the verdict, whose failure it was, `waiting`, and the flow versions a run keeps         |
+| `references/trace-values.md`          | reading a trace in order, and getting the values when no trace was kept                            |
 
 The failed-runs list, the alerts read and the test event are in `kipory-operate`'s `references/api/failures.md`.
 
-The judgment for what an action is allowed to emit is `kipory-build`'s flows pack; the error table for a symptom that arrived over HTTP is `kipory-expose`'s consumer reference.
+The judgment for what a step is allowed to give is `kipory-build`'s flows pack; the error table for a symptom that arrived over HTTP is `kipory-expose`'s consumer reference.
 
 ## Then
 
-`kipory-build` to fix the action the log named, and to checkpoint before you do. `kipory-prove` to pin the corrected behaviour so it stays fixed. `kipory-operate` when a scheduled run never fired — that is a schedule question, and the schedule's own history is not sampled or expired the same way — and for being told when a run fails rather than finding out, and for a schedule or trigger the platform paused. `kipory-secrets` when the failing phase names a missing vendor key. `kipory-data` to reprocess or correct the record once you know why its run failed.
+`kipory-build` to fix the step the log named, and to checkpoint before you do. `kipory-prove` to pin the corrected behaviour so it stays fixed. `kipory-operate` when a scheduled run never fired — that is a schedule question, and the schedule's own history is not sampled or expired the same way — and for being told when a run fails rather than finding out, and for a schedule or trigger the platform paused. `kipory-secrets` when the failing phase names a missing vendor key. `kipory-data` to reprocess or correct the record once you know why its run failed.

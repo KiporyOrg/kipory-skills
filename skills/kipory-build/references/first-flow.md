@@ -1,29 +1,28 @@
 # Your first flow, end to end
 
-The smallest complete build: one flow, `summarise`, that takes a string `text`, runs one `text.generate` action, returns a string `summary`, and is served as a synchronous endpoint your product calls. Every request body below is complete and copyable — replace only the `<angle-bracket>` values. Responses are abbreviated to the fields you act on.
+The smallest complete build, for an invented fruit-box club: one flow, `write-slip`, that takes the box's `fruit`, asks a model for one line for its packing slip, returns it as `slip`, and is served as a synchronous endpoint your product calls. Every request body below is complete — replace only the `<angle-bracket>` values. Responses are cut to the fields you act on.
 
 Two ways to author it, same result:
 
-- **Row by row** (sections 1–7) — one call per row. Good for learning what each row is.
-- **One document** (section 8) — the whole project stated once, planned, then applied. This is the path `kipory-plan` recommends once a plan exists.
+- **Step routes** (sections 1–7) — create the flow, then save its steps. Good for learning what each part is.
+- **One document** (section 8) — the whole project stated once, planned, then applied. The way for a new backend.
 
 ## Hosts and roles
 
-Everything except the last call goes to the **api host** (the base URL you were given) with `Authorization: Bearer <key>`. The product call goes to the **project host**: the endpoint read hands you the full URL as `invokeUrl`, and before any endpoint exists the project's `baseUrl` names the host (`kipory-connect`'s `references/conventions.md`).
+Everything except the last call goes to the **api host** with `Authorization: Bearer <key>`. The product call goes to the **project host**: the endpoint read hands you the full URL as `invokeUrl` (`kipory-connect`'s `references/conventions.md`).
 
-| Step | Call                                       | Host    | Role                                           |
-| ---- | ------------------------------------------ | ------- | ---------------------------------------------- |
-| 1    | `POST /v1/flows`                           | api     | EDITOR                                         |
-| 2    | `POST /v1/actions`                         | api     | EDITOR                                         |
-| 3    | `PATCH /v1/flows/{id}`                     | api     | EDITOR                                         |
-| 4    | `GET /v1/flows/{id}/health`                | api     | VIEWER                                         |
-| 5    | `POST /v1/flows/{id}/preview`              | api     | **ADMIN** — it runs the model and bills        |
-| 6    | `POST /v1/api-endpoints`                   | api     | EDITOR                                         |
-| 7    | the endpoint's `invokeUrl`                 | project | any key that reaches the project; see `access` |
-| 8    | `POST /v1/projects/{nodeId}/document/plan` | api     | VIEWER                                         |
-| 8    | `POST /v1/projects/{nodeId}/document`      | api     | EDITOR (ADMIN if it removes anything)          |
+| Step | Call                                                                                   | Role                                               |
+| ---- | -------------------------------------------------------------------------------------- | -------------------------------------------------- |
+| 1    | `POST /v1/flows`                                                                       | EDITOR                                             |
+| 2    | `PUT /v1/flows/{id}/steps`                                                             | EDITOR                                             |
+| 3    | `GET /v1/flows/{id}/health`                                                            | VIEWER                                             |
+| 4    | `POST /v1/flows/{id}/steps/{key}/interpolate`                                          | EDITOR                                             |
+| 5    | `POST /v1/flows/{id}/preview`                                                          | **ADMIN** — it runs the model and bills            |
+| 6    | `POST /v1/api-endpoints`                                                               | EDITOR                                             |
+| 7    | the endpoint's `invokeUrl`                                                             | any key that reaches the project; see `access`     |
+| 8    | `POST /v1/projects/{nodeId}/document/plan`, then `POST /v1/projects/{nodeId}/document` | VIEWER, then EDITOR (ADMIN if it removes anything) |
 
-`<nodeId>` is the project's id — the one `GET /v1/grant` lists for your key, or `POST /v1/projects` answered (`kipory-connect`).
+`<nodeId>` is the project's id — the one `GET /v1/grant` lists for your key.
 
 ## 1. Create the flow with its signature
 
@@ -34,116 +33,74 @@ POST /v1/flows
 ```json
 {
   "project": "<nodeId>",
-  "label": "Summarise",
-  "key": "summarise",
-  "inputTypeNames": [{ "slot": "text", "typeName": "string" }],
-  "outputTypeNames": [
-    { "slot": "summary", "typeName": "string", "required": true }
-  ]
+  "key": "write-slip",
+  "label": "Write a packing slip",
+  "inputs": { "fruit": { "typeName": "string" } },
+  "outputs": { "slip": { "typeName": "string" } }
 }
 ```
 
-`201` with the flow. Keep `id`, and look at `inputSlots`:
+`201` with the flow. Keep `id` and `version`:
 
 ```json
 {
   "id": "<flowId>",
-  "key": "summarise",
-  "inputSlots": [
-    {
-      "slot": "text",
-      "type": { "kind": "ref", "dataTypeId": "<stringTypeId>" }
-    }
-  ],
-  "outputSlots": [
-    {
-      "slot": "summary",
-      "type": { "kind": "ref", "dataTypeId": "<stringTypeId>" },
-      "required": true
-    }
-  ],
-  "outputBinding": {}
-}
-```
-
-- A signature entry is an object — `{ typeName, slot?, isList?, required? }` — never a bare string, and the body is strict. `typeName` is a registered type's key; `string`, `number`, `boolean` and the other built-ins resolve without being declared. An unknown key is a 422.
-- **An output that carries a list is `"isList": true`, and the action feeding it declares a list `outputSchema`.** A single item arriving at either is taken as a one-item list (and a missing value stays missing), so a path over a page that happens to hold one record still answers a list. `object` covers a list only in an action's `outputSchema`: a flow output typed `object` alone fails the call with `502 FLOW_FAILED` whenever a list arrives. A path's result is a list only when more than one item matches, so such a flow passes on one-record pages and fails on the first fuller one. The plan refuses the binding (`OUTPUT_BINDING_TYPE_MISMATCH`) when the action's `outputSchema` is a list, or a transform's expression plainly makes one (`[…]`, or a plain path through a list such as `books.records.{…}`).
-- `slot` omitted derives one from the type name. Name it: slot names are letters and digits, starting with a letter.
-- An input is required unless you say `"required": false` (and then its `type` arrives wrapped as `{ "kind": "optional", … }`). An output is **not** required unless you say `"required": true` — and only a required output makes preview report it missing, so say it.
-- `key` is permanent — lower-case kebab, refused (never folded) otherwise; `label` is display text you can change any time. `outputBinding` is accepted here too, but only its keys are checked while the flow has no actions; step 3 binds it once the action exists.
-- `validateOnly: true` on the same body answers a verdict with the slot names it would store, and writes nothing.
-
-## 2. Add the action
-
-An action's `inputSchemas` (and `outputSchema`) hold **schema references**, not type names: `{ "kind": "ref", "dataTypeId": "<id>" }`, where the id is the built-in `string` type's id in _this_ project. Copy it from the flow you just made — `inputSlots[0].type` above is exactly the reference to send for an input that reads the flow's `text` slot. `GET /v1/types?project={nodeId}&key=string` answers the same id as `types[0].id`. It is per project; do not reuse one from another project's export by hand.
-
-```
-POST /v1/actions
-```
-
-```json
-{
-  "flowId": "<flowId>",
-  "key": "write-summary",
-  "functionKey": "text.generate",
-  "functionConfig": {},
-  "inputStreams": ["text"],
-  "inputSchemas": [{ "kind": "ref", "dataTypeId": "<stringTypeId>" }],
-  "outputSlot": "summary",
-  "outputSchema": { "kind": "ref", "dataTypeId": "<stringTypeId>" },
-  "promptTemplate": "Summarise the following text in two sentences.\n\n{{text}}",
-  "taskKey": "summarization"
-}
-```
-
-`201 { action, outstandingIssues }`. `outstandingIssues` carries one warning here, and it is expected: `OUTPUT_SLOT_UNBOUND` — the flow promises `summary` and no action's output is bound to it yet. Step 3 clears it.
-
-- `inputStreams` names the slots this action reads — here the flow's own input slot. `inputSchemas` is optional: left out, each input is typed from what feeds it (here the flow's `text` slot). Sent, it is positional and must be the same length; a mismatch is refused before anything else is checked. For a prompt action you may leave `inputStreams` out too — the save reads `{{text}}` from the prompt. Typing from what feeds an input needs the feeder to have a type, so state `outputSchema` on every action a later action reads — `text.generate` and `text.decide` derive none of their own. A feeder whose `outputSchema` is `null` still feeds its readers: they read it as `object`, nothing checks what they take from it, and the plan and health warn `PRODUCER_OUTPUT_UNTYPED` on that action.
-- `promptTemplate` fills `{{text}}` from the slot of that name.
-- `outputSchema` set to the built-in `string` makes `text.generate` return plain text. Any other type switches it to structured output parsed into that type. `text.generate` derives no output type of its own, so state it.
-- `functionConfig` for `text.generate` is optional throughout (`temperature`, `reasoningEffort`, `model`, …); `{}` takes the defaults. See `functions/text.generate.md`.
-- A setting that reads a value from the run takes an argument: a slot path (`"text"`, `"page.records[].id"`), a fixed value (`{ "literal": "…" }`) or an expression (`{ "expr": "…" }`). `"model": { "literal": "<model id>" }` would fix this action's model per call; `action-inputs.md` §7 has the forms.
-- `taskKey` decides the model: this action runs on whatever model the project binds to `summarization` (`GET /v1/nodes/{nodeId}/task-models` at the project's id). It is one of `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`; omitted, a single create starts the action on `extraction`. Do not set `modelId` unless you mean to pin this one action.
-- An action whose function sends no prompt — `value.transform`, `record.create`, `url.fetch` — leaves `promptTemplate` out; it is stored as `""`.
-- `key` is the action's name: lower-case kebab, dots allowed. `outputSlot` is a slot name — no hyphens, no underscores.
-- Add `"validateOnly": true` to ask for the verdict first; it runs every rule the write runs and writes nothing.
-
-## 3. Bind the output
-
-Without this the flow returns nothing: every live call is refused `422 FLOW_OUTPUT_MISSING` and writes nothing — and is still charged for the model call it made (`x-credits-charged` on the refusal says how much).
-
-```
-PATCH /v1/flows/{id}
-```
-
-```json
-{
-  "outputBinding": {
-    "summary": { "fromSlot": "summary" }
-  },
+  "key": "write-slip",
+  "stepCount": 0,
   "version": 1
 }
 ```
 
-`version` is the flow's, as the create answered it: every flow PATCH requires it, and a stale one is
-`409 VERSION_CONFLICT` — re-read the flow and send the new one.
+- **`inputs` and `outputs` are maps by name**, both required (`{}` declares none). Each value is `{typeName, isList?, optional?, description?}`; `typeName` is a registered type's key, and `string`, `number`, `boolean`, `object` resolve without being declared. Read back, each carries the resolved `type`.
+- **A value is required unless it says `optional: true`.** An optional input may be left out by a caller; an optional output may be left out by the flow. A list is `isList: true`.
+- **`key` is permanent and kebab-case**; `label` is display text you can change any time.
+- **A flow with no steps does not start**: a call answers `FLOW_NOT_AUTHORED`. Step 2 gives it steps.
 
-The binding maps each declared output slot to `{ fromSlot, path? }` — `fromSlot` is an action's `outputSlot`, `path` (omitted or `null`) takes the whole value. To return one field of an action's output instead, `path` is an object of segments, never a string:
+## 2. Save its steps
+
+```
+PUT /v1/flows/{id}/steps
+```
 
 ```json
 {
-  "outputBinding": {
-    "id": {
-      "fromSlot": "created",
-      "path": { "segments": [{ "kind": "field", "name": "recordId" }] }
-    }
-  }
+  "version": 1,
+  "steps": [
+    {
+      "key": "line",
+      "function": "text.generate",
+      "with": {
+        "prompt": "Write one friendly line for the packing slip of a box of {{fruit}}. Output only the line."
+      }
+    },
+    { "key": "done", "return": { "slip": "line" } }
+  ]
 }
 ```
 
-The segment kinds are `field`, `first`, `last`, `index`, `pluck` and `wrap` (`action-fields.md` §2 lists what each does). A `field` segment needs the action's `outputSchema` to be a type that declares that field; into the builtin `object` it is refused. The record and search functions type their own output: leave `outputSchema` out and the new action takes that type, or state the same type yourself. On `POST /v1/actions` a `null` is filled the same way; in a document a `null` is a stated "no type" and stays one, so leave the key out there. The types: `record.create` → `RecordCreate` (with `recordId`), `record.read` → a list of `RecordRead`, `record.list` → `RecordPage`, `term.search` → a list of `TermHit`. `text.generate` and `text.decide` type nothing of their own, so state theirs. Every key must be a declared output slot; a stray one is a 422. The map is strict: no other keys per entry. This PATCH requires the flow's `version`, as above; the whole graph is re-validated before it saves.
+`200`:
 
-## 4. Check the whole flow
+```json
+{
+  "flowId": "<flowId>",
+  "version": 2,
+  "diagnostics": [],
+  "changes": [
+    { "stepKey": "line", "change": "added" },
+    { "stepKey": "done", "change": "added" }
+  ],
+  "touched": []
+}
+```
+
+- **The list is the whole flow, in the order it runs.** `line` runs first and its value is read by its key; `done` ends the flow and gives `slip`. A flow gives its outputs only through `return`.
+- **`with.prompt` is the prompt's text**; `{{fruit}}` reads the flow's input. `text.generate` answers text unless `with.outputSchema` names a type (`action-fields.md`).
+- **`version` is the flow's, as you read it**: a stale one answers `409`, and every write answers the next one.
+- **The save proves the flow.** A step that reads a name nothing gives, a value that may be missing, a required output a path never gives — each is refused `422` with `details.diagnostics`, every finding carrying `at` and its ready `fixes` or a `decision` (`checking.md`). `diagnostics` on a saved write are warnings.
+- **Add `"validateOnly": true` to ask first**: the same judgement, nothing saved, and each expression's TypeScript reading.
+- To change a few steps later, post edits by key to `POST /v1/flows/{id}/steps/edit` instead of the whole list (`row-by-row.md`).
+
+## 3. Check the whole flow
 
 ```
 GET /v1/flows/{id}/health
@@ -155,18 +112,38 @@ GET /v1/flows/{id}/health
   "counts": {
     "errors": 0,
     "warnings": 0,
-    "byTarget": { "action": 0, "edge": 0, "flow": 0 }
+    "byTarget": { "step": 0, "edge": 0, "flow": 0 }
   },
-  "diagnostics": [],
-  "danglingReads": []
+  "diagnostics": []
 }
 ```
 
-`counts.errors: 0` is the answer; `diagnostics` name the action and edge at fault. An error does not stop the flow from running — it says what the run will get wrong, so fix it before you bind the flow. A clean write in steps 2–3 is not this — health, a document plan and a flow PATCH's `validateOnly` run the whole graph; an action write does not.
+`counts.errors: 0` is the answer. Health also judges what the flow reaches — the types it reads, the flows it calls — so it can turn red when one of those changes, without an edit to this flow. `GET /v1/flows/{id}/outline` draws the steps as an indented outline.
+
+## 4. Try the step
+
+Free, EDITOR: render the prompt the model would receive. `{key}` is the step's key, `line`.
+
+```
+POST /v1/flows/{id}/steps/{key}/interpolate
+```
+
+```json
+{ "values": { "fruit": "plums" } }
+```
+
+```json
+{
+  "interpolatedPrompt": "Write one friendly line for the packing slip of a box of plums. Output only the line.",
+  "latencyMs": 2
+}
+```
+
+`POST /v1/flows/{id}/steps/{key}/preview` with the same body also calls the model (ADMIN, billed). Send `"step": { … }` to try a draft you have not saved, under the same key.
 
 ## 5. Preview it
 
-ADMIN, and it spends: the model call is real and billed, in credits — one credit is one micro-USD.
+ADMIN, and it spends: the model call is real and billed.
 
 ```
 POST /v1/flows/{id}/preview
@@ -174,32 +151,27 @@ POST /v1/flows/{id}/preview
 
 ```json
 {
-  "input": {
-    "kind": "slots",
-    "inputs": { "text": "<a paragraph to summarise>" }
-  },
+  "input": { "kind": "slots", "inputs": { "fruit": "plums" } },
   "apply": false
 }
 ```
 
 ```json
 {
-  "flowOutput": { "summary": "<two sentences>" },
+  "flowOutput": { "slip": "<one line>" },
   "missingRequiredOutput": null,
-  "transcript": [],
   "previewSessionId": "<runId>"
 }
 ```
 
-- `input.kind: "slots"` supplies values keyed by the flow's input slot names; an unknown key or a missing required slot is refused before the run. The other arm, `kind: "record"` with `recordId`, seeds from a stored record of a table this flow processes.
-- `apply` defaults to `true`. This flow writes nothing, so `false` changes nothing here — send it anyway; it is the habit that saves you on a flow that does write.
-- `flowOutput` is the declared outputs exactly as the run produced them, with nothing filled in. `missingRequiredOutput` non-null means the flow never produced that slot; a live call is then refused `422 FLOW_OUTPUT_MISSING` and writes nothing, and this preview discarded its writes too, reporting it as an `errors` entry with `actionId: "__runner__"` and `phase: "output-missing"`. That entry is the refusal, not its cause. Read the other `errors` first: an action that failed — a model provider out of quota, a refused config — leaves the output unfed just as a missing binding does, and `errors[].message` says which. Only when that entry is the only one is step 3 the cause.
-- **A provider out of quota** reads `… provider account exhausted (quota/billing)` in `errors[].message`. It is the provider's account, not your flow: bind the task (`summarization` here) to a model from another creator and preview again. `models.md` §5 has the three calls, why that beats pinning `modelId`, and what a routing policy's `failover` does and does not do.
-- The synchronous preview's response is its whole record. `transcript` carries each action's outcome and timing, not what it wrote; `previewSessionId` reads the change set (`GET /v1/runs/{runId}/change-set`) and nothing else, because an inline preview writes no timeline and no trace. To see every slot's value, queue the same body with `POST /v1/flows/{id}/preview-runs` (`202 { runId }`) and read `GET /v1/runs/{runId}/trace` (`checking.md` §3).
+- `input.inputs` is keyed by the flow's input names; an unknown name or a missing required one is refused before the run. `kind: "record"` with `recordId` seeds from a stored record of a table this flow processes.
+- `apply` defaults to `true`. This flow writes nothing, so `false` changes nothing here — send it anyway; it is the habit that saves you on a flow that writes.
+- **A provider out of quota** reads `… provider account exhausted (quota/billing)` in the errors. It is the provider's account, not your flow: `models.md` has what to do.
+- To see each step's value, queue the same body with `POST /v1/flows/{id}/preview-runs` (`202 { runId }`) and read `GET /v1/runs/{runId}/trace` (`checking.md`).
 
 ## 6. Put it on HTTP
 
-Check the path is free first: `GET /v1/coded-routes` (api host, with your key — any role) lists every path the platform itself occupies, and a coded route always wins. Keep your path's first word off every word those rows start with — the save refuses `/v1/docs/add` as `ENDPOINT_PATH_RESERVED_WORD`, and a path a coded route itself serves, such as a GET on `/v1/records/mine`, first as `409 CONFLICT` (`kipory-expose`).
+Check the path is free first: `GET /v1/coded-routes` lists every path the platform itself serves, and a coded route always wins (`kipory-expose`).
 
 ```
 POST /v1/api-endpoints
@@ -208,135 +180,97 @@ POST /v1/api-endpoints
 ```json
 {
   "project": "<nodeId>",
-  "key": "summarise",
+  "key": "write-slip",
   "contractConfig": {
     "method": "POST",
-    "path": "/v1/summarise",
+    "path": "/v1/club/slips",
     "params": {}
   },
   "targetConfig": {
     "kind": "flow.invoke",
     "flow": { "id": "<flowId>" },
-    "inputs": { "text": { "from": "body" } },
-    "execution": "sync"
+    "inputs": { "fruit": { "from": "body" } },
+    "execution": "sync",
+    "syncTimeoutMs": 120000
   }
 }
 ```
 
-`201` with the endpoint. Keep `invokeUrl` and read `access`:
+`201` with the endpoint. Keep `invokeUrl` and read `access`.
 
-```json
-{
-  "id": "<endpointId>",
-  "invokeUrl": "https://<project-host>/v1/summarise",
-  "access": {
-    "viewers": true,
-    "decidedBy": "flow",
-    "writes": [],
-    "requiresUser": false,
-    "requiresUserBy": []
-  }
-}
-```
-
-- `params` is required even when empty. It is a map keyed by parameter name — `{ "id": { "in": "path", "type": "string", "required": true } }` for a path `/v1/notes/{id}` — and an input takes one with `"from": "path.id"` (or `"query.<name>"`); `kipory-expose` has the rest. `successStatus` defaults to `200`; an `async` endpoint needs `202`.
-- `flow` is `{ id }` only. The server fills the flow's `key` and the signature snapshot; sending either is a 422.
-- `inputs.text.from: "body"` means the request-body field named `text` — the slot's name, no rename. Every required input slot must be bound. `execution` has no default.
-- `access` is derived, never set. A sync `flow.invoke` on a flow whose actions only read, like this one, comes back `viewers: true`, so a VIEWER key may call it.
-- Call the endpoint at `invokeUrl` as answered: read the field, never build the address from the URL you call. What a `null` there means is in `kipory-connect`'s `references/conventions.md`.
+- `params` is required even when empty. `inputs.fruit.from: "body"` is the request-body field named `fruit`; every required input must be bound. `execution` has no default.
+- A sync call past `syncTimeoutMs` (30 seconds by default) answers `504`; a model step waits its turn on the platform's worker, so give it room or make the endpoint `async`.
+- `access` is derived, never set. Call the endpoint at `invokeUrl` as answered.
 
 ## 7. Call it from the product
 
-On the **project host**, with a key (or a signed-in user's session) that reaches the project — never the api host.
+On the **project host**, with a key or a signed-in user's session that reaches the project:
 
 ```bash
 curl -sS -X POST "$INVOKE_URL" \
   -H "Authorization: Bearer $PRODUCT_KEY" \
   -H "content-type: application/json" \
-  -d '{"text": "<a paragraph to summarise>"}'
+  -d '{"fruit": "plums"}'
 ```
 
-`200 {"summary": "<two sentences>"}` — the bound outputs, keyed by output slot, nothing else. The body is validated against the flow's inputs with no extra fields allowed — an unknown field is a 422. The `x-request-id` response header is the run id: `GET /v1/runs/{runId}/timeline` on the api host reads its timeline, and the run lists in `GET /v1/runs?project={nodeId}` with `lifecycle: "settled"` and its `closing.verdict`. A run past 30 seconds (the default `syncTimeoutMs`) is a 504 — and a `text.generate` action waits its turn on the platform's worker, so the wait counts too. For an endpoint over a model action, set `"syncTimeoutMs": 120000` in `targetConfig` or make it `async`. The rest of the caller's side is `kipory-expose`'s `references/consumer.md`.
+`200 {"slip": "<one line>"}` — the flow's outputs, nothing else. The body is checked against the flow's inputs; an unknown field is a `422`. The `x-request-id` response header is the run id: `GET /v1/runs/{runId}/timeline` reads it. The rest of the caller's side is `kipory-expose`.
 
 ## 8. The same project as one document
 
-State steps 1, 2, 3 and 6 as one document. Inside a document everything is addressed by **key**: a schema reference is `{ "kind": "ref", "ref": "string" }` instead of a type id, an action is keyed by its key, and the endpoint's `flow` is the flow's key.
+State sections 1, 2 and 6 as one document. Inside a document everything is addressed by **key**: the flow is keyed under `flows`, and the endpoint's `flow` is the flow's key.
 
-```json kipory:request=project-document
-{
-  "kipory": 10,
-  "flows": {
-    "summarise": {
-      "label": "Summarise",
-      "inputTypeNames": [{ "slot": "text", "typeName": "string" }],
-      "outputTypeNames": [
-        { "slot": "summary", "typeName": "string", "required": true }
-      ],
-      "outputBinding": { "summary": { "fromSlot": "summary" } },
-      "actions": {
-        "write-summary": {
-          "description": null,
-          "functionKey": "text.generate",
-          "functionConfig": {},
-          "condition": null,
-          "inputStreams": ["text"],
-          "inputSchemas": [{ "kind": "ref", "ref": "string" }],
-          "outputSlot": "summary",
-          "outputSchema": { "kind": "ref", "ref": "string" },
-          "promptTemplate": "Summarise the following text in two sentences.\n\n{{text}}",
-          "taskKey": "summarization",
-          "enabled": true
-        }
-      }
-    }
-  },
-  "surfaces": {
-    "endpoints": {
-      "summarise": {
-        "contractConfig": {
-          "method": "POST",
-          "path": "/v1/summarise",
-          "params": {},
-          "successStatus": 200
-        },
-        "targetConfig": {
-          "kind": "flow.invoke",
-          "flow": "summarise",
-          "inputs": { "text": { "from": "body" } },
-          "execution": "sync"
-        }
-      }
-    }
-  }
-}
+```yaml
+kipory: 11
+flows:
+  write-slip:
+    label: Write a packing slip
+    inputs:
+      fruit: { typeName: string }
+    outputs:
+      slip: { typeName: string }
+    steps:
+      - key: line
+        function: text.generate
+        with:
+          prompt: "Write one friendly line for the packing slip of a box of {{fruit}}. Output only the line."
+      - key: done
+        return:
+          slip: line
+surfaces:
+  endpoints:
+    write-slip:
+      contractConfig:
+        { method: POST, path: /v1/club/slips, params: {}, successStatus: 200 }
+      targetConfig:
+        kind: flow.invoke
+        flow: write-slip
+        inputs: { fruit: { from: body } }
+        execution: sync
+        syncTimeoutMs: 120000
 ```
 
-A document action is filled as a single create is. `functionKey` and `functionConfig` are required (`null` or `{}` where a function takes no settings). `description`, `condition`, `enabled` and `outputSchema` may be left out: a new action starts on `null`, `null`, `true` and the type its function emits. A held action goes back to `null`, `null` and `true` for the first three and keeps its `outputSchema`. Leaving `outputSchema` out is not the same as stating `null`. A stated `null` is saved as "no type": once another action reads that slot the plan and health warn `PRODUCER_OUTPUT_UNTYPED`, and on a `flow.merge` action — whose type the save always derives from what it merges — a stated `null` re-plans as an `update` every time. The rest: `inputSchemas` typed from what feeds each input, `inputStreams` from the settings or prompt of a function that names its inputs (left out of a held action whose function names none, they are cleared), `promptTemplate` left out goes back to `""`, `taskKey` left out keeps a held action's value (a new action starts on `extraction`), and `outputSlot` needed by every function except `event.emit` and `term.upsert`, which write nothing and refuse one, and the control functions whose outputs live in config. The flow's `actions` map is stated whole — an action you leave out of it is removed.
-
-An **exported** document states every action's `outputSchema` and `inputSchemas`, and a stated `inputSchemas` is kept and checked, not re-typed. So giving a type to an action that had none also means removing `inputSchemas` from each action that reads its slot (or restating it): a reader that still states `object` for that input is refused `NOMINAL_MISMATCH`.
-
-**Plan it.** The body is the document itself, not an envelope. It writes nothing.
+**Plan it** — the body is the document itself, sent as `content-type: application/yaml` or as JSON; it writes nothing:
 
 ```
-POST /v1/projects/{nodeId}/document/plan
+POST /v1/projects/{nodeId}/document/plan?basedOn=<version>
 ```
 
-Plan it with the read you exported at: `?basedOn=<version>`, the export's top-level `version` (the export answers `{ version, document }`, and also wrote it inside `document` as `basedOn: <nodeId>@<version>`). Read `ok`, then `changes` (only what changes, each `update` field by field), `moved` (what someone else changed since your read), `diagnostics` (each on a path in your document, such as `flows.summarise.actions.write-summary.inputSchemas` — gate on `severity`), `health`, `consequences`, and any `delete` rows. Keep `planId`.
+Read `ok`, then `changes` (the flow, its two steps by key, the endpoint), `diagnostics` (each on a path in your document, such as `flows.write-slip.steps[line].with.prompt`, a step finding with its `at` and `fixes`), `health`, `consequences` and any `delete` rows. Keep `planId`.
 
-**Apply it.**
+**Apply it:**
 
 ```
-POST /v1/projects/{nodeId}/document   { planId, note }
+POST /v1/projects/{nodeId}/document
 ```
 
 ```json
 {
   "planId": "<planId from the plan>",
-  "note": "Add the summarise flow and its endpoint"
+  "note": "Add the packing-slip flow and its endpoint"
 }
 ```
 
-`200` with `applied: true`, `appliedVersion` and `basedOn` — the read to plan your next change from. The answer carries no document: read the project again (`GET …/document?section=flows,surfaces`) for the ids — `flows.summarise.id` is the flow id for health and preview (step 5 — preview — is still yours; step 4's health checks the plan already ran for every flow it touched, so `/health` after an apply confirms what the plan said); `surfaces.endpoints.summarise.id` is the endpoint to read `invokeUrl` from with `GET /v1/api-endpoints/{id}`. A refused apply answers the standard error, `422 VALIDATION_FAILED`, with the plan under `details.plan` (JSON whatever `Accept` asks); `409 VERSION_CONFLICT` lists under `details.moved` what someone else changed after your read — read again, plan again. The rest of the format is `packs/project-document.md`.
+`200` with `applied: true`, `appliedVersion` and `basedOn` — the read to plan your next change from. Read the project again (`GET /v1/projects/{nodeId}/document?section=flows,surfaces`) for the ids: `flows.write-slip.id` for preview, `surfaces.endpoints.write-slip.id` to read `invokeUrl` with `GET /v1/api-endpoints/{id}`. `document.md` has the rest.
 
 ## What this page does not fix
 

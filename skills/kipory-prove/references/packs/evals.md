@@ -40,14 +40,14 @@ deterministically.
 POST /v1/eval-suites            create — a `key`, a `label`, and the flow (`flowId`)
 POST /v1/eval-cases             add cases: the `suiteId`, a REQUIRED `key`, then a `label`, inputs,
                                 expected (if any), labels, assertions (the seven kinds below: a
-                                `action-outcome` names its action by `actionKey`)
+                                `step-outcome` names its step by `stepKey`)
 POST /v1/eval-suites/{id}/run   queue a run — 202 with its `runId`, the run has NOT happened yet
                                 … with `wait: true` — 200 with the settled run (no scorers only)
                                 … with `validateOnly: true` — 200 with a verdict, nothing queued
 GET  /v1/eval-suites/{id}/runs  the suite's runs, newest first (each run names its `suiteId`)
 GET  /v1/eval-suites?project=&flowId=   the suites whose subject is one flow
 GET  /v1/eval-runs/{id}         read one run back, WITH its delta against the previous
-GET  /v1/eval-runs/{id}/spend   what that run cost, by action — subject and scorer actions alike
+GET  /v1/eval-runs/{id}/spend   what that run cost, by step — subject and scorer steps alike
 GET  /v1/eval-suites/{id}/trend across runs — one suite, its whole recent history
 GET  /v1/eval-suites/trend      across runs AND suites — every series in one answer
 ```
@@ -81,10 +81,10 @@ Seven kinds, a closed set — unknown fields are refused, and a case carries up 
 | Kind                         | Asserts                                                                                                                                                                                |
 | ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `no-missing-required-output` | the flow produced everything its signature promises                                                                                                                                    |
-| `output-present`             | a named slot exists and is non-empty                                                                                                                                                   |
-| `output-matches-schema`      | a slot's value validates against its declared type                                                                                                                                     |
-| `action-outcome`             | the action `actionKey` reached applied, skipped, no-op or failed                                                                                                                       |
-| `no-errors`                  | the run produced no action errors                                                                                                                                                      |
+| `output-present`             | the output named by `slot` exists and is non-empty                                                                                                                                     |
+| `output-matches-schema`      | that output's value validates against its declared type                                                                                                                                |
+| `step-outcome`               | the step `stepKey` ended applied, answered-nothing, not-run or failed                                                                                                                  |
+| `no-errors`                  | the run produced no step errors                                                                                                                                                        |
 | `expect-error`               | the run was refused — optionally with `status`, `code`, `messageContains` — read off its first failure, the one a live call answers with; a 5xx or 429 there leaves the case `errored` |
 | `jsonata`                    | a boolean expression over the whole run result                                                                                                                                         |
 
@@ -111,16 +111,16 @@ output.sentiment in ["positive", "neutral", "negative"]
 output.category = expected.category
 ```
 
-Those expressions run in the same sandbox as flow wiring, which blocks the clock and the random
+Those expressions run in the same sandbox as a step's `{expr}`, which blocks the clock and the random
 generator — so an assertion cannot itself be the thing that flakes. An expression reaching for one
 is **refused when you save the case**, not discovered later when the suite goes red. Comparing a
 field with ground truth (`expected`) is fine when the field is a closed value — a category, a count,
 an id — rather than generated prose.
 
-The expression sees one object: `output` (the flow's bound outputs, keyed by output slot), `inputs`
+The expression sees one object: `output` (the flow's outputs, keyed by output name), `inputs`
 (the case's input bag), `expected` (the case's expected value, `null` when it has none),
-`missingRequiredOutput` (the unbound required output, or null), `transcript` (the actions as they ran),
-`errors` (failed actions), `warnings` (action warnings), `totalTokensIn` and `totalTokensOut` (model
+`missingRequiredOutput` (the required output no `return` gave, or null), `transcript` (the steps as they ran),
+`errors` (failed steps), `warnings` (step warnings), `totalTokensIn` and `totalTokensOut` (model
 tokens) and `latencyMs` (wall time). ⚠️ The root is `output` — not `flowOutput`, which is what the
 preview response calls the same value. `flowOutput.urgent = true` reads nothing and fails. A
 non-boolean result is its own kind of failure, not a truthy pass.
@@ -189,6 +189,8 @@ happens ONCE, on the first repeat's trace, so repeats do not multiply scorer spe
 ten-minute budget. ⚠️ Two settings move the bill and neither is obvious: `subjectUncached` defaults
 to **true**, so every repeat is a real call with the ingest cache out of the path, and `bracketed`
 **doubles** the suite's spend by running the baseline's configuration alongside the live one.
+`perStepLatency: true` also records a latency score for each step that ran, not only for the run;
+its rows grow as steps × cases × repeats.
 
 A queued run has 600 seconds and can carry scorers, repeats and bracketing; a `wait` run (below)
 has 180 seconds and none of them. Queue anything a caller cannot sit through.
@@ -256,7 +258,7 @@ will and will not have measured when it finishes. Gate on `severity`, never on `
 | `EVAL_RUN_SCORER_UNRESOLVABLE`    | a named scorer flow is gone; its cases come back ungraded        | yes                   |
 | `EVAL_SUITE_DISABLED`             | the sweep skips this suite; only a run asked for by hand happens | yes                   |
 | `EVAL_REGRESSION_EVENT_UNDEFINED` | a detected regression is recorded and emitted to nobody          | yes                   |
-| `EVAL_SCORER_SLOT_UNFILLABLE`     | a scorer reads a slot no subject action writes; its cases error  | yes                   |
+| `EVAL_SCORER_SLOT_UNFILLABLE`     | a scorer reads a value no subject step gives; its cases error    | yes                   |
 | `EVAL_CASE_CANNOT_FAIL`           | a scorer-less suite has cases with no assertions                 | yes                   |
 
 ⚠️ **The same findings ride the 202.** A caller who queued a run without asking first gets
@@ -326,8 +328,8 @@ fired the event. Read it as a record of the past.
 
 ⚠️ **A run carries what it cost — `credits` — summed from its own `cost.credits` scores**, the same
 sum a suite's `lastRun.credits` reports. `null` is unknown, never free. Do not rebuild it from an
-aggregate's mean and sample size. `GET /v1/eval-runs/{id}/spend` breaks the cost down by action,
-subject and scorer actions alike, with `uncharged` counting the operations the platform paid for. It
+aggregate's mean and sample size. `GET /v1/eval-runs/{id}/spend` breaks the cost down by step,
+subject and scorer steps alike, with `uncharged` counting the operations the platform paid for. It
 can read higher than `credits`: a case the run's deadline cut is charged there and not scored here.
 
 ⚠️ **What a run's cases STARTED is not in its `credits`.** A suite that applies its writes runs
@@ -343,18 +345,18 @@ or a run from before per-case outcomes were stored. A `0` is a measured zero.
 
 **A case's `output` is what its run answered** — the flow's declared outputs, what an endpoint would
 have returned — on `GET /v1/eval-runs/{id}` beside its scores, kept to 8 KB (a share of 256 KB for the run's cases when that is less, never
-under 1 KB): a slot over that is
+under 1 KB): an output over that is
 replaced, largest first, by `{"_kind": "dropped-oversized", "_bytes", "_head"}` (its size and,
 when there is room, its first characters); the whole value is in the case's trace. `null` when the case ran nothing (`invalid`,
 `not-run`, a runner crash) and on runs from before outputs were kept.
 
 **A case's `runId` opens its run.** Each live invocation of the subject is a flow run of its own,
 listed by `GET /v1/runs` with `source.kind: eval` (its `targetId` is the eval run). `runId` names the
-first one, whose trace `traceId` names: `GET /v1/runs/{runId}/timeline` has each action's outcome and
+first one, whose trace `traceId` names: `GET /v1/runs/{runId}/timeline` has each step's outcome and
 warnings, a passing case's too, and `…/change-set` what it staged. Its cost is on the eval run's
 spend, not its own. `null` when no run answered and on results from before runs were kept. A
 repeat is a run of its own and is not named on the case; a control arm, which runs the baseline's
-frozen graph, makes no run.
+frozen steps, makes no run.
 
 ### A run says whether its contract held
 
@@ -431,7 +433,7 @@ flows. The run read carries the same mark on each case result, `results[].platfo
 or updates records **mutates the very corpus it is measuring** — which also moves the case
 fingerprint and makes the next delta incomparable.
 
-⭐ **`applyWrites: false` makes every case a dry run.** Every action runs — every model call, the
+⭐ **`applyWrites: false` makes every case a dry run.** Every step runs — every model call, the
 same credits — and the records and terms the flow would have written are discarded when the case
 ends, on both arms of a bracketed run. An `record.enqueue-process` handoff is discarded with the
 writes, so the record's processing flow does not run. Scorer flows are not covered: a scorer that
@@ -446,16 +448,16 @@ the database rejects — fails an applying case with a run-level error and passe
 applying case, or preview the flow once with `apply` left on, when the write itself is what you are
 checking.
 
-In either mode a run reads its own writes one way only: an action that reads a record by id sees what
-an earlier action of the same case wrote, and a list, query, count or search does not.
+In either mode a run reads its own writes one way only: a step that reads a record by id sees what
+an earlier step of the same case wrote, and a list, query, count or search does not.
 
 Whatever `applyWrites` says: files land in a sandbox prefix, a send is checked and not sent — a
-`url.send` action answers `true` and an `email.send` action answers the string `preview-not-sent`, not a
+`url.send` step answers `true` and an `email.send` step answers the string `preview-not-sent`, not a
 message id, each with a `PREVIEWED_NOT_SENT` warning, and a check a live
 run would fail still fails the case — and an
 emitted `record`, `user` or `project` event is checked and then dropped: it is never recorded or
 published, so no trigger starts. In an applying suite, records and terms are not isolated, and
-neither is a processing handoff: an `record.enqueue-process` action runs the record's processing flow
+neither is a processing handoff: a `record.enqueue-process` step runs the record's processing flow
 live once the case applies, and that flow's events publish and its mail is sent. An eval run's model calls are
 `origin: test` in the AI-call list; the run's own `credits` is the per-suite figure. Re-running an applying suite over a mutating flow is not a safe idempotent act:
 set `applyWrites: false`, measure a flow that does not write, or accept that each run changes the
@@ -469,10 +471,10 @@ baseline.
 - **Scorer flows** are ordinary flows that take the inputs, the expected value and the output, and
   return a name with a value or verdict and an optional comment.
 
-The contract is by slot NAME, on both sides. An input slot named `output` receives the subject's
-bound output, one named `inputs` the case's input bag, and one named `expected` the case's `expected` value; any other
-input slot receives what the subject's action wrote to the output slot of that name in the case's
-trace. The scorer's own outputs are read as `value` (a finite number → a numeric score), else
+The contract is by input NAME. A scorer input named `output` receives the subject's
+outputs, one named `inputs` the case's input bag, and one named `expected` the case's `expected` value; any other
+input receives the subject's step value of that name in the case's trace — a step's value under its key, or a
+block's `out` name. The scorer's own outputs are read as `value` (a finite number → a numeric score), else
 `verdict` or `stringValue` (a non-empty string → a categorical one), `name` (the score's name —
 the scorer flow's key when absent) and `comment`. A scorer that returns neither a value nor a
 verdict records no score.
@@ -482,8 +484,8 @@ cases against three model judges is a hundred and fifty billed calls _per run_, 
 repeatedly. Model grading is for qualities that genuinely vary — faithfulness, relevance, tone —
 where an exact rule would reject legitimate output.
 
-A scorer declares which trace slots it reads and is never handed the trace whole. ⚠️ **A scorer
-that throws — a slot the flow no longer produces, a refused call — does not score zero and does not
+A scorer declares which trace values it reads and is never handed the trace whole. ⚠️ **A scorer
+that throws — a value the flow no longer gives, a refused call — does not score zero and does not
 stop the run: that case comes back `errored`, with `scorerErrors` naming the scorer's key and the
 reason, and no score from it.** The run's other cases are still scored. A payer over its cap, a
 timeout for the whole run and a shutdown still stop it. Saving does not refuse such a scorer; the
@@ -506,14 +508,14 @@ A project's **test user** (`POST /v1/test-users`) is accepted as `runAsUserId` b
 owns a record, so a suite can run as a person it is about to give data to.
 
 The suite carries half the answer. This read carries the other half: it walks the subject flow's
-transitive `flow.invoke` closure and reports every table the enabled actions name, together
+transitive `flow.invoke` closure and reports every table the enabled steps name, together
 with its `ownerScope`.
 
 - `ownerScope: "user"` — rows belong to one end user. Paired with a suite that names no user,
   this is the failure above, and you can fix it before spending anything.
 - `ownerScope: "project"` — a shared pool every user of the project reads. A sentinel run reads
   it normally.
-- `ownerScope: null` — **this project declares no table by that name.** The action names something
+- `ownerScope: null` — **this project declares no table by that name.** The step names something
   that does not exist, which fails the run rather than emptying it. It is deliberately not folded
   into the `project` arm: that is the safe-looking one, and this is not a safe state.
 
@@ -526,7 +528,7 @@ data. Any of them present in the closure is reported in `unattributedFunctionKey
 measured size of the blind spot rather than a silence. The list is always empty for a project that
 declares no user-owned table: there is then no person's row for such a function to miss.
 
-⛔ **`scope: null` means the graph could not be walked** — the suite's flow is not in the project's
+⛔ **`scope: null` means the flows could not be walked** — the suite's flow is not in the project's
 flow library. It never means "walked and found
 nothing"; that answer is a present `scope` with an empty `tableReads`. Exactly one of `scope`
 and `unavailableReason` is ever set.
@@ -597,7 +599,7 @@ that also work against production traffic.
 For a client that draws suites, runs and trends. None of it changes what a run measures.
 
 ⭐ **To mark the series a verdict named, read `worsened` on the pooled aggregates** — do not match
-`worsenedMetrics` against names yourself. Those are display names (`latency.action (rerankSet)`),
+`worsenedMetrics` against names yourself. Those are display names (`latency.step (rerankSet)`),
 and two series can spell the same one. The platform joins its own recorded verdict back to each
 series: `true` names this series, `false` does not, and `null` means no verdict was computed, the
 series is in a per-label group (a verdict judges the pooled comparison only), or the verdict's name
@@ -608,7 +610,7 @@ trend point — has a `source`, so telling a suite's own answers from the platfo
 never needs a list of system metric names, which would go stale the day the platform adds one.
 ⚠️ It is `null` when one series pools scores from more than one producer: a scorer is free to name
 its score `cost.credits`, and that series then holds both.
-Both trend reads also answer `numericSeries` — one `{ name, actionKey, source }` per numeric series
+Both trend reads also answer `numericSeries` — one `{ name, stepKey, source }` per numeric series
 across the whole window, its `source` merged over every run by the same rule. Order or filter a
 chart's series by it rather than folding the points' sources yourself.
 
@@ -657,5 +659,5 @@ begins mid-history is not a baseline.
 ## Related
 
 - Flow checkpoints (capability pack `flow-checkpoints` — `GET /v1/capability-packs/flow-checkpoints`) — what to do when a run tells you the edit was bad.
-- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the subject being measured, and the preview engine that
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the subject being measured, and the preview engine that
   runs it.

@@ -2,7 +2,7 @@
 
 # `state.write` — Save a value for later
 
-Save a value for later actions in this run, or add to one.
+Save a value for later steps in this run, or add to one.
 
 The value is shared across the whole run, sub-flows included. Only `set` depends on order.
 
@@ -12,6 +12,7 @@ The value is shared across the whole run, sub-flows included. Only `set` depends
 - **Also found as:** remember for later, keep value, store state, persist value, next run
 - **Reads:** Reads one input value and accumulates it into the configured run-state cell. `set` overwrites, `add` sums, `append` builds a list, `union` builds a deduplicated set. _(shape hint: `any`)_
 - **Emits:** A marker saying the write happened. Wire it into a later read to put that read after this write.
+- **Inputs (`with`):** `value`
 
 ## Config
 
@@ -22,7 +23,7 @@ The value is shared across the whole run, sub-flows included. Only `set` depends
 
 ## Worked example
 
-Accumulates a value into a run-state cell that a later action can read.
+Accumulates a value into a run-state cell that a later step can read.
 
 #### Keep unique values
 
@@ -30,7 +31,7 @@ The value joins the cell without repeating what is already there, because the mo
 
 Reads `any` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -57,7 +58,7 @@ The mode is set, so the cell now holds this value alone and whatever was there i
 
 Reads `any` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

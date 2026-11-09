@@ -11,12 +11,12 @@ Reads only the page head, not the body. An unreachable site is reported in the r
 - **I/O:** `string` → `UrlMeta`
 - **Also found as:** page title, link preview, open graph, favicon
 - **Reads:** One URL — the page to read. Anything that is not `http` or `https`, or that resolves to a private address, is refused before the request goes out. _(shape hint: `string`)_
-- **Emits:** A `UrlMeta`; an unreachable site does not fail the action and carries `failure` instead of a status. Only `&amp;` `&lt;` `&gt;` `&quot;` `&#39;` `&apos;` are decoded.
-- **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `currentUrl`
+- **Emits:** A `UrlMeta`; an unreachable site does not fail the step and carries `failure` instead of a status. Only `&amp;` `&lt;` `&gt;` `&quot;` `&#39;` `&apos;` are decoded.
+- **Softens these failures:** `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `url`
 - **External dependency:** the open web — Reads the page's head over plain HTTP. No JS render and no vendor — the site itself is the dependency.
 - **Rate limit:** 120 per min in bucket `url.metadata`, counted per project
-- **Queue:** 2 attempts, exponential from 1 s; waits up to 30 s; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 2 attempts, exponential from 1 s; waits up to 30 s; cache 1 day — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -24,12 +24,12 @@ Reads only the page head, not the body. An unreachable site is reported in the r
 | --- | --- | --- | --- | --- |
 | `maxBytes` | integer, more than 0, at most 100000000 | no | `65536` | Most bytes of the page head to read. |
 | `maxRedirects` | integer, 0 to 10 | no | `5` | Maximum HTTP redirect hops to follow before giving up. ⚠️ A site that redirects more times than this is reported with the code `redirect-limit`. |
-| `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. ⚠️ Limits the one request; keep it below the action's own `timeoutMs` or a silent site fails it. |
+| `timeoutMs` | integer, more than 0 | no | `10000` | Request timeout in milliseconds. ⚠️ Limits the one request; keep it below the step's own `timeoutMs` or a silent site fails it. |
 | `userAgent` | `kipory` \| `browser` | no | — | `kipory`, the default, or `browser` for a site refusing Kipory's reader. |
 
 ## Worked example
 
-Reads only the head of a page, so an action can decide whether the URL is worth scraping in full.
+Reads only the head of a page, so a step can decide whether the URL is worth scraping in full.
 
 #### An article
 

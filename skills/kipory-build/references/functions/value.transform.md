@@ -11,7 +11,7 @@ No fetch, no model call; besides JSONata's functions it may call the platform's 
 - **I/O:** `any+` → `object`
 - **Also found as:** pick a field, map fields, compute, format value, calculate, convert
 - **Reads:** Every slot named at the top of the expression; the inputs list exactly those. Inside `[…]` or after a `.` a name is an item's field; `$$.name` reads a slot. _(shape hint: `any+`)_
-- **Emits:** An object, a list or text; a flow output carrying a list is `isList: true`. When it gives nothing, nothing is stored and later actions see it missing.
+- **Emits:** An object, a list or text; a flow output carrying a list is `isList: true`. When it gives nothing, nothing is stored and later steps see it missing.
 
 ## Config
 
@@ -46,7 +46,7 @@ A JSONata expression runs against the slots. The variants zip two lists, build a
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -101,7 +101,7 @@ Output:
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -133,7 +133,7 @@ Output:
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -164,11 +164,11 @@ Output:
 
 Reads `mixed` → emits `object` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
-  "expression": "{\"brief\": $default(post.brief, post.text), \"tags\": $default(post.tags, [\"untagged\"])}"
+  "expression": "{\"brief\": $default(post.brief, post.text), \"tags\": $ifEmpty(post.tags, [\"untagged\"])}"
 }
 ```
 

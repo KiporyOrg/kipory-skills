@@ -1,27 +1,20 @@
 # Reading with record.query
 
-<!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: shelfLimit — an example of an action-named paging input, a project-authored name -->
-<!-- field-ok: isDesign — one project's example field name, not a platform field -->
-<!-- field-ok: isTech — one project's example field name, not a platform field -->
+<!-- field-ok: runInfo — a provider value the platform fills, not a request field -->
 <!-- field-ok: authorId — one project's example field name, not a platform field -->
-<!-- field-ok: genre — one project's example field name, not a platform field -->
-<!-- field-ok: publishedOn — one project's example field name, not a platform field -->
 <!-- field-ok: myShelf — one project's example view key, not a platform field -->
-<!-- field-ok: followedAuthors — one project's example view key, not a platform field -->
 
 §9 of the flow and record shapes (`patterns.md` has the map of every section). A list an endpoint answers is a view (`views.md`); this is for what a view does not do.
 
 ## 9. Read what one user follows
 
-"Show me what is new from the things I follow" is, first, a view: `myShelf` in `views.md` (§11) reads the follows as a set inside the same statement, as the caller, with no 1,000-value cap and no extra action. The inline form below is for when the view cannot say it — here, a parent that matches through a link to a followed child, which a set (`field` clauses only) does not reach. It is three actions and no loop. The follows are a per-user table; the feed is one `record.query` whose values come from the run.
+"Show me what is new from the things I follow" is, first, a view: `myShelf` in [views.md](views.md) (§11) reads the follows as a set inside the same statement, as the caller, with no 1,000-value cap and no extra step. The inline form below is for when the view cannot say it — here, a parent that matches through a link to a followed child, which a set (`field` clauses only) does not reach. It is three steps in a line. The follows are a per-user table; the feed is one `record.query` whose values come from earlier steps.
 
 ```
-record.list (my follows → follows)  →  value.transform (follows.records → followed)  →  record.query (→ page)
+follows: record.list (my follows)  →  followed: value.transform (follows.records)  →  page: record.query
 ```
 
-The transform writes the slot `followed`, an object with one field: `{ "ids": [ … ] }`. `cursor` is an optional flow input carrying the `nextCursor` a previous page answered; absent, the query returns the first page.
+The transform's value `followed` is an object with one field: `{ "ids": [ … ] }`. `cursor` is an optional flow input carrying the `nextCursor` a previous page answered, read `optional`. Its first run has no `cursor` input, the root absent, so it reads page one. A read's `cursor` bound in `with` to a path whose root ran or was given (another read's page) with nothing at the path (that page's `nextCursor` after its last page) means the list ended, and it answers an empty page; the root absent (the first run, an optional input left out), or no `cursor` bound, reads page one. `""` is a value, so page one too.
 
 The follows read takes every page, so a person following more than one page of things is not cut to the first 50:
 
@@ -33,7 +26,7 @@ The follows read takes every page, so a person following more than one page of t
 }
 ```
 
-`max: 10` is 1,000 follows; a person with more fails the action `RECORD_READ_HAS_MORE` rather than silently missing the rest — which also fits the 1,000-value bound on `in` below. Without `pages` the save warns `RECORD_LIST_CURSOR_UNREAD`, because no action reads the follows page's `nextCursor`. The feed query itself stays one page: its cursor goes back to the caller.
+`max: 10` is 1,000 follows; a person with more fails the step `RECORD_READ_HAS_MORE` rather than silently missing the rest — which also fits the 1,000-value bound on `in` below. Without `pages` the save warns `RECORD_LIST_CURSOR_UNREAD`, because no step reads the follows page's `nextCursor`. The feed query itself stays one page: its cursor goes back to the caller.
 
 The relation is declared once, on the child: an `item` points at its `collection`, and the relation `in-collection` is paired from `item` to `collection`. The `uses` of `item`:
 
@@ -87,14 +80,14 @@ The query is asked of the parent, with the link coming IN:
   ],
   "order": { "by": "field", "field": "lastItemAt", "direction": "desc" },
   "limit": 20,
-  "cursor": "cursor"
+  "cursor": { "path": "cursor", "optional": true }
 }
 ```
 
 - **Query the thing the user sees, not the thing they follow.** The clause above asks for collections linked to an item by a followed author, so each collection comes back once however many of its items match. Paging the items and collapsing them afterwards repeats a collection across pages.
 - **`incoming` is asked of the table the relation points at.** The `link` use stays on the child's field (`item.collectionId`); the parent needs none, and `peer` clauses are checked against the child's `uses` (`authorId` carries `filter`). Without `direction: "incoming"` the same clause on `collection` is refused `QUERY_CLAUSE_UNROUTED`: the default, `outgoing`, needs the `link` use on the queried table. The refusal says to ask `incoming`.
-- **Following nobody is an answer.** A slot holding `[]` runs the action and returns no records. A slot that is absent skips the action, so produce the list in an action that always runs.
-- **`in` takes at most 1,000 values.** Past that the action fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
+- **Following nobody is an answer.** `followed.ids` holding `[]` runs the query and returns no records. A value that may be nothing is a save finding on the query: have the transform always answer a list (`{"ids": [follows.records.authorId]}`).
+- **`in` takes at most 1,000 values.** Past that the step fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
 - **Each collection with its newest items is `linked`, not a second query.** Add `"linked": { "latest": { "relation": "in-collection", "direction": "incoming", "limit": 3, "onMore": "stop" } }` to the query: each collection then carries `linked.latest`, its three newest items (`limit` is per collection), and `linkedMore.latest` when it has more. For each linked read, the records it hangs off times its `limit`, summed over every linked read, must stay within 20,000 — checked at save.
 - **Order by a field the record carries:** `created` or a `filter` field (date, number, true/false, text with `maxLength` ≤ 500). `pages` needs a date or `created` order. A linked record's value: next pattern.
 - **Filter or look up only by a field with a `filter` use**, your own markers too.
@@ -102,7 +95,7 @@ The query is asked of the parent, with the link coming IN:
 
 ### The clause grammar
 
-`record.query` is the one function that joins: a record matches when it matches **every** clause in `clauses` (at most 16). Each clause is one of five kinds. Each value is an argument: a slot path (`"followed.ids"`), a fixed value (`{ "literal": "published" }`; a bare number or `true`/`false` too) or an expression (`{ "expr": "…" }`):
+`record.query` is the one function that joins: a record matches when it matches **every** clause in `clauses` (at most 16). Each clause is one of five kinds. Each value is an argument: a path (`"followed.ids"`), a fixed value (`{ "literal": "published" }`; a bare number or `true`/`false` too) or an expression (`{ "expr": "…" }`):
 
 | `kind`     | Members                                                                                                                                                                                                         | Matches                                                                                                                                                                                                                                            |
 | ---------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -118,34 +111,24 @@ A `where[]` entry is `{ property, op, value }` over a filter the relation or the
 
 ### Totals: `record.aggregate`
 
-A figure over many records — how many, a sum, an average, per day or per source — is one `record.aggregate` action, never a page reduced in `value.transform`: a page holds at most 100 records, so a total read from one is right while the table is small and quietly wrong after. `record.aggregate` takes `record.query`'s `clauses` (none totals the whole table), up to two `groupBy` keys and named `measures`, and answers one row per group:
+A figure over many records — how many, a sum, an average, per day or per source — is one `record.aggregate` step, never a page reduced in `value.transform`: a page holds at most 100 records, so a total read from one is right while the table is small and quietly wrong after. `record.aggregate` takes `record.query`'s `clauses` (none totals the whole table), up to two `groupBy` keys and named `measures`, and answers one row per group:
 
-```json
-{
-  "functionKey": "record.aggregate",
-  "functionConfig": {
-    "tableKey": "loan",
-    "clauses": [
-      {
-        "kind": "field",
-        "field": "decision",
-        "op": "eq",
-        "value": { "literal": "approved" }
-      }
-    ],
-    "groupBy": [
-      { "field": "region" },
-      { "field": "approvedAt", "bucket": "month" }
-    ],
-    "measures": {
-      "loans": { "count": true },
-      "principal": { "sum": "amount" }
-    },
-    "order": { "by": "principal", "direction": "desc" },
-    "limit": 10,
-    "timeZone": "Europe/Berlin"
-  }
-}
+```yaml
+- key: totals
+  function: record.aggregate
+  with:
+    tableKey: loan
+    clauses:
+      - { kind: field, field: decision, op: eq, value: { literal: approved } }
+    groupBy:
+      - { field: region }
+      - { field: approvedAt, bucket: month }
+    measures:
+      loans: { count: true }
+      principal: { sum: amount }
+    order: { by: principal, direction: desc }
+    limit: 10
+    timeZone: Europe/Berlin
 ```
 
 → `{ "groups": [{ "region": "north", "approvedAt": "2026-08-31T22:00:00.000Z", "loans": 212, "principal": 2650000 }, …], "complete": false }`
@@ -158,6 +141,6 @@ A figure over many records — how many, a sum, an average, per day or per sourc
 - **Sums and averages are exact decimals**: 0.1 + 0.2 totals 0.3.
 - **A date-only field** (`format: date`) is cut by its calendar date, whatever `timeZone` says; a timestamp and `created` are cut in `timeZone`.
 - **A term, link or stream clause** is read a moment before the rows it counts; a field clause is read with them.
-- **At most two totals run at once per project, in each server process.** A third flow action waits up to 10 s for a turn, then fails as the platform busy and the run is tried again; a third `POST /v1/records/aggregate` answers 429 `RATE_LIMITED` — retry after `retryAfterSeconds`.
+- **At most two totals run at once per project, in each server process.** A third flow step waits up to 10 s for a turn, then fails as the platform busy and the run is tried again; a third `POST /v1/records/aggregate` answers 429 `RATE_LIMITED` — retry after `retryAfterSeconds`.
 - **On a large table** (about 250,000 records and up) a whole-table total can pass its 4 s budget (`QUERY_AGGREGATE_TOO_BROAD`): narrow it with a clause or a date window (`gte` on a date field).
-- On a table each user owns, the action totals one user's records: the signed-in user's, or the one `userId` names — in a run that acts for a signed-in user, only that user (`PERSON_NOT_THE_RUNS`). ⚠️ On a public endpoint, a `userId` read from the request lets anyone total anyone's records; the save warns `PUBLIC_ENDPOINT_NAMES_PERSON`. `POST /v1/records/aggregate` asks the same from outside a flow, reading every user's records as `POST /v1/records/query` does: its body takes each clause value as itself (no `{literal}` or `{expr}`), and `clauses: []` totals all.
+- On a table each user owns, the step totals one user's records: the signed-in user's, or the one `userId` names — in a run that acts for a signed-in user, only that user (`PERSON_NOT_THE_RUNS`). ⚠️ On a public endpoint, a `userId` read from the request lets anyone total anyone's records; the save warns `PUBLIC_ENDPOINT_NAMES_PERSON`. `POST /v1/records/aggregate` asks the same from outside a flow, reading every user's records as `POST /v1/records/query` does: its body takes each clause value as itself (no `{literal}` or `{expr}`), and `clauses: []` totals all.

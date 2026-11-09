@@ -33,7 +33,7 @@ events — a trigger on a `post/created` your flow emits has no source at all �
 one for the clock: a schedule (capability pack `schedules` — `GET /v1/capability-packs/schedules`) fires its flow directly.
 
 **A source only reads.** Nothing here sends a message into a channel. The one built-in way a flow
-reaches a person is email; a service with an HTTP API is reached with a `url.send` action — see
+reaches a person is email; a service with an HTTP API is reached with a `url.send` step — see
 limits (capability pack `limits` — `GET /v1/capability-packs/limits`). And a source is for a standing subscription — to look a
 channel up once inside a flow, use the `telegram.resolve-channel` or `telegram.search-channels`
 function instead.
@@ -83,7 +83,7 @@ back as `@harbourdaily`, and is the same channel as `@harbourdaily`. A numeric i
 ## Watching on demand, from a flow
 
 When **what is watched is decided by your users** — a person follows a creator, and through it a
-channel — do not write a source per follow from outside. A flow does it with two actions:
+channel — do not write a source per follow from outside. A flow does it with two steps:
 
 - `source.watch` holds a watch on one channel for one **holder**: a record the run may write (its
   own, or a shared one), usually the record that stands for the follow. Any other value is refused
@@ -93,7 +93,7 @@ channel — do not write a source per follow from outside. A flow does it with t
   last one switches its source off (never deletes it). It answers `{ sourceId, enabled, holders }`,
   `enabled` always present.
 - **Letting go of a hold that was never placed is harmless.** A holder that never watched the
-  channel, or whose hold is already gone, changes nothing: the action succeeds and answers the
+  channel, or whose hold is already gone, changes nothing: the step succeeds and answers the
   channel as it stands — `sourceId: null`, `enabled: false`, `holders: 0` when the project watches
   nothing for it. So an unfollow may always unwatch, without first asking whether the follow held
   a watch.
@@ -124,13 +124,13 @@ What holds:
 - **What it costs** is the runs your trigger starts, one per message. Letting the last holder go
   stops them; the platform's own reader stays in the channel, which costs you nothing.
 - **A preview or a suite case watches nothing**, `applyWrites: true` included. It answers what the
-  action would have done — the same fields, `enabled` among them — plus `preview: true`. To make a watch for an existing record, run the flow
+  step would have done — the same fields, `enabled` among them — plus `preview: true`. To make a watch for an existing record, run the flow
   for real as the record's owner.
 - `GET /v1/sources` says which sources runs hold (`watchedByRuns`) and by how many (`holders`).
 
 ## What the flow receives
 
-The envelope in the reserved `event` slot. Its payload sits under the envelope's `data` field, and
+The envelope, as the reserved `event` value the flow reads (`event.data.…`). Its payload sits under the envelope's `data` field, and
 for a Telegram message that payload carries:
 
 <!-- field-ok: editDate — a field of the connector's event payload (the watcher writes it; no request carries it) -->

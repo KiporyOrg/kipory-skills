@@ -10,10 +10,10 @@ By default only web links are kept. Nothing found gives an empty list, not an er
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `file` → `string[]`
 - **Also found as:** qr code, barcode, scan code, read qr
-- **Reads:** One image — JPEG, PNG, WebP, HEIC, TIFF and the rest. Something that is not an image comes back empty rather than failing the action. _(shape hint: `file`)_
+- **Reads:** One image — JPEG, PNG, WebP, HEIC, TIFF and the rest. Something that is not an image comes back empty rather than failing the step. _(shape hint: `file`)_
 - **Emits:** What a QR code in the image encodes — web links only, unless you turn `requireUrl` off. Empty when there was no code or the image could not be read.
-- **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Inputs (`with`):** `image`
+- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

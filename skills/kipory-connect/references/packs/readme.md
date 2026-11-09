@@ -58,9 +58,9 @@ quietly working around it.
 | Expose a flow over HTTP — sync, async or streaming                         | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
 | Declare a read once and serve it as a paged, typed `GET` (a view)          | The project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`)       |
 | Mint a token that can call a project's API                                 | Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)          |
-| Build or edit a flow; add, change or reorder actions                       | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
-| Make a flow actually return its declared output                            | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
-| Run a flow against real inputs — and the flag that stops it writing        | Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                            |
+| Build or edit a flow; add, change or move its steps                        | Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                              |
+| Make a flow actually return its declared output                            | Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                              |
+| Run a flow against real inputs — and the flag that stops it writing        | Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)                              |
 | Define a reusable type                                                     | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
 | Define a kind of record people create or the system processes              | Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)                              |
 | Classify records against a vocabulary that resolves to terms               | Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)                                    |
@@ -109,9 +109,9 @@ judgment, and both defer to the live system for facts.
   id everywhere, and that a key reads that id and the project's `baseUrl` from `GET /v1/grant`.
 - **Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)** — read early. The full request
   lifecycle, and the resource that defines it.
-- **Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)** — the main build target. Output binding, preview (which
-  costs money **and writes records unless you pass `apply: false`**), what travels between actions,
-  and the rule that a save succeeding is not a promise it will run.
+- **Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`)** — the main build target. Steps in written order, values
+  read by step key, `return` for outputs, the save that proves every read and answers a ready fix,
+  and preview (which costs money **and writes records unless you pass `apply: false`**).
 - **Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`)** — types versus tables, the reserved names, and what a
   schema edit cascades into.
 - **Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`)** — classification against a resolvable vocabulary, and the path
@@ -122,7 +122,7 @@ judgment, and both defer to the live system for facts.
 - **Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`)** — time-triggered flow runs, run history, and why the next-run time
   you are given is one you can hold the platform to.
 - **Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`)** — event-triggered flow runs: the durable event log, the selector and
-  filter, the two reserved slots, replay, and why a trigger never catches up.
+  filter, the two reserved inputs, replay, and why a trigger never catches up.
 - **Sources (capability pack `sources` — `GET /v1/capability-packs/sources`)** — what writes events into your log from outside your flows: the
   provider registry, the config each one takes, the vocabulary a first source seeds, and why a
   source never names a flow.
@@ -141,14 +141,13 @@ judgment, and both defer to the live system for facts.
   that renders only `status` never sees.
 - **Secrets (capability pack `secrets` — `GET /v1/capability-packs/secrets`)** — the node-scoped credential vault. Which tier's key pays the vendor,
   why disabling a secret defers upward instead of switching it off, why nothing reads a value
-  back, and the request credential a `url.fetch` or `url.send` action names to call an outside API.
+  back, and the request credential a `url.fetch` or `url.send` step names to call an outside API.
 
 ## True of every design resource
 
 - **Address by node, or by the parent that owns you.** Most resources create and list by the
   project's **id**, and individual items are addressed by their own id — but a resource
-  with a parent design object scopes by THAT instead: actions by their flow, checkpoints by their
-  flow. Check the resource's own pack rather than assuming the node.
+  with a parent design object scopes by THAT instead: steps and checkpoints by their flow. Check the resource's own pack rather than assuming the node.
 - **Two planes, two audiences.** The design plane is where a project is _authored_, on the api
   host. The dynamic plane is where a project's own users are _served_, on the project's own host —
   its `baseUrl`, read from `GET /v1/grant` or `GET /v1/projects/{nodeId}`. Do not reach for one
@@ -161,10 +160,9 @@ judgment, and both defer to the live system for facts.
   names each such row, with the version it holds now, in `touched`. On a refusal,
   re-read and reconcile — or, where a resource offers an explicit force, use that deliberately
   rather than blind-retrying.
-- **A 2xx is not a promise it will run correctly.** Saves return success even when wiring is still
-  unresolved; only a resource's _blocking_ problems refuse the write. Nothing is stricter later:
-  nothing activates a flow, and a flow with unresolved wiring still runs — wrongly. ⚠️ `outstandingIssues` is the flow
-  plane's channel and does not appear on every save; elsewhere, re-read the resource asking for
-  readiness.
+- **A 2xx can still carry warnings.** An error refuses the write (`422`, the findings under
+  `details.diagnostics`); a write that saves answers its warnings in `diagnostics`. A flow's save
+  proves every read its steps make, so a flow that saved runs as written — read the warnings
+  anyway, and re-read a resource's health when its pack names one.
 - **Seeded rows cannot be DELETED.** Anything the platform seeded refuses a delete — but a PATCH is
   generally accepted, so "seeded" is not the same as read-only.

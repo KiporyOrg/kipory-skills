@@ -12,7 +12,7 @@ Expires the link between the first and second inputs' records, keeping who state
 - **Also found as:** unlink, disconnect records, delete link
 - **Reads:** Two slots: the record the link runs FROM, then the one it runs TO. The same pair the assert node was given, in the same order. _(shape hint: `string, string`)_
 - **Emits:** A `RelationRetraction`: `retracted` when a link was expired, `not-found` when this actor had nothing to take back. Finding nothing is an ordinary answer, not a failure.
-- **Suggested input streams:** `sourceRecordId`, `targetRecordId`
+- **Inputs (`with`):** `sourceRecordId`, `targetRecordId`
 
 ## Config
 
@@ -50,7 +50,7 @@ The link was expired rather than deleted, so who stated it and when both survive
 
 Reads `mixed` → emits `RelationRetraction` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -80,7 +80,7 @@ Nothing stood under THIS label. Somebody else's assertion looks identical from h
 
 Reads `mixed` → emits `RelationRetraction` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

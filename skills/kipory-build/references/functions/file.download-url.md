@@ -12,7 +12,7 @@ Anything can read the link, such as a browser or a model. It never expires unles
 - **Also found as:** share file, file link, signed url, public link
 - **Reads:** One file. Any kind — nothing is opened, inspected or transformed; only a link to it is signed. _(shape hint: `file`)_
 - **Emits:** A signed link, non-expiring by default; it works for as long as the file exists. Bind its lifetime with the fields below. An empty string when there is no file.
-- **Suggested input streams:** `currentFile`
+- **Inputs (`with`):** `file`
 - **External dependency:** S3 / MinIO — Nothing is called — the link is signed locally and grants read access to the object's bytes for as long as it lives. S3-compatible rather than S3: the deployment runs MinIO on its own box.
 
 ## Config
@@ -24,7 +24,7 @@ Anything can read the link, such as a browser or a model. It never expires unles
 
 ## Worked example
 
-A link is signed locally — nothing is fetched. The variants show different file types; the action never looks at the bytes.
+A link is signed locally — nothing is fetched. The variants show different file types; the step never looks at the bytes.
 
 #### A PDF
 

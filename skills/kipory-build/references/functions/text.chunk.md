@@ -4,7 +4,7 @@
 
 Split long text into smaller pieces, to handle one at a time.
 
-For actions that handle one part at a time. Neighbouring parts can share text; same input, same parts.
+For steps that handle one part at a time. Neighbouring parts can share text; same input, same parts.
 
 - **Group:** text · **Phase:** `inline` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
@@ -12,7 +12,7 @@ For actions that handle one part at a time. Neighbouring parts can share text; s
 - **Also found as:** split text, chunks, paragraphs, break up text
 - **Reads:** One long string — usually a page or a document body. Empty or non-text input emits nothing without running the chunker. _(shape hint: `string`)_
 - **Emits:** An ordered list of chunks, each within `chunkTokens` and sharing `overlapTokens` with its neighbour. Stops at `maxChunks`, warning when the tail is dropped.
-- **Suggested input streams:** `inputText`
+- **Inputs (`with`):** `text`
 
 ## Config
 

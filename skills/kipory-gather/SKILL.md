@@ -1,29 +1,29 @@
 ---
 name: kipory-gather
-description: Bring data into a Kipory project from outside it, in a flow action — fetch or scrape a web page, poll a feed, call an API with or without a stored key, send a request to an outside system (`url.send`), run a web search, read social profiles, posts, comments and video transcripts (YouTube, X, TikTok, Instagram, LinkedIn, Threads, Reddit), search Reddit, Threads and four ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, turn coordinates into a place. Use when a flow needs something the project does not hold, when choosing which source function fits, when a source action is slow, empty, refused, rate-limited or returns an old answer (its cache), or when a vendor bill is larger than expected. Not for storing a vendor key or deciding whose key pays (kipory-secrets), not for subscribing to a Telegram channel (kipory-channels), not for opening a downloaded file (kipory-extract).
+description: Bring data into a Kipory project from outside it, in a flow step — fetch or scrape a web page, poll a feed, call an API with or without a stored key, send a request to an outside system (`url.send`), run a web search, read social profiles, posts, comments and video transcripts (YouTube, X, TikTok, Instagram, LinkedIn, Threads, Reddit), search Reddit, Threads and four ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, turn coordinates into a place. Use when a flow needs something the project does not hold, when choosing which source function fits, when a source step is slow, empty, refused, rate-limited or returns an old answer (its cache), or when a vendor bill is larger than expected. Not for storing a vendor key or deciding whose key pays (kipory-secrets), not for subscribing to a Telegram channel (kipory-channels), not for opening a downloaded file (kipory-extract).
 license: MIT
 ---
 
 # Bring data in from outside
 
-Every function in this skill reaches a third party, and that changes what you are designing. An action
-that reads the project's own database is fast, free and always available. An action in this group is
+Every function in this skill reaches a third party, and that changes what you are designing. A step
+that reads the project's own database is fast, free and always available. A step in this group is
 none of those: it is queued, retried, cached, rate-limited against a **shared** bucket, and billed
 by somebody who is not this platform.
 
 **The fact most people get wrong: the rate limits are shared across functions, not per function.**
 Every Apify-backed source draws on your project's one budget of 30 calls a minute, and every social-platform read
 on one ScrapeCreators budget of 120. A flow that searches the web and reads X posts in the same
-fan-out competes with itself, and the ceiling arrives at a number neither function's own page
+`each` competes with itself, and the ceiling arrives at a number neither function's own page
 mentions.
 
 ## Before the first call
 
 - **Confirm the function's vendor and credential** with `GET /v1/functions/{key}`. The entry names
   the credential type and the purpose it resolves under, plus the bucket it shares.
-- **Decide whose key pays** before you build the action, not after the first invoice — `kipory-secrets`.
+- **Decide whose key pays** before you build the step, not after the first invoice — `kipory-secrets`.
 - **Every one of these runs in the ingest phase**, which means a queue, retries and a cache. Inline
-  and control functions have none of those. Whether an action is queued is a property of the function,
+  and control functions have none of those. Whether a step is queued is a property of the function,
   not something you configure.
 - **A service with no function of its own is reached with a keyed request.** `url.fetch` reads it and
   `url.send` writes to it, each with a stored key named in `secret`. `kipory-connect`'s
@@ -65,31 +65,31 @@ mentions.
 ¹ `x.posts` is served by more than one vendor, and which ones, in what order and
 reading what, change without a release: `servedBy` on `GET /v1/functions/{key}` (key
 `x.posts`) lists the vendors serving it in this deployment, in the platform's order, and
-what each keeps of an action's settings (`keeps`, `why`). Read it before you choose. An
-action may name one in its `vendor.use`; a vendor that cannot keep the action's settings
+what each keeps of a step's settings (`keeps`, `why`). Read it before you choose. A
+step may name one in its `vendor.use`; a vendor that cannot keep the step's settings
 (a search it does not run, an order it does not read) is refused at save with
-`VENDOR_DOES_NOT_COVER`. `vendor.switch` says when the action may
+`VENDOR_DOES_NOT_COVER`. `vendor.switch` says when the step may
 move to the next vendor: `never` (the default) — the chosen vendor's answer is the
-action's; `when-kipory-account-fails` — only when every one of Kipory's accounts at
+step's; `when-kipory-account-fails` — only when every one of Kipory's accounts at
 that vendor failed (out of credit, key refused); `when-vendor-fails` — also when the
 vendor itself fails. Nothing moves on an answer about the thing asked for (a post
 not found). Each post's `provider` says which vendor answered. A key of your own
-the chosen vendor refuses fails the action. A switched action is billed by the
+the chosen vendor refuses fails the step. A switched step is billed by the
 vendor that answered: with your own key for one vendor only, a switch spends
 Kipory's key at the next. Store a key for each vendor you allow, or leave
 `vendor.switch` at `never`.
 
-² `youtube.transcript` runs on Supadata unless an action names ScrapeCreators
+² `youtube.transcript` runs on Supadata unless a step names ScrapeCreators
 (`vendor.use: "scrapecreators"`). With `vendor.switch` other than `never`, a vendor
 that fails hands the video to the other; a key of your own the chosen vendor
-refuses fails the action instead. A video with no captions is an answer, and is
+refuses fails the step instead. A video with no captions is an answer, and is
 not retried on the second vendor. A switch is billed as in ¹: your own Supadata
 key does not stop Kipory's ScrapeCreators key being spent unless you store both
 or leave `vendor.switch` at `never`.
 
 The social-platform reads return shared types — `SocialProfile`, `SocialPost`,
 `SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
-a flow built for one platform is re-pointed at another by changing the action's
+a flow built for one platform is re-pointed at another by changing the step's
 function. `x.posts`, `youtube.video`, `youtube.channel` and `facebook.page` return those
 types with typed fields of their own added (`XPost`, `YoutubeVideo`, `YoutubeChannel`,
 `FacebookPage`): a
@@ -107,7 +107,7 @@ to undo.
 Each budget is counted per project. The Apify functions share `apify` at 30 a minute. Three <!-- count: functions-in-bucket-youtube --> share `youtube` at 60 a minute **and a single
 daily quota measured in units, not calls** — a heavy day of channel reads can exhaust what a later
 video read needed. `url.scrape` and `url.screenshot` share `firecrawl` at **10 a minute**, the
-tightest budget here by a wide margin, and both are the slow kind of action: they render a page in a
+tightest budget here by a wide margin, and both are the slow kind of step: they render a page in a
 real browser.
 
 ## Choosing between the four ways to read a page
@@ -116,34 +116,35 @@ real browser.
 
 ## Telling an outside system something: `url.send`
 
-**Telling an outside system something: `url.send`** — a write, not a read: staged once per run, possibly seen twice, never reported, and the `outbound-request` budget: `references/url-send.md`.
+**Telling an outside system something: `url.send`** — a write, not a read: staged once per run, possibly seen twice, unreported, on the `outbound-request` budget. No flow branches on its answer: the system calls back an endpoint settling a keyed attempt: `references/url-send.md`.
 
 ## What will bite you
 
 Each of these is a trap with its explanation and remedy in [references/pitfalls.md](references/pitfalls.md). Read the entry before you build on the thing it names:
 
 - Working around a problem in silence.
-- A vendor failure about the page is a warning, and the flow keeps going; a refused key fails the action.
-- A refused key or an account out of credit is not about the page, and it fails the action
+- A vendor failure about the page is a warning, and the flow keeps going; a refused key fails the step.
+- A refused key or an account out of credit is not about the page, and it fails the step
 - The cache is the design, not an optimisation.
 - "Nothing found" is saved like any answer.
-- "This source must answer" is a rule you put on the actions after it.
-- Polling a source needs the action's own period.
+- "This source must answer" is a rule you put on the steps after it.
+- Polling a source needs the step's own period.
 - A listing is paid for on every poll, new items or not.
 - A read billed in the vendor's own credits states how many a request takes.
 - The vendors serving `x.posts` bill differently: compare them for your poll size.
 - A screenshot is the full page, and a long page is a very large image.
+- To carry on past a screenshot that fails, set `failureMode: "soft"` or wrap it in `try`.
 - There is no feed reader, and no upsert.
 - A vendor bills you even though the platform queued the call.
 - Falling through to the platform's key is silent and it succeeds.
 - A site that answers 403 to Kipory may answer a browser.
-- An action that stops waiting does not stop the vendor.
+- A step that stops waiting does not stop the vendor.
 - `web.search` charges by the page of results, and a page holds about ten.
 - `web.search` takes only a language and a country its search engine knows.
 - An empty result and a failure are not the same thing, and they differ per function.
 - Every field on a scraped or looked-up object is optional.
 - Fetched text is untrusted input.
-- A fan-out multiplies the vendor call, not just the action.
+- An `each` multiplies the vendor call, not just the step.
 - Retries are already configured and they are not free.
 
 ## References
@@ -163,6 +164,6 @@ Per-function config tables live with the function catalog in `kipory-build`.
 `kipory-extract` when what came back is a file rather than text — a PDF, an image, audio.
 `kipory-retrieve` to index the text you gathered so the product can search it, and to sanitize it
 before any model reads it. `kipory-secrets` to put the project's own vendor key in place.
-`kipory-build` for the flow, the fan-out and the caching behaviour these actions sit inside.
+`kipory-build` for the flow, the `each` blocks and the caching behaviour these steps sit inside.
 `kipory-channels` when the source is a Telegram channel you want to subscribe to rather than search
 once. `kipory-operate` for what a month of these actually cost.

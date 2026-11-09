@@ -12,13 +12,13 @@ The address is cut to its bare domain. The audience shows where a site's visitor
 - **Also found as:** visitors, site visits, website traffic stats, monthly visits
 - **Reads:** One site URL, reduced to its bare domain. Numbers are monthly, so results are cached for a week by default. _(shape hint: `string`)_
 - **Emits:** A `SiteTrafficMetrics`. Every metric can be null — the upstream hides data for small sites — while `domain` echoes the normalised host. Empty when the domain is unknown.
-- **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `source`
+- **Softens these failures:** `rate-limited`, `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `source`
 - **External dependency:** Apify — Runs Apify's `similarweb-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Charged as:** `apify/web-traffic-usage` per item — a millionth of a dollar the vendor charged for the run. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
 - **Rate limit:** 30 per min in bucket `apify`, counted per project — shared with `place.details`, `place.reviews`, `place.search`, `telegram.search-channels`, `web.rankings`, `web.search`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 7 days — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 7 days — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

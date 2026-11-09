@@ -2,13 +2,15 @@
 
 Kipory reuses several ordinary words with a specific meaning, and a few of them mean the opposite of what a reader expects. When this file and a longer document disagree, the API's own field names win.
 
-**Agent skill vs. action.** These files are _agent skills_ — instructions for a coding agent. In the API, an **action** is one part of a flow: a row bound to a function key with its config, the slots it reads and the slot it writes (`/v1/actions`). Nothing in the API knows about agent skills.
+**Agent skill vs. step.** These files are _agent skills_ — instructions for a coding agent. Nothing in the API knows about them.
 
-**Function vs. action.** A **function** is platform code from a registry (`GET /v1/functions`): `url.scrape`, `text.generate`, `record.create`. An **action** is your configured _use_ of one inside a flow. Functions have a catalog; actions have a flow.
+**Step vs. action.** A **step** is one part of a flow: a `key` and exactly one kind — an action, `if`, `each`, `repeat`, `parallel`, `try`, `return` or `fail`. An **action** is the kind of step that runs a function: `{key, function, with}`. A step's key (camelCase, unique in the flow) is also the name of its value: a later step reads `charge` or `charge.body.status`. A block (`if`, `each`, …) holds steps of its own, and only its declared `out` leaves it.
 
-**Flow.** A named group of actions with its own typed signature — input slots, output slots, and a binding that says which action's output feeds each output slot. Execution order is derived from slot edges; there is no position field.
+**Function vs. action.** A **function** is platform code from a registry (`GET /v1/functions`): `url.scrape`, `text.generate`, `record.create`. An action is your configured _use_ of one inside a flow, its settings in `with`. Functions have a catalog; steps have a flow.
 
-**Slot.** A named value in a run. An action reads its `inputStreams` (slot names) and writes its `outputSlot`. Slot names are letters and digits only, starting with a letter — no underscores.
+**Flow.** A named list of steps with its own typed signature — `inputs` and `outputs`, maps by name. Steps run in the order written; a step can read only what a step above it gave, and the flow's outputs come only from a `return` step. `PUT /v1/flows/{id}/steps` writes the whole list; `POST /v1/flows/{id}/steps/edit` changes steps by key.
+
+**Nothing vs. empty.** `null` and a missing value are _nothing_; `[]`, `""` and `{}` are values. A required read of a value that may be nothing is refused at save; at run, a step whose required input is missing fails with a typed error — nothing is skipped silently.
 
 **Project vs. node.** A **project** is your product's container. It lives at a **node** in the ownership tree under an **organisation** node, and the node's id is the project's id — the one `POST /v1/projects` answers and every route takes (a bare cuid such as `cmukzzjhc0001hlq36d38bun1`; ids are opaque, so never tell them apart by prefix).
 
@@ -24,7 +26,7 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Member.** A person with a membership — a seat — on an organisation or a project (`/v1/nodes/{nodeId}/members`): a role there, and in a project with member wallets on, a wallet of their own. An API key is never a member.
 
-**Fan-out.** An action, the function `flow.fan-out`, that splits a list into one branch per element, up to its own item limit and the system ceiling. Each branch runs the actions after it with its own copy of the run's values; a merge gathers what the branches wrote.
+**Each.** A block step that runs its steps once per element of a list, up to its own `maxItems` and the system ceiling. Its value is the list of each run's `out`, read as `<key>[].<name>`.
 
 **Owner scope.** Whether a table's records belong to one end user each (per-user) or to the project's shared pool. A key's runs are project-owned and cannot write per-user records.
 
@@ -38,16 +40,16 @@ Kipory reuses several ordinary words with a specific meaning, and a few of them 
 
 **Plane.** The design plane is where you author (api host). The dynamic, or project, plane is where your product's users are served (project host). The credit balance is a project-plane read. Each project's address on that plane is its `baseUrl` (`references/conventions.md`).
 
-**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Also the name of one unrelated read-only call: `POST /v1/actions/preview` — one model call against a prompt template, not a flow run.
+**Preview.** Of a flow: a full, billed run whose record writes apply unless `apply: false`. Of one step: `POST /v1/flows/{id}/steps/{key}/preview` — one billed model call against the step's prompt, not a flow run (`…/interpolate` renders the prompt for free).
 
-**Checkpoint vs. snapshot.** A **checkpoint** is a named, manual or automatic copy of a flow's actions, signature and binding that you can restore. A **flow snapshot** is the frozen graph a particular run executed, readable per run, never restorable.
+**Checkpoint vs. snapshot.** A **checkpoint** is a named, manual or automatic copy of a flow's steps and signature that you can restore. A **flow snapshot** is the frozen graph a particular run executed, readable per run, never restorable.
 
-**Run vs. trace vs. timeline.** A **run** is one execution, with one id whatever started it — an endpoint invocation, a record-processing attempt, a bare request. Its **timeline** is never sampled. Its **trace** holds what each output slot held, is sampled per project (a record or asynchronous run in which an action failed is always kept, unless the rate is 0), and expires.
+**Run vs. trace vs. timeline.** A **run** is one execution, with one id whatever started it — an endpoint invocation, a record-processing attempt, a bare request. Its **timeline** is never sampled. Its **trace** holds what each step's value held, is sampled per project (a record or asynchronous run in which a step failed is always kept, unless the rate is 0), and expires.
 
 **Contract suite vs. scorer.** A flow's stored checks are **eval suites**. A suite with no scorer flows is a **contract suite** and asks "does this still work" — stored inputs and pass/fail assertions, and every run says whether its `contract` held. **Scorer flows** on a suite ask "is this any good" — each case scored by a flow, a billed model call. There is no separate test-case resource.
 
-**Secret.** A credential in the node-scoped vault, resolved nearest-wins up the ancestor chain, never read back: a vendor key a function reads, a request credential (`http_credential`) that a `url.fetch`, `url.fetch-as-file` or `url.send` action names in `secret`, or a sign-in client. Generation, embedding and transcription never use it; reranking (`text.rerank`) and `text.decide` do (`kipory-secrets`).
+**Secret.** A credential in the node-scoped vault, resolved nearest-wins up the ancestor chain, never read back: a vendor key a function reads, a request credential (`http_credential`) that a `url.fetch`, `url.fetch-as-file` or `url.send` step names in `secret`, or a sign-in client. Generation, embedding and transcription never use it; reranking (`text.rerank`) and `text.decide` do (`kipory-secrets`).
 
-**Managed email address.** A sending identity attached to a node that the outbound mail action sends _as_. Not a mailbox the platform creates.
+**Managed email address.** A sending identity attached to a node that the outbound mail step sends _as_. Not a mailbox the platform creates.
 
 **Version.** Usually the optimistic-lock counter a PATCH must echo. On an embedding profile it is the lock too — the geometry number is `generation`. On a record it is the lock `PATCH /v1/records/{id}` presents; a run's write moves it too. On a document apply it is the project's. On the bootstrap it is a decimal string to compare as a big integer. On the function catalog and the capability packs it is a content hash.

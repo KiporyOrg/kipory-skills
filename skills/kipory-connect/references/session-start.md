@@ -1,6 +1,6 @@
 # Session start, in depth
 
-`SKILL.md` has the short sequence. This page has the long parts of it: what `scripts/sync.mjs` reports, reading only what you will change, confirming facts live, a model account that runs out, the descriptions and metadata reads, converting an older project document, and filing a report.
+`SKILL.md` has the short sequence. This page has the long parts of it: what `scripts/sync.mjs` reports, reading only what you will change, confirming facts live, a model account that runs out, the descriptions and metadata reads, converting an older project document, a project whose flows are empty, and filing a report.
 
 ## What `scripts/sync.mjs` reports
 
@@ -28,7 +28,7 @@ Without `KIPORY_API_KEY` the function catalog and the document format cannot be 
 
 Each `changed` or `removed` line names the bundled page that documents the item, when it has one, as a path from the directory that holds these skills (`kipory-build/references/functions/…`); an `added` item has no page. Read those items live; the rest of the layer is what the deployment serves. A deployment too old to serve per-item hashes gets `which items differ: not known`, and then the whole layer is read live. A difference does not say which side is newer — a deployment older than these files is ordinary — and either way **the deployment wins**.
 
-Keep the `sha` you read. A deployment is rolled while you work — several times a day on a busy one — and a roll can change the function catalog, the model catalog and the task bindings your actions inherit. When something that worked starts failing with no edit of yours, read `/health` again first: a different `sha` means re-run `scripts/sync.mjs`, update these skills from their source if it reports a layer that differs (not when its `skills` line says they are ahead — then updating changes nothing, and the deployment wins until it rolls), and re-read the page for whatever failed before changing your own work.
+Keep the `sha` you read. A deployment is rolled while you work — several times a day on a busy one — and a roll can change the function catalog, the model catalog and the task bindings your steps inherit. When something that worked starts failing with no edit of yours, read `/health` again first: a different `sha` means re-run `scripts/sync.mjs`, update these skills from their source if it reports a layer that differs (not when its `skills` line says they are ahead — then updating changes nothing, and the deployment wins until it rolls), and re-read the page for whatever failed before changing your own work.
 
 Installed as a Claude Code plugin, these skills update only when someone updates them: auto-update is off for this marketplace until the user turns it on. Updating is `claude plugin marketplace update kipory-skills`, then `claude plugin update kipory@kipory-skills` (with `--scope project` for an install made in one project's folder), and the updated skills load only in a new session. Updating changes the user's machine, so tell the user what `scripts/sync.mjs` reported and give them the two commands rather than running them yourself; then mention that auto-update can be turned on for `kipory-skills`, in their user settings or under Marketplaces in `/plugin`.
 
@@ -52,7 +52,7 @@ Function keys come from `GET /v1/functions`, request shapes from `GET /v1/openap
 
 ## A model account that runs out
 
-`GET /v1/nodes/{nodeId}/task-models` lists each task an action inherits its model through. Read it before the first run and again after a `sha` change: a roll can move a binding above the project that the project never chose. `callable: true` says the deployment holds an account for the model and it is switched on — not that the account has credit. Model calls run on the platform's own provider accounts; when one runs out, every call on it fails with `… provider account exhausted (quota/billing)` under `detail.phase: "platform-fault"`, uncharged, while the row still reads `callable: true`. The row's `serving.state` is what turns to `refusing` (with `since`), and `GET /v1/platform-status` reads the same for every vendor and model-provider account the platform holds — check it when a run fails with that phase, before changing anything. That is the deployment's fault, not the flow's: tell whoever runs it, and see `kipory-build`'s `references/models.md` for moving a task meanwhile.
+`GET /v1/nodes/{nodeId}/task-models` lists each task a step inherits its model through. Read it before the first run and again after a `sha` change: a roll can move a binding above the project that the project never chose. `callable: true` says the deployment holds an account for the model and it is switched on — not that the account has credit. Model calls run on the platform's own provider accounts; when one runs out, every call on it fails with `… provider account exhausted (quota/billing)` under `detail.phase: "platform-fault"`, uncharged, while the row still reads `callable: true`. The row's `serving.state` is what turns to `refusing` (with `since`), and `GET /v1/platform-status` reads the same for every vendor and model-provider account the platform holds — check it when a run fails with that phase, before changing anything. That is the deployment's fault, not the flow's: tell whoever runs it, and see `kipory-build`'s `references/models.md` for moving a task meanwhile.
 
 ## Descriptions and metadata
 
@@ -66,60 +66,25 @@ The create also takes a `template` slug (`GET /v1/templates` lists them) or a wh
 (`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
 transaction — a refused one leaves no project behind.
 
-A project document you hold can be one the platform refuses: one exported before the data words
-were renamed states `kipory: 2`, one exported before the flow words were renamed states
-`kipory: 3`, one exported before the link functions named their relation `relationKey` states
-`kipory: 4`, one exported before search models stopped naming their slots states `kipory: 5`, one
-exported before a type was called a type in the document states `kipory: 6`, one exported
-before a stated element was whole states `kipory: 7`, one exported before every input took an
-argument states `kipory: 8`, one exported before an action named its vendor in its own `vendor`
-setting states `kipory: 9`, and all eight are refused (`DOCUMENT_VERSION_UNSUPPORTED`). The deployment reads exactly one format, with no
-overlap: `documentFormat` on `GET /v1/platform-status` names it, with a line saying what it is.
-When it is newer than the version below, update these skills first — the skills that write a new
-format are published when the change merges, normally before a deployment rolls it — then
-convert.
-`node <this skill's directory>/scripts/upgrade-document.mjs <file> --write` converts any of them to
-version 10 in one run, and a second run changes nothing. From 7 to 8 it changes only the number: format
-8 makes a stated element whole, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`
-before you apply it:
+A project document you hold can be one the platform refuses. The deployment reads exactly one
+format, with no overlap: `documentFormat` on `GET /v1/platform-status` names it, and an older
+document is refused with `DOCUMENT_VERSION_UNSUPPORTED`. When the deployment's format is newer than
+these skills', update the skills first — they are published when the change merges, normally before a
+deployment rolls it.
 
-- **It renames only the names the platform defines**, never one you chose, and lists the prompts
-  and expressions that name a renamed field, which are yours to edit.
-- **`schema` becomes `types`, a table's and a config namespace's `shape` becomes `type`** — nothing
-  else named `shape` or `schema` moves: not a function's config, not an action's `outputSchema`,
-  not a property of one of your types, not a table or action you named `shape`. A current
-  document that still holds one of the old keys is refused with `DOCUMENT_KEY_RENAMED` at that
-  key; rename it, or set its version back to 6 and run the script. **A script of yours that reads a
-  converted document or an export must read `types` and `type` too**: one still reading the old
-  key finds nothing and can change its own output without an error.
-- **From 8 to 9 a setting that reads a value takes an argument.** Each such setting drops its
-  `Slot` suffix (`idsSlot` → `ids`, `modelSlot` → `model`); a fixed field and its slot twin become
-  one (`limit`, `maxResults`, a query clause's `value`, `slug`, `text`), the slot winning where both
-  were set; `headers` and `query` join their two maps, refusing a name stated in both; a fixed text,
-  list or object is written `{"literal": …}`;
-  `fieldFilterSlots` becomes `fieldFilters` entries with `op: "eq"`; `flow.invoke` and
-  `flow.start-per-person` input rows become one `inputs` map; `flow.loop` `seedFrom` and
-  `seedLiteral` become one `seed`; a named view's fixed text or list in its `where` is written
-  `{"literal": …}` (a number, `true`/`false`, `param` and `set` stay; `shapes` is unchanged), each view
-  it changes listed. Every renamed, merged and restructured setting, and the ones that
-  keep their name, is in `references/format-9-renames.md`. It refuses, rather than guesses, a name set
-  on both sides of a pair. On YAML it renames line by line and refuses anything restructured: convert the JSON form, or
-  export the project again (`GET /v1/projects/{nodeId}/document` with `Accept: application/yaml`) — the platform moved stored flows to 9 itself.
-  <!-- field-ok: idsSlot — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: modelSlot — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: fieldFilterSlots — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: seedFrom — a format-8 config field the converter renames, named so a reader knows what moves -->
-  <!-- field-ok: seedLiteral — a format-8 config field the converter renames, named so a reader knows what moves -->
-- **Slot and collection names go.** A search model under `vectors.profiles` loses `denseSlots` and
-  `sparseSlot` and states `keywords` — `true` where it named a sparse slot, `false` where it named
-  none; a `search` use loses `role`; `vectors.collections` is removed. Each removal is listed.
-- **An action whose function the catalog does not have is left as written and listed** — one that
-  searched, wrote or read a collection, or made an embedding. What it becomes is your decision:
-  `record.query` with a `semantic` clause, `term.search`, or no action (`kipory-retrieve`). The plan
-  refuses the document until each is rebuilt or removed.
+## Projects from before format 11
 
-It refuses, with the line number, a YAML mapping written on one line (`{ … }`) in a place it would
-have to rewrite — write that mapping out as a block, or convert the file to JSON, and run it again.
+The platform reads document format 11 only, and a format-10 document is refused with
+`DOCUMENT_VERSION_UNSUPPORTED`. When it moved to format 11, the development and staging
+deployments were reset: every project and account was cleared, and only Kipory's own configuration
+stayed, so a project from before is not there to read — build it again in format 11.
+
+## A flow with no steps yet
+
+A new flow is created with `steps: []`, and an endpoint, a trigger or a schedule can name it before
+its steps are written. A flow with no steps yet is not started: the run answers `FLOW_NOT_AUTHORED`
+(409) with `details.flowKey`, and is never retried. Write its steps with `PUT /v1/flows/{id}/steps` or a project document
+(`kipory-build`).
 
 `GET /v1/projects/address-availability?candidate=` says whether a slug is free before you send it. A
 project's address — its subdomain — can move later and its slug never does; moving it is `kipory-evolve`.
@@ -134,7 +99,7 @@ Tell Kipory with `POST /v1/reports`, then carry on with whatever workaround you 
 - something you need does not exist;
 - an answer told you something went wrong but not what to do about it.
 
-Do not file a refusal whose remedy you can apply — a `422` that names your field, a `403` whose `requiredRole` you lack — nor a failure your own configuration caused, such as your `$assert`, a `FLOW_OUTPUT_MISSING` or a wrong binding: `kipory-diagnose` first. Fix those.
+Do not file a refusal whose remedy you can apply — a `422` that names your field, a `403` whose `requiredRole` you lack — nor a failure your own configuration caused, such as your `$assert`, a `FLOW_OUTPUT_MISSING` or a step that read the wrong value: `kipory-diagnose` first. Fix those.
 
 One problem per report: the second problem is a second report, and a summary of your session is not a report. The body needs `project`, `trying` (the goal, not the call), `happened` (the answer, the code, what you tried next) and `impact` — `blocked`, `worked-around` or `annoyance`. Add `kind` (one of `bug`, `missing-capability`, `docs-wrong`, `unclear-message`, `question` or `praise`; any other value is refused `VALIDATION_FAILED`), `surface` (the route or function key), `expected`, the `requestId` of each failing answer in `requestIds`, a failing run's id in `runIds`, the skill you were following in `skill`, your model and host in `agent`, and about how many minutes it cost in `timeLostMinutes`. Never paste a key or a secret: it is replaced before the report is kept, and the report is less useful for it.
 
@@ -162,7 +127,7 @@ The full list with reasons is `references/api/routes-a-key-cannot-call.md`. The 
 - **A new build can turn an untouched flow red.** When `sha` on `GET /health` changes, read
   `GET /v1/flows?project=<nodeId>&expand=health` and fix any errors: a rule the build added or
   tightened can fail a flow nobody edited while its runs keep succeeding, and the next write that
-  rewrites the action it is on is refused for it. `GET /v1/platform-status` names those codes
+  rewrites the step it is on is refused for it. `GET /v1/platform-status` names those codes
   (`rules`); a trigger on
   `platform/flow-health.failing` is told without asking.
 - **Versions on the bootstrap are decimal strings.** Compare them as big integers; `"9" > "10"` as text is the documented failure.

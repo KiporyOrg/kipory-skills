@@ -1,25 +1,28 @@
 #!/usr/bin/env node
 /**
- * upgrade-document.mjs — convert a project document you hold to the version
- * the platform serves.
+ * upgrade-document.mjs — rewrite the renamed keys of an older project
+ * document you hold. It does NOT make a document with flows readable.
  *
- * The platform reads exactly one document version. A document exported before
- * a rename, before search models stopped naming their slots, or before a
- * config field took an argument (format 9), is refused
- * with `DOCUMENT_VERSION_UNSUPPORTED`; this script rewrites it locally, so
- * nothing you hold is lost. It needs Node 20 and nothing else.
+ * The platform reads exactly one document version (format 11), and any other
+ * is refused with `DOCUMENT_VERSION_UNSUPPORTED`. Format 11 writes a flow as
+ * its `steps`, and a flow's actions are never converted: a document whose
+ * flows hold actions is REFUSED here, every such flow named. To get a
+ * document the platform reads, export the project again
+ * (`GET /v1/projects/{nodeId}/document`) and write each flow's steps in
+ * format 11. What this script still does is rename the older keys outside a
+ * flow's actions, listed below. It needs Node 20 and nothing else.
  *
  *   node upgrade-document.mjs <file.kipory.yaml|file.json> [--write]
  *
- * Without `--write` it prints the converted document; with it, the file is
+ * Without `--write` it prints the rewritten document; with it, the file is
  * rewritten in place (keep your own copy first).
  *
- * It converts in eight steps, and a version 2 document takes all eight in
- * one run. A version 3 document takes the last seven, a version 4 document
- * the last six, a version 5 document the last five, a version 6 document the
- * last four, a version 7 document the last three, a version 8 document the
- * last two, a version 9 document the last; a version 10 document is returned
- * as it is.
+ * It rewrites in nine steps, and a version 2 document takes all nine in
+ * one run. A version 3 document takes the last eight, a version 4 document
+ * the last seven, a version 5 document the last six, a version 6 document the
+ * last five, a version 7 document the last four, a version 8 document the
+ * last three, a version 9 document the last two, a version 10 document the
+ * last; a version 11 document is returned as it is.
  *
  * Version 2 → 3 (the data words):
  *   - sections `records` → `tables`, `facets` → `vocabularies`;
@@ -73,7 +76,7 @@
  *   - only `kipory: 8`. What changes is what an omitted field means: an
  *     element the document states is whole, so an own field it leaves out
  *     goes back to its default. A file cannot know what the project stores;
- *     plan the converted document and read each `FIELD_RESET_TO_DEFAULT`.
+ *     plan the rewritten document and read each `FIELD_RESET_TO_DEFAULT`.
  *
  * Version 8 → 9 (a field that reads a value takes an argument):
  *   - in an action's `functionConfig`, each field that named a slot drops its
@@ -124,6 +127,29 @@
  *   convert the JSON form, or export the project again — the platform has
  *   already moved stored flows to format 10.
  *
+ * Version 10 → 11 (a flow is its steps):
+ *   - a flow's actions are NOT converted: format 11 writes a flow as its
+ *     `steps`, written in format 11, never converted. A document whose
+ *     flows hold an action or an `outputBinding` is REFUSED, every such flow
+ *     named, with the platform's own sentence: write those flows' steps in
+ *     format 11, or remove them from the file.
+ *     Nothing is dropped silently;
+ *   - a flow with no actions keeps its signature, as maps by name:
+ *     `inputTypeNames` → `inputs` and `outputTypeNames` → `outputs`, each
+ *     entry's `slot` its name, `required: false` on an input and an output
+ *     not `required: true` → `optional: true`;
+ *   - on an endpoint's `targetConfig`, the keys that said "slot": `deltaSlot`
+ *     → `deltaOutput`, `retry.retryWhen.slot` and
+ *     `retry.onExhausted.detailFrom.slot` → `output`, `retry.feedback[].fromSlot`
+ *     → `fromOutput`, a snapshotted `signature`'s `inputSlots` / `outputSlots`
+ *     → `inputs` / `outputs` maps, and a view endpoint's `actionVersions`
+ *     removed — as the platform moved its stored copies;
+ *   - an eval suite's `perActionLatency` → `perStepLatency`;
+ *   - an eval case's `{kind: action-outcome, actionKey}` → `{kind:
+ *     step-outcome, stepKey}`, the step keeping the action's key.
+ *   On YAML it REFUSES a document holding any of these: convert the JSON
+ *   form, or export the project again.
+ *
  * It does NOT rebuild an action on a function that no longer exists
  * (`vector.search`, `vector.upsert`, `vector.fetch`, `vector.point-id`,
  * `text.embed`, `text.embed-sparse`): what the action becomes is your
@@ -160,8 +186,8 @@
 import { readFileSync, realpathSync, writeFileSync } from "node:fs";
 import { pathToFileURL } from "node:url";
 
-/** The version this script converts TO — the format these skills write. */
-export const TARGET_VERSION = 10;
+/** The version whose keys this script writes — the format these skills write. */
+export const TARGET_VERSION = 11;
 
 const SECTIONS = new Map([
   ["records", "tables"],
@@ -1512,6 +1538,28 @@ const STAGES = [
       return stageYaml(text, stage, notes);
     },
   },
+  {
+    // A flow is its steps: a flow's actions are never converted (they are
+    // re-authored), so a document holding one is refused; every other part
+    // moves (JSON). A YAML document holding a part that moves is refused.
+    from: 10,
+    to: 11,
+    keyIn: (_mode, key) => key,
+    under: () => UNTOUCHED,
+    textOf: () => null,
+    stringAt: (_mode, _key, value) => value,
+    rewrite: (text) => text,
+    needsAPerson: () => false,
+    watchedKey: () => false,
+    slotNote: () => false,
+    json: (doc, stage, places) =>
+      formatElevenJson(stageJson(doc, stage, places), doc),
+    yaml: (text, stage, notes) => {
+      const body = text.charCodeAt(0) === 0xfeff ? text.slice(1) : text;
+      formatElevenYaml(body.split(/\r?\n/));
+      return stageYaml(text, stage, notes);
+    },
+  },
 ];
 /* ── version 9 → 10: an action names its vendor as a setting of its own ────── */
 
@@ -1527,7 +1575,11 @@ const vendorSettingsJson = (doc) => {
   const nextFlows = {};
   for (const [flowKey, flow] of Object.entries(flows)) {
     const actions = flow?.actions;
-    if (actions === null || typeof actions !== "object" || Array.isArray(actions)) {
+    if (
+      actions === null ||
+      typeof actions !== "object" ||
+      Array.isArray(actions)
+    ) {
       nextFlows[flowKey] = flow;
       continue;
     }
@@ -1539,7 +1591,9 @@ const vendorSettingsJson = (doc) => {
         config === null ||
         typeof config !== "object" ||
         Array.isArray(config) ||
-        !(Object.hasOwn(config, "provider") || Object.hasOwn(config, "fallback"))
+        !(
+          Object.hasOwn(config, "provider") || Object.hasOwn(config, "fallback")
+        )
       ) {
         nextActions[actionKey] = action;
         continue;
@@ -1567,21 +1621,332 @@ const vendorFieldsYaml = (lines) => {
   rows.forEach((row) => {
     if (row !== null && row.body !== true && row.key === "functionKey")
       if (pathIs(row.path, ["flows", "*", "actions", "*", "functionKey"]))
-        functionOf.set(`${row.path[1]}\u0000${row.path[3]}`, unquote(row.value));
+        functionOf.set(
+          `${row.path[1]}\u0000${row.path[3]}`,
+          unquote(row.value),
+        );
   });
   rows.forEach((row, index) => {
     if (row === null || row.body === true || row.key === null) return;
     const { path } = row;
     if (
-      !pathIs(path, ["flows", "*", "actions", "*", "functionConfig", "provider"]) &&
-      !pathIs(path, ["flows", "*", "actions", "*", "functionConfig", "fallback"])
+      !pathIs(path, [
+        "flows",
+        "*",
+        "actions",
+        "*",
+        "functionConfig",
+        "provider",
+      ]) &&
+      !pathIs(path, [
+        "flows",
+        "*",
+        "actions",
+        "*",
+        "functionConfig",
+        "fallback",
+      ])
     )
       return;
-    if (!VENDOR_CHOICE_FUNCTIONS.has(functionOf.get(`${path[1]}\u0000${path[3]}`)))
+    if (
+      !VENDOR_CHOICE_FUNCTIONS.has(functionOf.get(`${path[1]}\u0000${path[3]}`))
+    )
       return;
     throw new Error(
       `line ${String(index + 1)} (${path.join(".")}): \`${String(path[5])}\` leaves the config and becomes the action's \`vendor\` setting. Format 10 moves it, which a line-by-line YAML conversion cannot do: convert the JSON form of the document, or export the project again (\`GET /v1/projects/{nodeId}/document\` with \`Accept: application/yaml\`) — the platform has already moved stored flows to format 10.`,
     );
+  });
+};
+
+/* ── version 10 → 11: a flow is its steps ─────────────────────────────────── */
+
+/**
+ * The platform's own sentence for a format-10 document (`DOCUMENT_VERSION_UNSUPPORTED`),
+ * said here about the flows that hold what format 11 cannot: a flow's
+ * actions are re-authored as steps, never converted.
+ */
+const FLOWS_ARE_REAUTHORED = (flows) =>
+  `${flows.map((key) => `flows.${key}`).join(", ")} still hold format-10 actions; the platform reads only format 11, where a flow is its \`steps\` in written order (no \`actions\` section) and its \`inputs\` and \`outputs\` are maps by name. There is no upgrade: export the project again (\`GET /v1/projects/{nodeId}/document\`), write each flow's steps in format 11, and plan that. Remove these flows from this file (or write their steps) and run the script again.`;
+
+const isEmpty = (value) =>
+  value === undefined ||
+  value === null ||
+  (Array.isArray(value)
+    ? value.length === 0
+    : isMap(value) && Object.keys(value).length === 0);
+
+/**
+ * A format-10 signature list (`[{slot, typeName, isList?, required?}]`) as a
+ * format-11 map (`{name: {typeName, isList?, optional?}}`). An input is
+ * required unless it says `required: false`; an output may be left out
+ * unless it says `required: true` — format 10's defaults.
+ */
+const signatureMap = (list, where, input) => {
+  if (list === undefined) return undefined;
+  if (!Array.isArray(list))
+    throw new Error(
+      `${where}: expected a list of \`{slot, typeName}\` entries`,
+    );
+  const out = {};
+  list.forEach((entry, index) => {
+    if (!isMap(entry) || typeof entry.slot !== "string" || entry.slot === "")
+      throw new Error(
+        `${where}[${String(index)}]: names no \`slot\`, so its name in format 11 is not known. Add the name the platform shows for it (\`GET /v1/flows/{id}\`) as \`slot\`, or export the project again.`,
+      );
+    if (Object.hasOwn(out, entry.slot))
+      throw new Error(
+        `${where}[${String(index)}]: \`${entry.slot}\` is named twice`,
+      );
+    const { slot, required, ...rest } = entry;
+    const optional = input ? required === false : required !== true;
+    out[slot] = optional ? { ...rest, optional: true } : rest;
+  });
+  return out;
+};
+
+/** `o` with key `from` renamed `to`, in place of it; `o` as it is without one. */
+const rekey = (o, from, to) => {
+  if (!isMap(o) || !Object.hasOwn(o, from)) return o;
+  const out = {};
+  for (const [k, v] of Object.entries(o)) out[k === from ? to : k] = v;
+  return out;
+};
+
+/** An endpoint target config with the keys that said "slot" renamed, as the platform renamed its stored ones. */
+const endpointTargetEleven = (config) => {
+  if (!isMap(config)) return config;
+  let c = rekey(config, "deltaSlot", "deltaOutput");
+  if (
+    isMap(c.viewEndpoint) &&
+    Object.hasOwn(c.viewEndpoint, "actionVersions")
+  ) {
+    const { actionVersions: _gone, ...view } = c.viewEndpoint;
+    c = { ...c, viewEndpoint: view };
+  }
+  const sig = c.signature;
+  if (
+    isMap(sig) &&
+    (Object.hasOwn(sig, "inputSlots") || Object.hasOwn(sig, "outputSlots"))
+  ) {
+    const { inputSlots, outputSlots, ...rest } = sig;
+    const values = (slots) =>
+      Object.fromEntries(
+        (Array.isArray(slots) ? slots : [])
+          .filter((e) => isMap(e) && typeof e.slot === "string")
+          .map((e) => [
+            e.slot,
+            {
+              type: e.type ?? e.schema,
+              ...(e.required === false ? { optional: true } : {}),
+              ...(typeof e.description === "string"
+                ? { description: e.description }
+                : {}),
+            },
+          ]),
+      );
+    c = {
+      ...c,
+      signature: {
+        ...rest,
+        inputs: values(inputSlots),
+        outputs: values(outputSlots),
+      },
+    };
+  }
+  if (isMap(c.retry)) {
+    let r = c.retry;
+    if (isMap(r.retryWhen))
+      r = { ...r, retryWhen: rekey(r.retryWhen, "slot", "output") };
+    if (Array.isArray(r.feedback))
+      r = {
+        ...r,
+        feedback: r.feedback.map((e) => rekey(e, "fromSlot", "fromOutput")),
+      };
+    if (isMap(r.onExhausted) && isMap(r.onExhausted.detailFrom))
+      r = {
+        ...r,
+        onExhausted: {
+          ...r.onExhausted,
+          detailFrom: rekey(r.onExhausted.detailFrom, "slot", "output"),
+        },
+      };
+    c = { ...c, retry: r };
+  }
+  return c;
+};
+
+/** An eval case's step assertion: `action-outcome` with `actionKey` → `step-outcome` with `stepKey`. */
+const assertionEleven = (assertion) =>
+  isMap(assertion) && assertion.kind === "action-outcome"
+    ? { ...rekey(assertion, "actionKey", "stepKey"), kind: "step-outcome" }
+    : assertion;
+
+/**
+ * Format 10 → 11 over a structured document (`held` is the document as this
+ * step was given it). Refuses a document whose flows
+ * hold actions or an output binding (what format 11 states as steps), naming
+ * every such flow; never drops one. Every other part moves: a flow's
+ * signature lists become maps, an endpoint's slot keys are renamed, and an
+ * eval case's action assertion names its step.
+ */
+const formatElevenJson = (doc, held) => {
+  const out = { ...doc };
+  if (isMap(doc.flows)) {
+    const held = Object.entries(doc.flows)
+      .filter(
+        ([, flow]) =>
+          isMap(flow) &&
+          (!isEmpty(flow.actions) || !isEmpty(flow.outputBinding)),
+      )
+      .map(([key]) => key);
+    if (held.length > 0) throw new Error(FLOWS_ARE_REAUTHORED(held));
+    out.flows = Object.fromEntries(
+      Object.entries(doc.flows).map(([key, flow]) => {
+        if (!isMap(flow)) return [key, flow];
+        const {
+          actions: _none,
+          outputBinding: _unbound,
+          inputTypeNames,
+          outputTypeNames,
+          ...rest
+        } = flow;
+        const inputs = signatureMap(
+          inputTypeNames,
+          `flows.${key}.inputTypeNames`,
+          true,
+        );
+        const outputs = signatureMap(
+          outputTypeNames,
+          `flows.${key}.outputTypeNames`,
+          false,
+        );
+        return [
+          key,
+          {
+            ...rest,
+            ...(inputs === undefined ? {} : { inputs }),
+            ...(outputs === undefined ? {} : { outputs }),
+          },
+        ];
+      }),
+    );
+  }
+  const endpoints = doc.surfaces?.endpoints;
+  if (isMap(endpoints))
+    out.surfaces = {
+      ...doc.surfaces,
+      endpoints: Object.fromEntries(
+        Object.entries(endpoints).map(([key, endpoint]) => [
+          key,
+          isMap(endpoint) && Object.hasOwn(endpoint, "targetConfig")
+            ? {
+                ...endpoint,
+                targetConfig: endpointTargetEleven(endpoint.targetConfig),
+              }
+            : endpoint,
+        ]),
+      ),
+    };
+  if (isMap(doc.evals))
+    out.evals = Object.fromEntries(
+      Object.entries(doc.evals).map(([key, suite]) => {
+        if (!isMap(suite)) return [key, suite];
+        const renamed = rekey(suite, "perActionLatency", "perStepLatency");
+        if (!isMap(renamed.cases)) return [key, renamed];
+        return [
+          key,
+          {
+            ...renamed,
+            cases: Object.fromEntries(
+              Object.entries(suite.cases).map(([caseKey, evalCase]) => [
+                caseKey,
+                isMap(evalCase) && Array.isArray(evalCase.assertions)
+                  ? {
+                      ...evalCase,
+                      assertions: evalCase.assertions.map(assertionEleven),
+                    }
+                  : evalCase,
+              ]),
+            ),
+          },
+        ];
+      }),
+    );
+  // A section this step left as it was is carried as the value it was given.
+  for (const key of Object.keys(out))
+    if (
+      key !== "kipory" &&
+      Object.hasOwn(held, key) &&
+      JSON.stringify(out[key]) === JSON.stringify(held[key])
+    )
+      out[key] = held[key];
+  return out;
+};
+
+/** The YAML keys under an endpoint's `targetConfig` that format 11 renames or removes. */
+const ENDPOINT_SLOT_KEYS = new Set([
+  "deltaSlot",
+  "actionVersions",
+  "inputSlots",
+  "outputSlots",
+  "fromSlot",
+]);
+
+/**
+ * A YAML document holding what format 11 restructures is refused, with its
+ * line: a flow's actions or output binding by the platform's sentence, and
+ * a flow's signature, an endpoint's slot keys or an action assertion because
+ * a line-by-line conversion cannot move them.
+ */
+const formatElevenYaml = (lines) => {
+  const rows = outline(lines);
+  const held = [];
+  rows.forEach((row) => {
+    if (row === null || row.body === true || row.key === null) return;
+    const { path } = row;
+    if (
+      (pathIs(path, ["flows", "*", "actions"]) ||
+        pathIs(path, ["flows", "*", "outputBinding"])) &&
+      !/^(\{\s*\}|~|null)?$/.test(row.value) &&
+      !held.includes(path[1])
+    )
+      held.push(path[1]);
+  });
+  // A key with its children on the lines below states an empty value.
+  rows.forEach((row) => {
+    if (row === null || row.body === true || row.key === null) return;
+    const { path } = row;
+    if (
+      path.length > 3 &&
+      path[0] === "flows" &&
+      (path[2] === "actions" || path[2] === "outputBinding") &&
+      !held.includes(path[1])
+    )
+      held.push(path[1]);
+  });
+  if (held.length > 0) throw new Error(FLOWS_ARE_REAUTHORED(held));
+  rows.forEach((row, index) => {
+    if (row === null || row.body === true || row.key === null) return;
+    const { path } = row;
+    const moved =
+      pathIs(path, ["flows", "*", "inputTypeNames"]) ||
+      pathIs(path, ["flows", "*", "outputTypeNames"]) ||
+      (path[0] === "surfaces" &&
+        path[1] === "endpoints" &&
+        path[3] === "targetConfig" &&
+        (ENDPOINT_SLOT_KEYS.has(row.key) ||
+          (row.key === "slot" && path.includes("retry")))) ||
+      (path[0] === "evals" &&
+        path.length === 2 &&
+        row.key === "perActionLatency") ||
+      (path[0] === "evals" &&
+        path.includes("assertions") &&
+        (row.key === "actionKey" ||
+          (row.key === "kind" && unquote(row.value) === "action-outcome")));
+    if (moved)
+      throw new Error(
+        `line ${String(index + 1)} (${path.join(".")}): format 11 restructures this (a flow's signature is a map by name, an endpoint's slot keys name outputs, an action assertion names its step), which a line-by-line YAML conversion cannot do: convert the JSON form of the document, or export the project again (\`GET /v1/projects/{nodeId}/document\` with \`Accept: application/yaml\`).`,
+      );
   });
 };
 
@@ -1598,7 +1963,7 @@ if (STAGES.at(-1).to !== TARGET_VERSION)
   throw new Error(
     `upgrade-document: its conversions end at version ${STAGES.at(-1).to}, not at ${TARGET_VERSION}, the version it converts to`,
   );
-const CONVERTS = `this script converts version ${STAGES.map((stage) => stage.from).join(" or ")} to ${TARGET_VERSION}`;
+const CONVERTS = `this script rewrites the keys of version ${STAGES.map((stage) => stage.from).join(" or ")} to version ${TARGET_VERSION}'s (a flow's actions are never converted)`;
 /** The steps a document stating `version` still has to take, or null for a version not read. */
 const stagesFrom = (version) => {
   const first = STAGES.findIndex((stage) => stage.from === version);
@@ -2506,6 +2871,7 @@ if (isMain) {
         "usage: node upgrade-document.mjs <file.kipory.yaml|file.json> [--write]",
         `  ${CONVERTS}; without --write it prints the result, with it the file is rewritten in place.`,
         "  A YAML document holding a field format 9 restructures (a view's fixed text included) is refused: convert the JSON form, or export the project again (`GET /v1/projects/{nodeId}/document` with `Accept: application/yaml`).",
+        "  A document whose flows hold format-10 actions is refused: write the flow's steps in format 11; they are never converted.",
       ].join("\n"),
     );
     process.exit(2);

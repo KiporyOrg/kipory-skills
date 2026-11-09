@@ -19,8 +19,8 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 | --- | --- | --- | --- | --- |
 | `createdAfter` | string | no | — | Count only rows created at or after this ISO-8601 date. ⚠️ This is when the row was stored; for your own dates use `fieldFilters`. |
 | `createdBefore` | string | no | — | Count only rows created at or before this ISO-8601 date. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list counts zero; a never-produced input skips the action. |
-| `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the action. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list counts zero; a never-produced input skips the step. |
+| `linkFilters` | object[], at least 1 item | no | — | Count only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
 | `statuses` | string[], at least 1 item | no | — | Count only rows with these statuses; empty counts them all. |
 | `tableKey` | string | yes | — | The table to count. |
 | `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; project-wide tables ignore it. ⚠️ A count can reveal how many records exist outside the user's own. |
@@ -109,7 +109,7 @@ Filter by status, date, vocabulary, field or link; the database does the countin
 
 ## Worked example
 
-Counts every record matching its filters, so an action can answer a total without reading the rows.
+Counts every record matching its filters, so a step can answer a total without reading the rows.
 
 #### Everything
 
@@ -117,7 +117,7 @@ No filters beyond the table and the owner, so this is the user's total for that 
 
 Reads `{ userId }` → emits `number` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -144,7 +144,7 @@ One declared field narrows the count. The value lives in that field's own column
 
 Reads `{ userId }` → emits `number` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -176,11 +176,11 @@ Output:
 
 #### Nothing matches
 
-The filters exclude every row. `0` is a real answer, not an absence a later action must guard.
+The filters exclude every row. `0` is a real answer, not an absence a later step must guard.
 
 Reads `string` → emits `number` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

@@ -11,14 +11,14 @@ Each place comes with address, coordinates, category, rating, phone, website and
 - **I/O:** `string` → `PlaceCard[]`
 - **Also found as:** places nearby, nearby, near me, local businesses, find businesses
 - **Reads:** One text query that says what and where, like a category and a town. With `location` set, it says where and the text only what. _(shape hint: `string`)_
-- **Emits:** A list of `PlaceCard`, each with the place ID other place actions take. Empty when the map lists nothing; a `TRUNCATED` warning means more places may exist.
-- **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `query`
+- **Emits:** A list of `PlaceCard`, each with the place ID other place steps take. Empty when the map lists nothing; a `TRUNCATED` warning means more places may exist.
+- **Softens these failures:** `rate-limited`, `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `query`
 - **External dependency:** Apify — Runs an Apify actor that searches the map. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Charged as:** `apify/place-search-usage` per item — a millionth of a dollar the vendor charged for the run. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
 - **Rate limit:** 30 per min in bucket `apify`, counted per project — shared with `place.details`, `place.reviews`, `telegram.search-channels`, `web.rankings`, `web.search`, `web.traffic`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -54,11 +54,11 @@ Finds the places a map lists for a query, one card per place.
 
 #### A category in a town
 
-One card per place; feed a place ID to the reviews action to read what people wrote.
+One card per place; feed a place ID to the reviews step to read what people wrote.
 
 Reads `string` → emits `PlaceCard[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

@@ -12,13 +12,13 @@ Loads the page in a real browser, so script-built pages work. Results are cached
 - **Also found as:** scrape, scrape website, crawl, read website, website text
 - **Reads:** One URL — the page to scrape. Anything that is not `http` or `https` is refused before a call is spent; an empty slot emits an empty result. _(shape hint: `string`)_
 - **Emits:** A `ScrapedPage` — the rendered body as markdown, plus its metadata. Empty, with a `SCRAPE_FAILED` or `RATE_LIMITED` warning rather than a failed run, when the page could not be rendered.
-- **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `currentUrl`
+- **Softens these failures:** `rate-limited`, `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `url`
 - **External dependency:** Firecrawl — Renders JS-heavy pages via the Firecrawl API. Uses a Firecrawl API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `firecrawl` (vendor: Firecrawl); falls through to the platform's own key when no node holds one.
 - **Charged as:** `firecrawl/scrape` per item — a millionth of a dollar the vendor charged for the page. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
 - **Rate limit:** 10 per min in bucket `firecrawl`, counted per project — shared with `url.screenshot`
-- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -28,7 +28,7 @@ Loads the page in a real browser, so script-built pages work. Results are cached
 | `includeTags` | string[] | no | `[]` | CSS selectors to keep, dropping everything else. ⚠️ Narrower than `excludeTags`: leave it empty unless the article's container is known and stable. |
 | `mainContentFallbackMinChars` | integer, at least 0 | no | `0` | Below this many characters, also read the whole page; 0 is off. ⚠️ Non-zero bills a second scrape on each page that trips it, keeping the longer; so does an overlay-only result. |
 | `onlyMainContent` | boolean | no | `true` | Strip navigation, footers, and ads — request article body only. |
-| `timeoutMs` | integer, more than 0 | no | `30000` | Milliseconds to wait for the provider; 1,000 to 136,000. ⚠️ This limits the one page read, not the action's own `timeoutMs` run setting. |
+| `timeoutMs` | integer, more than 0 | no | `30000` | Milliseconds to wait for the provider; 1,000 to 136,000. ⚠️ This limits the one page read, not the step's own `timeoutMs` run setting. |
 
 ## Worked example
 

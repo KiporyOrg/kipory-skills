@@ -24,7 +24,7 @@ One exact answer over every matching record, grouped by a field, a date, a term 
 | `order` | object | no | — | Order groups by a key or a measure; group keys by default. |
 | `tableKey` | string | yes | — | The table whose records to total. |
 | `timeZone` | string | no | `"UTC"` | The time zone days, weeks and months are cut in. |
-| `userId` | union | no | — | The person whose records to total; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the action on user-owned tables. |
+| `userId` | union | no | — | The person whose records to total; empty means the signed-in user. ⚠️ An empty value, or no signed-in user, fails the step on user-owned tables. |
 
 ### `clauses` — each item is one of
 
@@ -368,7 +368,7 @@ No group keys, so one row: the approved loans, their summed amount and the large
 
 Reads `{ decision }` → emits `RecordAggregate` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -416,7 +416,7 @@ Two keys: a field and a date cut into months. Loans with no region form the `nul
 
 Reads `{ from }` → emits `RecordAggregate` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -480,7 +480,7 @@ No record matched. The count and the sum are `0`, a real answer; the largest of 
 
 Reads `string` → emits `RecordAggregate` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

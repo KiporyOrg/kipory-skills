@@ -12,7 +12,7 @@ Gives a person or team record read, write, delete or manage on one sharing-table
 - **Also found as:** share record, grant access, team member, permission
 - **Reads:** Two slots: the record to share, then whom to share it with — a person's user id, or a team record's id. _(shape hint: `string, string`)_
 - **Emits:** `true` once the grant is staged; it applies with the run's change set, so a run that fails shares nothing.
-- **Suggested input streams:** `recordId`, `principal`
+- **Inputs (`with`):** `recordId`, `principal`
 
 ## Config
 
@@ -50,7 +50,7 @@ Every person holding `member` on the team now reads the task.
 
 Reads `mixed` → emits `boolean` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

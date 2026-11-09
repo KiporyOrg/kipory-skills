@@ -58,7 +58,7 @@ Each item of `eventTypes`:
 
 ### `POST /v1/event-types`
 
-Create an event type in a project: the namespace it lives in (`categoryKey` — a new one needs nothing created first), what a flow's `event.emit` action raises, who it is about by default (`defaultScope`), its payload shape (`payloadDataTypeId`, a type) and whether its events are stored in the event log (`durable`, default false). A trigger can select it once it is stored and not run-scoped. Its namespace and key are permanent. A reserved platform channel name is refused (422), and so is a source provider's namespace (409 — only that provider's source writes there). With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several at once: the `events` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Create an event type in a project: the namespace it lives in (`categoryKey` — a new one needs nothing created first), what a flow's `event.emit` step raises, who it is about by default (`defaultScope`), its payload shape (`payloadDataTypeId`, a type) and whether its events are stored in the event log (`durable`, default false). A trigger can select it once it is stored and not run-scoped. Its namespace and key are permanent. A reserved platform channel name is refused (422), and so is a source provider's namespace (409 — only that provider's source writes there). With `validateOnly: true` it answers whether the create would be refused, writing nothing. Several at once: the `events` section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Request body**
 
@@ -248,7 +248,7 @@ Each item of `warnings`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
-| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
+| `outlinePath` | `string` | no | Where the step this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on step; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Shape 2, with `ok`, `diagnostics`, `complete`:

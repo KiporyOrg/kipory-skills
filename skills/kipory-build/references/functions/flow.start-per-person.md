@@ -10,16 +10,16 @@ Each run acts for its person; the project pays. They start once this run saves; 
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own start, so a new run starts everyone's runs again.
 - **I/O:** `people and inputs` → `PeopleStartResult`
 - **Also found as:** for each person, run for everyone, per user, start flow for people, everyone's own run
-- **Reads:** The people, from `people`, and what every run starts with, from `inputs`. A run that acts for a person, or a set over the limit, fails the action. _(shape hint: `people and inputs`)_
+- **Reads:** The people, from `people`, and what every run starts with, from `inputs`. A run that acts for a person, or a set over the limit, fails the step. _(shape hint: `people and inputs`)_
 - **Emits:** A `PeopleStartResult` — how many people the start named. A preview starts nobody and says how many it would have.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
+| `flow` | string | yes | — | The key of the flow each person's run runs, like `daily-digest`. ⚠️ The flow's key (kebab, like `daily-digest`), as `flow.invoke` names it. |
 | `inputs` | object | no | `{}` | Each input's value: a slot path, fixed value or expression. |
 | `people` | union | yes | — | Whose runs to start. ⚠️ Only from a run that acts for nobody — a schedule, trigger or API key; started runs cannot start more. |
-| `targetFlowId` | string | yes | — | The flow each person's run runs. ⚠️ A project document names it `target`, by key. |
 
 ### `people` — one of
 
@@ -41,7 +41,7 @@ Each run acts for its person; the project pays. They start once this run saves; 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `list` | yes | — | A list of people an earlier action produced. |
+| `kind` | `list` | yes | — | A list of people an earlier step produced. |
 | `userIds` | string | yes | — | A list of person ids; ids outside the project are dropped. |
 
 ## Worked example
@@ -54,11 +54,11 @@ Three people, so three runs start once this run is saved.
 
 Reads `object` → emits `PeopleStartResult` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
-  "targetFlowId": "flow_daily_digest",
+  "flow": "daily-digest",
   "inputs": {
     "firedAt": "schedule.firedAt"
   },
@@ -90,11 +90,11 @@ Two people follow the feed, so two runs start.
 
 Reads `object` → emits `PeopleStartResult` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
-  "targetFlowId": "flow_new_item_alert",
+  "flow": "new-item-alert",
   "inputs": {
     "feed": "feed"
   },

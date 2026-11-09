@@ -4,104 +4,41 @@
 
 Run another flow, passing values in and taking results back.
 
-Only the slots you map cross between the two flows, in and out.
+It hands the other flow its inputs and reads back what that flow returns.
 
 - **Group:** flow · **Phase:** `control` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `the parent slots its inputs read` → `nothing`
+- **I/O:** `the values its inputs read` → `the called flow's outputs`
 - **Also found as:** call a flow, subflow, reuse a flow, run flow
-- **Reads:** Reads the parent slots its `inputs` entries name, a path's root or an expression's. A save fills `inputStreams` from them. _(shape hint: `the parent slots its inputs read`)_
-- **Emits:** Whatever `outputs` copies back from the sub-flow, into the parent slots it names. The action writes no slot of its own.
+- **Reads:** Reads the values its `inputs` arguments name: a path's root, or an expression's. _(shape hint: `the values its inputs read`)_
+- **Emits:** What the called flow's `return` gives, one field per output of its signature; `{}` when it returns nothing.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `inputs` | object | no | `{}` | Each sub-flow input's value: a parent slot path, fixed value or expression. |
-| `outputs` | object[] | no | `[]` | Sub-flow outputs to copy back, and the parent slots receiving them. ⚠️ Each row's `derivedShape` is filled in on every save, so never set it. |
-| `targetFlowId` | string | yes | — | The saved flow to run, never this flow itself. |
-
-### `outputs` — each item
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `subFlowSlot` | string | yes | — | The sub-flow slot to copy back. |
-| `parentSlot` | string | yes | — | The parent slot it is written to. |
-| `derivedShape` | union | no | — | The copied value's type, filled in on save; leave it out. |
-
-`derivedShape` — one of:
-
-**`derivedShape` › `kind: ref`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape from the project's types, by id. |
-| `dataTypeId` | string | yes | — | The id of an existing type this points at. |
-
-**`derivedShape` › `kind: list`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `list` | yes | — | An array of values. |
-| `element` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
-
-**`derivedShape` › `kind: optional`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `optional` | yes | — | A value that may be absent altogether. |
-| `inner` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
-
-**`derivedShape` › `kind: union`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `union` | yes | — | One of several shapes; an action writes only one. |
-| `members` | a list of `derivedShape` alternatives, at least 2 items | yes | — | The alternatives, at least two. |
-
-**`derivedShape` › `kind: record`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `record` | yes | — | A map from text keys to values of one type. |
-| `valueType` | any `derivedShape` alternative | yes | — | The shape at this position, one level in. |
-
-**`derivedShape` › `kind: recordRef`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `recordRef` | yes | — | One stored record, given by its id. |
-| `tableKey` | string | yes | — | Which table the id refers to. |
+| `flow` | string | yes | — | The key of another saved flow to run, like `score-article`. |
+| `inputs` | object | no | `{}` | Each input of the called flow: a path, fixed value or expression. |
 
 ## Worked example
 
-Runs another saved flow inline. Only the mapped slots cross in, and only the mapped outputs come back.
+Runs another saved flow inline. Only its inputs cross in, and only what it returns comes back.
 
 #### In and out
 
 The sub-flow run here: Article scrape & summarize.
 
-Reads `mapped slots` → emits `mapped slots` · 2→2 slots mapped
+Reads `the flow's inputs` → emits `the flow's outputs` · 2 in → 2 back
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
-  "targetFlowId": "flow_a1b2c3",
+  "flow": "article-scrape-summarize",
   "inputs": {
     "entryUrl": "currentUrl",
     "window": "dateRange"
-  },
-  "outputs": [
-    {
-      "subFlowSlot": "summary",
-      "parentSlot": "articleSummary"
-    },
-    {
-      "subFlowSlot": "qualityScore",
-      "parentSlot": "articleScore"
-    }
-  ]
+  }
 }
 ```
 
@@ -110,27 +47,26 @@ Input:
 - `currentUrl → entryUrl` — into the sub-flow
 - `dateRange → window` — into the sub-flow
 
-Back to the parent:
+The step's value:
 
-- `summary → articleSummary`
-- `qualityScore → articleScore`
+- `summary` — read as <step key>.summary
+- `qualityScore` — read as <step key>.qualityScore
 
 #### Pass in only
 
 The sub-flow run here: Save the article & tag it.
 
-Reads `mapped slots` → emits `nothing` · 2→0 slots mapped
+Reads `the flow's inputs` → emits `nothing` · 2 in → 0 back
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
-  "targetFlowId": "flow_d4e5f6",
+  "flow": "save-article-and-tag",
   "inputs": {
     "article": "currentArticle",
     "url": "sourceUrl"
-  },
-  "outputs": []
+  }
 }
 ```
 
@@ -139,7 +75,7 @@ Input:
 - `currentArticle → article` — into the sub-flow
 - `sourceUrl → url` — into the sub-flow
 
-Back to the parent:
+The step's value:
 
 - nothing comes back — side effects only
 
@@ -147,24 +83,14 @@ Back to the parent:
 
 The sub-flow run here: List active users this week.
 
-Reads `mapped slots` → emits `mapped slots` · 0→2 slots mapped
+Reads `the flow's inputs` → emits `the flow's outputs` · 0 in → 2 back
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
-  "targetFlowId": "flow_g7h8i9",
-  "inputs": {},
-  "outputs": [
-    {
-      "subFlowSlot": "users",
-      "parentSlot": "activeUsers"
-    },
-    {
-      "subFlowSlot": "count",
-      "parentSlot": "activeUserCount"
-    }
-  ]
+  "flow": "active-users-this-week",
+  "inputs": {}
 }
 ```
 
@@ -172,7 +98,7 @@ Input:
 
 - nothing goes in — the sub-flow starts from its own state
 
-Back to the parent:
+The step's value:
 
-- `users → activeUsers`
-- `count → activeUserCount`
+- `users` — read as <step key>.users
+- `count` — read as <step key>.count

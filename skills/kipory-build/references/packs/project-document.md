@@ -10,7 +10,7 @@
 
 A project's whole configuration — its types, tables, relations, vocabularies, views and shapes,
 events, flows, entry points and eval suites — as ONE nested document addressed by key. Nesting expresses
-ownership: a flow's actions sit under the flow, a vocabulary's terms under the vocabulary, a suite's
+ownership: a flow's steps sit under the flow, a vocabulary's terms under the vocabulary, a suite's
 cases under the suite. Ids are optional; the platform fills
 them in on export and matches by them on apply. The document you write is the document the
 platform hands back.
@@ -33,15 +33,15 @@ unchanged project answers `304`.
   bootstrap read's parameter is `sections`, and each read refuses the other's spelling with a
   `422`). A partial read carries no `ETag` — a validator claims you hold the whole thing.
 - `Accept: application/yaml` answers the document ALONE as YAML — the file form, first line
-  `kipory: 10`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
+  `kipory: 11`, saved as `<name>.kipory.yaml` and sent back to plan as it is (a document that
   states any other format version, `kipory: 1` included, is refused with
   `DOCUMENT_VERSION_UNSUPPORTED` — export again to get the current form). The wire is JSON,
   and JSON answers the `{ version, document }` envelope. The YAML form carries the read as
   `basedOn` inside the document, whole or by section, so a file edited for hours still names it.
 - In the YAML form each flow is preceded by its outline as comment lines
-  (`# outline (format 9), derived at export; plan ignores it`, then the lines
+  (`# outline (format 10), derived at export; plan ignores it`, then the lines
   `GET /v1/flows/{id}/outline` answers). A plan ignores comments, so the file plans back
-  unchanged; edit the actions, never the outline.
+  unchanged; edit the steps, never the outline.
 - A value saved before a rule that now refuses it is exported as stored, never as an error.
   The JSON answer adds `warnings`, one `STORED_VALUE_REFUSED_ON_APPLY` per value, naming its
   `field` and the value; the YAML form says the same in a comment above the value. A plan of
@@ -52,7 +52,7 @@ unchanged project answers `304`.
 **What a project holds, in a few KB:** `GET /v1/projects/{nodeId}/document/summary` answers the
 same read as `{ version, lines }`, one line per element in document order. A type lists its
 fields (`name:type`, `*` when required); a table its owner, type and the fields it keys, filters
-and links; a flow `(inputs) → outputs` and its `action:function`s; an endpoint its method, path,
+and links; a flow `(inputs) → outputs` and its function steps (`key:function`, at any depth, after `steps`); an endpoint its method, path,
 auth, target and success status; a schedule its cron, flow and whether it runs. The platform's
 own event types are left out. Read it first when a session starts on a project that already
 holds something, and the whole document only for the rows you will change. The floor is VIEWER.
@@ -86,9 +86,9 @@ discard what the flow writes (eval suites (capability pack `evals` — `GET /v1/
 **A read is a view; a flow only when it computes.** `views` holds the project's named reads: a
 view states one read — its table (or a base view it `extends`), its conditions under `where`, its
 `params`, its `order` and `pageSize`, and the `shape` its rows take — and a flow reads it by key
-with one `record.view` action. A `GET` endpoint over that flow declares only its path: its typed
+with one `record.view` step. A `GET` endpoint over that flow declares only its path: its typed
 query, paging and `ETag` come from the view (anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`)).
-Write an inline `record.list` or `record.query` only when a value comes from an earlier action.
+Write an inline `record.list` or `record.query` only when a value comes from an earlier step.
 
 <!-- field-ok: authorId — one project's example field name, not a platform field -->
 <!-- field-ok: genre — one project's example field name, not a platform field -->
@@ -131,13 +131,13 @@ Write an inline `record.list` or `record.query` only when a value comes from an 
 
 What no schema says:
 
-- **`where` is `record.query`'s clause grammar written as values** — a view names no run slot. A
+- **`where` is `record.query`'s clause grammar written as values** — a view reads no step's value. A
   `field` clause takes exactly one operand: a fixed `value`; a `param`, one of the view's params; or a `set` (the
   values of a field across another view's rows, `id` by default, under `in` or `not-in`).
 - ⛔ **A view's fixed text is `{ "literal": … }`.** Write `"value": { "literal": "poetry" }`, a list
   for `in` / `not-in` as `{ "literal": ["novel", "poetry"] }`; a bare number or `true`/`false` stays
-  as it is. A bare text is refused (in an action a bare string is a slot path, and a view reads no
-  slot), and so is an `{ "expr": … }`; a value the reader gives is a `param`.
+  as it is. A bare text is refused (in a step a bare string is a path read, and a view reads no
+  step's value), and so is an `{ "expr": … }`; a value the reader gives is a `param`.
   The same holds at every operand of a view's clause: a `term`'s `slug`, a `semantic` `text` or
   `likeRecordId`, a `link` or `stream` `where` entry's `value`, a stream `window`'s `from` / `to`,
   and a `peer` field clause's `value`.
@@ -149,7 +149,7 @@ What no schema says:
   case, at least 3 characters with a word in them, not signs alone — a param that does not hold
   that is refused when the view is read, and a param of another type at save). A view
   holding an `any` clause is refused at save, `VIEW_ANY_UNSUPPORTED`: OR one field's values with
-  `in`, or ask the OR in a `record.query` action. A view's `order` may name a number, true/false or
+  `in`, or ask the OR in a `record.query` step. A view's `order` may name a number, true/false or
   text field with a `filter` use; a text field needs the type's `maxLength` of at most 500
   (`QUERY_ORDER_TEXT_UNBOUNDED`).
 - **The exclusion runs before the page is cut**, so a base view that drops what the caller hid
@@ -159,22 +159,22 @@ What no schema says:
 - **An absent param never widens the read.** It takes its `default`; with `optional: true` only the
   clauses naming it are left out; with neither the read fails `VIEW_PARAM_MISSING` before reading.
   A bad value fails `VIEW_PARAM_INVALID`. A param of a set or a base needs a `default`: nothing
-  passes it one. This is how an optional filter is written — one action, not a branch per case.
+  passes it one. This is how an optional filter is written — one step, not a branch per case.
 - **A linked read the reader asks for.** A view's linked read (either level) takes `when`: `true`,
   `false`, or `{ "param": "withAuthor" }` naming a boolean param of the view. It is read only when
   that is `true`; `false`, or an optional param left out, leaves it out (each row's `linked` then
   lacks its name). Its far table, when the relation reaches several, is `peerTable`. A view's
-  `when` names no slot, so it is never `{ "expr": … }` or a bare text.
+  `when` reads no step's value, so it is never `{ "expr": … }` or a bare text.
 - **Who it reads as is the view's `scope`.** `"caller"`, the default, reads a person-owned table as
   the signed-in person — the identity is never wired. A flow that can start with no person (a
   schedule, a trigger, a project table's processing) and reaches such a view is refused at plan,
   `VIEW_CALLER_WITHOUT_PERSON`; `"project"` reads as the project and may reach no person-owned
   table.
 - **A shape is the answer's type.** A shaped row carries `id` and exactly the named properties; a
-  linked one-record property is absent when nothing is linked. The flow slot, the endpoint's
+  linked one-record property is absent when nothing is linked. The step's value, the endpoint's
   answer and the OpenAPI component (`BookCard`) are derived from it, so they cannot disagree.
 - **What a view cannot say yet** — OR across clauses, an order by a linked record's value, a set
-  over `link` or `term` clauses, a computed property — stays a flow action after `record.view`.
+  over `link` or `term` clauses, a computed property — stays a flow step after `record.view`.
 
 Both sections are maps keyed by the view's or shape's key, with `delete: true` and `prune: true` as
 every other section. A view names only keys, so its rows carry no id but their own. A view is
@@ -202,20 +202,21 @@ reports it as `derived` and never writes or prunes it, so an export from a proje
 applies cleanly to one without, whose own source then seeds it. A row's display text, where it has one, is `label`. A few references
 are ids on the row API and keys in the document — flows, types, sources, and a search profile:
 
-| The row API spells           | The document spells   | Meaning                                                   |
-| ---------------------------- | --------------------- | --------------------------------------------------------- |
-| `dataTypeId`                 | `type`                | a table's type, by key                                    |
-| `payloadDataTypeId`          | `payload`             | an event type's payload, by type key                      |
-| `propertiesDataTypeId`       | `properties`          | a relation's link properties, by type key                 |
-| `dataTypeId`                 | `type`                | a config namespace's type, by key                         |
-| `flowId`                     | `flow`                | a table's, trigger's, schedule's or eval suite's flow     |
-| `sourceId`                   | `source`              | a trigger's source, as `<provider>/<key>`                 |
-| `targetConfig.flow.id`       | `targetConfig.flow`   | an endpoint target's flow, by key                         |
-| `resolverFlowId`             | `resolver`            | a vocabulary's resolving flow, by key                     |
-| `scorerFlowIds`              | `scorers`             | an eval suite's scorer flows, by key                      |
-| `uses.search.profileId`      | `uses.search.profile` | a table's embedding profile, by key — its live generation |
-| `targetFlowId`               | `target`              | a `flow.invoke` action's target, by key                   |
-| `dataTypeId` in a schema ref | `ref`                 | an action's schema reference, by type key                 |
+| The row API spells      | The document spells   | Meaning                                                   |
+| ----------------------- | --------------------- | --------------------------------------------------------- |
+| `dataTypeId`            | `type`                | a table's type, by key                                    |
+| `payloadDataTypeId`     | `payload`             | an event type's payload, by type key                      |
+| `propertiesDataTypeId`  | `properties`          | a relation's link properties, by type key                 |
+| `dataTypeId`            | `type`                | a config namespace's type, by key                         |
+| `flowId`                | `flow`                | a table's, trigger's, schedule's or eval suite's flow     |
+| `sourceId`              | `source`              | a trigger's source, as `<provider>/<key>`                 |
+| `targetConfig.flow.id`  | `targetConfig.flow`   | an endpoint target's flow, by key                         |
+| `resolverFlowId`        | `resolver`            | a vocabulary's resolving flow, by key                     |
+| `scorerFlowIds`         | `scorers`             | an eval suite's scorer flows, by key                      |
+| `uses.search.profileId` | `uses.search.profile` | a table's embedding profile, by key — its live generation |
+
+A flow's steps hold no id to re-spell: they are written the same way in the document and in
+`PUT /v1/flows/{id}/steps`, and a `flow.invoke` step names the flow it calls by key, as `flow` in its `with`.
 
 An endpoint's `contractConfig` is the row API's, whole: who may call it is stated there too.
 `auth: "none"` makes the endpoint public — callable with no key and no session — and `publicRpm`
@@ -286,8 +287,10 @@ one's history: the plan is a `422` with `details.reason: "BASED_ON_OTHER_PROJECT
 projects and this project's current `version`. To apply the file here, plan it against this
 project as it is now: `?basedOn=<that version>`.
 
-The answer lists only rows that change — `create`, `update`, `delete` — and counts the rest under
-`counts.unchanged`. Each `update` says what changes field by field under `fields` — each field's
+The answer lists only rows that change — `create`, `update`, `move`, `delete` — and counts the rest
+under `counts.unchanged`. A flow's steps are rows of their own (`resource: "steps"`, at
+`flows.<flow>.steps.<key>`), named by key: a step whose list or place changed, its value kept, is
+one `move` (counted as `move` in `counts`), never a delete and a create. Each `update` says what changes field by field under `fields` — each field's
 path, its value before and its value after; text over several lines also as a line diff. `diagnostics` lists what this document introduces;
 what the project already had is counted under `health` (errors and warnings before and after,
 what it adds, what it fixes) — over the flows the document can reach.
@@ -301,7 +304,7 @@ each other. A read older than the history the project keeps is `409 PLAN_STALE` 
 
 Your own writes after a read are not moves only when they carry your session's label: an apply
 takes `label` (the plan's by default), and a row save — a `PATCH /v1/flows/{id}`, a
-`POST /v1/actions`, any design row's own write — takes the header `Kipory-Session-Label` (1–64
+`PUT /v1/flows/{id}/steps`, any design row's own write — takes the header `Kipory-Session-Label` (1–64
 characters), beside `Kipory-Change-Note` (1–500), the sentence history shows for that save. Text
 outside ASCII goes percent-encoded. Send the same label, from the same key, on every plan, apply
 and row save of one working session; a save without it is listed under `moved` like anyone
@@ -314,42 +317,39 @@ once after, and so are the schedules, triggers and endpoints that start those fl
 their own saves run. A finding the document causes carries `introduced: true`; one already there
 carries `introduced: false`. Only an introduced error makes `ok` false and refuses the apply, so an
 `ok` plan leaves no flow with an error it did not name, and a broken project can be repaired one
-document at a time. That holds inside a flow the document writes too: only the actions it changes
-are judged by the write, so an action it leaves as stored is never refused for an error it already
-had (a rule a release added included); an action it does change is refused for one, said once at
-that action as already stored.
+document at a time. That holds inside a flow the document writes too: only the steps it changes
+are judged by the write, so a step it leaves as stored is never refused for an error it already
+had (a rule a release added included); a step it does change is refused for one, said once at
+that step as already stored.
 
 Send a PARTIAL document freely: a section you leave out is untouched, and so is every row you do
 not name. A ROW is stated whole — it is that row's create body, so its required fields are
 required here too (one row asks for more than its create: an `evals` suite must state `scorers`,
 `[]` for a contract suite).
 
-⭐ **A stated element is whole (since format 8).** An element you state — a flow, an action, a table, a
+⭐ **A stated element is whole (since format 8).** An element you state — a flow, a table, a
 trigger — is the whole element: an own optional field you leave out goes back to its default, as
-it would on a create (`timeoutMs` left out of an action resets the stored limit; `description` left
-out clears it). The plan shows each reset as a field going to its default, with a
+it would on a create (`description` left out clears it). The plan shows each reset as a field going to its default, with a
 `FIELD_RESET_TO_DEFAULT` warning naming the value held now, so nothing resets unseen. State a field
 to keep it; the export states every field, so the simplest edit is still the exported element with
 one field changed. Four kinds of field are not reset by leaving them out:
 
-- **owned collections** — a flow's `actions`, a suite's `cases`, a vocabulary's `terms`, a
+- **owned collections** — a flow's `steps`, a suite's `cases`, a vocabulary's `terms`, a
   relation's `pairings`, the project's `config` and `routes`, a table's `uses`: left out,
   untouched; stated, whole (a member you leave out of a stated one IS removed);
-- **what the platform chooses** — an action's `inputSchemas`, `outputSchema`, `outputSlot` and
-  `taskKey` are completed by the save from the action it keeps, and a vocabulary's `resolver` and
-  `resolutionParams` keep the binding the project chose;
+- **what the platform chooses** — a vocabulary's `resolver` and `resolutionParams` keep the
+  binding the project chose;
 - **what only a create sets** — a trigger's `source` and a vocabulary's `parentVocabularyKey`
   (stated with another value, each is refused as permanent);
 - **the project's own `name`** (its `description` resets to `""`).
 
-An action's input wiring — `inputStreams`, `inputPaths`, `inputProjectionNames` — left out is what
-the save derives from the function and its settings (a `flow.invoke`'s `inputs` map, a loop-end's
-carry map, the slots a prompt names), and cleared where it derives none; the plan warns on each one it
-clears. A reference left out is cleared too: a table's `flow` unbinds, and an event type's `payload`
+A flow's `steps` is a list in written order, and the list you state is the flow's list: each step
+is saved as you wrote it, its `with`, its run settings and the blocks nested in it, and a step the
+list leaves out is removed. A reference left out is cleared too: a table's `flow` unbinds, and an event type's `payload`
 and a suite's `regression` go. A config namespace always states its `type` (`type: null` is
 refused), and an eval case's `inputs` is required on an update.
 
-A field's value is whole too: a stated `functionConfig` replaces the stored one, it is not merged
+A field's value is whole too: a stated `with` replaces the stored one, it is not merged
 key by key.
 The simplest edit is the
 exported row with one field changed.
@@ -357,7 +357,7 @@ A field the row's own PATCH does not take — a vocabulary's `cardinality`, a pr
 trigger's `source` — is set when the row is created and permanent afterwards: stated unchanged
 it is fine (an export states everything), stated CHANGED it is refused on its own path, never
 dropped. To change one, state the row under a new key without the `id` and remove the old one.
-The exception is the owned collections (a flow's `actions`, a suite's `cases`, a relation's
+The exception is the owned collections (a flow's `steps`, a suite's `cases`, a relation's
 `pairings` — each `{ fromTableKey, toTableKey }`, as the relation's create takes them — a
 vocabulary's `terms`): each is stated whole, so when present it replaces the owner's collection —
 and a member the project holds that the collection no longer names is REMOVED, which makes that
@@ -370,7 +370,7 @@ contract to whoever already calls that route. It is a statement about this apply
 never part of the row, never exported.
 
 A type's row may carry `renameFields` (`{"<old path>": "<new name>"}`) beside its definition as it
-reads after the rename, and `keepExpressions`, the actions whose expressions or templates keep the
+reads after the rename, and `keepExpressions`, the steps whose expressions or templates keep the
 old name as written. Both are statements about this apply, like `adoptSnapshots`: never stored,
 never exported. The plan answers `renames[]`: what moves, the expression candidates to settle, the
 callers it breaks, and `cost` — a rename calls no model and is not charged, and embeds nothing unless
@@ -418,30 +418,34 @@ is a value, and the field reads `null`. Writing `null` does not clear an overrid
 The answer holds the `version` the plan was computed against, its `planId` and `basedOn`,
 `ignoredIds`, three lists, their `counts` and a verdict:
 
-- `changes` — every row you stated, as `create`, `update`, `delete`, `unchanged`, `derived` or
-  `skipped`, in your document's order, followed by any row a delete takes along. That is not the
+- `changes` — every row you stated, as `create`, `update`, `move`, `delete`, `unchanged`, `derived`
+  or `skipped`, in your document's order, followed by any row a delete takes along. That is not the
   order an apply writes them: it writes creates and updates kind by kind (types first), then
   deletes in reverse. It is complete even when a refusal stopped the attempt early, because it
   comes from comparing your document with the project, not from the attempt. A create's `id` in a
   plan comes from the attempt the plan rolls back, so it is not the id the apply will give the row:
-  take ids from the apply's `document`. An action row whose function takes a JSONata expression
+  take ids from the apply's `document`. A step row whose function takes a JSONata expression
   carries `expressionParts`: each stated expression's size in parts, beside the 1,000-part limit
   (`JSONATA_EXPRESSION_NEAR_LIMIT` warns from 800).
 - `diagnostics` — every finding, each with a `field` that is a path in YOUR document
   (`tables.member.type`), never a path in some row's request body. Gate on `severity` and
   `introduced`: a finding about the state the document leaves carries `introduced` — `false` when
-  it was already in the project, which reports it without gating. A finding about one flow action
-  also carries `outlinePath`, the action's place in that flow's outline as the document leaves it
-  (`each-member › send-note`).
+  it was already in the project, which reports it without gating. A finding about a flow's steps
+  also carries `at`, the key path of the step it is about, and its remedy: `fixes`, each a list of
+  step edits that clears it (apply them to the flow's `steps` in your document, or with
+  `POST /v1/flows/{id}/steps/edit` once the flow exists), or, when there is no ready fix, the
+  `decision` it needs from you.
 - `consequences` — what the change does to stored data, with counts measured in the planning
   transaction: records re-stamped, a vector reconcile queued, stream fields moved, links
-  re-stamped, `links-deleted` — every stored link a relation delete takes along, including a
-  relation a table delete removes with it — and `records-invalid` — stored records that do not fit a
-  type you changed. That last one is found by reach, not by name: change a type and every table
-  whose type it is, or reaches it through a reference, has its stored records checked, whether or
-  not your document mentions the table. The count is of records that do not fit, not only newly
-  broken ones; past 5 000 records of one table it is a floor and says so (`lowerBound: true`). A
-  consequence is never a refusal — the platform tells you, and lets you.
+  re-stamped, and `links-deleted` — every stored link a relation delete takes along, including a
+  relation a table delete removes with it. A consequence is never a refusal — the platform tells
+  you, and lets you. ⛔ A type change that stored records would break is not a consequence: a
+  table's stored records always fit its type, so any tightening they break (a field made required,
+  a narrower type, a new `minLength`, `enum`, `maxLength`, …) is refused 422
+  `TYPE_UNSAFE_FOR_TABLE`, judged by reach — every table whose type it is, or reaches it through a
+  reference, is checked whether or not your document names it — and a table too big to check in
+  time is refused with `details.reason` `RECORDS_CHECK_TOO_SLOW`. Tighten in order: widen (add the
+  field optional), backfill the records, then narrow.
   `reembed` is the one that costs money: this table's stored records are re-embedded for search,
   which spends credits on embedding usage (billed by tokens, so it grows with the records and the
   text each holds), because what its search indexes moved. It is per table, a plan reports it (an
@@ -484,7 +488,7 @@ pairing it has that relation's change on `relations.<kind>` as the cascade, not 
 document says keep it, the delete takes it anyway, and the warning says which won.
 
 Rows are matched by `id` when the project holds a row of that kind with that id. For a type, a
-table, a relation, a vocabulary, a view, a shape, an action, an eval suite and an eval case, keeping the `id` under a new key is a
+table, a relation, a vocabulary, a view, a shape, an eval suite and an eval case, keeping the `id` under a new key is a
 RENAME — one update of the same row, and everything that named it follows; the row API renames
 the same kinds, bar views and shapes, which only a document writes. A view renamed this way is
 renamed in every view that extends it or reads it as a set and in every `record.view` naming it;
@@ -510,7 +514,7 @@ twice — is the only `422` this route answers; a body sent as JSON that is not 
 platform's ordinary `400`. A document that parses but breaks its schema is a `200` plan whose
 diagnostics name every broken path.
 
-A plan's `consequences` include `reference-policy` when a reference newly says `onTargetDelete: delete`: `rows` counts the records holding it today, and the message names the most one deleted record would take with it. They include `fields-unset`: fields the document adds to a type that stored records already use, with the count of records holding no value for one of them, to 5,000 (reads leave them out until each record is written). They include `flows-affected` too: a type the document changes that flows it does not state read or write, directly or through a type that references it. A flow uses a type when its inputs, outputs or an action's schemas name it, when a `record.*` action names a table of that type, or when such a table runs it on its records. Type names are project-wide, so a document that states a type of the same name as another document's updates that type, and its flows with it. The message names the type, the fields that change, and each such flow by key, with whether it reads or writes the type (the first ten, then a count); `rows` counts those flows. A change no flow can feel says nothing: optional fields added, or a `description` changed. It is a warning, not a refusal. If the type is another document's, give yours its own name. The platform does not record which document created a type, so it cannot tell you whose it is. An action's `taskKey` must name a task (`extraction`, `reasoning`, `summarization`, `tiebreak` or `embedding`); any other is refused at the plan, where it used to fail every live run.
+A plan's `consequences` include `reference-policy` when a reference newly says `onTargetDelete: delete`: `rows` counts the records holding it today, and the message names the most one deleted record would take with it. They include `fields-unset`: fields the document adds to a type that stored records already use, with the count of records holding no value for one of them, to 5,000 (reads leave them out until each record is written). They include `flows-affected` too: a type the document changes that flows it does not state read or write, directly or through a type that references it. A flow uses a type when its inputs, outputs or a step's `with.outputSchema` name it, when a `record.*` step names a table of that type, or when such a table runs it on its records. Type names are project-wide, so a document that states a type of the same name as another document's updates that type, and its flows with it. The message names the type, the fields that change, and each such flow by key, with whether it reads or writes the type (the first ten, then a count); `rows` counts those flows. A change no flow can feel says nothing: optional fields added, or a `description` changed. It is a warning, not a refusal. If the type is another document's, give yours its own name. The platform does not record which document created a type, so it cannot tell you whose it is.
 
 ## Apply a document
 
@@ -538,11 +542,9 @@ history carrying your note and label. Seeding and relabelling a vocabulary's ter
 commit as writes of their own (below), each moving the version again under the same note and
 label, so `appliedVersion` can be several above the plan's `version`. A refusal has written nothing, and like every error it is
 JSON whatever `Accept` asks. A plan that changes nothing answers `applied: true` and leaves the
-version where it was. What the platform fills in on a write is not a change: a `flow.invoke` or
-`flow.merge` `derivedShape`, a `flow.dispatch` `outputSlot` of `""`, the carry slots a
-`flow.loop-end` adds to its `inputStreams`, `functionConfig: {}` against a stored `null`, and the
-`x-record-ref` a `link` use stamps on a field. Planning the same document again, or its export,
-changes nothing, and an action it leaves alone keeps its `version` and the results cached under it.
+version where it was. What the platform fills in on a write is not a change: the `x-record-ref` a `link` use stamps on
+a field. Planning the same document again, or its export, changes nothing, and a step it leaves
+alone keeps the results cached under it.
 
 The answer is the plan plus `applied`, `appliedVersion` and `basedOn` — no document; read it with
 `GET …/document`. `basedOn` is the read your next part binds to: `appliedVersion` when nobody else
@@ -580,29 +582,17 @@ the same document again and apply the new plan to retry, and only what is still 
 An apply whose only change is a vocabulary's terms is still a change: it moves the version, and its
 seed runs after the commit like any other.
 
-A flow's `actions` are matched by `id`, then by key. An action's key is an action name, the one format
-every action write takes (lower-case kebab, optionally grouped with dots); a key outside it refuses
-that action on its own path. An action the document leaves as it is is not
-written; one it changes is updated in place, keeps its `id` and moves its `version`; a new key is
-created; a key the map omits is deleted. So an action id held across an apply stays good — an action
-renamed by keeping its `id` under the new key keeps it too; only one restated under a new key
-without its `id` gets a new one. What a single action save works out, the apply works out too: each
-`flow.invoke` output row's `derivedShape` is typed from the flow it calls (never state it — and a
-document that rewrites a sub-flow's actions re-types every action calling it, restated or not), and a
-flow whose signature changes is judged against the actions the document LEAVES, so retyping an input
-and replacing the action that read it is one apply. An action leaves out what a single create lets it
-leave out: `inputStreams` for a function that names its inputs in its settings, prompt or
-`flow.invoke` `inputs` map (derived, as the save derives them), `inputSchemas` (each input typed from
-what feeds it, an action of the same document included, and typed again when what feeds it changes),
-`promptTemplate` and `taskKey`, `outputSlot` on a function that writes no named result,
-`description`, `condition`, `enabled` and `outputSchema`. Left out of an action the flow already holds, `taskKey`, `outputSlot` and `outputSchema` keep the value the platform chose, and the author's own — `promptTemplate`, `description`, `condition`, `enabled` — go back to their defaults (a stated element is whole); a new action starts on `""`, `extraction`, no slot, no description, no
-condition, enabled, and the type its function emits (`record.create` → `RecordCreate`,
-`value.transform` → `object`), worked out once what feeds it is typed. An `outputSchema` of `null`
-is stated: no constraint. An action the flow already holds keeps its
-`outputSchema` when the entry leaves it out — unless the entry moves what its function emits: a new
-`functionKey`, or a setting the function's type depends on, stores the new type, and a move to a
-function with no type of its own (`text.generate`) stores none, as an action PATCH does. A list the action does state is written as stated. An action field the write
-refuses is named on the action's own path (`flows.<flow>.actions.<action>.outputSchema`), never the
+<!-- field-ok: renewMembers — an example step key an author chooses, not a platform field -->
+
+A flow's `steps` are matched by key. A step's key is also the name its value is read by, unique in
+the flow and camelCase (`renewMembers`); a key outside that format, or a reserved name, refuses the
+step on its own path. A step the document leaves as it is is not written; one it changes is updated;
+a new key is created; a key the list no longer holds is removed; and a step that only changed list
+or place is a `move`. Steps carry no id of their own: the flow's `version` moves when any of them
+changes. What a steps save works out, the apply works out too: a flow whose signature changes is
+judged against the steps the document LEAVES, so retyping an input and rewriting the step that read
+it is one apply, and a document that rewrites a called flow judges every flow calling it, restated
+or not. A step the write refuses is named on its own path (`flows.<flow>.steps.<key>`), never the
 flow's.
 
 In the project's history an apply is ONE entry, titled as a document apply with the three counts
@@ -627,8 +617,7 @@ as it is, every element changed since is listed under `moved` (or, past the hist
 keeps, it is `409 PLAN_STALE` `read-too-old`). Plan it against the project as it is now instead:
 `POST …/document/plan?basedOn=<the project's current version>` — the `version` a fresh
 `GET …/document` answers. `moved` is then empty, `changes` are the rollback, and applying that
-plan's `planId` with a note puts its rows back. An export in an older format is converted first
-with the document upgrade script that comes with `kipory-connect` (below). A row deleted since returns as a new row with a new id, and a row
+plan's `planId` with a note puts its rows back. An export in an older format is refused ([below](#a-document-written-for-an-older-format)). A row deleted since returns as a new row with a new id, and a row
 added since stays unless the document says `prune`. Deleting a table does not delete
 the type it took its fields from.
 
@@ -658,43 +647,21 @@ refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}
 
 ## A document written for an older format
 
-An action's `failureSlot` is optional in a document. Stated, it is the slot the action's failure is
-written to (flows and actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`), "How an action runs"); left out, the action has
-none, and an export leaves the key out for an action that names none. So is its `onOversize` (`cut` or
-`fail`): left out, a result over the slot limit gets the platform's default, and an export leaves the
-key out for an action that states none.
+`kipory: 11` is the only format a plan reads. A document stating any other version is refused,
+`DOCUMENT_VERSION_UNSUPPORTED`: export again. Nothing converts a file you hold in an older format;
+write its flows as steps in format 11. A flow with no steps yet is not started
+(`FLOW_NOT_AUTHORED`).
 
-A document you kept from an earlier export, or wrote from an older example, can state things the
-current format refuses. Each is refused on its own path, so the plan names it; the fixes are:
+A current document is also refused, each on its own path, for:
 
-- **A format version other than `kipory: 10`** — `DOCUMENT_VERSION_UNSUPPORTED`. Export again, or
-  convert a file you hold that states `kipory: 2` to `9` with the document upgrade script that
-  comes with `kipory-connect`, which brings it to `10`. Version 10 moves an `x.posts` or `youtube.transcript` action's `provider` and
-  `fallback` out of its config into the action's own `vendor`: `use` is the vendor `provider` named,
-  and `switch` is `never` where `fallback` was `false`, else `when-vendor-fails`; a current document
-  that still states either key in the config is refused at its path. Version 9 makes every action input an argument (renamed and merged fields,
-  `{literal}` for a fixed text, views included); the script converts a JSON file fully and refuses a
-  YAML one that needs restructuring. Version 8 makes a stated element whole (above); the script moves a version-7
-  file's number only, so plan the converted file and read each `FIELD_RESET_TO_DEFAULT`. Version 7 holds the project's types under `types` and names a table's
-  and a config namespace's type with `type`; version 6 called them `schema` and `shape`. Version 6
-  is also the one whose search models name no slot and whose `search` uses carry no `role`; the
-  script makes both changes on the way (next item).
-- **`schema`, or a table's or config namespace's `shape`, in a current document** —
-  `DOCUMENT_KEY_RENAMED`, one finding per old key at its path. Rename them to `types` and `type`,
-  or convert the file with the upgrade script.
-- **An action's `onFailure` spelled `FAIL_RUN` / `CONTINUE`** — it is `fail-run` or `continue`,
-  lower-case. Change the two values.
+- **`schema`, or a table's or config namespace's `shape`** — `DOCUMENT_KEY_RENAMED`. Rename them to
+  `types` and `type`.
 - **A `file` use, a `derived` field family, or projection `stages`** on a table or as a
   profile default — none exists. Remove them; a `search` use reads one stored field.
-- **A profile's slot names, a `search` use's `role`, or a `collections` map under `vectors`** — each
-  is an unknown member. On the profile, state `keywords` in place of the slot names: `true` where
-  it named a sparse slot, `false` where it named none. Remove `role`,
-  keeping the table's `search` fields in the order they held, and remove the `collections` map
-  whole. The document upgrade script that comes with `kipory-connect` makes these three changes
-  when it converts a file you hold. It leaves an action whose function the catalog
-  does not have — one that searched, wrote or read a collection, or made an embedding — as written
-  and lists it: rebuild that action as `record.query` with a `semantic` clause or as `term.search`,
-  or remove it.
+- **A profile's slot names, a `search` use's `role`, or a `collections` map under `vectors`** —
+  unknown members. On the profile, state `keywords`: `true` where it named a sparse slot, `false`
+  where it named none. Remove `role`, keeping the table's `search` fields in their order, and
+  remove the `collections` map whole.
 - **A vocabulary `binding`** — a term attaches to the whole record. Remove the field.
 - **A flow's own `tests`** — `DOCUMENT_FLOW_TESTS_MOVED`. A flow's cases live under
   `evals.<suite>.cases`.

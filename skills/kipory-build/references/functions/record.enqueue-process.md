@@ -10,16 +10,16 @@ A ready or failed record is set pending and processed again. One being processed
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each call sets the record pending and pushes a new processing job, so every new run processes the record again.
 - **I/O:** `record id` → `boolean`
 - **Also found as:** reprocess, process later, queue record
-- **Reads:** The record id, from `recordId`. Everything else is settings on the action. _(shape hint: `record id`)_
+- **Reads:** The record id, from `recordId`. Everything else is settings on the step. _(shape hint: `record id`)_
 - **Emits:** A bare boolean — `true` once the record's processing flow was queued; `false` when the record is absent, another user's, being processed or being deleted.
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `mode` | `full` \| `from-cache` | no | `"full"` | `full` re-runs every action; `from-cache` replays the unchanged ones. ⚠️ Use `from-cache` only when the earlier derived output still exists. |
+| `mode` | `full` \| `from-cache` | no | `"full"` | `full` re-runs every step; `from-cache` replays the unchanged ones. ⚠️ Use `from-cache` only when the earlier derived output still exists. |
 | `recordId` | union | yes | — | The id of the record to queue. ⚠️ Scoped to the signed-in user, so an id owned by anyone else queues nothing and reports no error. |
-| `replay` | `resume` \| `rerun` \| `clean` | no | `"resume"` | What a re-run carries over; `clean` replaces the last output on success. ⚠️ `clean` keeps files until the run succeeds, then removes earlier generated files it did not reattach or name. |
+| `replay` | `resume` \| `rerun` \| `clean` | no | `"rerun"` | `rerun` (default) runs all; `resume` skips unedited finished steps; `clean` replaces output. ⚠️ `resume` reruns edited steps and their readers (all steps while record values are off); `clean` removes stale files after success. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `recordId` — one of
@@ -68,7 +68,7 @@ The record is ready and its type binds a flow, so it is set pending and goes on 
 
 Reads `object` → emits `boolean` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

@@ -85,7 +85,7 @@ Every post naming the twin now names the story that stays; the twin is a redirec
 
 Reads `{ keep, merge }` → emits `RecordMerge` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

@@ -12,12 +12,11 @@ More accurate than the search that found them, but too slow for a whole table.
 - **Also found as:** rank results, sort by relevance, reorder, best match
 - **Reads:** Two slots you name: the text to match against, and the documents to score. Each document carries its own id. _(shape hint: `a question + documents`)_
 - **Emits:** A `list<RerankHit>`, best first and capped at `topN`. Empty when either slot was empty; when the scorer cannot answer, the candidates come back in the order they arrived.
-- **Softens these failures:** `vendor-unavailable`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `query`, `documents`
+- **Softens these failures:** `vendor-unavailable`, `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
 - **External dependency:** Cohere — Re-scores candidates through Cohere's rerank API. Uses a Cohere API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `cohere` (vendor: Cohere); falls through to the platform's own key when no node holds one.
 - **Rate limit:** 600 per min in bucket `cohere`, counted per project
-- **Queue:** 2 attempts, exponential from 1 s 500 ms; waits up to 1 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 2 attempts, exponential from 1 s 500 ms; waits up to 1 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -76,7 +75,7 @@ The candidate that actually answers the question wins, though the search that pr
 
 Reads `object` → emits `list<RerankHit>` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

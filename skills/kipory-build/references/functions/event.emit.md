@@ -11,8 +11,7 @@ The payload comes from the run or is fixed. It writes nothing back, so it can si
 - **I/O:** `event payload` → `nothing`
 - **Also found as:** publish event, notify, trigger, signal, broadcast
 - **Reads:** Reads the configured `payload`; its value becomes the event payload (validated against the event type's payload schema). _(shape hint: `event payload`)_
-- **Emits:** Nothing — the event goes onto the live stream. The action needs no `outputSlot`; leave it out.
-- **Suggested input streams:** `payload`
+- **Emits:** Nothing — the event goes onto the live stream. The step gives no value for a later step to read.
 
 ## Config
 
@@ -46,11 +45,11 @@ Publishes an event other flows can listen for. Nothing comes back.
 
 #### Event sent
 
-The payload is published under the configured event name. The action writes no slot.
+The payload is published under the configured event name. The step writes no slot.
 
 Reads `object` → emits `nothing` · 1 in → (empty)
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

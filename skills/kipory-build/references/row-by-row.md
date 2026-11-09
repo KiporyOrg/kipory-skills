@@ -1,91 +1,153 @@
-# Building row by row, and what bites
+# Authoring a flow step by step, and what bites
 
-`SKILL.md` sends a new backend to `quickstart-document.md`. This page is the rest of what the skill used to open with: what to know before the first call, the row-by-row sequence for single-action edits, every pitfall, and the full document loop.
+<!-- field-ok: perMember — the example flow's own step key -->
+
+`SKILL.md` sends a new backend to `quickstart-document.md`. This page is for one flow between documents: create it, save its steps whole, change them by key, and the pitfalls.
 
 ## Before the first call
 
-- **Read the whole function catalog** — `references/functions/README.md`, or `GET /v1/functions` live — not a filtered view. A keyword search returns what you already believed existed. Confirm every key live before you author an action; a remembered key has already burned real calls.
-- **A flow reaches the outside only through a function.** A vendor is reachable through its own function, and any other service with an HTTP API through `url.fetch` (a read) or `url.send` (a write, staged once per run and delivered after the run saves; a transient failure is retried, so the receiver may see it twice, and the flow never sees the answer), each with a stored key named in `secret` (`kipory-gather`). `kipory-connect`'s `references/packs/limits.md` ("What a flow can reach") has the list.
-- **A yes/no, a pick from a closed list or a score is `text.decide`, not a prompt — and it is by far the cheapest model action.** It runs on a decision model that returns values, not text, and one call answers every question you give it. Reach for it before `text.generate` or `vocabulary.resolve` — `references/models.md`.
-- Fetch `references/packs/flows-and-actions.md` for the capability judgment and `references/packs/flow-checkpoints.md` before any edit you would not want to undo by hand.
-- Know the grammars you will type, and that they differ: a **slot name** is letters and digits starting with a letter — no underscores; a **template placeholder** is `{{slot}}` or `{{slot.field}}` with pipe filters; an **input projection** (`inputPaths`) is a structured path object, never a string.
-- **A setting that reads a value takes an argument, in one of three forms**: a slot path (`"book.title"`, `"reviews.records[].readerId[distinct]"` — a bare string is a path everywhere except `value.build`'s `fields`, where it is JSONata; a path never reads through a list, so one read record's title is `book[0].title`), a fixed value (`{ "literal": "neutral" }`, any JSON; a bare number or `true`/`false` too), or an expression (`{ "expr": "$count(reviews.records)" }`, JSONata over the slots the action sees; `{ "expr": "[bookId]" }` hands `ids` a one-item list). Settings are named for what they hold — `ids`, `data`, `userId`, `to` — and an action write holding a retired `…Slot` name is refused naming the new one. `references/action-inputs.md` §7.
+- **Read the whole function catalog** — `functions/README.md`, or `GET /v1/functions` live — not a filtered view. Confirm every key live with `GET /v1/functions/{key}` before you write a step on it.
+- **A flow reaches the outside only through a function**: a vendor through its own, any other HTTP API through `url.fetch` (a read) or `url.send` (a write, delivered once after the run saves), each with a stored key named in `secret` (`kipory-gather`).
+- **A yes/no, a pick from a closed list or a score is `text.decide`, not a prompt** — the cheapest model step (`models.md`).
+- Know the grammars you type: a flow key is kebab-case (`renew-members`); a step key, an input, an output and every name a block gives are camelCase (`perMember`); an argument is a path, `{path, optional | default}`, `{literal}` or `{expr}` (`action-fields.md` §3); a prompt placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`.
 
-## The sequence, row by row
-
-For a new project, or any change of more than a few rows, author the document instead ([below](#author-the-whole-project-as-one-document)); the row-by-row sequence here is for single-action edits.
+## The routes
 
 ```
-POST  /v1/flows                          { project, key, label, inputTypeNames, outputTypeNames, outputBinding? }
-POST  /v1/actions                         one action — or POST /v1/actions/batch for creates, updates and deletes in one transaction
-PATCH /v1/flows/{id}                     { outputBinding, version }  ← without this the flow returns nothing
-GET   /v1/flows/{id}/outline             the flow as an indented outline — read it before the actions
+POST  /v1/flows                          { project, key, label, inputs, outputs } — a flow with no steps yet
+PUT   /v1/flows/{id}/steps               { version, validateOnly?, steps } — the whole list, in the order it runs
+POST  /v1/flows/{id}/steps/edit          { version, validateOnly?, edits } — up to 100 edits by key, all or none
+GET   /v1/flows/{id}                     the flow; `steps` in written order; `?include=reads` adds each step's place and reads
+GET   /v1/flows/{id}/outline             the steps as an indented outline
+PATCH /v1/flows/{id}                     { version, label?, description?, inputs?, outputs? } — the signature
+GET   /v1/flows/conditions               every test an `if` or a `repeat`'s `until` can use
 GET   /v1/projects/{nodeId}/references?of=field:<table>.<field>   who uses a field — ask before you rename, remove or retype one
-GET   /v1/flows/{id}/health              the whole-flow verdict: diagnostics, counts, danglingReads
-POST  /v1/flows/{id}/preview             run it — ADMIN, bills the payer, applies writes unless apply: false
 ```
 
-- **An action body** needs `flowId`, `key` and `functionKey`; most also state `functionConfig`. Everything else has a default or is derived. `outputSlot` is required only by a function that writes a result, `promptTemplate` only by a prompt function, and `taskKey` omitted starts a new action on `extraction`. `references/action-fields.md` has every field and what leaving it out does.
-- **There is no position field**: execution order is derived from slot edges. A PATCH requires `version`.
-- **`inputTypeNames` and `outputTypeNames` entries are objects** `{ typeName, slot?, isList?, required? }`, not bare names.
-- **`outputBinding`** maps each flow output slot to `{ fromSlot, path? }`. `path` is omitted or `null` to take the whole value, and otherwise an **object, never a string** — `{ "segments": [{ "kind": "field", "name": "recordId" }] }`. A `field` segment needs a typed source: an action typed as the builtin `object` refuses it. The segment kinds are in `references/action-fields.md` §2.
-- **A type is a schema reference**: `{ "kind": "ref", "dataTypeId": "<id>" }` on the row API, `{ "kind": "ref", "ref": "<type key>" }` in a document. Named types match by identity, never by structure — reuse one type or meet `NOMINAL_MISMATCH`. The list, optional, union, map and record-id forms are in `references/action-inputs.md` §3.
-- **Who uses a field** comes back with `certainty` per use: `declared` and `typed` are sure; `named` is a name matched inside an expression and `whole` a read of the whole record — both unproven, so check them before you rely on them. A transform's read of a record field the platform places on the record's type is `typed`. A removal is refused once, with every action it breaks on `details.diagnostics`: `TABLE_FIELD_STILL_READ` for an action that reads the field, `REMOVED_STILL_USED` for an action that otherwise uses it; a guess only warns (`REMOVED_MAY_BE_USED`).
-- **Ask before you save**: `validateOnly: true` on `POST /v1/actions` and `PATCH /v1/actions/{id}` runs every rule the write runs and writes nothing. Before a risky edit, `POST /v1/flow-checkpoints { flowId, label }`. Both are in `references/checking.md`.
+- **Every write takes the flow's `version`** as you read it; a stale one is `409` and saves nothing. Every write answers the next `version`.
+- **A saved steps write answers** `{flowId, version, diagnostics, changes, touched}`: `diagnostics` are warnings (an error refuses the write), `changes` lists each step `added`, `removed`, `changed` or `moved` by key with the fields that changed.
+- **A refused write is `422`** with the findings under `details.diagnostics`, each with `at` and its `fixes` or `decision` (`checking.md` §2).
+- **A signature change** (`PATCH /v1/flows/{id}` with `inputs` or `outputs`) re-judges every step, and is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` while an endpoint or a table holds the old one — read `kipory-evolve` first.
+
+## The step kinds
+
+A flow is `{key, label, description?, inputs, outputs, steps}`: a typed signature and a list of **steps**. A step is a `key` plus exactly one kind:
+
+| Kind       | Shape                                                      | Does                                                                         |
+| ---------- | ---------------------------------------------------------- | ---------------------------------------------------------------------------- |
+| action     | `{key, function, with?, …run settings}`                    | runs a function; its value is read as `<key>` or `<key>.<field>`             |
+| `if`       | `{key, if: [{test, steps, out?}], else?: {steps, out?}}`   | runs the first branch whose test holds                                       |
+| `each`     | `{key, each, as, steps, out?, maxItems?, maxParallel?, …}` | runs its steps once per value of a list; its value is `<key>[].<name>`       |
+| `repeat`   | `{key, repeat: {vars, next, until, max}, steps}`           | runs its steps in passes until `until` holds; read `<key>.<var>` after it    |
+| `parallel` | `{key, parallel: [steps], out?}`                           | runs its steps at the same time; none reads another                          |
+| `try`      | `{key, try: {steps, out?}, catch: {steps, out?}}`          | survives the flow's own failure (never a refusal or the platform's)          |
+| `return`   | `{key, return: {<output>: <argument>}}`                    | ends the flow and gives its outputs — the only way to give them              |
+| `fail`     | `{key, fail: {code, message, status?}}`                    | ends the flow; an endpoint answers `status`, your `code` in `details.reason` |
+
+## The whole list
+
+`PUT /v1/flows/{id}/steps` replaces the stored list whole:
+
+```json
+{
+  "version": 3,
+  "steps": [
+    {
+      "key": "due",
+      "function": "record.list",
+      "with": {
+        "tableKey": "member",
+        "limit": 100,
+        "pages": { "max": 10, "onMore": "fail" },
+        "fieldFilters": [{ "field": "renewsOn", "op": "eq", "value": "day" }]
+      }
+    },
+    {
+      "key": "perMember",
+      "each": "due.records",
+      "as": "member",
+      "maxParallel": 1,
+      "steps": [
+        {
+          "key": "reachable",
+          "if": [
+            {
+              "test": { "filled": "member.email" },
+              "steps": [
+                {
+                  "key": "note",
+                  "function": "text.interpolate",
+                  "with": {
+                    "template": "Dear {{member.name}}, your membership renews on {{day}}."
+                  }
+                }
+              ],
+              "out": { "written": { "literal": 1 } }
+            }
+          ],
+          "else": { "steps": [], "out": { "written": { "literal": 0 } } }
+        }
+      ],
+      "out": { "written": "reachable.written" }
+    },
+    { "key": "answer", "return": { "notes": "perMember[].written" } }
+  ]
+}
+```
+
+Read it top down: `due` lists the members renewing on the input `day`; `perMember` runs once per member; inside, `reachable` writes a note only for a member with an email, and each branch gives `written` through its `out`; the `each` gives `written` per member; `answer` returns the list `perMember[].written`.
+
+## Edits by key
+
+`POST /v1/flows/{id}/steps/edit` changes some steps and leaves the rest:
+
+```json
+{
+  "version": 4,
+  "edits": [
+    {
+      "insert": {
+        "key": "count",
+        "function": "value.transform",
+        "with": { "expression": "$count(due.records)" }
+      },
+      "after": "due"
+    },
+    { "set": "due", "field": "with.limit", "value": 50 },
+    { "wrap": ["note"], "in": { "try": {} }, "key": "noteSafe" }
+  ]
+}
+```
+
+| Edit     | Shape                                                                                        | Notes                                                                                                                              |
+| -------- | -------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| `insert` | `{insert: <step>, after: key}`, `{…, before: key}` or `{…, into: {block?, branch?, at?}}`    | `into` with no `block` is the flow's top list; `branch` is an `if`'s index or `else`, or `try` / `catch`; `at` defaults to the end |
+| `move`   | `{move: key, after \| before \| into}`                                                       | keeps the step's value and its readers                                                                                             |
+| `set`    | `{set: key, field: "with.to", value}`                                                        | `field` is a dotted path (`with.to`, `if[0].test`); `value: null` removes an optional field, never a list element                  |
+| `remove` | `{remove: key}`                                                                              | refused while a step still reads it, unless the same batch changes that reader                                                     |
+| `wrap`   | `{wrap: [keys], in: {if: {test}} \| {try: {}} \| {parallel: {}} \| {each, as}, key: newKey}` | the keys must sit next to each other in one list; the new block takes their place                                                  |
+| `unwrap` | `{unwrap: key}`                                                                              | a single-branch `if`, a `try` whose `catch` is empty, or a `parallel`                                                              |
+
+- **A batch is all or none**, applied in order against `version`, at most 100 edits; a bigger change is a whole-list `PUT`. A refused edit is `STEP_EDIT_REFUSED`, naming it by `editIndex`.
+- **A finding's fix is a batch of these edits**: post its `edit` as `edits` (`checking.md` §2).
+- **`validateOnly: true`** judges the batch against the stored steps and saves nothing.
 
 ## What will bite you
 
 <!-- field-ok: no-end-user — an enum VALUE of the preview's principal, not a property -->
-<!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
+<!-- field-ok: userInfo — an ambient value the platform fills, not a request field -->
 
-- **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a capability you need that is missing — file a report: `kipory-connect`, "When something stops you".
-- **The diagnostics are not where you look.** Action writes return `outstandingIssues` with no action id; a 422 carries `details.diagnostics[]` with one; flow writes carry nothing. For the whole-flow verdict, attributed to an action and an edge, ask `GET /v1/flows/{id}/health` — `expand=health` works on the flow list only. A diagnostic about one step carries `outlinePath` (`each-member › send-note`), its place in `GET /v1/flows/{id}/outline`. `references/checking.md` §1.
-- **An unbound output is a common cause of a dead endpoint.** A required output the run never produced is refused `422 FLOW_OUTPUT_MISSING` (`details.missing` names it), whatever its type, and the run's writes are discarded; nothing is filled in. Preview names it first: `missingRequiredOutput` is non-null exactly when a live call would be refused. Bind the slots — `OUTPUT_SLOT_UNBOUND` is only a warning, and it is this. A flow whose honest answer can be empty produces that value (`0`, `[]`) or declares the output optional.
-- **A read is a view; a flow only when it computes.** A list or a lookup that an endpoint answers, or that several flows repeat, is declared once under the document's `views` and read with one `record.view` action; its `GET` endpoint declares only its path, and gets typed params, paging and an `ETag` from the view. An optional filter is the view's `optional` param, not two branches. A view reads no slot, so its fixed text is `{ "literal": "poetry" }` too (a bare number or `true`/`false` stays); a bare text or an `{ "expr": … }` in a view's `where` is refused. `references/views.md` (§11) has a complete worked document.
-- **A guard that skipped a write refuses the call the same way.** For your own message use `$assert` (a `422`), for a missing record `record.read`'s `failIfEmpty` (a `404`) — `references/endpoint-answers.md` (§8).
-- ⛔ **Preview costs money and writes.** `apply` defaults to true; `apply: false` still runs every action and every model call, then discards the change set. Fan-out is capped at 5 branches and the wall clock at 180 seconds. To run it as a key or a schedule will, send `input.principal: "no-end-user"` — on the `slots` input, not at the body's top level. `references/checking.md` §3.
-- **A sync preview shows no slot values.** Its `transcript` carries outcomes and timings only. To see what each action wrote, queue it: `POST /v1/flows/{id}/preview-runs` (same body, `202 { runId }`), then `GET /v1/runs/{runId}/trace`.
-- **A refused run is still charged for what ran**; the refusal's `x-credits-charged` header says how much. Preview the flow before a caller can reach it. Billing is `kipory-operate`'s `references/spend.md`.
-- **Preview is ADMIN**, and so are its stream, `preview-runs`, `POST /v1/actions/preview`, every delete and the checkpoint restore. An EDITOR key can author a whole flow, dry-run every write and render a prompt (`POST /v1/actions/interpolate`), and cannot preview it.
-- **An action runs while any one input is present**, so an action below a skipped one still runs on its other inputs. Guard it with `"condition": { "op": "slotPresent", "slot": "<the slot it needs>" }`. A condition that fails is a skip, not a failure. `references/patterns.md` §1.
-- **A run with no signed-in user has no `userInfo`** — a key's call, a schedule, a trigger. An action reading only provider slots still runs; an action reading `userInfo` beside a real slot waits for that slot. `references/action-inputs.md` §5.
-- **Leave `inputStreams` out where the settings or the prompt name the inputs** — `value.transform`, `record.list`, `record.read`, `text.generate`. The save derives them; a list you send that differs is refused `FREE_FORM_INPUT_STREAMS_MISMATCH`. A `flow.invoke` action's are always derived from its `inputs` map, in a document too. `references/action-inputs.md` §4.
-- **A control action reads no time limit and is never tried, and a writing action may not carry on.** A fan-out, a merge, a `flow.invoke` call and every other control action reads no `timeoutMs`, and no control action is ever tried: setting either is an error (`RUN_TIME_LIMIT_NOT_READ`, `RUN_TRIES_NOT_SUPPORTED`), and so is `tries` or `tryDelayMs` on any action that runs in the flow itself. `onFailure: "continue"` is refused on every control action but a `flow.invoke` call, and on every function that may write — one that keeps a file, `url.fetch-as-file`, included (`RUN_CONTINUE_NOT_ALLOWED`); to carry on past a download that fails set its `failureMode: "soft"` and leave `onFailure` at `fail-run` (a refused address or a failed save still fails the action). `references/packs/flows-and-actions.md`, "How an action runs".
-- **For merge, invoke, dispatch and loop-end the row's `outputSlot` is a mirror**: their real outputs are in config. `references/patterns.md` and `references/fan-out.md` have one rule for each.
-- **Pinning `modelId` opts an action out of the project's next model change, silently.** Omit it to inherit through `taskKey`. `references/models.md` §3.
-- **A model call can fail on the provider, not on you.** When the error says a provider account is exhausted, move the task to another model — `references/models.md` §5 has the three calls. The same section covers a sync endpoint over `text.generate` that answers 504 while the model is fast.
-- **A signature change states the side it changes**, and is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` while an endpoint or a table holds the old one. `references/action-fields.md` §1; read `kipory-evolve` first.
-- **`/v1/actions/batch` is one transaction**: one stale `version` refuses the whole batch.
-
-## Author the whole project as one document
-
-`kipory-build` owns the project document. When a plan was accepted, or the change touches more than a handful of rows, do not author row by row. State the project as one **document** and let the platform order the writes.
-
-```
-GET   /v1/projects/{nodeId}/document          the project now; the document carries `basedOn` (`<nodeId>@<version>`), your read
-POST  /v1/projects/{nodeId}/document/plan     ?basedOn=&label= — what applying it would do, kept as `planId`
-GET   /v1/projects/{nodeId}/document/plans/{planId}   a kept plan read back — for a reviewer, before it is applied
-POST  /v1/projects/{nodeId}/document          { planId, note, label? } — one transaction, one version, one history entry
-GET   /v1/project-document/schema             the format, public
-GET   /v1/project-document/example            a complete document that belongs to no project, public
-```
-
-The JSON export is an envelope, and `basedOn` is inside `document`, not beside it:
-
-```json
-{ "version": "42", "document": { "kipory": 10, "basedOn": "<nodeId>@42", "types": { … }, … } }
-```
-
-Plan the `document` alone, never the envelope. `?basedOn=` takes the envelope's `version` (`?basedOn=42`) or the whole `<nodeId>@42`; leave it out and the plan reads the `basedOn` inside the document.
-
-The loop is **export → edit → plan with `basedOn` → read the plan → apply `{planId, note}`**. Documents are format 10 (`"kipory": 10`); a document in an older format is refused with what to change — `kipory-connect`'s upgrade script converts it (its `references/session-start.md`, "Creating a project, and an older document"). A plan is not a simulation: the platform applies the document through every row's own write, in one transaction, and rolls it back — so what a plan refuses is exactly what an apply refuses.
-
-- **Read the plan before you apply it**: `changes` (only what changes; each `update` says `fields` from → to), `moved` (what someone else changed after your read — any here and `ok` is false), `diagnostics` (what this document introduces; gate on `severity`, never on `code`), `health` (errors and warnings before and after, over the flows it reaches), `consequences` (what it does to stored data) and the `delete` rows. A platform release that breaks a live flow is not in any plan: the project hears it as the `platform/flow-health.failing` event.
-- **Everything is addressed by `key`**; a schema reference is `{ "kind": "ref", "ref": "<type key>" }`.
-- **A partial document is fine, and absence never deletes.** Removal is `delete: true` on a row or `prune: true` on a map, and needs ADMIN. Owned collections — a flow's `actions`, a vocabulary's `terms` — are stated whole, so an action you leave out of a flow's `actions` IS removed.
-- **Apply the plan you read, with a note**: `{planId, note: "Shorten the reminder copy", label: "agent-docs"}`. The note and label show in history. The answer carries no document; keep its `basedOn` and plan the next part from it. Never resend an old document.
-- **On `409 VERSION_CONFLICT`**: read `details.moved` (who changed what after your read), read the project again, make your change on what it says now, plan, apply. **On `409 PLAN_STALE`**: plan again. Changes to elements your document does not touch never refuse it.
-- **Plan a large document as it grows**: types and vocabularies, then tables, then flows, then endpoints. Apply once, when the whole plans clean — or in parts from one read, each under the same `label`, so your own parts never count as moves.
-- **An `ok` plan has already run health** on every flow the document can move, so `/health` after the apply is a confirmation.
-
-`references/document.md` has every rule — what is permanent, how a type is stated, how actions keep their ids, what a document derives for an action, the size limits. `references/packs/project-document.md` carries the reference forms, and `references/packs/authoring-order.md` says what must exist before what if you author row by row anyway.
+- **Working around a problem in silence.** When something on Kipory stops you — an unexpected error, a doc that said something untrue, a missing capability — file a report: `kipory-connect`, "When something stops you".
+- **Written order is run order.** A step that reads what a later step gives is `STEP_READS_LATER`; its fix moves the giver up. Steps run together only in `parallel` (whose children cannot read each other) or across an `each`'s values.
+- **A value made inside a block stays there.** Read after the block through its `out`, as `<block>.<name>`; an `each`'s as `<each>[].<name>`, a list with one entry per value. `BLOCK_VALUE_ESCAPES` otherwise.
+- **A bare string is a path.** `subject: Renewal` reads a value named `Renewal`; text is `{literal: "Renewal"}`. A setting that names a thing — `tableKey`, `address`, a template — is a plain value.
+- **A run with no signed-in person has no `userInfo`** — a key's call, a schedule, a trigger. A required read of `userInfo.userId` you write is refused at save until you guard it with `if` + `{has: userInfo}` or read it `optional`. A per-user table read that leaves `userId` to the run is not seen at save: with no person it fails at run, 403 at an endpoint. Preview a scheduled flow with `input.principal: "no-end-user"`.
+- **Nothing is skipped at run time.** A step whose required input is missing fails the run with a typed error; a step given `[]` runs with `[]`. To go on past a failure, wrap the steps in `try` and say in `catch` what happens; inside `catch`, `error` is `{code, message, step}`.
+- **An endpoint's error is a `fail` step**: `{key: refuse, fail: {code: TOO_HEAVY, message: "A box holds at most 20 lb.", status: 422}}` ends the flow and answers that status (any 4xx except 405, 408 and 426; 422 when left out): `code` `VALIDATION_FAILED`, your message, `details.reason` `TOO_HEAVY`. A status with no word of its own, such as 400, 402 or 418, answers `code` `REQUEST_REFUSED`.
+- **Only `return` gives outputs.** A flow with required outputs and a path that ends without `return` or `fail` is refused `FLOW_PATH_HAS_NO_END`.
+- **A list read is one page.** `record.list` and `record.query` read one page unless `pages` says more; `onMore: "fail"` fails the run when rows remain instead of dropping them. The save warns `RECORD_LIST_CURSOR_UNREAD` when nothing reads the next page. A read's `cursor` bound in `with` to a path whose root ran or was given (another read's page) with nothing at the path (that page's `nextCursor` after its last page) means the list ended, and it answers an empty page; the root absent (the first run, an optional input left out), or no `cursor` bound, reads page one. `""` is a value, so page one too.
+- **An `each` runs one value at a time when its steps change something another value could meet** (`EACH_RUNS_ONE_AT_A_TIME`, a warning). Say `maxParallel: 1` to mean it.
+- ⛔ **Preview costs money and writes.** `apply` defaults to true; `apply: false` still runs every step and every model call. `checking.md` §6.
+- **Pinning `modelId` takes one step out of the project's model choice, silently.** `models.md`.
+- **A model call can fail on the provider, not on you.** `models.md` has what to do when a provider account is exhausted.
+- **A flow with no steps yet does not start** (`FLOW_NOT_AUTHORED`). A new flow is created with `steps: []`; step 2 writes them.

@@ -12,7 +12,7 @@ From the last sweep, not live. Empty when the project watches no source for it, 
 - **Also found as:** subscribers, channel members, telegram audience
 - **Reads:** One channel handle, exactly as this project stored it. A channel another project subscribes to reads as unknown here. _(shape hint: `string`)_
 - **Emits:** A `TelegramChannelStats` — the handle, the member count, and when it was captured. Empty when nothing has been captured for this channel in this project.
-- **Suggested input streams:** `channel`
+- **Inputs (`with`):** `channel`
 
 ## Config
 

@@ -1,5 +1,7 @@
 # Reading and changing records from inside a flow
 
+<!-- field-ok: userInfo — an ambient value the platform fills, not a request field -->
+
 Everything in this skill's main page happens over HTTP, as the design plane. A flow does the same
 work through functions, and the two are not interchangeable: a route runs as **your key**, a function
 runs as **the run's principal**. That single difference explains most of what surprises people here.
@@ -33,20 +35,27 @@ page and bringing linked records, which the three reads share, comes first below
 `record.list`, and a `record.query` with no `semantic` clause over one table, answer ONE page
 (`limit`, 100 at most) and a `nextCursor` when more remain. Two settings make a read whole:
 
-- **`pages: { "max": N }` reads every page in this one action** — the records in the read's order,
+- **`pages: { "max": N }` reads every page in this one step** — the records in the read's order,
   each once, as one `RecordPage`. When records remain after `N` pages, or the next page would pass
-  one slot (about 2,400 short records; a record counts whole), the action fails
-  `RECORD_READ_HAS_MORE`: the run's failure names it as `reason` (a `failureSlot` too), and a
+  the size of one value (about 2,400 short records; a record counts whole), the step fails
+  `RECORD_READ_HAS_MORE`: the run's failure names it as `reason` (and `error` does, in a `catch`), and a
   flow endpoint answers `422 VALIDATION_FAILED` with it as `details.reason`. `"onMore": "stop"`
-  instead answers what it read and a `nextCursor` to continue from — it covers the size bound as well as `max`, except when the first page alone passes the slot, which fails whatever `onMore` says: lower `limit` or name fewer `fields`. `max` is at most the project's
+  instead answers what it read and a `nextCursor` to continue from — it covers the size bound as well as `max`, except when the first page alone passes that size, which fails whatever `onMore` says: lower `limit` or name fewer `fields`. `max` is at most the project's
   read-pages limit (50 unless Kipory set another); above it the save is refused
   `READ_PAGES_OVER_LIMIT`.
 - **With `cursor`, `pages` starts at that cursor**, not at the first page: `max` pages from there, and `"onMore": "stop"` answers the `nextCursor` to continue from.
-- **A first page plus N passes is `max: N + 1`.** A flow that read a page and then looped up to 9
-  more times on `nextCursor` is `"pages": { "max": 10 }` on the one action, and the loop goes.
+- **Which page a `cursor` asks for.** Only a path read ends a list: when the path's root is there
+  and holds nothing at the path, the step answers an empty page and reads nothing. That is the
+  previous page having run with no `nextCursor`, or an input or `repeat` var given as `{}`. It reads
+  page one when the root is absent (a first run, an optional input not given, a step that gave
+  nothing), when `with` has no `cursor`, or when the cursor is `""`, a fixed value, an expression, or
+  a `default` (the default is the value given). A cursor no page answered is
+  refused `422 VALIDATION_FAILED`.
+- **A first page plus N passes is `max: N + 1`.** A `repeat` that read a page and then up to 9
+  more on `nextCursor` is `pages: { max: 10 }` on one step, and the `repeat` goes.
 - **A one-page read on purpose is `"pages": { "max": 1, "onMore": "stop" }`.** A read without
-  `pages` whose `nextCursor` no action reads and no flow output passes on carries the warning
-  `RECORD_LIST_CURSOR_UNREAD` at save and on health: the flow is treating the first page as every
+  `pages` whose `nextCursor` no step reads and no flow output passes on carries the warning
+  `RECORD_LIST_CURSOR_UNREAD` at save and on health (`details.stepKey` names the read): the flow is treating the first page as every
   record. It never blocks the save; either setting above silences it, whatever the read's order.
 - Saving refuses `pages` with `max` above 1 where a record could move across the cursor while the
   pages are read: ordered by update time, by a field that is not a date with a `filter` use, or by
@@ -90,9 +99,9 @@ linked records over all its linked reads, checked at save: per linked read, the 
 `limit` (one each for a one-record linked read), summed over every linked read at both levels; a list of `a` with
 a list of `b` inside fits a 200-id read when `a × (1 + b)` is 100 or less. With `pages`, the budget is per page: the
 check counts one page (the read's `limit`), and each page brings up to 20,000 linked records of its own — `pages` does
-not multiply it. A `record.read` fed ids from a slot counts
-as 200 unless the slot is bounded: ids read off a `record.list`'s `records` with a fixed `limit` count as
-`limit` × `pages.max`, and a writer whose output type is a list with `maxItems` counts as that (an action returning more fails at run, naming the slot). One more level
+not multiply it. A `record.read` fed ids from a value counts
+as 200 unless the value is bounded: ids read off a `record.list`'s `records` with a fixed `limit` count as
+`limit` × `pages.max`, and a writer whose output type is a list with `maxItems` counts as that (a step returning more fails at run, naming it). One more level
 of `linked` is allowed, not two.
 
 **One relation, two tables at the other end: name `peerTable`.** A relation paired `event → event` and
@@ -107,11 +116,11 @@ counting them alone, however many stories point at the same event. For both, wri
 }
 ```
 
-**Read a linked read only on the calls that need it: `when`.** A setting like `limit` — a slot, a
-fixed `true`/`false`, or `{ "expr": "tab = 'category'" }` — on a linked read at either level. Only
-`true` reads it; `false` or nothing (an absent slot) leaves it out, so no record carries its name
-under `linked` (absent, not `[]`; `linked` itself stays, empty when nothing is left); any other value fails the action (`LINKED_WHEN_NOT_BOOLEAN`). A
-slot only `when` reads never holds the read back. The relations pack (`kipory-model`'s
+**Read a linked read only on the calls that need it: `when`.** A setting like `limit` — a value
+read by path, a fixed `true`/`false`, or `{ "expr": "tab = 'category'" }` — on a linked read at either level. Only
+`true` reads it; `false` or nothing leaves it out, so no record carries its name
+under `linked` (absent, not `[]`; `linked` itself stays, empty when nothing is left); any other value fails the step (`LINKED_WHEN_NOT_BOOLEAN`). A
+value only `when` reads never holds the read back. The relations pack (`kipory-model`'s
 `references/packs/relations-and-links.md`, "Linked records in one read") has every rule.
 
 Two things that follow from the run's principal:
@@ -126,21 +135,29 @@ Two things that follow from the run's principal:
 ## Counting
 
 `record.count` answers a number and reads no record. It takes a `tableKey` and the same
-narrowing a list does: `fieldFilters` (each entry's `value` a slot path, a fixed value or an
-expression), `vocabularyFilter`, `linkFilters`, `statuses`, `createdAfter` and `createdBefore`.
+narrowing a list does: `fieldFilters` (each entry's `value` a path, a `{literal}` or an
+`{expr}`), `vocabularyFilter`, `linkFilters`, `statuses`, `createdAfter` and `createdBefore`.
 
-- **A field filter needs a `filter` use on the field.** One without it fails the action when it
+- **A field filter needs a `filter` use on the field.** One without it fails the step when it
   runs, not at save.
-- **A filter slot that is missing skips the action**; it never counts without that filter. An empty
-  list counts `0`.
+- **A range (`lt`, `lte`, `gt`, `gte`) needs a number or a date field.** A text field compares by
+  `eq` only. A field typed `format: date` or `date-time` is a date field: a range on it compares
+  instants. Give a fixed value as a full ISO time with its offset, `2026-11-09T00:00:00Z`; a
+  date-only `2026-11-09` is refused at save (`ARGUMENT_TYPE_MISMATCH`), with that day's start in UTC
+  as the fix, which is how a record's date-only value is stored. A value a path or an expression
+  gives must be a full ISO time too (`runInfo.now`, never `$substring(runInfo.now, 0, 10)`): a
+  date-only one fails the run.
+- **A filter value that may be missing is refused at save** (`STEP_INPUT_MAY_BE_ABSENT`, with the
+  `if has` fix); one missing at run fails the step (`FILTER_VALUE_ABSENT`). It never counts
+  without that filter. An empty list counts `0`.
 - **A per-user table is counted for one user** — `userId`, default `userInfo.userId` — and the
-  action fails on a run with none. A project-scoped table ignores the slot.
+  step fails on a run with none (a schedule has no `userInfo`). A project-scoped table ignores it.
 
 ## Stating and retracting links
 
-`record.link-assert` reads two slots **by position** — the record the link runs from, then the one
-it runs to — and takes `kind` (the relation's key) and `actor`, a label of your choosing
-recorded on every link the action writes. It answers `{ outcome, reason }`: `stated` when the link
+`record.link-assert` takes `sourceRecordId` — the record the link runs from — and
+`targetRecordId`, the one it runs to, and `kind` (the relation's key) and `actor`, a label of your choosing
+recorded on every link the step writes. It answers `{ outcome, reason }`: `stated` when the link
 stands (written, revived or already there), `refused` otherwise, with `reason` one of
 `UNRESOLVABLE`, `UNDECLARED_PAIR` (the two records' tables are not a pair the relation admits) or
 `SELF_LINK` (both ends are the same record).
@@ -148,9 +165,9 @@ stands (written, revived or already there), `refused` otherwise, with `reason` o
 - **Only a `curated` relation works.** A relation a field or a join record produces is refused
   `UNRESOLVABLE` exactly as an unknown relation is, and so is an end the run cannot read — one
   answer for those causes, so a refusal cannot probe what exists.
-- **A refusal does not fail the action.** Branch on `outcome`, or a flow that linked nothing looks
+- **A refusal does not fail the step.** Branch on `outcome`, or a flow that linked nothing looks
   the same as one that linked everything.
-- **`record.link-retract` takes the same pair in the same order and the same `actor`.** It
+- **`record.link-retract` takes the same pair and the same `actor`.** It
   reaches only links stated under that label — never one a person or a key stated over the API —
   and answers `retracted` or `not-found`; finding nothing is an ordinary answer.
 
@@ -162,8 +179,8 @@ object or a list. It answers `appended` when at least one event was new and `unc
 every one already existed, so a retry converges.
 
 - **Each event carries its time** under the property the stream declares. One event without it,
-  or with a value that is not a datetime, fails the action and nothing of the batch is written.
-- **An event's identity is the record, the time and its id.** Left to the action, the id is derived
+  or with a value that is not a datetime, fails the step and nothing of the batch is written.
+- **An event's identity is the record, the time and its id.** Left to the step, the id is derived
   from the event's content; with your own ids in `eventId`, the same id under another time is
   a second event.
 - **The record's `data` does not change.** Read the events back with
@@ -184,8 +201,8 @@ any declared properties. Three things about it are easy to get wrong:
   see links to another user's records. No relation can be hidden: every relation the project has is
   readable.
 
-An empty or non-text slot gives an empty list rather than an error — so an unwired slot and a record
-with no links are indistinguishable at this action.
+An empty or non-text `recordId` gives an empty list rather than an error — so a bad id and a record
+with no links look the same at this step.
 
 ## Counting links across everyone
 
@@ -216,7 +233,7 @@ whatever the reason). In a run that acts for a person it may name only that pers
 
 A delete also follows each reference's delete rule (`onTargetDelete` on the `link` use): records
 naming a deleted one are deleted too (`delete`), lose the reference (`clear`), or stop the delete
-(`refuse`) — then the action fails with `RECORD_REFERENCED` and nothing is deleted. Over HTTP,
+(`refuse`) — then the step fails with `RECORD_REFERENCED` and nothing is deleted. Over HTTP,
 `DELETE /v1/records/{id}?validateOnly=true` says what a delete would do first.
 
 `record.merge` folds a duplicate (`merge`) into the record that stays (`keep`), both of one table and
@@ -240,7 +257,7 @@ reader can tell "not asked" from "nothing to delete".
 **These functions run as the run's user, not as your key.** `record.delete` reaches that user's own
 records and the project's pool — only the pool when no one is signed in; `record.teardown` reaches
 only the user's own and fails outright with no user. A record belonging to another user matches
-nothing. An action that appears to do nothing is usually operating on records it cannot see,
+nothing. A step that appears to do nothing is usually operating on records it cannot see,
 and it reports that as an ordinary empty result rather than a permission error.
 
 **A `userId` names someone else only in a run that acts for nobody** — a schedule, a trigger, a

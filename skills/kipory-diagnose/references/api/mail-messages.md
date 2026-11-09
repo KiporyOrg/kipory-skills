@@ -2,7 +2,7 @@
 
 # Messages a run sent
 
-What happened to each message a run's `email.send` actions sent, from the instant the run commits. A run succeeds when it stages its mail; delivery happens afterwards and never changes how the run closed, so this is where a message that was refused, failed or bounced shows. `sent` means accepted by the relay, not proof it reached an inbox. Each record says who the message was for, why it failed and whose failure it was; no subject or body is kept.
+What happened to each message a run's `email.send` steps sent, from the instant the run commits. A run succeeds when it stages its mail; delivery happens afterwards and never changes how the run closed, so this is where a message that was refused, failed or bounced shows. `sent` means accepted by the relay, not proof it reached an inbox. Each record says who the message was for, why it failed and whose failure it was; no subject or body is kept.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -43,10 +43,11 @@ Each item of `messages`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The message's id: the one the `email.send` action answered. Read it at `GET /v1/mail-messages/{id}`. |
+| `id` | `string` | yes | The message's id: the one the `email.send` step answered. Read it at `GET /v1/mail-messages/{id}`. |
 | `runId` | `string` | yes | The run that sent it. Read it at `GET /v1/runs/{runId}`. |
 | `attempt` | `integer` | yes | Which attempt of that run committed the message, from 1. |
-| `actionId` | `string` | yes | The action of the flow that sent it. |
+| `stepKey` | `string` | yes | The key of the step that sent it, within the flow that holds it (`flowId`). |
+| `flowId` | `string \| null` | yes | The flow that holds that step, by its id: a flow the run called when the step is one of its own. Two flows can each have a step with the same key; `flowId` and `stepKey` together name one. Null when the run did not record it. |
 | `address` | `string` | yes | The address it was sent from. |
 | `recipient` | `string` | yes | Who it was for. The only part of the message the record keeps: no subject, body or reply-to is stored. |
 | `status` | `"queued" \| "retrying" \| "sent" \| "refused" \| "failed" \| "bounced"` | yes | Where the message stands. `queued`: its run committed and it has not been tried yet. `retrying`: a try failed and another will follow. `sent`: accepted by the relay — the mail server took it, which is not proof it reached an inbox. `refused`: the platform will not send it. `failed`: every try failed, or it never reached the queue. `bounced`: the recipient's server returned it. `refused`, `failed` and `bounced` are final; `sent` changes only to `bounced`. |
@@ -64,7 +65,7 @@ Each item of `messages`:
 
 ### `GET /v1/mail-messages/{id}`
 
-One message a run sent, by the id its `email.send` action answered: who it was for, where it stands and, when it failed or is being retried, why and whose failure it is. No subject or body is kept. `sent` means accepted by the relay, which is not proof it reached an inbox. The id of a message whose run failed was never committed and is a 404. List a project's or a run's messages at `GET /v1/mail-messages`. 404 for an id you cannot see.
+One message a run sent, by the id its `email.send` step answered: who it was for, where it stands and, when it failed or is being retried, why and whose failure it is. No subject or body is kept. `sent` means accepted by the relay, which is not proof it reached an inbox. The id of a message whose run failed was never committed and is a 404. List a project's or a run's messages at `GET /v1/mail-messages`. 404 for an id you cannot see.
 
 **Path parameters**
 

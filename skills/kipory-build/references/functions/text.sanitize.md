@@ -71,7 +71,7 @@ Two clean items in, two wrapped blocks out, sharing one nonce. The system prompt
 
 Reads `list<RecordRead>` → emits `{id, sanitizedText}[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -109,7 +109,7 @@ A control token meant to pass as a new system turn, stripped before wrapping —
 
 Reads `list<RecordRead>` → emits `{id, sanitizedText}[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -145,7 +145,7 @@ A body over the cap is cut and the marker appended, so one long item cannot domi
 
 Reads `list<RecordRead>` → emits `{id, sanitizedText}[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -174,11 +174,11 @@ Output:
 
 #### Joined text
 
-The same items as one joined string instead of a list, for a next action wanting flat text.
+The same items as one joined string instead of a list, for a next step wanting flat text.
 
 Reads `list<RecordRead>` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

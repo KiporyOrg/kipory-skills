@@ -17,7 +17,7 @@ Merges or replaces the data; can also clear derived output, set a status and att
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `add` | object | no | — | Numbers to add to declared number fields, not fixed lists; negative subtracts. ⚠️ Not with `replace` or `start-again`; later actions see estimates; a sum past the bounds refuses; a resent request adds twice. |
+| `add` | object | no | — | Numbers to add to declared number fields, not fixed lists; negative subtracts. ⚠️ Not with `replace` or `start-again`; later steps see estimates; a sum past the bounds refuses; a resent request adds twice. |
 | `clearDerived` | boolean | no | `false` | Empty the record's derived output in the same write. ⚠️ Cannot be combined with `derived`. |
 | `data` | union | no | — | The new fields as one object, or use `fields`; empty changes nothing. ⚠️ Nothing is written when it is not an object, or when a field it writes breaks its table's type. |
 | `derived` | union | no | — | The new derived output; empty leaves it alone. ⚠️ Cannot be combined with `clearDerived` — one writes derived output and the other empties it. |
@@ -28,7 +28,7 @@ Merges or replaces the data; can also clear derived output, set a status and att
 | `mode` | `merge` \| `replace` | no | `"merge"` | `merge` (default) merges over existing values; `replace` overwrites them. ⚠️ In `merge`, a key set to `null` is removed from the record. |
 | `recordId` | union | yes | — | The id of the record to patch. ⚠️ On a per-user type, another user's id changes nothing and reports no error. |
 | `requireStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Only write when the record currently has this status. |
-| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Set the record to this status, clearing any earlier error. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` action does that. |
+| `setStatus` | `PENDING` \| `PROCESSING` \| `READY` \| `FAILED` | no | — | Set the record to this status, clearing any earlier error. ⚠️ Setting it to pending does not start processing on its own — a separate `record.enqueue-process` step does that. |
 | `userId` | union | no | — | The person a run that acts for nobody writes for. ⚠️ Only in a run that acts for nobody, like a schedule or trigger; a person's own run cannot name another. |
 
 ### `data` — one of
@@ -127,11 +127,11 @@ Patches an existing record in place and says whether a row changed.
 
 #### Record updated
 
-The named fields are merged into the record and the action reports that a row changed.
+The named fields are merged into the record and the step reports that a row changed.
 
 Reads `object` → emits `boolean` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -162,7 +162,7 @@ The id belongs to someone else, or the required status did not hold. Nothing cha
 
 Reads `object` → emits `boolean` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

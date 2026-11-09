@@ -12,13 +12,13 @@ Reads pages until it has about `maxResults`; each page is charged. A search that
 - **Also found as:** search online, search engine, look up online, find on the web
 - **Reads:** One search query. Each page of results read is charged; a page holds about ten, often fewer, so up to two more than one per ten results are read. _(shape hint: `string`)_
 - **Emits:** A `WebSearchResults`. Warns `TRUNCATED` when time or pages ran out well short, `NO_RESULTS` with no value when nothing is found or kept, and `SEARCH_FAILED` when it could not be made.
-- **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `query`
+- **Softens these failures:** `rate-limited`, `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `query`
 - **External dependency:** Apify — Runs Apify's `google-search-scraper` actor. Actor runs are billed and queued by Apify, not by this platform. Uses an Apify API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `apify` (vendor: Apify); falls through to the platform's own key when no node holds one.
 - **Charged as:** `apify/web-search-usage` per item — a millionth of a dollar the vendor charged for the run. Each is a row of `GET /v1/nodes/{nodeId}/vendor-prices`, which gives its price in credits and any included units or floor; an action spending a stored vendor key is not charged it.
 - **Rate limit:** 30 per min in bucket `apify`, counted per project — shared with `place.details`, `place.reviews`, `place.search`, `telegram.search-channels`, `web.rankings`, `web.traffic`, `x.posts`
-- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 3 attempts, exponential from 2 s; waits up to 5 min; cache 1 day — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

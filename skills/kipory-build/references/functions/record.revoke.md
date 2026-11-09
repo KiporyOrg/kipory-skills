@@ -12,7 +12,7 @@ Removes the second input's grant — a person, or a team record — on the first
 - **Also found as:** unshare record, revoke access, remove member
 - **Reads:** Two slots: the record, then whom to stop sharing it with — a person's user id, or a team record's id. _(shape hint: `string, string`)_
 - **Emits:** `true` once the revoke of an existing share is staged; `false` when the record was not shared with them (or `ifAbsent: "refuse"` stops the run with a 404).
-- **Suggested input streams:** `recordId`, `principal`
+- **Inputs (`with`):** `recordId`, `principal`
 
 ## Config
 

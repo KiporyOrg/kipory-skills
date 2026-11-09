@@ -11,7 +11,7 @@ Recipient, subject and body come from the run or are fixed. It sends after the r
 - **I/O:** `recipient, subject, body` → `string`
 - **Also found as:** mail, notify by email, email someone, send message, newsletter
 - **Reads:** The recipient (any address, project member or not), subject and body, each a slot path, fixed value or expression. The sending address is fixed. _(shape hint: `recipient, subject, body`)_
-- **Emits:** The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the action fails (`project-mail-cap-reached`).
+- **Emits:** The message's id — not a receipt: it leaves only if the run finishes and saves. Past the project's daily mail cap the step fails (`project-mail-cap-reached`).
 - **External dependency:** Kipory mail — Delivered by Kipory's own mail service from the sending address; no key of the project's own.
 
 ## Config
@@ -22,8 +22,8 @@ Recipient, subject and body come from the run or are fixed. It sends after the r
 | `html` | union | no | — | Optional HTML version of the message. ⚠️ The plain-text body is still required; an HTML-only message reads blank in text clients. |
 | `replyTo` | string | no | — | Optional address replies go to, instead of the sending address. ⚠️ Left empty, replies go to the catch-all mailbox, which a person must sort by hand. |
 | `subject` | union | yes | — | The subject line. |
-| `text` | union | yes | — | The plain-text body, required even with HTML. ⚠️ On a schedule that re-runs every action, this sends again every tick. |
-| `to` | union | yes | — | The address to send to. ⚠️ One recipient per action; a list here is refused, not fanned out. |
+| `text` | union | yes | — | The plain-text body, required even with HTML. ⚠️ On a schedule that re-runs every step, this sends again every tick. |
+| `to` | union | yes | — | The address to send to. ⚠️ One recipient per step; a list here is refused, not fanned out. |
 
 ### `html` — one of
 
@@ -99,7 +99,7 @@ Recipient, subject and body come from the run or are fixed. It sends after the r
 
 ## Worked example
 
-Sends one message earlier actions put together and answers its id. It leaves after the run saves; a flow that fails later sends nothing.
+Sends one message earlier steps put together and answers its id. It leaves after the run saves; a flow that fails later sends nothing.
 
 #### Run succeeds
 
@@ -107,7 +107,7 @@ The run now owes this message. It leaves once the run saves; the id reads what h
 
 Reads `{ to, subject, body }` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -132,11 +132,11 @@ Output:
 
 #### Run fails later
 
-The action succeeded and nothing is sent: a failed run discards what it staged. The id names no message.
+The step succeeded and nothing is sent: a failed run discards what it staged. The id names no message.
 
 Reads `{ to, subject, body }` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -165,7 +165,7 @@ It succeeds and sends nothing. Every real check still runs; a warning says one m
 
 Reads `{ to, subject, body }` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

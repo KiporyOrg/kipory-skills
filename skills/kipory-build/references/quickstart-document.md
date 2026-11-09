@@ -1,6 +1,6 @@
 # Build a backend as one document
 
-This page is the way in for a new backend, and for most changes to one. It is one complete project — people sign in and keep their own data, create and list it over HTTP, a total is kept for them, a model writes a sentence, a daily job notifies once by email — as one **project document** that this deployment planned, applied and ran. Copy its shapes. Open another page only for something this one does not show (the last section says which).
+This page is the way in for a new backend, and for most changes to one. It is one complete project for an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 11` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
 
 ## The loop
 
@@ -14,163 +14,379 @@ kipory ship app.mjs       both, when you expect a clean plan
 
 Underneath, on the api host with your key: `GET /v1/projects/{nodeId}/document?section=project` (your read, `basedOn`), `POST /v1/projects/{nodeId}/document/plan?basedOn=<version>` (the document as the body), `POST /v1/projects/{nodeId}/document { "planId", "note" }`. The product's own endpoints answer on the project's host (`baseUrl` on `GET /v1/grant`).
 
-- **Gate on each diagnostic's `severity`.** Only `error` refuses; `warning` and `info` block nothing. Fix every error a plan lists in one edit, then plan again.
-- **The format is 10** (`"kipory": 10`). A document is partial, and every element you state is whole: send the sections you change, each row complete. Absence never deletes.
-- **Sending mail needs an address first**: `POST /v1/managed-email-addresses { "node": "<nodeId>", "localPart": "tasks", "domain": "<a domain you send from>", "grade": "relay", "displayName": "Tasks" }`. The plan warns `EMAIL_SEND_ADDRESS_UNAVAILABLE` until it exists.
+- **A plan you mean to apply needs `basedOn`** — your read — once the project holds anything. After an apply, the answer's `basedOn` is your next read.
+- **Gate on `ok` and on each diagnostic's `severity`.** Only `error` refuses; `warning` and `info` block nothing. A finding about steps carries `at` and ready `fixes` (step edits to make in your file) or the `decision` you must make. Fix every error of one plan in one edit, then plan again.
+- **The format is 11** (`kipory: 11`), sent as YAML (`content-type: application/yaml`) or JSON. Plan the document alone, never an export's envelope `{ "version", "document" }`.
+- **A document is partial and every element you state is whole.** Send the sections you change; state each row whole. An omitted row is untouched; a flow's `steps` are its whole list, so a step you leave out is removed.
+- **Sending mail needs an address first**: `POST /v1/managed-email-addresses { "node": "<nodeId>", "localPart": "renewals", "domain": "<a domain you send from>", "grade": "relay", "displayName": "Orchard Club" }`. The plan warns `EMAIL_SEND_ADDRESS_UNAVAILABLE` until it exists.
 
 ## The example
 
-<!-- prettier-ignore -->
-```json
-{
-  "kipory": 10,
-  "types": {
-    "Project": {"definition": {"type": "object", "required": ["name"], "properties": {"name": {"type": "string", "minLength": 1, "maxLength": 200}, "watcherEmail": {"type": "string", "maxLength": 320}}}},
-    "Task": {"definition": {"type": "object", "required": ["projectId", "title", "state"], "properties": {"projectId": {"type": "string", "maxLength": 64}, "title": {"type": "string", "minLength": 1, "maxLength": 200}, "dueAt": {"type": "string", "format": "date-time"}, "hours": {"type": "number", "minimum": 0}, "state": {"type": "string", "enum": ["open", "done"]}, "summary": {"type": "string"}}}},
-    "DueNotice": {"definition": {"type": "object", "required": ["taskId", "day"], "properties": {"taskId": {"type": "string", "maxLength": 64}, "day": {"type": "string", "maxLength": 10}}}},
-    "Window": {"definition": {"type": "object", "required": ["from", "to", "day"], "properties": {"from": {"type": "string"}, "to": {"type": "string"}, "day": {"type": "string"}}}},
-    "Mail": {"definition": {"type": "object", "required": ["to", "subject", "text"], "properties": {"to": {"type": "string"}, "subject": {"type": "string"}, "text": {"type": "string"}}}}
-  },
-  "tables": {
-    "project": {"ownerScope": "user", "type": "Project", "uses": {"fields": []}, "computed": {"hoursDone": {"rollup": {"relation": "in-project", "where": [{"kind": "field", "field": "state", "op": "eq", "value": "done"}], "sum": "hours"}}}},
-    "task": {"ownerScope": "user", "type": "Task", "uses": {"fields": [{"source": {"family": "submission", "field": "projectId"}, "uses": [{"kind": "link", "relation": "in-project"}, "filter"]}, {"source": {"family": "submission", "field": "state"}, "uses": ["filter"]}, {"source": {"family": "submission", "field": "dueAt"}, "uses": ["filter"]}, {"source": {"family": "submission", "field": "hours"}, "uses": ["filter"]}]}},
-    "dueNotice": {"ownerScope": "user", "type": "DueNotice", "uses": {"fields": [{"source": {"family": "submission", "field": "taskId"}, "uses": ["key"]}]}}
-  },
-  "relations": {
-    "in-project": {"label": "In project", "direction": "directed", "producer": "field", "cardinality": "many-to-one", "pairings": [{"fromTableKey": "task", "toTableKey": "project"}], "description": "A task belongs to one project"}
-  },
-  "views": {
-    "openTasks": {"description": "The signed-in person's open tasks, soonest due first; ?projectId= narrows it.", "table": "task", "params": {"projectId": {"type": "string", "optional": true}}, "where": [{"kind": "field", "field": "state", "op": "eq", "value": {"literal": "open"}}, {"kind": "field", "field": "projectId", "op": "eq", "param": "projectId"}], "order": {"by": "field", "field": "dueAt", "direction": "asc"}, "pageSize": {"default": 50, "max": 100}},
-    "myProjects": {"description": "The signed-in person's projects, each with its computed hoursDone.", "table": "project", "pageSize": {"default": 50, "max": 100}}
-  },
-  "flows": {
-    "create-project": {
-      "label": "Create project",
-      "inputTypeNames": [{"slot": "name", "typeName": "string"}, {"slot": "watcherEmail", "typeName": "string", "required": false}],
-      "outputTypeNames": [{"slot": "projectId", "typeName": "string", "required": true}],
-      "outputBinding": {"projectId": {"fromSlot": "created", "path": {"segments": [{"kind": "field", "name": "recordId"}]}}},
-      "actions": {
-        "save": {"functionKey": "record.create", "functionConfig": {"tableKey": "project", "data": {"expr": "{'name': name, 'watcherEmail': watcherEmail}"}}, "outputSlot": "created"}
-      }
-    },
-    "create-task": {
-      "label": "Create task",
-      "inputTypeNames": [{"slot": "projectId", "typeName": "string"}, {"slot": "title", "typeName": "string"}, {"slot": "dueAt", "typeName": "string", "required": false}, {"slot": "hours", "typeName": "number", "required": false}],
-      "outputTypeNames": [{"slot": "taskId", "typeName": "string", "required": true}],
-      "outputBinding": {"taskId": {"fromSlot": "created", "path": {"segments": [{"kind": "field", "name": "recordId"}]}}},
-      "actions": {
-        "own-project": {"functionKey": "record.read", "functionConfig": {"tableKey": "project", "ids": {"expr": "[projectId]"}, "failIfEmpty": true}, "outputSlot": "found"},
-        "save": {"functionKey": "record.create", "functionConfig": {"tableKey": "task", "data": {"expr": "{'projectId': found[0].id, 'title': title, 'dueAt': dueAt, 'hours': hours, 'state': 'open'}"}}, "outputSlot": "created"}
-      }
-    },
-    "list-open-tasks": {
-      "label": "List open tasks",
-      "inputTypeNames": [{"slot": "projectId", "typeName": "string", "required": false}, {"slot": "readAfter", "typeName": "string", "required": false}, {"slot": "readBefore", "typeName": "string", "required": false}, {"slot": "readLimit", "typeName": "number", "required": false}],
-      "outputTypeNames": [{"slot": "tasks", "typeName": "object", "required": true}],
-      "outputBinding": {"tasks": {"fromSlot": "page"}},
-      "actions": {
-        "read": {"functionKey": "record.view", "functionConfig": {"view": "openTasks"}, "outputSlot": "page"}
-      }
-    },
-    "list-projects": {
-      "label": "List projects",
-      "inputTypeNames": [{"slot": "readAfter", "typeName": "string", "required": false}, {"slot": "readBefore", "typeName": "string", "required": false}, {"slot": "readLimit", "typeName": "number", "required": false}],
-      "outputTypeNames": [{"slot": "projects", "typeName": "object", "required": true}],
-      "outputBinding": {"projects": {"fromSlot": "page"}},
-      "actions": {
-        "read": {"functionKey": "record.view", "functionConfig": {"view": "myProjects"}, "outputSlot": "page"}
-      }
-    },
-    "complete-task": {
-      "label": "Complete task",
-      "inputTypeNames": [{"slot": "taskId", "typeName": "string"}],
-      "outputTypeNames": [{"slot": "summary", "typeName": "string", "required": true}],
-      "outputBinding": {"summary": {"fromSlot": "written"}},
-      "actions": {
-        "read": {"functionKey": "record.read", "functionConfig": {"tableKey": "task", "ids": {"expr": "[taskId]"}, "failIfEmpty": true}, "outputSlot": "tasks"},
-        "title": {"functionKey": "value.transform", "functionConfig": {"expression": "tasks[0].title"}, "outputSchema": {"kind": "ref", "ref": "string"}, "outputSlot": "title"},
-        "write": {"functionKey": "text.generate", "taskKey": "summarization", "promptTemplate": "In one sentence, say what finishing the task \"{{title}}\" achieved. Output only the sentence.", "outputSlot": "written", "functionConfig": {}, "outputSchema": {"kind": "ref", "ref": "string"}},
-        "save": {"functionKey": "record.update", "functionConfig": {"recordId": "taskId", "fields": {"state": {"literal": "done"}, "summary": "written"}}, "outputSlot": "updated"}
-      }
-    },
-    "notify-everyone": {
-      "label": "Start each person's due notices",
-      "inputTypeNames": [],
-      "outputTypeNames": [],
-      "outputBinding": {},
-      "actions": {
-        "start": {"functionKey": "flow.start-per-person", "functionConfig": {"people": {"kind": "project"}, "target": "notify-due"}, "outputSlot": "started"}
-      }
-    },
-    "notify-due": {
-      "label": "Notify once about tasks due tomorrow",
-      "inputTypeNames": [],
-      "outputTypeNames": [],
-      "outputBinding": {},
-      "actions": {
-        "window": {"functionKey": "value.transform", "functionConfig": {"expression": "($d := $floor($toMillis(runInfo.now) / 86400000) * 86400000; {'from': $fromMillis($d + 86400000), 'to': $fromMillis($d + 172800000), 'day': $substring($fromMillis($d + 86400000), 0, 10)})"}, "outputSchema": {"kind": "ref", "ref": "Window"}, "outputSlot": "win"},
-        "due": {"functionKey": "record.query", "functionConfig": {"tableKey": "task", "clauses": [{"kind": "field", "field": "state", "op": "eq", "value": {"literal": "open"}}, {"kind": "field", "field": "dueAt", "op": "gte", "value": "win.from"}, {"kind": "field", "field": "dueAt", "op": "lt", "value": "win.to"}], "limit": 100, "pages": {"max": 10, "onMore": "fail"}}, "outputSlot": "found"},
-        "each": {"functionKey": "flow.fan-out", "functionConfig": {"maxParallelBranches": 1}, "inputStreams": ["found"], "inputPaths": [{"segments": [{"kind": "field", "name": "records"}]}], "inputProjectionNames": ["found__records"], "outputSlot": "task"},
-        "notice": {"functionKey": "record.create", "functionConfig": {"tableKey": "dueNotice", "onKeyTaken": "skip", "data": {"expr": "{'taskId': task.id, 'day': win.day}"}}, "outputSlot": "created"},
-        "project": {"functionKey": "record.read", "functionConfig": {"tableKey": "project", "ids": {"expr": "[task.projectId]"}, "fields": ["watcherEmail"]}, "outputSlot": "projects"},
-        "mail": {"functionKey": "value.transform", "functionConfig": {"expression": "($exists(projects[0].watcherEmail) and $not($exists(created.keyTaken) and created.keyTaken)) ? {'to': projects[0].watcherEmail, 'subject': 'Due tomorrow: ' & task.title, 'text': task.title & ' is due ' & $formatDate(task.dueAt, 'yyyy-MM-dd HH:mm')}"}, "outputSchema": {"kind": "ref", "ref": "Mail"}, "outputSlot": "message"},
-        "send": {"functionKey": "email.send", "functionConfig": {"address": "tasks@example.test", "to": "message.to", "subject": "message.subject", "text": "message.text"}, "outputSlot": "sent"}
-      }
-    }
-  },
-  "surfaces": {
-    "endpoints": {
-      "create-project": {"contractConfig": {"method": "POST", "path": "/v1/projects-of-mine", "successStatus": 201, "auth": "required", "params": {}}, "targetConfig": {"kind": "flow.invoke", "execution": "sync", "flow": "create-project", "inputs": {"name": {"from": "body"}, "watcherEmail": {"from": "body"}}}},
-      "list-projects": {"contractConfig": {"method": "GET", "path": "/v1/projects-of-mine", "successStatus": 200, "auth": "required", "params": {}}, "targetConfig": {"kind": "flow.invoke", "execution": "sync", "flow": "list-projects", "inputs": {}}},
-      "create-task": {"contractConfig": {"method": "POST", "path": "/v1/tasks", "successStatus": 201, "auth": "required", "params": {}}, "targetConfig": {"kind": "flow.invoke", "execution": "sync", "flow": "create-task", "inputs": {"projectId": {"from": "body"}, "title": {"from": "body"}, "dueAt": {"from": "body"}, "hours": {"from": "body"}}}},
-      "list-open-tasks": {"contractConfig": {"method": "GET", "path": "/v1/tasks", "successStatus": 200, "auth": "required", "params": {}}, "targetConfig": {"kind": "flow.invoke", "execution": "sync", "flow": "list-open-tasks", "inputs": {}}},
-      "complete-task": {"contractConfig": {"method": "POST", "path": "/v1/tasks/{id}/complete", "params": {"id": {"in": "path", "type": "string", "required": true}}, "successStatus": 200, "auth": "required"}, "targetConfig": {"kind": "flow.invoke", "execution": "sync", "flow": "complete-task", "inputs": {"taskId": {"from": "path.id"}}}}
-    },
-    "schedules": {"daily-due-notices": {"label": "Daily due notices", "flow": "notify-everyone", "cronPattern": "0 7 * * *", "tz": "UTC", "overlapPolicy": "skip", "failurePolicy": "pause", "enabled": true, "inputs": {}}}
-  }
-}
+```yaml
+kipory: 11
+types:
+  Member:
+    definition:
+      type: object
+      required: [name, renewsOn]
+      properties:
+        name: { type: string, minLength: 1, maxLength: 200 }
+        email: { type: string, maxLength: 320 }
+        renewsOn: { type: string, maxLength: 10 }
+  Box:
+    definition:
+      type: object
+      required: [memberId, week, fruit, state]
+      properties:
+        memberId: { type: string, maxLength: 64 }
+        week: { type: string, maxLength: 10 }
+        fruit: { type: string, enum: [apples, pears, plums] }
+        pounds: { type: number, minimum: 0 }
+        state: { type: string, enum: [planned, packed] }
+        slip: { type: string }
+  RenewalNote:
+    definition:
+      type: object
+      required: [noteKey]
+      properties:
+        noteKey: { type: string, maxLength: 100 }
+tables:
+  member:
+    ownerScope: user
+    type: Member
+    uses:
+      fields:
+        - source: { family: submission, field: renewsOn }
+          uses: [filter]
+    computed:
+      poundsOrdered:
+        rollup: { relation: of-member, sum: pounds }
+  box:
+    ownerScope: user
+    type: Box
+    uses:
+      fields:
+        - source: { family: submission, field: memberId }
+          uses: [{ kind: link, relation: of-member }, filter]
+        - source: { family: submission, field: pounds }
+          uses: [filter]
+        - source: { family: submission, field: week }
+          uses: [filter]
+  renewalNote:
+    ownerScope: user
+    type: RenewalNote
+    uses:
+      fields:
+        - source: { family: submission, field: noteKey }
+          uses: [key]
+relations:
+  of-member:
+    label: Of member
+    description: A box belongs to one member
+    direction: directed
+    producer: field
+    cardinality: many-to-one
+    pairings: [{ fromTableKey: box, toTableKey: member }]
+views:
+  myBoxes:
+    description: The signed-in member's boxes.
+    table: box
+    pageSize: { default: 50, max: 50 }
+flows:
+  join-club:
+    label: Join the club
+    inputs:
+      name: { typeName: string }
+      email: { typeName: string, optional: true }
+      renewsOn: { typeName: string, description: "YYYY-MM-DD" }
+    outputs:
+      memberId: { typeName: string }
+    steps:
+      - key: join
+        function: record.create
+        with:
+          tableKey: member
+          fields:
+            name: name
+            email: { path: email, optional: true }
+            renewsOn: renewsOn
+      - key: joined
+        if:
+          - test: { not: { has: join.recordId } }
+            steps:
+              - key: noMember
+                fail: { code: NO_RESULT, message: The member was not saved. }
+      - key: done
+        return:
+          memberId: join.recordId
+  order-box:
+    label: Order a box
+    inputs:
+      memberId: { typeName: string }
+      week: { typeName: string }
+      fruit: { typeName: string }
+      pounds: { typeName: number, optional: true }
+    outputs:
+      boxId: { typeName: string }
+    steps:
+      - key: tooHeavy
+        if:
+          - test: { gt: [pounds, 20] }
+            steps:
+              - key: refuse
+                fail:
+                  code: TOO_HEAVY
+                  message: A box holds at most 20 lb.
+                  status: 422
+      - key: owner
+        function: record.read
+        with:
+          tableKey: member
+          ids: { expr: "[memberId]" }
+          failIfEmpty: true
+      - key: save
+        function: record.create
+        with:
+          tableKey: box
+          fields:
+            memberId: memberId
+            week: week
+            fruit: fruit
+            pounds: { path: pounds, default: 10 }
+            state: { literal: planned }
+      - key: saved
+        if:
+          - test: { not: { has: save.recordId } }
+            steps:
+              - key: noBox
+                fail: { code: NO_RESULT, message: The box was not saved. }
+      - key: done
+        return:
+          boxId: save.recordId
+  list-boxes:
+    label: List my boxes
+    inputs:
+      boxesAfter: { typeName: string, optional: true }
+      boxesBefore: { typeName: string, optional: true }
+      boxesLimit: { typeName: number, optional: true }
+    outputs:
+      page: { typeName: object }
+    steps:
+      - key: boxes
+        function: record.view
+        with: { view: myBoxes }
+      - key: done
+        return:
+          page: boxes
+  pack-box:
+    label: Pack a box
+    inputs:
+      boxId: { typeName: string }
+    outputs:
+      slip: { typeName: string }
+    steps:
+      - key: found
+        function: record.read
+        with:
+          tableKey: box
+          ids: { expr: "[boxId]" }
+          failIfEmpty: true
+      - key: write
+        try:
+          steps:
+            - key: line
+              function: text.generate
+              with:
+                prompt: "Write one friendly line for the packing slip of this fruit box: {{found | json}}. Output only the line."
+          out:
+            slip: line
+        catch:
+          steps: []
+          out:
+            slip: { literal: "Packed with care by the Orchard Club." }
+      - key: save
+        function: record.update
+        with:
+          recordId: boxId
+          fields:
+            state: { literal: packed }
+            slip: write.slip
+      - key: done
+        return:
+          slip: write.slip
+  remind-everyone:
+    label: Start each member's renewal reminder
+    inputs: {}
+    outputs: {}
+    steps:
+      - key: start
+        function: flow.start-per-person
+        with:
+          flow: remind-renewal
+          inputs: {}
+          people: { kind: project }
+  remind-renewal:
+    label: Remind a member whose membership renews tomorrow
+    inputs: {}
+    outputs: {}
+    steps:
+      - key: due
+        function: record.list
+        with:
+          tableKey: member
+          limit: 100
+          pages: { max: 10, onMore: fail }
+          fieldFilters:
+            - field: renewsOn
+              op: eq
+              value:
+                expr: "$substring($fromMillis($toMillis(runInfo.now) + 86400000), 0, 10)"
+      - key: perMember
+        each: due.records
+        as: member
+        maxParallel: 1
+        steps:
+          - key: reachable
+            if:
+              - test: { filled: member.email }
+                steps:
+                  - key: note
+                    function: record.create
+                    with:
+                      tableKey: renewalNote
+                      onKeyTaken: skip
+                      fields:
+                        noteKey: { expr: "member.id & '@' & member.renewsOn" }
+                  - key: fresh
+                    if:
+                      - test: { not: { eq: [note.keyTaken, true] } }
+                        steps:
+                          - key: mail
+                            function: email.send
+                            with:
+                              address: renewals@example.test
+                              to: member.email
+                              subject:
+                                literal: Your Orchard Club membership renews tomorrow
+                              text:
+                                expr: "'Dear ' & member.name & ', your membership renews on ' & member.renewsOn & '.'"
+surfaces:
+  endpoints:
+    join-club:
+      contractConfig:
+        method: POST
+        path: /v1/club/members
+        successStatus: 201
+        auth: required
+        params: {}
+      targetConfig:
+        kind: flow.invoke
+        execution: sync
+        flow: join-club
+        inputs:
+          name: { from: body }
+          email: { from: body }
+          renewsOn: { from: body }
+    order-box:
+      contractConfig:
+        method: POST
+        path: /v1/club/boxes
+        successStatus: 201
+        auth: required
+        params: {}
+      targetConfig:
+        kind: flow.invoke
+        execution: sync
+        flow: order-box
+        inputs:
+          memberId: { from: body }
+          week: { from: body }
+          fruit: { from: body }
+          pounds: { from: body }
+    list-boxes:
+      contractConfig:
+        method: GET
+        path: /v1/club/boxes
+        successStatus: 200
+        auth: required
+        params: {}
+      targetConfig:
+        kind: flow.invoke
+        execution: sync
+        flow: list-boxes
+        inputs: {}
+    pack-box:
+      contractConfig:
+        method: POST
+        path: /v1/club/boxes/{id}/pack
+        successStatus: 200
+        auth: required
+        params: { id: { in: path, type: string, required: true } }
+      targetConfig:
+        kind: flow.invoke
+        execution: sync
+        syncTimeoutMs: 120000
+        flow: pack-box
+        inputs: { boxId: { from: path.id } }
+  schedules:
+    daily-renewals:
+      label: Daily renewal reminders
+      flow: remind-everyone
+      cronPattern: "0 7 * * *"
+      tz: UTC
+      overlapPolicy: skip
+      failurePolicy: pause
+      enabled: true
+      inputs: {}
 ```
 
 ## What each part is doing
 
-<!-- field-ok: readAfter — the paging input a flow declares for its `record.view` action `read`, named after the action -->
-<!-- field-ok: readBefore — the paging input a flow declares for its `record.view` action `read`, named after the action -->
-<!-- field-ok: readLimit — the paging input a flow declares for its `record.view` action `read`, named after the action -->
-<!-- field-ok: dueNotice — the example project's own table key -->
+<!-- field-ok: perMember — the example flow's own step key -->
+<!-- field-ok: noteKey — the example project's own type field -->
+<!-- field-ok: renewalNote — the example project's own table key -->
+<!-- field-ok: poundsOrdered — the example project's own computed field -->
 
-- **Ownership is a table setting, not a filter.** `ownerScope: "user"` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that is a `404` (`create-task` › `own-project`). Write no owner field and no owner filter.
-- **A total that must stay right is `computed`, not a read-time sum.** `project.hoursDone` is a `rollup` over the relation `in-project`; the platform recomputes it a few seconds after any task is created, changed or deleted, and no writer can set it. It needs the relation (`relations.in-project`) and a `link` use on the field that holds the parent's id (`task.projectId`). `rollup` also takes `count`, `avg`, `min`, `max`, `latest`; a `formula` (JSONata over the row) and a `lookup` (a field of the linked row) are the other two kinds.
-- **A setting reads a slot by its path**: `"recordId": "taskId"`, `"to": "message.to"`. A fixed value is `{ "literal": "done" }`; an expression is `{ "expr": "[projectId]" }` (JSONata over the slots). A read result is a list: the first record is `found[0]` in an expression. A prompt reads `{{slot}}`, `{{slot.field}}` or `{{slot[0]}}` (a whole text item, no field below it); compute any other value in a `value.transform` first, as `complete-task` › `title` does.
-- **Give a model action and an object-building transform an `outputSchema`** (`text.generate` → `{ "kind": "ref", "ref": "string" }`; `window` and `mail` → a named type), or the plan warns that nothing checks what reads it.
-- **`record.update` names no table**: it takes `recordId` and the fields to write (`fields`, or `data` as one object; `add` for numbers) — the record knows its table. In a document a `tableKey` there is dropped, said as `DOCUMENT_FORM_READ`.
-- **Never once, by the platform**: `dueNotice.taskId` has the `key` use, and `record.create` with `onKeyTaken: "skip"` answers `keyTaken` instead of a second row. Gate the mail on it (`mail`): a re-run of the job, overlapping or not, creates and sends nothing twice.
-- **A daily job for each person**: the schedule starts `notify-everyone`, whose `flow.start-per-person` runs `notify-due` once per project member, as that member — so its reads see that member's rows.
-- **Read every page, loudly.** `record.query` reads one page unless `pages` says more; `onMore: "fail"` fails the run when rows remain instead of dropping them in silence (`"stop"` drops them).
+- **A flow is its steps, in the order they run.** `order-box` checks the weight, reads the member, saves the box, checks it was saved, returns its id — top to bottom. A step's key names its value: `save.recordId` is the id `save` created. A flow gives its outputs only through a `return` step.
+- **A setting reads a value by its path**: `memberId: memberId`, `to: member.email`. Text is `{ literal: "…" }` — a bare string is always a path. An expression is `{ expr: "[boxId]" }`. A setting that names a thing — `tableKey`, `address`, a prompt — is a plain value. `action-fields.md` has every form.
+- **An optional input is read with its tolerance.** `email` may be left out, so `join-club` reads it `{ path: email, optional: true }` (the field is then not written), and `order-box` reads `pounds` with `default: 10`. A text default is a literal: `default: { literal: apples }`. A plain `email` would be refused at plan: the save proves every required read is there on every path (`STEP_INPUT_MAY_BE_ABSENT`).
+- **A required output must be proved too.** Nothing proves `record.create`'s receipt holds `recordId`, so return `save.recordId` as a required output only after a step that fails the run when it is missing — `saved` and `joined` are that guard. `fail` with `status` is how an endpoint answers your own error: `refuse` answers `422 VALIDATION_FAILED`, `details.reason: TOO_HEAVY`.
+- **Ownership is a table setting, not a filter.** `ownerScope: user` makes every row the signed-in person's: their reads see only their rows, and `record.read` of another person's id finds nothing — with `failIfEmpty: true` that fails the call (`order-box` › `owner`). The save still does not count `owner[0]` as there: read its fields under `{filled: owner}`. Write no owner field and no owner filter.
+- **A total that must stay right is `computed`, not a read-time sum.** `member.poundsOrdered` is a `rollup` over the relation `of-member`; the platform recomputes it a few seconds after any box is created, changed or deleted. It needs the relation and a `link` use on the parent's id field (`box.memberId`). `rollup` also takes `count`, `avg`, `min`, `max`, `latest`.
+- **A model step is `text.generate` with its `prompt`.** A placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`; one item's field (`{{found[0].fruit}}`) is not one, so `line` reads the whole `found`. A placeholder naming a whole object or list is refused at save (`INTERPOLATE_BARE_STRUCTURED_SLOT`): name a field, write `{{name | json}}`, or loop with a section. With no `outputSchema` it answers text.
+- **`try` is the only way past a failure.** If the model call fails, `write`'s `catch` gives a fixed slip instead; both lists give `slip` through `out`, read after the block as `write.slip`. A value made inside a block is read outside only through its `out`.
+- **`each` runs its steps once per value.** `perMember` runs per member due; inside, `member` is the value. Its steps change records and send mail, so it runs them one member at a time — `maxParallel: 1` says so.
+- **`if` guards what may be missing.** The `Member` type marks `email` optional; inside `reachable`, whose test is `{ filled: member.email }`, the save knows it is there, so `to: member.email` is accepted. A test is false on a missing value; `{ not: { has: x } }` holds when `x` is missing.
+- **Never twice, by the platform**: `renewalNote.noteKey` has the `key` use, and `record.create` with `onKeyTaken: skip` answers `keyTaken` instead of a second row. `fresh` mails only when it is not set, so a re-run of the job, overlapping or not, sends nothing twice.
+- **A daily job for each person**: the schedule starts `remind-everyone`, whose `flow.start-per-person` runs `remind-renewal` once per member of the project, as that person — so its reads see that person's rows. `with.flow` names the flow it starts by key.
+- **Read every page, loudly.** `record.list` reads one page unless `pages` says more; `onMore: fail` fails the run when rows remain instead of dropping them (the plan warns `RECORD_LIST_CURSOR_UNREAD` otherwise).
+- **A list over HTTP is a view.** `list-boxes` reads one with `record.view`, so its endpoint pages, publishes the item's schema and answers 304 with no run; a `record.list` there is warned `ENDPOINT_IS_A_VIEW`. Its default `scope: caller` reads only the member's boxes. Paging inputs are the step's key plus `After`, `Before`, `Limit`; walk with `?after=<nextCursor>`. An endpoint declaring `after`, `before` or `limit` is no view endpoint (`VIEW_ENDPOINT_NOT_DERIVED`): `view-endpoints.md`.
+- **YAML**: quote a path that holds `[` inside `{ … }` (`"perMember[].written"`), and a text with `: ` or `{{` in it.
 
 ## Names and fields that refuse a plan
 
 - **Reserved field names**: `id`, `status`, `statusError`, `createdAt`, `updatedAt`, `processing` — every record already has them. Call yours `state` or `phase`.
-- **Keys**: a table key and a slot name are letters and digits, starting with a letter — no `-` or `_` (`dueNotice`, not `due-notice`). Type keys are written like `Task`. Flow and relation keys are lowercase words joined by `-` (`notify-due`). **Action keys are lowercase words joined by `-`, optionally grouped with `.`** (`own-project`, `extract.species`; never camelCase). Endpoint, schedule and trigger keys are letters, digits, `.`, `-` and `_`.
-- **Endpoint paths start with `/v1/`**, and their first word may not be one the platform serves itself (`ENDPOINT_PATH_RESERVED_WORD`: `/v1/records/…` is taken).
-- **Filled in when left out** (each said as `DOCUMENT_FORM_READ`): a prompt action's `functionConfig`, an endpoint's `params` (its path's own parameters) and `inputs`, a schedule's `inputs`, a relation's `description` — on a row the project already holds, with the value it holds. A flow's `inputTypeNames` and `outputTypeNames` are still required (`[]` for a flow nobody calls).
-- **An expression names record fields exactly as the type has them**; a field the record lacks is refused `JSONATA_FIELD_UNKNOWN`. Inside a filter `[…]` a bare name is the item's field: write `$$.slot` for a flow slot.
-- **A list input is a list**: `{ "slot": "tags", "typeName": "string", "isList": true }`, never `object` — the endpoint publishes the type you declare. **"Left out" is `$not($exists(tag))`**: `$not(tag)` of an absent input is nothing, not true.
-- **`record.aggregate` totals only fields with a `filter` use.** For a per-record total prefer `computed`.
+- **Keys**: **step keys are camelCase** — a table key, a step key and a flow's input or output name are letters and digits, starting with a lower-case letter (`renewalNote`, `perMember`). Type keys are written like `Member`. Flow and relation keys are lowercase words joined by `-` (`order-box`). Endpoint, schedule and trigger keys are letters, digits, `.`, `-` and `_`. Two steps of one flow never share a key, at any depth.
+- **Endpoint paths start with `/v1/`**, and a path whose first word a platform route uses is refused (`ENDPOINT_PATH_RESERVED_WORD`, `ENDPOINT_PATH_CONFLICT`) — `/v1/boxes` is one; `/v1/club/boxes` is not. `GET /v1/coded-routes` lists them.
+- **A flow states `label`, `inputs` and `outputs`** (`{}` for none). A list value is `isList: true`, never `object`; the endpoint publishes the type you declare.
+- **An expression names record fields exactly as the type has them**; a field the record lacks is refused `JSONATA_FIELD_UNKNOWN`. Inside a filter `[…]` a bare name is the item's field.
+- **A format-10 document** — one with `actions` under a flow — is refused `DOCUMENT_VERSION_UNSUPPORTED`. Nothing converts it: write each flow's steps in format 11.
 
 ## Try it as a person, then change it
 
-- **Test users** sign in for you: `kipory user alice`, then `kipory call alice GET "/v1/tasks"` on the project's host (`POST /v1/test-users { "project": "<nodeId>", "name": "alice" }` answers the `session` the command keeps). A second user proves isolation.
-- **A schedule never starts a run for a test user** (test memberships are not the project's people). Rehearse the per-person flow instead: `kipory preview notify-due --as alice` (`POST /v1/flows/{id}/preview-runs` with `"principal": "end-user", "runAsUserId"`, `"apply": false`, then `GET /v1/runs/{runId}/trace`).
-- **Adding a field**: state the type whole with the new field optional; add a `filter` use if a view, a query or a total reads it.
+- **Test users** sign in for you: `kipory user alice`, then `kipory call alice GET "/v1/club/boxes"` on the project's host (`POST /v1/test-users { "project": "<nodeId>", "name": "alice" }` answers the `session` the command keeps). A second user proves isolation.
+- **A schedule never starts a run for a test user.** Rehearse the per-person flow instead: `kipory preview remind-renewal --as alice` (`POST /v1/flows/{id}/preview-runs` with `principal: "end-user"` and `runAsUserId`, then `GET /v1/runs/{runId}/trace`).
+- **Change one flow's steps without a document**: `POST /v1/flows/{id}/steps/edit` with edits by key (`row-by-row.md`).
+- **Changing a type or a flow that an endpoint serves**: a change that only adds optional fields (a new optional field on `Box`, an optional input to `order-box`, a new output) is adopted by the plan for every endpoint serving it (`DOCUMENT_ADOPTED_ADDITIVE`). Any other change is refused `TYPE_RESHAPES_BOUND_SNAPSHOTS` / `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` until the row you change carries `adoptSnapshots: true`.
 
 ## When to open another page
 
-| You need                                              | Read                                                             |
-| ----------------------------------------------------- | ---------------------------------------------------------------- |
-| a function this example does not use                  | `functions/README.md` (one line each), then that function's page |
-| a refusal you cannot read                             | `kipory-connect`'s `references/refusal-codes.md`, by code        |
-| a project that already holds records you will reshape | `kipory-evolve`                                                  |
-| what a project already holds, in a few KB             | `kipory summary` (`GET /v1/projects/{nodeId}/document/summary`)  |
-| a question this page does not answer                  | `answers.md`, then `kipory docs <words>`                         |
-| search by meaning, files, outside APIs                | `kipory-retrieve`, `kipory-extract`, `kipory-gather`             |
-| every rule of the document                            | `document.md`                                                    |
+- A function this example does not use: `functions/README.md` (one line each), then that function's page.
+- A step's fields and argument forms: `action-fields.md`.
+- A finding, its fixes, trying one step: `checking.md`.
+- A refusal you cannot read: `kipory-connect`'s `references/refusal-codes.md`, by code.
+- A project that already holds records you will reshape: `kipory-evolve`.
+- What a project already holds, in a few KB: `kipory summary` (`GET /v1/projects/{nodeId}/document/summary`).
+- A question this page does not answer: `answers.md`, then `kipory docs <words>`.
+- Search by meaning, files, outside APIs: `kipory-retrieve`, `kipory-extract`, `kipory-gather`.
+- Every rule of the document: `document.md`.

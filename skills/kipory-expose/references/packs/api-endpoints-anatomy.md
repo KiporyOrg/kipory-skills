@@ -16,8 +16,8 @@ schedules, events, record processing — rides the same machinery.
 ## What it is
 
 You author an endpoint through the **design API**. That row declares an HTTP **contract** — method,
-path, params — and a **target**: which flow to invoke, and how request fields map onto its input
-slots. The endpoint is then live on the project's own host. No redeploy.
+path, params — and a **target**: which flow to invoke, and how request fields map onto its
+inputs. The endpoint is then live on the project's own host. No redeploy.
 
 A fresh project serves **nothing**. There are no starter endpoints and no starter flows; every
 route a project answers is one you authored.
@@ -47,13 +47,13 @@ is derived on each read from the same rule the write gate applies — never stor
 It also says which credential the endpoint takes: `requiresUser` is true when the bound flow —
 sub-flows included — reads or writes records owned by a user, and `requiresUserBy` names the
 functions. A key acts as the project and has no user, so its call to such an endpoint is refused
-`403` before the flow runs. An action counts wherever it sits in the flow, a branch a key's call
-would not take included; a disabled action, and one whose failure the run continues past, do not. A
+`403` before the flow runs. A step counts wherever it sits in the flow, in an `if` branch a key's
+call would not take too; a disabled step (`enabled: false`) does not. A
 subscription to a `user`-scoped channel is `requiresUser: true` as well: a key has no such channel.
 
 `contractConfig.responseBody` names one required output of the bound flow to send as the whole
-response body. Absent, the body is an object of every output keyed by its name
-(`{ "result": { … } }`); set to `result`, the body is that output's value alone, and the published
+response body. Absent, the body is an object of every output the flow's `return` gave, keyed by
+its name (`{ "result": { … } }`); set to `result`, the body is that output's value alone, and the published
 OpenAPI response is that output's schema. Only a synchronous `flow.invoke` takes it.
 
 ## The one write-shape rule people get wrong
@@ -86,7 +86,7 @@ first character a letter or a digit
 
 ⚠️ **This is not the flow-key rule.** A flow's `key` is strict lower-case kebab (as are terms,
 event types and their namespaces, relations and embedding profiles), a vocabulary's is camelCase, a
-table's is a table name and an action's a dotted kebab name. Address keys are none of those, and
+table's is a table name and a step's is camelCase. Address keys are none of those, and
 deliberately — camelCase endpoint keys like `subscriptionsList` are ordinary and legal here. Each
 element's key has exactly one format; do not assume one from another. A key outside its format is
 refused, never re-cased for you.
@@ -153,7 +153,7 @@ in the path only when the contract puts it there (`{name}` in braces).
 There is **no read-only flag to set.** Whether a VIEWER-level caller may make a call is the
 platform's decision, not a declaration: an asynchronous invoke and a DELETE are writes; any other
 GET is a read; anything else is a write exactly when the bound flow — sub-flows included — reaches a
-action that changes data: a function that writes, an event emitted beyond the run (it can start
+step that changes data: a function that writes, an event emitted beyond the run (it can start
 triggers), or a vocabulary resolution. An asynchronous invoke cannot be saved on GET. So a
 POST search whose flow only reads is open to viewers without declaring anything.
 
@@ -168,8 +168,8 @@ public search box — instead of running a server of your own that holds a key a
 What that changes:
 
 - **No credential is read.** A key or a cookie sent with the call is ignored, not checked — a revoked
-  key and a stranger's cookie change nothing. The run has **no user**, whoever called: an action that
-  reads the calling user finds none, as on a key's run. To answer a signed-in caller differently,
+  key and a stranger's cookie change nothing. The run has **no user**, whoever called: a step that
+  reads the calling user (`userInfo`) finds none, as on a key's run. To answer a signed-in caller differently,
   save a second endpoint that requires a credential.
 - **The `Idempotency-Key` header is ignored.** Every public run belongs to the project, so two
   strangers sending the same key would otherwise share one write.
@@ -191,7 +191,7 @@ What that changes:
 Only a **synchronous invoke** can be public. A stream, a subscription and an asynchronous invoke
 stay behind a credential, and so does a flow whose signature takes the calling user (`userInfo`).
 The flow may write: that is what a sign-up form is. `validateOnly` warns `PUBLIC_ENDPOINT_WRITES`
-when it does, and always warns `PUBLIC_ENDPOINT_SPENDS`, naming the model and vendor actions the flow
+when it does, and always warns `PUBLIC_ENDPOINT_SPENDS`, naming the model and vendor functions the flow
 reaches — the same list an endpoint read carries as `spends` inside its `access`, beside `public`.
 It also warns `PUBLIC_ENDPOINT_NAMES_PERSON` when a `record.query`, `record.count`, `record.list`
 or `record.aggregate` of a person-owned table takes its `userId` from the request: anyone could
@@ -212,36 +212,55 @@ failed-calls alert.
 
 ## Refusing a call, and shaping the answer
 
-**A flow refuses with the status it means** through a `request.refuse` action, given a condition so
-it runs only when the call must be refused:
-`{ "status": 403, "code": "NOT_OWNER", "message": { "literal": "Only the owner can do that." } }`
-— `message` is an argument, so fixed text is a `literal`; a bare string names a slot. The status is
-one of 401, 403, 404, 409, 410, 413, 415, 422 or 429; `retryAfterSeconds` adds `Retry-After`. The
+**A flow refuses with the status it means** through a `request.refuse` step, inside an `if`
+branch so it runs only when the call must be refused:
+
+```yaml
+- key: signedIn
+  if:
+    - test: { not: { has: userInfo } }
+      steps:
+        - key: refuseAnonymous
+          function: request.refuse
+          with:
+            {
+              status: 401,
+              code: SIGN_IN_REQUIRED,
+              message: { literal: "Sign in first." },
+            }
+```
+
+`message` is an argument, so fixed text is a `literal`; a bare string is a path. The status is one
+of 401, 403, 404, 409, 410, 413, 415, 422 or 429; `retryAfterSeconds` adds `Retry-After`. The
 caller gets that status, the platform's word for it as `code` (`FORBIDDEN`, `GONE`,
 `RATE_LIMITED`…), your code as `details.reason` and your message. The run fails, so nothing it
-would have written is kept. Never set it to keep the run going on failure: the save refuses that. A
-refusal, and a signature check, run before any action beside them and stop the run: nothing
-started after them runs, so a forged call spends nothing. They run first only among the actions
-of their own level, though: make costly work (an AI call, a fetch, a sub-flow) read the check's
-`true`, so it waits for the check whatever the flow's shape.
+would have written is kept, and a `try` does not catch a refusal. Steps run in written order, so
+put the refusal and a signature check before any costly step (an AI call, a fetch, a sub-flow): a
+forged call then spends nothing.
+
+**A `fail` step** ends the flow with your own error, `{key, fail: {code, message, status?}}`; the
+caller gets `status` (any 4xx except 405, 408 and 426; 422 when left out) with the body `{code, message, details}`: the
+platform's word for the status as `code` (`REQUEST_REFUSED` for one with no word of its own, such as 400 or 418), your message, your code as `details.reason` — the shape a refusal
+answers. Unlike a refusal, a `try` around it catches it; use `request.refuse` when nothing may
+catch it or the answer needs `Retry-After`.
 
 **A signed webhook** is checked by `request.verify-signature`:
 `{ "payload": "raw", "signature": "sig", "secret": "shop.record.data.paymentSecret" }`, with `raw`
 bound to `rawBody` <!-- field-ok: rawBody — an input binding's `from` value, not a field --> and `sig` to `header.x-signature`. It compares the HMAC (sha256 hex by default,
 or another hash, encoding and prefix as configured) in constant time, and a wrong or missing signature
-answers 401 `SIGNATURE_INVALID` and stops the run, nothing written. On a match it outputs `true`: wire
-an action to it to run only for a signed call. `onMismatch: "output"` gives the flow `false` instead of refusing. Read the record the secret is on first, so an unknown sender gets 404 before
+answers 401 `SIGNATURE_INVALID` and stops the run, nothing written. On a match its value is `true`.
+`onMismatch: "output"` gives the flow `false` instead of refusing; test it in an `if`. Read the record the secret is on first, so an unknown sender gets 404 before
 the signature is checked.
 
 **The answer's shape** (a synchronous invoke only, not a view endpoint) — each names a flow output,
 and the outputs it names are not in the body:
 
-| `contractConfig`                        | Answers                                                                                                                                                                            |
-| --------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `successStatus: 204`                    | 204, no body                                                                                                                                                                       |
-| `redirect: { "location": "url" }`       | 302 (or `status`: 301, 303, 307, 308) with `Location` set to the output: an `http(s)` address or a path starting with `/`. A GET whose flow writes (a click count) may redirect    |
-| `statusOutput: "status"`                | the status the run outputs: 200, 201, 202, 204 or 206 — 201 for a new event, 200 for a replay                                                                                      |
-| `headers: { "Cache-Control": "cache" }` | each header from its output, up to 10: Cache-Control, Content-Disposition, Content-Language, ETag, Expires, Last-Modified, Link, Retry-After, or an `X-` name (not `X-RateLimit-`) |
+| `contractConfig`                        | Answers                                                                                                                                                                                           |
+| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `successStatus: 204`                    | 204, no body                                                                                                                                                                                      |
+| `redirect: { "location": "url" }`       | 302 (or `status`: 301, 303, 307, 308) with `Location` set to the output: an `http(s)` address or a path starting with `/`. A GET whose flow writes (a click count) may redirect                   |
+| `statusOutput: "status"`                | the status the run outputs: 200, 201, 202, 204 or 206 — 201 for a new event, 200 for a replay                                                                                                     |
+| `headers: { "Cache-Control": "cache" }` | each header from its output, up to 10: Cache-Control, Content-Disposition, Content-Language, ETag, Expires, Last-Modified, Link, Retry-After, or an `X-` name (not `X-Kipory-` or `X-RateLimit-`) |
 
 An output the answer cannot carry — a `Location` that is no address, a status outside the list, a
 header value with a line break — answers 502 and nothing is written.
@@ -256,18 +275,18 @@ Three kinds:
   started it; null until one has — on the first attempt the gap is the time it waited, and the run's
   `queued` says why) and `attempt`; `output` once the run is ready and, once it has failed,
   `error`, `code` — the error code the same call made synchronously would answer (`FLOW_FAILED`,
-  `RECORD_NOT_FOUND`, `QUOTA_EXHAUSTED`…), absent when none names it — and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
+  `RECORD_NOT_FOUND`, `QUOTA_EXHAUSTED`…), absent when none names it, with `details.flowKey` when that code is
+  `FLOW_NOT_AUTHORED` (the flow that has no steps yet), as the synchronous answer carries it — and `failure` — how it failed and whose failure it was, with the same `class` and `owner`
   and `retryable` a schedule's runs carry, the `attempt` that closed it, the `cause` and `refusedWrite` when its
   changes were refused when they were saved, and a `reason` when the refusal is one a
   caller may read, such as the rule a function named (`RECORD_READ_HAS_MORE`, which a synchronous
-  call answers as the `reason` in a 422's `details`), `project-push-cap-reached`, or `recipient-not-an-address` for a mail action given a
+  call answers as the `reason` in a 422's `details`), `project-push-cap-reached`, or `recipient-not-an-address` for a mail step given a
   recipient that is no email address, `more-than-one-recipient` for one given a list, or `recipient-is-a-test-user` for one given a test user's
   address, and a `limitKey` when a limit
-  refused it (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). On a failed action `error` names it
-  and its code — _The flow failed at action "search": timeout._ — never the action's own words. A run stopped from
-  outside names, in `failure`, the clock that stopped it (`deadline`: `name` and `limitMs`) and the actions that
-  were running (`runningActions`). Its `code` is never `value-cut` or `fan-out-capped`: those only mark
-  a cut result or a capped fan-out in a failure slot. A
+  refused it (schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) lists the classes and the reasons). On a failed step `error` names it
+  by its key and its code — _The flow failed at step "search": timeout._ — never the function's own words. A run
+  stopped from outside names, in `failure`, the clock that stopped it (`deadline`: `name` and `limitMs`) and the
+  steps that were running (`runningSteps`). A
   synchronous call whose failure is the platform's own answers 503 with `Retry-After`, not 502.
   An asynchronous run the platform closed with one of its own failures is run again, up to
   3 attempts <!-- count: run-attempts --> in all: its status read answers `PENDING` with `waiting` — a `reason`, the `attempt` number and `notBefore` —
@@ -277,53 +296,50 @@ Three kinds:
   cannot differ; a throttled account is run again and waits with `reason: "platform-account"`. The
   same holds for a save that ran past its time budget (cause `timed-out`, with `budgetMs`): the
   same changes would take as long, so the run fails once and is not started again.
-- **Stream** — server-sent events, naming which output slot streams as deltas, with an optional
-  allowlist of events to surface. Deltas come only from a `text.generate` action with structured
-  output whose text field carries the same name as that slot; any other flow streams `stage`
-  frames and then its `result`, with no deltas at all.
+- **Stream** — server-sent events, naming in `deltaOutput` which output streams as deltas (or
+  `null`), with an optional allowlist of events to surface. Deltas come only from a `text.generate`
+  step with structured output whose text field carries the same name as that output; any other
+  flow streams `stage` frames and then its `result`, with no deltas at all.
   - **`surfaceEvents` is a list of `{ "categoryKey": "…", "eventKey": "…" }` objects**, one per event
     type the stream may carry. A bare string is refused, and so is a pair the project's events do
     not register.
   - **A surfaced event reaches the client as it is emitted**, not at the end: one emitted in a
-    sub-flow or in a fan-out branch arrives while the run is still going. That is what makes a
+    sub-flow or in an `each` arrives while the run is still going. That is what makes a
     stream of partial results possible.
-  - **Actions that do not depend on each other run together and finish together.** The run moves on
-    only when every action started together has finished, so a quick action's event waits for a
-    slow sibling started beside it, and `stage` frames arrive in the same groups. To show a fast
-    result before a slow one, put them in separate branches of a `flow.fan-out`, with
-    `maxParallelBranches` set above 1.
+  - **Steps run in written order.** A slow step holds back every step written after it; to show a
+    fast result before a slow one, put both in a `parallel` block and emit an event from each.
 - **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
 
 **An endpoint answers JSON, a redirect, an empty 204 or server-sent events.** A buffered invoke
 answers JSON (or the shape above); a stream and a subscription answer `text/event-stream`. There
 is no HTML response and no file download — hand a file out as a link from a `file.download-url`
-action — see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
+step — see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
 
 **A retry is made safe with an `Idempotency-Key` header.** On an asynchronous invoke a second call
 with the same key gets the first call's acknowledgement and starts no second run, while the run's
 history is kept (90 days unless the deployment changed it). On a synchronous
 invoke or a stream the flow runs again, and what converges is what it writes: a per-user record a
-create action writes takes the same id as the first call's, and a charge already recorded for the
-same action is not taken twice.
+create step writes takes the same id as the first call's, and a charge already recorded for the
+same step is not taken twice.
 
 A stream may also **retry on its own output** (`retry`): after each attempt the flow's terminal
-output is checked, and when the named output slot (at an optional `path`) equals `retryWhen.value`
+output is checked, and when the named output (at an optional `path`) equals `retryWhen.value`
 the attempt is discarded and the flow runs again, up to `maxAttempts`. That equality is the only
 comparison — there is no operator to choose, and a `retryWhen` carrying an `op` is refused (422) —
-so make the retry-worthy case a slot your flow sets to a known value. `feedback` wires the last
+so make the retry-worthy case an output your flow's `return` sets to a known value. `feedback` wires the last
 attempt's output into the next attempt's inputs; `onExhausted` names the error a caller gets when
-the last attempt still asks for a retry. Every slot it names must be in the snapshot below.
+the last attempt still asks for a retry. Every output it names must be in the snapshot below.
 
-**Input mapping** binds each flow input slot to a request location: the body, a path parameter or
+**Input mapping** binds each flow input to a request location: the body, a path parameter or
 a query parameter. At save time the grammar is enforced — every binding must reference a declared
-input slot, a path binding needs that path parameter declared and required, and every required
-non-provider slot must be bound. **Provider slots cannot be bound from HTTP at all**, which is
-what stops a caller claiming to be a different user.
+input, a path binding needs that path parameter declared and required, and every required input
+must be bound. **The ambient values (`userInfo` and the like) cannot be bound from HTTP at all**,
+which is what stops a caller claiming to be a different user.
 
 **A target declares no output mapping, and this is deliberate.** Its response shape comes from one
 place — the flow signature snapshot (below) — so there is nothing to configure on the way out.
 Records are read through the `record.read` / `record.list` functions inside a flow, so a
-record-shaped response is a flow output slot like any other.
+record-shaped response is a flow output like any other, given by its `return`.
 
 The practical consequence for an architect: **to change what an endpoint returns, change the flow
 and re-save the endpoint.** There is no response mapping to edit, and no way for the published
@@ -332,7 +348,7 @@ contract to disagree with the flow it was snapshotted from.
 ## The snapshot, and the one way it goes stale
 
 The bound flow's signature is **snapshotted at save**, authoritatively — there is no field for you
-to supply your own copy. Saving again re-takes it. Each captured output slot is a name, its type
+to supply your own copy. Saving again re-takes it. Each captured output is a name, its type
 and whether it is required, and every one of them is a field of the response: a flow has no output
 that travels beside its result.
 
@@ -345,7 +361,7 @@ refused by default with a `409` that names the holders, and both take the same o
 edit and re-snapshot every holder in one transaction:
 
 - Changing a flow's **signature** while anything binds it → `FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS`.
-- Editing a **type** the flow's slots reference, where that reaches a bound snapshot →
+- Editing a **type** the flow's inputs or outputs reference, where that reaches a bound snapshot →
   `TYPE_RESHAPES_BOUND_SNAPSHOTS`.
 
 Re-send with `adoptSnapshots: true` to make the change and update the holders together. ⛔ **Do not
@@ -359,23 +375,23 @@ an endpoint you did not just write.
 
 ## A view endpoint: the contract comes from the view
 
-<!-- field-ok: readAfter — a flow input a project names, after its `record.view` action `read` -->
-<!-- field-ok: readBefore — a flow input a project names, after its `record.view` action `read` -->
-<!-- field-ok: readLimit — a flow input a project names, after its `record.view` action `read` -->
+<!-- field-ok: readAfter — a flow input a project names, after its `record.view` step `read` -->
+<!-- field-ok: readBefore — a flow input a project names, after its `record.view` step `read` -->
+<!-- field-ok: readLimit — a flow input a project names, after its `record.view` step `read` -->
 
 A `GET`, synchronous `flow.invoke` whose response body (`responseBody`, or the flow's only output)
-is bound unchanged to a `record.view` action is a **view endpoint**. Declare no params and no
+is the value of a `record.view` step, returned unchanged, is a **view endpoint**. Declare no params and no
 bindings for it: the save derives them from the view and snapshots them as `viewEndpoint`, beside
 the signature.
 
 - **Query**: the view's params, typed and bounded as the view declares them, plus the three
   paging names — `after` to page on, `before` to page back, and `limit` (1 to the view's
   `pageSize.max`). A param binds the flow input of the same name; the paging names bind the
-  `record.view` action's own paging inputs, named after the action — for the action `read`,
+  `record.view` step's own paging inputs, named after the step — for the step `read`,
   `readAfter`, `readBefore` and `readLimit`. So the flow declares an input per param it exposes
   and per paging input; a path parameter of the same name feeds a param instead. An unknown key, a value of the wrong type or out of
   bounds is `422 VALIDATION_FAILED`. A flow input typed otherwise than the view gives it is refused
-  at save, `VIEW_INPUT_TYPE`; a flow that declares none of the action's paging inputs is warned
+  at save, `VIEW_INPUT_TYPE`; a flow that declares none of the step's paging inputs is warned
   `VIEW_PAGING_NOT_DECLARED`, since its endpoint would answer only the first page.
 - **Answer**: `{items, nextCursor, prevCursor, paging: null}`; a view that ranks by meaning takes
   no cursor and answers both `null`. A `one: true` view answers the record itself, or `404
@@ -391,10 +407,10 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
   links of every table the view reads, the caller, and every query and path value of the request,
   an input you bound by hand too — the answer is `304` with no body, no run and no charge. The
   snapshot records the version of everything else the answer is derived from: the flow
-  (`flowVersion`) and each of its actions (`actionVersions`), each view and shape it reads, each
+  (`flowVersion`, which every step edit moves), each view and shape it reads, each
   table it reaches (`tableVersions`) and each relation its linked reads go through
   (`relationVersions`). An edit anywhere else in the project leaves the `ETag` standing. A change
-  to one of those made through a row's own route (adding an action to the flow, say) leaves the
+  to one of those made through a row's own route (adding a step to the flow, say) leaves the
   endpoint answering with no `ETag`, running the flow every time, until its snapshot is derived
   again: by its own save, the next document apply, or the daily sweep. Every
   view-endpoint answer carries `Vary: Authorization, Cookie, Accept`; a `200` or a `304` also carries
@@ -452,38 +468,38 @@ NOT_FOUND` whether it does not exist or the caller may not read it. A cursor fro
    re-deriving the order.
 4. **Write gate.** A write requires write permission. A GET is a read; a DELETE or an asynchronous
    invoke is a write; anything else is a write when its bound flow — sub-flows included — reaches a
-   action that changes data (the contract section above lists which), or an action the platform cannot
+   step that changes data (the contract section above lists which), or a function the platform cannot
    resolve. It is checked _after_ matching, so a
    bogus path still 404s rather than revealing itself as a 403.
 5. **Compile the contract** — from the _snapshot_, not the live flow. The same fragments back the
    published schema, so the wire and the docs cannot disagree.
 6. **Validate and assemble.** Undeclared or wrong-typed fields are refused.
 7. **Run the flow.**
-8. **Project the output.** The run's declared output slots are taken, **undeclared extras are
+8. **Project the output.** The outputs the flow's `return` gave are taken, **undeclared extras are
    dropped rather than leaked**, and the result is validated before it is sent.
 
 ## The errors, and what each really means
 
 <!-- key-unreachable-ok: PATCH /v1/nodes/{nodeId}/status — named ONLY to say who reactivates an archived organisation: a signed-in admin, never a key -->
 
-| Status  | Trigger                                                                                                                                                                                                                                                                                                                                                                                           |
-| ------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **401** | No, malformed, unknown, revoked or expired token                                                                                                                                                                                                                                                                                                                                                  |
-| **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated                                                                                                                                                                                                                     |
-| **403** | `WORKLOAD_SUSPENDED`: the project, or an organisation above it, is suspended or archived, so every call that runs a flow is refused before its first action. A `suspended` hold is lifted only by the deployment's operator. An `archived` organisation is reactivated by one of its admins, signed in: `PATCH /v1/nodes/{nodeId}/status` with `{ "status": "active" }`, which refuses an API key |
-| **403** | An action reads or writes a table owned by its users, and the call was made with a key: a key acts as the project and has no signed-in user. The flow is not at fault and no retry with the key succeeds                                                                                                                                                                                          |
-| **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                                                                                                                                                                                                                                        |
-| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**; or an action refusing what the caller sent — a `value.transform` `$assert` (with your message), a `cursor` no previous page answered                                                                                                                                                                  |
-| **429** | `RATE_LIMITED` with `details.scope: "project"`: an action is over the project's own rate limit for its function (`details.limitKey` `functions.<bucket>.calls-per-window`, such as 300 meaning searches a minute). The action waited its turn first; nothing the run staged was written, and `Retry-After` says when the limit frees                                                              |
-| **502** | An action failed; response fails validation (a required output the run did not produce is the 422 below). A field read off a record is left out when it has no value, so a response type that requires it fails: mark it optional, or give it a value of its type (`x ?? ""`)                                                                                                                     |
-| **503** | `PLATFORM_DEPENDENCY_UNAVAILABLE`: the platform's own failure — one of its vendor or model-provider accounts refused an action's call, the engine itself failed, or the database refused the run's changes. The request and the flow are not at fault, nothing the run staged was written, a failed action is not charged, and `Retry-After` says when to try again                               |
-| **503** | `TEMPORARILY_UNAVAILABLE`: the platform's database could not serve in time. It is not a verdict on the credential — keep the session or key. Retry a read after `Retry-After`, backing off if it repeats; a write may already have landed, so retry it only if repeating it is safe or you have checked its result                                                                                |
-| **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                                                                                                                                                                                                                                            |
+| Status  | Trigger                                                                                                                                                                                                                                                                                                                                                                                         |
+| ------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **401** | No, malformed, unknown, revoked or expired token                                                                                                                                                                                                                                                                                                                                                |
+| **403** | The grant does not reach this project; or a **VIEWER** principal making a call that counts as a write (step 4) — and VIEWER is what a key is minted at when no role is stated                                                                                                                                                                                                                   |
+| **403** | `WORKLOAD_SUSPENDED`: the project, or an organisation above it, is suspended or archived, so every call that runs a flow is refused before its first step. A `suspended` hold is lifted only by the deployment's operator. An `archived` organisation is reactivated by one of its admins, signed in: `PATCH /v1/nodes/{nodeId}/status` with `{ "status": "active" }`, which refuses an API key |
+| **403** | A step reads or writes a table owned by its users, and the call was made with a key: a key acts as the project and has no signed-in user. The flow is not at fault and no retry with the key succeeds                                                                                                                                                                                           |
+| **404** | Unknown host; no match; **wrong method on a matched path**; over-long path                                                                                                                                                                                                                                                                                                                      |
+| **422** | Bad, undeclared or wrong-typed body or query field — including an **undeclared query key**; or a `fail` step that names no other `status` (with your code and message), or a step refusing what the caller sent — a `value.transform` `$assert` (with your message), a `cursor` no previous page answered                                                                                       |
+| **429** | `RATE_LIMITED` with `details.scope: "project"`: a step is over the project's own rate limit for its function (`details.limitKey` `functions.<bucket>.calls-per-window`, such as 300 meaning searches a minute). The step waited its turn first; nothing the run staged was written, and `Retry-After` says when the limit frees                                                                 |
+| **502** | A step failed; response fails validation. A `return` that gives nothing for a required output fails `OUTPUT_TYPE_MISMATCH`: 502 `FLOW_FAILED`, whose `details` carry that code as its reason and the output as its path. A field read off a record is left out when it has no value, so a response type that requires it fails: mark it optional, or give it a value of its type (`x ?? ""`)    |
+| **503** | `PLATFORM_DEPENDENCY_UNAVAILABLE`: the platform's own failure — one of its vendor or model-provider accounts refused a step's call, the engine itself failed, or the database refused the run's changes. The request and the flow are not at fault, nothing the run staged was written, a failed step is not charged, and `Retry-After` says when to try again                                  |
+| **503** | `TEMPORARILY_UNAVAILABLE`: the platform's database could not serve in time. It is not a verdict on the credential — keep the session or key. Retry a read after `Retry-After`, backing off if it repeats; a write may already have landed, so retry it only if repeating it is safe or you have checked its result                                                                              |
+| **504** | A synchronous flow exceeding its timeout — the endpoint's `syncWaitMs`                                                                                                                                                                                                                                                                                                                          |
 
 ⭐ **How long a synchronous invoke waits is on the endpoint you read**: `syncWaitMs` is the wait the
 dispatcher applies — your `syncTimeoutMs` clamped to the ceiling, or the platform default when you
-set none — and `null` for an asynchronous invoke, a stream or a subscription. Compare an action's time
-limit against it rather than against a default you remember.
+set none — and `null` for an asynchronous invoke, a stream or a subscription. Compare a step's `timeoutMs`
+against it rather than against a default you remember.
 
 **A public endpoint's refusals are its own.** It never answers 403, and 401 only for a request
 that arrived in the instant the endpoint stopped being public: it reads no credential and judges
@@ -491,12 +507,12 @@ no role. A caller with no credential still gets **401** from every other path on
 host — a private endpoint and a path nothing serves alike — so what exists is not leaked. What a
 public endpoint answers instead:
 
-| Status  | Code                           | Meaning                                                                                                                                                                                                                                                                                                                                       |
-| ------- | ------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **402** | `PUBLIC_ENDPOINT_UNAVAILABLE`  | The project's wallet or its public spend cap refused the call, or the project cannot serve it (it is suspended, or the flow reaches an action that needs a signed-in user). No `details`: the caller is nobody the project knows. The project's rejected-requests log names the money gate in `gate`; no `gate` means money did not refuse it |
-| **413** | `PAYLOAD_TOO_LARGE`            | The body is over 256 KB                                                                                                                                                                                                                                                                                                                       |
-| **429** | `RATE_LIMITED`                 | `scope` in its details says whose ceiling: `caller` (this address), `endpoint` (its `publicRpm`, over all callers), `project` (the project's public endpoints together)                                                                                                                                                                       |
-| **429** | `PROJECT_CONCURRENCY_EXCEEDED` | `details.kind: "public"` — too many public requests are running at once                                                                                                                                                                                                                                                                       |
+| Status  | Code                           | Meaning                                                                                                                                                                                                                                                                                                                                    |
+| ------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **402** | `PUBLIC_ENDPOINT_UNAVAILABLE`  | The project's wallet or its public spend cap refused the call, or the project cannot serve it (it is suspended, or the flow reaches a step that needs a signed-in user). No `details`: the caller is nobody the project knows. The project's rejected-requests log names the money gate in `gate`; no `gate` means money did not refuse it |
+| **413** | `PAYLOAD_TOO_LARGE`            | The body is over 256 KB                                                                                                                                                                                                                                                                                                                    |
+| **429** | `RATE_LIMITED`                 | `scope` in its details says whose ceiling: `caller` (this address), `endpoint` (its `publicRpm`, over all callers), `project` (the project's public endpoints together)                                                                                                                                                                    |
+| **429** | `PROJECT_CONCURRENCY_EXCEEDED` | `details.kind: "public"` — too many public requests are running at once                                                                                                                                                                                                                                                                    |
 
 A run a public call started shows in `GET /v1/runs` with `source.kind: "public"` and the endpoint's
 key as `targetId`, and its charges count in the usage scope `public`.
@@ -505,30 +521,27 @@ key as `targetId`, and its charges count in the usage scope `public`.
 so an unexpected `?foo=bar` is a 422 rather than being ignored. Callers who add a tracking
 parameter break.
 
-⚠️ **A run that produced no value for a required output is refused, and writes nothing.** No
-action failed, but the answer is missing, so the synchronous call answers `422 FLOW_OUTPUT_MISSING`
-with a `missing` list in `details` naming the output slots (the endpoint's own response fields, never an action).
-A stream ends with an `error` frame of that code, and an async invocation, schedule or trigger
-ends `FAILED` with it. The decision is taken before the run's writes apply, so nothing it staged
-lands. Either way, the fix is upstream: the flow's output binding, or whatever stopped the action
-that feeds it from running at all.
+⚠️ **A run that produced no value for a required output is refused, and writes nothing.** In the
+common case the `return` itself fails `OUTPUT_TYPE_MISMATCH`, which a synchronous call answers
+`502 FLOW_FAILED`, whose `details` carry that code as its reason and the output as its path. A run that still
+leaves a required output without a value is caught by a backstop before its writes apply:
+`422 FLOW_OUTPUT_MISSING`, with a `missing` list in `details` naming the outputs (the endpoint's own
+response fields, never a step). A stream ends with an `error` frame of that code, and an async
+invocation, schedule or trigger ends `FAILED` with it. Either way nothing the run staged lands. The save proves most of this
+first: a path with no `return` is `FLOW_PATH_HAS_NO_END`, and a `return` of a required output that
+may be nothing is `FLOW_OUTPUT_MAY_BE_NOTHING`, each with a ready fix.
 
-⛔ **The error names the LAST link, and the break is often at the first.** A common cause is not the
-binding but an action upstream that was SKIPPED, because the pipeline reads an absent
-input as "nothing to do here" and the skip cascades to the terminal action. Preview shows you which
-actions ran — **but only under the same principal.** A flow fired by a **schedule** or a **trigger**
-resolves no end user, so `userInfo` is absent: an action that reads only provider slots still runs,
-with no user behind it, and one that needs a person — a per-user table — refuses, while a
-action that reads `userInfo` beside another slot waits on that other slot. A preview run as yourself
-resolves you and reports the flow healthy. Preview such a flow with `"principal": "no-end-user"`
-or you are testing a different run. See the preview section of
+⛔ **Test under the caller's principal.** A flow fired by a **schedule** or a **trigger** resolves
+no end user, so `userInfo` is absent: a step that needs a person — a per-user table — refuses. The
+save already refuses a required read of `userInfo` that no `if` with `{has: userInfo}` guards
+(`STEP_INPUT_MAY_BE_ABSENT`). A preview run as yourself resolves you; preview such a flow with
+`"principal": "no-end-user"` or you are testing a different run. See the preview section of
 flows-and-actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`).
 
-**Nothing is filled in.** A required output a clean run never produced is not replaced by
-`""`, `[]`, `0` or `{}`: the call is refused, whatever the slot's type. A value the flow DID
-produce is an answer, even an empty one: `""`, `[]`, `0`, `false` and `null` go back as they are.
-So a flow whose honest answer can be "nothing" must produce that value: a zero-hit search whose
-count action is skipped on an empty list needs an action that emits `0`. Otherwise declare the output
+**Nothing is filled in.** A `return` leaves out every output that is nothing, `null` included, and
+a required one left out is refused as above, whatever its type. A value that is empty is an answer:
+`""`, `[]`, `0` and `false` go back as they are. So a flow whose honest answer can be "nothing"
+returns a value for it (`{path: count.total, default: {literal: 0}}`) or declares the output
 optional. Preview names the gap in `missingRequiredOutput`.
 
 ## A row that no longer parses, and how the list reports it
@@ -679,26 +692,27 @@ an asynchronous call fails for good.
 
 ## Checklist for an endpoint that actually works
 
-1. The bound flow exists **and its output binding projects the declared slots.** ⚠️ An unbound
-   required slot makes every call answer `422 FLOW_OUTPUT_MISSING` and write nothing. Preview
-   names it in `missingRequiredOutput` before any call does.
+1. The bound flow exists **and every path through it ends in a `return` giving each required
+   output.** The save proves it; a `return` that still gives a required output nothing fails
+   `502 FLOW_FAILED` (`OUTPUT_TYPE_MISMATCH`), with `422 FLOW_OUTPUT_MISSING` only as a backstop,
+   and writes nothing. Preview names it in `missingRequiredOutput`.
 2. The path starts with `/v1/`, has no adjacent parameters, and collides with no coded route or
    sibling.
 3. Every field the flow needs is a declared parameter or body field, bound in the inputs, and
-   every required non-provider slot is bound.
+   every required input is bound.
 4. The caller's key is live — not revoked, not expired — and its grant **reaches** this project:
    the node it was granted at, or an ancestor of that node.
 5. Verify with a flow **preview** first — ⛔ but pass `apply: false`, because a preview bills the
    project's payer **and applies the writes it stages** by default. The reporting-only run executes
-   every action and model call and then discards the change set, readable at
+   every step and model call and then discards the change set, readable at
    `GET /v1/runs/{runId}/change-set`. Only then make a real call.
 
 ## Related
 
-- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the output binding, and why a save is not a promise.
-- Events (capability pack `events` — `GET /v1/capability-packs/events`) — the subscribe action.
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — steps, `return` and `fail`, and what the save proves.
+- Events (capability pack `events` — `GET /v1/capability-packs/events`) — subscriptions.
 - Schedules (capability pack `schedules` — `GET /v1/capability-packs/schedules`) — the same machinery, triggered by a clock instead of a caller.
 
-<!-- field-ok: userInfo — a run-ambient PROVIDER slot seeded by the engine, not a wire
-     field a caller sends. It is deliberately absent from every request contract: binding a
-     provider slot from HTTP is what would let a caller claim to be someone else. -->
+<!-- field-ok: userInfo — an ambient value the engine fills, not a wire field a caller
+     sends. It is deliberately absent from every request contract: binding it from HTTP is
+     what would let a caller claim to be someone else. -->

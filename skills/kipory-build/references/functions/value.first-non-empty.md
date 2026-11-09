@@ -10,7 +10,7 @@ The chosen value passes on unchanged, so candidates can be of different kinds.
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `any+` → `the first input's type`
 - **Also found as:** first non empty, fallback, default value, coalesce
-- **Reads:** Reads any number of root slots — useful for mixed display fallbacks such as URL string first, FileRef second. The action's inputs must list each root `inputs` names. _(shape hint: `any+`)_
+- **Reads:** Reads any number of root slots — useful for mixed display fallbacks such as URL string first, FileRef second. The step's inputs must list each root `inputs` names. _(shape hint: `any+`)_
 - **Emits:** The first populated value from a priority-ordered list of slot paths, preserving the selected value's runtime shape.
 
 ## Config
@@ -47,7 +47,7 @@ Walk ordered candidates and return the first populated value while preserving it
 
 Reads `mixed` → emits `string` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -77,7 +77,7 @@ https://cdn.example.com/cover.jpg
 
 Reads `mixed` → emits `file` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

@@ -64,7 +64,7 @@ refused.
 
 ## How a flow reads it
 
-Through the project provider attribute — `projectInfo.config.<namespace>.<field>`. No action, no
+Through the project provider attribute — `projectInfo.config.<namespace>.<field>`. No step, no
 function call; it is resolved once per run and cached for that run.
 
 The map a flow sees is the **effective** one, so a flow picks up a field's default the moment the
@@ -75,9 +75,9 @@ keywords, which include ones the lift never takes (a nested one, or one behind a
 
 Three corners worth holding:
 
-- **A project with no config reads as empty**, and wiring that reaches into a missing namespace
-  degrades to undefined rather than failing. Fail-open, consistent with the rest of the project
-  attribute.
+- **A project with no config reads as empty**, and a missing namespace or field is nothing. A
+  required read of nothing fails the step, so read a field that may be missing with
+  `{path, optional: true}` or `{path, default: …}`.
 - **Edits are not live mid-run.** A running flow keeps the snapshot it started with; the next run
   sees the change. This is what makes a run reproducible, but it also means "I changed it and
   nothing happened" is expected for anything already in flight.
@@ -122,5 +122,5 @@ Three corners worth holding:
 
 - Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring the type a
   namespace binds.
-- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — where the wiring that reads config lives.
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — the steps that read config.
 - Eval suites (capability pack `evals` — `GET /v1/capability-packs/evals`) — pinning behaviour that a tunable can move.

@@ -12,13 +12,13 @@ Shows what is hot right now, not what is biggest. Collect it across runs to buil
 - **Also found as:** popular channels, top youtubers, trending chart
 - **Reads:** One two-letter region code, like `US` or `DE` — the same shape a user's profile region uses. _(shape hint: `string`)_
 - **Emits:** A `YoutubeTrendingChannels`. One flat list however much was read, so a channel trending in two categories arrives once with a higher count. Empty when the region returns nothing.
-- **Softens these failures:** `rate-limited`, `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `regionCode`
+- **Softens these failures:** `rate-limited`, `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `region`
 - **External dependency:** YouTube Data API — Reads the trending chart from the YouTube Data API. Its quota is a shared daily unit budget across every YouTube function. Uses a YouTube Data API key: the project's own, stored in its secrets, or Kipory's.
 - **Credential:** resolved from the secrets vault as type `api_key`, purpose `youtube` (vendor: YouTube Data API); falls through to the platform's own key when no node holds one.
 - **Charged as:** `youtube/trending` (not charged). An action makes no vendor charge; it is charged its compute only.
 - **Rate limit:** 60 per min in bucket `youtube`, counted per project — shared with `youtube.channel`, `youtube.video`
-- **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 6 hours — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 2 attempts, exponential from 2 s; waits up to 1 min; cache 6 hours — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

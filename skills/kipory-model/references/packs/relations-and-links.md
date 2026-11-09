@@ -12,7 +12,7 @@
 no `depth` parameter, and recursive traversal is out of scope. What does exist is a read that
 BRINGS linked records with each record, two levels deep: `linked` on a flow's `record.read`,
 `record.list` and `record.query`, and on `POST /v1/records/query`. "Each book with its author and
-the author's publisher" is one action, not a loop of calls.
+the author's publisher" is one step, not a loop of calls.
 
 Links themselves arrive on more than one surface, and picking the wrong one is where the cost goes:
 
@@ -20,8 +20,8 @@ Links themselves arrive on more than one surface, and picking the wrong one is w
   read, and the only one that reaches a `join-record` relation.
 - **Inside a flow**, `linked` on the record reads brings the linked RECORDS themselves, with their
   fields, per named linked read ([below](#linked-records-in-one-read)). Separately, the record read and
-  list actions can carry a record's raw links per row (`include` with `links`: ids and properties, every
-  relation at once), and the list and count actions can keep only rows that carry a link.
+  list functions can carry a record's raw links per row (`include` with `links`: ids and properties, every
+  relation at once), and the list and count functions can keep only rows that carry a link.
 - **Over HTTP**, the project's links sweep (`GET /v1/links?project=`) anchored on a record
   (`record=`) returns its links across every relation in one call.
 
@@ -104,24 +104,34 @@ links by endpoint alone.
 Both ROUTES above need EDITOR on **both** ends, and both refuse an unresolvable end identically — so
 a refusal cannot tell a caller whether the far record exists.
 
-⭐ **A flow states one under a label you choose.** The two actions are
-`record.link-assert` and `record.link-retract`; each reads two positional slots — the record the
-link runs FROM, then the one it runs TO — so the order between them decides which way a directed
-link points. Each slot takes a record ID: after a `record.create`, read `recordId` off its receipt,
-since a whole receipt wired there is refused when the action is saved. Assert answers `stated` or
-`refused`, and a refusal also leaves a `LINK_REFUSED` warning on the action in the run, since the action
-itself still finishes; retract answers `retracted` or `not-found`, and
-finding nothing to take back is an ordinary answer rather than a failure. Give the stating action a
-label and
-the action that takes links back the SAME label, and the second reaches exactly what the first wrote —
-never a link a person made by hand, and never another label's. That scoping is why the label
-matters more than it looks: it is not a name, it is who is allowed to take the link back. A flow can
-never reach a person's link, and cannot learn one is there — finding nothing to take back and
-finding somebody else's are the same answer.
+⭐ **A flow states one under a label you choose.** The two functions are `record.link-assert` and
+`record.link-retract`; a step running either takes `sourceRecordId` (the record the link runs FROM)
+and `targetRecordId` (the one it runs TO) in `with`, so which value goes where decides which way a
+directed link points. Each takes a record ID: after a `record.create` step, read `<key>.recordId`,
+since a whole receipt there is refused when the flow is saved.
+
+```yaml
+- key: credit
+  function: record.link-assert
+  with:
+    relationKey: grown-by
+    actor: harvest-import
+    sourceRecordId: box.recordId
+    targetRecordId: farm.recordId
+```
+
+Assert answers `stated` or `refused`, and a refusal also leaves a `LINK_REFUSED` warning on the step
+in the run, since the step itself still finishes; retract answers `retracted` or `not-found`, and
+finding nothing to take back is an ordinary answer rather than a failure. Give the stating step an
+`actor` label and the step that takes links back the SAME label, and the second reaches exactly what
+the first wrote — never a link a person made by hand, and never another label's. That scoping is why
+the label matters more than it looks: it is who is allowed to take the link back. A flow can never
+reach a person's link, and cannot learn one is there — finding nothing to take back and finding
+somebody else's are the same answer.
 
 ⚠️ A flow-stated link carries **no properties**. The route above takes a properties bag and these
-actions have no such input, so a relation whose meaning lives in its bag is stated from the route
-rather than from a flow.
+functions have no such setting, so a relation whose meaning lives in its bag is stated from the
+route rather than from a flow.
 
 ## When you need it — and when you don't
 
@@ -378,7 +388,7 @@ on.
 
 ## Who uses a relation
 
-`GET /v1/projects/{nodeId}/references?of=relation:<key>` lists every action that follows the
+`GET /v1/projects/{nodeId}/references?of=relation:<key>` lists every step that follows the
 relation (a `record.query` clause, a link filter, a linked read — role `traverses`), every
 `record.link-assert` / `record.link-retract` that writes its links (`links`, `unlinks`), and the table
 declarations that carry it (`declares`). Ask it before you delete or rename a relation: a relation
@@ -448,12 +458,12 @@ as proof of links.
 It is a flag on the real route rather than a sibling `/validate`, deliberately. One route is one set
 of rules, so a check that passes and a save that refuses cannot come apart.
 
-The findings and consequences these answers carry come from one list the whole design API shares, and it grows: a flow warning (`ACTION_SKIPPED_WITHOUT_OPTIONAL_INPUT`) and the plan consequences `fields-unset` and `recompute` (a table's computed fields computed again for its stored records, at no charge) were added, then `links-removed`: a link field dropped or pointed at another field removes its stored links, and the line counts the records whose processing read them — not run again; reprocess one on purpose with `POST /v1/records/{id}/reprocess`. A relation or pairing change that a table's computed field reads is judged with it: refused with `TABLE_COMPUTED_INVALID` when it breaks one. Decide on a finding by its `severity`, not by a fixed list of codes.
+The findings and consequences these answers carry come from one list the whole design API shares, and it grows: the plan consequences `fields-unset` and `recompute` (a table's computed fields computed again for its stored records, at no charge) were added, then `links-removed`: a link field dropped or pointed at another field removes its stored links, and the line counts the records whose processing read them — not run again; reprocess one on purpose with `POST /v1/records/{id}/reprocess`. A relation or pairing change that a table's computed field reads is judged with it: refused with `TABLE_COMPUTED_INVALID` when it breaks one. Decide on a finding by its `severity`, not by a fixed list of codes.
 
 ## What the platform refuses
 
 - **Deleting a relation that a flow still surely uses is refused** with 422 `VALIDATION_FAILED`; each
-  `REMOVED_STILL_USED` diagnostic names the user and its outline path, and an action that reads the records
+  `REMOVED_STILL_USED` diagnostic names the user and its outline path, and a step that reads the records
   the relation links is a `TABLE_FIELD_STILL_READ` finding in the same answer. A use the platform only
   guesses at (a name inside an expression) lets the write through with a `REMOVED_MAY_BE_USED`
   entry in `warnings`. `validateOnly` answers the same verdict as data. Ask
@@ -552,14 +562,14 @@ relation and create another, which deletes its links.
     relation's pairings follow;
   - every view's `link` clause and `linked` read, and every shape's linked property;
   - every configuration position that names the relation: `relationKey` on the record links,
-    link-assert, link-retract and link-counts actions, `linkFilters[].relationKey` on the record
-    list and count actions, and `clauses[].relation` on a `record.query`;
+    link-assert, link-retract and link-counts steps, `linkFilters[].relationKey` on the record
+    list and count steps, and `clauses[].relation` on a `record.query`;
   - every table's `uses` link entry (`{ "kind": "link", "relation": … }`), `Table.relations`
     (`produces[].relationKey`, `joins.relationKey`), a generated link field's `x-owned-by-link`,
     and checkpoints and snapshots.
 - **What it never edits:** JSONata expressions and templates that spell the old key. A plan lists
   each in `renames[].candidates`; settle each by changing it in the same document or naming its
-  action in `keepExpressions` (the PATCH body takes it too).
+  step in `keepExpressions` (the PATCH body takes it too).
 - **What breaks:** `renames[].exposures` lists it. A caller asking
   `/v1/records/{id}/links/<old>` gets the answer for a relation the project never had — an empty
   list; there is no alias and no redirect.
@@ -649,7 +659,7 @@ refused while the relation's link restamp is still running.
   Ask first with `DELETE /v1/relations/{id}?validateOnly=true`: it rehearses the delete,
   rolls it back, and answers a verdict whose `consequences` carry the `links-deleted` count — the
   same count a document plan reports — and whose `leavesBehind` names any flow the delete breaks,
-  with the broken action's `outlinePath` in that flow's outline.
+  with the broken step's `outlinePath` in that flow's outline.
   Deleting a pairing cascades nothing — but the **last** pairing cannot be deleted at all, because a
   relation that applies to no tables can connect nothing. Delete the relation instead.
 
@@ -750,7 +760,7 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   A list linked read needs `limit` (`LINKED_LIST_NEEDS_LIMIT`); a one-record linked read takes no `limit`,
   `sortField`, `order` or `onMore` (`LINKED_ONE_TAKES_NO_LIST_OPTIONS`).
 - **`limit` is per record, not a total.** 5 above is five items for EACH order. More than `limit`
-  for one record fails the action `RECORD_LINKED_HAS_MORE`, unless `onMore` is `"stop"`.
+  for one record fails the step `RECORD_LINKED_HAS_MORE`, unless `onMore` is `"stop"`.
 - **The worst case is checked at save, for the whole read.** Every linked read at both levels spends from
   one budget of 20,000 linked records: per linked read, the records it hangs off (the read's `limit`, 200
   ids for `record.read`; for a level-2 linked read, its level-1 linked read's worst case) times its `limit` —
@@ -758,14 +768,14 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   A read the save accepted never fails `RECORD_LINKED_TOO_MANY`; with `onMore: "stop"` every full
   list is cut and marked. For a list of `limit₁` with a list of `limit₂` inside, keep
   `limit₁ × (1 + limit₂)` at 100 or less and a 200-id read fits. A `record.read` whose ids come from
-  a slot is counted at 200 unless the flow says the slot holds fewer: it reads a `record.list` or
+  another step's value is counted at 200 unless the flow says that value holds fewer: it reads a `record.list` or
   `record.query`'s `records` (or their `id`s) with a fixed `limit` — `limit` times the most `pages` it reads — or the
-  action writing it declares an output type that is a list with `maxItems`. Then it is counted at that, and the run
-  holds it: an action returning more items than its type's `maxItems` fails, naming the slot.
+  step giving it declares an output type that is a list with `maxItems`. Then it is counted at that, and the run
+  holds it: a step returning more items than its type's `maxItems` fails, naming the value.
 - **With `pages`, the budget is per page.** The save counts one page (the read's `limit`), and each
   page of a `record.list` or `record.query` that reads every page brings up to 20,000 linked records
   of its own: `pages` does not multiply the check. The whole answer is still bounded by `pages`’ `max`
-  and the slot size.
+  and the value size.
 - **`fields` narrows what each linked record carries.** Absent or empty is every field; `["id"]` is
   none of its fields — the linked record carries only the record's base members (its id, status,
   processing state and created and updated times; on a computed table, when its values were
@@ -794,8 +804,8 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   `LINKED_PEER_TABLE_NOT_AT_END`. It is the word computed fields use for the same thing.
 
 - **`when` reads a linked read only on the calls that need it.** It is a setting like `limit`: a
-  slot, a fixed `true`/`false`, or an expression, and it must be a boolean (the save refuses a slot or
-  a value of another type; an expression's type is checked when it runs). It may sit on a linked read at either level. One feed flow serving
+  value read by path, a fixed `true`/`false`, or an expression, and it must be a boolean (the save refuses a read
+  of another type; an expression's type is checked when it runs). It may sit on a linked read at either level. One feed flow serving
   several tabs:
 
   ```json
@@ -805,11 +815,11 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   }
   ```
 
-  A linked read is read only when `when` is `true`. When it is `false`, or gives nothing (an absent
-  slot), nothing is read for it, nor for a linked read under it, and no record carries `stories`
+  A linked read is read only when `when` is `true`. When it is `false`, or gives nothing (an optional
+  read of a missing value), nothing is read for it, nor for a linked read under it, and no record carries `stories`
   under `linked` or `linkedMore`: the key is ABSENT, not an empty list (an empty list means "read,
-  none found"). Any other value (`"yes"`, `1`) fails the action, `LINKED_WHEN_NOT_BOOLEAN`, naming
-  the linked read. A slot only `when` reads never holds the read back or starts it early. The save
+  none found"). Any other value (`"yes"`, `1`) fails the step, `LINKED_WHEN_NOT_BOOLEAN`, naming
+  the linked read. The save
   counts a linked read with `when` in the worst case below as if it were read. A view's linked read
   takes `when` too, as `true`, `false` or `{"param": "withStories"}` naming a boolean param of the
   view (an optional param left out leaves it out); `POST /v1/records/query` takes none.
@@ -835,7 +845,7 @@ and an `items` member (a list, `[]` when none), each item carrying its own `prod
   the background — a record not moved yet still names the duplicate, and its linked read can bring
   the merged record rather than the survivor. Read `remaining` on the merge, or wait for `merged`,
   before relying on linked reads through it.
-- Linked records count toward the slot size of the answer (Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
+- Linked records count toward the value size of the answer (Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)).
 
 ## What the read half still does not do
 

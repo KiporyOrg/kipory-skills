@@ -10,7 +10,7 @@ Reaches every device the people registered, once the run saves; a failed run not
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — Each run stages its own push, so a new run of the same input notifies again.
 - **I/O:** `people and text` → `PushSendResult`
 - **Also found as:** push notification, notify, alert phone, send to phone, mobile notification
-- **Reads:** The people, from `recipient`, and the title, body and data, each from its setting. A payload over the services' size limit fails the action. _(shape hint: `people and text`)_
+- **Reads:** The people, from `recipient`, and the title, body and data, each from its setting. A payload over the services' size limit fails the step. _(shape hint: `people and text`)_
 - **Emits:** A `PushSendResult` — how many people and devices the push addressed. A preview sends nothing and says what it would have.
 - **External dependency:** Apple and Google push — Delivered through Apple's and Google's push services, with the push keys the project stores for its apps.
 
@@ -78,14 +78,14 @@ Reaches every device the people registered, once the run saves; a failed run not
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `person` | yes | — | One person an earlier action names. |
+| `kind` | `person` | yes | — | One person an earlier step names. |
 | `userId` | string | yes | — | The person's id. |
 
 **`kind: people`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `people` | yes | — | A list of people an earlier action names. |
+| `kind` | `people` | yes | — | A list of people an earlier step names. |
 | `userIds` | string | yes | — | A list of person ids; ids outside the project are skipped. |
 
 ### `title` — one of
@@ -116,7 +116,7 @@ One person, three devices — two phones and a tablet.
 
 Reads `object` → emits `PushSendResult` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

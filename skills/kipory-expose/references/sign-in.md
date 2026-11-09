@@ -1,6 +1,6 @@
 # Signing end users in
 
-<!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
+<!-- field-ok: userInfo — an ambient value the platform fills, not a request field -->
 <!-- key-unreachable-ok: GET /v1/me — an end user's own session calls it; listed so a product client knows the route, never for the builder's key -->
 <!-- key-unreachable-ok: PATCH /v1/me — an end user's own session calls it -->
 <!-- key-unreachable-ok: DELETE /v1/me — an end user's own session calls it -->
@@ -28,7 +28,7 @@ Two providers exist, Google and Apple, and no others. There is no password, magi
 
 Apple has no web flow: its one route is the native POST, so a web app signs people in with Google only.
 
-A session, however it arrived, is one credential: the cookie in a browser, or the opaque `session` string sent as `Authorization: Bearer <session>`. A signed-in user reaches a flow as the `userInfo` provider slot.
+A session, however it arrived, is one credential: the cookie in a browser, or the opaque `session` string sent as `Authorization: Bearer <session>`. A signed-in user reaches a flow as the ambient value `userInfo`; a run with no user (a key, a schedule) has none, so a flow reads it inside an `if` that tests `{has: userInfo}`, or reads it `optional`.
 
 ## Which providers a project offers: `authConfig`
 
@@ -161,7 +161,7 @@ What sets a test user apart:
 
 - **It is not one of your people.** `GET /v1/projects/{nodeId}/members`, `GET /v1/users?project={nodeId}` and their counts leave it out, and a `flow.start-per-person` over the whole project does not start a run for it. A start or a push that names it does reach it.
 - **It costs your project, not a wallet.** It gets no member wallet and no grant; the project pays its runs, and the spend is still attributed to it.
-- **It receives no mail.** Its `email` is one the platform made, on a domain that takes none; a mail action sent to it fails with `recipient-is-a-test-user` before anything is queued.
+- **It receives no mail.** Its `email` is one the platform made, on a domain that takes none; a mail step sent to it fails with `recipient-is-a-test-user` before anything is queued.
 - **It belongs to this project only**, and cannot sign in through Google or Apple. A project holds at most `limit` of them (the limit `account.test-users`); past it the create answers 422 `TEST_USER_LIMIT`.
 - **Deleting one** ends its sessions at once and erases what it owned. The project is told, as for a person who deleted their account: `member.left` with `account-deleted` — so it is how you test a cleanup flow.
 
@@ -171,4 +171,4 @@ What sets a test user apart:
 
 A key cannot sign a real person in or call any `/v1/me` route. Every person other than a test user is a real Google or Apple account that signed in to the project once; a human who signs in can also hand you their `session`, sent as a Bearer to the project host.
 
-A key calling a product endpoint has no `userInfo` at all, and what that does depends on the action: anything that needs a person fails closed — a per-user table refuses, and an endpoint whose flow reads or writes person-owned records answers 403 before the flow runs (`access.requiresUser` says so beforehand) — while an action that reads a project-wide table runs without one.
+A key calling a product endpoint has no `userInfo` at all, and what that does depends on the step: anything that needs a person fails closed — a per-user table refuses, and an endpoint whose flow reads or writes person-owned records answers 403 before the flow runs (`access.requiresUser` says so beforehand) — while a step that reads a project-wide table runs without one.

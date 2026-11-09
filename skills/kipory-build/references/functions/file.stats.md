@@ -12,9 +12,9 @@ Works on any file type. Run it once before a flow branches by file type.
 - **Also found as:** file size, checksum, hash, file fingerprint
 - **Reads:** One file, of any kind. The bytes are read to hash them, so a large file costs time even though nothing is stored. _(shape hint: `file`)_
 - **Emits:** A `FileStats` — the byte size, a content hash, and a last-modified time when the store reports one. An empty object when there was no file.
-- **Suggested input streams:** `currentFile`
+- **Inputs (`with`):** `file`
 - **External dependency:** S3 / MinIO — Heads and downloads the object to size and hash it. S3-compatible rather than S3: the deployment runs MinIO on its own box.
-- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 1 attempt, no backoff; waits up to 1 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

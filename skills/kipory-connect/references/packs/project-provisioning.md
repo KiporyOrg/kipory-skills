@@ -73,7 +73,7 @@ API key cannot call <!-- key-unreachable-ok: POST /v1/me/projects --> — is see
 from whatever that person chose: a template, their own document, or nothing. A seed the platform
 refuses refuses the whole registration rather than seating someone in a half-built project. Both
 answers carry `requires` when a template was applied — the secrets its project needs and could not
-carry. Without `template` or `document`, a project starts empty. See
+carry. A create naming neither a template slug nor a document starts the project empty. See
 Project templates (capability pack `templates` — `GET /v1/capability-packs/templates`) and the project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`).
 
 ⚠️ **Nothing seeds your builtin types, and nothing needs to.** The builtin and library tiers are
@@ -185,7 +185,7 @@ correct request at the wrong moment.
 - **Deletion is not the inverse of creation.** `DELETE /v1/projects/{nodeId}` retires the project
   and a daily sweep destroys it after `purgeAfter`, unless it is restored first. Ask with
   `?validateOnly=true` before — the same route, writing nothing, answering what a purge would
-  destroy, the grace period a retire would start, and (for a project already retired) the
+  destroy (counts of its records, users, flows and their `steps`, API keys, files and the rest), the grace period a retire would start, and (for a project already retired) the
   `purgeAfter` deadline a second retire keeps rather than resets — so the blast radius is something
   you read before rather than discover after.
 

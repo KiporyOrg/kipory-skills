@@ -1,6 +1,6 @@
 # Models: which function asks, which model answers
 
-Everything about an action that calls a model: which function fits the question, how a `text.decide` question is written, which model an action runs on and how to change it, what a model costs, and what to do when a provider stops answering. Field names are the functions' own config keys — `functions/<key>.md` has each table.
+Everything about a step that calls a model: which function fits the question, how the step is written, how a `text.decide` question is written, which model the step runs on and how to change it, what it costs, and what to do when a provider stops answering. An AI step is an action step like any other — `key`, `function`, `with` — so [action-fields.md](action-fields.md) has the step fields and `functions/<key>.md` each function's settings.
 
 ## 1. Which model function asks the question
 
@@ -8,34 +8,63 @@ Three <!-- count: rows-of-next-table --> functions put a question to a model. **
 
 | The question                                                                              | Function             | What you write                                                                                            | What it costs                                                                                                                                    |
 | ----------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Yes or no, pick one of a closed list, or a score on named levels                          | `text.decide`        | no prompt: the action's output type IS the questions, one field each (section 2)                          | the least by far: a very cheap model that returns values, never text                                                                             |
+| Yes or no, pick one of a closed list, or a score on named levels                          | `text.decide`        | no prompt: `with.message` and `with.outputSchema`, a type whose fields ARE the questions (section 3)      | the least by far: a very cheap model that returns values, never text                                                                             |
 | Which term of a vocabulary does this belong to, in a vocabulary that is searched or grows | `vocabulary.resolve` | the vocabulary's own settings; it proposes with a model, then matches and mints by the vocabulary's rules | the most: a chat-model proposal plus matching, for each vocabulary not fed by `deterministic` or `extractedVocabularies` (those run no proposal) |
-| Anything that needs written words back — a summary, a title, an extraction                | `text.generate`      | a prompt and a typed output                                                                               | a chat model, charged on what it reads and what it writes                                                                                        |
+| Anything that needs written words back — a summary, a title, an extraction                | `text.generate`      | `with.prompt`, and `with.outputSchema` for a typed answer                                                 | a chat model, charged on what it reads and what it writes                                                                                        |
 
-**Why `text.decide` is the cheap one.** It runs on a decision model, not a chat model, and a decision model is a very cheap model: it does not generate text at all. It answers each question with a value — a chance of yes, the chosen option, a score — so there is nothing written to pay for, and what it reads is priced far below a chat model. One call also answers every field of the output type, so ten questions are one call, not ten. On one deployment a two-question call measured about 30–40 credits, 10 of them the action's compute second; the same closed pick asked through `vocabulary.resolve` measured about 600, and a `text.generate` action 120–220. `GET /v1/nodes/{nodeId}/model-prices` quotes this deployment's prices, and section 4 says how to measure your own flow.
+**Why `text.decide` is the cheap one.** It runs on a decision model, not a chat model: it does not generate text at all. It answers each question with a value — a chance of yes, the chosen option, a score — so there is nothing written to pay for, and what it reads is priced far below a chat model. One call answers every field of its type, so ten questions are one call. On one deployment a two-question call measured about 30–40 credits, 10 of them the step's compute second; the same closed pick through `vocabulary.resolve` about 600, and a `text.generate` step 120–220. `GET /v1/nodes/{nodeId}/model-prices` quotes this deployment's prices, and section 5 says how to measure your own flow.
 
-So: put every yes/no, closed pick and score a flow needs into `text.decide`, several to an action where they read the same input, and keep `text.generate` for the actions that must write words.
+So: put every yes/no, closed pick and score a flow needs into `text.decide`, several to a step where they read the same value, and keep `text.generate` for the steps that must write words.
 
-**To judge every item of a list, fan out and decide per item.** A `text.decide` action reads one input and answers its questions once, so "which of these search hits are about this business" is not one call over the list. It is `flow.fan-out` over the list, a `text.decide` in the branch that asks the questions of one element, and a `flow.merge` that gathers the answers (`fan-out.md` §2; leave the fan-out's `maxItems` out: a list up to the project's fan-out limit, 1,000, runs whole, and a longer one fails rather than being cut). Handing the whole list to one `text.generate` action and asking for a list of verdicts back is the expensive way to do the same thing: a chat model is paid for every line it reads and every verdict it writes, and the action waits while it writes them.
+**To judge every item of a list, decide per item inside an `each`.** A `text.decide` step reads one value and answers its questions once, so "which of these search hits are about this business" is an `each` over the list with a `text.decide` inside asking about one item, the answers handed out through `out` ([fan-out.md](fan-out.md) §2; leave `maxItems` out, so a list up to the project's limit, 1,000, runs whole and a longer one fails rather than being cut). Handing the whole list to one `text.generate` and asking for a list of verdicts is the expensive way: a chat model is paid for every line it reads and every verdict it writes, and the step waits while it writes them.
 
 Both shapes were measured on one deployment, on the same stored input:
 
-| Shape                                                                     | Model spend                                 | Time             |
-| ------------------------------------------------------------------------- | ------------------------------------------- | ---------------- |
-| fan-out → `text.decide`, three questions per item, 16 items → merge       | 755 credits for all 16, about 47 per branch | about 4 seconds  |
-| one `text.generate` reading the 16 to 20 items and writing a verdict each | about 3,200 to 3,900 credits for the call   | about 52 seconds |
+| Shape                                                                     | Model spend                               | Time             |
+| ------------------------------------------------------------------------- | ----------------------------------------- | ---------------- |
+| `each` → `text.decide`, three questions per item, 16 items                | 755 credits for all 16, about 47 per item | about 4 seconds  |
+| one `text.generate` reading the 16 to 20 items and writing a verdict each | about 3,200 to 3,900 credits for the call | about 52 seconds |
 
-The two made the same accept and reject decisions. These are one deployment's measurements on one model binding, not a price list: a `text.generate` call costs what it reads and writes, so the 120–220 above is a short prompt with a short answer and the figures here are a long one. Measure your own flow as section 4 says.
+The two made the same accept and reject decisions. These are one deployment's measurements on one model binding, not a price list.
 
-- A closed pick written as a `text.generate` prompt, or as a `vocabulary.resolve` over a vocabulary that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` as an `enum` field and store the answer; keep a vocabulary only for what terms alone give — a list that grows, nesting, filtering or counting by term (`kipory-model`'s `references/packs/vocabularies.md`, "When you need it").
+- A closed pick written as a `text.generate` prompt, or as a `vocabulary.resolve` over a vocabulary that never grows, pays a chat model for a question a decision model answers. When the list is fixed and you only need the key, ask it with `text.decide` as an `enum` field; keep a vocabulary only for what terms alone give — a list that grows, nesting, filtering or counting by term (`kipory-model`'s `references/packs/vocabularies.md`).
 - "Is this the same thing as that?" is a probability, not prose: one `text.decide` field, compared against a threshold where you branch.
-- `text.decide` runs on a decision model, not a chat model, named in `functionConfig.model` (default `typesafe/jev-latest`). An action save refuses it (`FUNCTION_MODEL_UNUSABLE`) when the catalog does not hold that model or it is not a decision model. Read `GET /v1/ai-models?type=decision` and name one it lists; an empty list means the action cannot run on this deployment.
 
-The other model functions answer no question of yours: `text.rerank` orders a list by relevance (`kipory-retrieve`), `audio.transcribe` reads speech (`kipory-extract`). Embedding is not an action: a `semantic` clause of `record.query` and `term.search` embed their own phrase, and the platform embeds records from a table's `search` use.
+The other model functions answer no question of yours: `text.rerank` orders a list by relevance (`kipory-retrieve`), `audio.transcribe` reads speech (`kipory-extract`). Embedding is not a step: a `semantic` clause of `record.query` and `term.search` embed their own phrase, and the platform embeds records from a table's `search` use.
 
-## 2. Writing a `text.decide` question
+## 2. Writing an AI step
 
-A `text.decide` action has no prompt. Its `outputSchema` names a type, and **every field of that type is one question**, asked in the type's field order against the action's one input. The field's `description` is the question's wording, and it is required on every field. The input is text, or a JSON object or list. A file fails the action: extract its text first. There are exactly three forms:
+```yaml
+- key: summary
+  function: text.generate
+  reuseResultsForMinutes: 1440
+  with:
+    prompt: "Summarise this member's feedback in one sentence:\n\n{{feedback.text}}"
+    system: "You write for the club's newsletter."
+    temperature: 0.3
+- key: triage
+  function: text.decide
+  with:
+    message: feedback.text
+    outputSchema: { kind: ref, ref: TicketTriage }
+```
+
+- **`text.generate`'s prompt is `with.prompt`**, a template: `{{name}}` reads a value the flow has (a flow input, an earlier step's key, an `each`'s `as`), `{{name.field}}` a field of it; sections and filters as in [patterns.md](patterns.md). `with.system` is the optional system prompt. A value the prompt names that may be nothing is a save finding, as for any read: put the step in `if has`, or give it a default. A prompt that reads a value which may be empty is `STEP_INPUT_MAY_BE_EMPTY` (a model asked about `""` is never meant): guard with `filled`.
+- **`text.decide` has no prompt.** `with.message` is the value it judges — text, or a JSON object or list (a file fails the step: extract its text first) — and an empty one fails the step, so feed it a value proven `filled`.
+- **`with.outputSchema`** names the answer's type by its key, `{kind: "ref", ref: "TicketTriage"}`, or `{kind: "list", element: {kind: "ref", ref: "TicketTriage"}}`; an unknown key is refused at save, with a fix per near key. Only these two functions take it. Left out on `text.generate`, the answer is text. The save types the step's value by it, so `triage.refund` is a typed read — and only with it: without `outputSchema`, a required read of a field of the answer is not proved and needs a guard, and the run checks the answer against it at the step: an answer that does not fit fails the step `OUTPUT_TYPE_MISMATCH`.
+- **One value per step.** Everything the function answers is a field of that one value: `text.decide`'s confidence field, `text.generate`'s `vocabularyFields` (an answer field resolved into terms of a vocabulary).
+- **`text.decide` may answer nothing** (an empty message answers nothing): read its value under `if has triage`, or `optional`/`default`.
+- **Run settings sit on the step**, beside `function`: `modelId`, `timeoutMs`, `tries`, `tryDelayMs`, `reuseResultsForMinutes` (`0` always asks fresh), `onOversize`. `text.generate`'s `temperature` and `reasoningEffort` are part of its cache key: changing either discards every cached answer for the same prompt.
+
+### Try one step without running the flow
+
+- `POST /v1/flows/{id}/steps/{key}/interpolate` with `values` (keyed by the names the step reads) answers `interpolatedPrompt` — exactly what the model would receive. Free, at EDITOR.
+- `POST /v1/flows/{id}/steps/{key}/preview` renders the prompt and calls the model: `interpolatedPrompt`, `response`, `tokensIn`, `tokensOut`, `latencyMs`. Billed, at ADMIN. `modelId` tries another model; `attachments` gives files the step reads, by name, as file ids this project holds.
+- Both take `step`, the step as you are writing it, to try a draft before you save it; its `key` must be the key in the path.
+
+## 3. Writing a `text.decide` question
+
+**Every field of the `outputSchema` type is one question** (except one typed `DecisionConfidence`, below), asked in the type's field order against `with.message`. The field's `description` is the question's wording, and it is required on every field. There are exactly three forms:
 
 | Form   | The field's definition                                                                                                                                                                | What comes back                                                                  |
 | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- |
@@ -79,77 +108,94 @@ A `text.decide` action has no prompt. Its `outputSchema` names a type, and **eve
   - a number with no `x-levels`, an `integer` score, a score that may be null, a score whose `minimum` is not 0 or whose `maximum` is not the last level's index, and a score carrying `multipleOf`, `exclusiveMinimum` or `exclusiveMaximum`;
   - a level or an `x-criteria` side with no words;
   - a choice with one option, more than 255, or an option that is not text;
-  - an output type that is not an object with at least one field.
-- **A probability is not a truth value.** A condition on a probability field compares it with a threshold (`slotGte` with `0.5`); `slotIsTruthy` on one is refused, because a chance of 0.03 would read as true.
+  - a type that is not an object with at least one field;
+  - a second field typed `DecisionConfidence`.
+- **A probability is not a truth value.** Branch on it by comparing with a threshold: `{gte: [triage.refund, 0.5]}`.
 
-### Catching a guess: the confidence output
+### Catching a guess: the confidence field
 
-**A choice always answers; an `unknown` option is not an abstention.** The model picks one option for every question, whatever the input, so junk text still comes back with a language and a category, and an `unknown` member is one more option it may or may not pick. To get "unsure" instead of a guess, declare the confidence slot in the action's `functionConfig`:
+**A choice always answers; an `unknown` option is not an abstention.** The model picks one option for every question, whatever the input, so junk text still comes back with a language and a category. To get "unsure" instead of a guess, give the type one more field typed `DecisionConfidence`:
 
 ```json
-"outputs": [{ "slot": "sureness", "schema": { "kind": "ref", "ref": "DecisionConfidence" } }]
+"sureness": { "$ref": "#/$defs/<id of the platform's DecisionConfidence type>" }
 ```
 
-That is the document form; on the row API the reference is `{ "kind": "ref", "dataTypeId": "<id>" }` with the id of the platform's `DecisionConfidence` type. An action takes at most one such output, typed `DecisionConfidence`, on a slot other than its `outputSlot`; anything else is `DECISION_OUTPUTS_INVALID`.
-
-The slot holds:
+That field is no question: the step writes how sure the model was into it, beside the answers, in its one value (`triage.sureness`). It holds:
 
 | Field                     | Holds                                                                                                                                                   |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `lowest`                  | the confidence of the least sure answer, 0 to 1                                                                                                         |
-| `answers[]`               | one row per question, in the output type's field order                                                                                                  |
+| `answers[]`               | one row per question, in the type's field order                                                                                                         |
 | `answers[].question`      | the field the answer was written to                                                                                                                     |
 | `answers[].type`          | `choice`, `noul` (a yes/no) or `score`                                                                                                                  |
 | `answers[].confidence`    | how sure the model was, 0 to 1. For a yes/no it is the larger of the chance of yes and the chance of no, so it is never below 0.5                       |
 | `answers[].probabilities` | the chance of every possible answer: keyed by option for a choice, by level index (`"0"`, `"1"`, …) for a score, by `"true"` and `"false"` for a yes/no |
 
-- **Gate on `lowest`.** The action that uses the answers carries `"condition": { "op": "slotGte", "slot": "sureness", "path": "lowest", "value": 0.7 }`; the action that handles the unsure case (write `unknown`, send it to a person) carries the same clause with `"op": "slotLt"`. A failed condition is a skip, not a failure. An empty input writes no answers and no confidence, so both gated actions skip; guard that case on the input with `slotPresent`.
-- **To gate one question rather than all**, compute it in a `value.transform` from `sureness.answers`, matching on `question`.
+- **Gate on `lowest`** with an `if`: the steps that use the answers in the sure branch, the unsure case (write `unknown`, send it to a person) in `else`.
+
+  ```yaml
+  - key: route
+    if:
+      - test: { gte: [triage.sureness.lowest, 0.7] }
+        steps:
+          - key: file
+            function: record.update
+            with: { recordId: ticket.id, fields: { team: triage.team } }
+    else:
+      steps:
+        - key: askPerson
+          function: record.update
+          with: { recordId: ticket.id, fields: { team: { literal: unknown } } }
+  ```
+
+  `triage` itself may be nothing (an empty message answers nothing): when the message is not proven `filled`, put this under `if has triage` too.
+
+- **To gate one question rather than all**, compute it in a `value.transform` from `triage.sureness.answers`, matching on `question`.
 - **Pick the threshold from previews of real inputs**, good and junk. A yes/no never reports below 0.5, so a threshold at or under 0.5 never catches one.
 
-## 3. Which model an action runs on
+## 4. Which model a step runs on
 
-A task-driven action's model resolves in this order: `text.generate`'s `model` at run time → the action's `modelId` → the binding for the action's `taskKey` on the nearest node that has one (the project, or an ancestor) → the environment → the code default. Omitting `modelId` inherits, and inheriting is a real answer.
+An AI step's model resolves in this order: `text.generate`'s `with.model` at run time → the step's `modelId` → the binding for the step's task on the nearest node that has one (the project, or an ancestor) → the environment → the code default. A `text.generate` step names its AI task in `with.task` — the task routing picks that task's model; it never pins one — and with no `with.task` it runs as the function's default task, `extraction` (its `llm.defaultTask`). A task the project's routing has none of is refused at save, with a fix to the nearest task. Leaving `modelId` out inherits, and inheriting is a real answer.
 
-- **`taskKey` is one of five on an action**: `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`. Omitted, a new action starts on `extraction`.
-- **Some functions name their model in `functionConfig`, not through the action's task.** `text.decide` and `text.rerank` carry `model` with a fixed default. `audio.transcribe` and `vocabulary.resolve` carry an optional `model`; left empty they take the project's transcription and extraction model.
-- **Pinning `modelId` opts an action out of the project's next model change, silently.** Omit it to inherit through `taskKey`. An unrecognised `modelId` is refused at the write.
-- **A `text.generate` action's `model` naming an unknown or disabled model fails the run** with no fallback.
-- **The model records are searched with is not an action setting.** It belongs to the table's embedding profile, and changing it is a new profile generation that re-embeds every record (`kipory-model`). A function's `model` is a catalog id (`creator/slug`); the account that serves it is not part of the config.
+- **`text.decide` and `text.rerank` name their model in `with.model`**, with a fixed default (`typesafe/jev-latest` for `text.decide`). `text.decide` runs only on a decision model: the save refuses another (`FUNCTION_MODEL_UNUSABLE`). Read `GET /v1/ai-models?type=decision` and name one it lists; an empty list means the step cannot run on this deployment. `audio.transcribe` and `vocabulary.resolve` carry an optional `model`; left empty they take the project's transcription and extraction model.
+- **Pinning `modelId` opts the step out of the project's next model change, silently.** An unrecognised `modelId` is refused at the save.
+- **A model that cannot read images is refused for a step that hands it files** (`LLM_MODEL_LACKS_VISION`): a step of any function that hands its model files, whose own model (`modelId` or a fixed `with.model`) the catalog marks without vision, and whose prompt, system prompt or inputs read a value typed a file or a list of files. `details.visionModelIds` lists the models that can; pick one, or stop handing it the files. A model the catalog does not know, or a step that follows the project's binding, is not judged at save.
+- **A `text.generate` step's `with.model` naming an unknown or disabled model fails the run** with no fallback.
+- **The model records are searched with is not a step setting.** It belongs to the table's embedding profile, and changing it re-embeds every record (`kipory-model`).
 
 Three reads say what is there:
 
-| Read                                  | Answers                                                                                                                                                                                                                          |
-| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `GET /v1/ai-models` (`?type=chat`, …) | every model the deployment serves; a disabled one is absent, not flagged. A non-null `deprecatedAt` means still runnable, retiring on that date                                                                                  |
-| `GET /v1/nodes/{nodeId}/task-models`  | at the project's id: each task's current model, the layer that decided it (`source`), whether the project itself bound it (`boundHere`), whether an action may name the task (`assignableToAction`) and whether it is `callable` |
-| `GET /v1/nodes/{nodeId}/model-prices` | `prices[]`: one row per model and billable operation, in credits per `unit` (`null` where no single figure applies); `tiers[]`: each rated model's `tier`, 1 (cheapest) to 3                                                     |
+| Read                                  | Answers                                                                                                                                                                      |
+| ------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `GET /v1/ai-models` (`?type=chat`, …) | every model the deployment serves; a disabled one is absent, not flagged. A non-null `deprecatedAt` means still runnable, retiring on that date                              |
+| `GET /v1/nodes/{nodeId}/task-models`  | at the project's id: each task's current model, the layer that decided it (`source`), whether the project itself bound it (`boundHere`) and whether it is `callable`         |
+| `GET /v1/nodes/{nodeId}/model-prices` | `prices[]`: one row per model and billable operation, in credits per `unit` (`null` where no single figure applies); `tiers[]`: each rated model's `tier`, 1 (cheapest) to 3 |
 
-- **`source`** is `node` (a binding on this project or an ancestor; `decidedAt` names which), `environment` or `code-default`. `source: node` alone does not say the project bound it — a binding on the organization reads the same; `boundHere: true` does.
-- **`callable: false` on a task you inherit** means the binding above names a model this deployment holds no account for: every action on that task fails until you bind the task at your project.
-- **`inherited`**, on a task you did bind, shows what your binding overrides, so you can see the default without clearing yours.
+- **`source`** is `node` (a binding on this project or an ancestor; `decidedAt` names which), `environment` or `code-default`. `boundHere: true` says the project itself bound it.
+- **`callable: false` on a task you inherit** means the binding above names a model this deployment holds no account for: every step on that task fails until you bind the task at your project.
+- **`inherited`**, on a task you did bind, shows what your binding overrides.
 
-Bind a task with `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` (**ADMIN**; a key may do it for its own project). Every action on that `taskKey` follows. The write moves the project's version but changes no element a document states, so a plan made from an earlier read is not stopped by it.
+Bind a task with `PUT /v1/nodes/{nodeId}/task-models/{task} { "modelId": "<creator/slug>" }` (**ADMIN**; a key may do it for its own project). Every AI step without a model of its own follows. The write moves the project's version but changes no element a document states.
 
-## 4. What a model costs
+## 5. What a model costs
 
-`GET /v1/nodes/{nodeId}/model-prices` quotes each model you can bind. A price there is per unit; what a design costs is measured. Queue the preview — `POST /v1/flows/{id}/preview-runs` with `apply: false` — and read `GET /v1/runs/{runId}/spend`; an inline `POST /v1/flows/{id}/preview` leaves no run to read. `kipory-operate`'s `references/spend.md` owns the rest of billing: what an action's compute fee is, what waiting, a cache hit, a preview and a reprocess cost, and who pays.
+`GET /v1/nodes/{nodeId}/model-prices` quotes each model you can bind. What a design costs is measured: queue a preview — `POST /v1/flows/{id}/preview-runs` with `apply: false` — and read `GET /v1/runs/{runId}/spend`; an inline `POST /v1/flows/{id}/preview` leaves no run to read. `kipory-operate`'s `references/spend.md` owns the rest of billing.
 
-## 5. When the provider fails, or the call is slow
+## 6. When the provider fails, or the call is slow
 
-**A model call can fail on the provider, not on you.** Preview's `errors[].message` (or a run's timeline) reads `… provider account exhausted (quota/billing)`. Model calls run on the platform's own provider accounts, so this is the platform's account out of credit: a fault of the deployment, which only whoever runs it can top up — tell them. `GET /v1/nodes/{nodeId}/task-models` goes on reading `callable: true` meanwhile; that field says an account is configured, not that it has credit. The live half is `serving` on the same row: `{ state: "refusing", since }` while the platform's account that serves the task's model is out of credit, `ok` when nothing is known to be refusing, `unknown` when the platform's own checks have not run lately, and `null` when no account serves the model at all. Every account at once is `GET /v1/platform-status`. The action fails with `detail.phase: "platform-fault"` and code `vendor-out-of-credit` (the run's class is `platform-account`, and an unattended run is not started again) and is not charged — no compute, and no model charge for a call the provider refused — and an endpoint over the flow answers `503 PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. (`text.decide` on a TypeSafe key you stored is the exception: that account is yours, and the action fails `quota-exhausted`.) To keep working until the account is topped up, move the task, not the action:
+**A model call can fail on the platform's account, not on you.** A preview's `errors[].message` (or a run's timeline) reads `… provider account exhausted (quota/billing)`. Model calls run on the platform's own provider accounts, so this is a fault of the deployment, which only whoever runs it can top up — tell them. `serving` on `GET /v1/nodes/{nodeId}/task-models` is the live state: `{ state: "refusing", since }` while the account that serves the task's model is out of credit, `ok` when nothing is known to be refusing, `unknown` when the platform's checks have not run lately, `null` when no account serves the model. Every account at once is `GET /v1/platform-status`. The step fails with `detail.phase: "platform-fault"` and code `vendor-out-of-credit`, is not charged, and an endpoint over the flow answers `503 PLATFORM_DEPENDENCY_UNAVAILABLE` with `Retry-After`. (`text.decide` on a TypeSafe key you stored is the exception: that account is yours, and the step fails `quota-exhausted`.)
 
-**A provider can also fail on its own side** — `HTTP 503`, `model_unavailable`, `upstream connect error`, `fetch failed` — for every caller and every key. That is not the account: `serving` (and `GET /v1/platform-status`) reads `{ state: "degraded", since }` once at least five of that provider's calls in the last 30 minutes failed this way and they are over half of its calls, and `ok` again about 10 minutes after calls are answered. The action fails with the provider's own error in `detail.message`. A `429` or a call past the task's time limit does not count toward it: those can be your key's or your time limit's. Wait and run again, or move the task as below.
+**A provider can also fail on its own side** — `HTTP 503`, `model_unavailable`, `upstream connect error`, `fetch failed`. `serving` reads `{ state: "degraded", since }` once at least five of that provider's calls in the last 30 minutes failed this way and they are over half of its calls, and `ok` again about 10 minutes after calls are answered. A `429` or a call past the step's time limit does not count. Wait and run again, or move the task:
 
 1. Read `GET /v1/nodes/{nodeId}/task-models` (at the project's id) for the task's current model and `source`.
-2. Pick a chat model from another creator in `GET /v1/ai-models?type=chat`: prefer `status: "active"` over `deprecated`, a `modelId` prefix (the creator) that differs, and an `offers[].provider` other than the exhausted account.
+2. Pick a chat model from another creator in `GET /v1/ai-models?type=chat`: prefer `status: "active"`, a `modelId` prefix (the creator) that differs, and an `offers[].provider` other than the failing account.
 3. Bind it at the project node with the `PUT` above, then preview again.
 
-- Pinning `modelId` on one action does the same for that action only, and stops it following the next change.
-- The call is made once: an exhausted account refuses the same call the same way, so the action fails at the first refusal and is not tried again. Running it again does not help until the task is moved or the account is topped up.
-- **Routing is not an alternative model.** `PUT /v1/nodes/{nodeId}/routing/{modelId} { providerOrder, failover: "on-exhaustion" }` (ADMIN) retries the SAME model through the next account listed in `providerOrder`, and only those. Naming an account that does not offer the model is refused with `PROVIDER_HAS_NO_OFFER`, and a one-account order is accepted but cannot fail over.
+- Pinning `modelId` on one step does the same for that step only, and stops it following the next change.
+- An exhausted account refuses the same call the same way, so the step fails at the first refusal and is not tried again. `tries` does not help until the task is moved or the account is topped up.
+- **Routing is not an alternative model.** `PUT /v1/nodes/{nodeId}/routing/{modelId} { providerOrder, failover: "on-exhaustion" }` (ADMIN) retries the SAME model through the next account in `providerOrder`. Naming an account that does not offer the model is refused with `PROVIDER_HAS_NO_OFFER`.
 - **This recipe moves chat tasks only.** Term writes and a semantic vocabulary's resolution embed on the platform's shared term model, which a project cannot rebind (`kipory-model`).
 
-**A sync endpoint over `text.generate` can 504 while the model is fast.** `text.generate` and the other ingest-phase functions queue on the platform's worker, and the wait counts against the endpoint's `syncTimeoutMs` (default 30 s). Raise it on the endpoint (up to 120 000) for a flow with a model action, or make the endpoint `async`. The timeline's `durationMs` includes the wait; `GET /v1/ai-calls?project={nodeId}` `latencyMs` is the model's own time, so the difference is queue.
+**A sync endpoint over `text.generate` can 504 while the model is fast.** `text.generate` and the other ingest-phase functions queue on the platform's worker, and the wait counts against the endpoint's `syncTimeoutMs` (default 30 s). Raise it (up to 120 000) for a flow with a model step, or make the endpoint `async`. The timeline's `durationMs` includes the wait; `GET /v1/ai-calls?project={nodeId}` `latencyMs` is the model's own time, so the difference is queue.
 
-**`temperature` and `reasoningEffort` are part of `text.generate`'s cache key**: changing either discards every cached answer for the same prompt. A value the resolved model does not take is discarded without an error — `supportsTemperature` and `reasoningEfforts` on `GET /v1/ai-models` say what it takes (`packs/flows-and-actions.md`). `reasoningEffort` on an action takes only `low`, `medium` or `high`; the catalog's `reasoningEfforts` are the vendor's own words and may list levels an action cannot set.
+**A setting the resolved model does not take is discarded without an error** — `supportsTemperature` and `reasoningEfforts` on `GET /v1/ai-models` say what it takes. `reasoningEffort` takes `none`, `low`, `medium` or `high`; the catalog's `reasoningEfforts` are the vendor's own words and may list levels a step cannot set.

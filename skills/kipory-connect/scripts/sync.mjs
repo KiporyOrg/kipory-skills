@@ -33,12 +33,14 @@
 // deployment reads exactly one format (`documentFormat.version` on
 // `GET /v1/platform-status`, which needs KIPORY_API_KEY), and a new one
 // replaces the old with no overlap. When the format these skills write
-// (`Document format:` in versions.md, the version `upgrade-document.mjs`
-// converts to) is another, every document they write is refused with
+// (`Document format:` in versions.md) is another, every document they write is refused with
 // DOCUMENT_VERSION_UNSUPPORTED, and the script says so before that happens.
 //
 // Usage (from any directory — it finds versions.md beside itself):
 //   KIPORY_BASE_URL=https://api.example.com [KIPORY_API_KEY=…] node <this skill>/scripts/sync.mjs
+//   node <this skill>/scripts/sync.mjs [--env <file>]
+// The two variables come from the environment, then from ./.env, or from the
+// file `--env` names, as the kipory command reads them.
 //
 // Zero dependencies; Node 18 or newer (global fetch). The first line names the
 // bundle that is running — its version and the directory it sits in — because
@@ -59,7 +61,7 @@
 // which. It never writes anything.
 
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -95,8 +97,22 @@ if (typeof fetch !== "function") {
   process.exit(2);
 }
 
-const baseUrl = process.env.KIPORY_BASE_URL?.replace(/\/+$/, "");
-const apiKey = process.env.KIPORY_API_KEY;
+// The environment first, then ./.env or the `--env <file>` named.
+const envAt = process.argv.indexOf("--env");
+const envFile = envAt >= 0 ? process.argv[envAt + 1] : ".env";
+if (envAt >= 0 && (!envFile || !existsSync(envFile))) {
+  console.error(`no such env file: ${envFile ?? "(none named after --env)"}`);
+  process.exit(2);
+}
+const fileVars = {};
+if (envFile && existsSync(envFile))
+  for (const raw of readFileSync(envFile, "utf8").split("\n")) {
+    const m = /^\s*(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(raw);
+    if (m) fileVars[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
+  }
+const envVar = (name) => process.env[name] ?? fileVars[name];
+const baseUrl = envVar("KIPORY_BASE_URL")?.replace(/\/+$/, "");
+const apiKey = envVar("KIPORY_API_KEY");
 if (!baseUrl) {
   console.error(
     "KIPORY_BASE_URL is not set — it is the base URL of the deployment, e.g. https://api.example.com",
@@ -376,9 +392,7 @@ const notices = await (async () => {
       project,
       byBuild: flows.filter((f) => f.cause === "build"),
       own: flows.filter((f) => f.cause === "change"),
-      other: flows.filter(
-        (f) => f.cause !== "build" && f.cause !== "change",
-      ),
+      other: flows.filter((f) => f.cause !== "build" && f.cause !== "change"),
       unread: got.filter((n) => !n.read),
     });
   }

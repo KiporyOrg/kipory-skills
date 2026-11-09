@@ -10,7 +10,7 @@ With a processing flow, the record is not queued: follow with Queue for processi
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `may-repeat` — A record owned by a user is keyed on the run's idempotency key, so a new run creates a second one unless its caller sends the same Idempotency-Key; a record the project owns converges.
 - **I/O:** `submission object` → `RecordCreate`
 - **Also found as:** save, save to table, store, add a row, insert, new record, spreadsheet
-- **Reads:** The new record's fields (`fields` one by one, or the object `data` names) and optional file ids. Fields off the type's shape fail the action, each named. _(shape hint: `submission object`)_
+- **Reads:** The new record's fields (`fields` one by one, or the object `data` names) and optional file ids. Fields off the type's shape fail the step, each named. _(shape hint: `submission object`)_
 - **Emits:** A `RecordCreate` — the new record's id and what it was created as. A retry under the same key reuses that id rather than minting another.
 
 ## Config
@@ -80,7 +80,7 @@ With a processing flow, the record is not queued: follow with Queue for processi
 
 ## Worked example
 
-Creates one record of a chosen type and hands back its id, so the next action can process or read it.
+Creates one record of a chosen type and hands back its id, so the next step can process or read it.
 
 #### A new record
 
@@ -88,7 +88,7 @@ The record is created and its id comes back. A type with no processing flow is r
 
 Reads `object` → emits `RecordCreate` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -121,7 +121,7 @@ A retry under the same key reuses the id already minted, so nothing is duplicate
 
 Reads `object` → emits `RecordCreate` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

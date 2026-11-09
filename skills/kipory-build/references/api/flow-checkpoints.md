@@ -2,7 +2,7 @@
 
 # Flow checkpoints
 
-A point-in-time snapshot of one flow's actions, by value, immutable. Reads carry metadata only; to see what a rollback would change, send the restore with `validateOnly: true` (ADMIN, like the restore) — it rehearses the restore and answers `derived.restore`.
+A point-in-time snapshot of one flow's steps, by value, immutable. Reads carry metadata only; to see what a rollback would change, send the restore with `validateOnly: true` (ADMIN, like the restore) — it rehearses the restore and answers `derived.restore`.
 
 Fields are listed one level deep with the text the API itself carries; a response field that is a list of objects also lists the fields of each item. The full shape of every request and response is `GET /v1/openapi.json` on the deployment you are building on, and it wins if the two disagree.
 
@@ -19,7 +19,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/flow-checkpoints`
 
-List one flow's checkpoints (`?flowId=`), newest first, automatic ones included — metadata only, never the captured actions. A checkpoint is a saved version of ONE flow's actions and signature that you can restore (`POST /v1/flow-checkpoints/{id}/restore`). It is not the project's history: `GET /v1/projects/{nodeId}/history` is the audit of every design write, and the project document (`GET /v1/projects/{nodeId}/document`) is the whole project as authorable configuration.
+List one flow's checkpoints (`?flowId=`), newest first, automatic ones included — metadata only, never the captured steps. A checkpoint is a saved version of ONE flow's steps and signature that you can restore (`POST /v1/flow-checkpoints/{id}/restore`). It is not the project's history: `GET /v1/projects/{nodeId}/history` is the audit of every design write, and the project document (`GET /v1/projects/{nodeId}/document`) is the whole project as authorable configuration.
 
 **Query**
 
@@ -42,8 +42,8 @@ Each item of `checkpoints`:
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `stepCount` | `integer` | yes | How many steps the checkpoint captured, nested ones included. |
+| `enabledStepCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key. |
@@ -53,7 +53,7 @@ Each item of `checkpoints`:
 
 ### `POST /v1/flow-checkpoints`
 
-Save a flow's actions and signature as they are now, under a label — a checkpoint you can restore later (`POST /v1/flow-checkpoints/{id}/restore`). Take one before a risky edit; a restore takes one of its own automatically first. With `validateOnly: true` it answers whether the save would be refused (a blank label), writing nothing. The audit of every design write is `GET /v1/projects/{nodeId}/history`; the whole project as authorable configuration is `GET /v1/projects/{nodeId}/document`.
+Save a flow's steps and signature as they are now, under a label — a checkpoint you can restore later (`POST /v1/flow-checkpoints/{id}/restore`). Take one before a risky edit; a restore takes one of its own automatically first. With `validateOnly: true` it answers whether the save would be refused (a blank label), writing nothing. The audit of every design write is `GET /v1/projects/{nodeId}/history`; the whole project as authorable configuration is `GET /v1/projects/{nodeId}/document`.
 
 **Request body**
 
@@ -90,8 +90,8 @@ Each item of `diagnostics`:
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `stepCount` | `integer` | yes | How many steps the checkpoint captured, nested ones included. |
+| `enabledStepCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key. |
@@ -101,7 +101,7 @@ Each item of `diagnostics`:
 
 ### `GET /v1/flow-checkpoints/{id}`
 
-Read one checkpoint's metadata — its label, note, who took it, how many actions it captured, and its `version` (the lock its PATCH requires). What restoring it would change: `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`. A flow's checkpoints: `GET /v1/flow-checkpoints?flowId=`.
+Read one checkpoint's metadata — its label, note, who took it, how many steps it captured, and its `version` (the lock its PATCH requires). What restoring it would change: `POST /v1/flow-checkpoints/{id}/restore` with `validateOnly: true`. A flow's checkpoints: `GET /v1/flow-checkpoints?flowId=`.
 
 **Path parameters**
 
@@ -118,8 +118,8 @@ Read one checkpoint's metadata — its label, note, who took it, how many action
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `stepCount` | `integer` | yes | How many steps the checkpoint captured, nested ones included. |
+| `enabledStepCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key. |
@@ -150,7 +150,7 @@ Rename a checkpoint or change its note; what it captured never changes — to ca
 
 One of 2 shapes:
 
-Shape 1, with `id`, `flowId`, `label`, `description`, `version`, `actionCount`, `enabledCount`, `isAutoSnapshot`, `createdById`, `createdByEmail`, `createdByName`, `createdByImage`, `createdAt`:
+Shape 1, with `id`, `flowId`, `label`, `description`, `version`, `stepCount`, `enabledStepCount`, `isAutoSnapshot`, `createdById`, `createdByEmail`, `createdByName`, `createdByImage`, `createdAt`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -159,8 +159,8 @@ Shape 1, with `id`, `flowId`, `label`, `description`, `version`, `actionCount`, 
 | `label` | `string` | yes | The checkpoint's display text. An automatic snapshot's reads `auto: …` followed by why it was taken. |
 | `description` | `string \| null` | yes | Your note about why it was taken, or null. |
 | `version` | `integer` | yes | The checkpoint's optimistic-lock version. Send it back as `version` on `PATCH /v1/flow-checkpoints/{id}`; a rename or a note change bumps it. |
-| `actionCount` | `integer` | yes | How many actions the checkpoint captured. |
-| `enabledCount` | `integer` | yes | How many of those actions were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
+| `stepCount` | `integer` | yes | How many steps the checkpoint captured, nested ones included. |
+| `enabledStepCount` | `integer` | yes | How many of those steps were enabled at capture time. A restore brings back the disabled ones too, still disabled. |
 | `isAutoSnapshot` | `boolean` | yes | True when the platform took this automatically before a destructive operation, rather than you taking it deliberately. |
 | `createdById` | `string \| null` | yes | Who took it — for the checkpoint a restore takes first, whoever restored. Null when nobody is recorded: a snapshot the platform took before a write to one of its own flows, a token, or a departed account. |
 | `createdByEmail` | `string \| null` | yes | Their email as the account holds it now. Null whenever `createdById` is, for an account that has been deleted, and whenever the caller is an API key. |
@@ -231,7 +231,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/flow-checkpoints/{id}/restore`
 
-Restore a checkpoint: replace its flow's actions and signature with the captured ones, in one transaction. Requires the FLOW's `version` (the checkpoint itself is unchanged); a flow edited since is 409 `VERSION_CONFLICT`. The restore first takes an automatic checkpoint of the flow as it was — `autoCheckpointId` in the reply; restore that to undo. Refused (409) when the captured signature would break what is bound to the flow, and (422) when the restored actions have a blocking error; either way nothing changes. With `validateOnly: true` it rehearses the restore and rolls it back, answering the restore's own verdict plus `derived.restore` — both action lists, references that no longer resolve, and the signature changes. A checkpoint covers ONE flow: what changed across the project is `GET /v1/projects/{nodeId}/history` (a read, it restores nothing), and the whole project is authored through `POST /v1/projects/{nodeId}/document`.
+Restore a checkpoint: replace its flow's steps and signature with the captured ones, in one transaction. Requires the FLOW's `version` (the checkpoint itself is unchanged); a flow edited since is 409 `VERSION_CONFLICT`. The restore first takes an automatic checkpoint of the flow as it was — `autoCheckpointId` in the reply; restore that to undo. Refused (409) when the captured signature would break what is bound to the flow, and (422) when the restored steps have a blocking error; either way nothing changes. With `validateOnly: true` it rehearses the restore and rolls it back, answering the restore's own verdict plus `derived.restore` — both step lists, references that no longer resolve, and the signature changes. A checkpoint covers ONE flow: what changed across the project is `GET /v1/projects/{nodeId}/history` (a read, it restores nothing), and the whole project is authored through `POST /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -243,30 +243,35 @@ Restore a checkpoint: replace its flow's actions and signature with the captured
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `version` | `integer` | yes | The FLOW's `version` as you last read it (the flow row, `GET /v1/flows/{id}`) — the flow a restore overwrites; the checkpoint itself is unchanged. REQUIRED: the lock guards the flow row, so a flow whose own row changed since (its label, description or signature — a patch, another restore, a document apply) is refused with 409 `VERSION_CONFLICT`. ⚠️ An action edit does not move the flow's `version` (`PATCH /v1/actions/{id}` moves the action's own), so action edits made since you read the flow are REPLACED by the checkpoint's actions — they are not lost: the restore first takes an automatic checkpoint of the flow as it stands (`autoCheckpointId` in the response), and restoring that one brings them back. |
+| `version` | `integer` | yes | The FLOW's `version` as you last read it (`GET /v1/flows/{id}`) — the flow a restore overwrites; the checkpoint itself is unchanged. REQUIRED: a flow changed since (its steps, label, description or signature — a save, another restore, a document apply) is refused with 409 `VERSION_CONFLICT`. The restore first takes an automatic checkpoint of the flow as it stands (`autoCheckpointId` in the response), and restoring that one undoes it. |
 | `validateOnly` | `boolean` | no | Check this restore against the flow as it is now and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve, a flow `version` the flow has moved past — answers the status it always did. Default false. |
 
 **Response `200`**
 
 One of 2 shapes:
 
-Shape 1, with `flowId`, `restoredActionCount`, `autoCheckpointId`, `outstandingIssues`, `touched`:
+Shape 1, with `flowId`, `restoredStepCount`, `autoCheckpointId`, `warnings`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowId` | `string` | yes | Id of the flow whose actions were restored. |
-| `restoredActionCount` | `integer` | yes | How many actions the flow now has — the checkpoint's count. |
+| `flowId` | `string` | yes | Id of the flow whose steps were restored. |
+| `restoredStepCount` | `integer` | yes | How many steps the flow now has, nested ones included — the checkpoint's count. |
 | `autoCheckpointId` | `string` | yes | A checkpoint taken of the PREVIOUS state, automatically, just before this restore. Restore it to undo what you just did. |
-| `outstandingIssues` | `object[]` | yes | Problems found on re-validating the restored flow. These did NOT block the restore — the actions are back either way, and these are what to fix next. |
+| `warnings` | `object[]` | yes | The warnings the restored steps' save decided. Errors refuse a restore, as they refuse any save of a flow's steps; these did not. |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 
-Each item of `outstandingIssues`:
+Each item of `warnings`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `code` | `string` | yes | Stable code identifying the kind of problem. |
-| `message` | `string` | yes | What is wrong, in prose. |
-| `severity` | `"error" \| "warning"` | yes | `error` blocks the save — there is NO override, and no field on this body grants one; `warning` does not block. |
+| `code` | `string` | yes | Stable identifier for the rule that produced this finding. Branch on it rather than on the message. Treat an unrecognised code as a generic finding of its stated severity, not as an error. |
+| `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
+| `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
+| `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
+| `at` | `string` | yes | Where the finding sits, as a key path from the flow: `steps[perMember].steps[settle].else.steps[notify].with.to`. Steps are named by key, never by position. |
+| `fixes` | `object[]` | yes | The ready fixes, best first. Empty exactly when `decision` says what you must decide instead. |
+| `decision` | `string \| null` | yes | When no edit clears this finding without changing what you wrote: the step, the field and what you must decide. Null exactly when `fixes` is not empty. |
+| `editIndex` | `integer` | no | The 0-based index in `edits` of the edit refused; absent on a whole-list save. |
 
 Each item of `touched`:
 
@@ -304,7 +309,7 @@ Each item of `leavesBehind`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
-| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
+| `outlinePath` | `string` | no | Where the step this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on step; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -312,7 +317,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "links-removed" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected" \| "recompute" \| "reference-policy"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `links-removed`: a dropped or re-pointed producer leaves stored links no declaration stands behind, and the link backfill removes them; `rows` counts the records whose processing (`reprocessOn` on a leave) read those links. Their computed values are recomputed, but their processing is not run again: reprocess one on purpose with `POST /v1/records/{id}/reprocess`. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. `recompute`: Kipory computes the table's computed fields for its stored records, in the background and at no charge. `reference-policy`: the change moves what deleting a record does to the stored records naming it — a stated `onTargetDelete`, or the default it falls back to when the field becomes required, becomes the table's key or the reference becomes `scope: lifecycle`; `rows` counts the records naming such a record directly today, and the message says what the delete did and now does, and the most one record has. Records a `delete` takes in turn by their own rules are not counted. It also appears when a reference stops saying `unresolved: allow`, so a write naming a record that does not exist is refused; `rows` is what the last reference sweep counted as naming no record. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "links-removed" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected" \| "recompute" \| "reference-policy"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `links-removed`: a dropped or re-pointed producer leaves stored links no declaration stands behind, and the link backfill removes them; `rows` counts the records whose processing (`reprocessOn` on a leave) read those links. Their computed values are recomputed, but their processing is not run again: reprocess one on purpose with `POST /v1/records/{id}/reprocess`. `records-invalid`: stored records that already did not fit their type before this change and still do not fit the changed one; nothing changes them, a write that replaces one must make it fit, and a merge is judged only on the fields it writes. A change that would make a fitting record unfit is refused (`TYPE_UNSAFE_FOR_TABLE`), never listed here. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. `recompute`: Kipory computes the table's computed fields for its stored records, in the background and at no charge. `reference-policy`: the change moves what deleting a record does to the stored records naming it — a stated `onTargetDelete`, or the default it falls back to when the field becomes required, becomes the table's key or the reference becomes `scope: lifecycle`; `rows` counts the records naming such a record directly today, and the message says what the delete did and now does, and the most one record has. Records a `delete` takes in turn by their own rules are not counted. It also appears when a reference stops saying `unresolved: allow`, so a write naming a record that does not exist is refused; `rows` is what the last reference sweep counted as naming no record. |
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |

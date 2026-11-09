@@ -10,7 +10,7 @@ Counts one relation's current links reaching each record, across everyone's reco
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `record ids` → `RecordLinkCount[]`
 - **Also found as:** count followers, how many links, link count
-- **Reads:** The record ids, from `recordIds`: one id or a list of up to 200. More than 200 fails the action. _(shape hint: `record ids`)_
+- **Reads:** The record ids, from `recordIds`: one id or a list of up to 200. More than 200 fails the step. _(shape hint: `record ids`)_
 - **Emits:** A `RecordLinkCount` per record this run may write, with how many current links of the relation reach it. A record no link reaches counts 0.
 
 ## Config
@@ -49,7 +49,7 @@ Each channel gets the number of follow links reaching it, from everyone.
 
 Reads `object` → emits `RecordLinkCount[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

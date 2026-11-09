@@ -4,25 +4,26 @@
 
 Send your prompt to an AI model and return its answer.
 
-Returns text, or a structured value when the action declares an output shape. Wired-in files need an image-reading model.
+Returns text, or a structured value when the step declares an output shape. Wired-in files need an image-reading model.
 
 - **Group:** ai · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
-- **I/O:** `any+` → `the action's outputSchema`
+- **I/O:** `any+` → `the step's outputSchema`
 - **Also found as:** summarize, summarise, summary, translate, rewrite, write, draft, reply, ask ai, prompt, ai, shorten, simplify, paraphrase
-- **Reads:** Any slots you wire in. Text fills the placeholders in the prompt, and a file is attached to it. _(shape hint: `any+`)_
+- **Reads:** Any values the prompt names. Text fills its placeholder, and a file named in the prompt is attached to it. _(shape hint: `any+`)_
 - **Emits:** The model's answer: text, or a value of the declared shape. An answer missing that shape, length bounds included, is never repaired; it fails the try.
-- **External dependency:** a model provider — Whichever provider hosts the model this action is set to. The key is resolved per model.
+- **External dependency:** a model provider — Whichever provider hosts the model this step is set to. The key is resolved per model.
 - **Rate limit:** 60 per min in bucket `text.generate`, counted per project
-- **Queue:** 2 attempts, exponential from 1 s; waits up to 2 min; cache 1 day — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 2 attempts, exponential from 1 s; waits up to 2 min; cache 1 day — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
 | Field | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `model` | union | no | — | The model to use; empty uses this action's model. ⚠️ An unknown or disabled model fails the run; nothing falls back to this action's model. |
-| `outputs` | object[] | no | — | One extra slot for the vocabulary values when `vocabularyFields` is set. |
+| `model` | union | no | — | The model to use; empty uses this step's model. ⚠️ An unknown or disabled model fails the run; nothing falls back to this step's model. |
+| `outputSchema` | union | no | — | The answer's type; empty means the answer is text. |
 | `reasoningEffort` | `none` \| `low` \| `medium` \| `high` | no | — | How hard the model thinks first; `none` where it allows. ⚠️ Reasoning is billed as output; left out, the model runs at its own default effort. |
+| `task` | string | no | — | The AI task whose model answers; empty uses `extraction`. |
 | `temperature` | number, 0 to 2 | no | — | How much the answer may vary; empty uses the model's own. ⚠️ It is part of the cache key, so changing it discards every answer already cached for the same prompt. |
 | `vocabularyFields` | object[] | no | — | Which answer fields hold vocabulary values to resolve into terms. |
 
@@ -44,51 +45,44 @@ Returns text, or a structured value when the action declares an output shape. Wi
 | --- | --- | --- | --- | --- |
 | `expr` | string | yes | — |  |
 
-### `outputs` — each item
+### `outputSchema` — one of
+
+**`kind: ref`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `slot` | string | yes | — | The name a later action reads the extra value by. |
-| `schema` | union | yes | — | The type of the value in that slot, as a schema reference. |
+| `kind` | `ref` | yes | — | A named shape from the project's types, by key. |
+| `ref` | string | yes | — | The key of an existing type this points at. |
 
-`schema` — one of:
-
-**`schema` › `kind: ref`**
-
-| Member | Type | Required | Default | Meaning |
-| --- | --- | --- | --- | --- |
-| `kind` | `ref` | yes | — | A named shape from the project's types, by id. |
-| `dataTypeId` | string | yes | — | The id of an existing type this points at. |
-
-**`schema` › `kind: list`**
+**`kind: list`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `list` | yes | — | An array of values. |
-| `element` | any `schema` alternative | yes | — | The shape at this position, one level in. |
+| `element` | any `outputSchema` alternative | yes | — | The shape at this position, one level in. |
 
-**`schema` › `kind: optional`**
+**`kind: optional`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `optional` | yes | — | A value that may be absent altogether. |
-| `inner` | any `schema` alternative | yes | — | The shape at this position, one level in. |
+| `inner` | any `outputSchema` alternative | yes | — | The shape at this position, one level in. |
 
-**`schema` › `kind: union`**
+**`kind: union`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `union` | yes | — | One of several shapes; an action writes only one. |
-| `members` | a list of `schema` alternatives, at least 2 items | yes | — | The alternatives, at least two. |
+| `kind` | `union` | yes | — | One of several shapes; a step writes only one. |
+| `members` | a list of `outputSchema` alternatives, at least 2 items | yes | — | The alternatives, at least two. |
 
-**`schema` › `kind: record`**
+**`kind: record`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
 | `kind` | `record` | yes | — | A map from text keys to values of one type. |
-| `valueType` | any `schema` alternative | yes | — | The shape at this position, one level in. |
+| `valueType` | any `outputSchema` alternative | yes | — | The shape at this position, one level in. |
 
-**`schema` › `kind: recordRef`**
+**`kind: recordRef`**
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
@@ -104,7 +98,7 @@ Returns text, or a structured value when the action declares an output shape. Wi
 
 ## Worked example
 
-A prompt goes out, an answer comes back. The variants show prose, a declared output shape, and a file attached to the prompt.
+A prompt goes out, an answer comes back. The variants show prose, a declared output shape, and a file the prompt names, attached to it.
 
 #### Summary
 
@@ -112,12 +106,12 @@ No output shape declared, so the answer comes back as text. This is the usual ca
 
 Reads `object` → emits `string` · 1 in → 1 out
 
-Prompt template:
+Step settings (`with`):
 
-```
-Summarize in three sentences:
-
-{{article}}
+```json
+{
+  "prompt": "Summarize in three sentences:\n\n{{article}}"
+}
 ```
 
 Input:
@@ -136,26 +130,21 @@ The ingestion pipeline was rewired this quarter onto a unified handler registry,
 
 #### List of tasks
 
-The action declares an output shape, so the answer is parsed into it rather than returned as prose.
+The step declares an output shape, so the answer is parsed into it rather than returned as prose.
 
 Reads `object` → emits `string[]` · 1 in → 1 out
 
-Prompt template:
-
-```
-Extract the action items from:
-
-{{transcript}}
-```
-
-Output schema:
+Step settings (`with`):
 
 ```json
 {
-  "kind": "list",
-  "element": {
-    "kind": "ref",
-    "dataTypeId": "string"
+  "prompt": "Extract the action items from:\n\n{{transcript}}",
+  "outputSchema": {
+    "kind": "list",
+    "element": {
+      "kind": "ref",
+      "ref": "string"
+    }
   }
 }
 ```
@@ -180,14 +169,16 @@ Output:
 
 #### Describe an image
 
-A file wired in is attached to the prompt without being named in it. The model has to read images.
+Only a file the prompt names is attached to it. The model must read images.
 
 Reads `file` → emits `string` · 1 in → 1 out
 
-Prompt template:
+Step settings (`with`):
 
-```
-Describe this UI mockup: its tabs, the active panel, and the status bar.
+```json
+{
+  "prompt": "Describe this UI mockup: its tabs, the active panel, and the status bar.\n\n{{screenshot}}"
+}
 ```
 
 Input:

@@ -46,7 +46,7 @@ Flatten N sibling list slots into one list, optionally deduping. Scalar contribu
 
 Reads `mixed` → emits `string[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -79,7 +79,7 @@ Output:
 
 Reads `mixed` → emits `string[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -112,7 +112,7 @@ Output:
 
 Reads `mixed` → emits `object[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

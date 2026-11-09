@@ -12,11 +12,11 @@ Leaving the model empty uses the project's transcription setting. The same file,
 - **Also found as:** speech to text, transcription, voice to text, dictation, subtitles
 - **Reads:** One audio file. A non-audio mime fails, and a file over the size cap is refused before anything is sent. _(shape hint: `file`)_
 - **Emits:** The spoken words as plain text. Empty when there is no file. The same file, model and language reuse the previous transcript.
-- **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `currentFile`
-- **External dependency:** a model provider — Whichever provider hosts the transcription model this action is set to. The key is resolved per model, so changing the model can change which key it needs.
+- **Softens these failures:** `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `audio`
+- **External dependency:** a model provider — Whichever provider hosts the transcription model this step is set to. The key is resolved per model, so changing the model can change which key it needs.
 - **Rate limit:** 50 per min in bucket `audio.transcribe`, counted per project
-- **Queue:** 2 attempts, exponential from 2 s; waits up to 10 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Queue:** 2 attempts, exponential from 2 s; waits up to 10 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 
@@ -52,7 +52,7 @@ flight to Berlin for the conference. That's it.
 
 #### A podcast clip
 
-A recording with two speakers. Both are transcribed; telling them apart is a later action's job.
+A recording with two speakers. Both are transcribed; telling them apart is a later step's job.
 
 Reads `file` → emits `string` · 1 in → 1 out
 

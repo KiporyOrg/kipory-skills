@@ -10,8 +10,8 @@ Holds one channel for a record, usually the follow, making or switching on its s
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `channel and holder` → `SourceWatch`
 - **Also found as:** follow channel, subscribe to channel, start watching, listen to channel
-- **Reads:** The channel, from `channel`, and the holder record, from `holder`. A malformed channel, or a holder this run may not write, fails the action. _(shape hint: `channel and holder`)_
-- **Emits:** A `SourceWatch` — the watch as this action left it. A flow preview watches nothing and says what it would have done.
+- **Reads:** The channel, from `channel`, and the holder record, from `holder`. A malformed channel, or a holder this run may not write, fails the step. _(shape hint: `channel and holder`)_
+- **Emits:** A `SourceWatch` — the watch as this step left it. A flow preview watches nothing and says what it would have done.
 
 ## Config
 
@@ -86,7 +86,7 @@ Nobody watched the channel yet, so this hold makes the source.
 
 Reads `object` → emits `SourceWatch` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -122,7 +122,7 @@ The channel is already watched; this follow adds a hold.
 
 Reads `object` → emits `SourceWatch` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

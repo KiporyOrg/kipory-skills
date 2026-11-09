@@ -15,7 +15,7 @@ it is published on, and the group it is shown under. A namespace is not a row yo
 exists while one event type carries it. Each type has a default scope, an optional payload type,
 whether it is kept in the event log (`durable`), and a lifecycle status.
 
-A flow raises one with an `event.emit` node. Consumers either watch the run's live stream or
+A flow raises one with an `event.emit` step. Consumers either watch the run's live stream or
 subscribe on the bus, depending on scope.
 
 ## When you need it — and when you don't
@@ -32,7 +32,7 @@ subscribe on the bus, depending on scope.
   than the bus — and **`active`**: a draft, deprecated or retired type is refused too. Every event
   type you read carries `listenable`, the platform's answer to all three at once and the same test
   a trigger write applies, so offer what it says rather than re-deriving the rule from `durable`,
-  scope and status. A `flow.invoke` action is the coupled way, and the right one when the second flow
+  scope and status. A `flow.invoke` step is the coupled way, and the right one when the second flow
   is really a part of the first.
 - **Not every type you read is yours.** Each carries `source`: `platform` for the platform's own
   (`platform/run.failed` and the rest, in every project — any change or delete is a 409; a row
@@ -59,7 +59,7 @@ other flows must react to is useless on a connection that already closed.
 
 ```
 POST /v1/event-types        create the event, in its namespace — nothing to create first
-  … then add an event.emit node to a flow …
+  … then add an `event.emit` step to a flow …
 ```
 
 A type takes `project`, its namespace `categoryKey`, its own `key`, a `label`, a default scope of
@@ -72,12 +72,18 @@ namespace's with `&categoryKey=`.
 
 ## Raising one from a flow
 
-The `event.emit` node names the namespace (`category`) and the event, both static registry keys, plus optionally
-the one slot whose value becomes the payload.
+An `event.emit` step names the namespace (`category`) and the event, both plain keys, plus optionally
+`payload`, the value it sends:
+
+```yaml
+- key: announce
+  function: event.emit
+  with: { category: orders, event: order-placed, payload: placed }
+```
 
 Four things to get right:
 
-- **Scope is not in the node config.** It comes from the event _type_. You choose scope when you
+- **Scope is not in the step's settings.** It comes from the event _type_. You choose scope when you
   author the type, once, rather than at every emit site — so it cannot disagree with itself.
 - **The payload must match the type, in both directions.** A payload-less type refuses an emit
   that carries one; a type with a payload type rejects an emit whose payload does not validate
@@ -85,7 +91,7 @@ Four things to get right:
   will accept an emit with none. The payload is
   validated against that type before anything is transported, on every path.
 - **The emit is never served from a cache, and that is not yours to get wrong.** Caching is a
-  property each function declares, not a setting on your node, and `event.emit` does not opt in — a
+  property each function declares, not a setting on your step, and `event.emit` does not opt in — a
   cache hit would swallow the side effect silently. There is no flag here for you to set either
   way; if you went looking for one, that is why you did not find it.
 - **The scope key is derived by the server**, from the run, record, user or project as
@@ -141,7 +147,7 @@ the user you mean as data.
   event log before it is published, and a trigger (capability pack `triggers` — `GET /v1/capability-packs/triggers`) runs from that log; a lost
   dispatch is re-enqueued by a periodic sweep, and each trigger records one decision per event, so
   a redelivery cannot fire it twice. A second run for the same event is a replay somebody asked
-  for — the flow's `trigger` slot says `replay: true` there. The bus itself is at-most-once to
+  for — the flow's `trigger` input says `replay: true` there. The bus itself is at-most-once to
   whoever is connected: a streaming subscriber that was not listening misses the event.
 - ⚠️ **A bus event from a run that FAILS is never published at all.** Because the emit is
   transactional, the change set is discarded on failure and the event goes with it. So a bus event
@@ -161,12 +167,12 @@ the user you mean as data.
 - ⚠️ **A type's lifecycle status does not gate emitting.** A `retired` type emits exactly like an
   active one — the status is management metadata the emit path never reads; what it gates is
   whether a trigger may listen (`listenable`). Retiring a type is how you say "stop authoring against this"; it is not
-  how you stop it firing. Remove the `event.emit` node for that.
+  how you stop it firing. Remove the `event.emit` step for that.
 
 ## Related
 
 - Anatomy of a dynamic endpoint (capability pack `api-endpoints-anatomy` — `GET /v1/capability-packs/api-endpoints-anatomy`) — the subscription target that
   consumes bus-scoped events.
 - Triggers (capability pack `triggers` — `GET /v1/capability-packs/triggers`) — running a flow because a durable event was recorded.
-- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — where the emit node lives.
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — where the emit step lives.
 - Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — authoring a payload type.

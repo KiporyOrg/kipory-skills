@@ -54,7 +54,7 @@ Each item of `elements`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"project" \| "flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
+| `kind` | `"project" \| "flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
 | `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
 | `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
 | `summary` | `string` | yes | One line, for a list row. |
@@ -114,7 +114,7 @@ Each item of `versions`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `kind` | `"project" \| "flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
+| `kind` | `"project" \| "flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type"` | yes | What kind of element. |
 | `elementId` | `string` | yes | The element's own id — for the project itself, the project's id (its node id). |
 | `elementRef` | `string` | yes | `<kind>:<elementId>` — the key to join on, and what `GET /v1/descriptions/history` takes as `element`. The project's own is `project:<project id>`. |
 | `summary` | `string` | yes | One line, for a list row. |
@@ -131,7 +131,7 @@ Each item of `versions`:
 
 ### `GET /v1/metadata`
 
-Read a project's element metadata (`?project=<nodeId>`): the free key-values set on its elements — the project, flows, actions, tables, endpoints, schedules, triggers, vocabularies and event types — each with the `version` a later write takes, plus the `limits` a write is held to. Pass `element=<kind>:<id>` for one element's keys. Answered whole, not paged. Send `If-None-Match` with the last `ETag` to get 304 when nothing changed. Metadata is not configuration and nothing a flow reads: for tunables a flow reads, use `/v1/project-config`. Elements are named as `GET /v1/descriptions` names them (`elementRef`), which is also where the platform's generated description of each element is. The flow board's groups are not here: they are the platform's own key, served by `/v1/board-groups`.
+Read a project's element metadata (`?project=<nodeId>`): the free key-values set on its elements — the project, flows, steps, tables, endpoints, schedules, triggers, vocabularies and event types — each with the `version` a later write takes, plus the `limits` a write is held to. Pass `element=<kind>:<id>` for one element's keys. Answered whole, not paged. Send `If-None-Match` with the last `ETag` to get 304 when nothing changed. Metadata is not configuration and nothing a flow reads: for tunables a flow reads, use `/v1/project-config`. Elements are named as `GET /v1/descriptions` names them (`elementRef`), which is also where the platform's generated description of each element is. The flow board's groups are not here: they are the platform's own key, served by `/v1/board-groups`.
 
 **Query**
 
@@ -407,7 +407,7 @@ Move the project to a new address (its subdomain); the slug never changes. The o
 
 ### `GET /v1/projects/{nodeId}/connections`
 
-Every element of the project — flows, actions, tables, endpoints, schedules, triggers, vocabularies, event types — with every relation between two of them (what starts what, which records an action reads or writes, what it tags and announces) and every model, outside service and mail call an action makes, computed from the configuration when read. Revalidate with `If-None-Match`: an unchanged project answers 304. For the configuration itself, read `GET /v1/projects/{nodeId}/document` instead.
+Every element of the project — flows, steps, tables, endpoints, schedules, triggers, vocabularies, event types — with every relation between two of them (what starts what, which records a step reads or writes, what it tags and announces) and every model, outside service and mail call a step makes, computed from the configuration when read. Revalidate with `If-None-Match`: an unchanged project answers 304. For the configuration itself, read `GET /v1/projects/{nodeId}/document` instead.
 
 **Path parameters**
 
@@ -422,20 +422,20 @@ Every element of the project — flows, actions, tables, endpoints, schedules, t
 | `version` | `string` | yes | The structure version the connections were computed at. |
 | `elements` | `object[]` | yes | Every element of the project, plus each platform flow a relation reaches. |
 | `relations` | `object[]` | yes | Every relation between two elements. |
-| `calls` | `object[]` | yes | Every model, outside service and mail call an action makes. A flow calls what its actions call. |
+| `calls` | `object[]` | yes | Every model, outside service and mail call a step makes. A flow calls what its steps call. |
 
 Each item of `elements`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `ref` | `string` | yes | `<kind>:<id>` — the element's reference, spelled as the element descriptions spell it (`table:`, `event-type:`), so the two reads join on it. An opaque identifier: read an element's kind from `kind`, never from the prefix. |
-| `kind` | `"flow" \| "action" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type" \| "view"` | yes | What kind of element. |
-| `label` | `string` | yes | The element's display text. An action's own key; its flow is `flowRef`. |
-| `flowRef` | `string \| null` | yes | Actions only: the reference of the flow the action is part of. |
-| `order` | `integer \| null` | yes | Actions only: the action's position in its flow, 1-based. |
-| `enabled` | `boolean` | yes | False for an action, schedule or trigger that is switched off; true otherwise. |
+| `kind` | `"flow" \| "step" \| "table" \| "endpoint" \| "schedule" \| "trigger" \| "vocabulary" \| "event-type" \| "view"` | yes | What kind of element. |
+| `label` | `string` | yes | The element's display text. A step's own key; its flow is `flowRef`. |
+| `flowRef` | `string \| null` | yes | Steps only: the reference of the flow the step is part of. |
+| `order` | `integer \| null` | yes | Steps only: the step's position in its flow, 1-based. |
+| `enabled` | `boolean` | yes | False for a step, schedule or trigger that is switched off; true otherwise. |
 | `platform` | `boolean` | yes | True for a platform (SYSTEM) flow the project uses — named here because a project relation reaches it, never one of the project's own. |
-| `functionUnknown` | `boolean` | yes | Actions only: the action names a function the platform no longer knows, so its data relations and calls cannot be stated. |
+| `functionUnknown` | `boolean` | yes | Steps only: the step names a function the platform no longer knows, so its data relations and calls cannot be stated. |
 | `startedByNothing` | `boolean` | yes | Flows only: nothing in the project starts it — no endpoint, schedule, trigger, table, vocabulary, flow or evaluation suite. |
 
 Each item of `relations`:
@@ -445,23 +445,23 @@ Each item of `relations`:
 | `from` | `string` | yes | The reference of the element the relation starts at. An evaluation suite, which has no element of its own here, is `evalSuite:<id>`. |
 | `to` | `string \| null` | yes | The reference of the element the relation ends at; null when the configuration does not resolve it (see `unresolved`). |
 | `verb` | `"runs" \| "processes" \| "resolves" \| "invokes" \| "evaluates" \| "scores" \| "creates" \| "reads" \| "updates" \| "deletes" \| "appends" \| "queues" \| "strips" \| "links" \| "unlinks" \| "searches" \| "counts" \| "aggregates" \| "writes" \| "tags" \| "extracts" \| "matches" \| "groups" \| "filters" \| "uses" \| "declares" \| "nests" \| "emits" \| "listens" \| "streams" \| "contains"` | yes | What the relation says `from` does to `to`. |
-| `via` | `string \| null` | yes | The reference of the action that carries the relation, when `from` is a flow and an action of it is what acts — an invoke, for one. |
+| `via` | `string \| null` | yes | The reference of the step that carries the relation, when `from` is a flow and a step of it is what acts — an invoke, for one. |
 | `through` | `string \| null` | yes | Set when the relation is reached through a sub-flow: the reference of the flow invoked on the way. The relation belongs to that sub-flow, not to the flow that invokes it. |
-| `switchedOff` | `boolean` | yes | True when the action, schedule, trigger or evaluation suite behind the relation is switched off. |
+| `switchedOff` | `boolean` | yes | True when the step, schedule, trigger or evaluation suite behind the relation is switched off. |
 | `detail` | `string \| null` | yes | A short fact the verb needs, when it has one: a schedule's cron and time zone, an endpoint's mode (sync, queued, streamed), an evaluation suite's name — or, on a relation to something that no longer exists, the name the configuration still uses for it. |
-| `unresolved` | `"missing-element" \| "type-not-stated" \| null` | yes | Why `to` is null: `missing-element` — the configuration names something that no longer exists; `type-not-stated` — the action acts on record ids whose type the configuration does not state. Null when resolved. |
+| `unresolved` | `"missing-element" \| "type-not-stated" \| null` | yes | Why `to` is null: `missing-element` — the configuration names something that no longer exists; `type-not-stated` — the step acts on record ids whose type the configuration does not state. Null when resolved. |
 | `feeds` | `object[] \| null` | yes | On a resolved relation that starts a flow: what the starter puts into each input the flow declares, in its order, then any input it names that the flow does not declare. Null on every other relation. |
 
 Each item of `calls`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `actionRef` | `string` | yes | The reference of the action that makes the call. |
+| `stepRef` | `string` | yes | The reference of the step that makes the call. |
 | `kind` | `"model" \| "service" \| "mail"` | yes | `model` — it calls a language or embedding model; `service` — it reaches an outside vendor; `mail` — it sends mail. |
-| `task` | `string \| null` | yes | Model calls: the task the action names, when it names one. |
-| `model` | `string \| null` | yes | Model calls: the model the action pins or configures, when it names one. |
-| `vendor` | `string \| null` | yes | Service calls: the vendor the action reaches. |
-| `switchedOff` | `boolean` | yes | True when the action that makes the call is switched off, so the call does not happen. |
+| `task` | `string \| null` | yes | Model calls: the task the step names, when it names one. |
+| `model` | `string \| null` | yes | Model calls: the model the step pins or configures, when it names one. |
+| `vendor` | `string \| null` | yes | Service calls: the vendor the step reaches. |
+| `switchedOff` | `boolean` | yes | True when the step that makes the call is switched off, so the call does not happen. |
 
 ### `GET /v1/projects/{nodeId}/history`
 
@@ -601,9 +601,9 @@ Each item of `flows`:
 | `label` | `string` | yes | The flow's label. |
 | `ref` | `string` | yes | Its element ref (`flow:<id>`); read it as an outline at `GET /v1/flows/{id}/outline`. |
 | `startedBy` | `object[]` | no | What starts the flow from outside a flow: an endpoint, a schedule, a trigger, a table's processing, a vocabulary's resolver. Left out when nothing does. |
-| `calledFrom` | `integer` | no | How many switched-on actions call it; each of their flows lists it in `calls.flows`, which lists no switched-off call either. Left out when none does. Which actions they are: `GET /v1/projects/{nodeId}/references?of=flow:<key>`. |
+| `calledFrom` | `integer` | no | How many switched-on steps call it; each of their flows lists it in `calls.flows`, which lists no switched-off call either. Left out when none does. Which steps they are: `GET /v1/projects/{nodeId}/references?of=flow:<key>`. |
 | `evalCases` | `integer` | no | How many switched-on eval suites test it (a suite that only scores with it does not count). Left out when none does. A flow with no `startedBy`, `calledFrom` or `evalCases` is started by nothing. |
-| `switchedOff` | `string[]` | no | Its actions that are switched off, by outline path. |
+| `switchedOff` | `string[]` | no | Its steps that are switched off, by outline path. |
 | `calls` | `object` | no | What it calls. Left out when it calls nothing. |
 | `reads` | `object` | no | The tables it reads. Table key → the fields the platform is sure of (a stated or typed position); a field only guessed at is never listed, and a table touched with no sure field has an empty list. |
 | `readsWhole` | `string[]` | no | Tables it reads as whole records, not only the fields `reads` lists. |
@@ -615,7 +615,7 @@ Each item of `flows`:
 | `emits` | `string[]` | no | The event types it announces (`<category>.<key>`). |
 | `listens` | `string[]` | no | The event types it waits for or reads (`<category>.<key>`). |
 | `serves` | `string[]` | no | The endpoints that answer with it. |
-| `unresolved` | `string[]` | no | Actions whose uses cannot be stated — their function is unknown, or they act on ids of no stated table. |
+| `unresolved` | `string[]` | no | Steps whose uses cannot be stated — their function is unknown, or they act on ids of no stated table. |
 
 ### `POST /v1/projects/{nodeId}/purge`
 
@@ -644,7 +644,7 @@ Destroy a retired project now instead of waiting for its `purgeAfter`. Send the 
 
 ### `GET /v1/projects/{nodeId}/references`
 
-Every use of the things you name — a table, a field, a type, a config key, a relation, a vocabulary, an event type, a flow, a flow's input or output, an action's output: which action uses it (with its place in the flow's outline) or which endpoint, schedule, trigger or declaration does, in which role, at which configuration path, and how sure the platform is. Ask before renaming or removing anything. Up to 20 things per request; filter by `role` or `certainty`. Revalidate with `If-None-Match`: an unchanged project answers 304. For one entry per flow read `GET /v1/projects/{nodeId}/map`; for the element web read `GET /v1/projects/{nodeId}/connections`; for one flow's shape read `GET /v1/flows/{id}/outline`.
+Every use of the things you name — a table, a field, a type, a config key, a relation, a vocabulary, an event type, a flow, a flow's input or output, a step's output: which step uses it (with its place in the flow's outline) or which endpoint, schedule, trigger or declaration does, in which role, at which configuration path, and how sure the platform is. Ask before renaming or removing anything. Up to 20 things per request; filter by `role` or `certainty`. Revalidate with `If-None-Match`: an unchanged project answers 304. For one entry per flow read `GET /v1/projects/{nodeId}/map`; for the element web read `GET /v1/projects/{nodeId}/connections`; for one flow's shape read `GET /v1/flows/{id}/outline`.
 
 **Path parameters**
 
@@ -656,7 +656,7 @@ Every use of the things you name — a table, a field, a type, a config key, a r
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `of` | `string \| string[]` | yes | The things to list the uses of, one to 20 (repeat `of`). Name each by key — `table:book`, `field:review.stars`, `type:Review`, `type-field:Review.stars`, `config:club`, `config:club.digestHour`, `relation:review-of-book`, `vocabulary:genre`, `event-type:review.added`, `flow:book-card`, `flow-input:book-card.id`, `flow-output:book-card.card`, `action-output:book-card.reviews`, `endpoint:<key>`, `schedule:<key>`, `trigger:<key>` — or by the element ref the connections answer carries (`table:<id>`). A value is read as a key first, then as an id. |
+| `of` | `string \| string[]` | yes | The things to list the uses of, one to 20 (repeat `of`). Name each by key — `table:book`, `field:review.stars`, `type:Review`, `type-field:Review.stars`, `config:club`, `config:club.digestHour`, `relation:review-of-book`, `vocabulary:genre`, `event-type:review.added`, `flow:book-card`, `flow-input:book-card.id`, `flow-output:book-card.card`, `step-output:book-card.reviews`, `endpoint:<key>`, `schedule:<key>`, `trigger:<key>` — or by the element ref the connections answer carries (`table:<id>`). A value is read as a key first, then as an id. |
 | `role` | `"starts" \| "invokes" \| "reads" \| "filters" \| "sorts" \| "projects" \| "writes" \| "creates" \| "deletes" \| "traverses" \| "links" \| "unlinks" \| "tags" \| "emits" \| "listens" \| "declares" \| "binds" \| "serves" \| "starts" \| "invokes" \| "reads" \| "filters" \| "sorts" \| "projects" \| "writes" \| "creates" \| "deletes" \| "traverses" \| "links" \| "unlinks" \| "tags" \| "emits" \| "listens" \| "declares" \| "binds" \| "serves"[]` | no | Keep only uses in these roles (repeat `role`). The count then counts what is kept. |
 | `certainty` | `"declared" \| "typed" \| "named" \| "whole" \| "declared" \| "typed" \| "named" \| "whole"[]` | no | Keep only uses this sure (repeat `certainty`): `declared` and `typed` are certain; `named` and `whole` are the platform's best reading. |
 
@@ -676,7 +676,7 @@ Each item of `subjects`:
 | `subject` | `object` | no | The thing whose uses are listed. |
 | `count` | `integer` | no | How many uses there are, before any cut. |
 | `truncated` | `boolean` | no | True when the list was cut at the platform's limit; narrow with `role` or `certainty` to see the rest. |
-| `uses` | `object[]` | no | Every use, ordered by flow, then where the action sits in it, then path; non-action users after the flows. |
+| `uses` | `object[]` | no | Every use, ordered by flow, then where the step sits in it, then path; non-step users after the flows. |
 
 ### `POST /v1/projects/{nodeId}/restore`
 

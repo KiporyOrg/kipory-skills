@@ -11,7 +11,7 @@ Give it a condition: it refuses only when the condition holds. Nothing the run w
 - **I/O:** `refusal message` → `nothing`
 - **Also found as:** forbidden, deny access, reject request, error status, not allowed, rate limit
 - **Reads:** Reads the configured `message`; when it gives nothing the caller is told the request was refused. _(shape hint: `refusal message`)_
-- **Emits:** Nothing — the run stops and the caller is answered with the status. The action needs no `outputSlot`; leave it out.
+- **Emits:** Nothing — the run stops and the caller is answered with the status. The step gives no value for a later step to read.
 
 ## Config
 
@@ -42,7 +42,7 @@ Give it a condition: it refuses only when the condition holds. Nothing the run w
 
 ## Worked example
 
-Refuses a caller who does not own the link with 403. Give the action a condition so it runs only then.
+Refuses a caller who does not own the link with 403. Give the step a condition so it runs only then.
 
 #### Not the owner
 
@@ -50,7 +50,7 @@ The caller gets 403 with `details.reason: "NOT_OWNER"` and the message. The run 
 
 Reads `object` → emits `nothing` · 1 in → (empty)
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

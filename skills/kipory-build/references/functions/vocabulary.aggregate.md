@@ -10,7 +10,7 @@ Merged terms count toward the term they point at. Use it to show what someone ha
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `VocabularyAggregate`
 - **Also found as:** count per term, tag counts, group by tag, vocabulary counts
-- **Reads:** The user id, from `userId`. Every count is scoped to that user. Everything else is settings on the action. _(shape hint: `string`)_
+- **Reads:** The user id, from `userId`. Every count is scoped to that user. Everything else is settings on the step. _(shape hint: `string`)_
 - **Emits:** A `VocabularyAggregate` — the user's terms grouped per vocabulary with counts — or a `VocabularyTree` when `shape` is `tree`. A user with no terms gets an empty result.
 
 ## Config
@@ -19,7 +19,7 @@ Merged terms count toward the term they point at. Use it to show what someone ha
 | --- | --- | --- | --- | --- |
 | `maxEntriesPerVocabulary` | integer, 1 to 1000 | no | `200` | Most entries per vocabulary or tree level, 1 to 1000, default 200. ⚠️ Entries sort by count, so the highest-count terms survive the cap. |
 | `shape` | `aggregate` \| `tree` | no | `"aggregate"` | `aggregate` (default) gives a flat list per vocabulary; `tree` a browse tree. ⚠️ Under `tree` the per-vocabulary cap becomes a per-level cap — categories, then a category's types, then a type's subtypes. |
-| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only their records count. ⚠️ This value is mandatory: an empty one fails the action rather than counting across users. |
+| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only their records count. ⚠️ This value is mandatory: an empty one fails the step rather than counting across users. |
 | `vocabularies` | string[] | no | — | Which vocabularies to include; empty means all the user has terms in. ⚠️ Under `shape: tree` this is not a filter but the ordered list of levels, outermost first. |
 
 ### `userId` — one of
@@ -42,7 +42,7 @@ Merged terms count toward the term they point at. Use it to show what someone ha
 
 ## Worked example
 
-Groups a user's terms per vocabulary and counts their records, so an action can answer what they have without reading it.
+Groups a user's terms per vocabulary and counts their records, so a step can answer what they have without reading it.
 
 #### Every vocabulary
 
@@ -50,7 +50,7 @@ No vocabulary filter, so every vocabulary the user has surfaces, each with its c
 
 Reads `object` → emits `VocabularyAggregate` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -109,7 +109,7 @@ The same counts, nested instead of flat. Empty branches are pruned unless they l
 
 Reads `object` → emits `VocabularyTree` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

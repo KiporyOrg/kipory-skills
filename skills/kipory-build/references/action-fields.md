@@ -1,136 +1,111 @@
-# An action's fields, types and inputs
+# A function step's fields
 
-<!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: projectInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: no-end-user — an enum VALUE of the preview's principal, not a property -->
+<!-- field-ok: userInfo — an ambient value every flow can read, not a request field -->
+<!-- field-ok: tableInfo — an ambient value every flow can read, not a request field -->
+<!-- field-ok: projectInfo — an ambient value every flow can read, not a request field -->
+<!-- field-ok: runInfo — an ambient value every flow can read, not a request field -->
 
-What an action body carries, how a type is referenced, how an output is bound, and which inputs the platform works out for you. `api/actions.md` and `api/flows.md` have every field's wire type; this page has the rules between them.
+An **action** is the kind of step that runs a function. This page has every field it takes, what `with` holds, the forms an argument takes, and the run settings. The blocks (`if`, `each`, `repeat`, `parallel`, `try`) and the terminals (`return`, `fail`) are in `patterns.md`; the save that judges a step is `checking.md`.
 
-## 1. The action body
+## 1. The step
 
-`POST /v1/actions` and each entry of a document's `actions` map take the same fields. `POST /v1/actions` requires `flowId`, `key` and `functionKey`; a document action requires `functionKey` and `functionConfig`. Everything else has a default or is derived:
-
-| Field                                                                     | Holds                                                                                                                                                                                                     | Left out                                                                                    |
-| ------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------- |
-| `flowId`                                                                  | the flow the action belongs to (the row API only; a document nests the action under its flow)                                                                                                             | required                                                                                    |
-| `key`                                                                     | the action's name: lower-case kebab, dots allowed; renameable                                                                                                                                             | required                                                                                    |
-| `functionKey`                                                             | which function runs                                                                                                                                                                                       | required                                                                                    |
-| `description`                                                             | a note for people                                                                                                                                                                                         | `null`                                                                                      |
-| `functionConfig`                                                          | that function's settings                                                                                                                                                                                  | `{}` takes the function's defaults                                                          |
-| `inputStreams`                                                            | the slots the action reads                                                                                                                                                                                | derived for a function whose settings or prompt name its inputs (section 4)                 |
-| `inputSchemas`                                                            | each input's type, positional with `inputStreams`                                                                                                                                                         | each input is typed from what feeds it; a list you send is kept and must be the same length |
-| `inputPaths`, `inputProjectionNames`                                      | a projection per input — a path object or `null` — and its name; both positional with `inputStreams`                                                                                                      | nothing is projected                                                                        |
-| `outputSlot`                                                              | the slot the action writes                                                                                                                                                                                | refused as missing only on a function that writes a result                                  |
-| `outputSchema`                                                            | the type of what it writes                                                                                                                                                                                | the type its function emits; `text.generate` and `text.decide` derive none, so state theirs |
-| `promptTemplate`                                                          | the prompt, for `text.generate` and `text.interpolate`                                                                                                                                                    | `""` (absent and `null` are the same)                                                       |
-| `systemPrompt`                                                            | the system prompt, read by `text.generate`; its placeholders name inputs as the prompt's do                                                                                                               | none                                                                                        |
-| `taskKey`                                                                 | which task's model the action follows: `embedding`, `extraction`, `reasoning`, `summarization`, `tiebreak`                                                                                                | a new action starts on `extraction`; a document action the flow already holds keeps its own |
-| `modelId`                                                                 | one pinned model                                                                                                                                                                                          | the action follows its task's binding (`models.md`)                                         |
-| `condition`                                                               | a clause that must hold for the action to run; it may name a slot the action does not read (section 5)                                                                                                    | the action runs whenever an input is present                                                |
-| `enabled`                                                                 | `false` keeps the action in the flow and never runs it                                                                                                                                                    | `true`                                                                                      |
-| `timeoutMs`, `tries`, `tryDelayMs`, `onFailure`, `reuseResultsForMinutes` | how the action runs; `onFailure` is `fail-run` (the default) or `continue`                                                                                                                                | the function's own (`packs/flows-and-actions.md`, "How an action runs")                     |
-| `failureSlot`                                                             | a slot the platform writes the action's failure to, as an `ActionFailure` (section 6)                                                                                                                     | none: a failure is only in the timeline                                                     |
-| `vendor`, `onTransient`                                                   | on a function whose vendors the platform routes between: `vendor.use` names the vendor to ask first, `vendor.switch` when it may move to the next; `onTransient` is `fail` (the default) or `retry-later` | the platform's order picks the vendor, `switch` is `never`, `onTransient` is `fail`         |
-
-- **There is no position field**: execution order is derived from slot edges.
-- **A PATCH requires `version`.**
-- **`timeoutMs` is at most 120,000** (two minutes); a larger value is refused at the save with `VALIDATION_FAILED` on the field. Left out, a model call gets 60,000 unless the deployment or the action's task sets another limit: `GET /v1/flows/{id}?expand=timeLimits` shows each action's effective limit and which layer decided it. A model action that sometimes runs long takes `"timeoutMs": 120000` and `"tries": 2`.
-- **`timeoutMs` on a queued action bounds the time its job runs**, not the wait for a free worker. Waiting is not a failure: only a job no worker takes for five minutes fails its action, as the platform's own failure (`platform-busy`), and an unattended run is then started again by the platform.
-- **`onFailure: "continue"` is allowed on an action that writes nothing, and on a sub-flow call** (`flow.invoke`) whatever the called flow writes. It is refused on every other control action, on an action that may write, and on an action — or a call — writing a slot a required flow output is bound to (section 6).
-- **`vendor` and `onTransient` are settings of the action, not of its function's config**, so changing them never changes a cached answer. They are accepted on every function whose vendors the platform routes between — every function whose page lists `servedBy`, such as `url.scrape`, the social reads, `x.posts` and `youtube.transcript`; on any other a save is refused with `VALIDATION_FAILED`. `GET /v1/functions/{key}` names the vendors under `servedBy`, in the platform's routing order, each with what it keeps of an action's settings (`keeps`, `why`). `vendor.use` takes a vendor's name as that page gives it, a vendor added since the last release included; a vendor `servedBy` does not list, or one that cannot keep the action's settings, is refused at save with `VENDOR_DOES_NOT_COVER` (an action already stored that way keeps running, with the `VENDOR_DOES_NOT_COVER_STORED` warning). `vendor.switch` is `never` (the default: the chosen vendor's answer is the action's), `when-kipory-account-fails` (move on only when every one of Kipory's accounts at that vendor failed — out of credit or key refused) or `when-vendor-fails` (also when the vendor itself fails). No vendor is switched for an answer about the thing asked for, such as not found. A run's action detail names who served it as `servedBy { vendor, offer, version }`, and, when no vendor returned items (an empty answer, not found, refused, unavailable), the vendor it ended on as `failedOn { vendor, offer }`.
-- **`onTransient: "retry-later"` acts only on a run started by a schedule or a trigger:** a vendor's passing failure (a timeout, a rate limit, a vendor that is down) puts the action back to be tried later, up to three times within an hour, from where it got to, before it fails as usual; the run waits for those tries, so it can stay open up to an hour. A run started by an endpoint call fails at once either way. It is accepted only on a function whose vendors the platform routes between (its page's `servedBy`); on any other the save is refused with `ACTION_VENDOR_SETTING_UNUSED`.
-- **A feeder with no type is read as `object`.** An action whose `outputSchema` is absent and whose function types nothing feeds its readers as `object`, with a `PRODUCER_OUTPUT_UNTYPED` warning on it.
-- **Leave out what the function does not read.** `promptTemplate` is needed only by `text.generate` and `text.interpolate`. `outputSlot` is left out for `event.emit` and `term.upsert`, which write nothing (a named one is refused `OUTPUT_SLOT_WRITES_NOTHING`), and for `flow.merge`, `flow.invoke`, `flow.loop-end` and `flow.dispatch`, whose outputs are in their config.
-- **`taskKey` outside the five is a 422** listing them. `extraction` is right for an action that makes no model call.
-- **For merge, invoke, dispatch and loop-end the row's `outputSlot` is a mirror**, not the truth: their real outputs are in config — lanes, output maps, branches, escape slots. `flow.invoke` writes no primary slot at all.
-
-A flow's `inputTypeNames` and `outputTypeNames` entries are objects `{ typeName, slot?, isList?, required? }`, not bare names. A flow output that carries a list says `"isList": true` (§3).
-
-**A signature change states the side it changes.** A `PATCH /v1/flows/{id}` carrying only `outputTypeNames` changes the outputs and keeps the inputs as stored (and the reverse). The stored binding is carried, pruned to the outputs that remain, unless you send `outputBinding`. While an endpoint or a flow-backed table holds a snapshot of the old signature the PATCH is `409 FLOW_SIGNATURE_LOCKED_BY_DEPENDENTS` (under `validateOnly`, an `ok: false` verdict with that code) unless it adds `adoptSnapshots: true`, which re-publishes those endpoints' contracts to their callers — read `kipory-evolve` first.
-
-## 2. Output binding and path objects
-
-`outputBinding` maps each flow output slot to `{ fromSlot, path? }`. `path` is omitted or `null` to take the whole value, and otherwise an **object, never a string**. The same object is what `inputPaths[i]` holds: `[{ "segments": [{ "kind": "first" }] }]`.
-
-```json
-{
-  "outputBinding": {
-    "id": {
-      "fromSlot": "created",
-      "path": { "segments": [{ "kind": "field", "name": "recordId" }] }
-    },
-    "first": {
-      "fromSlot": "rows",
-      "path": {
-        "segments": [
-          { "kind": "field", "name": "records" },
-          { "kind": "first" }
-        ]
-      }
-    }
-  }
-}
+```yaml
+- key: line
+  function: text.generate
+  with:
+    prompt: "Write one friendly line for the packing slip of this box: {{found | json}}. Output only the line."
+  tries: 2
+  description: The packing slip's line.
 ```
 
-| Segment                           | Takes                                       |
-| --------------------------------- | ------------------------------------------- |
-| `{ "kind": "field", "name": … }`  | one property                                |
-| `{ "kind": "first" }`             | a list's first item                         |
-| `{ "kind": "last" }`              | its last                                    |
-| `{ "kind": "index", "index": … }` | the item at a position                      |
-| `{ "kind": "pluck", "name": … }`  | that property from every item (a list)      |
-| `{ "kind": "wrap" }`              | one value lifted into a one-item list       |
-| `{ "kind": "distinct" }`          | a list with repeats dropped, first kept     |
-| `{ "kind": "compact" }`           | a list with absent and `null` items dropped |
+| Field                    | Takes                                                                                                                    | Left out                       |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------ | ------------------------------ |
+| `key`                    | camelCase, unique in the whole flow; the name the step's value is read by                                                | required                       |
+| `function`               | a function key from the catalog (`functions/README.md`)                                                                  | required                       |
+| `with`                   | the function's settings, by name (§2)                                                                                    | the function's defaults        |
+| `timeoutMs`              | the most time the step may take, in milliseconds                                                                         | the function's own limit       |
+| `tries`, `tryDelayMs`    | how many times the step is tried in all (1 to 5), and the wait between tries (at most a minute)                          | tried once                     |
+| `vendor`                 | `{use?, switch?}`: the vendor asked first; `switch` is `never`, `when-kipory-account-fails` or `when-vendor-fails`       | the platform's order, `never`  |
+| `onTransient`            | for a run a schedule or trigger started: `fail` ends it on a vendor's passing failure, `retry-later` runs it again later | `fail`                         |
+| `reuseResultsForMinutes` | how long a result for the same settings is reused instead of running again; `0` always runs fresh; at most sixty days    | the function's own cache       |
+| `onOversize`             | a result too big to keep: `cut` keeps a text's start or a list's first items, `fail` fails the step                      | the platform's default         |
+| `modelId`                | the AI model the step uses, for a function that calls one                                                                | the default model for its task |
+| `description`            | a note for people reading the flow; it changes nothing the step does                                                     | none                           |
+| `enabled`                | `false` switches the step off: it does not run                                                                           | runs                           |
 
-Segments apply in order. **A `field` segment needs a typed source**: the action's `outputSchema` must be a type that declares that field. An action typed as the builtin `object` (or a list) refuses a field path with a type mismatch — give the action a type and bind into it.
+- **The object is strict.** A field it does not know, or a second kind on one step (`function` beside `if`), is refused `FLOW_STEPS_INVALID`, and the message names the kind and the field: ``A `function` step at `tries`: …``.
+- **Run settings fit the function.** `tries` and `tryDelayMs` are for a function the platform queues — a model call, a fetch from outside; a function that runs inside the flow is never retried, and setting them is refused `RUN_TRIES_NOT_SUPPORTED`. `timeoutMs` above the function's own budget is refused `RUN_TIME_LIMIT_ABOVE_BUDGET`; `reuseResultsForMinutes` on a function that saves no result, `RUN_REUSE_NOT_SUPPORTED`. The function's page says which phase it runs in.
+- **Pinning `modelId` takes this one step out of the project's model choice.** Leave it out to follow it (`models.md`).
+- **`vendor` is accepted on every function whose vendors the platform routes between** — every function whose page lists `servedBy`, such as `url.scrape`, the social reads, `x.posts` and `youtube.transcript`; on any other the save is refused `STEP_VENDOR_SETTING_UNUSED`. `GET /v1/functions/{key}` names the vendors under `servedBy`, in routing order, each with what it keeps of a step's settings (`keeps`, `why`). `vendor.use` takes a vendor's name as that page gives it, a vendor added since the last release included; a vendor `servedBy` does not list, or one that cannot keep the step's settings, is refused at save `VENDOR_DOES_NOT_COVER` (a step already stored that way keeps running, with the `VENDOR_DOES_NOT_COVER_STORED` warning).
+- **`GET /v1/flows/{id}?expand=timeLimits`** shows each function step's effective time limit and which layer decided it.
 
-An action's `condition` uses a different notation on the same row: its `path` is a plain dot-string.
+## 2. `with`
 
-## 6. Why an action produced nothing: the failure slot
+`with` holds, by name:
 
-An action that fails softly, or fails with `"onFailure": "continue"`, leaves its output slot absent — and so does an action that ran and found nothing. Name a `failureSlot` on the action and the platform writes the reason there, as a value a later action reads.
+- **the function's settings** — the config table on its page (`functions/<key>.md`): `tableKey`, `limit`, `fieldFilters`, `onKeyTaken`, …;
+- **the values it reads** — the inputs its page names (`url.fetch` reads `url`, `text.decide` reads `message`, `audio.transcribe` reads `audio`), each an argument (§3);
+- **a model step's prompt** — `text.generate` takes `prompt` and `system`, `text.interpolate` takes `template`: plain text. A placeholder is `{{name}}`, `{{name.field}}` or `{{name[0]}}`, and the save reads it like any other read. One item's field (`{{found[0].fruit}}`) is not a placeholder (`TEMPLATE_PLACEHOLDER_UNREAD`): compute it in a step first and write `{{thatStep}}`. A placeholder that names a whole object or list (`{{order}}` where `order` is an object, `{{items}}` where it is a list) is refused at save, `INTERPOLATE_BARE_STRUCTURED_SLOT`: it would render empty. Name a field (`{{order.total}}`), write `{{order | json}}`, or loop over a list with `{{#items}}…{{/items}}`.
 
-```json
-{
-  "key": "read-site",
-  "functionKey": "url.fetch",
-  "inputStreams": ["url"],
-  "outputSlot": "page",
-  "onFailure": "continue",
-  "failureSlot": "pageFailure"
-}
+A key the function does not take is refused `STEP_SETTING_UNKNOWN`, with a fix that renames it to the nearest one it does take. A misspelt argument (`{path: x, optinal: true}`) is refused where it stands, never handed to the function.
+
+**`with.outputSchema` is the declared answer of `text.generate` and `text.decide`, and only theirs.** It names the type by its key, `{kind: "ref", ref: "TicketTriage"}` (a list of them: `{kind: "list", element: {kind: "ref", ref: "TicketTriage"}}`); every save resolves the key, and an unknown key is refused at save, with a fix per near key. Left out, `text.generate` answers text; given a type, it answers a value of that type, and the run checks the answer against it. A `text.decide` type is an object whose fields are its questions (`models.md`). Every other function types its own value: there is no `outputSchema` to give it.
+
+**A sub-flow call** names the flow by key and gives its inputs by name; its value is the called flow's outputs:
+
+```yaml
+- key: total
+  function: flow.invoke
+  with:
+    flow: sum-boxes
+    inputs:
+      memberId: member.id
 ```
 
-- **A run that carried on past a failure closes `partial`, not `succeeded`** (`closing.verdict` on `GET /v1/runs`; `closing.absorbed` counts what it carried on past). Its changes are applied, so a flow that continues must leave what it writes sound without the failed action.
-- **Only a failure of the flow, of a vendor, or of one of the platform's own vendor accounts is carried on past.** The last is class `platform-account`: the platform's account at a vendor or model provider is out of credit, its key was refused, or it was throttled; the `failureSlot` reads phase `platform-fault` with code `vendor-out-of-credit` or `credential-rejected` (a throttled account: phase `function-error`, code `rate-limited`), and a continuing `flow.invoke`'s slot reads `sub-flow-failed` with that code as its `cause`. One of the platform engine's own (class `platform-busy`, `platform-interrupted`, `platform-fault`), a spend cap (`limit`) and a cancelled run fail the run whatever the action says; the platform starts its own failures again.
-- **A continuing sub-flow call is a scope.** When the flow a `flow.invoke` action calls fails, everything that flow staged is dropped, none of the call's outputs is written, and the call's `failureSlot` holds `sub-flow-failed` with the cause's code. Refused when the called flow reads or writes run state (`RUN_CONTINUE_NOT_ALLOWED`).
-- **It is written in two cases only**: the action failed and the run carried on, or its function softened a failure into a warning. An action that succeeded, was skipped, or ran and found nothing writes none.
-- **So three outcomes read apart**: output present — it worked; output absent and failure present — it failed, and `code` says how; both absent — it ran and found nothing.
-- **The value is an `ActionFailure`**: `code`, `message`, `retryable`, `phase`, `httpStatus` when a site or vendor answered with one, and `reason` when the function named the rule that refused — `code: "invalid-input"` with `reason: "RECORD_READ_HAS_MORE"`. `code` is always one of the list below; `reason` is a code `kipory-connect`'s `references/refusal-codes.md` lists, so branch on it for the exact cause.
+A required input of the called flow left out is refused `CALL_INPUT_MISSING`. `flow.start-per-person` takes the same `flow` and `inputs`, plus `people`.
 
-| `code`                                                                                  | Means                                                          |
-| --------------------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `dns-not-found`                                                                         | the name has no address: the site is gone                      |
-| `connection-refused`, `connection-reset`, `tls-failed`, `redirect-limit`, `unreachable` | the address did not answer; the same codes `url.metadata` uses |
-| `timeout`                                                                               | no answer in time                                              |
-| `address-blocked`                                                                       | an address a flow may not reach (a private one)                |
-| `vendor-refused`                                                                        | the service rejected this request's values                     |
-| `vendor-out-of-credit`                                                                  | the service's account has no credit, or its quota is spent     |
-| `rate-limited`, `vendor-unavailable`                                                    | the service is limiting requests, or failed (a 5xx)            |
-| `credential-missing`, `credential-rejected`                                             | no key is stored, or the service did not accept it             |
-| `not-found`                                                                             | what was asked for does not exist                              |
-| `invalid-input`, `precondition-unmet`                                                   | the action's own input, or the record's state, was refused     |
-| `error`                                                                                 | none of the above                                              |
+## 3. Arguments
 
-- **Which codes a function softens** is on its page ("Softens these failures") and on its catalog entry, `run.softFailureCodes`. A function with none writes the slot only under `"onFailure": "continue"`, and then any code can appear.
-- **`retryable` is true** for `timeout`, `connection-reset`, `unreachable`, `rate-limited` and `vendor-unavailable`: a later run may answer differently. The rest answer the same way again.
-- **`message` is the platform's sentence for the code**, naming at most the host and the status. The function's own text, which can name a vendor, stays in the timeline (`action-failed`, `action-warned`).
-- **`phase`** is the `action-failed` row's `detail.phase` for a failed action, and `function-soft-warning` for a softened one, which has an `action-warned` row instead.
-- **Read it like any optional slot.** In a `value.transform`: `$exists(pageFailure) ? {"state": pageFailure.code = "dns-not-found" ? "gone" : "unknown"} : {"state": "ok"}`, with `inputStreams` naming a slot that is always there beside it. As a guard: `{ "op": "slotPresent", "slot": "pageFailure" }`.
-- **A fan-out branch's failure slot is that branch's own**; a `flow.merge` lane over it collects one list of the failures. A whole branch the fan-out tolerated is reported on the merge's `failuresSlot` instead (`fan-out.md` §2).
-- **It is refused at save** on an action that can never write it — one that does not continue and whose function softens no failure (`FAILURE_SLOT_NEVER_WRITTEN`) — when it names the action's own output (`FAILURE_SLOT_IS_OWN_OUTPUT`), and as the source of a required flow output (`FAILURE_SLOT_FEEDS_REQUIRED_OUTPUT`; an optional output may return it). A slot another action also writes is reported `DUPLICATE_OUTPUT_SLOT`, as two output slots are.
+Wherever a step reads a value, it takes an argument:
 
-## 3, 4, 5, 7: in `action-inputs.md`
+| Form                                       | Means                                                                                               |
+| ------------------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `member.email`                             | a path, read as **required**: the save must prove it is there on every path (`checking.md`)         |
+| `{path: member.email, optional: true}`     | passes nothing when the value is missing; the function then runs without it                         |
+| `{path: pounds, default: 10}`              | uses the default only when the value is missing; the default is an argument too                     |
+| `{path: state, default: {literal: "new"}}` | a text default is a `literal`: `default: new` would read a value named `new` (`STEP_READS_UNKNOWN`) |
+| `{literal: "Dear member"}`                 | a fixed value of any JSON: text, a list, an object                                                  |
+| `10`, `true`                               | a bare number or boolean is a fixed value                                                           |
+| `{expr: "$count(due.records)"}`            | a JSONata expression over the values the step can see                                               |
 
-Schema references (§3), the inputs the platform derives (§4), when an action runs (§5) and what a setting takes, a slot, a fixed value or an expression (§7), are in `action-inputs.md`, numbered as here.
+- **A bare string is a path.** Text is `{literal: "…"}`; `subject: Renewal` reads a value named `Renewal`, and the save says nothing gives it (`STEP_READS_UNKNOWN`, with a fix that makes it a literal).
+- **`{path}` always carries `optional: true` or `default`**; a plain read is the bare string. An object holding `path`, `literal` or `expr` and anything else is refused where it stands.
+- **In YAML, quote a path with `[` inside `{ … }`**: `{ out: "perMember[].written" }`. Unquoted, the document does not parse.
+- **What a step can see**: the flow's inputs, every step written above it in its own list or an enclosing one (by key), a block's `out` after the block (`<block>.<name>`), an `each`'s `as` and a `repeat`'s vars inside them, `error` inside a `catch`, and the ambient values `userInfo` (the signed-in person), `tableInfo`, `projectInfo` and `runInfo`. `userInfo` and `tableInfo` are optional: a schedule has no person, so a required read of `userInfo.userId` is refused until it is guarded.
+- **A path never reads through a list.** Say which item: `found[0].fruit`, `found[last].fruit`, or `due.records[].email` for the field of every item; `[distinct]` drops repeats.
+- **An expression's top-level names are reads too**, judged like paths. Inside `[…]` a bare name is the item's field. `$default(x, y)` fills only nothing; `$ifEmpty(x, y)` fills nothing or `""`, `[]`, `{}`. `functions/expressions.md` lists the functions an expression may call.
+- **An `{expr}` has no `when`.** A value that exists only sometimes is `cond ? x` inside the expression — with no else it answers nothing, and `value.build` leaves that field out — or a step inside an `if`.
+- **A setting that names a thing is a plain value**: `tableKey: box`, `address: renewals@example.test`, a template's text, a vocabulary key. The function's page shows which settings take an argument.
+
+## 4. A setting that names a field says `field`
+
+A filter, a sort or a check names a field of the records it reads by its plain name under `field`, never as a read:
+
+```yaml
+with:
+  tableKey: member
+  dataNullChecks: [{ field: email, op: isNull }]
+  fieldFilters: [{ field: renewsOn, op: eq, value: day }]
+```
+
+`field` is a name; `value` is an argument (here a path to the flow's input `day`). A read where a field name belongs (`field: {path: email, optional: true}`) is refused `STEP_FIELD_NAME_IS_PATH`, with a fix that writes the name itself.
+
+## 5. The step's value
+
+A step has one value, read by its key: `save.recordId`, `boxes.records`, `line`. A function's extra results are fields of that value — `record.create` answers `recordId` (and `keyTaken` under `onKeyTaken: skip`), `record.list` answers `records` and `nextCursor`, `record.read` a list of records.
+
+**Some values may be nothing, and the save knows which**: the value of `record.create`, `text.decide`, `url.fetch`, `url.scrape`, `url.metadata`, `web.search`, `place.details`, `youtube.video`, `file.stats`, `image.metadata`, the social profile and post reads and others; a field the type marks optional; an expression it cannot prove answers a value. A step that reads such a value as required is refused `STEP_INPUT_MAY_BE_ABSENT` (a field: `STEP_INPUT_FIELD_MAY_BE_ABSENT`); a `return` of a required output, `FLOW_OUTPUT_MAY_BE_NOTHING`. Read it inside `if: [{test: {has: x}, …}]`, as `{path: x, optional: true}` or `{path: x, default: …}`, wrap an expression in `$default(…, …)`, or fail first when it is missing — each finding carries the fix.
+
+**A function input that must not be empty** (a list to read ids from, a text to chunk) fed a value that may be `""`, `[]` or `{}` is refused `STEP_INPUT_MAY_BE_EMPTY`: guard it with `{filled: x}`, or give the value a type that declares `minLength` ≥ 1 (text) or `minItems` ≥ 1 (a list), which counts as non-empty. A default never covers empty. At run time an empty value there fails the step `STEP_INPUT_EMPTY`.
+
+Types (§3), what a step reads (§4), when a step runs (§5) and what a setting takes, a path, a fixed value or an expression (§7), are in `action-inputs.md`.

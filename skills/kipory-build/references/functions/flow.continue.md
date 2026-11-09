@@ -49,7 +49,7 @@ The read stopped with a cursor, so page 2 starts once this run is saved.
 
 Reads `object` → emits `ContinueResult` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

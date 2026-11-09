@@ -1,84 +1,128 @@
-# Checking a flow: dry runs, health, preview, checkpoints
+# Checking a flow: the save's proof, dry runs, trying a step, preview
 
+<!-- field-ok: userInfo — an ambient value every flow can read, not a request field -->
 <!-- field-ok: no-end-user — an enum VALUE of the preview's principal, not a property -->
 <!-- field-ok: record-owner — an enum VALUE of the preview's principal, not a property -->
 <!-- field-ok: end-user — an enum VALUE of the preview's principal, not a property -->
 
-Six <!-- count: rows-of-next-table --> questions to ask about a flow before a caller does, cheapest first. `packs/flows-and-actions.md` has each in more depth.
+Questions to ask about a flow before a caller does, cheapest first:
 
-| Question                                         | Ask                                                                    | Role   | Costs                       |
-| ------------------------------------------------ | ---------------------------------------------------------------------- | ------ | --------------------------- |
-| Would this action save, and what would it break? | `validateOnly: true` on `POST /v1/actions` or `PATCH /v1/actions/{id}` | EDITOR | nothing                     |
-| What does this prompt become?                    | `POST /v1/actions/interpolate`                                         | EDITOR | nothing                     |
-| What does the flow do, step by step?             | `GET /v1/flows/{id}/outline`                                           | VIEWER | nothing                     |
-| Is the whole flow sound?                         | `GET /v1/flows/{id}/health`                                            | VIEWER | nothing                     |
-| What does one model call answer?                 | `POST /v1/actions/preview`                                             | ADMIN  | one model call              |
-| What does a run produce?                         | `POST /v1/flows/{id}/preview`, or `…/preview-runs` to keep the run     | ADMIN  | everything a live run costs |
+| Question                                   | Ask                                                                                    | Role                                        | Costs                       |
+| ------------------------------------------ | -------------------------------------------------------------------------------------- | ------------------------------------------- | --------------------------- |
+| Would these steps save, and what is wrong? | `validateOnly: true` on `PUT /v1/flows/{id}/steps` or `POST /v1/flows/{id}/steps/edit` | EDITOR                                      | nothing                     |
+| What does this prompt become?              | `POST /v1/flows/{id}/steps/{key}/interpolate`                                          | EDITOR                                      | nothing                     |
+| What does this step give on these values?  | `POST /v1/flows/{id}/steps/{key}/evaluate`                                             | EDITOR; ADMIN for a step that reads records | what the function costs     |
+| What does the flow do, step by step?       | `GET /v1/flows/{id}/outline`                                                           | VIEWER                                      | nothing                     |
+| Is the whole flow sound now?               | `GET /v1/flows/{id}/health`                                                            | VIEWER                                      | nothing                     |
+| What does one model call answer?           | `POST /v1/flows/{id}/steps/{key}/preview`                                              | ADMIN                                       | one model call              |
+| What does a run produce?                   | `POST /v1/flows/{id}/preview`, or `…/preview-runs` to keep the run                     | ADMIN                                       | everything a live run costs |
 
-## 1. Where the diagnostics are
+## 1. The save proves the flow
 
-- **Action writes return `outstandingIssues`** — code, message, severity, and **no action id**. Only a problem attributable to the one action refuses the save; edge and flow problems save cleanly and ride back here.
-- **A refusal (422) carries `details.diagnostics[]`** _with_ an action id (`actionId`).
-- **Flow writes carry nothing.**
-- **For attribution ask `GET /v1/flows/{id}/health`**: its classified diagnostics say which action and which edge, and a diagnostic about one action carries `outlinePath`, the action's place in the flow's outline (`GET /v1/flows/{id}/outline`). Health's `plan` gives the flow's size: `actions`, `topLevelActions`, `depth` (how deeply fan-outs and loops nest) and `longestChain`. A clean `outstandingIssues` on a write does not mean the flow is healthy — the write validates a subset around the touched actions; health, a document plan, and a flow or type PATCH with `validateOnly` (its `leavesBehind`) run the whole graph.
-- **One health warning is about your data, not your wiring.** `READ_PAGE_MAY_EXCEED_SLOT` on a `record.list` or `record.query` action says that `limit` of the table's large recent records would pass what one result may hold, so the action would fail at run time. A save of that action and a plan carry it too and neither is refused by it; a save of another action of the flow does not, as with every finding about one action. It is judged against the records as they are at that moment, so it can appear on a flow nobody edited: name the fields the action needs in `fields`, or lower `limit`.
-- **`expand=health` works on the list only.** `GET /v1/flows?project={nodeId}&expand=health` gives each row a `health` summary with its `firstErrorCode` — a digest, not the attributed diagnostics. `GET /v1/flows/{id}` accepts only `expand=timeLimits`; `expand=health` there is a 422. What holds a flow is its delete's dry run, `DELETE /v1/flows/{id}?validateOnly=true`.
-- **`OUTPUT_SLOT_UNBOUND` means the binding is missing, and it is only a warning.** An action may already write the slot; what is absent is the flow's output binding naming it. If the output is required, every live call is refused `422 FLOW_OUTPUT_MISSING`, so an unheeded warning ships an endpoint that refuses everything.
-- **Nothing re-validates a graph at run time.** A flow saved with blocking edge issues runs and leaves a trace — usually the fastest way to see what the diagnostic was predicting.
+Every write of steps — `PUT /v1/flows/{id}/steps`, `POST /v1/flows/{id}/steps/edit`, a document plan — judges the whole flow before it saves. An **error refuses the save** (`422`, the findings under `details.diagnostics`); a **warning** saves and comes back in `diagnostics`.
 
-## 2. Dry runs of an action write
+What it proves:
 
-`validateOnly: true` on `POST /v1/actions` (and on `PATCH /v1/actions/{id}`) runs every rule that write runs — the flow-graph gate, a key or output slot another action holds, the pinned model, how the action runs — writes nothing, and answers a verdict.
+- **Every read has a giver above it.** A name nothing gives is `STEP_READS_UNKNOWN`; a value only a step below gives is `STEP_READS_LATER`; a value made inside a block, read outside it, is `BLOCK_VALUE_ESCAPES` (hand it out through the block's `out`); a `parallel` child reading a sibling is `PARALLEL_READS_SIBLING`.
+- **Every required read is there on every path.** A value that may be nothing — an optional input, a step inside an `if` read after it, a function that may answer nothing, `userInfo` (a schedule has no person) — read as required is `STEP_INPUT_MAY_BE_ABSENT`; a field the type marks optional, `STEP_INPUT_FIELD_MAY_BE_ABSENT`; a field of a value nothing types is the warning `STEP_INPUT_FIELD_UNTYPED`.
+- **No input that must not be empty is fed an empty value.** `STEP_INPUT_MAY_BE_EMPTY`; guard with `{filled: x}`, or declare `minLength` ≥ 1 (text) or `minItems` ≥ 1 (a list) on the value's type — a `default` never covers `""`, `[]` or `{}`.
+- **Every path ends right.** A `return` of a required output that may be nothing is `FLOW_OUTPUT_MAY_BE_NOTHING`; a path that reaches the end without `return` or `fail` while outputs are required is `FLOW_PATH_HAS_NO_END`; a `return` inside `each`, `repeat` or `parallel` is `RETURN_IN_REPEATED_BLOCK`.
+- **Every step has its kind's shape and its function's settings.** A field the kind does not take is `FLOW_STEPS_INVALID`; a `with` key the function does not take, `STEP_SETTING_UNKNOWN`; a test against `{literal: null}`, `CONDITION_EQUALS_NULL` (write `{not: {has: x}}`); two steps sharing a key, `STEP_KEY_TAKEN`.
 
-- Each finding carries the severity the save would give it.
-- `leavesBehind` lists what the write would leave broken in the flow.
-- `ok` is `false` when the write would leave an error behind — the verdict a document plan of the same change gives.
-- `derived.draft`, beside the verdict, answers a narrower question — what the configuration reads and whether it parses. A clean one does not mean the action will save.
-- A PATCH dry run that changes `outputSlot` also answers `derived.rename`: what renaming the slot would touch.
+At run time nothing is skipped: a step whose required input is missing fails with a typed error, and an empty value where one is refused fails `STEP_INPUT_EMPTY`.
 
-`POST /v1/actions/interpolate` renders a prompt with the `slotValues` you send and calls nothing. `POST /v1/actions/preview` interpolates one prompt and, for `text.generate` only, makes one model call — it is not a flow run.
+## 2. A finding and its fix
 
-`POST /v1/actions/batch` is one transaction: one stale `version` refuses the whole batch. Reach for it deliberately; to change one action, patch that action, and to set a flow's actions as a whole, state them in a project document (`document.md`).
+A finding about steps carries where it is and what to do:
 
-## 3. Preview
+```json
+{
+  "code": "STEP_INPUT_MAY_BE_ABSENT",
+  "severity": "error",
+  "message": "`save` reads `userInfo.userId` at `with.fields.owner` as required, and it may have no value.",
+  "at": "steps[save].with.fields.owner",
+  "fixes": [
+    {
+      "title": "Run save only when userInfo.userId has a value",
+      "edit": [
+        {
+          "wrap": ["save"],
+          "in": { "if": { "test": { "has": "userInfo.userId" } } },
+          "key": "saveGuard"
+        }
+      ]
+    },
+    {
+      "title": "Let save run without userInfo.userId",
+      "edit": [
+        {
+          "set": "save",
+          "field": "with.fields.owner",
+          "value": { "path": "userInfo.userId", "optional": true }
+        }
+      ]
+    }
+  ],
+  "decision": null
+}
+```
 
-`POST /v1/flows/{id}/preview` runs the stored actions on the values you send: `{ "input": { "kind": "slots", "inputs": { … } }, "apply": false }`, or `"kind": "record"` with a `recordId`.
+- **`at` is a key path from the flow**, never a position: `steps[perMember].steps[reachable].if[0].steps[note].with.fields.noteKey`. In a document plan the same finding's `field` starts `flows.<flow>.`.
+- **`fixes` are ready step edits, best first.** Pick one and post its `edit` as is: `POST /v1/flows/{id}/steps/edit { "version": <the flow's version>, "edits": <the fix's edit> }`. In a document, make the same change in your file and plan again. A fix raises no finding the flow did not already have.
+- **A fix may change a type instead:** `{title, typeEdit: {type, key, declare}}` declares `minLength` or `minItems` on a field of a type the flow reads; send `declare` to `PATCH /v1/types/{id}` (`type` is the id) with the type's version. It changes the type for every reader. A type new in the same document has no id yet, so `type` is absent: declare the keyword on that field under `types.<key>` in the document.
+- **`decision` replaces `fixes` when no edit clears the finding without changing what you meant** — it names the step, the field and what to choose (`Wrap it in $default(…, <value>), or guard the names it reads with if has`). Exactly one of the two is set.
+- **Fix every error of one answer in one edit, then save again.**
+- A refused edit batch names the edit: `STEP_EDIT_REFUSED` with `editIndex`, the 0-based place of the edit in `edits`.
 
-- **It costs what a live run costs, and it writes.** `apply` defaults to true. `apply: false` still runs every action and every model call, then discards the change set — readable at `GET /v1/runs/{runId}/change-set`, where the run id is the response's `previewSessionId`. `kipory-operate`'s `references/spend.md` has what a preview is charged.
-- **Its cache is not a live run's.** A preview shares the functions' input-keyed cache with live runs, but never reads or fills the action-result cache a live run reads first, so a preview does not make the next live call free.
-- **An action that sends checks and does not send in a preview.** A `url.send`, `email.send` or `push.send` action runs every check a live run makes and answers as a live run would, with `apply: false` too, and the same holds in an eval run: `url.send` answers `true` and `email.send` answers the string `preview-not-sent` (a real send answers the message's id; a preview sends no message, so there is none to read), each with a `PREVIEWED_NOT_SENT` warning whose `details.wouldSend` says what would have gone (`{ recipients }` for mail, `{ method, host }` for a request, never an address or a body), `push.send` answers its counts with `preview: true`, and `flow.start-per-person` answers `{ people, preview: true }` and starts nobody. A check that fails a live run fails the preview with the same code: a sending address the project cannot use, a full daily allowance, a secret that is not stored, a host the secret does not list. The rest of the flow runs. Prove the delivery itself with one live run.
-- **An id in a dry run's output is not proof anything was stored.** An `record.create` on a project-wide table still reports an id, and it is the id a live run with the same data will get — a record's identity is its content. The change set is the proof.
-- **`missingRequiredOutput` is non-null exactly when a live call would be refused** `422 FLOW_OUTPUT_MISSING`.
-- **Who the run acts as is `principal`**, and the special values live on different input arms: `no-end-user` and `end-user` on `slots`, `record-owner` on `record`. `no-end-user` is the run a key, a schedule or a trigger gets. `end-user` runs as the end user `runAsUserId` names — one who owns records in the project or is one of its test users, the rule a suite's `runAsUserId` follows — and requires `apply: false`, so you can rehearse one person's call (their interests, their feed) without writing in their name. The default, `operator`, is a request-shaped run as you.
-- **Fan-out is capped at 5 branches per node.** `fanOutCap` sets that preview cap (a number or `"uncapped"`) but never lifts the action's own `maxItems`. The wall clock is 180 seconds. A capped preview proves wiring and per-element behaviour, not the merge over the real population.
+## 3. Dry runs
 
-**To see what each action wrote, queue the preview.** The synchronous preview's `transcript` carries each action's outcome, timing and error — no slot values — and leaves no timeline and no trace. `POST /v1/flows/{id}/preview-runs` takes the same body and answers `202 { runId }`; a worker runs it, and the run is read like any other:
+`validateOnly: true` on `PUT /v1/flows/{id}/steps` or `POST /v1/flows/{id}/steps/edit` runs the same judgement, writes nothing, and answers the verdict:
+
+- `ok` — false when the write would be refused;
+- `diagnostics` — every finding, errors and warnings, each with `at` and its `fixes` or `decision`;
+- `expressions` — each JSONata expression the steps hold, as TypeScript (`typescript`), laid out (`formatted`), and as a plain path when one reads the same;
+- `pathExpressions` — each path read where an expression could stand, with the expression that reads the same.
+
+Send `typescript: [{at, text}]` beside `validateOnly` to write an expression as TypeScript: the dry run reads it back as JSONata (`fromTypeScript`) and judges that in its place. Save the JSONata it answers; nothing saves TypeScript.
+
+## 4. Try one step
+
+Each route addresses a step by the flow's id and the step's key. Send `step` to try a draft under that key instead of the saved one.
+
+- **`POST /v1/flows/{id}/steps/{key}/interpolate` `{ step?, values }`** renders a model step's prompt with the `values` you give — names the step reads: a flow input, an earlier step's key, a name a block gives — and calls nothing. EDITOR.
+- **`POST /v1/flows/{id}/steps/{key}/preview` `{ step?, values, attachments?, modelId? }`** renders it and calls the model once: `response`, `tokensIn`, `tokensOut`. ADMIN, billed. It is not a flow run.
+- **`POST /v1/flows/{id}/steps/{key}/evaluate` `{ step?, values }` or `{ step?, fromRun }`** runs the step's function on those values, or on the values a past run recorded, and answers `{ok: true, value}`, `{ok: true, absent: true}` when the step gives nothing, or `{ok: false, failure: {code, message, location?}}` as a run would fail. Each value must be a name the step reads; a flow input's is checked against its type first. EDITOR, or ADMIN for a step whose function reads records.
+
+## 5. Health and the outline
+
+`GET /v1/flows/{id}/health` judges the flow as it stands, with everything it reaches: the types it reads, the flows it calls, the endpoints and schedules that start it. It can turn red without an edit to this flow, when one of those changes; a document plan runs the same rules on every flow it can move, so `/health` after an `ok` apply is a confirmation. `GET /v1/flows?project={nodeId}&expand=health` gives each flow a summary with its `firstErrorCode`. `GET /v1/flows/{id}/outline` draws the steps as an indented outline. What still holds a flow is its delete's dry run, `DELETE /v1/flows/{id}?validateOnly=true`.
+
+## 6. Preview
+
+`POST /v1/flows/{id}/preview` runs the saved steps on values you send: `{ "input": { "kind": "slots", "inputs": { … } }, "apply": false }`, or `"kind": "record"` with a `recordId`. `graph: { "kind": "draft", "steps": [ … ] }` runs steps you have not saved, judged by the save's rules first.
+
+- **It costs what a live run costs, and it writes.** `apply` defaults to true. `apply: false` still runs every step and every model call, then discards the change set — readable at `GET /v1/runs/{runId}/change-set`, where the run id is the response's `previewSessionId`.
+- **A step that sends checks and does not send.** `email.send`, `url.send`, `push.send` and `flow.start-per-person` run every check a live run makes and answer as a live run would, with a `PREVIEWED_NOT_SENT` warning saying what would have gone. Prove the delivery itself with one live run.
+- **`missingRequiredOutput` is non-null exactly when a live call would be refused.**
+- **Who the run acts as is `principal`.** On `slots`: `operator` (you, the default), `no-end-user` (how a schedule or a trigger runs — `userInfo` is absent), `end-user` with `runAsUserId` (that person's own call; needs `apply: false`). On `record`: `operator` or `record-owner`.
+- **An `each` is capped at 5 values per preview** (`fanOutCap` sets the cap, a number or `"uncapped"`, never above the step's own `maxItems`); the wall clock is 180 seconds.
+
+**To see each step's value, queue the preview.** `POST /v1/flows/{id}/preview-runs` takes the same body and answers `202 { runId }`; a worker runs it, read like any run:
 
 ```
-GET /v1/runs/{runId}/trace        the flow's inputs and each action's output by slot (slotOutputs)
-GET /v1/runs/{runId}/timeline        the timeline
-GET /v1/runs/{runId}/spend        what it cost, by action
-GET /v1/runs/{runId}/change-set   what it wrote, or would have
+GET /v1/runs/{runId}            finished when `run.closing` is non-null: `succeeded`, `partial` or `failed`
+GET /v1/runs/{runId}/trace      the flow's inputs and each step's value, by key
+GET /v1/runs/{runId}/timeline   the timeline
+GET /v1/runs/{runId}/spend      what it cost
+GET /v1/runs/{runId}/change-set what it wrote, or would have
 ```
 
-`{runId}` is the run's own id: the `runId` this 202 answers, the `runId` of a `GET /v1/runs` row (not the `id` of what started it, beside it), or an endpoint call's `x-request-id`. The synchronous preview's `previewSessionId` reads `/change-set` and nothing else: the others answer it 404, and the timeline's 404 says which id to send.
+**`succeeded` does not mean every step got an answer.** A vendor that refused a search or a page read leaves a `step-warned` row in `GET /v1/runs/{runId}/timeline` with `detail.warningKind` (`SEARCH_FAILED`, `SCRAPE_FAILED`, …) and the vendor's reason in `detail.message`, and `run.closing.warnings` counts them — check it on every run you trust. **`partial`** is a run that finished past failures it was told to carry on past — a `try` caught, an `each` tolerated (`maxFailedBranches`, `maxFailedShare`), a `repeat` stopped at — and `run.closing.absorbed` counts them: what failed left nothing behind. **A failed preview tells nobody**; what a live failure does is `kipory-operate`. `kipory-diagnose` reads a trace.
 
-Those reads answer 404 until the worker has started the run, so poll `GET /v1/runs/{runId}`: the run is finished when `run.closing` is non-null. `run.closing.verdict` is then `succeeded`, `partial` or `failed`, or null with `run.closing.kind: "run-aborted"` when the run was ended from outside. `run.lifecycle` reads `unknown` until then and `settled` after.
+## 7. What needs ADMIN
 
-**`succeeded` does not mean every action got an answer.** An action whose vendor refused the call — a search, a page read, a screenshot — ends `action-applied` with an empty output, and the run still succeeds. Each such action leaves an `action-warned` row in `GET /v1/runs/{runId}/timeline` (`detail.warningKind`: `SEARCH_FAILED`, `SCRAPE_FAILED`, …) whose `detail.message` is the vendor's reason, so read the timeline for them before designing around an empty result. The run says how many it has without the log: `run.closing.warnings` lists the warnings it produced, counted by `kind` (and `warningKind` for a function's own), and is empty when there were none — check it on every run you are about to trust, the list read (`GET /v1/runs`) included. It also counts the engine's own: a value cut at the slot cap (`slot-truncated`), an object, a file reference, or a list or text its action will not let be cut, at least half the slot cap, which will fail its action once it passes it (`slot-near-limit`), items a fan-out dropped (`fan-out-capped`), an action that failed under `"onFailure": "continue"` (`action-failed-continued`). `kipory-diagnose` reads a trace.
+Preview, its stream, `POST /v1/flows/{id}/preview-runs` and `POST /v1/flows/{id}/steps/{key}/preview` are ADMIN, and so are running an eval suite (`POST /v1/eval-suites/{id}/run`, unless `validateOnly`), every delete and the checkpoint restore. An EDITOR key can author a whole flow, dry-run every write, render a prompt and evaluate a step, and cannot preview the flow.
 
-**`partial` is the third verdict.** A run that carried on past a failure it was set to tolerate — an action or a sub-flow call under `"onFailure": "continue"`, a fan-out branch within `maxFailedBranches` or `maxFailedShare` — finishes, applies its changes and closes `partial`; `run.closing.absorbed { actions, calls, branches }` counts what it carried on past. Preview the failing case on purpose before relying on a tolerance: a tolerated branch or a continued call is dropped whole, and the change set shows what the run kept without it. The preview's five-branch cap also changes what a `maxFailedShare` allows, since the share is of the branches run.
+## 8. Checkpoints
 
-**A failed preview tells nobody.** The platform records a `platform` event for an unattended run that fails — a schedule's, a trigger's, an asynchronous endpoint call, a record's processing — and none for a preview. What a live failure does to the project, and how to prove the failure trigger with a test event, is `kipory-operate`'s `references/when-a-run-fails.md`.
-
-## 4. What needs ADMIN
-
-Three flow routes that look like reads are ADMIN: preview, its stream and `POST /v1/flows/{id}/preview-runs`. So are `POST /v1/actions/preview`, running an eval suite (`POST /v1/eval-suites/{id}/run`, unless `validateOnly`), every delete and the checkpoint restore. An EDITOR key can author a whole flow, dry-run every write and render a prompt, and cannot preview the flow.
-
-## 5. Checkpoints
-
-Before a risky edit: `POST /v1/flow-checkpoints { flowId, label }`.
-
-Before committing to a rollback: the restore with `validateOnly: true`, which rehearses it, answers the restore's own refusals and shows the current and captured actions side by side (`derived.restore`).
-
-The restore itself — `POST /v1/flow-checkpoints/{id}/restore { version }`, the flow's `version`, ADMIN — swaps the whole action set, signature and binding, and takes an automatic checkpoint of the previous state first. `packs/flow-checkpoints.md` has the rest.
+Before a risky edit: `POST /v1/flow-checkpoints { flowId, label }`. Before a rollback, the restore with `validateOnly: true` rehearses it and shows the current and captured steps side by side. The restore itself — `POST /v1/flow-checkpoints/{id}/restore { version }`, ADMIN — puts back the whole step list and signature, and checkpoints the state it replaces first. `packs/flow-checkpoints.md` has the rest.

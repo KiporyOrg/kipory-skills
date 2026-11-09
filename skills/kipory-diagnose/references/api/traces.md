@@ -47,7 +47,7 @@ Each item of `records`:
 
 ### `GET /v1/flows/{id}/traces`
 
-A flow's traces — the VALUES half of its runs: inputs, outputs and per-action outputs, sampled in production and kept 7 days — newest first, walked on `after`/`before`; filter by `source` and `recordId`. Each carries the `runId` of its run. Every run, with no values, is `GET /v1/runs?project=`; one run's trace by run id is `GET /v1/runs/{runId}/trace`.
+A flow's traces — the VALUES half of its runs: inputs, outputs and each step's value, sampled in production and kept 7 days — newest first, walked on `after`/`before`; filter by `source` and `recordId`. Each carries the `runId` of its run. Every run, with no values, is `GET /v1/runs?project=`; one run's trace by run id is `GET /v1/runs/{runId}/trace`.
 
 **Path parameters**
 
@@ -70,7 +70,7 @@ A flow's traces — the VALUES half of its runs: inputs, outputs and per-action 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `traces` | `object[]` | yes | The flow's runs, newest first by `createdAt`, then id, WITHOUT their payloads — read one trace to get those. ⚠️ An absent run is not evidence it did not happen: traces expire, and writing them is sampled. |
-| `sampling` | `object` | yes | How much of this project's traffic is traced at all. ⚠️ WITHOUT THIS THE LIST IS UNINTERPRETABLE — 'three traces' means one thing at a rate of 1 and something very different at 0.05. Null means the deployment default is in force, which is NOT zero. A record or asynchronous run in which an action failed is traced whatever the rate (unless it is 0), so failures lift the count above it. |
+| `sampling` | `object` | yes | How much of this project's traffic is traced at all. ⚠️ WITHOUT THIS THE LIST IS UNINTERPRETABLE — 'three traces' means one thing at a rate of 1 and something very different at 0.05. Null means the deployment default is in force, which is NOT zero. A record or asynchronous run in which a step failed is traced whatever the rate (unless it is 0), so failures lift the count above it. |
 | `paging` | `null` | yes | Always null: no count and no `page` jump are offered — walk with `after` / `before`. |
 | `nextCursor` | `string \| null` | yes | Pass back as `after` for the NEXT page along the list's own ordering. NULL means there is nothing further — a short page on its own does not mean the end. |
 | `prevCursor` | `string \| null` | yes | Pass back as `before` for the page BEFORE this one. NULL means this is the first page. |
@@ -93,7 +93,7 @@ Each item of `traces`:
 
 ### `GET /v1/flows/{id}/traces/{traceId}`
 
-One trace of this flow in full, with its `runId`. The same trace by its run is `GET /v1/runs/{runId}/trace`; the run's execution record (actions, no values) is `GET /v1/runs/{runId}/timeline`.
+One trace of this flow in full, with its `runId`. The same trace by its run is `GET /v1/runs/{runId}/trace`; the run's execution record (steps, no values) is `GET /v1/runs/{runId}/timeline`.
 
 **Path parameters**
 
@@ -116,8 +116,8 @@ One trace of this flow in full, with its `runId`. The same trace by its run is `
 | `runId` | `string \| null` | yes | The run that wrote this trace — its timeline, change set and spend answer under `/v1/runs/{runId}`. Null for a trace written without one. |
 | `inputs` | `unknown` | no | What the run received. |
 | `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
-| `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by action. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. An action whose output slot is empty contributes no key. |
-| `actionOutputs` | `object \| null` | yes | What each ACTION wrote, for the writes a slot name cannot name. Null when the writer recorded no actions. |
+| `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |
+| `stepOutputs` | `object \| null` | yes | What each STEP wrote, for the writes a slot name cannot name. Null when the writer recorded no steps. |
 | `durationMs` | `integer \| null` | yes | How long the run took, in milliseconds. ⚠️ NULL MEANS UNTIMED, not instant — an old row, or a run that crashed before it got going. Render the difference. |
 | `createdAt` | `string` | yes | When the run happened. |
 | `expiresAt` | `string` | yes | When this trace will be deleted. Reading it after this point returns 404 by design, not because the reference is broken. |

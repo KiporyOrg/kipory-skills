@@ -92,7 +92,7 @@ Each item of `recentFailures`:
 | `id` | `string` | yes | The job log entry's id. |
 | `at` | `string` | yes | When the invocation was logged. |
 | `functionKey` | `string` | yes | The function that failed — a key in `functions` above. |
-| `outcome` | `"hit" \| "miss-success" \| "miss-failure" \| "wait-timeout" \| "rejected-input"` | yes | Which KIND of failure. Always one of `miss-failure`, `wait-timeout` or `rejected-input`; a `hit` or a `miss-success` never appears here. |
+| `outcome` | `"hit" \| "miss-success" \| "miss-failure" \| "wait-timeout" \| "rejected-input" \| "stopped"` | yes | Which KIND of failure. Always one of `miss-failure`, `wait-timeout` or `rejected-input`; a `hit` or a `miss-success` never appears here. |
 | `attempts` | `integer` | yes | How many times the wrapper tried before giving up. `1` on a `rejected-input`, which never reached the queue at all. |
 | `durationMs` | `integer` | yes | Wall time this invocation spent. On a `wait-timeout` it is mostly the wait, not the work. |
 | `sourceHashPrefix` | `string` | yes | First 16 characters of the source hash. |

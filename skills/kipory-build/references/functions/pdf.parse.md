@@ -12,9 +12,9 @@ A scan has no text, so its text is empty. A locked file is flagged, and non-PDFs
 - **Also found as:** read a pdf, pdf text, parse pdf, pdf to text
 - **Reads:** One PDF file. A non-PDF mime fails rather than being guessed at — route them elsewhere upstream. _(shape hint: `file`)_
 - **Emits:** A `PdfDocument`. Empty text: with `pageCount`, a scan; with `isEncrypted`, locked; with neither, unreadable or missing — warns `PDF_PARSE_FAILED`, uncached. No file named: empty, no warning.
-- **Softens these failures:** `error` — the action still finishes with a warning, and a `failureSlot` on it then holds the code (`action-fields.md` §6).
-- **Suggested input streams:** `currentFile`
-- **Queue:** 1 attempt, no backoff; waits up to 3 min; cache no expiry — the function's default; an action replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
+- **Softens these failures:** `error` — the step does not fail: the run's warnings carry the code with the step's key, and the step may give nothing (`checking.md` §6).
+- **Inputs (`with`):** `file`
+- **Queue:** 1 attempt, no backoff; waits up to 3 min; cache no expiry — the function's default; a step replaces it with `reuseResultsForMinutes` (`0` always fetches fresh)
 
 ## Config
 

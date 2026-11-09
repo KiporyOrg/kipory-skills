@@ -39,11 +39,12 @@ Each item of `pushes`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `id` | `string` | yes | The push's id, the same one the action's run log names. |
-| `createdAt` | `string` | yes | When the action sent the push, as an ISO-8601 instant. |
-| `runId` | `string` | yes | The run whose action sent it. |
-| `actionId` | `string` | yes | The action that sent it. |
+| `id` | `string` | yes | The push's id, the same one the step's run log names. |
+| `createdAt` | `string` | yes | When the step sent the push, as an ISO-8601 instant. |
+| `runId` | `string` | yes | The run whose step sent it. |
+| `stepKey` | `string` | yes | The key of the step that sent it, within the flow that holds it (`flowId`). |
+| `flowId` | `string \| null` | yes | The flow that holds that step, by its id: a flow the run called when the step is one of its own. Two flows can each have a step with the same key; `flowId` and `stepKey` together name one. Null when the run did not record it. |
 | `peopleAddressed` | `integer` | yes | People the push went to: active people of the project. |
-| `peopleSkipped` | `integer` | yes | People the action named who are not active people of the project. Counted, never named. |
+| `peopleSkipped` | `integer` | yes | People the step named who are not active people of the project. Counted, never named. |
 | `devicesAddressed` | `integer` | yes | Devices registered to those people when the push went out. |
 | `outcomes` | `object` | yes | What happened to each device, counted. A push still being delivered has devices in none of these yet. |

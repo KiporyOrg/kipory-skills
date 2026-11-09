@@ -170,7 +170,7 @@ Each item of `records`:
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
-| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the action that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
+| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
 | `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
 | `owner` | `object` | yes | Whether this record belongs to the project or to one person. |
 | `fields` | `object[]` | yes | One entry per column, in the same order. |
@@ -293,7 +293,7 @@ Shape 1, with `deleted`:
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record this answers about, echoed. |
 | `deleted` | `true` | yes | Always true: the record is gone, or is going (`outcome`). |
-| `outcome` | `"removed" \| "draining"` | yes | `removed` — the row and everything derived from it are gone. `draining` — a flow was running over it, or more records name it than one delete handles, so it is marked `deleting` and removed once its run reaches an action boundary and every record naming it is handled. |
+| `outcome` | `"removed" \| "draining"` | yes | `removed` — the row and everything derived from it are gone. `draining` — a flow was running over it, or more records name it than one delete handles, so it is marked `deleting` and removed once its run reaches a step boundary and every record naming it is handled. |
 | `effects` | `object[]` | yes | What the delete did to the records naming this one, one line per reference that reached any. Empty when nothing names it. |
 
 Each item of `effects`:
@@ -460,7 +460,7 @@ Fold this record into another of its table and owner (`into`): every record nami
 
 ### `GET /v1/records/{id}/processing-stream`
 
-Watch one record's processing live, as Server-Sent Events: a `snapshot` of where it stood when you connected, a `status` frame per transition (`pending`, `processing` with the action now starting, `ready`, `failed` with why), then `done`. A failed run is a `status` frame followed by a clean `done` — read the status, not the close. To read the record's result afterwards, `GET /v1/records/{id}`.
+Watch one record's processing live, as Server-Sent Events: a `snapshot` of where it stood when you connected, a `status` frame per transition (`pending`, `processing` with the step now starting, `ready`, `failed` with why), then `done`. A failed run is a `status` frame followed by a clean `done` — read the status, not the close. To read the record's result afterwards, `GET /v1/records/{id}`.
 
 **Streams.** The success response is `text/event-stream`, not JSON. Event names: `snapshot`, `status`, `error`, `close`, `done`.
 
@@ -489,7 +489,8 @@ Shape 2, with `status`, `at`, `requestId`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | The record's new state. ⚠️ A record FAILING is one of these frames followed by `done` — the STREAM completed fine, so do not read a clean close as a successful run. |
-| `actionId` | `string` | no | Id of the action now starting. Present only while processing is under way. |
+| `stepKey` | `string` | no | Key of the step now starting, within the flow `flowId` names. Present only while processing is under way. |
+| `flowId` | `string` | no | The flow the starting step belongs to: the table's flow, or a flow it called. Present with `stepKey`. |
 | `error` | `string` | no | Why it failed. Present only on the failing frame. |
 | `at` | `integer` | yes | When the publisher emitted this frame, in unix milliseconds. For correlating logs. |
 | `requestId` | `string` | yes | The request that started this processing run, for correlation. |
@@ -524,11 +525,11 @@ Re-run the record's processing flow from a clean slate: its derived output, gene
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The record a run was queued for, echoed. |
 | `status` | `"pending"` | yes | Where the record now sits, waiting for the worker to claim it. |
-| `mode` | `"full"` | yes | An explicit re-run is always a CLEAN SLATE — prior output, generated files, vocabularies and vector points are swept and regenerated, and the action cache is bypassed. ⚠️ Vocabularies included: a filing set by hand is swept with the rest, and the resolver decides again. ⚠️ Charged like the record's first processing, every model call included. An edit runs no flow at all, so it is not a cheaper version of this. |
+| `mode` | `"full"` | yes | An explicit re-run is always a CLEAN SLATE — prior output, generated files, vocabularies and vector points are swept and regenerated, and the step cache is bypassed. ⚠️ Vocabularies included: a filing set by hand is swept with the rest, and the resolver decides again. ⚠️ Charged like the record's first processing, every model call included. An edit runs no flow at all, so it is not a cheaper version of this. |
 
 ### `GET /v1/records/{id}/stream/{field}`
 
-One record's events on one `stream` field (a field its type declares with a `stream` use), newest first, within a window bounded by the field's retention, paged on `after`. A stream's events are rows appended by a flow's `record.append` action — no route writes them. The record's own `data` never holds a stream field; read it with `GET /v1/records/{id}`.
+One record's events on one `stream` field (a field its type declares with a `stream` use), newest first, within a window bounded by the field's retention, paged on `after`. A stream's events are rows appended by a flow's `record.append` step — no route writes them. The record's own `data` never holds a stream field; read it with `GET /v1/records/{id}`.
 
 **Path parameters**
 
@@ -680,7 +681,7 @@ Each item of `diagnostics`:
 
 ### `POST /v1/records/query`
 
-Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `link` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` action authors, run by the same executor. `tableKeys` in place of `tableKey` ranks several tables on one search model in one answer, each score naming its record's table; this route reads as every user, so a table that keeps each user's records apart refuses the whole query. `fields` names the columns each row carries; empty means all of them. Leave `clauses` out to list the table's records, newest first. `linked` brings each record's linked records with it, each in this same row shape — the option a flow's `record.query` takes; a `linked` refusal is 422 `VALIDATION_FAILED` with its rule in `details.reason`. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
+Ask a project's records one question: a conjunction of clauses — `field` (`eq` `lt` `lte` `gt` `gte` `in`), `term`, `link` (with link filters, a count and one hop of peer clauses), `stream`, and at most one `semantic` — in the grammar a flow's `record.query` step authors, run by the same executor. `tableKeys` in place of `tableKey` ranks several tables on one search model in one answer, each score naming its record's table; this route reads as every user, so a table that keeps each user's records apart refuses the whole query. `fields` names the columns each row carries; empty means all of them. Leave `clauses` out to list the table's records, newest first. `linked` brings each record's linked records with it, each in this same row shape — the option a flow's `record.query` takes; a `linked` refusal is 422 `VALIDATION_FAILED` with its rule in `details.reason`. Writes nothing. For a page with the table's declared columns and a filter the address can spell, `GET /v1/records` is the simpler read.
 
 **Request body**
 
@@ -720,7 +721,7 @@ Each item of `records`:
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
-| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the action that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
+| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
 | `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
 | `owner` | `object` | yes | Whether this record belongs to the project or to one person. |
 | `fields` | `object[]` | yes | One entry per column, in the same order. |

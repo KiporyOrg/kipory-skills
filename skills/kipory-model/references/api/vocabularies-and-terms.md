@@ -243,7 +243,7 @@ Each item of `vocabularies`:
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 
 ### `POST /v1/vocabularies`
 
@@ -308,7 +308,7 @@ Each item of `diagnostics`:
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 
 Each item of `termAttributes`:
 
@@ -322,16 +322,15 @@ Each item of `wiring`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowId` | `string` | yes | Id of the flow the node belongs to. |
+| `flowId` | `string` | yes | Id of the flow the step belongs to. |
 | `flowKey` | `string` | yes | That flow's key within the project. |
 | `flowLabel` | `string` | yes | That flow's label (display text). |
-| `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
-| `actionKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministic`) and makes no model call for it. |
+| `stepKey` | `string` | yes | Key of the step that feeds the vocabulary, within its flow: with `flowId`, the step's address. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this step feeds the vocabulary. `extracted` — a `text.generate` step lists the vocabulary in `vocabularyFields`, so its value rides that step's structured answer. `proposed` — a `vocabulary.resolve` step lists it in `vocabularyKeys` with no value feeding it, so the step's own model call proposes values. `fed` — a `vocabulary.resolve` step reads its candidates from a value (`deterministic`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
-| `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the action's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
-| `drift` | `string \| null` | yes | Set when this `extracted` node's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
+| `declaredOnly` | `boolean` | yes | True when the step's response TYPE marks this vocabulary but the step's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the step's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
+| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
 
 ### `GET /v1/vocabularies/{id}`
 
@@ -373,7 +372,7 @@ Read one vocabulary by id, with the `version` its PATCH takes; `expand` adds its
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 
 Each item of `termAttributes`:
 
@@ -387,16 +386,15 @@ Each item of `wiring`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowId` | `string` | yes | Id of the flow the node belongs to. |
+| `flowId` | `string` | yes | Id of the flow the step belongs to. |
 | `flowKey` | `string` | yes | That flow's key within the project. |
 | `flowLabel` | `string` | yes | That flow's label (display text). |
-| `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
-| `actionKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministic`) and makes no model call for it. |
+| `stepKey` | `string` | yes | Key of the step that feeds the vocabulary, within its flow: with `flowId`, the step's address. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this step feeds the vocabulary. `extracted` — a `text.generate` step lists the vocabulary in `vocabularyFields`, so its value rides that step's structured answer. `proposed` — a `vocabulary.resolve` step lists it in `vocabularyKeys` with no value feeding it, so the step's own model call proposes values. `fed` — a `vocabulary.resolve` step reads its candidates from a value (`deterministic`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
-| `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the action's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
-| `drift` | `string \| null` | yes | Set when this `extracted` node's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
+| `declaredOnly` | `boolean` | yes | True when the step's response TYPE marks this vocabulary but the step's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the step's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
+| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
 
 ### `PATCH /v1/vocabularies/{id}`
 
@@ -413,7 +411,7 @@ Relabel a vocabulary, rename its key, declare the attributes its terms carry (`t
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key` | `string` | no | The vocabulary's new key, unique within the project. Its terms and their assignments keep their ids, the tables surfacing it and every reference to the old key are rewritten in the same transaction; external callers using the old key break (see `renames[].exposures`). Requires ADMIN. camelCase letters and digits starting with a lowercase letter, like `personRole`, up to 64 characters. |
-| `keepExpressions` | `string[]` | no | Actions (or eval assertions) whose expression and template candidates this rename leaves AS WRITTEN — every other candidate is changed. Each one must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
+| `keepExpressions` | `string[]` | no | Steps (or eval assertions) whose expression and template candidates this rename leaves AS WRITTEN — every other candidate is changed. Each one must hold at least one candidate, else the plan warns `RENAME_KEEP_UNUSED`. |
 | `label` | `string` | no | New display text for the vocabulary. Display only: no term, link or stored resolution moves (a new `key` is the rename that does). Not nullable: a vocabulary always has a label. |
 | `termAttributes` | `object[]` | no | Replace the attributes this vocabulary's terms carry, whole. An attribute left out is removed with its values on every term; a new `required` one is refused while a term has no value for it. |
 | `mint` | `"none" \| "active" \| "candidate" \| null` | no | Change what a value this vocabulary has never seen may become. |
@@ -452,7 +450,7 @@ Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, 
 | `stats` | `object` | no | Term counts, present only when you pass `expand=stats`. Derived from the terms themselves, not stored on the vocabulary. |
 | `samples` | `string[]` | no | Up to four example term labels, present only when you pass `expand=samples`. |
 | `readiness` | `object` | no | Whether the vocabulary is actually working, present only when you pass `expand=readiness`. Costs two extra queries for the whole list, not per vocabulary. |
-| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` action can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
+| `wiring` | `object[]` | no | Every flow node in this project that feeds the vocabulary, present only when you pass `expand=wiring`. An EMPTY list means no node's configuration names this vocabulary — which is weaker than "nothing fills it": a `vocabulary.resolve` step can still pick the vocabulary up from a slot it discovers at run time, and that path names no vocabulary to scan for. A node whose configuration does not parse contributes nothing. |
 | `renames` | `object[]` | no | Present when the PATCH changed `key`: the vocabulary renamed, the configuration references rewritten, the expression candidates and how each was resolved, and every external caller the rename breaks (`exposures`). Absent on an edit that renames nothing. |
 
 Each item of `termAttributes`:
@@ -467,16 +465,15 @@ Each item of `wiring`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `flowId` | `string` | yes | Id of the flow the node belongs to. |
+| `flowId` | `string` | yes | Id of the flow the step belongs to. |
 | `flowKey` | `string` | yes | That flow's key within the project. |
 | `flowLabel` | `string` | yes | That flow's label (display text). |
-| `actionId` | `string` | yes | Id of the node (action) that feeds the vocabulary. |
-| `actionKey` | `string` | yes | The node's key within its flow. |
-| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this node feeds the vocabulary. `extracted` — a `text.generate` action lists the vocabulary in `vocabularyFields`, so its value rides that action's structured answer. `proposed` — a `vocabulary.resolve` action lists it in `vocabularyKeys` with no slot feeding it, so the action's own model call proposes values. `fed` — a `vocabulary.resolve` action reads its candidates from a slot (`deterministic`) and makes no model call for it. |
+| `stepKey` | `string` | yes | Key of the step that feeds the vocabulary, within its flow: with `flowId`, the step's address. |
+| `kind` | `"extracted" \| "proposed" \| "fed"` | yes | How this step feeds the vocabulary. `extracted` — a `text.generate` step lists the vocabulary in `vocabularyFields`, so its value rides that step's structured answer. `proposed` — a `vocabulary.resolve` step lists it in `vocabularyKeys` with no value feeding it, so the step's own model call proposes values. `fed` — a `vocabulary.resolve` step reads its candidates from a value (`deterministic`) and makes no model call for it. |
 | `field` | `string \| null` | yes | For `extracted`: the response field that carries the vocabulary's value. Null for the other kinds. |
 | `slot` | `string \| null` | yes | For `fed`: the slot the candidates are read from. Null for the other kinds. |
-| `declaredOnly` | `boolean` | yes | True when the node's response TYPE marks this vocabulary but the node's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the action's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
-| `drift` | `string \| null` | yes | Set when this `extracted` node's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
+| `declaredOnly` | `boolean` | yes | True when the step's response TYPE marks this vocabulary but the step's stored `vocabularyFields` does not carry it yet — declared, not extracted. Nothing reaches the vocabulary from this row until the step's `vocabularyFields` names it — nothing derives it from the type. Always false for `proposed` and `fed`. |
+| `drift` | `string \| null` | yes | Set when this `extracted` step's stored `vocabularyFields` no longer matches the `$vocabularyKey` markers on its response type: one sentence naming what differs. The same sentence the save-time `LLM_GENERATE_VOCABULARY_FIELDS_DRIFTED` warning carries. Null when they agree, when the type carries no markers, and for `proposed` and `fed`. |
 
 Each item of `renames`:
 
@@ -521,7 +518,7 @@ Each item of `leavesBehind`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
-| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
+| `outlinePath` | `string` | no | Where the step this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on step; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `consequences`:
@@ -529,7 +526,7 @@ Each item of `consequences`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `path` | `string` | yes | The document path of the row that causes it. |
-| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "links-removed" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected" \| "recompute" \| "reference-policy"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `links-removed`: a dropped or re-pointed producer leaves stored links no declaration stands behind, and the link backfill removes them; `rows` counts the records whose processing (`reprocessOn` on a leave) read those links. Their computed values are recomputed, but their processing is not run again: reprocess one on purpose with `POST /v1/records/{id}/reprocess`. `records-invalid`: stored records would no longer validate against the changed shape. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. `recompute`: Kipory computes the table's computed fields for its stored records, in the background and at no charge. `reference-policy`: the change moves what deleting a record does to the stored records naming it — a stated `onTargetDelete`, or the default it falls back to when the field becomes required, becomes the table's key or the reference becomes `scope: lifecycle`; `rows` counts the records naming such a record directly today, and the message says what the delete did and now does, and the most one record has. Records a `delete` takes in turn by their own rules are not counted. It also appears when a reference stops saying `unresolved: allow`, so a write naming a record that does not exist is refused; `rows` is what the last reference sweep counted as naming no record. |
+| `kind` | `"restamp" \| "reindex" \| "stream-migration" \| "records-invalid" \| "link-restamp" \| "links-deleted" \| "links-removed" \| "reembed" \| "fields-unset" \| "rename" \| "flows-affected" \| "recompute" \| "reference-policy"` | yes | What happens to DATA when this configuration change lands. `restamp`: stored records are re-stamped with new queryable columns. `reindex`: a vector-index reconcile is queued, which may redo nothing or rewrite payloads only. `stream-migration`: stream events move. `link-restamp`: stored links are re-stamped. `links-deleted`: deleting a relation deletes every stored link of it, retracted ones included. `links-removed`: a dropped or re-pointed producer leaves stored links no declaration stands behind, and the link backfill removes them; `rows` counts the records whose processing (`reprocessOn` on a leave) read those links. Their computed values are recomputed, but their processing is not run again: reprocess one on purpose with `POST /v1/records/{id}/reprocess`. `records-invalid`: stored records that already did not fit their type before this change and still do not fit the changed one; nothing changes them, a write that replaces one must make it fit, and a merge is judged only on the fields it writes. A change that would make a fitting record unfit is refused (`TYPE_UNSAFE_FOR_TABLE`), never listed here. `reembed` (a plan's only): the reconcile re-embeds this table's stored records, which spends credits on embedding usage (billed by tokens), because what its search indexes moved. `fields-unset`: the change adds fields the table's stored records do not hold, so a flow or an API read leaves those fields out of those records until each is written. `rename`: stored rows a rename rewrites in place; ids, embeddings and stamps are kept. `flows-affected`: the change moves a type that flows this document does not state read or write, so they read and write the new shape too; the message names each one. `recompute`: Kipory computes the table's computed fields for its stored records, in the background and at no charge. `reference-policy`: the change moves what deleting a record does to the stored records naming it — a stated `onTargetDelete`, or the default it falls back to when the field becomes required, becomes the table's key or the reference becomes `scope: lifecycle`; `rows` counts the records naming such a record directly today, and the message says what the delete did and now does, and the most one record has. Records a `delete` takes in turn by their own rules are not counted. It also appears when a reference stops saying `unresolved: allow`, so a write naming a record that does not exist is refused; `rows` is what the last reference sweep counted as naming no record. |
 | `rows` | `integer` | yes | How many stored rows are affected; on `flows-affected`, how many flows. |
 | `lowerBound` | `boolean` | no | `true` when `rows` was counted from a sample that stopped at its cap, so at least this many are affected. Absent when `rows` is exact. |
 | `message` | `string` | yes | One line, safe to show a person. |
@@ -578,7 +575,7 @@ Shape 1, with `deleted`, `id`, `key`, `touched`, `unlinkedTables`, `deletedTerms
 | `deleted` | `true` | yes | Always `true` — the route answers 200 only on success. |
 | `id` | `string` | yes | Id of the row that was removed. |
 | `key` | `string` | yes | Key of the vocabulary that was deleted. |
-| `warnings` | `object[]` | no | Present when the delete went through but left something to check: `REMOVED_MAY_BE_USED` names a use the platform only guessed. An action that reads the vocabulary's field off records refuses the delete instead (`VOCABULARY_FIELD_STILL_READ`). |
+| `warnings` | `object[]` | no | Present when the delete went through but left something to check: `REMOVED_MAY_BE_USED` names a use the platform only guessed. A step that reads the vocabulary's field off records refuses the delete instead (`VOCABULARY_FIELD_STILL_READ`). |
 | `touched` | `object[]` | yes | Rows of OTHER resources whose `version` this write moved, with the version each holds now. Empty when the write moved only the resource it addressed. Update the copies you hold before their next PATCH. |
 | `unlinkedTables` | `integer` | yes | How many tables stopped surfacing it. |
 | `deletedTerms` | `integer` | yes | Terms removed outright. |
@@ -594,7 +591,7 @@ Each item of `warnings`:
 | `severity` | `"error" \| "warning" \| "info"` | yes | `error` means this body will not save as it stands; `warning` is advisory and blocks nothing; `info` is a note that blocks nothing: something the platform left alone (a whole-project plan reports rows it skipped or ids it ignored this way), or a hint that a flow could be written shorter. GATE ON THIS, never on `code`. |
 | `message` | `string` | yes | What is wrong, in one line, safe to show a person. Wording may change — do not parse it. |
 | `field` | `string` | no | Dot path to the offending field of the body that was validated, e.g. `producer` or `declaration.produces[2].source`. Absent when the finding is about the body as a whole rather than one field. ⚠️ ABSENT MEANS NOT ADDRESSABLE, never `the first field`. |
-| `outlinePath` | `string` | no | Where the action this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on action; see `GET /v1/flows/{id}/outline`. |
+| `outlinePath` | `string` | no | Where the step this finding is about sits in the flow's outline, as the change leaves it, such as `each-member › send-note`. Present on a flow finding that names a switched-on step; see `GET /v1/flows/{id}/outline`. |
 | `introduced` | `boolean` | no | Present on findings about the STATE a change leaves behind (a flow's health, a schedule's inputs against its flow), judged before and after the change. `true`: this change introduced it. `false`: it was already there, and it does not make `ok` false — fix it when you choose. Absent on a finding about the body itself, which always counts as introduced. |
 
 Each item of `touched`:

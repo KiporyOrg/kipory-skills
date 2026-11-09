@@ -105,20 +105,21 @@ This step usually dominates the sheet, and every later step inherits its mistake
 
 ### 3 — Processing
 
-What happens to those records? Each pipeline becomes a **flow** of **actions** over existing
-**functions**.
+What happens to those records? Each pipeline becomes a **flow** of **steps**, in the order they
+run; an action is the step that runs an existing **function**, and `if`, `each`, `repeat`,
+`parallel` and `try` blocks hold the rest.
 
 The decisive question is whether every action maps to a function that already exists — confirmed
-live, per Rule 0. An action with no function is not automatically impossible, but it is the moment to
+live, per Rule 0. A step with no function is not automatically impossible, but it is the moment to
 read Limits (capability pack `limits` — `GET /v1/capability-packs/limits`) before going further.
 
 Calling an outside service that has no function of its own is still configuration when it has an
-HTTP API and a static key: a `url.fetch` action reads from it, a `url.send` action tells it something
+HTTP API and a static key: a `url.fetch` step reads from it, a `url.send` step tells it something
 (staged once per run, delivered after the run has saved, its answer never seen by the flow), and
-the key is a **secret** row of type `http_credential` that the action names. A request the platform
+the key is a **secret** row of type `http_credential` that the step names. A request the platform
 would have to sign, or a write whose answer the flow needs, is a `code` row.
 
-→ Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) · Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)
+→ Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) · Limits (capability pack `limits` — `GET /v1/capability-packs/limits`)
 
 ### 4 — Exposure
 
@@ -180,7 +181,7 @@ One row per object to be built:
 | ---- | --------- | ---- | ----------- | ----- |
 
 - **Step** — which of the eight produced it.
-- **Primitive** — table, type, embedding profile, flow, action, endpoint, schedule,
+- **Primitive** — table, type, embedding profile, flow, step, endpoint, schedule,
   trigger, source, vocabulary, relation, event, project-config namespace, secret, task-model
   binding, eval suite, eval case.
   ⚠️ Four of those are easy to leave out of a sheet and expensive to discover later: a
@@ -188,7 +189,7 @@ One row per object to be built:
   web vendor, or any outside API through `url.fetch` or `url.send`, may need a **secret**, a
   threshold you will want to tune belongs in a **project-config namespace** rather than baked into a
   flow, and the **eval cases** of step 8 are the only part of a plan that survives a later rewrite.
-  A fifth is a fact to read rather than a row to invent: a model action inherits its model through a
+  A fifth is a fact to read rather than a row to invent: a model step inherits its model through a
   task, and `GET /v1/nodes/{nodeId}/task-models` says, per task, whether that model is `callable` on
   this deployment — a task that is not needs a **task-model binding** row.
 - **Name** — what it will be called.

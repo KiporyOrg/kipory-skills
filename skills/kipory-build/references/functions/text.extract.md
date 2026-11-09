@@ -12,7 +12,7 @@ Duplicates are removed by default. Use a capture group to keep only part of each
 - **Also found as:** regex, find emails, find links, pattern match, extract
 - **Reads:** Reads any number of `string` slots — every configured stream is concatenated and scanned by the configured regex. _(shape hint: `string+`)_
 - **Emits:** An ordered, optionally deduped list of regex matches (or a configured capturing group) drawn from the concatenation of every wired text input stream.
-- **Suggested input streams:** `inputText`
+- **Inputs (`with`):** `text`
 
 ## Config
 

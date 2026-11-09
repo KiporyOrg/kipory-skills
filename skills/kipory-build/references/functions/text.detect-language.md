@@ -12,7 +12,7 @@ Answers with a two-letter code, or nothing rather than a wrong guess. No model i
 - **Also found as:** which language, language code, identify language
 - **Reads:** One string — a title, a body, a message. Links, handles and digits are stripped first: they are Latin whatever the language around them. _(shape hint: `string`)_
 - **Emits:** A two-letter language code, or an empty string when it could not tell. Deprecated and placeholder codes are normalised, so a stored value is usable or honestly unknown.
-- **Suggested input streams:** `text`
+- **Inputs (`with`):** `text`
 
 ## Config
 

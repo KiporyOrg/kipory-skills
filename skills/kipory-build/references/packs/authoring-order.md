@@ -15,9 +15,9 @@ by its suffix — `<kind>Key` for a key, `<kind>Id` for a row id. Five kinds of 
 **id**:
 
 - a **flow** — an endpoint's, a trigger's or a schedule's target, a vocabulary's resolver, an
-  eval suite's subject and scorers, the target of a `flow.invoke` action, a table's processing flow;
+  eval suite's subject and scorers, a table's processing flow;
 - a **type** — a table's fields, an event type's payload, a relation's properties, a config
-  namespace's fields, a schema reference inside an action;
+  namespace's fields;
 - a **source** — a trigger's `sourceId`;
 - an **eval suite** — a case's `suiteId`;
 - an **embedding profile** — a table's `search` use, as `profileId`.
@@ -33,7 +33,7 @@ Two more facts shape the order and are easy to miss:
   refused with `VERSION_CONFLICT`.
 - **Two cycles exist, and each is resolved by ordering the halves.** A table's `uses` may name a
   relation that does not exist yet, and that relation's pairings name the table. A flow's
-  `flow.invoke` action names a flow that may itself invoke the first. Both are below.
+  `flow.invoke` step names a flow that may itself invoke the first. Both are below.
 
 ## To create X you need Y first
 
@@ -51,10 +51,9 @@ Two more facts shape the order and are easy to miss:
 | a vocabulary with a resolver      | the resolving flow                                                            | the create takes `resolverFlowId`                                                           |
 | a vocabulary's terms              | the vocabulary, and a parent term before its children                         | `POST /v1/vocabularies/{id}/terms` seeds a tree top-down                                    |
 | an event type                     | its payload type, if typed — its namespace is a key it carries, not a row     | the create takes `categoryKey` and `payloadDataTypeId`                                      |
-| an action                         | its flow                                                                      | the create takes `flowId`; every action belongs to one flow                                 |
-| a consumer action                 | the producer action whose output it reads                                     | an action names its inputs by the producer's output slot; author producers before consumers |
-| a `flow.invoke` action            | the flow it invokes — see the cycle below                                     | the action's config carries `targetFlowId`                                                  |
-| an action with a schema reference | the type it references                                                        | a schema reference inside an action names a type by id                                      |
+| a flow's steps                    | the flow (`POST /v1/flows`)                                                   | steps are saved on the flow, `PUT /v1/flows/{id}/steps` or `POST /v1/flows/{id}/steps/edit` |
+| a step that reads another's value | that step, written above it in the list                                       | written order is run order; a read of a value given only below is `STEP_READS_LATER`        |
+| a `flow.invoke` step              | the flow it invokes, with its inputs and outputs — see the cycle below        | `with: {flow}` names it by key, and the save checks `with: {inputs}` against its signature  |
 | an endpoint                       | the flow its target runs (`POST /v1/flows`)                                   | the target names the flow by id                                                             |
 | a trigger                         | its flow, its source (`POST /v1/sources`) when it has one, and its event type | the create takes `flowId` and `sourceId`; the event is `categoryKey` + `eventKey`           |
 | a schedule                        | its flow                                                                      | the create takes `flowId`                                                                   |
@@ -74,8 +73,9 @@ project document does this in one apply: tables are written with link uses strip
 written, then the tables are written whole.
 
 **Flow ↔ flow.** Two flows that invoke each other cannot both name the other at creation. Create
-both flows first (a flow row needs no actions), then add the `flow.invoke` actions: an action names its
-target by id, and both ids exist by then. Author actions after every flow row exists, always.
+both flows first with their `inputs` and `outputs` (a flow row needs no steps), then save each one's
+steps: a `flow.invoke` step names its target by key, and both flows exist by then. Save steps after
+every flow row exists, always.
 
 ## What this order is not
 
@@ -90,5 +90,5 @@ by key, and `plan` tells you what is unresolved, in one answer.
   order for you.
 - Tables & types (capability pack `tables-and-types` — `GET /v1/capability-packs/tables-and-types`) — the type a table needs first.
 - Relations & links (capability pack `relations-and-links` — `GET /v1/capability-packs/relations-and-links`) — the declaration that rides on the table.
-- Flows & actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — producers before consumers.
+- Flows & steps (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`) — written order is run order.
 - Vocabularies (capability pack `vocabularies` — `GET /v1/capability-packs/vocabularies`) — parents before children, terms after the vocabulary.

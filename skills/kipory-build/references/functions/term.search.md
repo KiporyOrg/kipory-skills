@@ -12,7 +12,6 @@ Results come best first, each with a similarity score. Use it to check for a ter
 - **Also found as:** similar terms, find term, synonym, closest tag
 - **Reads:** Reads the phrase from `text`, and the vocabulary and a parent term from `vocabulary` and `parentTermId` when those are set. _(shape hint: `phrase + vocabulary`)_
 - **Emits:** A list of `TermHit`, best first, at most `topK`: each term's id, slug and closeness. Empty when the phrase is empty or the vocabulary has no terms.
-- **Suggested input streams:** `text`, `vocabulary`, `parentTermId`
 - **Rate limit:** 300 per min in bucket `ai-embed`, counted per project — shared with `record.query`
 
 ## Config
@@ -91,7 +90,7 @@ The first term scores high: the phrase means what that term means.
 
 Reads `string` → emits `TermHit[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -125,7 +124,7 @@ With a minimum score set, a phrase no term resembles answers an empty list: the 
 
 Reads `string` → emits `TermHit[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

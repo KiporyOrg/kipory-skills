@@ -69,7 +69,7 @@ Each item of `files`:
 | `kind` | `"image" \| "pdf" \| "audio" \| "video" \| "text" \| "other"` | yes | The coarse class of `fileMimeType`, and the value the `kind` query parameter matches. |
 | `previewable` | `boolean` | yes | Whether the platform will serve these bytes `inline`, so a client may render them in place. A prediction from the stored type, not a guarantee — see the note on `fileMimeType`. Always false while `state` is `awaiting-upload`: there are no bytes to serve. |
 | `state` | `"stored" \| "awaiting-upload"` | yes | `stored` means the bytes exist. `awaiting-upload` means a URL was signed and nothing ever arrived — there is nothing to download, and the platform clears these within a day. |
-| `source` | `object` | yes | Where the file came from. Three shapes, because only one of the three is a person: a flow's output names its action, and channel media names nobody. |
+| `source` | `object` | yes | Where the file came from. Three shapes, because only one of the three is a person: a flow's output names its step, and channel media names nobody. |
 | `record` | `object \| null` | yes | The record carrying this file, or null when nothing has claimed it. Null is ordinary: media can arrive ahead of the record that will claim it. There is no title here — a record's readable name lives in its own `data`, whose shape is the project's, not the platform's. |
 | `createdAt` | `string` | yes | When the file was first recorded. The list is ordered by it. |
 

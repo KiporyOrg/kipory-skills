@@ -25,7 +25,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 
 ### `GET /v1/ai-calls`
 
-A project's model calls over a window, newest first, walked on `after`/`before` — provider, model, outcome, tokens, latency, cost and the action that made each — with fourteen narrowings. The same window added up is `GET /v1/ai-calls/rollup`; one call with its stored prompt is `GET /v1/ai-calls/{id}`; what ALL billable work cost, model calls included, is `GET /v1/projects/{nodeId}/usage`.
+A project's model calls over a window, newest first, walked on `after`/`before` — provider, model, outcome, tokens, latency, cost and the step that made each — with fourteen narrowings. The same window added up is `GET /v1/ai-calls/rollup`; one call with its stored prompt is `GET /v1/ai-calls/{id}`; what ALL billable work cost, model calls included, is `GET /v1/projects/{nodeId}/usage`.
 
 **Query**
 
@@ -37,15 +37,15 @@ A project's model calls over a window, newest first, walked on `after`/`before` 
 | `origins` | `string` | no | Comma-separated AI call `origin` values to INCLUDE, e.g. `session,projection`. Use `unset` to name the rows whose origin is null, or `all` on its own to turn the filter off entirely. Omit the parameter entirely to get the default view, which hides what a human did while building and the platform's own work on the project, `element-describer` (see `excludedOrigins` on the response for exactly what was applied). A list that does not name `element-describer` leaves the platform's work out too. |
 | `outcome` | `"success" \| "error"` | no | Narrow to calls that succeeded, or to calls that failed. |
 | `taskKind` | `string` | no | Narrow to one kind of model work. ⚠️ NOT AN ENUM: any value is accepted, and one no call carries matches nothing. |
-| `actionId` | `string` | no | The action that made the call. |
-| `flowId` | `string` | no | The flow the action belongs to. ⛔⛔ IT REACHES ONLY THE FLOW'S CURRENT ACTIONS: every whole-graph edit of a flow recreates its actions with fresh ids, so calls made before the last edit are unreachable by this filter and by `q`'s action-key arm, and the rollup misses them the same way. |
+| `flowId` | `string` | no | Narrow to calls made by the steps of this flow. |
+| `stepKey` | `string` | no | Narrow to calls made by the step with this key. With `flowId`, that one step; without it, a step of that key in any flow. |
 | `provider` | `string` | no | The vendor, e.g. `openai`. |
 | `model` | `string` | no | The exact model identifier. |
 | `recordId` | `string` | no | The record this call was processing, when it was processing one. |
 | `userId` | `string` | no | The end user the call was made on behalf of. |
 | `sessionId` | `string` | no | The session the call was made inside. ⭐ THE ONE HANDLE THAT GATHERS A CONVERSATION'S CALLS. `correlationId` reads like the field for this and is not — it equals the call's own id. ⚠️ Indexed in the order the list reads, so this narrows without a scan. |
 | `correlationId` | `string` | no | The call's correlation handle. ⚠️ Today it equals the call's own id on every call, so this is an id lookup under another name, and it cannot yet gather the calls of one run. |
-| `q` | `string` | no | Case-insensitive match against the call's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the action that made the call. ⛔ IT DOES NOT SEARCH THE PROMPT: a prompt past 256 kB spills to object storage, where the match cannot reach it. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
+| `q` | `string` | no | Case-insensitive match against the call's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the step that made the call. ⛔ IT DOES NOT SEARCH THE PROMPT: a prompt past 256 kB spills to object storage, where the match cannot reach it. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
 | `sort` | `"created-at" \| "latency-ms" \| "total-tokens"` | no | The column the call list is ordered by: `created-at` (the default), `latency-ms`, or `total-tokens`. Ties break on the call id, in the same direction. ⚠️ `totalTokens` is null where the provider reported no usage, and those calls sort LAST in both directions — a null is not measured, never the smallest figure. Credits are not a sort. |
 | `order` | `"asc" \| "desc"` | no | Which way `sort` runs. Defaults to `desc` — newest, slowest, largest first. |
 | `after` | `string` | no | The NEXT page along this ordering — pass back the `nextCursor` you were given. Opaque: read it from a response, never build one. ⛔ A cursor carries the ordering it was minted in, and replaying it under a different `sort` or `order` is refused (400). |
@@ -76,8 +76,8 @@ Each item of `calls`:
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
 | `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "provider-unavailable" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown`, so a client can switch on this exhaustively. |
-| `action` | `object \| null` | yes | Null for a call no action made. |
-| `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
+| `step` | `object \| null` | yes | The step that made the call. Null for a call no step made. |
+| `flow` | `object \| null` | yes | The step's flow. Null when no step made the call, or the flow is gone. |
 | `record` | `object \| null` | yes | The record this call was processing, null when it was processing none. ⚠️ THE NAME IS BEST-EFFORT AND MAY BE NULL: it is read from `derived.title`, then `data.title`, then a truncated `data.text`, which are CONVENTIONS a table is free to mean something else by. A null name is not a missing record — the id is still the handle. |
 | `totalTokens` | `integer \| null` | yes | NOT MEASURED when null, never zero. Embeddings, reranks and transcriptions routinely report no usage at all. |
 | `credits` | `integer \| null` | yes | What this call CHARGED, in credits — a credit is a millionth of a dollar — summed over the charges linked to it. ⛔ THE CUSTOMER'S FIGURE, NOT KIPORY'S. ⛔ Null means NO COST EVENT LANDED — the call was not free, it is unpriced, and a call that has just run sits here for a moment. |
@@ -86,7 +86,7 @@ Each item of `calls`:
 
 ### `GET /v1/ai-calls/{id}`
 
-One model call in full — the list's row plus its action, flow, record, cost and redaction counts; `payload=prompt|response` also returns that stored payload. 404 for an id you cannot see.
+One model call in full — the list's row plus its step, flow, record, cost and redaction counts; `payload=prompt|response` also returns that stored payload. 404 for an id you cannot see.
 
 **Path parameters**
 
@@ -112,8 +112,8 @@ One model call in full — the list's row plus its action, flow, record, cost an
 | `model` | `string` | yes | The exact model identifier. |
 | `outcome` | `"success" \| "error"` | yes | Whether the call came back. |
 | `errorCode` | `"rate-limit" \| "quota-exhausted" \| "transient-network" \| "provider-error" \| "provider-unavailable" \| "schema-validation" \| "timeout" \| "unknown" \| null` | yes | The failure bucket, null on success. An unrecognised stored code is normalised to `unknown`, so a client can switch on this exhaustively. |
-| `action` | `object \| null` | yes | Null for a call no action made. |
-| `flow` | `object \| null` | yes | The action's flow. Null whenever `action` is. |
+| `step` | `object \| null` | yes | The step that made the call. Null for a call no step made. |
+| `flow` | `object \| null` | yes | The step's flow. Null when no step made the call, or the flow is gone. |
 | `record` | `object \| null` | yes | The record this call was processing. ⛔ NO ADDRESS COMES WITH IT — unlike `flow`, which carries a key because it has a page; it is not a link. |
 | `totalTokens` | `integer \| null` | yes | NOT MEASURED when null, never zero. Embeddings, reranks and transcriptions routinely report no usage at all. |
 | `credits` | `integer \| null` | yes | What this call CHARGED, in credits — a credit is a millionth of a dollar — summed over the charges linked to it. ⛔ THE CUSTOMER'S FIGURE, NOT KIPORY'S. ⛔ Null means NO COST EVENT LANDED — the call was not free, it is unpriced, and a call that has just run sits here for a moment. |
@@ -134,7 +134,7 @@ One model call in full — the list's row plus its action, flow, record, cost an
 
 ### `GET /v1/ai-calls/rollup`
 
-The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures by error code, latency spread, spend, a volume strip and one row per action. Totals exactly the rows the list pages through.
+The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures by error code, latency spread, spend, a volume strip and one row per step. Totals exactly the rows the list pages through.
 
 **Query**
 
@@ -146,15 +146,15 @@ The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures
 | `origins` | `string` | no | Comma-separated AI call `origin` values to INCLUDE, e.g. `session,projection`. Use `unset` to name the rows whose origin is null, or `all` on its own to turn the filter off entirely. Omit the parameter entirely to get the default view, which hides what a human did while building and the platform's own work on the project, `element-describer` (see `excludedOrigins` on the response for exactly what was applied). A list that does not name `element-describer` leaves the platform's work out too. |
 | `outcome` | `"success" \| "error"` | no | Narrow to calls that succeeded, or to calls that failed. |
 | `taskKind` | `string` | no | Narrow to one kind of model work. ⚠️ NOT AN ENUM: any value is accepted, and one no call carries matches nothing. |
-| `actionId` | `string` | no | The action that made the call. |
-| `flowId` | `string` | no | The flow the action belongs to. ⛔⛔ IT REACHES ONLY THE FLOW'S CURRENT ACTIONS: every whole-graph edit of a flow recreates its actions with fresh ids, so calls made before the last edit are unreachable by this filter and by `q`'s action-key arm, and the rollup misses them the same way. |
+| `flowId` | `string` | no | Narrow to calls made by the steps of this flow. |
+| `stepKey` | `string` | no | Narrow to calls made by the step with this key. With `flowId`, that one step; without it, a step of that key in any flow. |
 | `provider` | `string` | no | The vendor, e.g. `openai`. |
 | `model` | `string` | no | The exact model identifier. |
 | `recordId` | `string` | no | The record this call was processing, when it was processing one. |
 | `userId` | `string` | no | The end user the call was made on behalf of. |
 | `sessionId` | `string` | no | The session the call was made inside. ⭐ THE ONE HANDLE THAT GATHERS A CONVERSATION'S CALLS. `correlationId` reads like the field for this and is not — it equals the call's own id. ⚠️ Indexed in the order the list reads, so this narrows without a scan. |
 | `correlationId` | `string` | no | The call's correlation handle. ⚠️ Today it equals the call's own id on every call, so this is an id lookup under another name, and it cannot yet gather the calls of one run. |
-| `q` | `string` | no | Case-insensitive match against the call's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the action that made the call. ⛔ IT DOES NOT SEARCH THE PROMPT: a prompt past 256 kB spills to object storage, where the match cannot reach it. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
+| `q` | `string` | no | Case-insensitive match against the call's own text — `errorCode`, `errorMessage`, `model`, `provider` — AND the key of the step that made the call. ⛔ IT DOES NOT SEARCH THE PROMPT: a prompt past 256 kB spills to object storage, where the match cannot reach it. ⚠️ None of these columns is indexed for text, so this stays a scan within whatever the other filters already narrowed to. |
 | `buckets` | `"hour" \| "day"` | no | The width of one column in `buckets`. Defaults to `hour`. |
 
 **Response `200`**
@@ -166,7 +166,7 @@ The same window and narrowings as `GET /v1/ai-calls`, added up: counts, failures
 | `latency` | `object \| null` | yes | Null when the window holds no call to measure. |
 | `spend` | `object \| null` | yes | What the window cost, and how much of it the platform can speak for. ⛔ NULL WHEN `unmeasurable` IS `all` — over the row cap no cost query runs at all. `latency` is null on the same arm. |
 | `buckets` | `object[]` | yes | The window sliced into equal columns of width `buckets`, oldest first. A slice with no calls is PRESENT with zeroes rather than absent. |
-| `actions` | `object[]` | yes | One row per action that made a call in the window, so a client can place a single call against its own action's distribution. Absent entirely for a window with no calls. |
+| `steps` | `object[]` | yes | One row per step that made a call in the window, by flow and step key, so a client can place a single call against its own step's distribution. Empty for a window with no calls. |
 | `models` | `object[]` | yes | Every provider/model pair present in the window, with the model and provider narrowings RELEASED. Every other filter still applies. |
 | `excluded` | `object` | yes | What the default origin view dropped, counted. |
 | `unmeasurable` | `"failures" \| "all" \| null` | yes | A window the platform cannot vouch for. `failures` — the calls are counted but their outcomes are not trustworthy. `all` — nothing here should be read as a measurement. `null` — these figures stand. ⛔ NOT an error: the figures beside it are the best the platform has, and this says they are a floor rather than a fact. |
@@ -179,20 +179,20 @@ Each item of `buckets`:
 | `calls` | `integer` | yes | Calls that landed inside this column. A measured zero — an empty column is present rather than omitted. |
 | `failed` | `integer` | yes | A subset of `calls`, never a second total. |
 
-Each item of `actions`:
+Each item of `steps`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `actionId` | `string` | yes | The action these calls were made by. |
-| `actionKey` | `string \| null` | yes | The action's key. Null when the action has been deleted. |
-| `flowId` | `string \| null` | yes | The flow that holds the action. Null when the action is gone. |
-| `calls` | `integer` | yes | Calls this action made in the window, under the same filter. |
-| `failed` | `integer` | yes | A subset of this action's `calls`, never a second total. |
+| `flowId` | `string` | yes | The flow whose step made these calls. |
+| `stepKey` | `string` | yes | The key of the step that made them. |
+| `functionKey` | `string \| null` | yes | The function the step runs. Null when the flow no longer has a step with this key. |
+| `calls` | `integer` | yes | Calls this step made in the window, under the same filter. |
+| `failed` | `integer` | yes | A subset of this step's `calls`, never a second total. |
 | `p50Ms` | `integer \| null` | yes | Null when too few calls to characterise — never zero. |
 | `p95Ms` | `integer \| null` | yes | Null exactly when `p50Ms` is. The pair is decided together. |
-| `answeredP50Ms` | `integer \| null` | yes | The median over this action's calls that answered (did not fail). Null when too few answered to characterise — never zero. `p50Ms` is over every call, failed ones included. |
-| `credits` | `integer` | yes | What this action's calls CHARGED over the window, in credits. ⚠️ A FLOOR, not a total: read it beside `callsWithNoCostEvent`. |
-| `callsWithNoCostEvent` | `integer` | yes | This action's calls with no charge recorded. ⛔ AN ABSENT SUM IS NOT A ZERO SUM. |
+| `answeredP50Ms` | `integer \| null` | yes | The median over this step's calls that answered (did not fail). Null when too few answered to characterise — never zero. `p50Ms` is over every call, failed ones included. |
+| `credits` | `integer` | yes | What this step's calls CHARGED over the window, in credits. ⚠️ A FLOOR, not a total: read it beside `callsWithNoCostEvent`. |
+| `callsWithNoCostEvent` | `integer` | yes | This step's calls with no charge recorded. ⛔ AN ABSENT SUM IS NOT A ZERO SUM. |
 
 Each item of `models`:
 
@@ -294,7 +294,7 @@ Each item of `resources`:
 
 ### `GET /v1/organizations/{nodeId}/usage`
 
-What the projects under this organization spent over a window, by project, kind, action, model, function, provider, end user or key, with the paying wallet's state, runway and the ceiling nearest to refusing work. `window=custom` takes `from`/`to` instants (`to` exclusive). Requires **ADMIN**. The wallet's movements are `GET /v1/organizations/{nodeId}/ledger`; one project's view is `GET /v1/projects/{nodeId}/usage`; your own spend is `GET /v1/credits/balance`.
+What the projects under this organization spent over a window, by project, kind, step, model, function, provider, end user or key, with the paying wallet's state, runway and the ceiling nearest to refusing work. `window=custom` takes `from`/`to` instants (`to` exclusive). Requires **ADMIN**. The wallet's movements are `GET /v1/organizations/{nodeId}/ledger`; one project's view is `GET /v1/projects/{nodeId}/usage`; your own spend is `GET /v1/credits/balance`.
 
 **Path parameters**
 
@@ -312,14 +312,14 @@ What the projects under this organization spent over a window, by project, kind,
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
-| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
+| `step` | `string` | no | Narrow to one step, as `<flowId>/<stepKey>`: the flow that holds the step and the step's key — the key a breakdown by step hands back. Two flows can each have a step with the same key; this names one. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
 | `project` | `string` | no | Narrow to one project, by its node id — the key a breakdown by project hands back. A node outside this organization's subtree is refused with a 404. |
-| `by` | `"project" \| "kind" \| "action" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the project. |
+| `by` | `"project" \| "kind" \| "step" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the project. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 
 **Response `200`**
@@ -364,7 +364,7 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. `function-run` is compute TIME, not a fee per action: each action is charged the milliseconds its function ran (for a model or vendor action, its job — waiting on the answer included), priced per second; the wait for a worker is not charged. So the same flow costs more when its actions take longer. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. `function-run` is compute TIME, not a fee per step: each step is charged the milliseconds its function ran (for a model or vendor step, its job — waiting on the answer included), priced per second; the wait for a worker is not charged. So the same flow costs more when its steps take longer. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
@@ -436,8 +436,8 @@ Each item of `limits`:
 | `description` | `string` | yes | What happens at the limit. |
 | `unit` | `string` | yes | What is counted: `requests`, `messages`, `bytes`, `days`, `per-thousand-runs`, … |
 | `period` | `object` | yes | The span the limit is counted over. |
-| `scope` | `"key" \| "person" \| "address" \| "project" \| "organization" \| "endpoint" \| "run" \| "action" \| "process" \| "installation"` | yes | What one count is kept for. `process` means each api process counts on its own; the number is not multiplied by how many there are. |
-| `atLimit` | `"refused" \| "waits" \| "cut" \| "dropped" \| "deleted"` | yes | `refused` — the call or action fails; `waits` — it waits its turn; `cut` — the excess is cut off; `dropped` — the excess is dropped; `deleted` — the thing kept is deleted. |
+| `scope` | `"key" \| "person" \| "address" \| "project" \| "organization" \| "endpoint" \| "run" \| "step" \| "process" \| "installation"` | yes | What one count is kept for. `process` means each api process counts on its own; the number is not multiplied by how many there are. |
+| `atLimit` | `"refused" \| "waits" \| "cut" \| "dropped" \| "deleted"` | yes | `refused` — the call or step fails; `waits` — it waits its turn; `cut` — the excess is cut off; `dropped` — the excess is dropped; `deleted` — the thing kept is deleted. |
 | `refusal` | `string` | no | The error code or run reason a refusal at this limit carries. |
 | `valueNote` | `string` | no | Said beside the number where the number alone misleads. |
 | `applied` | `integer \| null` | yes | The number in force; null is no limit. |
@@ -451,7 +451,7 @@ Each item of `limits`:
 
 ### `GET /v1/projects/{nodeId}/usage`
 
-What one project spent over a window, by kind of billable work — split by kind, action, model, function, provider, user or key, with the prior period on `compare=1`, its caps and its payer. `window=custom` takes `from`/`to` instants (`to` exclusive). The charges behind the figure are `GET /v1/projects/{nodeId}/usage/events`; model calls alone are `GET /v1/ai-calls`; one run's cost by action is `GET /v1/runs/{runId}/spend`; the whole organization is `GET /v1/organizations/{nodeId}/usage`.
+What one project spent over a window, by kind of billable work — split by kind, step, model, function, provider, user or key, with the prior period on `compare=1`, its caps and its payer. `window=custom` takes `from`/`to` instants (`to` exclusive). The charges behind the figure are `GET /v1/projects/{nodeId}/usage/events`; model calls alone are `GET /v1/ai-calls`; one run's cost by step is `GET /v1/runs/{runId}/spend`; the whole organization is `GET /v1/organizations/{nodeId}/usage`.
 
 **Path parameters**
 
@@ -469,13 +469,13 @@ What one project spent over a window, by kind of billable work — split by kind
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
-| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
+| `step` | `string` | no | Narrow to one step, as `<flowId>/<stepKey>`: the flow that holds the step and the step's key — the key a breakdown by step hands back. Two flows can each have a step with the same key; this names one. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
 | `user` | `string` | no | Narrow to the work one end user caused, by user id. |
 | `key` | `string` | no | Narrow to the work one API key made, by key id. |
-| `by` | `"flow" \| "kind" \| "action" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work. |
+| `by` | `"flow" \| "kind" \| "step" \| "model" \| "function" \| "provider" \| "user" \| "key"` | no | Which dimension `breakdown` splits the window by. Defaults to the kind of work. |
 | `compare` | `"1"` | no | Pass `1` to also measure the period of the same length immediately before this window. `prior` and `priorBuckets` are null without it. |
 | `flows` | `"1"` | no | Pass `1` to also split the window's credits by the flow whose runs spent them, as `flows`. Under the same scope and narrowing as every other figure here. `flows` is null without it. |
 
@@ -522,7 +522,7 @@ Each item of `kinds`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. `function-run` is compute TIME, not a fee per action: each action is charged the milliseconds its function ran (for a model or vendor action, its job — waiting on the answer included), priced per second; the wait for a worker is not charged. So the same flow costs more when its actions take longer. |
+| `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | The kind of work that was charged. `function-run` is compute TIME, not a fee per step: each step is charged the milliseconds its function ran (for a model or vendor step, its job — waiting on the answer included), priced per second; the wait for a worker is not charged. So the same flow costs more when its steps take longer. |
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
@@ -575,7 +575,7 @@ The project's statement — every charge under the same window and narrowings as
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
-| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
+| `step` | `string` | no | Narrow to one step, as `<flowId>/<stepKey>`: the flow that holds the step and the step's key — the key a breakdown by step hands back. Two flows can each have a step with the same key; this names one. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
@@ -609,10 +609,11 @@ Each item of `events`:
 | `eventType` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | yes | What kind of work was charged for. |
 | `actor` | `"request" \| "design" \| "system" \| "holding" \| "public"` | yes | Whose work: `request` an end user's, `public` a call to a public endpoint, made with no credential and paid by the project, `design` design-time, `system` the platform's own, which charges nobody; `holding` what the project stores — files and vectors — charged by the daily held tick with no end user behind it. |
 | `credits` | `integer` | yes | What the project was charged for this event, in credits. `0` is a measured charge — a free or platform-actor row — not an absence. Negative on a waiver: what the platform gave back of a charge it does not charge for (work it lost, ran twice or broke). |
-| `actionId` | `string \| null` | yes | The action row that spent it, or null outside any action. ⚠️ Ids fragment on every flow edit; `actionName` is the key that totals. |
-| `flowId` | `string \| null` | yes | The flow whose run made the charge, by its row id — the key a usage breakdown by flow lists it under; null for work outside any flow. |
+| `stepKey` | `string \| null` | yes | The key of the step that spent it, within the flow that holds the step (`stepFlowId`); null outside any step. |
+| `stepFlowId` | `string \| null` | yes | The flow that holds the step, by its row id. It differs from `flowId` when the step belongs to a flow the run called, and two flows can each have a step with the same key: name a step by `stepFlowId` and `stepKey` together, as `?step=<stepFlowId>/<stepKey>` does. Null outside any step. |
+| `flowId` | `string \| null` | yes | The flow whose run made the charge, by its row id — the run's own flow, even when the step that spent it belongs to a flow the run called; the key a usage breakdown by flow lists it under. Null for work outside any flow. |
 | `flowLabel` | `string \| null` | yes | That flow's label as it stands today; null outside any flow, and for a flow that has since been deleted. |
-| `actionName` | `string \| null` | yes | The action's name, frozen at charge time; null outside any action. |
+| `stepName` | `string \| null` | yes | The step's name, frozen at charge time; null outside any step. |
 | `model` | `string \| null` | yes | The model a priced AI call named, lifted out of `details`; null for work that named none. |
 | `functionKey` | `string \| null` | yes | The vendor function that made a paid fetch, lifted out of `details`; null for every other kind. |
 | `userId` | `string \| null` | yes | The end user whose request caused it, or null. |
@@ -645,7 +646,7 @@ The statement of `GET /v1/projects/{nodeId}/usage/events` as CSV, newest first, 
 | `scope` | `"all" \| "users" \| "design" \| "holding" \| "public" \| "system"` | no | Whose work to count. `all` is end-user, public-endpoint, design-time and held data — the four CHARGING actors. `public` is the calls made to public endpoints, with no credential. ⛔ `system` is metered platform work whose charge is forced to zero, so it is read on `events`; a client drawing it on the credits axis draws a window of zeros. |
 | `kind` | `"llm-call" \| "embedding" \| "storage-upload" \| "storage-delete" \| "storage-held" \| "vector-upsert" \| "vector-held" \| "function-run" \| "transcription" \| "vendor-fetch" \| "rerank" \| "push-delivery"` | no | Narrow to one kind of work. |
 | `flowId` | `string` | no | Narrow to the charges one flow's runs made, by the flow's row id — the key a breakdown by flow hands back — or `none` for the work no flow's run made (the breakdown's row with no key). |
-| `action` | `string` | no | Narrow to one action, by its NAME — the key a breakdown by action hands back, and the one that survives a flow edit. |
+| `step` | `string` | no | Narrow to one step, as `<flowId>/<stepKey>`: the flow that holds the step and the step's key — the key a breakdown by step hands back. Two flows can each have a step with the same key; this names one. |
 | `model` | `string` | no | Narrow to the calls that named one model. |
 | `function` | `string` | no | Narrow to the paid fetches one vendor function made. |
 | `provider` | `string` | no | Narrow to one provider — who was paid for the work, by registry id (`apify`, `openai`): a fetch's vendor as the charge recorded it, or an AI call's provider from the model catalog. The key a breakdown by provider hands back. |
@@ -660,7 +661,7 @@ _No fields._
 
 ### `GET /v1/runs/{runId}/spend`
 
-What one run cost, and which action spent it. `0` for a run that spent nothing; `uncharged` counts the operations the platform paid for, whose `0` is not a price. `startedRuns` is what the runs it started cost — the records it queued for processing, the runs its events fired through triggers, the runs it started per person, and the runs those started in turn — which is not in `credits`. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
+What one run cost, and which step spent it. `0` for a run that spent nothing; `uncharged` counts the operations the platform paid for, whose `0` is not a price. `startedRuns` is what the runs it started cost — the records it queued for processing, the runs its events fired through triggers, the runs it started per person, and the runs those started in turn — which is not in `credits`. A project's spend over a window is `GET /v1/projects/{nodeId}/usage`; its model calls `GET /v1/ai-calls`.
 
 **Path parameters**
 
@@ -673,21 +674,22 @@ What one run cost, and which action spent it. `0` for a run that spent nothing; 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `runId` | `string` | yes | The run this spend belongs to. The same heterogeneous id space `GET /v1/runs/{runId}/timeline`, `/change-set` and `/flow-snapshots` take — a record attempt id, a flow run's request id, or an endpoint invocation id. |
-| `credits` | `integer` | yes | The run's whole charge: the sum of `byAction`. |
+| `credits` | `integer` | yes | The run's whole charge: the sum of `byStep`. |
 | `events` | `integer` | yes | Billable operations across the whole run. |
 | `uncharged` | `integer` | yes | How many of the run's `events` the platform paid for and charged to nobody: the sum of the entries' `uncharged`. ⚠️ When this equals `events` the whole run was platform-paid, and `credits: 0` is not what the same work costs when it is charged. A record's first processing and its reprocess are both charged; a run the platform started for its own purposes is not. |
-| `byAction` | `object[]` | yes | Descending by charge, so the expensive action is first. Each entry's `charges` says what the action was charged for, one entry per kind, direction and model — `function-run` with the milliseconds of compute billed, `llm-call` per direction and model with its tokens. ⚠️ EMPTY is a real answer with more than one cause and this route cannot tell them apart: a run of pure transforms spent nothing, a run that failed before its first billable op spent nothing, and a run that predates per-run attribution has spend that cannot be found. A caller must not draw any of the three as `0 credits` without saying which it cannot rule out. |
-| `repeatedByPlatform` | `object` | yes | The part of this run's cost that came from the platform starting it again after one of its own failures (a worker that stopped, no worker free in time). An action's compute is charged once per run however often it is repeated, so this is model and vendor calls really made again, plus actions the first attempt never reached. Included in `credits` and `byAction`, not added to them. `{ credits: 0, lines: 0 }` on a run never started again. |
-| `waived` | `object` | yes | What the platform gave back because the failure was its own: a run it lost, an attempt it ran twice, a run that failed on its own queue, database or vendor account. Already taken out of `credits` and `byAction`. `{ credits: 0, lines: 0 }` when nothing was given back. |
+| `byStep` | `object[]` | yes | Descending by charge, so the expensive step is first. Each entry's `charges` says what the step was charged for, one entry per kind, direction and model — `function-run` with the milliseconds of compute billed, `llm-call` per direction and model with its tokens. ⚠️ EMPTY is a real answer with more than one cause and this route cannot tell them apart: a run of pure transforms spent nothing, a run that failed before its first billable op spent nothing, and a run that predates per-run attribution has spend that cannot be found. A caller must not draw any of the three as `0 credits` without saying which it cannot rule out. |
+| `repeatedByPlatform` | `object` | yes | The part of this run's cost that came from the platform starting it again after one of its own failures (a worker that stopped, no worker free in time). A step's compute is charged once per run however often it is repeated, so this is model and vendor calls really made again, plus steps the first attempt never reached. Included in `credits` and `byStep`, not added to them. `{ credits: 0, lines: 0 }` on a run never started again. |
+| `waived` | `object` | yes | What the platform gave back because the failure was its own: a run it lost, an attempt it ran twice, a run that failed on its own queue, database or vendor account. Already taken out of `credits` and `byStep`. `{ credits: 0, lines: 0 }` when nothing was given back. |
 | `startedRuns` | `object` | yes | The runs this run STARTED, and what they cost beside its own spend. ⚠️ A record's run counts here once a worker has claimed it: one still queued when this is read is not yet listed, so read again after the queue drains. Runs started before 2026-10-15 name no starter and are never found. |
 
-Each item of `byAction`:
+Each item of `byStep`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `actionId` | `string \| null` | yes | The action that spent it, or `null` for spend the run made OUTSIDE any action. ⛔ THE NULL ENTRY IS NOT A GAP: anything billed before the first action or between two of them lands here, and without it the entries do not sum to `credits`. |
-| `actionName` | `string \| null` | yes | The action's name FROZEN at event time. Render this and fall back to `actionId`, never the other way round: a flow edit can recreate actions with fresh ids. `null` on the unattributed entry and on older charges. |
-| `credits` | `integer` | yes | What the customer was charged for this action, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the action being absent from this list. A cache hit is not a `0`: an action answered from a function's input-keyed cache still pays its compute fee for the time the lookup took, and an action answered from the action-result cache makes no charge at all. |
+| `flowId` | `string \| null` | yes | The flow that holds the step. A run that calls other flows has steps of several flows, and two of them can share a key: tell entries apart by `flowId` and `stepKey` together. `null` on the unattributed entry and on older charges. |
+| `stepKey` | `string \| null` | yes | The key of the step that spent it, or `null` for spend the run made OUTSIDE any step. ⛔ THE NULL ENTRY IS NOT A GAP: anything billed before the first step or between two of them lands here, and without it the entries do not sum to `credits`. |
+| `stepName` | `string \| null` | yes | The step's name as it was when the charge was made. Render it, and fall back to `stepKey`. `null` on the unattributed entry and on older charges. |
+| `credits` | `integer` | yes | What the customer was charged for this step, in credits (1 credit = 1 micro-USD). ⚠️ `0` is a real answer — work nobody was charged for (`uncharged` counts those) — and is NOT the same as the step being absent from this list. A cache hit is not a `0`: a step answered from a function's input-keyed cache still pays its compute fee for the time the lookup took, and a step answered from the step-result cache makes no charge at all. |
 | `events` | `integer` | yes | How many billable operations made up that charge. |
-| `uncharged` | `integer` | yes | How many of this action's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of an action that failed on a platform fault (`detail.phase: "platform-fault"` in the timeline), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same action in a charged run has a price. |
-| `charges` | `object[]` | yes | What the action was charged FOR: one entry per kind, direction and model, descending by credits. Its entries sum to this action's `credits` and `events`. A model action reads as one `function-run` entry (milliseconds of compute) beside an `llm-call` entry per direction and model (tokens): tokens in are the `in`, `cached` and `cache-write` entries, tokens out the `out` entry, and its `reasoningUnits` the part of them that was reasoning. |
+| `uncharged` | `integer` | yes | How many of this step's `events` the platform paid for and charged to nobody: operations in a run the platform pays for, and the compute of a step that failed on a platform fault (`detail.phase: "platform-fault"` in the timeline), which is waived. ⚠️ Those operations add `0` to `credits` whatever they would have cost, so `credits: 0` with `uncharged` equal to `events` means "not charged", not "costs nothing": the same step in a charged run has a price. |
+| `charges` | `object[]` | yes | What the step was charged FOR: one entry per kind, direction and model, descending by credits. Its entries sum to this step's `credits` and `events`. A model step reads as one `function-run` entry (milliseconds of compute) beside an `llm-call` entry per direction and model (tokens): tokens in are the `in`, `cached` and `cache-write` entries, tokens out the `out` entry, and its `reasoningUnits` the part of them that was reasoning. |

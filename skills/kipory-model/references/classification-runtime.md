@@ -1,5 +1,7 @@
 # Classification at run time
 
+<!-- field-ok: userInfo — an ambient value the platform fills, not a request field -->
+
 The vocabularies pack covers the configuration — what a vocabulary is, which resolver it binds, how
 a value reaches a record. This page covers the two functions that sit inside a resolver flow and the
 one that reads the vocabulary back, none of which are part of that configuration.
@@ -16,14 +18,14 @@ processing flow:  vocabulary.resolve → term.upsert
 resolver flow:    term.search          → candidate terms, best first, each with a score
                                          (vocabulary: "vocabularyKey", text: "proposalSlug")
                   term.threshold-gate  → { kind: "resolved", resolution } · { kind: "tiebreak" }
-                  text.decide          → the tiebreak, on the tiebreak branch only
+                  if gate.kind is tiebreak:
+                    text.decide        → the tiebreak, on that branch only
 ```
 
 `term.search` takes the proposed value as text and the vocabulary's key, and answers the closest terms
 as `{ termId, slug, score }`. It embeds the value itself, with the one model every term of the
 project is indexed with — a resolver has no model to choose and no vector to pass. With
-`parentTermId` set it searches under that parent only, and the roots when the slot holds
-nothing. With no `status` it reads active terms, plus candidates when the vocabulary coins candidates,
+`parentTermId` set it searches under that parent only, and the roots when it is nothing. With no `status` it reads active terms, plus candidates when the vocabulary coins candidates,
 so a second record proposing the same thing reuses the candidate instead of coining its twin.
 Its function page in `kipory-build` has the whole configuration.
 
@@ -35,7 +37,7 @@ or `create-new`, and `tiebreak`, carrying nothing. By score:
 | --------------------------- | --------------------------------- | --------------------------------------------------- |
 | at or above `highThreshold` | `resolved`, `outcome: match`      | reuse the top candidate's term                      |
 | at or below `lowThreshold`  | `resolved`, `outcome: create-new` | the proposal becomes a new term                     |
-| between the two             | `tiebreak`                        | too close to call — the tiebreak action decides     |
+| between the two             | `tiebreak`                        | too close to call — the tiebreak step decides       |
 | no candidates at all        | `resolved`, `outcome: create-new` | nothing to match against, so the proposal is coined |
 
 **Both boundaries are inclusive.** A score exactly equal to either threshold is decisive, not
@@ -43,23 +45,23 @@ ambiguous — the middle band is strictly between them.
 
 **The middle band is the point of the gate.** A single threshold forces every borderline value into
 one of two wrong answers: a near-duplicate term, or a wrong match that quietly merges two things.
-The gate refuses to guess and hands the decision to a `text.generate` tiebreak action instead
+The gate refuses to guess and hands the decision to a `text.generate` tiebreak step instead
 (where the deployment offers a decision model, the same yes/no is one `text.decide` probability
 field — `kipory-build`'s `references/models.md`). That
-action is skipped on a decisive score **only because you gate it**. Give the model action the first
-condition and the action that carries the decisive resolution the second, where `<gateOut>` is the
-gate action's output slot:
+step runs only on a close score **because you put it in a branch**. After the gate step (keyed
+`gate` here), an `if` holds the model step in a branch that tests the first condition, and the step
+that carries the decisive resolution in a branch that tests the second, or in its `else`:
 
-```
-{ "op": "slotEquals", "slot": "<gateOut>", "path": "kind", "value": "tiebreak" }
-{ "op": "slotEquals", "slot": "<gateOut>", "path": "kind", "value": "resolved" }
+```yaml
+- test: { eq: [gate.kind, { literal: tiebreak }] }
+- test: { eq: [gate.kind, { literal: resolved }] }
 ```
 
 A flow missing either branch carries the error `TERMS_THRESHOLD_GATE_BRANCH_MISSING` — and with
 both, the model call is paid for only by the values that genuinely needed arbitrating.
 
 The thresholds come from the vocabulary's own `resolutionParams`, fed to the gate through the
-resolver flow's `params` input rather than configured on the action. A vocabulary with no explicit
+resolver flow's `params` input (`with: { thresholds: params }`) rather than written into the step. A vocabulary with no explicit
 resolver is bound to a platform default at creation and carries `lowThreshold: 0.3`,
 `highThreshold: 0.8`: at or above the high one the match is reused, at or below the low one the
 value is new (`mint` decides what that means), between them the model decides. The band is wide
@@ -79,9 +81,9 @@ groups a user's terms per vocabulary and counts them.
 - `maxEntriesPerVocabulary` caps at 200 by default. Entries sort by count first, so when a group
   runs past the cap the highest-count terms survive.
 - **Every count is scoped to one user**, from `userId` (default `userInfo.userId`, the run's
-  signed-in end user). An empty user id fails the action rather than counting across users — so a
+  signed-in end user). An empty user id fails the step rather than counting across users — so a
   run driven by an API key, which carries no end user, fails it unless you point `userId` at a
-  slot that holds one. The failure is deliberate: the alternative is one user's browse tree quietly
+  value that holds one. `userInfo` is optional, so a schedule's run has none. The failure is deliberate: the alternative is one user's browse tree quietly
   showing another's data.
 - **It counts only records that user owns.** Records of a project-scoped table are in nobody's
   count, so on a shared catalog it answers empty even with a real user. Count those per term with
@@ -105,22 +107,22 @@ needs no record reads, and is already scoped correctly.
   `record.enqueue-process` with `replay: clean`, both strip the record's terms first, `kipory-data`)
   or replace the vocabulary's terms by hand with `PUT /v1/records/{id}/vocabularies/{vocabularyKey}`.
 - **A `one` vocabulary still refuses two terms in one run, and a term of another vocabulary.** The
-  action that saves the terms fails; when the run's writes are saved together at the end, the run
+  step that saves the terms fails; when the run's writes are saved together at the end, the run
   fails with nothing written and `GET /v1/runs/{runId}/change-set` reads `rejected`,
   `rejection.cause.kind: "one-term-vocabulary"`, naming `vocabularyKey` and the `terms`.
 - **The gate does not check that the vocabulary exists.** It stamps the vocabulary onto its
   decision; whether that vocabulary is real is checked when the terms are saved. A typo surfaces one
-  action later than you would expect.
+  step later than you would expect.
 - **A `tiebreak` that nothing handles is a value that never lands.** The branch rule is a
-  whole-flow check: it never refuses the action write that creates the gate (the branch actions cannot
-  exist yet), so read `GET /v1/flows/{id}/health` after wiring both branches.
+  whole-flow check on the saved flow: an edit that inserts the gate before its branches exist is
+  not refused, so read `GET /v1/flows/{id}/health` after adding both branches.
 - **`mint: candidate` reuses its candidates, as well as the match allows.** A `candidate` vocabulary
   searches its active terms and its own candidates, so a second record proposing the same thing
   lands on the candidate the first one coined and the candidate's record count grows. The
   identical key always matches; a near-synonym (`ai`, `artificial-intelligence`) matches only
   when its score clears the vocabulary's thresholds, so twins still appear and merging them is part
   of reviewing candidates. Nothing activates a candidate on its own. A resolver flow of your own
-  must leave `status` unset on its `term.search` action: one that states `active` reuses nothing.
+  must leave `status` unset on its `term.search` step: one that states `active` reuses nothing.
 - **A record's `terms` say which are candidates.** Each entry of `terms` on a record read carries
   `status` — `active`, `candidate` or `archived` — so a client can leave an unadmitted term out
   without a second read of the vocabulary.
@@ -130,7 +132,7 @@ needs no record reads, and is already scoped correctly.
   still filter to nothing.
 - **A proposal of `null`, `none` or `n/a` is never coined.** A model asked for a required value
   answers with one of those words when nothing fits. It still matches a term your vocabulary
-  really holds under that key; it is never minted, and the action reports it as unresolved. Set the
+  really holds under that key; it is never minted, and the step reports it as unresolved. Set the
   vocabulary's `proposal.allowEmpty` so the model can leave the value out instead.
 - **Two records classified in separate runs can disagree.** Each record's processing run resolves
   its own values with its own model call, so a record and the parent record it is linked to can

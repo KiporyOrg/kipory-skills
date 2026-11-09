@@ -1,10 +1,5 @@
 # Views: a read declared once
 
-<!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: shelfLimit — an example of an action-named paging input, a project-authored name -->
-<!-- field-ok: isDesign — one project's example field name, not a platform field -->
-<!-- field-ok: isTech — one project's example field name, not a platform field -->
 <!-- field-ok: authorId — one project's example field name, not a platform field -->
 <!-- field-ok: genre — one project's example field name, not a platform field -->
 <!-- field-ok: publishedOn — one project's example field name, not a platform field -->
@@ -15,15 +10,15 @@
 
 ## 11. A read is a view; a flow only when it computes
 
-A read the project asks more than once — "my shelf", "the authors I follow", "one book" — is declared once under the document's `views` and read by name: by one `record.view` action in a flow, by another view as a set or a base, and by a `GET` endpoint that declares nothing but its path. Write an inline `record.list` or `record.query` only when the read needs a value another action computes, or something a view cannot say (the end of this section). A plan steers you: an inline read equal to a declared view warns `READ_REPEATS_VIEW`, and a `GET` whose flow is one inline read answered as is warns `ENDPOINT_IS_A_VIEW`. Neither refuses.
+A read the project asks more than once — "my shelf", "the authors I follow", "one book" — is declared once under the document's `views` and read by name: by one `record.view` step in a flow, by another view as a set or a base, and by a `GET` endpoint that declares nothing but its path. Write an inline `record.list` or `record.query` only when the read needs a value another step computes, or something a view cannot say (the end of this section). A plan steers you: an inline read equal to a declared view warns `READ_REPEATS_VIEW`, and a `GET` whose flow is one inline read answered as is warns `ENDPOINT_IS_A_VIEW`. Neither refuses.
 
 ### The worked model, as one document
 
-A reading circle: `author` and `book` are the project's, `follow` and `hide` are each member's own (`ownerScope: "user"`). The endpoint `shelf` (a `GET` on the project's own path `/v1/shelf`) answers the books of the authors the caller follows, newest first, never an author the caller hid, optionally narrowed by `?genre=`; `book` (`/v1/books/{id}`) answers one book. Every field a clause names carries a `filter` use, as for `record.query` (`record-query.md`, §9).
+A reading circle: `author` and `book` are the project's, `follow` and `hide` are each member's own (`ownerScope: "user"`). The endpoint `shelf` (a `GET` on the project's own path `/v1/shelf`) answers the books of the authors the caller follows, newest first, never an author the caller hid, optionally narrowed by `?genre=`; `book` (`/v1/books/{id}`) answers one book. Every field a clause names carries a `filter` use, as for `record.query` ([record-query.md](record-query.md), §9).
 
 ```json kipory:request=project-document
 {
-  "kipory": 10,
+  "kipory": 11,
   "types": {
     "Author": {
       "description": null,
@@ -193,50 +188,34 @@ A reading circle: `author` and `book` are the project's, `follow` and `hide` are
   "flows": {
     "get-shelf": {
       "label": "Get shelf",
-      "description": null,
-      "inputTypeNames": [
-        { "slot": "genre", "typeName": "string", "required": false },
-        { "slot": "readAfter", "typeName": "string", "required": false },
-        { "slot": "readBefore", "typeName": "string", "required": false },
-        { "slot": "readLimit", "typeName": "number", "required": false }
-      ],
-      "outputTypeNames": [
-        { "slot": "shelf", "typeName": "object", "required": true }
-      ],
-      "outputBinding": { "shelf": { "fromSlot": "page" } },
-      "actions": {
-        "read": {
-          "description": null,
-          "functionKey": "record.view",
-          "functionConfig": { "view": "myShelf" },
-          "condition": null,
-          "outputSlot": "page",
-          "outputSchema": null,
-          "enabled": true
-        }
-      }
+      "inputs": {
+        "genre": { "typeName": "string", "optional": true },
+        "readAfter": { "typeName": "string", "optional": true },
+        "readBefore": { "typeName": "string", "optional": true },
+        "readLimit": { "typeName": "number", "optional": true }
+      },
+      "outputs": { "shelf": { "typeName": "object" } },
+      "steps": [
+        {
+          "key": "read",
+          "function": "record.view",
+          "with": { "view": "myShelf" }
+        },
+        { "key": "done", "return": { "shelf": "read" } }
+      ]
     },
     "get-book": {
       "label": "Get book",
-      "description": null,
-      "inputTypeNames": [
-        { "slot": "id", "typeName": "string", "required": true }
-      ],
-      "outputTypeNames": [
-        { "slot": "book", "typeName": "object", "required": true }
-      ],
-      "outputBinding": { "book": { "fromSlot": "found" } },
-      "actions": {
-        "read": {
-          "description": null,
-          "functionKey": "record.view",
-          "functionConfig": { "view": "book" },
-          "condition": null,
-          "outputSlot": "found",
-          "outputSchema": null,
-          "enabled": true
-        }
-      }
+      "inputs": { "id": { "typeName": "string" } },
+      "outputs": { "book": { "typeName": "object" } },
+      "steps": [
+        {
+          "key": "found",
+          "function": "record.view",
+          "with": { "view": "book" }
+        },
+        { "key": "done", "return": { "book": "found" } }
+      ]
     }
   },
   "surfaces": {
@@ -315,7 +294,7 @@ Map keys may come in any order: a view may be listed before the set, base or sha
 | `one`         | `true`: at most one record. The view must filter `id` by `eq` (`VIEW_ONE_NOT_UNIQUE` otherwise)                                                                                                                                                                                                                                                                                                                                              |
 | `description` | a sentence saying what it answers                                                                                                                                                                                                                                                                                                                                                                                                            |
 
-**`where` is `record.query`'s clause grammar (`record-query.md`, §9), with fixed values only.** A view reads no run slot, so where an action's bare string would be a slot path, a view's fixed text is written `{ "literal": … }`: `{ "kind": "field", "field": "genre", "op": "eq", "value": { "literal": "poetry" } }`. A bare number or `true`/`false` stays as it is. A bare text is refused, and so is an `{ "expr": … }`; a value the reader gives is a `param`. The same form holds at every operand of a clause: a `term`'s `slug`, a `semantic` `text` or `likeRecordId`, a `link` or `stream` `where` entry's `value`, a stream `window`'s `from` / `to`, a `peer` field clause's `value`. A `field` clause carries exactly one of three operands:
+**`where` is `record.query`'s clause grammar ([record-query.md](record-query.md), §9), with fixed values only.** A view reads no value from a run, so where a step's bare string would be a path, a view's fixed text is written `{ "literal": … }`: `{ "kind": "field", "field": "genre", "op": "eq", "value": { "literal": "poetry" } }`. A bare number or `true`/`false` stays as it is. A bare text is refused, and so is an `{ "expr": … }`; a value the reader gives is a `param`. The same form holds at every operand of a clause: a `term`'s `slug`, a `semantic` `text` or `likeRecordId`, a `link` or `stream` `where` entry's `value`, a stream `window`'s `from` / `to`, a `peer` field clause's `value`. A `field` clause carries exactly one of three operands:
 
 - `value` — a fixed value, `{ "literal": … }` (a list for `in` and `not-in`: `{ "literal": ["novel", "poetry"] }`), or a bare number or `true`/`false`;
 - `param` — one of the view's `params`;
@@ -327,7 +306,7 @@ Map keys may come in any order: a view may be listed before the set, base or sha
 
 ### Sets: the caller's own rows as an operand
 
-A set is read in the same statement as the outer view, as the same caller, with no cap on its size: `followedAuthors` holding 2,500 authors costs one statement, not a list in a slot (an inline `in` stops at 1,000). Because the exclusion runs before the page is cut, a page is full whenever enough rows match.
+A set is read in the same statement as the outer view, as the same caller, with no cap on its size: `followedAuthors` holding 2,500 authors costs one statement, not a list in a value (an inline `in` stops at 1,000). Because the exclusion runs before the page is cut, a page is full whenever enough rows match.
 
 - A set view holds only `field` clauses and sets of its own, two levels deep at most (`VIEW_SET_DEPTH`). A `link`, `term`, `stream` or `semantic` clause in a set, or `one` or `linked` on it, is refused `VIEW_SET_CLAUSE_KIND`; a view with a `semantic` clause uses no set (`VIEW_SET_WITH_SEMANTIC`).
 - The set's `field` is a field of the set's table with a `filter` use, or `id` (`VIEW_SET_FIELD_UNKNOWN`), and of the same kind as the field it is compared to — text to text, number to number (`VIEW_SET_FIELD_TYPE`).
@@ -353,8 +332,8 @@ A set is read in the same statement as the outer view, as the same caller, with 
 - A param is never named `after`, `before` or `limit`: those are the names a request pages by.
 - **A param of a set or a base needs a `default`** (`VIEW_SET_PARAMS`, `VIEW_BASE_PARAMS`): its reader cannot pass it a value. A view does not redeclare its base's param (`VIEW_PARAM_SHADOWS_BASE`).
 
-This replaces the two-branch recipe for an optional filter: `?genre=` absent reads the whole shelf, present narrows it, in one action.
+This replaces the two-branch recipe for an optional filter: `?genre=` absent reads the whole shelf, present narrows it, in one step.
 
 ### Shapes: the answer's type, named once
 
-A shape maps answer properties to one table's fields (renaming as it likes), and its `linked` properties carry the records a relation brings, each in a shape of the other table: `relation`, and optionally `direction`, `peerTable` (the other table, when the relation reaches several), `limit`, `onMore`, as a linked read on `record.query`. A row in a shape carries `id` and exactly the properties named, nothing else; a linked one-record property is absent when there is no linked record, and a list stays a list. Two levels of linked at most (`SHAPE_LINKED_DEPTH`). No expressions, no vocabularies: compute in a flow action. A field the table does not have is `SHAPE_UNKNOWN_FIELD`, a linked shape of another table than the relation reaches `SHAPE_TABLE_MISMATCH`. The flow slot the view answers into, the endpoint's answer and its schema in the project's OpenAPI document (a component per shape, `BookCard` and `AuthorChip` here) all take their type from the shape; a view with no shape answers the table's typed rows.
+A shape maps answer properties to one table's fields (renaming as it likes), and its `linked` properties carry the records a relation brings, each in a shape of the other table: `relation`, and optionally `direction`, `peerTable` (the other table, when the relation reaches several), `limit`, `onMore`, as a linked read on `record.query`. A row in a shape carries `id` and exactly the properties named, nothing else; a linked one-record property is absent when there is no linked record, and a list stays a list. Two levels of linked at most (`SHAPE_LINKED_DEPTH`). No expressions, no vocabularies: compute in a flow step. A field the table does not have is `SHAPE_UNKNOWN_FIELD`, a linked shape of another table than the relation reaches `SHAPE_TABLE_MISMATCH`. The step value the view answers into, the endpoint's answer and its schema in the project's OpenAPI document (a component per shape, `BookCard` and `AuthorChip` here) all take their type from the shape; a view with no shape answers the table's typed rows.

@@ -2,7 +2,7 @@
 
 # Expression functions
 
-Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 27 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
+Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 28 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
 
 No value means missing, `null`, empty text or an empty list: a function given none answers nothing (the action's slot stays empty) unless its entry says otherwise. A wrong type fails the action at the call. No function reads the clock, the host's time zone or its locale: `runInfo.now` is the time, and a date or locale function takes its zone and locale as arguments (UTC and `en` when left out).
 
@@ -10,12 +10,22 @@ No value means missing, `null`, empty text or an empty list: a function given no
 
 ### `$default(value, fallback)`
 
-The fallback when the value is missing, null, empty text or an empty list; else the value.
+The fallback when the value is missing or null; else the value, empty text, `[]` and `{}` included. For "missing or empty", use `$ifEmpty`.
 
 - **No value:** The fallback.
 - **Signature:** `<xx:x>`
 - `$default(post.brief, post.text)` over `{"post":{"text":"Full text"}}` → `"Full text"`
 - `$default(count, 0)` over `{"count":3}` → `3`
+- `$default(post.brief, "none")` over `{"post":{"brief":""}}` → `""`
+
+### `$ifEmpty(value, fallback)`
+
+The fallback when the value is missing, null, empty text, `[]` or `{}`; else the value.
+
+- **No value:** The fallback.
+- **Signature:** `<xx:x>`
+- `$ifEmpty(post.brief, post.text)` over `{"post":{"brief":"","text":"Full text"}}` → `"Full text"`
+- `$ifEmpty(tags, ["untagged"])` over `{"tags":["news"]}` → `["news"]`
 
 ## Lists
 
@@ -23,7 +33,7 @@ The fallback when the value is missing, null, empty text or an empty list; else 
 
 The items in groups of `size`, in order; the last group may be shorter. One pass over the list, where a filter by position per group reads the whole list for each group. Loop over the groups with `$map` inside `[…]`: `$map` answers one group's result bare, and a path step (`$chunk(xs, 2).{…}`) reads a one-item group as its item. With its default `object` output, a transform cannot answer the groups themselves — a list of lists is refused at the top of a result, though an object's field may hold one — so wrap them: each group in an object, `[$map($chunk(ids, 25), function($g){ {"ids": $g} })]`, or all of them in one, `{"groups": $chunk(ids, 25)}`.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<xn:a>`
 - `$chunk(ids, 2)` over `{"ids":["a","b","c","d","e"]}` → `[["a","b"],["c","d"],["e"]]`
 - `[$map($chunk(ids, 10), function($g){ {"ids": $g} })]` over `{"ids":["a","b"]}` → `[{"ids":["a","b"]}]`
@@ -41,7 +51,7 @@ The value with null, empty text, empty lists and empty objects removed, at every
 
 An object from each value of the items' `key` field to the items that have it, in order. Items without it are left out.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<xs:o>`
 - `$groupBy(posts, "source")` over `{"posts":[{"id":"p1","source":"a"},{"id":"p2","source":"b"},{"id":"p3","source":"a"}]}` → `{"a":[{"id":"p1","source":"a"},{"id":"p3","source":"a"}],"b":[{"id":"p2","source":"b"}]}`
 - `$count($groupBy(posts, "source").a)` over `{"posts":[{"source":"a"},{"source":"a"},{}]}` → `2`
@@ -50,7 +60,7 @@ An object from each value of the items' `key` field to the items that have it, i
 
 An object from each value of the items' `key` field to the first item with it — a lookup table. Read one with `$lookup(table, value)`.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<xs:o>`
 - `$lookup($indexBy(sources, "id"), post.sourceId).name` over `{"sources":[{"id":"s1","name":"Harbour Daily"},{"id":"s2","name":"Tide Notes"}],"post":{"sourceId":"s2"}}` → `"Tide Notes"`
 - `$indexBy(rows, "key")` over `{"rows":[{"key":"a","v":1},{"key":"a","v":2},{"v":3}]}` → `{"a":{"key":"a","v":1}}`
@@ -78,7 +88,7 @@ The items from position `start` up to, not including, `end` (the first is 0). A 
 
 The items, keeping the first with each value of their `key` field, in order. Items without it are kept.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<xs:a>`
 - `$uniqBy(links, "url").title` over `{"links":[{"url":"a.org","title":"A"},{"url":"b.org","title":"B"},{"url":"a.org","title":"A again"}]}` → `["A","B"]`
 - `$count($uniqBy(items, "id"))` over `{"items":[{"id":1},{"id":1},{"id":2}]}` → `2`
@@ -89,7 +99,7 @@ The items, keeping the first with each value of their `key` field, in order. Ite
 
 The text with every HTML character reference decoded: named (`&amp;`), decimal (`&#8217;`) and hex (`&#x2019;`). The result is text, not safe HTML: `&lt;script&gt;` becomes `<script>`, so escape it before putting it into HTML.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<(sla)-:s>`
 - `$decodeHtml(title)` over `{"title":"Fish &amp; chips&#x2019; &quot;best&quot;"}` → `"Fish & chips’ \"best\""`
 - `$decodeHtml("5 &lt; 6")` → `"5 < 6"`
@@ -98,7 +108,7 @@ The text with every HTML character reference decoded: named (`&amp;`), decimal (
 
 Text for comparing: lower case, accents and marks removed, punctuation turned to spaces, spaces collapsed. Lower case is not full case folding: `ß` stays `ß`.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<(sla)-:s>`
 - `$fold(name)` over `{"name":"  Café — Déjà Vu!  "}` → `"cafe deja vu"`
 - `$fold("Ёлка") = $fold("елка")` → `true`
@@ -138,7 +148,7 @@ An absolute address in parts: `scheme`, `host`, `port`, `path`, `query` (an obje
 
 The date moved by a whole number of `second`, `minute`, `hour`, `day`, `week`, `month` or `year` (calendar months, in UTC).
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<(snla)ns:s>`
 - `$dateAdd(due, 1, "month")` over `{"due":"2026-01-31T09:00:00Z"}` → `"2026-02-28T09:00:00.000Z"`
 - `$dateAdd("2026-10-28", -2, "day")` → `"2026-10-26T00:00:00.000Z"`
@@ -167,7 +177,7 @@ An ISO 8601 instant from ISO 8601 text, a feed or mail date (RFC 2822), or a num
 
 The date in the pattern's form — `yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`, `dd`, `d`, `EEEE`, `EEE`, `HH`, `hh`, `mm`, `ss`, `a`, text in single quotes — with names in the locale (default `en`) and the time zone (default UTC).
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<(snla)ss?s?:s>`
 - `$formatDate(publishedAt, "d MMMM yyyy", "en")` over `{"publishedAt":"2026-10-28T09:00:00Z"}` → `"28 October 2026"`
 - `$formatDate("2026-10-28T22:30:00Z", "EEE d MMM, HH:mm", "en", "Asia/Jerusalem")` → `"Thu 29 Oct, 00:30"`
@@ -176,7 +186,7 @@ The date in the pattern's form — `yyyy`, `yy`, `MMMM`, `MMM`, `MM`, `M`, `dd`,
 
 The amount in a currency (an ISO 4217 code the runtime knows), written the locale's way (default `en`).
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<xss?:s>`
 - `$formatMoney(price, "EUR", "en")` over `{"price":1234.5}` → `"€1,234.50"`
 - `$formatMoney(12, "USD")` → `"$12.00"`
@@ -185,9 +195,9 @@ The amount in a currency (an ISO 4217 code the runtime knows), written the local
 
 ### `$parseJson(text)`
 
-The value JSON text holds. It parses data and runs nothing; text that is not JSON fails the action.
+The value JSON text holds. It parses data and runs nothing; text that is not JSON fails the step.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<(sla)-:x>`
 - `$parseJson(raw).items[0]` over `{"raw":"{\"items\": [\"a\", \"b\"]}"}` → `"a"`
 - `$parseJson("[1, 2]")` → `[1,2]`
@@ -198,7 +208,7 @@ The value JSON text holds. It parses data and runs nothing; text that is not JSO
 
 A record's term's label in a language (`he`, `pt-BR`), from the term a record read carries: the exact tag (any case, `_` or `-`), then its language (`he-IL` → `he`), then a regional label of that language, then the default label. A list of terms gives one label per term. Over a list use `$map(ts, function($t){ $termLabel($t, lang) })`: `$map(ts, $termLabel)` would pass each index as the language.
 
-- **No value:** Nothing (an action reading only it is skipped).
+- **No value:** Nothing (a step reading only it is skipped).
 - **Signature:** `<x(sl)?:(sa)>`
 - `$termLabel(article.topic, "he-IL")` over `{"article":{"topic":{"slug":"sailing","label":"Sailing","labels":{"he":"שייט","ru":"Парусный спорт"}}}}` → `"שייט"`
 - `$termLabel(article.topic, "fr")` over `{"article":{"topic":{"slug":"sailing","label":"Sailing"}}}` → `"Sailing"`
@@ -275,5 +285,5 @@ A save naming one of these is refused `JSONATA_FORBIDDEN_FUNCTION`.
 - `$eval` — Runs text as an expression, outside every check. Use `$parseJson` to read JSON text.
 - `$millis` — Reads the clock, so the same input gives different answers. Read `runInfo.now`.
 - `$now` — Reads the clock, so the same input gives different answers. Read `runInfo.now`.
-- `$random` — A different answer each time; an action must answer the same for the same input.
-- `$shuffle` — A different order each time; an action must answer the same for the same input.
+- `$random` — A different answer each time; a step must answer the same for the same input.
+- `$shuffle` — A different order each time; a step must answer the same for the same input.

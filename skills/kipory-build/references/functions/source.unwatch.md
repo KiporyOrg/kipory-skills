@@ -11,7 +11,7 @@ Removes one record's watch. The last one switches the source off, never deletes 
 - **I/O:** `channel and holder` → `SourceUnwatch`
 - **Also found as:** unfollow channel, unsubscribe, stop watching, release watch
 - **Reads:** The channel, from `channel`, and the holder, from `holder` — the same holder `source.watch` was given. _(shape hint: `channel and holder`)_
-- **Emits:** A `SourceUnwatch` — the watch as this action left it. A flow preview changes nothing and says what it would have done.
+- **Emits:** A `SourceUnwatch` — the watch as this step left it. A flow preview changes nothing and says what it would have done.
 
 ## Config
 
@@ -86,7 +86,7 @@ One hold is gone; the channel stays watched.
 
 Reads `object` → emits `SourceUnwatch` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -121,7 +121,7 @@ Nobody holds the channel any more, so its source is switched off.
 
 Reads `object` → emits `SourceUnwatch` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

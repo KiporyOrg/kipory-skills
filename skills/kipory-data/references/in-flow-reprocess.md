@@ -2,7 +2,7 @@
 
 Read this before a flow queues a record's processing with `record.enqueue-process`: what the run keeps under each of its three `replay` modes, and who it reaches.
 
-One action, for any record the run can reach — a pool record on a run with no user included:
+One step, for any record the run can reach — a pool record on a run with no user included:
 
 ```
 record.enqueue-process (replay: clean) → set the record pending and queue its processing flow
@@ -13,19 +13,21 @@ change set, so no `record.update` with `setStatus` is needed before it. It answe
 error, for an id the run cannot reach and for a record being processed or deleted — a parent whose
 own run is under way is not queued again, so a flow that must catch every change reads the answer
 and tries the next time. A processing flow that queues a record whose own flow queues back is a
-loop: each run processes, and is billed, again, until the action in the ninth record run of the
+loop: each run processes, and is billed, again, until the step in the ninth record run of the
 chain fails `RECORD_HANDOFF_DEPTH_EXCEEDED` rather than queue a tenth.
 
-`replay` says what the new run keeps from the last one. Every mode runs every action again, against
-the flow as it is now — a flow edited since the record last ran is not a reason for refusal.
+`replay` says what the new run keeps from the last one. `rerun` (the default) and `clean` run every
+step again; `resume` skips each step the last attempt applied and restores its output. Every mode
+runs the flow as it is now — a flow edited since the record last ran is not a reason for refusal.
 
-| `replay`           | Generated files and term assignments                                    | The previous run's output                           | Use it for                                               |
-| ------------------ | ----------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
-| `resume` (default) | kept                                                                    | kept: a slot this run does not emit keeps its value | retrying a record that failed part-way                   |
-| `rerun`            | kept                                                                    | kept, the same way                                  | a poll that re-fetches on a schedule                     |
-| `clean`            | terms removed before the run; files replaced only when the run succeeds | dropped                                             | reprocessing: the flow, the file or the data was changed |
+| `replay`          | Generated files and term assignments                                    | The previous run's output                           | Use it for                                               |
+| ----------------- | ----------------------------------------------------------------------- | --------------------------------------------------- | -------------------------------------------------------- |
+| `rerun` (default) | kept                                                                    | kept: a value this run does not give keeps the last | a poll that re-fetches on a schedule                     |
+| `resume`          | kept                                                                    | kept; an applied step's output is restored          | retrying a record that failed part-way                   |
+| `clean`           | terms removed before the run; files replaced only when the run succeeds | dropped                                             | reprocessing: the flow, the file or the data was changed |
 
-`resume` and `rerun` behave the same on a record run; only `clean` differs. `clean` removes the
+Name `resume` only to retry a run that failed part-way: on a recurring run it skips every step the
+first pass applied and does nothing. `clean` removes the
 record's term assignments before the run, and a failed run does not bring them back. Its processed
 fields and generated files are replaced only when the run succeeds, and the record is indexed again
 then; a failed run keeps them. A successful run removes each generated file the record held before
@@ -36,10 +38,10 @@ failure note on the row is a success here: to keep the last file until a new one
 `rerun`, which leaves the old file in place (beside the new one, unless the new one reuses its key).
 
 **A failed or ready record needs no status reset.** `record.enqueue-process` on a record whose
-processing failed or finished returns it to processing, with the replay mode the action states, as
+processing failed or finished returns it to processing, with the replay mode the step states, as
 part of the calling run's change set — so if the calling run fails, the record is left exactly as
 it was. A pending record is queued as it stands. A record being processed or deleted is not
-queued: the action answers `false`, so a flow can tell it apart from a record that was queued.
+queued: the step answers `false`, so a flow can tell it apart from a record that was queued.
 
 **To re-run a parent when its children change, declare `reprocessOn` on its table** instead of
 queuing it from each child's flow: Kipory waits out a burst, runs a parent still being processed
@@ -75,13 +77,13 @@ table cannot declare it.
   the new (`kipory-model`'s `references/classification-runtime.md`).
 - **Only `clean` avoids two generations of derived data.** Under the other two a file the last run
   produced stays beside the one this run produces.
-- **`mode`** is a separate setting: `full` (the default) runs every action for real; `from-cache`
-  lets an action whose inputs and settings have not changed answer from its cached result.
+- **`mode`** is a separate setting: `full` (the default) runs every step for real; `from-cache`
+  lets a step whose inputs and settings have not changed answer from its cached result.
 - **The queued run is charged as the run that queued it is**, model calls included
   (`kipory-operate` has what a run costs and who pays).
 
-`record.teardown` does the stripping as an action of its own — but it is per-user end to end: it
-**fails the action on a run with no signed-in user**, which is every run your key starts, and reaches
+`record.teardown` does the stripping as a step of its own — but it is per-user end to end: it
+**fails the step on a run with no signed-in user**, which is every run your key starts, and reaches
 only that user's own records, never pool records. With `replay: clean` you do not need it.
 
 Over HTTP, `POST /v1/records/{id}/reprocess` is the same clean run in one call, for any record

@@ -11,7 +11,7 @@ Empty when nothing has written it yet, so place it after the writes it depends o
 - **I/O:** `none` → `string, or string[] for an append or union cell`
 - **Also found as:** remember, previous value, stored value, last run
 - **Reads:** No slots. It returns whatever the named cell holds, or empty if nothing has written it. _(shape hint: `none`)_
-- **Emits:** The current value of a named run-state cell, materialized into this action's output slot (a string for set/add cells, a list for append/union cells).
+- **Emits:** The current value of a named run-state cell, materialized into this step's output slot (a string for set/add cells, a list for append/union cells).
 
 ## Config
 
@@ -21,7 +21,7 @@ Empty when nothing has written it yet, so place it after the writes it depends o
 
 ## Worked example
 
-Reads a run-state cell that an earlier action wrote.
+Reads a run-state cell that an earlier step wrote.
 
 #### Value saved
 
@@ -29,7 +29,7 @@ The cell was written earlier in this run, so its current value comes back.
 
 Reads `none` → emits `string[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -51,11 +51,11 @@ Output:
 
 #### Nothing saved yet
 
-No action has written this cell in this run, so the empty value comes back.
+No step has written this cell in this run, so the empty value comes back.
 
 Reads `none` → emits `string[]` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

@@ -12,7 +12,7 @@ Lists whom a record is shared with: each person or team, the level, a member's l
 - **Also found as:** list shares, shared with, who has access, members
 - **Reads:** One slot: the record whose shares to list. _(shape hint: `string`)_
 - **Emits:** A list of `RecordShare`, oldest share first; empty when the record is shared with no one.
-- **Suggested input streams:** `recordId`
+- **Inputs (`with`):** `recordId`
 
 ## Config
 

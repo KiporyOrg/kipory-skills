@@ -89,7 +89,7 @@ A matching signature lets the flow go on; a wrong or missing one answers 401 and
 
 Reads `object` → emits `boolean` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

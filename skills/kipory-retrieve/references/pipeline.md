@@ -1,6 +1,6 @@
 # The retrieval pipeline, step by step
 
-Two halves. The write half indexes and is declared; the read half answers and is one action.
+Two halves. The write half indexes and is declared; the read half answers and is one step.
 
 ## Write half — a record becomes searchable
 
@@ -10,7 +10,7 @@ before it is searchable.
 
 ## Read half — which records, and how close?
 
-One action. `record.query` with a `semantic` clause returns the records, ranked, with their fields
+One step. `record.query` with a `semantic` clause returns the records, ranked, with their fields
 and a score for each:
 
 | #   | Function          | Reads                               | Emits                                         | Why it is here                             |
@@ -25,7 +25,7 @@ Steps 2–5 are only for an answer a model writes; step 2 is optional among them
 records, or a match-or-new decision, is step 1 and a `value.transform`.
 
 - **Step 1** takes the question as text (`text`) — it embeds the phrase with the model the
-  type was indexed with, a model call billed inside the action — or a record id
+  type was indexed with, a model call billed inside the step — or a record id
   (`likeRecordId`), which embeds nothing. Its `limit` (1–100, default 50) cuts the ranking
   after `topK`, so raise both together.
 - **`scores`** lists `{ id, score }` in the order of `records`. With `passage: true` an entry also
@@ -41,7 +41,7 @@ records, or a match-or-new decision, is step 1 and a `value.transform`.
 
 ## Match or new, by score
 
-The same action answers "is this the thing we already have?". Read the best score and decide in
+The same step answers "is this the thing we already have?". Read the best score and decide in
 bands:
 
 | #   | Function          | Reads                                                  | Emits                                      |
@@ -49,6 +49,9 @@ bands:
 | 1   | `record.query`    | the new item's text                                    | the closest records, with `scores`         |
 | 2   | `value.transform` | `records`, `scores`, your marks                        | `{ band: "same" \| "ask" \| "new", best }` |
 | 3   | `text.decide`     | the candidate and the new item, on `band = "ask"` only | a yes/no with its probability              |
+
+Step 3 sits inside an `if` that tests `{ eq: [match.band, { literal: ask }] }` (the transform keyed
+`match`); every test is false on nothing, so a transform that answered nothing asks no model.
 
 Keep the two marks in project config rather than in the expression, so they can be tuned without
 editing the flow. `minScore` on the clause removes what is below the low mark before step 2 sees

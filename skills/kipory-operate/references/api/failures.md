@@ -53,7 +53,7 @@ Each item of `runs`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `runId` | `string` | yes | The run. Read it at `GET /v1/runs/{runId}`; its actions at `GET /v1/runs/{runId}/timeline`. |
+| `runId` | `string` | yes | The run. Read it at `GET /v1/runs/{runId}`; its steps at `GET /v1/runs/{runId}/timeline`. |
 | `flowId` | `string \| null` | yes | The flow the run ran, by its row id; null when none was named. |
 | `filed` | `object \| null` | yes | The class and code the run is filed under — a failed run's own, a partial run's commonest absorbed one. Null on a run closed before classes were kept. |
 | `subject` | `object` | yes | What the run ran for. |
@@ -98,7 +98,7 @@ Each item of `groups`:
 | `firstAt` | `string` | yes | The group's first close, RFC 3339. |
 | `lastAt` | `string` | yes | Its latest close, RFC 3339. |
 | `exampleRunId` | `string` | yes | Its latest run, to open. |
-| `example` | `object \| null` | yes | What the latest run's failed action said — for a cause its code does not word. Null where no action failed. |
+| `example` | `object \| null` | yes | What the latest run's failed step said — for a cause its code does not word. Null where no step failed. |
 
 ### `POST /v1/platform-events/test`
 

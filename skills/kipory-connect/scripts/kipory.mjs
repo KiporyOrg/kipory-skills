@@ -8,15 +8,17 @@
 //   ship <doc> [--note <text>] plan, then apply when the plan is clean
 //   user <name>                a test user, made once and remembered
 //   call <user|-> <METHOD> <path> [json]   call the project's own host as that user
-//   preview <flow> [--as <user>] [--input <json>] [--apply]   run a flow in the sandbox, print its trace
+//   preview <flow> [--as <user>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]
+//                              run a flow in the sandbox, print each write
 //   summary                    what the project holds, one line per element
 //   docs <words…>              the best-matching section of these skills
 //
 // <doc> is a .json or .yaml file, or a .mjs/.js file whose standard output is
 // the document (a generator). It reads KIPORY_BASE_URL, KIPORY_API_KEY and
-// KIPORY_PROJECT_ID from the environment or ./.env, keeps its state in
-// ./.kipory/, and never prints the key or a session. Exit codes: 0 done,
-// 1 refused, 2 usage or environment. Node 18 or later, no dependencies.
+// KIPORY_PROJECT_ID from the environment, then ./.env (or --env <file>), keeps
+// its state in ./.kipory/, and never prints the key or a session. A preview
+// runs each `each` on its first 5 items unless --fan-out-cap says otherwise.
+// Exit codes: 0 done, 1 refused, 2 usage or environment. Node 18+, no deps.
 
 import { execFileSync } from "node:child_process";
 import {
@@ -49,18 +51,21 @@ const refused = (m) => new Exit(1, m);
 const argv = process.argv.slice(2);
 const flags = new Map();
 const words = [];
+const SWITCHES = new Set(["json", "all", "full", "apply", "help"]);
+const VALUED = new Set(["note", "as", "input", "more", "env", "fan-out-cap"]);
+let badFlag;
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
-  if (a === "--json" || a === "--all" || a === "--full" || a === "--apply") {
-    flags.set(a.slice(2), true);
-  } else if (
-    a === "--note" ||
-    a === "--as" ||
-    a === "--input" ||
-    a === "--more"
-  ) {
-    flags.set(a.slice(2), argv[++i]);
-  } else words.push(a);
+  const name = a.startsWith("--") ? a.slice(2) : undefined;
+  if (name === undefined) words.push(a);
+  else if (SWITCHES.has(name)) flags.set(name, true);
+  else if (VALUED.has(name)) {
+    if (i + 1 >= argv.length) badFlag ??= `${a} takes a value`;
+    flags.set(name, argv[++i]);
+  } else
+    badFlag ??= `unknown flag ${a}; the flags are ${[...SWITCHES, ...VALUED]
+      .map((f) => `--${f}`)
+      .join(", ")}`;
 }
 const asJson = flags.get("json") === true;
 
@@ -72,10 +77,15 @@ const oneLine = (s) =>
 const cut = (s, n) =>
   s.length > n ? `${s.slice(0, n)}… (${s.length} bytes, --full for all)` : s;
 
+const ENV_FILE =
+  typeof flags.get("env") === "string" ? flags.get("env") : ".env";
 const readDotEnv = () => {
   const vars = {};
-  if (!existsSync(".env")) return vars;
-  for (const raw of readFileSync(".env", "utf8").split("\n")) {
+  if (!existsSync(ENV_FILE)) {
+    if (ENV_FILE !== ".env") badFlag ??= `no such env file: ${ENV_FILE}`;
+    return vars;
+  }
+  for (const raw of readFileSync(ENV_FILE, "utf8").split("\n")) {
     const m = /^\s*(?:export\s+)?([A-Z0-9_]+)\s*=\s*(.*)\s*$/.exec(raw);
     if (!m) continue;
     vars[m[1]] = m[2].replace(/^(['"])(.*)\1$/, "$2");
@@ -137,8 +147,10 @@ const request = async (
 };
 
 const api = async (method, path, body, contentType) => {
-  if (!BASE) throw usage("KIPORY_BASE_URL is not set (environment or ./.env)");
-  if (!KEY) throw usage("KIPORY_API_KEY is not set (environment or ./.env)");
+  if (!BASE)
+    throw usage(`KIPORY_BASE_URL is not set (environment or ${ENV_FILE})`);
+  if (!KEY)
+    throw usage(`KIPORY_API_KEY is not set (environment or ${ENV_FILE})`);
   return request(`${BASE}${path}`, { method, body, contentType, token: KEY });
 };
 
@@ -249,24 +261,42 @@ const currentVersion = async (id) => {
 const printDiagnostics = (diagnostics) => {
   const list = Array.isArray(diagnostics) ? diagnostics : [];
   const errors = list.filter((d) => d.severity === "error");
+  let edits = false;
   for (const d of errors) {
-    const fix = d.fix ?? d.remedy;
-    out(
-      `error ${d.code} ${d.field ?? "-"}: ${oneLine(d.message)}${fix ? ` — fix: ${oneLine(fix)}` : ""}`,
-    );
+    out(`error ${d.code} ${d.field ?? d.at ?? "-"}: ${oneLine(d.message)}`);
+    // A step finding carries ready fixes (a title and the step edits, or one
+    // keyword to declare on a type), or the decision only you can make.
+    const fixes = Array.isArray(d.fixes) ? d.fixes : [];
+    fixes.forEach((f, i) => {
+      out(`  fix${fixes.length > 1 ? ` ${i + 1}` : ""}: ${oneLine(f.title)}`);
+      if (f.edit) {
+        edits = true;
+        out(`    edit: ${cut(oneLine(JSON.stringify(f.edit)), 300)}`);
+      }
+      if (f.typeEdit)
+        out(
+          `    on type ${f.typeEdit.key}, declare: ${cut(oneLine(JSON.stringify(f.typeEdit.declare)), 300)}`,
+        );
+    });
+    if (d.decision) out(`  decide: ${oneLine(d.decision)}`);
   }
+  if (edits)
+    out(
+      "(a fix's edit changes this flow's steps: make it in your document; --json has every edit whole)",
+    );
   const rest = list.filter((d) => d.severity !== "error");
   if (flags.get("all") === true) {
     for (const d of rest)
       out(`${d.severity} ${d.code} ${d.field ?? "-"}: ${oneLine(d.message)}`);
   } else {
-    const warnings = rest.filter((d) => d.severity === "warning");
-    if (warnings.length > 0) {
+    // Warnings and info findings, counted by code: neither refuses.
+    for (const severity of ["warning", "info"]) {
+      const found = rest.filter((d) => d.severity === severity);
+      if (found.length === 0) continue;
       const byCode = new Map();
-      for (const w of warnings)
-        byCode.set(w.code, (byCode.get(w.code) ?? 0) + 1);
+      for (const w of found) byCode.set(w.code, (byCode.get(w.code) ?? 0) + 1);
       out(
-        `${warnings.length} warning(s): ${[...byCode].map(([c, n]) => (n > 1 ? `${c}×${n}` : c)).join(", ")} (--all to read them)`,
+        `${found.length} ${severity === "info" ? "info" : "warning(s)"}: ${[...byCode].map(([c, n]) => (n > 1 ? `${c}×${n}` : c)).join(", ")} (--all to read them)`,
       );
     }
   }
@@ -351,7 +381,8 @@ const apply = async () => {
     return a;
   }
   const g = await grant();
-  out(`applied ${a?.version ?? ""}  host ${g.host ?? "(none)"}`.trim());
+  // `appliedVersion` is the project after the apply; `version` was the plan's read.
+  out(`applied ${a?.appliedVersion ?? ""}  host ${g.host ?? "(none)"}`.trim());
   printDiagnostics(
     (a?.diagnostics ?? []).filter((d) => d.severity === "error"),
   );
@@ -463,7 +494,9 @@ const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const preview = async (flowKey) => {
   if (!flowKey)
-    throw usage("preview <flow key> [--as <user>] [--input <json>] [--apply]");
+    throw usage(
+      "preview <flow key> [--as <user>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]",
+    );
   const id = await projectId();
   usersProject = id;
   const list = ok(
@@ -490,10 +523,21 @@ const preview = async (flowKey) => {
     const u = users()[as] ?? (await makeUser(as));
     Object.assign(input, { principal: "end-user", runAsUserId: u.id });
   }
+  let fanOutCap;
+  const capFlag = flags.get("fan-out-cap");
+  if (typeof capFlag === "string") {
+    fanOutCap = capFlag === "uncapped" ? "uncapped" : Number(capFlag);
+    if (
+      fanOutCap !== "uncapped" &&
+      !(Number.isInteger(fanOutCap) && fanOutCap >= 1 && fanOutCap <= 1000)
+    )
+      throw usage("--fan-out-cap takes a whole number 1-1000, or uncapped");
+  }
   const queued = ok(
     await api("POST", `/v1/flows/${encodeURIComponent(flow.id)}/preview-runs`, {
       input,
       apply: flags.get("apply") === true,
+      ...(fanOutCap === undefined ? {} : { fanOutCap }),
     }),
     "queueing the preview",
   );
@@ -503,8 +547,13 @@ const preview = async (flowKey) => {
     const res = await api("GET", `/v1/runs/${encodeURIComponent(runId)}`);
     if (res.status === 200) {
       run = res.json?.run ?? res.json;
-      // A run is over when it has a closing, or its lifecycle says it is not going.
-      if (run?.closing || (run?.lifecycle && run.lifecycle !== "in-flight"))
+      // A run is over when it has a closing, or its lifecycle says it will
+      // not close: `unknown` is a preview with no closing YET, so keep waiting.
+      if (
+        run?.closing ||
+        run?.lifecycle === "settled" ||
+        run?.lifecycle === "lost"
+      )
         break;
     } else if (res.status !== 404)
       throw refused(`reading the run: ${refusal(res)}`);
@@ -522,23 +571,71 @@ const preview = async (flowKey) => {
   // `closing.verdict` is how the run ended; `closing.failure` why it failed.
   const outcome = run?.closing
     ? (run.closing.verdict ?? run.closing.kind ?? "closed")
-    : run?.lifecycle && run.lifecycle !== "in-flight"
-      ? run.lifecycle
+    : run?.lifecycle === "lost"
+      ? "lost"
       : undefined;
+  // `partial`: it succeeded past failures a `try`, a `repeat` or an `each`'s
+  // tolerance let go; the count says how many.
+  const a = run?.closing?.absorbed;
+  const absorbed = a ? (a.steps ?? 0) + (a.calls ?? 0) + (a.branches ?? 0) : 0;
   out(
-    `run ${runId} ${outcome ?? "still running (read GET /v1/runs/{runId} later)"}`,
+    `run ${runId} ${outcome ?? "still running (read GET /v1/runs/{runId} later)"}${outcome === "partial" && absorbed > 0 ? ` (${absorbed} failure(s) let go)` : ""}`,
   );
   const failure = run?.closing?.failure;
   if (failure) out(`failure: ${oneLine(JSON.stringify(failure))}`);
-  // Each action that wrote, in order, with what its slot holds.
+  // Each write, in order, with its own value: a `current` write is what its
+  // slot holds now, a `superseded` one (an each's earlier item) carries its
+  // value, a `failed` one its error. A written record shows its id.
   const slots = trace?.slotOutputs ?? {};
-  for (const w of trace?.actionOutputs?.writes ?? [])
+  for (const w of trace?.stepOutputs?.writes ?? []) {
+    const where = `${w.stepName ?? w.stepKey}${w.branchId ? ` [${w.branchId}]` : ""}`;
+    if (w.kind === "failed") {
+      out(`  ${where} failed: ${cut(oneLine(w.error), 300)}`);
+      continue;
+    }
+    const value = w.kind === "superseded" ? w.value : slots[w.slot];
+    const id =
+      value && typeof value === "object" && !Array.isArray(value)
+        ? (value.recordId ?? value.id)
+        : undefined;
     out(
-      `  ${w.actionName ?? w.actionId} → ${w.slot}: ${cut(oneLine(JSON.stringify(slots[w.slot] ?? null)), 160)}`,
+      `  ${where} → ${w.slot}: ${typeof id === "string" ? `record ${id}` : cut(oneLine(JSON.stringify(value ?? null)), 160)}`,
     );
+  }
   if (trace?.output !== undefined)
     out(`output: ${cut(oneLine(JSON.stringify(trace.output)), 400)}`);
+  await printCaps(runId, run);
   if (outcome === "failed") throw refused("");
+};
+
+/** Says which `each` ran fewer items than it was handed, and how to lift it. */
+const printCaps = async (runId, run) => {
+  const capped = (run?.closing?.warnings ?? []).some(
+    (w) => w.kind === "each-capped",
+  );
+  if (!capped) return;
+  const res = await api(
+    "GET",
+    `/v1/runs/${encodeURIComponent(runId)}/timeline`,
+  );
+  const rows = (res.status === 200 ? res.json?.timeline : undefined) ?? [];
+  const caps = rows.filter(
+    (r) => r.kind === "step-warned" && r.detail?.kind === "each-capped",
+  );
+  if (caps.length === 0)
+    out("capped: an each ran fewer items than it was handed");
+  for (const r of caps) {
+    const d = r.detail;
+    const lift =
+      d.cappedBy === "preview"
+        ? "--fan-out-cap <n|uncapped> runs more"
+        : d.cappedBy === "config"
+          ? "the step's own maxItems bounds it"
+          : "the platform's ceiling bounds it";
+    out(
+      `capped: ${r.stepName ?? r.stepKey} ran ${d.branches ?? "?"} of ${d.requested ?? "?"} items (${lift})`,
+    );
+  }
 };
 
 // ── summary ─────────────────────────────────────────────────────────────────
@@ -656,12 +753,13 @@ const docs = (query) => {
 
 const HELP = readFileSync(fileURLToPath(import.meta.url), "utf8")
   .split("\n")
-  .slice(1, 19)
+  .slice(1, 21)
   .map((l) => l.replace(/^\/\/ ?/, ""))
   .join("\n");
 
 const main = async () => {
-  const [command, ...rest] = words;
+  if (badFlag) throw usage(badFlag);
+  const [command, ...rest] = flags.get("help") === true ? ["help"] : words;
   switch (command) {
     case "plan":
       if (!(await plan(rest[0])).ok) throw refused("");

@@ -19,26 +19,26 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | --- | --- | --- | --- | --- |
 | `createdAfter` | string | no | — | Keep only rows created at or after this fixed ISO-8601 date. |
 | `createdBefore` | string | no | — | Keep only rows created at or before this date. |
-| `cursor` | union | no | — | A previous page's cursor; empty for the first page. ⚠️ An edited cursor fails the action; another read's absent `nextCursor` answers an empty page, a flow input's the first. |
-| `dataContains` | union | no | — | The object to look for in that list. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a non-object fails it; a never-produced input skips the action. |
+| `cursor` | union | no | — | A previous page's cursor; empty for the first page. ⚠️ Bound to another read's `nextCursor` after its last page, it answers an empty page; otherwise it reads page one. |
+| `dataContains` | union | no | — | The object to look for in that list. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a non-object fails it; a never-produced input skips the step. |
 | `dataContainsPath` | string | no | — | Keep only rows whose list at this `data` path contains `dataContains`. ⚠️ This reads every row of the table before narrowing. |
-| `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a wrong kind fails it; a never-produced input skips the action. |
+| `dataEquals` | union | no | — | The value to compare: text, number or true/false. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`, a wrong kind fails it; a never-produced input skips the step. |
 | `dataEqualsPath` | string | no | — | Keep only rows whose value at this `data` path equals `dataEquals`. ⚠️ This reads every row of the table before narrowing. |
-| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a path inside `data` is empty or filled. ⚠️ A missing key counts as no value, and every row is read. |
-| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list answers an empty page; a never-produced input skips the action. |
-| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the action; a run warns from half the limit and a save when one is likely. |
+| `dataNullChecks` | object[], at least 1 item | no | — | Keep rows by whether a field inside `data` is empty or filled. ⚠️ A missing key counts as no value, and every row is read. |
+| `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list answers an empty page; a never-produced input skips the step. |
+| `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the step; a run warns from half the limit and a save when one is likely. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
 | `limit` | union | no | — | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows a page was cut short; a value outside 1–100 or not whole reads the default. |
-| `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the action. |
+| `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |
-| `pages` | object | no | — | Read every page, from `cursor` if set; unset reads one page. ⚠️ Records left after the last page fail the action unless `onMore` is "stop". |
+| `pages` | object | no | — | Read every page, from `cursor` if set; unset reads one page. ⚠️ Records left after the last page fail the step unless `onMore` is "stop". |
 | `scalars` | object | no | `{}` | Extra values per row: failure summary and file count. |
 | `sort` | `createdAt` \| `updatedAt` | no | `"createdAt"` | Order by when a row was created (default) or last changed. |
 | `sortField` | string | no | — | Order by one of the table's queryable fields instead of `sort`. ⚠️ The field must be a date; rows without a value are left out. |
 | `statuses` | string[], at least 1 item | no | — | Keep only rows with these statuses; empty allows every status. |
 | `tableKey` | string | yes | — | The table to list. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
-| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the action. |
+| `userId` | union | no | `"userInfo.userId"` | The signed-in user's id; only user-owned types use it. ⚠️ On a user-owned type, an empty value fails the step. |
 | `vocabularyFilter` | object[], at least 1 item | no | — | Keep only rows tagged with all of these vocabulary terms. ⚠️ A nested term slug matches under every parent unless `parentSlug` is set. |
 | `whose` | `all` \| `own` \| `shared` | no | `"all"` | Sharing tables: `all` (default), `own`, or `shared` (newest share first). |
 
@@ -100,7 +100,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `path` | string | yes | — | A dotted path inside the record's `data`. |
+| `field` | string | yes | — | The field, a dotted path inside the record's `data`. |
 | `op` | `isNull` \| `isNotNull` | yes | — | `isNull` keeps rows with no value there; `isNotNull` keeps the rest. |
 
 ### `fieldFilters` — each item
@@ -197,7 +197,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
 | `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
 | `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
-| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the step; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
 | `when` | union | no | — | Read these linked records only when this is true: a slot, a fixed `true`/`false`, or `{expr: …}`. When it is false or gives nothing, nothing is read for them and no record carries this name under `linked`. |
 | `linked` | object | no | — | The records linked to each linked record: one more level, which takes no `linked`. |
 
@@ -239,7 +239,7 @@ each entry › `linked` — each entry, under a name you choose:
 | `limit` | integer, 1 to 100 | no | — | The most linked records for each record, 1 to 100; needed when the linked read brings a list. |
 | `sortField` | string | no | — | A date field of the other table to order a list by; created time when absent. |
 | `order` | `desc` \| `asc` | no | — | Order of a list: `"desc"` (default, newest first) or `"asc"`. |
-| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the action; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
+| `onMore` | `fail` \| `stop` | no | — | When a record has more linked records than `limit`: `"fail"` (default) fails the step; `"stop"` keeps the first `limit` and marks the record in `linkedMore`. |
 | `when` | union | no | — | Read these linked records only when this is true: a slot, a fixed `true`/`false`, or `{expr: …}`. When it is false or gives nothing, nothing is read for them and no record carries this name under `linked`. |
 
 each entry › `linked` › each entry › `include`:
@@ -310,7 +310,7 @@ each entry › `linked` › each entry › `when` — one of:
 
 ## Worked example
 
-Reads the catalog one page at a time, so a later action can summarize or count everything the user has.
+Reads the catalog one page at a time, so a later step can summarize or count everything the user has.
 
 #### First page
 
@@ -318,7 +318,7 @@ No cursor wired, so this is the first page: the 50 newest rows, and a cursor bec
 
 Reads `{ userId }` → emits `RecordPage` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -353,7 +353,7 @@ The previous page's cursor is wired in, so this page starts after it and is the 
 
 Reads `string` → emits `RecordPage` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -386,7 +386,7 @@ Output:
 
 Reads `{ userId }` → emits `RecordPage` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -428,7 +428,7 @@ Every book carries the author it points at under `linked.author`, read for the w
 
 Reads `{ userId }` → emits `RecordPage` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {
@@ -475,7 +475,7 @@ The user has no records, or none match the filters. The page comes back empty, w
 
 Reads `{ userId }` → emits `RecordPage` · 1 in → 1 out
 
-Action settings (`functionConfig`):
+Step settings (`with`):
 
 ```json
 {

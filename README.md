@@ -8,19 +8,20 @@ Kipory is a platform for building a product's backend — its processes, its dat
 
 Kipory's site, its app, its API and these skills name things with the same words:
 
-| Word       | Where an agent meets it                                      |
-| ---------- | ------------------------------------------------------------ |
-| Type       | `/v1/types`                                                  |
-| Table      | `/v1/tables`                                                 |
-| Record     | `/v1/records`; functions such as `record.read`               |
-| Relation   | `/v1/relations`                                              |
-| Link       | `/v1/links`; the function `record.links`                     |
-| Vocabulary | `/v1/vocabularies`                                           |
-| Term       | `/v1/terms`                                                  |
-| Function   | `/v1/functions`, the field `functionKey`                     |
-| Action     | `/v1/actions`; the fields `action`, `actions` and `actionId` |
+| Word       | Where an agent meets it                              |
+| ---------- | ---------------------------------------------------- |
+| Type       | `/v1/types`                                          |
+| Table      | `/v1/tables`                                         |
+| Record     | `/v1/records`; functions such as `record.read`       |
+| Relation   | `/v1/relations`                                      |
+| Link       | `/v1/links`; the function `record.links`             |
+| Vocabulary | `/v1/vocabularies`                                   |
+| Term       | `/v1/terms`                                          |
+| Function   | `/v1/functions`; a step's field `function`           |
+| Step       | `PUT /v1/flows/{id}/steps`; a flow's field `steps`   |
+| Action     | a step that runs a function: `{key, function, with}` |
 
-An "action" is one part of a flow. It has nothing to do with the agent skills in this repository.
+A "step" is one part of a flow, and an "action" is the kind of step that runs a function. Neither has anything to do with the agent skills in this repository.
 
 ## Install
 
@@ -94,7 +95,7 @@ Every generated file opens with a stamp naming its source, and the content hashe
 | `kipory-connect`  | **Start here.** Prove the deployment and the key, see what the project holds, and the `kipory` command that plans, applies and tests in single calls                              |
 | `kipory-plan`     | Turn an idea into a build sheet — everything that will exist, before authoring                                                                                                    |
 | `kipory-model`    | Tables and types, vocabularies and terms, relations, the embedding profile that makes records searchable                                                                          |
-| `kipory-build`    | Build and edit flows over the function catalog: actions, slots, output binding, health, preview, checkpoints                                                                      |
+| `kipory-build`    | Build and edit flows over the function catalog: steps, blocks, values, health, preview, checkpoints                                                                               |
 | `kipory-data`     | Read and write records, files and links by hand: import, correct, reprocess, delete; the processing stream                                                                        |
 | `kipory-gather`   | Reach outside the project: fetch and scrape pages, call an API with or without a stored key, send a request to an outside system, web search, social platforms, places, geocoding |
 | `kipory-extract`  | Turn a file into something a flow can use: PDF text, page renders, transcripts, image data, signed links                                                                          |
@@ -103,8 +104,8 @@ Every generated file opens with a stamp naming its source, and the content hashe
 | `kipory-prove`    | Pin what "working" means: eval suites — assertions for pass/fail, scorer flows for quality, the run-to-run delta                                                                  |
 | `kipory-operate`  | Schedules, triggers, the event registry, runtime config, and what it all spent                                                                                                    |
 | `kipory-channels` | Send mail from the project's own address; subscribe to Telegram channels                                                                                                          |
-| `kipory-secrets`  | Store a credential a flow needs — a vendor key, or the key an action sends to an outside API — and decide whose key pays the vendor                                               |
-| `kipory-diagnose` | Find a run, read its timeline, its writes and its trace, and see which action moved                                                                                               |
+| `kipory-secrets`  | Store a credential a flow needs — a vendor key, or the key a step sends to an outside API — and decide whose key pays the vendor                                                  |
+| `kipory-diagnose` | Find a run, read its timeline, its writes and its trace, and see which step moved                                                                                                 |
 | `kipory-evolve`   | Change a project that already holds records or serves callers: rehearse a change, read a refusal, roll a flow back                                                                |
 
 ## Before you start
