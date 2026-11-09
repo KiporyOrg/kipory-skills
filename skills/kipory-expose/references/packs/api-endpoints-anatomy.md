@@ -115,7 +115,9 @@ parameters adjacent.
 
 A path or query value is converted to the input's type — text, a number, an integer or
 true/false — and a value that does not convert answers 422 before the flow runs: `?limit=20`
-feeds an integer `limit`. A header or the raw body binds a text input. `authorization`,
+feeds an integer `limit`. So does one outside the bounds the input's type declares (`minimum`,
+`maximum`, `pattern`, `enum`, `minLength`, `maxLength`, …): `?limit=0` for a `minimum: 1`. The
+published parameter carries the same bounds. A header or the raw body binds a text input. `authorization`,
 `cookie`, `proxy-authorization` and any `x-kipory-` header cannot be bound: a flow never sees a
 credential.
 
@@ -142,6 +144,11 @@ word never, under a group a project host serves only while that group is enabled
 word and its group, whether or not the group is enabled. A path whose FIRST segment is a parameter
 (`/v1/{kind}/…`) saves; its `validateOnly` warns `ENDPOINT_PATH_PARTLY_PREEMPTED`, because those
 words never reach it. Read the first words off `GET /v1/coded-routes` — it needs a key, any role.
+
+A path segment named like a value that selects or shapes a read — `{month}`, `{page}`, `{limit}`,
+`{sort}`, `{status}`, `{startDate}` — saves with an `ENDPOINT_PATH_PARAM_LOOKS_LIKE_QUERY` warning,
+on `validateOnly` and in a document plan. A contract usually sends such a value in the query; keep it
+in the path only when the contract puts it there (`{name}` in braces).
 
 There is **no read-only flag to set.** Whether a VIEWER-level caller may make a call is the
 platform's decision, not a declaration: an asynchronous invoke and a DELETE are writes; any other

@@ -1,7 +1,9 @@
 {
-  "source": "ce78ef3a3c58264ef743b62322f2ef5aea1e44fd",
-  "since": "2026-08-16",
+  "source": "c8f37988e59687c3dcc5d1f3b2184c31b3d26843",
+  "since": "2026-08-17",
   "history": [
+    {"sha":"c8f37988e596","skills":"A retry key belongs to its caller, a record keeps the times its run reported, and a query value keeps its type's bounds (426) (#3704)"},
+    {"sha":"bea94a03dcfb"},
     {"sha":"ce78ef3a3c58","skills":"A vendor run left unbilled is settled from the vendor's own record and billed as its run was, a late answer is kept, admission can go per request, and no function vendor is listed in code (418, S10) (#3702)"},
     {"sha":"8d5028bfe12a"},
     {"sha":"01b9096f87e8"},
@@ -999,8 +1001,6 @@
     {"sha":"8bfcd880f073"},
     {"sha":"ad6636a69bb7"},
     {"sha":"85039bcb835e"},
-    {"sha":"b47f00575fe2"},
-    {"sha":"0ed25f34aac9"},
-    {"sha":"e6e1765026c8"}
+    {"sha":"b47f00575fe2"}
   ]
 }

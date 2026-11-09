@@ -1,13 +1,12 @@
 # Answers: what every build asks
 
-Read this right after `quickstart-document.md`. Each answer is the shape to copy and where the detail lives; the names are the example project's (`task`, `create-task`, `notify-due`). For anything else, run `kipory docs <words>` (the `kipory` command in `kipory-connect`).
+Read this right after `quickstart-document.md`. Each answer is the shape to copy and where the detail lives; names are the example project's (`task`, `create-task`, `notify-due`). For anything else, run `kipory docs <words>` (the `kipory` command in `kipory-connect`).
 
 <!-- field-ok: readAfter — the paging input a flow declares for its `record.view` action `read`, named after the action -->
 <!-- field-ok: readBefore — the paging input a flow declares for its `record.view` action `read`, named after the action -->
 <!-- field-ok: readLimit — the paging input a flow declares for its `record.view` action `read`, named after the action -->
 <!-- field-ok: userInfo — a provider SLOT name the platform fills, not a request field -->
 <!-- field-ok: runInfo — a provider SLOT name the platform fills, not a request field -->
-<!-- field-ok: dueNotice — the example project's own table key -->
 
 ## How does an endpoint answer 404, 409, 422 or another status?
 
@@ -25,7 +24,7 @@ Read this right after `quickstart-document.md`. Each answer is the shape to copy
 
 - **The caller's id** is `userInfo.userId` in an expression (`$$.userInfo.userId` inside a `[…]` filter). `userInfo` holds `userId`, plus `profile` when the project has one. A key's call, a schedule and a trigger have no `userInfo`.
 - **Mostly you don't need it.** `"ownerScope": "user"` on a table makes every row its creator's: reads see only the caller's rows, and another person's id reads as missing. Write no owner field and no owner filter. `"ownerScope": "project"` rows are shared by everyone in the project.
-- **Sharing a record: use the built-in, not a table of shares.** `"sharing": true` on a `"user"` table; `record.grant` (the record id, then a person's id or a team record's id) with `"level"` `read` < `write` < `delete` < `manage` (shares onward). A team is a record its people are granted `"level": "member"` on. Reads then answer shared records too, each with `access` (`owner`, `read`, …): `record.read` with `failIfEmpty` answers a stranger 404, and an act beyond the level answers 403 by itself. `record.list` takes `"whose": "own"` or `"shared"`; `record.grants` lists shares (`kipory-data`'s `references/sharing-records.md`).
+- **Sharing a record: use the built-in, not a table of shares.** `"sharing": true` on a `"user"` table; `record.grant` (the record id, then a person's id or a team record's id) with `"level"` `read` < `write` < `delete` < `manage` (shares onward). A team is a record its people are granted `"level": "member"` on. Reads then answer shared records too, each with `access` (`owner`, `read`, …): `record.read` with `failIfEmpty` answers a stranger 404, and an act beyond the level answers 403 by itself. Check it (404, then 403 by `access`) before records a request names (`endpoint-answers.md` §8); `whose`, `record.grants`: `kipory-data`'s `references/sharing-records.md`.
 
 ## How do I search, order and page a list?
 
@@ -38,27 +37,28 @@ Read this right after `quickstart-document.md`. Each answer is the shape to copy
 
 - **`inputs`** maps each flow input to `{"from": "body"}` (the body field of the same name), `{"from": "path.id"}`, `{"from": "query"}` (the query parameter named like the input) or `{"from": "query.q"}`. `{"from": "header.x-signature"}` and `{"from": "rawBody"}` feed `request.verify-signature` for a signed webhook.
 - **A path parameter is declared and required:** `"params": {"id": {"in": "path", "type": "string", "required": true}}`.
-- **A query or path value takes the type of the input it feeds.** Bound to a `number`, `integer` or `boolean` input, `?limit=20` arrives as `20`; a value that doesn't read as that type (`?limit=x`) is refused 422 before the run.
+- **Params go where the contract says:** `{id}` in the path, a GET's rest in the query.
+- **A query or path value takes the type of the input it feeds.** Bound to a `number`, `integer` or `boolean` input, `?limit=20` arrives as `20`; a value that doesn't read as that type (`?limit=x`) is refused 422 before the run, and so is one outside its type's bounds.
 
 ## How do I write something once, or count safely?
 
 - **On a project-wide table (`"ownerScope": "project"`), identical data is one record.** A `record.create` there is keyed by its content as first written: two creates with the same fields give one record. Rows of the people who sign in belong on `"ownerScope": "user"` tables, which keep them apart (a run for nobody writes them only for a person named in `userId`). Other rows that may repeat carry a field that tells them apart: `'ref': runInfo.nonce` differs per run, not per create.
-- **Once:** give the field a `key` use (`{"source": {"family": "submission", "field": "taskId"}, "uses": ["key"]}`), then `record.create` with `"onKeyTaken": "skip"`. When the record already exists (another record holds the key, or, on a project-wide table, the same data was already written), the create adds nothing and answers `keyTaken: true` with that record's `recordId`. Gate a mail on it: `$not($exists(created.keyTaken) and created.keyTaken) ? {…}`. Two runs of a job at once send once too: the later save is refused, and that run starts again and answers `keyTaken`. Two identical items in one fan-out can both send, so keep its items distinct.
+- **Once:** give the field a `key` use (`{"source": {"family": "submission", "field": "taskId"}, "uses": ["key"]}`), then `record.create` with `"onKeyTaken": "skip"`. When the record already exists (another record holds the key, or, on a project-wide table, the same data was already written), the create adds nothing and answers `keyTaken: true` with that record's `recordId`. Gate a mail on it: `$not($exists(created.keyTaken) and created.keyTaken) ? {…}`. Two runs of a job at once send once too: the later save is refused, and that run starts again and answers `keyTaken`. Two identical items in one fan-out can both send: keep items distinct.
 - **Calls at once on one record:** read it and update it. A save that another call's change refused waits its turn and runs again, so parallel calls apply one by one (`409` with `Retry-After` once its time or 4 runs are spent); write no lock or retry. A find-or-create two calls race creates with `"onKeyTaken": "skip"`, then updates: a plain create answers a final `409 RECORD_NATURAL_KEY_TAKEN`.
 - **A counter:** `record.update` with `"add": {"views": {"literal": 1}}` adds inside the save, so two runs at once both count without waiting.
 
 ## What can an expression read about the run?
 
-`runInfo.now` (an ISO time), `runInfo.nonce` and `runInfo.requestId`, always; `runInfo.recordId` and `runInfo.tableKey` on a record's processing run. JSONata's `$now()` and `$random()` are refused: use `runInfo.now` and `runInfo.nonce`.
+`runInfo.now` (an ISO time), `runInfo.nonce` and `runInfo.requestId`, always; `runInfo.recordId` and `runInfo.tableKey` on a record's processing run. JSONata's `$now()` and `$random()` are refused.
 
 ## How do I try a scheduled job, or a flow as a person?
 
-`kipory preview notify-due --as alice` runs the flow in the sandbox as that test user, without saving its writes, and prints what each action wrote. A schedule never starts a run for a test user, so this is how the daily job is rehearsed.
+`kipory preview notify-due --as alice` runs the flow in the sandbox as that test user, saving nothing, and prints what each action wrote: how a daily job is rehearsed (a schedule never runs as a test user).
 
 ## How does one flow call another, or a model?
 
 - **A sub-flow:** `flow.invoke` with `"functionConfig": {"target": "write-brief", "inputs": {"points": "allPoints"}, "outputs": [{"subFlowSlot": "brief", "parentSlot": "draft"}]}` (`patterns.md`, sub-flow).
-- **A model:** `text.generate` takes `taskKey`, `promptTemplate` and `outputSchema` on the action itself, not in `functionConfig`. A yes/no or a pick from a list is `text.decide`.
+- **A model:** `text.generate` takes `taskKey`, `promptTemplate` and `outputSchema` on the action itself, not in `functionConfig`. A yes/no or a pick is `text.decide`.
 
 ## What about inputs, fan-outs and changing what an endpoint serves?
 

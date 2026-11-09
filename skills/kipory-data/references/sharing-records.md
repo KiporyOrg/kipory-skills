@@ -144,6 +144,11 @@ it (`TABLE_FIELD_RESERVED_BY_SHARING: …`), an action's follows the action's na
 When your product wants a 404 where the built-in answers 403 (say, "anyone but the recipient gets 404"),
 check `access` first and answer with `request.refuse`.
 
+Check the shared record before anything else the request names. "Only the owner may move a note into a
+folder" is a `record.read` of the note (404 to a stranger), then `request.refuse` 403 when its `access`
+is not `owner`, and only then a read of the folder. A folder read first, as the editor, finds nothing
+of theirs and answers 404, where the editor should be told 403.
+
 ## When a person leaves
 
 When a person is erased — their whole account, or their account in one project — their records on a
