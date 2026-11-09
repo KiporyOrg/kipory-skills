@@ -1,7 +1,10 @@
 {
-  "source": "cd31378dedd9b8fe1ea2771c01eda1bc29a9dda0",
+  "source": "ce78ef3a3c58264ef743b62322f2ef5aea1e44fd",
   "since": "2026-08-16",
   "history": [
+    {"sha":"ce78ef3a3c58","skills":"A vendor run left unbilled is settled from the vendor's own record and billed as its run was, a late answer is kept, admission can go per request, and no function vendor is listed in code (418, S10) (#3702)"},
+    {"sha":"8d5028bfe12a"},
+    {"sha":"01b9096f87e8"},
     {"sha":"cd31378dedd9","skills":"A run's model calls and fetches run in the run's own process, deduplicated by a fenced call claim with derived billing keys, and record and endpoint runs are admitted fairly per project (425) (#3699)"},
     {"sha":"2828ab1893ff","skills":"A function vendor is named by its row everywhere, an unreadable vendor row alerts staff, x.posts' Apify version 2 is drafted, and 14 ScrapeCreators reads are shown (418) (#3698)"},
     {"sha":"66c5faa6cb8f","skills":"A coding agent builds a Kipory backend for less and gets it right more often: a kipory command, entry skills that answer every build's questions, a compact project summary and one-pass plans, and four run-plane fixes the benchmarks found (424) (#3697)"},
@@ -998,9 +1001,6 @@
     {"sha":"85039bcb835e"},
     {"sha":"b47f00575fe2"},
     {"sha":"0ed25f34aac9"},
-    {"sha":"e6e1765026c8"},
-    {"sha":"5e83025857b6"},
-    {"sha":"19c669e338fc"},
-    {"sha":"3cb19be837cd"}
+    {"sha":"e6e1765026c8"}
   ]
 }

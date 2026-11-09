@@ -335,6 +335,7 @@ What the projects under this organization spent over a window, by project, kind,
 | `kinds` | `object[]` | yes | One row per kind of work with spend in the window, costliest first. |
 | `breakdown` | `object` | yes | The window split along the dimension `by` asked for. |
 | `narrowed` | `object` | yes | The narrowing the server applied, echoed so a client draws exactly the chips that are in force. |
+| `vendors` | `object[]` | yes | The name and mark of every function vendor this answer names by id — a provider row's `key`, the narrowed `provider` — from its row. |
 | `models` | `object[]` | yes | Every model with calls in the window across the subtree, under the scope and narrowing, costliest first. |
 | `projects` | `object[]` | yes | Every project in the subtree, by name. |
 | `nearestCap` | `object \| null` | yes | The ceiling closest to refusing across every project: one already refusing first, then the highest share. Only a ceiling with something consumed against it — or one already refusing — is ranked. `null` when no such ceiling exists, whether because none is set or nothing has been consumed; `projects[].caps` says which. |
@@ -367,6 +368,14 @@ Each item of `kinds`:
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
+
+Each item of `vendors`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `vendor` | `string` | yes | The vendor's id (its row's slug). |
+| `name` | `string` | yes | The vendor's name, as the vendor writes it. |
+| `iconSvg` | `string \| null` | yes | The vendor's mark as one standalone `<svg>` document — checked when written to hold no script, event handler or outside reference — or `null` when its row records none. |
 
 Each item of `models`:
 
@@ -483,6 +492,7 @@ What one project spent over a window, by kind of billable work — split by kind
 | `kinds` | `object[]` | yes | One row per kind of work with spend in the window, costliest first. Absent entirely for a window with none. Always present whatever `by` says. |
 | `breakdown` | `object` | yes | The window split along the dimension `by` asked for. |
 | `narrowed` | `object` | yes | The narrowing the server applied. |
+| `vendors` | `object[]` | yes | The name and mark of every function vendor this answer names by id — a provider row's `key`, the narrowed `provider` — from its row. |
 | `models` | `object[]` | yes | Every model with calls in the window under the scope and narrowing, costliest first. |
 | `caps` | `object` | yes | The project's spend ceilings and how close each is. Measured on the ceilings' own windows, not the page's. |
 | `payer` | `object \| null` | yes | The wallet this project's work settles to. `null` when no wallet resolves anywhere above it, in which case the work is served unbilled. |
@@ -516,6 +526,14 @@ Each item of `kinds`:
 | `credits` | `integer` | yes | What this kind cost over the window. `0` is a measured answer — the work happened and priced to nothing — and is not the same as the kind being absent from the array. |
 | `events` | `integer` | yes | How many billable events produced that figure. |
 | `charged` | `integer` | yes | How many of those events carried a charge above zero — the work that actually cost something, apart from the function runs, vector writes and storage ticks recorded at no charge. |
+
+Each item of `vendors`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `vendor` | `string` | yes | The vendor's id (its row's slug). |
+| `name` | `string` | yes | The vendor's name, as the vendor writes it. |
+| `iconSvg` | `string \| null` | yes | The vendor's mark as one standalone `<svg>` document — checked when written to hold no script, event handler or outside reference — or `null` when its row records none. |
 
 Each item of `models`:
 

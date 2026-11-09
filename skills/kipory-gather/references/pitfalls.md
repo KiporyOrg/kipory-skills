@@ -52,11 +52,10 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
   (`youtube.video`, `youtube.channel`, `youtube.search`, `youtube.trending`) are the exception:
   their daily quota wall fails `quota-exhausted` whoever's key it was.
   A refused scrape is **not charged** — the function bills only a
-  page it got. A preview's `ingestSpend` carries two totals, `totalFirecrawlUsd` and `totalSupadataUsd` —
-  what the preview was charged for those two vendors so far, read from your charges — and
-  `calls[]`, which counts every ingest function's calls, cache hits and refusals included, so a
-  refused call shows there at no cost. Apify, ScrapeCreators and YouTube spend is not totalled
-  there; read the run's spend (`kipory-operate`). A call that timed out waiting keeps running
+  page it got. A preview's `ingestSpend` carries `vendors[]` — one total per vendor the preview was charged
+  at so far (`vendor`, `vendorName`, `usd`), read from your charges — and `calls[]`, which counts
+  every ingest function's calls, cache hits and refusals included, so a refused call shows there
+  at no cost. A call that timed out waiting keeps running
   and can be charged after the preview returns, so its cost may be missing from that preview's
   totals. A fetch on your own vendor key is never charged, and a platform-paid preview reports $0.
 - **The cache is the design, not an optimisation.** A repeated call inside the cache window makes

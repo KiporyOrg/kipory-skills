@@ -374,6 +374,9 @@ a 422 naming a key you did send and a key you did not.
 before running anything, and charges provider work exactly as a real run would. What preview avoids
 is a specific, listed set of effects — not spend, and ⛔ **not record writes**. Do not treat it as
 free or as read-only.
+What a preview's outside fetches cost so far is its answer's `ingestSpend.vendors[]` — one total per
+vendor charged (`vendor`, `vendorName`, `usd`), any vendor, none listed at zero — beside `calls[]`,
+which counts every fetch function's calls, cache hits and refusals.
 
 What it does isolate: model calls are tagged as preview so you can filter them out later; files
 written by functions land in a sandbox prefix with no record attached; vector writes are no-ops,

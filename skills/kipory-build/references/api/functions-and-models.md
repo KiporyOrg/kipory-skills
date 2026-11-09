@@ -92,6 +92,7 @@ Every function this deployment runs — what each reads, emits and accepts as co
 | `expressionFunctions` | `object[]` | yes | Every function the platform adds to JSONata, callable in any expression a flow holds and in a table's computed-field formulas. Besides these, every JSONata 2.2 function works except the ones in `forbiddenExpressionFunctions`. |
 | `forbiddenExpressionFunctions` | `object[]` | yes | JSONata functions an expression may not call: a save naming one is refused. |
 | `askAi` | `object` | yes | The function for free instructions, named by the platform. |
+| `vendors` | `object[]` | yes | The name and mark of every vendor a listed function's credential names (`credential.purpose`, `providers.options[].credential.purpose`), by id, from the vendor's row. Not covered by `version`. |
 
 Each item of `functions`:
 
@@ -175,6 +176,14 @@ Each item of `forbiddenExpressionFunctions`:
 | --- | --- | --- | --- |
 | `name` | `string` | yes | The JSONata function, without the `$`. |
 | `why` | `string` | yes | Why it is refused, and what to use instead. |
+
+Each item of `vendors`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `vendor` | `string` | yes | The vendor's id (its row's slug). |
+| `name` | `string` | yes | The vendor's name, as the vendor writes it. |
+| `iconSvg` | `string \| null` | yes | The vendor's mark as one standalone `<svg>` document — checked when written to hold no script, event handler or outside reference — or `null` when its row records none. |
 
 ### `GET /v1/functions/{key}`
 
