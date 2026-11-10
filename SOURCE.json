@@ -1,7 +1,8 @@
 {
-  "source": "87bb660465228f3fb45147579a9866b8b7c59b09",
+  "source": "9de7093e76a592a51cf436938fdac5cba77b01a9",
   "since": "2026-08-17",
   "history": [
+    {"sha":"9de7093e76a5","skills":"A schedule refused by the same limit three times in a row is paused, and a fan-out branch that reads its whole list is warned about (427) (#3707)"},
     {"sha":"87bb66046522","skills":"Place lookups run on the vendor engine as a keyless OpenStreetMap vendor at one request a second, the engine calls free public APIs with fixed headers, and the ledger's pick-up default is dropped (418 follow-ups) (#3708)"},
     {"sha":"d682a35121bd"},
     {"sha":"6f12587591ad","skills":"A flow is one document of steps: written order, blocks, a run rule that fails a missing input instead of skipping, and dev and staging reset to format 11 (420) (#3706)"},
@@ -1000,7 +1001,6 @@
     {"sha":"bfb5b62b1867"},
     {"sha":"424fdc87fe3d"},
     {"sha":"eb54f7ce1321"},
-    {"sha":"41c37c307fd7"},
-    {"sha":"978f7d21432a"}
+    {"sha":"41c37c307fd7"}
   ]
 }

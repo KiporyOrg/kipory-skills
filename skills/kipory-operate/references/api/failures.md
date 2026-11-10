@@ -193,7 +193,7 @@ Each item of `subjects`:
 | `failureTrigger` | `boolean` | yes | True for a trigger on one of the platform's own events — a failure trigger. When it is the one failing, the project is not being told about its other failures. |
 | `health` | `object` | yes | How its recent runs went. Read live; it is not part of the row's configuration and never moves its `version`. |
 | `pausedAt` | `string \| null` | yes | When the platform paused it, or null. |
-| `pauseReason` | `string \| null` | yes | Why it was paused: `failing` or `mostly-failing`. Null when it is not. |
+| `pauseReason` | `string \| null` | yes | Why it was paused: `failing`, `mostly-failing` or `repeated-limit` (a schedule whose last three runs were each refused by the same limit). Null when it is not. |
 
 Each item of `requiredGaps`:
 

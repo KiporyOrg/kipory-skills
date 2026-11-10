@@ -2,6 +2,20 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261110.91734 — 2026-11-10
+
+Synced from the Kipory monorepo at `9de7093e7`.
+
+- changed: `skills/kipory-build/references/fan-out.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-operate/references/api/failures.md`
+- changed: `skills/kipory-operate/references/api/schedules.md`
+- changed: `skills/kipory-operate/references/api/triggers.md`
+- changed: `skills/kipory-operate/references/packs/schedules.md`
+- changed: `skills/kipory-operate/references/when-a-run-fails.md`
+
 ## 1.20261110.82308 — 2026-11-10
 
 Synced from the Kipory monorepo at `87bb66046`.

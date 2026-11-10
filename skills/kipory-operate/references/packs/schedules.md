@@ -414,8 +414,17 @@ trigger on `platform` / `health.pause-warned`, no schedule is ever paused, and e
 `health.pauseArmed` is `false`. A schedule that must never be paused says so itself:
 `failurePolicy: "keep-running"` on create or PATCH (default `"pause"`).
 
+⚠️ **One pause needs no warning and overrides `keep-running`: the same limit, three runs in a row.**
+When three runs in a row are each refused by the same limit on one run — `runs.change-set-effects`,
+`runs.each-items` and the other per-run size or count limits — with no run succeeding between,
+the schedule is paused at once with `pauseReason: "repeated-limit"`, whatever its `failurePolicy`.
+A refused run saves nothing, so the next one meets the same records and is refused the same way.
+The project is sent `platform/health.paused`, whose `limitKey` names the limit. Fix the flow — read
+fewer records per run and carry on with `flow.continue` — then resume it. A rate limit, a spend
+cap, an occurrence skipped for an overlap, and a trigger never count toward it.
+
 **Paused is a state of its own, beside `enabled`.** The read shows `pausedAt` and `pauseReason`
-(`failing` or `mostly-failing`); nothing fires and no occurrence is recorded. Nothing you write
+(`failing`, `mostly-failing` or `repeated-limit`); nothing fires and no occurrence is recorded. Nothing you write
 sets or clears it — not `enabled: true`, not a project document, which shows `paused` on export
 and never plans it. `POST /v1/schedules/{id}/resume` (no body, no `version`) resumes it: it fires
 again from its next occurrence after now, and reads `healthy`. Pausing and resuming move no
