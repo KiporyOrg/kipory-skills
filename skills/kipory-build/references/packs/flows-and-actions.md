@@ -841,7 +841,9 @@ The body:
   flow.
 - **`fanOutCap`** — how many elements any `each` runs in this preview (default 5, at most 1000, or
   `"uncapped"`). It only narrows. A capped run proves the wiring and each element's behaviour, not
-  the whole population; `fanOutCaps` on the answer says what was cut.
+  the whole population; `fanOutCaps` on the answer says what was cut, and each entry's `cappedBy`
+  is `preview`. The cap is applied after the step's own limits: an `each` past its `maxItems`
+  fails the step, in a preview as in a run.
 
 ⚠️ **Preview costs money and writes records.** It charges the project's payer as a real run does,
 and refuses a suspended or over-cap payer before running. Model calls are tagged as preview and
@@ -988,7 +990,7 @@ POST  /v1/projects/{nodeId}/document          apply it to the target
 The document is `kipory: 11`, and each flow sits under `flows.<key>` with its `steps` in written order,
 stated whole: a step the list leaves out is removed. Everything is addressed by key, so nothing in it
 is a source-project id. The plan names each step by flow and key; a step whose list or position
-changed is a move. A document in an older format is refused at plan (`DOCUMENT_VERSION_UNSUPPORTED`).
+changed is a move. A document in another format is refused at plan (`DOCUMENT_VERSION_UNSUPPORTED`).
 See the Project document (capability pack `project-document` — `GET /v1/capability-packs/project-document`) pack.
 
 There is no per-flow export: the document is the portable form. A type your source project defined

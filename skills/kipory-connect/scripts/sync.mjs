@@ -134,8 +134,8 @@ const LAYERS = [
     pick: (json) => json?.version,
     items: (json) => {
       if (!Array.isArray(json?.packs)) return undefined;
-      // A deployment older than the per-pack hash serves none: "cannot say
-      // which", never "every pack differs".
+      // A list without a per-pack hash is "cannot say which", never "every
+      // pack differs".
       if (json.packs.some((p) => typeof p?.hash !== "string")) return undefined;
       return Object.fromEntries(json.packs.map((p) => [p.id, p.hash]));
     },
@@ -179,8 +179,8 @@ const LAYERS = [
       "no documented function differs — a group note or a platform-only function moved; every function page is what the deployment serves, and only the index, references/functions/README.md, may be stale",
   },
   {
-    // A deployment older than the served surface version has no such field:
-    // that is "cannot compare", never "identical".
+    // An answer without the served surface version is "cannot compare",
+    // never "identical".
     label: "api",
     path: "/v1/openapi.json",
     withKey: false,
@@ -195,8 +195,8 @@ const LAYERS = [
       "read the routes listed above on GET /v1/openapi.json before sending a body; every other route in references/api/ is as the deployment serves it",
   },
   {
-    // One item, the refusal-code page. A deployment older than the served
-    // version has no such field: that is "cannot compare", never "identical".
+    // One item, the refusal-code page. An answer without the served version
+    // is "cannot compare", never "identical".
     label: "codes",
     path: "/v1/openapi.json",
     withKey: false,
@@ -376,8 +376,7 @@ const notices = await (async () => {
   let answered = 0;
   for (const { project, res } of reads) {
     if (res.error) {
-      // A 404 is either a deployment without the route or a project gone
-      // since the grant was read; only the first holds for every project.
+      // A 404 is a project gone since the grant was read.
       failed.push(`${project.slug}: ${res.error}`);
       continue;
     }
@@ -398,7 +397,7 @@ const notices = await (async () => {
   }
   if (answered === 0 && failed.length > 0)
     return {
-      why: `GET /v1/notices: ${failed.join("; ")}${reads.every(({ res }) => res.error === "HTTP 404") ? " — this deployment predates notices" : ""}`,
+      why: `GET /v1/notices: ${failed.join("; ")}`,
     };
   return { told, failed };
 })();
@@ -562,7 +561,7 @@ const uncompared = [];
 const format = await (async () => {
   if (bundledFormat === undefined)
     return {
-      why: "versions.md in this bundle names no document format — it predates the line",
+      why: "versions.md in this bundle names no document format — install the skills again",
     };
   if (!apiKey) return { why: "set KIPORY_API_KEY to read it" };
   const res = await get("/v1/platform-status", true);

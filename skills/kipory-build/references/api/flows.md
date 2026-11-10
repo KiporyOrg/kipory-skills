@@ -594,7 +594,7 @@ Each item of `fanOutCaps`:
 | `stepKey` | `string` | yes | Key of the `each` step a limit cut. |
 | `branches` | `integer` | yes | Branches actually spawned. |
 | `requested` | `integer` | yes | Elements the node would have spawned, after de-duplication and before the limit applied. |
-| `cappedBy` | `"preview" \| "config" \| "system"` | yes | Which limit truncated the list: `preview` — this request's `fanOutCap`; `config` — the node's own configured maximum; `system` — the platform ceiling. |
+| `cappedBy` | `"preview"` | yes | Which limit truncated the list: `preview` — this request's `fanOutCap`. |
 
 ### `POST /v1/flows/{id}/preview-runs`
 
@@ -712,7 +712,7 @@ Each item of `fanOutCaps`:
 | `stepKey` | `string` | yes | Key of the `each` step a limit cut. |
 | `branches` | `integer` | yes | Branches actually spawned. |
 | `requested` | `integer` | yes | Elements the node would have spawned, after de-duplication and before the limit applied. |
-| `cappedBy` | `"preview" \| "config" \| "system"` | yes | Which limit truncated the list: `preview` — this request's `fanOutCap`; `config` — the node's own configured maximum; `system` — the platform ceiling. |
+| `cappedBy` | `"preview"` | yes | Which limit truncated the list: `preview` — this request's `fanOutCap`. |
 
 Shape 5, with `error`, `phase`:
 

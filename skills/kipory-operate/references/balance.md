@@ -69,7 +69,7 @@ Both live on project settings and are ADMIN: `PATCH /v1/projects/{nodeId}/settin
 
 | Setting                                            | Bounds                                         | Notes                                                                                             |
 | -------------------------------------------------- | ---------------------------------------------- | ------------------------------------------------------------------------------------------------- |
-| `perUserSpendCapCredits` · `perUserSpendCapPeriod` | what one signed-in person may spend per period | period is `lifetime` (default), `day`, `week` or `month`; `lifetime` never clears                 |
+| `perUserSpendCapCredits` · `perUserSpendCapPeriod` | what one signed-in person may spend per period | period is `day` (default), `week`, `month` or `lifetime`; `lifetime` never clears                 |
 | `designSpendCapCredits` · `designSpendCapPeriod`   | design-time spend per period                   | period defaults to `day`; consumption is `designSpend` on the settings read                       |
 | `spendCapWarnPercent`                              | —                                              | warns the project's operators when design-time spend passes this share of the design-time ceiling |
 

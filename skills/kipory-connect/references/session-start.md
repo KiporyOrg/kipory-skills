@@ -1,6 +1,6 @@
 # Session start, in depth
 
-`SKILL.md` has the short sequence. This page has the long parts of it: what `scripts/sync.mjs` reports, reading only what you will change, confirming facts live, a model account that runs out, the descriptions and metadata reads, converting an older project document, a project whose flows are empty, and filing a report.
+`SKILL.md` has the short sequence. This page has the long parts of it: what `scripts/sync.mjs` reports, reading only what you will change, confirming facts live, a model account that runs out, the descriptions and metadata reads, a document in another format, a project whose flows are empty, and filing a report.
 
 ## What `scripts/sync.mjs` reports
 
@@ -60,7 +60,7 @@ The platform also writes a plain-language description of each element of a proje
 
 You can also keep your own notes on any element as metadata: free key-values such as who owns a flow or the ticket an endpoint was built for. `POST /v1/metadata { project, element, key, value }` (EDITOR) sets one key; `element` is the same `elementRef`, and `value` is any JSON. Leave `version` out to create the key and send the `version` you read to replace it; a stale one is 409 `VERSION_CONFLICT` with the stored entry in `details.current`. `GET /v1/metadata?project={nodeId}` reads every key with the `limits` a write is held to (add `&element=<elementRef>` for one element), and `DELETE /v1/metadata/{id}` (ADMIN) removes one. Metadata is not configuration: no flow reads it and setting it changes nothing the project does. Keys starting `kipory.` are the platform's and are refused. The three routes are on `references/api/projects.md`.
 
-## Creating a project, and an older document
+## Creating a project, and a document in another format
 
 The create also takes a `template` slug (`GET /v1/templates` lists them) or a whole `document`
 (`kipory-build`'s `references/packs/project-document.md`), one or the other, applied in the same
@@ -68,16 +68,10 @@ transaction — a refused one leaves no project behind.
 
 A project document you hold can be one the platform refuses. The deployment reads exactly one
 format, with no overlap: `documentFormat` on `GET /v1/platform-status` names it, and an older
-document is refused with `DOCUMENT_VERSION_UNSUPPORTED`. When the deployment's format is newer than
-these skills', update the skills first — they are published when the change merges, normally before a
-deployment rolls it.
-
-## Projects from before format 11
-
-The platform reads document format 11 only, and a format-10 document is refused with
-`DOCUMENT_VERSION_UNSUPPORTED`. When it moved to format 11, the development and staging
-deployments were reset: every project and account was cleared, and only Kipory's own configuration
-stayed, so a project from before is not there to read — build it again in format 11.
+document is refused with `DOCUMENT_VERSION_UNSUPPORTED`. Nothing converts a document between
+formats: export the project again and make your change there. When the deployment's format is newer
+than these skills', update the skills first — they are published when the change merges, normally
+before a deployment rolls it.
 
 ## A flow with no steps yet
 

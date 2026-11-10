@@ -140,9 +140,7 @@ or accept that each run changes the data it reads.
 
 ### In a project document
 
-A flow's cases live under its suite: `evals.<suite>.cases`. A document that still carries
-`flows.<key>.tests` is refused with `DOCUMENT_FLOW_TESTS_MOVED` at that field, naming where the
-cases go now.
+A flow's cases live under its suite: `evals.<suite>.cases`.
 
 ### The suite list carries each suite's standing
 
@@ -161,8 +159,9 @@ safe to add up.
 
 ⭐ **`lastRun` also carries the run's TRIGGER and its VERDICT** — `triggeredBy`, `regressed`,
 `regressionReason` and `worsenedMetrics`, with the same meanings they have on the run itself. So a
-list can say which suites got worse without a call per suite. ⛔ `regressed` is `null` when no
-verdict was computed, which is not `false`.
+list can say which suites got worse without a call per suite. `triggeredBy` is always set:
+`config-change`, `code-change` or `manual`. ⛔ `regressed` is `null` when no verdict was computed,
+which is not `false`.
 
 ⚠️ **A bracketed suite's control arm is never reported here.** It measures the previous
 configuration on purpose, so reading it as the newest run would show you last week's numbers as
@@ -276,8 +275,6 @@ asked for it).
 ⭐ **The first two are kept apart because they point at different culprits.** When a regression
 turns up, "the flow was edited" and "nobody touched the flow" are the two answers worth telling
 apart, and they lead to different people looking at different things.
-
-⛔ **`null` means the trigger was NOT RECORDED — it does not mean `manual`.**
 
 ### A run carries the verdict it reached
 

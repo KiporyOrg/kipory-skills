@@ -7,8 +7,7 @@ Read this when a change to a live project is refused, or before one that may tak
 Some destructive changes are refused outright:
 
 - deleting a table that holds records, or re-pointing its type or owner scope
-  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold; deleting a
-  seeded table, whatever it holds;
+  (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold;
 - deleting a flow something still references, or removing a step whose value a later step still reads (unless the same batch changes those readers);
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
 - deleting a vocabulary without `confirm=true`, or while another vocabulary nests under it;
@@ -39,7 +38,6 @@ thing you were trying to change.
 | ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | the table has N existing records         | the records, in `kipory-data` — or leave the table alone. The rule is `TABLE_PINNED_BY_RECORDS` (`details.reason`)                                                                                                                                                                                  |
 | a field removed on a table with records  | nothing lifts it: rename the field instead, or add the new one beside it (`change-order.md`, "A rename")                                                                                                                                                                                            |
-| the table is seeded                      | nothing; it is not yours to delete, whatever it holds                                                                                                                                                                                                                                               |
 | a related row still references this flow | whatever references it — an endpoint, a schedule (even disabled), a trigger, a table, a resolver, an invoking flow                                                                                                                                                                                  |
 | a later step still reads this step       | re-point or remove those readers in the same batch, then remove it                                                                                                                                                                                                                                  |
 | assignments still exist on this term     | merge it into the term that should survive (`POST /v1/terms/{id}/merge`) — every assignment moves and a delete then accepts the alias — or archive it to keep it on the records that have it                                                                                                        |

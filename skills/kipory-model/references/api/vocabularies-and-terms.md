@@ -232,7 +232,7 @@ Each item of `vocabularies`:
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
-| `proposal` | `unknown` | no | Settings for how new terms are proposed during ingest. |
+| `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
 | `resolverFlowId` | `string \| null` | yes | The flow that searches this vocabulary for a matching term, or null when none is bound. Required by `matching: semantic` and unused by `exact`; a semantic vocabulary is bound to a platform default at creation. Binding one does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `unknown` | no | Parameters passed to that resolver flow, if any. |
 | `createdBy` | `string` | yes | Who created the vocabulary. |
@@ -297,7 +297,7 @@ Each item of `diagnostics`:
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
-| `proposal` | `unknown` | no | Settings for how new terms are proposed during ingest. |
+| `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
 | `resolverFlowId` | `string \| null` | yes | The flow that searches this vocabulary for a matching term, or null when none is bound. Required by `matching: semantic` and unused by `exact`; a semantic vocabulary is bound to a platform default at creation. Binding one does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `unknown` | no | Parameters passed to that resolver flow, if any. |
 | `createdBy` | `string` | yes | Who created the vocabulary. |
@@ -361,7 +361,7 @@ Read one vocabulary by id, with the `version` its PATCH takes; `expand` adds its
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
-| `proposal` | `unknown` | no | Settings for how new terms are proposed during ingest. |
+| `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
 | `resolverFlowId` | `string \| null` | yes | The flow that searches this vocabulary for a matching term, or null when none is bound. Required by `matching: semantic` and unused by `exact`; a semantic vocabulary is bound to a platform default at creation. Binding one does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `unknown` | no | Parameters passed to that resolver flow, if any. |
 | `createdBy` | `string` | yes | Who created the vocabulary. |
@@ -426,7 +426,7 @@ Relabel a vocabulary, rename its key, declare the attributes its terms carry (`t
 
 One of 2 shapes:
 
-Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, `parentVocabularyKey`, `mint`, `matching`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`:
+Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, `parentVocabularyKey`, `mint`, `matching`, `proposal`, `resolverFlowId`, `createdBy`, `version`, `createdAt`, `updatedAt`, `lastResolvedAt`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -439,7 +439,7 @@ Shape 1, with `id`, `project`, `key`, `label`, `cardinality`, `termAttributes`, 
 | `parentVocabularyKey` | `string \| null` | yes | Key of the vocabulary this one nests under, or null when it stands alone. |
 | `mint` | `"none" \| "active" \| "candidate"` | yes | What happens to a value this vocabulary has never seen. `none` drops it and reports it unresolved. `active` mints a term you can match against immediately. `candidate` mints one that stays attached to the record that proposed it but out of the vocabulary until you activate it. |
 | `matching` | `"exact" \| "semantic"` | yes | How this vocabulary finds a term you already have. `exact` matches the slugified value and nothing else. `semantic` searches the vocabulary's own terms by meaning, so `ML` can find `machine-learning`; it needs a resolver flow bound. |
-| `proposal` | `unknown` | no | Settings for how new terms are proposed during ingest. |
+| `proposal` | `object \| null` | yes | Settings for how new terms are proposed during ingest. |
 | `resolverFlowId` | `string \| null` | yes | The flow that searches this vocabulary for a matching term, or null when none is bound. Required by `matching: semantic` and unused by `exact`; a semantic vocabulary is bound to a platform default at creation. Binding one does NOT change `mint` — the flow reports what it found, and `mint` decides what may be done about a miss. |
 | `resolutionParams` | `unknown` | no | Parameters passed to that resolver flow, if any. |
 | `createdBy` | `string` | yes | Who created the vocabulary. |

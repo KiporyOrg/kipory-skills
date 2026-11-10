@@ -327,7 +327,7 @@ not name. A ROW is stated whole — it is that row's create body, so its require
 required here too (one row asks for more than its create: an `evals` suite must state `scorers`,
 `[]` for a contract suite).
 
-⭐ **A stated element is whole (since format 8).** An element you state — a flow, a table, a
+⭐ **A stated element is whole.** An element you state — a flow, a table, a
 trigger — is the whole element: an own optional field you leave out goes back to its default, as
 it would on a create (`description` left out clears it). The plan shows each reset as a field going to its default, with a
 `FIELD_RESET_TO_DEFAULT` warning naming the value held now, so nothing resets unseen. State a field
@@ -617,7 +617,7 @@ as it is, every element changed since is listed under `moved` (or, past the hist
 keeps, it is `409 PLAN_STALE` `read-too-old`). Plan it against the project as it is now instead:
 `POST …/document/plan?basedOn=<the project's current version>` — the `version` a fresh
 `GET …/document` answers. `moved` is then empty, `changes` are the rollback, and applying that
-plan's `planId` with a note puts its rows back. An export in an older format is refused ([below](#a-document-written-for-an-older-format)). A row deleted since returns as a new row with a new id, and a row
+plan's `planId` with a note puts its rows back. An export in another format is refused ([below](#a-document-in-another-format)). A row deleted since returns as a new row with a new id, and a row
 added since stays unless the document says `prune`. Deleting a table does not delete
 the type it took its fields from.
 
@@ -639,32 +639,16 @@ count, no health, no run, no record, no member, no credential. The event types o
 category are every project's and are shown on export as they are; a document neither creates nor
 prunes them. Where a table's search index
 is held is the platform's own bookkeeping: `vectors` carries profiles and nothing else, an export
-names no collection and no slot, and a `collections` map there is refused as an unknown
-member. A term that is an alias or archived is not configuration and is not exported.
+names no collection and no slot. A term that is an alias or archived is not configuration and is not exported.
 Tenancy — who may open the project — is not in the document by decision. An eval suite's
 `runAsUserId` is a person, not configuration: an export leaves it out, a document that states it is
 refused, and it is set on the suite after the apply (`PATCH /v1/eval-suites/{id}`).
 
-## A document written for an older format
+## A document in another format
 
 `kipory: 11` is the only format a plan reads. A document stating any other version is refused,
-`DOCUMENT_VERSION_UNSUPPORTED`: export again. Nothing converts a file you hold in an older format;
-write its flows as steps in format 11. A flow with no steps yet is not started
-(`FLOW_NOT_AUTHORED`).
-
-A current document is also refused, each on its own path, for:
-
-- **`schema`, or a table's or config namespace's `shape`** — `DOCUMENT_KEY_RENAMED`. Rename them to
-  `types` and `type`.
-- **A `file` use, a `derived` field family, or projection `stages`** on a table or as a
-  profile default — none exists. Remove them; a `search` use reads one stored field.
-- **A profile's slot names, a `search` use's `role`, or a `collections` map under `vectors`** —
-  unknown members. On the profile, state `keywords`: `true` where it named a sparse slot, `false`
-  where it named none. Remove `role`, keeping the table's `search` fields in their order, and
-  remove the `collections` map whole.
-- **A vocabulary `binding`** — a term attaches to the whole record. Remove the field.
-- **A flow's own `tests`** — `DOCUMENT_FLOW_TESTS_MOVED`. A flow's cases live under
-  `evals.<suite>.cases`.
+`DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: export the project again and make the
+change there. A flow with no steps yet is not started (`FLOW_NOT_AUTHORED`).
 
 ## Related
 

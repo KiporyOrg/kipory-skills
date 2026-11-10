@@ -20,8 +20,8 @@ and those refusals' "export again" is not the way back here. Plan the kept file 
 project as it is now: `POST /v1/projects/{nodeId}/document/plan?basedOn=<version>`, where
 `<version>` is the project's current one (the `version` a fresh `GET …/document` answers). Its
 `moved` is then empty and its `changes` are the rollback; apply that plan, `{ planId, note }`. An
-export in an older format is refused (`DOCUMENT_VERSION_UNSUPPORTED`) and nothing converts it:
-rewrite the rows you need in a fresh export, the flows as steps. The
+export in another format is refused (`DOCUMENT_VERSION_UNSUPPORTED`) and nothing converts it:
+copy the rows you need into a fresh export. The
 apply puts its rows back — a row deleted since returns as a new row with a new id, and a row added since stays unless the document says
 `prune` — under the same refusals as any other apply. It covers configuration only: no records,
 no vectors, no secret values. Deleting a table leaves the type it took its fields

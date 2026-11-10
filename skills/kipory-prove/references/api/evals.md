@@ -883,7 +883,7 @@ Each item of `runs`:
 | `startedAt` | `string` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `finishedAt` | `string \| null` | yes | An ISO-8601 instant. Responses always carry UTC with a `Z` suffix (e.g. 2026-08-15T12:34:56.789Z); requests may use any valid offset. |
 | `durationMs` | `integer \| null` | yes | Total wall clock. Null while the run is still going. |
-| `triggeredBy` | `"config-change" \| "code-change" \| "manual" \| null` | yes | What asked for this run. ⚠️ Null means NOT RECORDED. It does NOT mean someone pressed Run. |
+| `triggeredBy` | `"config-change" \| "code-change" \| "manual"` | yes | What asked for this run. |
 | `subjectCheckpointId` | `string \| null` | yes | Snapshot of the flow under test at the time it ran. What makes a later comparison meaningful — if this differs between two runs, they measured different flows. |
 | `scorerCheckpointIds` | `string[]` | yes | Snapshots of the grading flows. A change here also makes two runs incomparable, since the graders themselves moved. |
 | `codeVersion` | `object` | yes | Platform build the run executed on. |

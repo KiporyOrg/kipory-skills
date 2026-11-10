@@ -192,7 +192,8 @@ vocabularies into one would destroy an identity, and that is a different verb wi
 
 Resolver wiring is folded in by a later update, where **an omitted field preserves** — the
 distinction to hold when patching, because "leave it alone" and "remove it" look nearly identical in
-a payload. ⚠️ An explicit null clears only `proposal`, `resolverFlowId` and `resolutionParams`; on
+a payload. A read returns `proposal` in the shape the write takes, or null when none is set. ⚠️ An
+explicit null clears only `proposal`, `resolverFlowId` and `resolutionParams`; on
 `mint` and `matching` a null is a **no-op, not a clear**, because neither column is ever empty. And
 ⛔ **an OMITTED `resolutionParams` does not survive a binding change** — repoint `resolverFlowId` at
 a different resolver and the params are replaced with that resolver's defaults. Send them explicitly

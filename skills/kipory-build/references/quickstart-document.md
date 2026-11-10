@@ -370,7 +370,7 @@ surfaces:
 - **Endpoint paths start with `/v1/`**, and a path whose first word a platform route uses is refused (`ENDPOINT_PATH_RESERVED_WORD`, `ENDPOINT_PATH_CONFLICT`) — `/v1/boxes` is one; `/v1/club/boxes` is not. `GET /v1/coded-routes` lists them.
 - **A flow states `label`, `inputs` and `outputs`** (`{}` for none). A list value is `isList: true`, never `object`; the endpoint publishes the type you declare.
 - **An expression names record fields exactly as the type has them**; a field the record lacks is refused `JSONATA_FIELD_UNKNOWN`. Inside a filter `[…]` a bare name is the item's field.
-- **A format-10 document** — one with `actions` under a flow — is refused `DOCUMENT_VERSION_UNSUPPORTED`. Nothing converts it: write each flow's steps in format 11.
+- **A document in another format** is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`, and nothing converts it: state `"kipory": 11`.
 
 ## Try it as a person, then change it
 

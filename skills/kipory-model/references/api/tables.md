@@ -47,7 +47,6 @@ Each item of `tables`:
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
@@ -172,7 +171,6 @@ Each item of `renames`:
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
@@ -347,7 +345,6 @@ Read one table by id, with any `expand` sections — the derived contract, drift
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
@@ -489,7 +486,7 @@ Update one table: its key, description, shape (`dataTypeId` to point at another 
 
 One of 2 shapes:
 
-Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `origin`, `ownerScope`, `sharing`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `computed`, `computedFields`, `reprocessOn`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
+Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`, `flowId`, `ownerScope`, `sharing`, `dataFields`, `contentFields`, `uses`, `searchable`, `relations`, `queryable`, `naturalKey`, `computed`, `computedFields`, `reprocessOn`, `hasRecords`, `recordCount`, `version`, `createdAt`, `updatedAt`, `touched`:
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
@@ -502,7 +499,6 @@ Shape 1, with `id`, `dataTypeId`, `dataTypeKey`, `project`, `key`, `description`
 | `definition` | `unknown` | no | JSON Schema for a record's own submitted data — the shape of the type this table references. Edited with `definition` on `PATCH /v1/tables/{id}` or on the type itself: the same type either way, for everything that uses it. |
 | `description` | `string \| null` | yes | This table's own description, separate from the type's. |
 | `flowId` | `string \| null` | yes | Processing flow bound to this table. Non-null means records are created pending and processed by this flow; null means they are stored as submitted. |
-| `origin` | `"seed" \| "operator"` | yes | `seed` — created by the platform when the project was set up. `operator` — created by you. |
 | `ownerScope` | `"user" \| "project"` | yes | Who owns records of this table. `user` — each record belongs to one end user, who sees only their own. `project` — records form a shared pool every user of the project can see. This also decides whether search results are isolated per user. |
 | `sharing` | `boolean` | yes | Whether records can be shared with people and teams (`record.grant`). Always false on a `project` table. |
 | `dataFields` | `string[]` | yes | Top-level property names declared in `definition`. |
@@ -707,7 +703,7 @@ Each item of `renames`:
 
 ### `DELETE /v1/tables/{id}`
 
-Delete one table. Refused (409) while records of it exist, and for a seeded table. Relations paired only with it go with it, and other tables' `joins` it voids are cleared — both reported. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with `derived.dependents`: the records that refuse it and the relations and joins it would take along. The type it took its shape from stays. Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
+Delete one table. Refused (409) while records of it exist. Relations paired only with it go with it, and other tables' `joins` it voids are cleared — both reported. With `?validateOnly=true` it answers whether the delete would be refused, writing nothing, with `derived.dependents`: the records that refuse it and the relations and joins it would take along. The type it took its shape from stays. Several rows at once: `POST /v1/projects/{nodeId}/document` with `delete: true`.
 
 **Path parameters**
 

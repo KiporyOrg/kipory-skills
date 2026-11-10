@@ -69,7 +69,8 @@ a **drift** verdict, and the type-reference graph.
 
 1. **The data's type lives on the registry and is referenced softly.** A table points at an
    operator-authored object type. What you see on the table's wire shape is a **read-only
-   projection** of that type — there is no inline definition to edit.
+   projection** of that type — there is no inline definition to edit. Every table is the
+   project's own: any table may be renamed or deleted, by the same rules.
 2. **Flow-backedness is just a bound flow.** There is no separate flag and no named output type.
    Binding captures a snapshot of the flow's signature, and that snapshot's outputs become
    the table's flat derived fields.
@@ -1199,10 +1200,9 @@ is yours to change in the same save.
   (`DELETE /v1/types/{id}?validateOnly=true`) counts in `derived.blockingReferences` how many would refuse it. It resolves a reference's source
   ids through three maps: `flowLabels` (flow id → label), `stepKeys` (a function step's id → its key) and `dataTypeKeys` (type id → key).
 
-- **Deleting a table** that has records or was seeded. The DELETE answers 409 `CONFLICT` for
-  records, naming the rule at the head of its message (`TABLE_PINNED_BY_RECORDS: …`), and 409
-  `TABLE_SEEDED_READONLY` for a seeded table. Deleting a table
-  removes only the descriptor; the type outlives it.
+- **Deleting a table** that has records. The DELETE answers 409 `CONFLICT`, naming the rule at
+  the head of its message (`TABLE_PINNED_BY_RECORDS: …`). Deleting a table removes only the
+  descriptor; the type outlives it.
 
   ⚠️ It does **not** leave the relation graph alone, and the response says what went. A table
   pair naming the deleted table disappears with it — so a relation that applied to no other pair is
@@ -1220,8 +1220,7 @@ is yours to change in the same save.
   it (`kind: "records"`, `refuses: true`) and the paired relations and other tables' `joins`
   it would change (`relations`, `joins`, `refuses: false`) — present on a refused verdict
   too, so a refused dry run names the count that refused it. ⛔ `total` sums only the refusing
-  counts, so a seeded table reads `total: 0` and is refused anyway — never gate on
-  `total`. It needs ADMIN on the table, the delete's own floor.
+  counts; read the verdict, never gate on `total`. It needs ADMIN on the table, the delete's own floor.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
 vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
@@ -1463,7 +1462,6 @@ Things to hold about it:
 - **A `409` from `TABLE_PINNED_BY_RECORDS` means the table already holds records** and the
   type you proposed is not the one they were written against. Re-pointing is refused for the life
   of those records — a fact about the table rather than about your proposal.
-- **A `seed`-origin table is refused** (`TABLE_SEEDED_READONLY`) by the dry run as by the save.
 - A stale `version` is reported as `derived.staleVersion: true` beside an `ok` verdict, never as a
   finding: the lock is about when the write lands, not whether the draft is coherent.
 
@@ -1738,8 +1736,7 @@ produce.
 What it refuses: a key that is not a vocabulary of this project (`USES_VOCABULARY_UNKNOWN`, one
 issue per unknown key, all at once), a key that is also one of the table's field names or a key
 every record row carries (`USES_VOCABULARY_SHADOWS_FIELD` — a record read returns vocabularies as
-top-level keys, so the vocabulary would replace the field), a key that repeats, and — like every
-other write — any change to a seeded table (`TABLE_SEEDED_READONLY`).
+top-level keys, so the vocabulary would replace the field), and a key that repeats.
 
 Reading the current list is `expand=vocabularies` on the ordinary table read rather than an endpoint
 of its own (and `expand=uses` shows each vocabulary's position). An empty list means the table

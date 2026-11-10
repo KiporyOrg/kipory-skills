@@ -626,14 +626,8 @@ const printCaps = async (runId, run) => {
     out("capped: an each ran fewer items than it was handed");
   for (const r of caps) {
     const d = r.detail;
-    const lift =
-      d.cappedBy === "preview"
-        ? "--fan-out-cap <n|uncapped> runs more"
-        : d.cappedBy === "config"
-          ? "the step's own maxItems bounds it"
-          : "the platform's ceiling bounds it";
     out(
-      `capped: ${r.stepName ?? r.stepKey} ran ${d.branches ?? "?"} of ${d.requested ?? "?"} items (${lift})`,
+      `capped: ${r.stepName ?? r.stepKey} ran ${d.branches ?? "?"} of ${d.requested ?? "?"} items (--fan-out-cap <n|uncapped> runs more)`,
     );
   }
 };

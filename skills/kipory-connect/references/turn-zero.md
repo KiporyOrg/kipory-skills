@@ -28,7 +28,7 @@ If the human also gave you a project id, compare it with `projects` before using
 
 **2b. Check the wallet can pay.** `GET <baseUrl>/v1/credits/balance` with the same key, on the project's host (the api host answers 404): `status` is `active` and `creditsRemaining` is above `-softCapCredits`. It takes no `?node=`; the host names the project. An empty wallet stops your endpoints' POSTs, previews and schedule fires while plan, apply and `POST /v1/records` still work, so a dry wallet looks like a broken flow. With no `baseUrl`, `GET /v1/projects/{nodeId}/usage` on the api host has `payer.wallet` (`balance`, `overdraft`, `status`), but only when the key administers the node that pays; a key at a project that does not hold its own wallet reads `wallet: null`.
 
-**3. On a project that already holds work, read the map first.** `GET /v1/projects/{nodeId}/map` is one entry per flow — what starts it, what it reads, writes and calls — at about 0.5 KB a flow; `GET /v1/flows/{id}/outline` is one flow's steps as an outline. An empty project has nothing to read: go to the build. A flow with no `steps` yet is not started (`FLOW_NOT_AUTHORED`) until they are written (`kipory-build`). A project from before format 11 is gone: `references/session-start.md`.
+**3. On a project that already holds work, read the map first.** `GET /v1/projects/{nodeId}/map` is one entry per flow — what starts it, what it reads, writes and calls — at about 0.5 KB a flow; `GET /v1/flows/{id}/outline` is one flow's steps as an outline. An empty project has nothing to read: go to the build. A flow with no `steps` yet is not started (`FLOW_NOT_AUTHORED`) until they are written (`kipory-build`).
 
 **If you must create the project** you need `owner` at the parent organisation node:
 

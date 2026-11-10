@@ -566,7 +566,7 @@ Each item of `changes`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `id` | `string` | yes | The audit record's own id. |
-| `resource` | `string` | yes | The design resource — `vocabularies`, `flows`, `tables` — or, on a record written before a resource was retired, its old name (`flow-test-cases`). |
+| `resource` | `string` | yes | The design resource — `vocabularies`, `flows`, `tables`. |
 | `section` | `string` | yes | The bootstrap section the resource maps to. |
 | `operation` | `"create" \| "update" \| "delete"` | yes | What happened to this object. |
 | `targetModel` | `string` | yes | The kind of stored row the change touched. |
@@ -748,7 +748,7 @@ The project's spend ceilings — per end user, design-time, and the public spend
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `perUserSpendCapCredits` | `integer \| null` | yes | How much ONE end user may spend per `perUserSpendCapPeriod`, in credits. ⚠️ Null means NO ceiling, not 'the default' — unlike most nullable settings. A ceiling of zero is `0`, and the two are opposite outcomes. |
-| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the per-user ceiling is measured over. Never null — defaults to `lifetime`. |
+| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the per-user ceiling is measured over. Never null — defaults to `day`. |
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
 | `publicSpendCapCredits` | `integer \| null` | yes | The ceiling on what calls to the project's PUBLIC endpoints may spend per UTC day, in credits. A public endpoint (`auth: "none"` on its contract) is called by anyone with no credential and paid from the project's wallet; this bounds that. Null means it has not been set, and while it is null no endpoint can be saved public. `0` is a real ceiling: every public call answers 402 `PUBLIC_ENDPOINT_UNAVAILABLE`, which makes it the one switch for all of the project's public traffic. The window is always the UTC day; there is no period to choose. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `day`. |
@@ -792,7 +792,7 @@ Change the project's spend ceilings, warning threshold, member-wallet settings o
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `perUserSpendCapCredits` | `integer \| null` | yes | How much ONE end user may spend per `perUserSpendCapPeriod`, in credits. ⚠️ Null means NO ceiling, not 'the default' — unlike most nullable settings. A ceiling of zero is `0`, and the two are opposite outcomes. |
-| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the per-user ceiling is measured over. Never null — defaults to `lifetime`. |
+| `perUserSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the per-user ceiling is measured over. Never null — defaults to `day`. |
 | `designSpendCapCredits` | `integer \| null` | yes | The ceiling on DESIGN-TIME spend — authoring and previewing, as opposed to what your end users cost. Null means no ceiling; `0` blocks all design-time work outright. |
 | `publicSpendCapCredits` | `integer \| null` | yes | The ceiling on what calls to the project's PUBLIC endpoints may spend per UTC day, in credits. A public endpoint (`auth: "none"` on its contract) is called by anyone with no credential and paid from the project's wallet; this bounds that. Null means it has not been set, and while it is null no endpoint can be saved public. `0` is a real ceiling: every public call answers 402 `PUBLIC_ENDPOINT_UNAVAILABLE`, which makes it the one switch for all of the project's public traffic. The window is always the UTC day; there is no period to choose. |
 | `designSpendCapPeriod` | `"lifetime" \| "day" \| "week" \| "month"` | yes | The window the design-time ceiling is measured over. Never null — defaults to `day`. |

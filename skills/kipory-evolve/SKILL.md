@@ -71,12 +71,11 @@ run, not a rehearsal. `kipory-build` covers it.
 
 **Check the format first.** A document states its format in its `kipory:` key (`kipory: 11`), and the
 deployment reads exactly one, with no overlap: `documentFormat.version` on
-`GET /v1/platform-status`, beside a line saying what it is. A document in any other format — one
-you hold, or one older skills would write — is refused whole with `DOCUMENT_VERSION_UNSUPPORTED`
-before anything is planned. The `kipory-connect` skill's sync script compares the format these
-skills write with the deployment's, and its `document` line says plainly when they differ: update
-these skills when the deployment's is newer, then export the project again: nothing converts a
-held file to format 11, so write a held flow's steps in format 11.
+`GET /v1/platform-status`, beside a line saying what it is. A document in any other format is
+refused whole with `DOCUMENT_VERSION_UNSUPPORTED` before anything is planned, and nothing converts
+it: export the project again and make the change there. The `kipory-connect` skill's sync script
+compares the format these skills write with the deployment's, and its `document` line says plainly
+when they differ: update these skills when the deployment's is newer.
 
 Export the project (`GET /v1/projects/{nodeId}/document` — the file carries `basedOn`, your read),
 edit the file, plan it (the body is the document itself; it binds to that read), read the plan,
