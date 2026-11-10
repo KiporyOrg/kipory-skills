@@ -4,6 +4,8 @@ Read this when the quickstart's example does not use the function you need: one 
 
 One row per catalog group. The function pages say what each key takes; the last column says where the judgment is.
 
+The deployment's catalog lists every function, not this table: `GET /v1/functions?project=<nodeId>`. Some are added as data with no release (`origin: "ability"` on the entry, its words the vendor's when `copySource: "vendor"`), so no page here describes them. Read one with `GET /v1/functions/{key}` and use it in a step like any other. When the catalog's `version` differs from the one this bundle was generated from, read it again.
+
 | Group                                  | Functions                                                                                                                                                                                                                                      | Judgment                                                                            |
 | -------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------- |
 | ai — ask a model                       | `text.generate` (written words), `text.decide` (yes/no, a closed pick, a score), `text.rerank`                                                                                                                                                 | `references/models.md`                                                              |

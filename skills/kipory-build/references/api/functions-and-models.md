@@ -72,7 +72,7 @@ Each item of `models`:
 
 ### `GET /v1/functions`
 
-Every function this deployment runs — what each reads, emits and accepts as config — with a `version` hash to cache on. Pass `?project=` to have each function's declared types resolved against that project's type registry (VIEWER on the project), which is what a step editor needs when picking a function; without it the catalog is the same for every caller. One function with its worked example is `GET /v1/functions/{key}`. A hidden function is left out — on a project's list, unless that project's own steps use it, where it stays marked `run.hidden` — and `GET /v1/functions/{key}` still answers for it.
+Every function this deployment runs — what each reads, emits and accepts as config — with a `version` hash to cache on. Code functions and abilities (functions whose contract is data, added with no deploy, `origin: ability`) are one list; an ability is listed once shown, and `version` moves when one changes. Pass `?project=` to have each function's declared types resolved against that project's type registry (VIEWER on the project), which is what a step editor needs when picking a function; without it the catalog is the same for every caller. One function with its worked example is `GET /v1/functions/{key}`. A hidden function is left out — on a project's list, unless that project's own steps use it, where it stays marked `run.hidden` — and `GET /v1/functions/{key}` still answers for it.
 
 **Query**
 
@@ -99,6 +99,8 @@ Each item of `functions`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key` | `string` | yes | The function's key — the value a step's `functionKey` stores to select it. |
+| `origin` | `"code" \| "ability"` | yes | `code`: a function this deployment ships. `ability`: one whose contract is data, added with no deploy; it is listed here once shown, and steps use it like any other. |
+| `copySource` | `"kipory" \| "vendor"` | yes | Whose words the title, description and help are: Kipory's, or the vendor's as it wrote them. |
 | `title` | `string` | yes | Its display name. |
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |
@@ -184,7 +186,7 @@ Each item of `vendors`:
 
 ### `GET /v1/functions/{key}`
 
-One function's catalog entry — what it reads, emits and accepts as config, its `group` (lowercase, such as `ai` or `text`) — plus a worked example. An unknown key is a 404.
+One function's catalog entry — what it reads, emits and accepts as config, its `group` (lowercase, such as `ai` or `text`) — plus a worked example. An unknown key is a 404. An ability answers here while hidden, for the steps that already use it.
 The whole catalog, without examples, is `GET /v1/functions`; pass `?project=` there to resolve types against one project.
 `servedBy` lists the vendors serving it in this environment, in the order a step naming none asks them, and what each keeps of a step's settings; a step names one in its `vendor.use`.
 Any authenticated caller; the answer is the same for everyone.
@@ -200,6 +202,8 @@ Any authenticated caller; the answer is the same for everyone.
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `key` | `string` | yes | The function's key — the value a step's `functionKey` stores to select it. |
+| `origin` | `"code" \| "ability"` | yes | `code`: a function this deployment ships. `ability`: one whose contract is data, added with no deploy; it is listed here once shown, and steps use it like any other. |
+| `copySource` | `"kipory" \| "vendor"` | yes | Whose words the title, description and help are: Kipory's, or the vendor's as it wrote them. |
 | `title` | `string` | yes | Its display name. |
 | `description` | `string` | yes | What it does. |
 | `detailedDescription` | `string` | yes | What the one sentence in `description` left out: caveats, cost, failure and ordering. A short paragraph, drawn apart from `description`. |

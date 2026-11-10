@@ -22,7 +22,7 @@ A backend on Kipory is one **project document**: types, tables, flows of **steps
 - **Written order is run order**: a step reading a value only a step below it gives is refused (`STEP_READS_LATER`).
 - **Gate on each diagnostic's `severity`**, never its `code`. Fix every error a plan lists in one edit, then plan again. `kipory plan` prints one line per error with its document path.
 - **On `409 VERSION_CONFLICT`**, read what moved, take your next read, and plan again. Changes to elements your document doesn't touch never refuse it.
-- **Function keys**: `references/functions/README.md` lists every function in one line. Open a function's own page only for one you use. A yes/no, a pick from a closed list or a score is `text.decide`, the cheapest model step (`references/models.md`). Which function does which job: `references/which-function.md`.
+- **Function keys**: `references/functions/README.md` lists every function in one line. Open a function's own page only for one you use. The live catalog, not this bundle, lists every function (`references/which-function.md`). A yes/no, a pick from a closed list or a score is `text.decide`, the cheapest model step (`references/models.md`). Which function does which job: `references/which-function.md`.
 - **A flow reaches the outside only through a function**: `url.fetch` or `url.send` for any HTTP API (`kipory-gather`).
 
 The plan's lists (`changes`, `moved`, `diagnostics`, `health`, `consequences`), labels, kept plans and the route-by-route loop: `references/document.md`.
