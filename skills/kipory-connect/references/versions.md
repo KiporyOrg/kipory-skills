@@ -7,7 +7,7 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 | Source | Version | Served live as |
 | --- | --- | --- |
 | packs | `ed1a3ace3fb1` | `version` on `GET /v1/capability-packs` |
-| functions | `dab2328451ee4d57bf46438651bb27c4220fcc5429cabcd64bbb857f67aa10f1` | `version` on `GET /v1/functions` |
+| functions | `055574183bb3534537aa79a9ec644b629b935c429f86104301630652babfeb86` | `version` on `GET /v1/functions` |
 | api | `fd3ee267ffdf` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 | codes | `f8a87b189d56` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
