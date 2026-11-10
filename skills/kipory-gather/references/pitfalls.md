@@ -183,8 +183,8 @@ Each bullet is a trap met while bringing data in from outside: what happens, and
 - **An empty result and a failure are not the same thing, and they differ per function.**
   `web.search` stores nothing and warns `NO_RESULTS` when a search found nothing. `web.rankings` treats an
   empty ranking as a **source failure** and refuses to cache it, because a country with no popular
-  websites does not exist. `location.resolve` returns empty when the provider found nothing but
-  **throws** when the provider itself failed. `url.fetch` returns empty on a site's 5xx and fails
+  websites does not exist. `location.resolve` answers nothing when no place is known at the point
+  but **throws** when the lookup itself failed. `url.fetch` returns empty on a site's 5xx and fails
   the step on any other non-2xx. Read each one's contract before you branch on empty.
 - **Every field on a scraped or looked-up object is optional.** `web.traffic` nulls every metric for
   a site too small to profile; `youtube.video` returns only the parts you asked for and any of them

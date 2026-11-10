@@ -1,7 +1,9 @@
 {
-  "source": "6f12587591ad4622cf83ff2d4d069da66e357d1a",
+  "source": "87bb660465228f3fb45147579a9866b8b7c59b09",
   "since": "2026-08-17",
   "history": [
+    {"sha":"87bb66046522","skills":"Place lookups run on the vendor engine as a keyless OpenStreetMap vendor at one request a second, the engine calls free public APIs with fixed headers, and the ledger's pick-up default is dropped (418 follow-ups) (#3708)"},
+    {"sha":"d682a35121bd"},
     {"sha":"6f12587591ad","skills":"A flow is one document of steps: written order, blocks, a run rule that fails a missing input instead of skipping, and dev and staging reset to format 11 (420) (#3706)"},
     {"sha":"f6f343aa8cb4","skills":"10 more ScrapeCreators reads are shown: each passed its daily test on staging with a real input (418, rulings 29 and 33) (#3705)"},
     {"sha":"c8f37988e596","skills":"A retry key belongs to its caller, a record keeps the times its run reported, and a query value keeps its type's bounds (426) (#3704)"},
@@ -999,8 +1001,6 @@
     {"sha":"424fdc87fe3d"},
     {"sha":"eb54f7ce1321"},
     {"sha":"41c37c307fd7"},
-    {"sha":"978f7d21432a"},
-    {"sha":"8bfcd880f073"},
-    {"sha":"ad6636a69bb7"}
+    {"sha":"978f7d21432a"}
   ]
 }
