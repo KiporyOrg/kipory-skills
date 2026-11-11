@@ -26,8 +26,8 @@ mentions.
   and control functions have none of those. Whether a step is queued is a property of the function,
   not something you configure.
 - **A service with no function of its own is reached with a keyed request.** `url.fetch` reads it and
-  `url.send` writes to it, each with a stored key named in `secret`. An OpenAPI one can be
-  connected instead: `references/connections.md`. `kipory-connect`'s
+  `url.send` writes to it, each with a stored key named in `secret`. An OpenAPI one, or an MCP
+  server's link, can be connected instead: `references/connections.md`. `kipory-connect`'s
   `references/packs/limits.md` (What a flow can reach) says what such a request cannot do.
 
 ## The sources

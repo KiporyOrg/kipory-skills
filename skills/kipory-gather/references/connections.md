@@ -3,8 +3,9 @@
 <!-- field-ok: operationId — an OpenAPI document's own field, read from the customer's document, not a request field -->
 <!-- field-ok: flowCount — a field of a 409's `details.dependents`, which error details carry untyped, not a request field -->
 
-An API with an OpenAPI document becomes a set of functions your organization's projects can use as
-steps — one per operation that reads. That is a **connection**. It is made once, at the
+An API with an OpenAPI document — or an MCP server's link — becomes a set of functions your
+organization's projects can use as steps — one per operation (or tool) that reads. That is a
+**connection**. It is made once, at the
 organization, from the document's link and a credential; every project under the organization can
 then use its functions like any other source.
 
@@ -111,8 +112,8 @@ POST /v1/nodes/{nodeId}/connections/{slug}/refresh
 
 The document is read again and pinned. Each served function that changed without breaking is
 tested on your key and serves its new version once the test passes (`changed`). One whose change
-would break it — a setting newly required or retyped, an answer field removed — keeps serving its
-old shape, and the new shape becomes a **new function beside it**, named with a number:
+would break it — a setting newly required or retyped, an answer field removed, a changed
+description (the same rule the daily check uses) — keeps serving its old shape, and the new shape becomes a **new function beside it**, named with a number:
 `parcel-desk.get-carrier-2` (then `-3`, …). The new one is tested on your key like any connect,
 shown when its test passes, hidden with its reason when not; a type of its answer that already
 names another shape takes a number too (`ParcelDeskCarrier2`). The answer's `breaking` gives each
@@ -137,6 +138,43 @@ the cause is fixed. A function the API no longer serves retires, unless a step s
 it keeps serving and is named (`kept`), and the connection stays `drifted` until those steps
 change. New operations are listed (`added`): add them with `PATCH …/connections/{slug}`
 (`operations`). Nothing breaking left, `drifted` clears.
+
+## An MCP server
+
+An MCP server's link connects the same way, with `"sourceKind": "mcp"`. Its tools are read with
+`tools/list` on your credential, and each tool that only reads becomes a function.
+
+```
+POST /v1/nodes/{nodeId}/connections
+{
+  "slug": "helpline",
+  "sourceKind": "mcp",
+  "sourceUrl": "https://mcp.helpline.example/mcp",
+  "credential": { "kind": "bearer", "token": "…" },   // or { "kind": "api-key", "key": "…", "name": "X-Api-Key" }
+  "operations": ["search-tickets"]                     // optional: tools by name; absent, every one
+}
+```
+
+- **The credential** is a bearer token, or a key in a header you name (`api-key` with `name`). A
+  key in the query, `basic`, or `include` are refused (422): tools are chosen by name in
+  `operations`. The link must be https.
+- **Read-only tools only.** A tool is served when the server marks it read-only
+  (`readOnlyHint: true`). Any other — one that may change something, or says nothing — is listed
+  with "writes come in a later release". Also not served, each with its reason: a tool whose input
+  is no object, whose schema refers to another document or uses `oneOf`, one whose answer type
+  refers to itself, and one that runs only as a task.
+- **Settings and answers.** Every argument of the tool is a setting on the step, named as the tool
+  names it. A tool that declares an output schema answers typed items; when that answer holds
+  exactly one list (`{ "tickets": [...] }`), its items are the list's elements and the step takes
+  `maxItems`. A tool with no output schema answers its text as JSON when it is JSON, else as one
+  `{ "text": … }` item; its type comes from the test call's answer.
+- **What never happens.** No person is ever asked: a tool that asks for confirmation or more input
+  fails the step as a refusal, charging nothing. A tool's own error fails the step with the
+  server's words. The server's `instructions` are dropped, and a tool's description is kept only as
+  the vendor's words, never read as an instruction.
+- **Drift and refresh** read `tools/list` again on your stored credential — a tool's changed
+  schema, annotations or description is breaking, as for a document — and the same `refresh`
+  rules apply.
 
 ## Daily tests, if you want them
 
