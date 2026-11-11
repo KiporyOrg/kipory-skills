@@ -330,6 +330,18 @@ so make the retry-worthy case an output your flow's `return` sets to a known val
 attempt's output into the next attempt's inputs; `onExhausted` names the error a caller gets when
 the last attempt still asks for a retry. Every output it names must be in the snapshot below.
 
+**Calls that must not overlap take turns on a declared key** (`serialize`, synchronous invoke
+only). `"serialize": { "key": ["path.slotId"] }` names request values an input already reads —
+`path.<name>`, `query.<name>`, or `body.<input>` with optional fields inside it — and every call
+whose values are all equal waits, before its flow runs, for the one ahead of it, in order of
+arrival; calls with other values run in parallel. So two bookings of one slot never run at once,
+and each runs its flow once instead of being refused and run again. Endpoints naming the same
+`line` take turns with each other (book and cancel). A call whose turn does not come within
+`maxWaitMs`, or within what its own wait leaves for a run, answers 409 `SERIALIZE_KEY_BUSY` with
+`Retry-After` and ran nothing. A call missing a key value is not held back. The save refuses a key
+part no input reads, and a key on an asynchronous invoke or a view endpoint. The order holds among
+the calls one api process serves; correctness still rests on the save's own checks.
+
 **Input mapping** binds each flow input to a request location: the body, a path parameter or
 a query parameter. At save time the grammar is enforced — every binding must reference a declared
 input, a path binding needs that path parameter declared and required, and every required input

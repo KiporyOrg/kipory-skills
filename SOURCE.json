@@ -1,7 +1,8 @@
 {
-  "source": "b6554563b9d5956649aab222437273e7d38fa24e",
+  "source": "8947730442a779fde278dffb085edf1da60b9b88",
   "since": "2026-08-17",
   "history": [
+    {"sha":"8947730442a7","skills":"An endpoint can declare a serialization key, so calls carrying the same values run one at a time from before their first run (429) (#3719)"},
     {"sha":"b6554563b9d5","skills":"A run's trace records what blocks and calls bound for their steps, and the save rules read a format-11 step itself (420 owed) (#3720)"},
     {"sha":"63b12ac07165","skills":"A record of a searchable table turns ready only once search can find it (426 follow-up) (#3717)"},
     {"sha":"1f019a9479e3","skills":"An organization connects an outside API from its OpenAPI link and its projects call its reads as functions on the organization's own key, re-read daily for drift (428, S2) (#3716)"},
@@ -1000,7 +1001,6 @@
     {"sha":"4ae487446154"},
     {"sha":"22995a183f24"},
     {"sha":"c33b35297365"},
-    {"sha":"64189729cd3c"},
-    {"sha":"e99a2f816713"}
+    {"sha":"64189729cd3c"}
   ]
 }
