@@ -5,8 +5,8 @@ Two halves. The write half indexes and is declared; the read half answers and is
 ## Write half — a record becomes searchable
 
 There is nothing to build: declare `search` in the type's `uses` (`kipory-model`) and the platform
-splits, embeds and indexes each record. Indexing is asynchronous, so a record can be `ready`
-before it is searchable.
+splits, embeds and indexes each record. Indexing is asynchronous: a record of a searchable table
+reads `processing` until it is indexed, then `ready`.
 
 ## Read half — which records, and how close?
 

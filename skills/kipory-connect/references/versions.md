@@ -8,7 +8,7 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 | --- | --- | --- |
 | packs | `2d638f0f1026` | `version` on `GET /v1/capability-packs` |
 | functions | `244bc267b04d1f4499add13a462d00039ca7c0dccdcdf417123c544688466853` | `version` on `GET /v1/functions` |
-| api | `b7d57c9bcf46` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| api | `148fd844704c` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 | codes | `fd3c71f138d7` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
 Function pages: 123 customer functions, key set `2dcaf5dce560`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.

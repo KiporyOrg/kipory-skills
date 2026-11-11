@@ -1426,7 +1426,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "PATCH /v1/records/{id}": {
-      "hash": "055c913f9f93",
+      "hash": "857673f2b0f9",
       "page": "kipory-data/references/api/records.md"
     },
     "PATCH /v1/relations/{id}": {
@@ -1665,7 +1665,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/records/": {
-      "hash": "051c72fa47d1",
+      "hash": "a2bdfe6f5d38",
       "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/records/aggregate": {

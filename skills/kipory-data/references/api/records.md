@@ -208,7 +208,7 @@ Write one record by hand into a project, judged by its type's declared shape exa
 | `tableKey` | `string` | yes | The type written, echoed from the request. |
 | `ownerScope` | `"user" \| "project"` | yes | Whose the row is, as the TYPE declares it — never as the request asked. |
 | `userId` | `string \| null` | yes | The owner, or null for a pool record. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | The record's status as it stands. With `outcome: "created"` that is where the type starts a record: one that binds a processing flow is born pending and handed to the queue; one that binds none is ready the moment it is written and is never enqueued. With `outcome: "existed"` it is the CURRENT status of the record this request converged onto, which may be anywhere in its lifecycle. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | The record's status as it stands. With `outcome: "created"` that is where the type starts a record: one that binds a processing flow is born pending and handed to the queue; one that binds none is ready the moment it is written and is never enqueued, or `processing` until search can find it when its table has search. With `outcome: "existed"` it is the CURRENT status of the record this request converged onto, which may be anywhere in its lifecycle. |
 | `outcome` | `"created" \| "existed" \| "updated"` | yes | `existed` means the derived id was already present — a converging resend, reported as the success it is; nothing was overwritten. `updated` answers only `onKeyTaken: "update"`: another record held the natural key, and its `data` was replaced by this one's — `id` is that record's. |
 | `queued` | `boolean` | yes | Whether processing was handed off. False for a flow-less type (there is nothing to run), false for a converging resend onto a record that is already past pending, and false for an upsert that updated (an update re-indexes, it does not re-run). |
 
@@ -264,7 +264,7 @@ Correct one record: send its `version` and either `data` (the document whole —
 | `id` | `string` | yes | The record, unchanged — a patch never re-mints it. |
 | `tableKey` | `string` | yes | Its type, echoed. |
 | `version` | `integer \| null` | yes | The row's version AFTER this write, measured by re-reading it; the next patch's `version`. Null when it could not be read — re-open the record before saving again rather than reusing the version you sent. |
-| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Its processing state, which this write did not change: a patch re-indexes but never re-runs. `derived` therefore still describes the content as it was, until something re-runs the flow. |
+| `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Its processing state. A patch never re-runs the flow, so `derived` still describes the content as it was, until something re-runs it. It does re-index: on a table with search a ready record reads `processing` until search can find its new content. |
 | `reindexed` | `boolean` | yes | Whether a vector projection was enqueued. False for a type nothing indexes; true does not mean the points are written yet. |
 
 ### `DELETE /v1/records/{id}`

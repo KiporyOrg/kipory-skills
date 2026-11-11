@@ -1,7 +1,8 @@
 {
-  "source": "1f019a9479e3fea03d6e32ab095dd223fce0fb6f",
+  "source": "63b12ac07165f6f51502518e9f8ccc5747e2f1f7",
   "since": "2026-08-17",
   "history": [
+    {"sha":"63b12ac07165","skills":"A record of a searchable table turns ready only once search can find it (426 follow-up) (#3717)"},
     {"sha":"1f019a9479e3","skills":"An organization connects an outside API from its OpenAPI link and its projects call its reads as functions on the organization's own key, re-read daily for drift (428, S2) (#3716)"},
     {"sha":"1c892b326da4","skills":"Free work answers on an empty wallet, a preview stops at its design limit, a vocabulary keeps its thresholds, and every design delete follows one rule (420 owed) (#3715)"},
     {"sha":"5593fa3280b7","skills":"Code kept only for the pre-format-11 world is gone: the document converter, the 425 rollback tooling, old-row and old-job tolerances, and 447 migrations squashed into one baseline (R1–R7) (#3714)"},
@@ -1000,7 +1001,6 @@
     {"sha":"c33b35297365"},
     {"sha":"64189729cd3c"},
     {"sha":"e99a2f816713"},
-    {"sha":"ae288a9be519"},
-    {"sha":"abe30867de2d"}
+    {"sha":"ae288a9be519"}
   ]
 }
