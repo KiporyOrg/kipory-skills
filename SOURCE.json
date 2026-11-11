@@ -1,7 +1,10 @@
 {
-  "source": "0b346f8e855dc7967832f385862fd3a452109f6a",
+  "source": "3552c3afcfb456043decb6be6f309b15ea66ff58",
   "since": "2026-08-18",
   "history": [
+    {"sha":"3552c3afcfb4","skills":"A filter after $list, $map or $filter that would give one match back as the bare item is warned at plan time, with the fix that moves it inside the list (#3726)"},
+    {"sha":"63fd1d7f8f2e"},
+    {"sha":"c98998e996c7"},
     {"sha":"0b346f8e855d","skills":"A remote MCP server serves abilities: organizations connect an MCP link and their projects call its read-only tools as functions on the organization's own key (428, S3) (#3718)"},
     {"sha":"4cc4f7ff9762"},
     {"sha":"e5d3fec75d9c","skills":"A webhook's signing secret lives in the vault, timestamped and form webhooks are checked, a create that lost a race on a key it looked up runs again, and a count or aggregate quota holds (421, 422 owed) (#3721)"},
@@ -998,9 +1001,6 @@
     {"sha":"4e15fe414f7d"},
     {"sha":"8fa58a56c64b"},
     {"sha":"aff97d877af7"},
-    {"sha":"7b50055d6ce6"},
-    {"sha":"053574719366"},
-    {"sha":"6814a6139713"},
-    {"sha":"78a99411fecc"}
+    {"sha":"7b50055d6ce6"}
   ]
 }

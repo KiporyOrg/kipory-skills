@@ -28,7 +28,7 @@ One JSONata `expression`; nothing else in a flow computes. Its value may be noth
   - `x ?? d` gives `d` when `x` is missing; `$default(x, d)` fills nothing; `$ifEmpty(x, d)` fills nothing or empty.
   - `$sum`, `$max`, `$min`, `$average` of nothing are nothing, and arithmetic on nothing is nothing: `$sum([rows.amount])` is 0 for no rows (`JSONATA_AGGREGATE_OF_NO_ITEMS_IS_NOTHING`). `$count` of nothing is 0.
   - `!=` against nothing is false: write `$not(x = "done")` (`JSONATA_NOT_EQUAL_ON_MISSING_IS_FALSE`). A record row leaves an unset field out, so `$r.flag != true` drops an unset row too (`JSONATA_ROW_FIELD_ABSENT_NOT_NULL`).
-  - A filter that matches nothing is nothing, not `[]`, and one match is the bare item: wrap it, `[rows[kept]]`, for a list every time.
+  - A filter that matches nothing is nothing, not `[]`, and one match is the bare item: wrap it, `[rows[kept]]` or `$list(rows[kept])`, for a list every time. The filter goes inside `$list`: `$list(rows)[kept]` filters after it and collapses again (`JSONATA_FILTERED_LIST_MAY_BE_ONE_ITEM`, the same after `$map(…)` and `$filter(…)`).
   - `[xs][0].id` is nothing: index an array constructor in parentheses, `([$filter(xs, f)])[0].id` (`JSONATA_INDEXED_LIST_FIELD_READS_NOTHING`).
 - **A search inside a loop reads the whole list for every item**: build the index once (`$indexBy`, `$groupBy`) and `$lookup` inside; `$chunk(ids, 10)` cuts a list in one pass. The save hints these (`JSONATA_USE_BUILTIN`).
 - **Five functions are refused** (`JSONATA_FORBIDDEN_FUNCTION`): `$now`, `$millis`, `$random` and `$shuffle` (they break caching; read `runInfo.now`), and `$eval`.
