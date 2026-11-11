@@ -643,6 +643,10 @@
     "DELETE /v1/nodes/{nodeId}": {
       "hash": "e79a100cc19b"
     },
+    "DELETE /v1/nodes/{nodeId}/connections/{slug}": {
+      "hash": "545f93056a2b",
+      "page": "kipory-gather/references/api/connections.md"
+    },
     "DELETE /v1/nodes/{nodeId}/invites/{inviteId}": {
       "hash": "6dafce62a040"
     },
@@ -992,6 +996,14 @@
     },
     "GET /v1/nodes/{nodeId}": {
       "hash": "87a25f91f799"
+    },
+    "GET /v1/nodes/{nodeId}/connections": {
+      "hash": "f8b1945768cc",
+      "page": "kipory-gather/references/api/connections.md"
+    },
+    "GET /v1/nodes/{nodeId}/connections/{slug}": {
+      "hash": "2e05fd1d24c9",
+      "page": "kipory-gather/references/api/connections.md"
     },
     "GET /v1/nodes/{nodeId}/effective-role": {
       "hash": "d4d45a5c0d0b",
@@ -1387,6 +1399,18 @@
     "PATCH /v1/nodes/{nodeId}": {
       "hash": "00c2daf69eb2"
     },
+    "PATCH /v1/nodes/{nodeId}/connections/{slug}": {
+      "hash": "f7523a34fa72",
+      "page": "kipory-gather/references/api/connections.md"
+    },
+    "PATCH /v1/nodes/{nodeId}/connections/{slug}/abilities/{operation}": {
+      "hash": "efd4a6aa7c9d",
+      "page": "kipory-gather/references/api/connections.md"
+    },
+    "PATCH /v1/nodes/{nodeId}/connections/{slug}/daily-tests": {
+      "hash": "0a0223660821",
+      "page": "kipory-gather/references/api/connections.md"
+    },
     "PATCH /v1/nodes/{nodeId}/members/{userId}": {
       "hash": "0eddd6af1dea"
     },
@@ -1566,6 +1590,18 @@
     "POST /v1/metadata/": {
       "hash": "9b0b4b1f6908",
       "page": "kipory-connect/references/api/projects.md"
+    },
+    "POST /v1/nodes/{nodeId}/connections": {
+      "hash": "58864405b0eb",
+      "page": "kipory-gather/references/api/connections.md"
+    },
+    "POST /v1/nodes/{nodeId}/connections/{slug}/checks": {
+      "hash": "733dfb75ba90",
+      "page": "kipory-gather/references/api/connections.md"
+    },
+    "POST /v1/nodes/{nodeId}/connections/{slug}/refresh": {
+      "hash": "ade3ed3f08ac",
+      "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/invites": {
       "hash": "e70b9b005f39"
@@ -1786,7 +1822,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "7d4454033695",
+      "hash": "fd3c71f138d7",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

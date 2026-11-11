@@ -24,6 +24,19 @@ Bringing your own web-fetch key removes the vendor pass-through, **not the cost 
 
 A step that can reach more than one vendor resolves **each vendor's key separately**. An `x.posts` or `youtube.transcript` step moves to another vendor only as its `vendor.switch` allows (`never` by default; `when-kipory-account-fails`; `when-vendor-fails`), and a switched step is billed by the vendor that answered: with your own key for one vendor only, a switch spends Kipory's key at the next. Store a key for each vendor the step can reach, or leave `vendor.switch` at `never` (`kipory-gather`).
 
+## A connection's key
+
+A connection (`kipory-gather`'s `references/connections.md`) takes its credential in its own
+`POST /v1/nodes/{nodeId}/connections` call, not through `/v1/secrets`: the key is stored in the
+**organization's** vault under the connection's own purpose (`connection-<slug>`), and a new one is
+given with `PATCH …/connections/{slug}` `{ credential, version }`, which tests every function on it
+before keeping it. None of the three places above applies to it: its functions send the
+organization's key and only that — never a project's entry under the same purpose, never Kipory's —
+so without it a step fails, and it never falls through to the platform's account. The API bills
+the organization's account; the step still pays its compute. Its daily tests, when the organization
+turns them on, run on that key too and are paid by that account, never from Kipory's. Deleting the
+connection removes the key.
+
 ## The sequence
 
 ```

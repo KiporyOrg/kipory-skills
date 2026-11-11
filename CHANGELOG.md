@@ -2,6 +2,20 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261111.13448 — 2026-11-11
+
+Synced from the Kipory monorepo at `1f019a947`.
+
+Routes added: `DELETE /v1/nodes/{nodeId}/connections/{slug}`, `GET /v1/nodes/{nodeId}/connections`, `GET /v1/nodes/{nodeId}/connections/{slug}`, `PATCH /v1/nodes/{nodeId}/connections/{slug}`, `PATCH /v1/nodes/{nodeId}/connections/{slug}/abilities/{operation}`, `PATCH /v1/nodes/{nodeId}/connections/{slug}/daily-tests`, `POST /v1/nodes/{nodeId}/connections`, `POST /v1/nodes/{nodeId}/connections/{slug}/checks`, `POST /v1/nodes/{nodeId}/connections/{slug}/refresh`.
+
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- added: `skills/kipory-gather/references/api/connections.md`
+- added: `skills/kipory-gather/references/connections.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+
 ## 1.20261111.4450 — 2026-11-11
 
 Synced from the Kipory monorepo at `1c892b326`.

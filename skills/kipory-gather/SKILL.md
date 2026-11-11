@@ -26,7 +26,8 @@ mentions.
   and control functions have none of those. Whether a step is queued is a property of the function,
   not something you configure.
 - **A service with no function of its own is reached with a keyed request.** `url.fetch` reads it and
-  `url.send` writes to it, each with a stored key named in `secret`. `kipory-connect`'s
+  `url.send` writes to it, each with a stored key named in `secret`. An OpenAPI one can be
+  connected instead: `references/connections.md`. `kipory-connect`'s
   `references/packs/limits.md` (What a flow can reach) says what such a request cannot do.
 
 ## The sources
@@ -83,9 +84,7 @@ Kipory's key at the next. Store a key for each vendor you allow, or leave
 (`vendor.use: "scrapecreators"`). With `vendor.switch` other than `never`, a vendor
 that fails hands the video to the other; a key of your own the chosen vendor
 refuses fails the step instead. A video with no captions is an answer, and is
-not retried on the second vendor. A switch is billed as in ¹: your own Supadata
-key does not stop Kipory's ScrapeCreators key being spent unless you store both
-or leave `vendor.switch` at `never`.
+not retried on the second vendor. A switch is billed as in ¹.
 
 The social-platform reads return shared types — `SocialProfile`, `SocialPost`,
 `SocialComment`, `SocialAd`, `SocialAudience` — whichever platform they read, so
