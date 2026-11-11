@@ -182,6 +182,10 @@ Records are written by flows; an operator or an importer writes them over HTTP a
   the payload carries, the default refuses 409 `RECORD_NATURAL_KEY_TAKEN`;
   `onKeyTaken: "update"` replaces that record's `data` instead (an **upsert**, `outcome: "updated"`,
   same id, re-indexed, flow not re-run). A table with no natural key refuses the upsert 422.
+  From a flow, a create refused this way whose run first looked the key up (a `record.query` or
+  `record.list` that found nothing) and lost a race to another run is run again, and that run
+  finds the record; a re-run repeats the flow's steps before the save, so `onKeyTaken: "update"`
+  stays the cheaper way to write a key two calls may race on.
   A key that belonged to a record since merged away lands on the record it was merged into: the
   create is refused as taken by that survivor, and the upsert updates the survivor and keeps the
   survivor's own key.

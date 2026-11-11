@@ -2,6 +2,24 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261111.143828 — 2026-11-11
+
+Synced from the Kipory monorepo at `e5d3fec75`.
+
+- changed: `skills/kipory-build/references/answers.md`
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/functions/request.verify-signature.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-model/references/packs/tables-and-types.md`
+- changed: `skills/kipory-secrets/SKILL.md`
+- changed: `skills/kipory-secrets/references/api/secrets.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+- changed: `skills/kipory-secrets/references/pitfalls.md`
+
 ## 1.20261111.134228 — 2026-11-11
 
 Synced from the Kipory monorepo at `a6e2afedc`.

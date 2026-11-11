@@ -107,11 +107,16 @@ parameters adjacent.
 
 | `from`                     | Gives the input                                                                                     |
 | -------------------------- | --------------------------------------------------------------------------------------------------- |
-| `body`                     | the JSON body's field named like the input                                                          |
+| `body`                     | the body's field named like the input: a JSON body's, or a form-encoded body's as text              |
 | `path.<name>`              | a declared path parameter                                                                           |
 | `query.<name>`, or `query` | a declared query parameter; bare `query` means the one named like the input                         |
 | `header.<name>`            | a request header, its name in lower case; absent when not sent                                      |
 | `rawBody`                  | the body's exact text as sent — what a webhook signs; the body may then carry fields no input binds |
+
+A body arrives as JSON (`application/json`), text (`text/plain`) or a form
+(`application/x-www-form-urlencoded`, as some webhooks send). A form's fields are text, and a field
+sent more than once is a list of texts, so bind them to text inputs; `rawBody` is the form exactly as
+sent, which is what its sender signs. Any other content type answers 415.
 
 A path or query value is converted to the input's type — text, a number, an integer or
 true/false — and a value that does not convert answers 422 before the flow runs: `?limit=20`
@@ -250,7 +255,16 @@ bound to `rawBody` <!-- field-ok: rawBody — an input binding's `from` value, n
 or another hash, encoding and prefix as configured) in constant time, and a wrong or missing signature
 answers 401 `SIGNATURE_INVALID` and stops the run, nothing written. On a match its value is `true`.
 `onMismatch: "output"` gives the flow `false` instead of refusing; test it in an `if`. Read the record the secret is on first, so an unknown sender gets 404 before
-the signature is checked.
+the signature is checked. One secret for every call, such as a payment provider's, belongs in the
+vault: store it as a `signing_secret` (see the secrets pack) and write
+`"storedSecret": "<its name>"` in place of `secret`. It is read when the step runs and appears in no
+output, trace or log.
+
+**A timestamped signature** — a header such as `t=1762840800,v1=5257a8…`, the time in Unix seconds
+and the signature over `<t>.<raw body>` — is checked with `"format": "timestamped"`. Any one `v1`
+may match (a sender rolling its secret sends two), and a `t` more than `toleranceSeconds` (300 unless
+set, at most 86400) from now, either way, is refused 401 like a mismatch, so a captured call cannot
+be replayed later. It takes no `prefix`. Bind the whole header to `sig`.
 
 **The answer's shape** (a synchronous invoke only, not a view endpoint) — each names a flow output,
 and the outputs it names are not in the body:

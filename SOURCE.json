@@ -1,7 +1,8 @@
 {
-  "source": "a6e2afedc6b09d40cfa10f73f1ff9bac7f4eb3eb",
+  "source": "e5d3fec75d9c0e75457911bd6ca6f4956acdd90a",
   "since": "2026-08-18",
   "history": [
+    {"sha":"e5d3fec75d9c","skills":"A webhook's signing secret lives in the vault, timestamped and form webhooks are checked, a create that lost a race on a key it looked up runs again, and a count or aggregate quota holds (421, 422 owed) (#3721)"},
     {"sha":"a6e2afedc6b0","skills":"A transform's certain object is refused in a prompt, the records check is faster, the owed live checks pass, and what they found is fixed (420–425 owed) (#3722)"},
     {"sha":"8947730442a7","skills":"An endpoint can declare a serialization key, so calls carrying the same values run one at a time from before their first run (429) (#3719)"},
     {"sha":"b6554563b9d5","skills":"A run's trace records what blocks and calls bound for their steps, and the save rules read a format-11 step itself (420 owed) (#3720)"},
@@ -1000,7 +1001,6 @@
     {"sha":"6814a6139713"},
     {"sha":"78a99411fecc"},
     {"sha":"4ae487446154"},
-    {"sha":"22995a183f24"},
-    {"sha":"c33b35297365"}
+    {"sha":"22995a183f24"}
   ]
 }

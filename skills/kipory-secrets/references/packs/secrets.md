@@ -105,7 +105,8 @@ way a function reads a key: see the request credential below.)
 
 The `custom` type is in the same position: it stores a value under a name of your choosing, and no
 function reads it. Storing an outside service's API key as a `custom` secret does not make that
-service reachable from a flow — store it as an `http_credential` instead.
+service reachable from a flow — store it as an `http_credential` instead, and a webhook's signing
+secret as a `signing_secret`.
 
 ## A key for a service that has no function: `http_credential`
 
@@ -165,6 +166,36 @@ How it behaves:
 - The value never appears in a step's output, a warning, an error or a log line.
 - `url.send` reads it when the request is delivered, after the run. A secret removed or narrowed by
   then fails that delivery, the run has already finished, and no read reports it.
+
+## A webhook's signing secret: `signing_secret`
+
+A sender that signs its webhooks (a payment provider, a code host, a shop platform) gives you a
+signing secret. Store it as a `signing_secret` and a `request.verify-signature` step checks each
+call against it, by name:
+
+```
+POST /v1/secrets
+{ "node": "<project id>", "type": "signing_secret", "purpose": "payments-webhook",
+  "value": { "value": "<the signing secret>" } }
+```
+
+The step then sets `storedSecret: payments-webhook` instead of `secret`. It names one or the other,
+never both: `secret` reads a value the flow holds (a field of a per-sender record, when each sender
+has its own secret), `storedSecret` reads the vault when the step runs.
+
+- `value` is the secret exactly as the sender shows it, prefix included: at least 8 characters, with
+  no line break and no space at either end. `purpose` is up to 128 characters with no space at
+  either end.
+- It is never sent anywhere, so it has no placement and no hosts. It keys the signature check and
+  nothing else: it is not in the step's output, a trace, a warning, an error or a log line.
+- It resolves from the project's node and the organisations above it, never the platform. With none
+  stored and switched on, the step fails `api-key-missing` and the endpoint answers an error, not
+  401: the fault is the project's, not the caller's. A flow naming a purpose no node holds carries a
+  `STEP_SECRET_NOT_HELD` warning when it is saved.
+- A request credential of the same name is another secret: a `url.send` credential named
+  `payments-webhook` is never read as a signing secret, and the other way round.
+- `GET /v1/secrets/resolution` does not list it, as with a request credential: check it on the node
+  list.
 
 The push keys are named the same way: an `apns_key` or `fcm_service_account` is stored under the
 app's bundle id or package name (an `apns_key` may add `:sandbox` or `:production`), read when a push
@@ -238,7 +269,8 @@ Apple still signs people in and loses only the later revocation of the grant.
 
 The list of keys here is the list of vendor and sign-in purposes actually read: one of those
 stored under a purpose that appears nowhere in it is never used. A request credential
-(`http_credential`) is not listed — a step reads it by the name in its `secret`.
+(`http_credential`) and a signing secret (`signing_secret`) are not listed — a step reads each by the
+name in its config.
 
 ⛔ **Do not rebuild this by listing every ancestor and taking the first active row.** That
 reconstruction cannot see the effective-status gate, so it reports a suspended organisation's key
