@@ -53,7 +53,7 @@ Read this after `quickstart-document.md`. Each answer is the shape to copy and w
 
 ## How do I try a scheduled job, or a flow as a person?
 
-`kipory preview notify-due --as alice` runs the flow as that test user, printing each write; it keeps none unless `--apply` and sends no mail or `url.send`: how a daily job is rehearsed (a schedule never runs as a test user).
+`kipory preview --schedule daily --apply` runs a schedule's flow now as it fires: as nobody, with its inputs. No mail, no per-person runs, and no time passes: a deadline must still lapse. `--as alice` runs as that test user.
 
 ## How does one flow call another, or a model?
 

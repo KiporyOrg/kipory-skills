@@ -19,16 +19,16 @@ This skill ships `scripts/kipory.mjs`. It calls the design API for you, with sho
 ```bash
 node .claude/skills/kipory-connect/scripts/kipory.mjs summary                         # the project: host, version, one line per table, flow, endpoint, schedule
 node .claude/skills/kipory-connect/scripts/kipory.mjs plan doc.json                   # plan a document (or a .mjs generator that prints it): one line per error
-node .claude/skills/kipory-connect/scripts/kipory.mjs apply                           # apply the plan you just made; prints the new version and the host
+node .claude/skills/kipory-connect/scripts/kipory.mjs apply                           # apply the plan you just made: the new version and the host
 node .claude/skills/kipory-connect/scripts/kipory.mjs ship doc.mjs                    # plan, then apply when clean
 node .claude/skills/kipory-connect/scripts/kipory.mjs user alice                      # a test user, made once and remembered in .kipory/
 node .claude/skills/kipory-connect/scripts/kipory.mjs call alice GET "/v1/notes"      # call the project's host as alice (or - for no one): status and body
 node .claude/skills/kipory-connect/scripts/kipory.mjs call alice POST "/v1/notes" '{"title":"x"}'
 node .claude/skills/kipory-connect/scripts/kipory.mjs preview notify-due --as alice   # run a flow in the sandbox as alice, one line per write
-node .claude/skills/kipory-connect/scripts/kipory.mjs docs refuse 409                 # the best-matching section of these skills, instead of reading a page
+node .claude/skills/kipory-connect/scripts/kipory.mjs docs refuse 409                 # the best-matching section of these skills
 ```
 
-`--json` prints the raw answer. `--env <file>` reads another file than `./.env`. A preview runs 5 items of each `each`, saying so; `--fan-out-cap <n|uncapped>` runs more. Exit code 1 means refused, 2 a usage or environment problem.
+`--json` prints the raw answer. `--env <file>` reads another env file. A preview runs 5 items of each `each`, saying so; `--fan-out-cap <n|uncapped>` runs more. `--schedule <key>` previews as a schedule fires. Exit code 1 means refused, 2 a usage or environment problem.
 
 ## The sequence
 

@@ -8,8 +8,9 @@
 //   ship <doc> [--note <text>] plan, then apply when the plan is clean
 //   user <name>                a test user, made once and remembered
 //   call <user|-> <METHOD> <path> [json]   call the project's own host as that user
-//   preview <flow> [--as <user>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]
+//   preview <flow> [--as <user|nobody|me>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]
 //                              run a flow in the sandbox, print each write
+//   preview --schedule <key> [--input <json>] [--apply]   a schedule's flow, as it fires
 //   summary                    what the project holds, one line per element
 //   docs <words…>              the best-matching section of these skills
 //
@@ -17,7 +18,8 @@
 // the document (a generator). It reads KIPORY_BASE_URL, KIPORY_API_KEY and
 // KIPORY_PROJECT_ID from the environment, then ./.env (or --env <file>), keeps
 // its state in ./.kipory/, and never prints the key or a session. A preview
-// runs each `each` on its first 5 items unless --fan-out-cap says otherwise.
+// runs each `each` on its first 5 items unless --fan-out-cap says otherwise. A
+// flow a schedule starts previews as nobody, the way it fires; --as me runs as you.
 // Exit codes: 0 done, 1 refused, 2 usage or environment. Node 18+, no deps.
 
 import { execFileSync } from "node:child_process";
@@ -52,7 +54,15 @@ const argv = process.argv.slice(2);
 const flags = new Map();
 const words = [];
 const SWITCHES = new Set(["json", "all", "full", "apply", "help"]);
-const VALUED = new Set(["note", "as", "input", "more", "env", "fan-out-cap"]);
+const VALUED = new Set([
+  "note",
+  "as",
+  "input",
+  "more",
+  "env",
+  "fan-out-cap",
+  "schedule",
+]);
 let badFlag;
 for (let i = 0; i < argv.length; i++) {
   const a = argv[i];
@@ -391,6 +401,11 @@ const apply = async () => {
 
 // ── test users and calls ────────────────────────────────────────────────────
 
+/** `--as nobody`: the run resolves no end user, the way a schedule fires. */
+const NOBODY = "nobody";
+/** `--as me`: the run acts as you, the key's caller (the API's `operator`). */
+const ME = "me";
+
 /** The test users this folder made, for the project the environment names. */
 let usersProject;
 const users = () => (state.read("users.json") ?? {})[usersProject] ?? {};
@@ -422,6 +437,10 @@ const makeUser = async (name) => {
 
 const user = async (name) => {
   if (!name) throw usage("name the user: user <name>");
+  if (name === NOBODY || name === ME)
+    throw usage(
+      `${name} is not a test user's name: preview --as ${name} means ${name === ME ? "you, the caller" : "no one"}`,
+    );
   usersProject = await projectId();
   const known = users()[name];
   const u = known ?? (await makeUser(name));
@@ -493,33 +512,100 @@ const call = async (who, method, path, body) => {
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 const preview = async (flowKey) => {
-  if (!flowKey)
+  const scheduleKey = flags.get("schedule");
+  const as = flags.get("as");
+  if (!flowKey && typeof scheduleKey !== "string")
     throw usage(
-      "preview <flow key> [--as <user>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]",
+      "preview <flow key> [--as <user|nobody|me>] [--input <json>] [--apply] [--fan-out-cap <n|uncapped>]\n" +
+        "preview --schedule <key> [--input <json>] [--apply]",
+    );
+  if (
+    typeof scheduleKey === "string" &&
+    typeof as === "string" &&
+    as !== NOBODY
+  )
+    throw usage(
+      `--schedule runs the flow as its schedule fires it, as nobody: drop --as ${as}`,
     );
   const id = await projectId();
   usersProject = id;
+  let given;
+  if (typeof flags.get("input") === "string") {
+    try {
+      given = JSON.parse(flags.get("input"));
+    } catch {
+      throw usage("--input takes a JSON object of the flow's inputs");
+    }
+    if (!given || typeof given !== "object" || Array.isArray(given))
+      throw usage("--input takes a JSON object of the flow's inputs");
+  }
+  // A schedule fires with no end user and only its stored inputs. Read the
+  // project's schedules when they decide the run: --schedule names one, and a
+  // flow a schedule starts previews the way it fires unless --as says whom.
+  let schedules = [];
+  let unread;
+  if (typeof scheduleKey === "string" || typeof as !== "string") {
+    const res = await api(
+      "GET",
+      `/v1/schedules?project=${encodeURIComponent(id)}`,
+    );
+    // Only --schedule needs the list; without it, a key that cannot read
+    // schedules previews as the caller, and says so.
+    if (typeof scheduleKey === "string") ok(res, "listing schedules");
+    if (res.status === 200) schedules = res.json?.schedules ?? [];
+    else
+      unread = `could not read the schedules (${res.status}): as you, the caller; --as nobody runs it as a schedule fires`;
+  }
+  let schedule;
+  if (typeof scheduleKey === "string") {
+    schedule = schedules.find(
+      (s) => s.key === scheduleKey || s.id === scheduleKey,
+    );
+    if (!schedule)
+      throw refused(
+        `no schedule ${scheduleKey}; the project's schedules: ${schedules.map((s) => s.key).join(", ") || "none"}`,
+      );
+  }
   const list = ok(
     await api("GET", `/v1/flows?project=${encodeURIComponent(id)}`),
     "listing flows",
   );
   const flows = list?.flows ?? list?.items ?? [];
-  const flow = flows.find((f) => f.key === flowKey || f.id === flowKey);
+  const flow = schedule
+    ? flows.find((f) => f.id === schedule.flowId)
+    : flows.find((f) => f.key === flowKey || f.id === flowKey);
   if (!flow)
     throw refused(
-      `no flow ${flowKey}; the project's flows: ${flows.map((f) => f.key).join(", ")}`,
+      schedule
+        ? `schedule ${schedule.key} runs flow ${schedule.flowId}, which this key does not list`
+        : `no flow ${flowKey}; the project's flows: ${flows.map((f) => f.key).join(", ")}`,
     );
-  let inputs = {};
-  if (typeof flags.get("input") === "string") {
-    try {
-      inputs = JSON.parse(flags.get("input"));
-    } catch {
-      throw usage("--input takes a JSON object of the flow's inputs");
+  if (schedule && flowKey && flowKey !== flow.key && flowKey !== flow.id)
+    throw usage(
+      `schedule ${schedule.key} runs flow ${flow.key}, not ${flowKey}: name one or the other`,
+    );
+  let note = unread;
+  let several = false;
+  if (!schedule && typeof as !== "string") {
+    const starting = schedules.filter((s) => s.flowId === flow.id);
+    if (starting.length === 1) schedule = starting[0];
+    else if (starting.length > 1) {
+      several = true;
+      note = `as nobody, the way schedules ${starting.map((s) => s.key).join(", ")} fire it; --schedule <key> adds one's inputs`;
     }
   }
+  const nobody = schedule !== undefined || several || as === NOBODY;
+  // A schedule's stored inputs, with --input laid over them.
+  const inputs = { ...(schedule?.inputs ?? {}), ...(given ?? {}) };
   const input = { kind: "slots", inputs };
-  const as = flags.get("as");
-  if (typeof as === "string") {
+  if (nobody) {
+    input.principal = "no-end-user";
+    note ??= schedule
+      ? `as nobody with schedule ${schedule.key}'s inputs, the way it fires`
+      : "as nobody, the way a schedule fires";
+    // What a fire does and a preview does not: say it where it is read.
+    note += " (a preview sends no mail and starts no per-person runs)";
+  } else if (typeof as === "string" && as !== ME) {
     const u = users()[as] ?? (await makeUser(as));
     Object.assign(input, { principal: "end-user", runAsUserId: u.id });
   }
@@ -565,9 +651,17 @@ const preview = async (flowKey) => {
   );
   const trace = traceRes.status === 200 ? traceRes.json : undefined;
   if (asJson) {
-    out(JSON.stringify({ runId, run, trace }, null, 2));
+    const who = nobody ? NOBODY : typeof as === "string" && as !== ME ? as : ME;
+    out(
+      JSON.stringify(
+        { runId, as: who, schedule: schedule?.key ?? null, run, trace },
+        null,
+        2,
+      ),
+    );
     return;
   }
+  if (note) out(note);
   // `closing.verdict` is how the run ended; `closing.failure` why it failed.
   const outcome = run?.closing
     ? (run.closing.verdict ?? run.closing.kind ?? "closed")
@@ -747,7 +841,7 @@ const docs = (query) => {
 
 const HELP = readFileSync(fileURLToPath(import.meta.url), "utf8")
   .split("\n")
-  .slice(1, 21)
+  .slice(1, 23)
   .map((l) => l.replace(/^\/\/ ?/, ""))
   .join("\n");
 

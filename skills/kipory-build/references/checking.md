@@ -104,7 +104,7 @@ Each route addresses a step by the flow's id and the step's key. Send `step` to 
 - **It costs what a live run costs, and it writes.** `apply` defaults to true. `apply: false` still runs every step and every model call, then discards the change set — readable at `GET /v1/runs/{runId}/change-set`, where the run id is the response's `previewSessionId`.
 - **A step that sends checks and does not send.** `email.send`, `url.send`, `push.send` and `flow.start-per-person` run every check a live run makes and answer as a live run would, with a `PREVIEWED_NOT_SENT` warning saying what would have gone. Prove the delivery itself with one live run.
 - **`missingRequiredOutput` is non-null exactly when a live call would be refused.**
-- **Who the run acts as is `principal`.** On `slots`: `operator` (you, the default), `no-end-user` (how a schedule or a trigger runs — `userInfo` is absent), `end-user` with `runAsUserId` (that person's own call; needs `apply: false`). On `record`: `operator` or `record-owner`.
+- **Who the run acts as is `principal`.** On `slots`: `operator` (you, the default), `no-end-user` (how a schedule or a trigger runs — `userInfo` is absent; `kipory preview <flow> --as nobody`, or `--schedule <key>` for a schedule's flow with its inputs), `end-user` with `runAsUserId` (that person's own call; needs `apply: false`). On `record`: `operator` or `record-owner`.
 - **An `each` is capped at 5 values per preview** (`fanOutCap` sets the cap, a number or `"uncapped"`, never above the step's own `maxItems`); the wall clock is 180 seconds.
 
 **To see each step's value, queue the preview.** `POST /v1/flows/{id}/preview-runs` takes the same body and answers `202 { runId }`; a worker runs it, read like any run:

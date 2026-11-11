@@ -1,7 +1,8 @@
 {
-  "source": "3552c3afcfb456043decb6be6f309b15ea66ff58",
+  "source": "ccd3d2dab5c50cb55fe1b8f5a7774b29aebaca6e",
   "since": "2026-08-18",
   "history": [
+    {"sha":"ccd3d2dab5c5","skills":"kipory preview runs a schedule's flow the way it fires: as nobody, with its inputs, so an agent stops sleeping on the cron (run-schedule-now option A) (#3729)"},
     {"sha":"3552c3afcfb4","skills":"A filter after $list, $map or $filter that would give one match back as the bare item is warned at plan time, with the fix that moves it inside the list (#3726)"},
     {"sha":"63fd1d7f8f2e"},
     {"sha":"c98998e996c7"},
@@ -1000,7 +1001,6 @@
     {"sha":"8be7ca410a37"},
     {"sha":"4e15fe414f7d"},
     {"sha":"8fa58a56c64b"},
-    {"sha":"aff97d877af7"},
-    {"sha":"7b50055d6ce6"}
+    {"sha":"aff97d877af7"}
   ]
 }

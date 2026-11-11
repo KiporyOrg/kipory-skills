@@ -19,7 +19,9 @@ The fire is attributed to the **project**, not to a person, and billed to the pr
 project-wide one reads normally, and a `user`-scoped emit is dropped. `userInfo` is optional
 everywhere: a required read of it is refused at save (`STEP_INPUT_MAY_BE_ABSENT`) until it sits under
 `if` + `{has: userInfo}` or reads `{path: userInfo.userId, optional: true}`. Carry the person you mean as an input, and preview the flow
-with `"principal": "no-end-user"`, which is the run a fire makes.
+with `"principal": "no-end-user"`, which is the run a fire makes. There is no "run this schedule
+now": that preview, with the schedule's `inputs` and `"apply": true`, is it. It sends no mail,
+starts no per-person runs, and makes no time pass.
 
 ## When you need it — and when you don't
 
