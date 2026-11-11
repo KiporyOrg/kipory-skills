@@ -162,9 +162,16 @@ PATCH /v1/vocabularies/{id}      bind resolverFlowId (and mint, matching, params
 
 ⭐ **You can skip the binding entirely.** Omit `resolverFlowId` on create and a `semantic` vocabulary
 is bound to the platform's default resolver with its default parameters. Send an id to bind a
-specific one; `resolutionParams` is **ignored unless you named a resolver explicitly**. Sending an
-explicit `null` for `resolverFlowId` creates the vocabulary UNBOUND, which fails at its first
-ingest.
+specific one. Sending an explicit `null` for `resolverFlowId` creates the vocabulary UNBOUND, which
+fails at its first ingest.
+
+⭐ **`resolutionParams` goes to whichever resolver the create binds** — the default one too. Send
+`{ lowThreshold, highThreshold }` with no `resolverFlowId` and a `semantic` vocabulary is born bound
+to the default resolver with your numbers. A bag that does not fit the resolver's parameter shape is
+refused 422 `VALIDATION_FAILED`, one issue per misfit, its `field` naming the key
+(`resolutionParams.lowThreshold`). A bag sent where no resolver will be bound — an `exact`
+vocabulary, `resolverFlowId: null`, or a deployment with no default resolver — is refused 422 with
+`field: resolutionParams`; nothing you send is dropped.
 
 ⚠️ **Two things decide whether that default actually happens.** The create defaults are
 `mint: active` and `matching: semantic`, and the auto-binding is keyed on **`matching`** — so a
@@ -599,9 +606,10 @@ The inverse rename is the undo.
   vocabulary's field off records refuses the delete: one `VOCABULARY_FIELD_STILL_READ` error per
   step, in the same 422 as any `REMOVED_STILL_USED`, here and in a project document alike. Change
   those steps first, or delete the vocabulary and change them in one document.
-  ⚠️ Send the SAME query you intend to delete with. A destructive delete is refused without
-  `confirm=true`, and a vocabulary with assigned terms also needs an `assignedTerms` disposition, so
-  a dry run that omits either answers the refusal you would have got — which is the point of asking.
+  ⚠️ Send the SAME query you intend to delete with. A vocabulary with assigned terms needs an
+  `assignedTerms` disposition, so a dry run that omits it answers the refusal you would have got —
+  which is the point of asking. Like every design delete it takes no `confirm` flag: one sent is
+  refused 422.
 - **`vocabulary.resolve` runs inline, not queued.** It dispatches sub-flows bound to the live run:
   depth and cycle guards, the provider cache, the tenant scope, billing. That is precisely why it
   cannot be moved off into background processing, and why a slow resolver makes ingestion slow.
@@ -642,8 +650,7 @@ The inverse rename is the undo.
   live binding before assuming it resolves anything.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
-refused.
+vocabulary's (which also carries `assignedTerms`); anything else in the query is refused.
 
 ## Related
 

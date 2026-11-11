@@ -59,8 +59,7 @@ It cannot see a stale `version`: that is the write's own lock. `DELETE …?valid
 the same for a removal, which nothing refuses.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
-refused.
+vocabulary's (which also carries `assignedTerms`); anything else in the query is refused.
 
 ## How a flow reads it
 

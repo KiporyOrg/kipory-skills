@@ -65,7 +65,7 @@ POST  /v1/records/bulk     { "project": "<node>", "items": [ { "id", "version", 
 
 ⭐ **Adding a required field to a table with records is four calls**: widen the type with the field optional (`kipory-evolve`), list the ids and versions, one bulk `merge` setting the field on each, then make it required.
 
-**Delete a record.** `DELETE /v1/records/{id}` (ADMIN, irreversible) removes the record and everything derived from it — terms, links, files it produced, vector points — and answers `{ id, deleted: true, outcome }`: `removed`, or `draining` when a run was over it (it goes at that run's next step). The bulk route takes creates and updates only, so to clear a table, page `GET /v1/records?project=<node>&tableKey=<type>` and delete each id.
+**Delete a record.** `DELETE /v1/records/{id}` (ADMIN, irreversible) removes the record and everything derived from it — terms, links, files it produced, vector points — and answers `{ id, deleted: true, outcome }`: `removed`, or `draining` when a run was over it (it goes at that run's next step). `?validateOnly=true` answers what it would do and deletes nothing; there is no `confirm` flag. The bulk route takes creates and updates only, so to clear a table, page `GET /v1/records?project=<node>&tableKey=<type>` and delete each id.
 
 **Run a record's processing flow again.**
 

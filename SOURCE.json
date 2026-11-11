@@ -1,7 +1,8 @@
 {
-  "source": "5593fa3280b759c7bc3b9f9d5fca87c469d98830",
+  "source": "1c892b326da4a9051782c164863363c941dad618",
   "since": "2026-08-17",
   "history": [
+    {"sha":"1c892b326da4","skills":"Free work answers on an empty wallet, a preview stops at its design limit, a vocabulary keeps its thresholds, and every design delete follows one rule (420 owed) (#3715)"},
     {"sha":"5593fa3280b7","skills":"Code kept only for the pre-format-11 world is gone: the document converter, the 425 rollback tooling, old-row and old-job tolerances, and 447 migrations squashed into one baseline (R1–R7) (#3714)"},
     {"sha":"c874ed3dbb6b","skills":"Kipory staff add a new ability as rows: a contract at a node, served by one generic engine function, checked, shown and billed like a code function, with no release (428, S1) (#3713)"},
     {"sha":"b20948a5cbdd","skills":"What the format-11 roll left: the reset script's fixes, a re-ask for misfit model answers, the vendor flake, and three billing and capacity rulings (420) (#3712)"},
@@ -1000,7 +1001,6 @@
     {"sha":"e99a2f816713"},
     {"sha":"ae288a9be519"},
     {"sha":"abe30867de2d"},
-    {"sha":"5d22899bd581"},
-    {"sha":"484220c0caf5"}
+    {"sha":"5d22899bd581"}
   ]
 }

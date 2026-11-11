@@ -10,7 +10,8 @@ Some destructive changes are refused outright:
   (`TABLE_PINNED_BY_RECORDS`), or removing a field from its type that records hold;
 - deleting a flow something still references, or removing a step whose value a later step still reads (unless the same batch changes those readers);
 - deleting a term that is assigned, is a parent, or is the canonical of aliases;
-- deleting a vocabulary without `confirm=true`, or while another vocabulary nests under it;
+- deleting a vocabulary while another vocabulary nests under it, or without an `assignedTerms`
+  choice once records carry its terms;
 - deleting a built-in event type, or a relation's last pairing.
 
 Others do not refuse. They cascade, and the response tells you what else moved:
@@ -23,6 +24,12 @@ Others do not refuse. They cascade, and the response tells you what else moved:
   rewrite of every record's filter columns;
 - editing a processing flow re-runs nothing.
 
+⭐ **Every design delete reads the same.** `DELETE /v1/<kind>/{id}?validateOnly=true` answers whether
+the delete would be refused and what it would take along, writing nothing; the delete itself is
+refused (409) only over what still depends on the row. There is no `confirm` flag on any of them —
+the dry run is the look before the leap, and an unknown query parameter, `confirm` included, is a 422. A project's own retirement and an organization's destruction are the exceptions: they take the
+name typed back (`confirmSlug`, `confirmName`).
+
 What each refusal carries, the way round where one exists, and what each cascade reports are in
 "Reading a refusal" and "Reading a cascade", below.
 
@@ -34,16 +41,16 @@ one is the one that costs money while you are not looking.
 A refusal names what blocked it. That name is the next thing to deal with, and it is usually not the
 thing you were trying to change.
 
-| The refusal says                         | Deal with                                                                                                                                                                                                                                                                                           |
-| ---------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| the table has N existing records         | the records, in `kipory-data` — or leave the table alone. The rule is `TABLE_PINNED_BY_RECORDS` (`details.reason`)                                                                                                                                                                                  |
-| a field removed on a table with records  | nothing lifts it: rename the field instead, or add the new one beside it (`change-order.md`, "A rename")                                                                                                                                                                                            |
-| a related row still references this flow | whatever references it — an endpoint, a schedule (even disabled), a trigger, a table, a resolver, an invoking flow                                                                                                                                                                                  |
-| a later step still reads this step       | re-point or remove those readers in the same batch, then remove it                                                                                                                                                                                                                                  |
-| assignments still exist on this term     | merge it into the term that should survive (`POST /v1/terms/{id}/merge`) — every assignment moves and a delete then accepts the alias — or archive it to keep it on the records that have it                                                                                                        |
-| a vocabulary delete answers 409          | if another vocabulary nests under it, delete that vocabulary first — no flag lifts that, and a vocabulary's parent cannot be changed. Otherwise send `confirm=true`, and `assignedTerms=delete` or `assignedTerms=archive` once any of its terms is assigned. Ask it with `validateOnly=true` first |
-| the event type is built in               | nothing; a built-in event type cannot be deleted                                                                                                                                                                                                                                                    |
-| this is the last pairing                 | a relation cannot have none; delete the relation instead                                                                                                                                                                                                                                            |
+| The refusal says                         | Deal with                                                                                                                                                                                                                                                                       |
+| ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| the table has N existing records         | the records, in `kipory-data` — or leave the table alone. The rule is `TABLE_PINNED_BY_RECORDS` (`details.reason`)                                                                                                                                                              |
+| a field removed on a table with records  | nothing lifts it: rename the field instead, or add the new one beside it (`change-order.md`, "A rename")                                                                                                                                                                        |
+| a related row still references this flow | whatever references it — an endpoint, a schedule (even disabled), a trigger, a table, a resolver, an invoking flow                                                                                                                                                              |
+| a later step still reads this step       | re-point or remove those readers in the same batch, then remove it                                                                                                                                                                                                              |
+| assignments still exist on this term     | merge it into the term that should survive (`POST /v1/terms/{id}/merge`) — every assignment moves and a delete then accepts the alias — or archive it to keep it on the records that have it                                                                                    |
+| a vocabulary delete answers 409          | if another vocabulary nests under it, delete that vocabulary first — no flag lifts that, and a vocabulary's parent cannot be changed. Otherwise send `assignedTerms=delete` or `assignedTerms=archive` once any of its terms is assigned. Ask it with `validateOnly=true` first |
+| the event type is built in               | nothing; a built-in event type cannot be deleted                                                                                                                                                                                                                                |
+| this is the last pairing                 | a relation cannot have none; delete the relation instead                                                                                                                                                                                                                        |
 
 - **A refusal that names a rule names it the same way everywhere.** `TABLE_PINNED_BY_RECORDS`
   is the finding's `code` on the `validateOnly` verdict and in a plan, and `details.reason` on the

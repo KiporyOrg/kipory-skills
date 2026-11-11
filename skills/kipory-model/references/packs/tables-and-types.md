@@ -1223,8 +1223,7 @@ is yours to change in the same save.
   counts; read the verdict, never gate on `total`. It needs ADMIN on the table, the delete's own floor.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
-refused.
+vocabulary's (which also carries `assignedTerms`); anything else in the query is refused.
 
 - **A declaration the contract has moved out from under.** Each declaration is validated when it is
   saved; editing the type or re-capturing the flow afterwards can leave one naming a field the

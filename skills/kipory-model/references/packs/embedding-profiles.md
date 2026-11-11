@@ -180,8 +180,7 @@ and the rule's own code (`EMBEDDING_PROFILE_KEY_INVALID`, `EMBEDDING_PROFILE_CHU
 the same token the save's refusal names.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
-refused.
+vocabulary's (which also carries `assignedTerms`); anything else in the query is refused.
 
 - **The PATCH dry run plans every inheriting table**, exactly as the save does. A default
   that one of them cannot take comes back as a finding naming the table, before anything commits.

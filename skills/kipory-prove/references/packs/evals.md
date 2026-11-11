@@ -575,8 +575,7 @@ dry run: `POST /v1/eval-suites/{id}/run` with `validateOnly: true` answers what 
 measure, and the design writes answer whether a row would be saved.
 
 ⚠️ The flag is the delete's only query parameter, the same one every design delete takes except a
-vocabulary's (which also carries `confirm` and `assignedTerms`); anything else in the query is
-refused.
+vocabulary's (which also carries `assignedTerms`); anything else in the query is refused.
 
 ## Authoring order
 

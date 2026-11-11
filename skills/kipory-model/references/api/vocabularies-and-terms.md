@@ -263,7 +263,7 @@ Create one vocabulary. With `validateOnly: true` it answers whether the vocabula
 | `matching` | `"exact" \| "semantic"` | no | Defaults to `semantic` when omitted. |
 | `proposal` | `object \| null` | no | How ingest may propose new terms for this vocabulary. Omit for the default behaviour. |
 | `resolverFlowId` | `string \| null` | no | The flow that searches this vocabulary for a term matching a proposed value. Three distinct choices: OMIT and a `matching: semantic` vocabulary is bound to the platform's default resolver for you; pass null to create it unbound; pass a flow id to bind that one. The id is not checked here — the resolver validates its own inputs when it runs. |
-| `resolutionParams` | `object \| null` | no | Parameters for the resolver flow. Ignored unless you named one explicitly. |
+| `resolutionParams` | `object \| null` | no | Parameters for the resolver this vocabulary is bound to — the one `resolverFlowId` names, or the platform's default when it is omitted. Omit it to take that resolver's defaults; null stores none. A bag the resolver does not take is refused 422 naming each key, and a bag sent where no resolver is bound (`matching: exact`, or `resolverFlowId: null`) is refused 422 too. |
 | `validateOnly` | `boolean` | no | Check this body and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE BODY, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT YOUR DRAFT rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
 **Response `200`**
@@ -548,7 +548,7 @@ Each item of `renames`:
 
 ### `DELETE /v1/vocabularies/{id}`
 
-Delete one vocabulary and its terms. Refused (409) while another vocabulary nests under it, until `confirm=true` when anything would be destroyed, and until `assignedTerms` says what happens to terms records carry. With `?validateOnly=true` it answers whether it would be, and how far it reaches, writing nothing. Several vocabularies at once: the vocabularies section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
+Delete one vocabulary with its terms and its links to tables. Refused (409) while another vocabulary nests under it, and until `assignedTerms` says what happens to terms records carry. With `?validateOnly=true` it answers whether it would be refused and how far it reaches — tables unlinked, terms removed, records losing a label — writing nothing; read that first. Several vocabularies at once: the vocabularies section of `POST /v1/projects/{nodeId}/document` (preview it with `/plan`).
 
 **Path parameters**
 
@@ -560,7 +560,6 @@ Delete one vocabulary and its terms. Refused (409) while another vocabulary nest
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `confirm` | `"true" \| "false"` | no | Pass `true` to actually delete. Without it a destructive delete is refused with a 409 rather than performed. ⭐ TO SEE WHAT WOULD BE DESTROYED, send `validateOnly=true` (below) with the same options you intend to delete with: that answers a 200 verdict plus the blast radius and writes nothing. |
 | `assignedTerms` | `"delete" \| "archive"` | no | What to do with terms that records already carry. Required once any term is assigned — there is no default. Ask `validateOnly=true` to find out whether this delete needs one. |
 | `validateOnly` | `"true" \| "false"` | no | Check this delete and answer what would happen, writing nothing. 200 with a verdict — see the validate response. ⚠️ THAT IS A VERDICT ABOUT THE DELETE, NOT ABOUT EVERY FAILURE: a 4xx still answers 4xx. A refusal the platform makes ABOUT THIS DELETE rides the 200; a request it could not look at — an id that addresses nothing, a role it will not serve — answers the status it always did. Default false. |
 
