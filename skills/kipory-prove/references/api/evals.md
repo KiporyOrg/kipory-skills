@@ -331,7 +331,7 @@ Each item of `results`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `caseKey` | `string` | yes | The case's stable `key`. |
-| `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run" \| "unknown"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. `unknown` — the run predates per-case recording, so the answer is not stored rather than being any of the above. |
+| `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. |
 | `reason` | `string \| null` | yes | Why the case ended in a non-`scored` outcome. Null when it was scored. |
 | `traceId` | `string \| null` | yes | Trace this case produced, for per-step drill-down: read it at `GET /v1/eval-runs/{id}/traces/{traceId}`. Null means the run left no evidence, which is itself why the case could not be scored. |
 | `runId` | `string \| null` | yes | The run this case's subject made, the one whose trace `traceId` names: its timeline (warnings, each step's outcome), change set and flow snapshots answer under `/v1/runs/{runId}`, and `GET /v1/runs` lists it with `source.kind: eval`. Its cost is counted in the eval run's spend, not its own. Null when no run answered and on results stored before cases kept their run. A repeat is a run of its own and is not named here; a control arm, which runs the baseline's frozen graph, makes no run. |
@@ -402,7 +402,7 @@ The trace of one case in an eval run, with its `runId`. The run's per-case score
 | `inputs` | `unknown` | no | What the run received. |
 | `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
 | `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |
-| `stepOutputs` | `object \| null` | yes | What each STEP wrote, for the writes a slot name cannot name. Null when the writer recorded no steps. |
+| `stepOutputs` | `object \| null` | yes | What each STEP wrote, for the writes a slot name cannot name. Null only when the stored value does not read as step writes. |
 | `durationMs` | `integer \| null` | yes | How long the run took, in milliseconds. ⚠️ NULL MEANS UNTIMED, not instant — an old row, or a run that crashed before it got going. Render the difference. |
 | `createdAt` | `string` | yes | When the run happened. |
 | `expiresAt` | `string` | yes | When this trace will be deleted. Reading it after this point returns 404 by design, not because the reference is broken. |
@@ -797,7 +797,7 @@ Each item of `results`:
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `caseKey` | `string` | yes | The case's stable `key`. |
-| `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run" \| "unknown"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. `unknown` — the run predates per-case recording, so the answer is not stored rather than being any of the above. |
+| `outcome` | `"scored" \| "errored" \| "invalid" \| "not-run"` | yes | What happened to one case. `scored` — it ran and was graded. `errored` — its run crashed, so it says nothing about quality and is not a low score. `invalid` — its stored inputs no longer match the flow's declared slots, which reports that the flow's contract moved. `not-run` — it was not attempted. |
 | `reason` | `string \| null` | yes | Why the case ended in a non-`scored` outcome. Null when it was scored. |
 | `traceId` | `string \| null` | yes | Trace this case produced, for per-step drill-down: read it at `GET /v1/eval-runs/{id}/traces/{traceId}`. Null means the run left no evidence, which is itself why the case could not be scored. |
 | `runId` | `string \| null` | yes | The run this case's subject made, the one whose trace `traceId` names: its timeline (warnings, each step's outcome), change set and flow snapshots answer under `/v1/runs/{runId}`, and `GET /v1/runs` lists it with `source.kind: eval`. Its cost is counted in the eval run's spend, not its own. Null when no run answered and on results stored before cases kept their run. A repeat is a run of its own and is not named here; a control arm, which runs the baseline's frozen graph, makes no run. |

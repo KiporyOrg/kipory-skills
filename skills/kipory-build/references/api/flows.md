@@ -141,7 +141,7 @@ Each item of `consequences`:
 
 ### `GET /v1/flows/{id}`
 
-Read one flow: its signature, its steps in the order they run, its `version` (the lock every write of it requires), and `calls`/`calledBy`, the flows it calls and the flows that call it, one hop each way. `include=reads` adds every step's place and the paths it reads; `include=expressions` adds every expression the steps hold, by where it sits, as TypeScript and as Python, for reading; `expand=timeLimits` adds each function step's time limit as a run applies it. Change its steps with `PUT /v1/flows/{id}/steps` (the whole list) or `POST /v1/flows/{id}/steps/edit` (a few edits); its signature with `PATCH /v1/flows/{id}`. To check an edited expression before saving it, send it as `typescript` or `python` on `PUT /v1/flows/{id}/steps` with `validateOnly: true`. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true`. Every flow of a project at once is `GET /v1/bootstrap`, and the whole project as one editable document is `GET /v1/projects/{nodeId}/document`.
+Read one flow: its signature, its steps in the order they run, its `version` (the lock every write of it requires), and `calls`/`calledBy`, the flows it calls and the flows that call it, one hop each way. `include=reads` adds every step's place and the paths it reads; `include=expressions` adds every expression the steps hold, by where it sits, as TypeScript and as Python, for reading; `include=values` adds every name a step can read (the inputs, each step's key, an `each`'s item) with the fields it holds, as the steps save types them; `expand=timeLimits` adds each function step's time limit as a run applies it. Change its steps with `PUT /v1/flows/{id}/steps` (the whole list) or `POST /v1/flows/{id}/steps/edit` (a few edits); its signature with `PATCH /v1/flows/{id}`. To check an edited expression before saving it, send it as `typescript` or `python` on `PUT /v1/flows/{id}/steps` with `validateOnly: true`. What still holds the flow, and would refuse its delete, is `DELETE /v1/flows/{id}?validateOnly=true`. Every flow of a project at once is `GET /v1/bootstrap`, and the whole project as one editable document is `GET /v1/projects/{nodeId}/document`.
 
 **Path parameters**
 
@@ -154,7 +154,7 @@ Read one flow: its signature, its steps in the order they run, its `version` (th
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `expand` | `string` | no | Optional expansions, comma-separated. One or more of: timeLimits. Each adds a computed field to the response and may cost extra queries, so ask only for what you will read. |
-| `include` | `string` | no | Fields to add, comma-separated, each answered only when asked for. `reads` adds `reads`: every step's place and the paths it reads, what a reference or impact view walks. `expressions` adds `expressions`: every expression the steps hold, as TypeScript and as Python. |
+| `include` | `string` | no | Fields to add, comma-separated, each answered only when asked for. `reads` adds `reads`: every step's place and the paths it reads, what a reference or impact view walks. `expressions` adds `expressions`: every expression the steps hold, as TypeScript and as Python. `values` adds `values`: every name a step can read and the fields it holds. |
 
 **Response `200`**
 
@@ -179,6 +179,7 @@ Read one flow: its signature, its steps in the order they run, its `version` (th
 | `steps` | `object[]` | yes | The flow's steps in the order they run, as you wrote them. Save a whole new list with `PUT /v1/flows/{id}/steps`, or change a few with `POST /v1/flows/{id}/steps/edit`. |
 | `reads` | `object[]` | no | Present only with `include=reads`: one entry per step, nested ones included, with its place and the paths it reads. |
 | `expressions` | `object[]` | no | Present only with `include=expressions`: one entry per expression the saved steps hold, in written order, each step's function expressions first, with where it sits and its TypeScript and Python. For reading only; to check an edit of one, send it as `typescript` or `python` on a steps write with `validateOnly: true`. |
+| `values` | `object[] \| null` | no | Present only with `include=values`: each name the saved steps can read (the inputs, the platform's values, each step's key, an `each`'s item, a `repeat`'s vars), once, with its type and fields, as the steps save types them. Null when the saved steps do not parse. |
 
 Each item of `calls`:
 
@@ -248,6 +249,18 @@ Each item of `expressions`:
 | `at` | `string` | yes | Where the expression sits, as a key path from the flow, the way a finding's `at` names it: a function's own expression (`steps[shape].with.expression`, `steps[make].with.fields.title`), an `{expr}` argument (`steps[mail].with.to`, `steps[perMember].each`, `steps[done].return.total`), or an expression test (`steps[check].if[0].test.and[1].expr`). |
 | `typescript` | `string \| null` | yes | The expression as TypeScript: statements ending in `return`, with TypeScript's own spelling where it has one (`if`, loops, `.map`, `.filter`, `.startsWith`, templates) and JSONata's functions, and the platform's, called by name without the `$` (`round(x, 1)`), with nothing imported or defined. It means what the JSONata means: the engine runs the JSONata, and this text, edited and sent back as `typescript`, reads back to it. For reading and editing only: it is not saved. Null when the expression does not parse or uses a part with no TypeScript form, for example a function called on each item of a path (`xs.$string()`), a computed function call, `@`, `#`, grouping, a variable named like one of its inputs, or `or` / `and` with a literal on its right (`a or "y"`, always true), which TypeScript would read as a default. |
 | `python` | `string \| null` | yes | The same expression as Python: statements ending in `return`, with Python's own spelling where it has one (`if`, loops, comprehensions, f-strings) and JSONata's functions, and the platform's, called by name (`round(x, 1)`; one Python names itself, such as `list`, is `list_`). It means what the JSONata means and, edited and sent back as `python`, reads back to it. Null whenever `typescript` is null for the expression itself, and also when a part has a TypeScript form but no Python one. |
+
+Each item of `values`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `name` | `string` | yes | The name as an expression or a path reads it. |
+| `from` | `"input" \| "platform" \| "step" \| "item" \| "var"` | yes | Where it comes from: a flow `input`; a `platform` value every run or some runs carry (`runInfo`, `userInfo`); a `step`'s value, by its key; an `each`'s `item` (its `as`); a `repeat`'s `var`. |
+| `stepKey` | `string \| null` | yes | The key of the step that gives it: the step itself, or the `each` or `repeat` around it. Null for an input or a platform value. |
+| `type` | `string \| null` | yes | Its JSON type; for a list, its items' type. Null where the type does not say. |
+| `typeName` | `string \| null` | yes | The named type it is (for a list, its items'), such as `ScrapedPage` or one of the project's types. Null for a builtin, an inline shape or a value with no type. |
+| `list` | `boolean` | yes | The value is a list. |
+| `fields` | `object[] \| null` | yes | Every field under it, depth first, in declared order, up to 6 levels down and 400 fields. A sub-flow call's value lists the called flow's outputs; a block's, its `out` names. Empty for a value with no fields (a text, a number, an open object). Null when the platform cannot type it: a function with no output type, a name given twice, a union. |
 
 ### `PATCH /v1/flows/{id}`
 

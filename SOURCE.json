@@ -1,7 +1,8 @@
 {
-  "source": "56a6bdb98ccb3809cca16742b7df612772b8ac2b",
+  "source": "834ba0fbc861adfde9fccc49b585485ae9423eef",
   "since": "2026-08-18",
   "history": [
+    {"sha":"834ba0fbc861","skills":"Nothing runs or judges a step through format 10's action row any more, the second legacy scan's findings are fixed, and the expression editor offers a step's fields again (R6) (#3727)"},
     {"sha":"56a6bdb98ccb","skills":"A customer connection can write, safely: an operation or tool that writes is a function sent once per run, after the run is saved, on the organization's own key (428, S4) (#3732)"},
     {"sha":"b5af030decf7"},
     {"sha":"ccd3d2dab5c5","skills":"kipory preview runs a schedule's flow the way it fires: as nobody, with its inputs, so an agent stops sleeping on the cron (run-schedule-now option A) (#3729)"},
@@ -1000,7 +1001,6 @@
     {"sha":"a1f18315f24c"},
     {"sha":"805b7cd27f66"},
     {"sha":"879633f5c229"},
-    {"sha":"8be7ca410a37"},
-    {"sha":"4e15fe414f7d"}
+    {"sha":"8be7ca410a37"}
   ]
 }

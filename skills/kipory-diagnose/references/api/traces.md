@@ -117,7 +117,7 @@ One trace of this flow in full, with its `runId`. The same trace by its run is `
 | `inputs` | `unknown` | no | What the run received. |
 | `output` | `unknown` | no | What the run produced. There is no status field on a trace — a failure shows up HERE and in `slotOutputs`, not as a verdict. |
 | `slotOutputs` | `object` | yes | What the run wrote, keyed by OUTPUT SLOT — one level, not nested by step. The payload that matters for a diagnosis: it separates a slot that was written from one that was not. Truncated when it was written. A step whose output slot is empty contributes no key. |
-| `stepOutputs` | `object \| null` | yes | What each STEP wrote, for the writes a slot name cannot name. Null when the writer recorded no steps. |
+| `stepOutputs` | `object \| null` | yes | What each STEP wrote, for the writes a slot name cannot name. Null only when the stored value does not read as step writes. |
 | `durationMs` | `integer \| null` | yes | How long the run took, in milliseconds. ⚠️ NULL MEANS UNTIMED, not instant — an old row, or a run that crashed before it got going. Render the difference. |
 | `createdAt` | `string` | yes | When the run happened. |
 | `expiresAt` | `string` | yes | When this trace will be deleted. Reading it after this point returns 404 by design, not because the reference is broken. |

@@ -337,8 +337,8 @@ and on `/spend`) counts them: `runs`, `credits`, and the dearest fifty in `byRun
 many times the suite's own figure. A queued record is counted once a worker has claimed it, so read
 `/spend` again after the queue drains; set `applyWrites: false` to start nothing.
 
-⚠️ **A case's `latencyMs` is `null` when no duration was recorded** — a case the run never started,
-or a run from before per-case outcomes were stored. A `0` is a measured zero.
+⚠️ **A case's `latencyMs` is `null` when no duration was recorded** — a case the run never started.
+A `0` is a measured zero. Every case of a run carries its outcome.
 
 **A case's `output` is what its run answered** — the flow's declared outputs, what an endpoint would
 have returned — on `GET /v1/eval-runs/{id}` beside its scores, kept to 8 KB (a share of 256 KB for the run's cases when that is less, never

@@ -711,18 +711,12 @@ depend on what you asked for: `NEVER_PRODUCED` needs `expand=liveLinkCount` besi
 without a live count there is nothing to judge, and `linkCount` must not stand in — it counts
 retracted links too, so a relation whose every link has expired would report as producing.
 ⛔ **And which ROUTE you asked matters more than which expansion.** The LIST route can only ever
-emit `NO_PAIRING` and `NEVER_PRODUCED`; the five reasons that need a per-relation read — no
+emit `NEVER_PRODUCED`; the five reasons that need a per-relation read — no
 producing field, no join table, and the three properties reasons — come only from the ITEM route. So
 one link can legitimately read `unproven` on a board and `blocked` on its own page. ⚠️ For a
 `join-record` relation, `NEVER_PRODUCED` is fed by the join table's record count, not by
 `liveLinkCount`, which is structurally zero there. What you must
 NOT read is a short reason list as a clean bill of health.
-
-⛔ **`NO_PAIRING` is reachable even though the platform refuses to create one.** A create with no
-pairing is refused (`RELATION_NO_PAIRINGS`) and the last pairing cannot be deleted, so nothing
-can ENTER that state today — but rows that predate those two doors still exist and stay repairable.
-The validator calls that check "quarantining a row" rather than enforcing an invariant, and this is
-the first read that says so out loud.
 
 ## Linked records in one read
 

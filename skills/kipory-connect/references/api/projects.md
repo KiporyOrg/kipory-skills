@@ -495,7 +495,6 @@ The applied changes to the project's configuration, newest first, one action per
 | `paging` | `null` | yes | Always NULL here: this route walks by cursor and offers no page jump. The number of matching actions is `total`. |
 | `nextCursor` | `string \| null` | yes | Pass as `after`, with the same `order`, for the next page along `order` — older under `desc`, newer under `asc`. Null on the last page. |
 | `prevCursor` | `string \| null` | yes | Pass as `before`, with the same `order`, for the previous page along `order`. Null on the first page. |
-| `recordingSince` | `string \| null` | yes | When this deployment began recording configuration changes. Changes applied before it were not recorded and never will be. ⛔ A client MUST show this alongside an empty result. ⚠️ NULL means the date itself could not be established, NOT that recording never started. |
 
 Each item of `actions`:
 

@@ -170,7 +170,7 @@ Each item of `records`:
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
-| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
+| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`. |
 | `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
 | `owner` | `object` | yes | Whether this record belongs to the project or to one person. |
 | `fields` | `object[]` | yes | One entry per column, in the same order. |
@@ -721,7 +721,7 @@ Each item of `records`:
 | `tableKey` | `string` | yes | This row's own type. Present on every row, including a single-type page. |
 | `status` | `"pending" \| "processing" \| "ready" \| "failed" \| "deleting" \| "merged"` | yes | Where the record is in processing. |
 | `statusError` | `string \| null` | yes | What went wrong, for a failed record. Null otherwise. |
-| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`, and for a failure from before this was recorded. |
+| `failure` | `object \| null` | yes | How the record's latest processing failed and whose failure it was: its class, owner, whether processing it again could help, and the step that failed when one did. Null unless the record is `failed`. |
 | `processing` | `object` | yes | The record's processing history in two numbers, for deciding whether to send a failed record back with `record.enqueue-process`. |
 | `owner` | `object` | yes | Whether this record belongs to the project or to one person. |
 | `fields` | `object[]` | yes | One entry per column, in the same order. |

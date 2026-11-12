@@ -768,7 +768,10 @@ is not a healthier flow. `ok: true` is a snapshot, not a promise: another write 
   gives. It is how to find every reader of a step before you change it. `?include=expressions`
   adds `expressions`: each expression the saved steps hold, `{at, typescript, python}`, the same
   prints the dry run answers, for reading (an entry is part of the flow item, not a shape of its own); to check an edit of one, send it on a steps write with
-  `validateOnly: true`. Ask for both with `?include=reads,expressions`. `?expand=timeLimits` adds
+  `validateOnly: true`. Ask for both with `?include=reads,expressions`. `?include=values` adds
+  `values`: each name a step can read (an input, a platform value, a step's key, an `each`'s item, a
+  `repeat`'s vars) with its type and every field under it by its dotted path, as the
+  save types it; `fields: null` means the platform cannot type that name. `?expand=timeLimits` adds
   each action step's time limit as a run applies it.
 - `GET /v1/flows/{id}/outline` — the indented outline above: `lines` (each line with its `depth`,
   its `kind`, its `key` and its `path`), the same as `text`, and `plan` (the flow's size: `steps`, `topLevelSteps`, `depth`, `longestChain`). A switched-off step's line
@@ -897,7 +900,7 @@ timeline carries its `phase` and a `message` cut to 500 characters — the funct
 which can quote what it was processing.
 
 Preview proves one run. Which steps real runs have exercised since the flow last changed is
-`GET /v1/flows/{id}/coverage`; the values sampled runs actually carried (inputs, outputs, each step's value; kept 7 days) are
+`GET /v1/flows/{id}/coverage`, each step named by its `stepKey`; the values sampled runs actually carried (inputs, outputs, each step's value; kept 7 days) are
 `GET /v1/flows/{id}/traces`. `GET /v1/flows/{id}/recent-records` lists the records the flow ran on
 lately — the ones most worth previewing with `input.kind: "record"`.
 

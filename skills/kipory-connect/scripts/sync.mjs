@@ -625,7 +625,7 @@ const reportItems = (label, result) => {
     const why =
       bundledLayer === undefined
         ? "references/manifest.json is missing from this bundle"
-        : "this deployment serves no per-item hashes";
+        : "the deployment's answer is broken: it carries no per-item hashes";
     console.log(`${INDENT}which items differ: not known — ${why}`);
     return;
   }
