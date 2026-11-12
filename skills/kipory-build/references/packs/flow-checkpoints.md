@@ -47,7 +47,8 @@ automatic checkpoint's `label` reads `auto: …` followed by why it was taken.
 
 Renaming a checkpoint or changing its note is `PATCH /v1/flow-checkpoints/{id}` with `label` and/or
 `description` — and the checkpoint's `version`, which every read carries. A stale one answers 409
-`VERSION_CONFLICT`. What it captured never changes. Capture, rename and delete each take
+`VERSION_CONFLICT`; one no read could have carried (negative, or past 2,147,483,647) is refused as
+422 `VALIDATION_FAILED` before anything is looked up. What it captured never changes. Capture, rename and delete each take
 `validateOnly` too (on a delete, `?validateOnly=true`) and answer whether they would go through,
 writing nothing.
 

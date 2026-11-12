@@ -2,6 +2,14 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261112.70229 — 2026-11-12
+
+Synced from the Kipory monorepo at `615456bfb`.
+
+- changed: `skills/kipory-build/references/packs/flow-checkpoints.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261112.55958 — 2026-11-12
 
 Synced from the Kipory monorepo at `834ba0fbc`.
