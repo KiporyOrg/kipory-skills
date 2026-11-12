@@ -86,8 +86,8 @@ and apply `{ planId, note }` — never the document again. `kipory-build` owns t
 `Kipory-Session-Label: <label>` (1–64 characters), beside `Kipory-Change-Note: <why>` (1–500), the
 sentence history shows for that save; text outside ASCII goes percent-encoded. Send the same label
 from the same key on every plan, apply and save of one working session. The label is how a plan
-tells your own writes since your read from someone else's: a save or an apply without it is listed
-under the plan's `moved`, and the apply answers `409 VERSION_CONFLICT` for your own work.
+tells your own writes since your read from someone else's: a save without it, or an apply without it whose
+plan had none (an apply takes its plan's label), is listed under the plan's `moved`, and the apply answers `409 VERSION_CONFLICT` for your own work.
 
 What matters here is that the plan is the apply rolled back, so it answers the same refusals a
 row-by-row change would meet, in one read, and three things a row write never tells you:

@@ -1,7 +1,8 @@
 {
-  "source": "615456bfb0f88b618d75c7d2fda8c4ba8b6777b7",
+  "source": "5c157eabd3a99f94b54262d12086bf769e36ef84",
   "since": "2026-08-18",
   "history": [
+    {"sha":"5c157eabd3a9","skills":"A document plan records, for measurement only, the agent session and turn that made it and the codes that refused it (#3733)"},
     {"sha":"615456bfb0f8","skills":"Problems become visible: CI keeps every test's result and the box load, a function may not grow more tangled, a cap raised three times in 30 days needs Anton's yes, and the nightly job fuzzes the API (engine hardening wave 1) (#3730)"},
     {"sha":"834ba0fbc861","skills":"Nothing runs or judges a step through format 10's action row any more, the second legacy scan's findings are fixed, and the expression editor offers a step's fields again (R6) (#3727)"},
     {"sha":"56a6bdb98ccb","skills":"A customer connection can write, safely: an operation or tool that writes is a function sent once per run, after the run is saved, on the organization's own key (428, S4) (#3732)"},
@@ -1000,7 +1001,6 @@
     {"sha":"b21ce7eb3d81"},
     {"sha":"7b2cbcd497f6"},
     {"sha":"a1f18315f24c"},
-    {"sha":"805b7cd27f66"},
-    {"sha":"879633f5c229"}
+    {"sha":"805b7cd27f66"}
   ]
 }

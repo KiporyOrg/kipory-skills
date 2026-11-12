@@ -2,6 +2,12 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261112.232314 — 2026-11-12
+
+Synced from the Kipory monorepo at `5c157eabd`.
+
+- changed: `skills/kipory-evolve/SKILL.md`
+
 ## 1.20261112.70229 — 2026-11-12
 
 Synced from the Kipory monorepo at `615456bfb`.
