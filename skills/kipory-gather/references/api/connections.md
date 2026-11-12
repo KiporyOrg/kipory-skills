@@ -66,6 +66,7 @@ Each item of `connections`:
 | `updatedBy` | `string` | yes | Who last changed it. |
 | `hosts` | `string[]` | yes | The one host its functions call. |
 | `dailyTests` | `boolean` | yes | Whether its functions are called once a day to check them. |
+| `keyProven` | `boolean` | yes | Whether a call on its key has been answered. `false` (key not yet proven) when every operation it serves sends: nothing is called when it is connected, and the first send its API answers proves the key. A key the API refuses on a send raises the organization's sends-failing alert. |
 | `abilities` | `object[]` | yes | Its functions, newest version of each, by key. |
 
 ### `POST /v1/nodes/{nodeId}/connections`
@@ -87,6 +88,7 @@ Connect an OpenAPI 3.0 or 3.1 document to your organization with a credential: e
 | `sourceUrl` | `string` | yes | The link to the OpenAPI document or the MCP server. Its host is the only host the connection may call. |
 | `credential` | `object` | yes | How Kipory signs requests to this source. Kept in your organization's vault; never shown again. |
 | `operations` | `string[]` | no | The operations or tools to add, by name or as `"GET /parcels/{id}"`; absent, every one that can be served. |
+| `reads` | `string[]` | no | Operations or tools that only read, though the source says they send — a search sent as a `POST`, say — by name, as `"POST /search"` or by its `operationId` in the document. Each is tested and served as a read. Absent: every `GET` or `HEAD` operation, and every tool marked read-only, is a read; every other one sends. |
 | `include` | `object` | no | Narrows which operations of the document are considered. |
 | `validateOnly` | `boolean` | no | When true, reads the source and answers what would be added, with nothing written. |
 
@@ -108,7 +110,8 @@ Each item of `operations`:
 | `hash` | `string` | yes | A fingerprint of the operation as read; a change to it is how the daily check sees the source move. |
 | `served` | `boolean` | yes | Whether it became a function. |
 | `reason` | `string` | no | Why it is not served, or why its function is hidden. |
-| `effect` | `"read" \| "send"` | yes | Whether it only reads, or sends something to the source. |
+| `effect` | `"read" \| "send"` | yes | Whether it only reads, or sends something to the source. A function that sends is sent once per run, after the run is saved, and is never tested daily. |
+| `markedRead` | `true` | no | You marked it a read when connecting (`reads`): the source says it sends, and it is served as a read. |
 | `abilityId` | `string` | no | The function version it became, when served. |
 | `drift` | `"additive" \| "breaking"` | no | How the source last moved for it: `additive` (a new version waits), or `breaking` (its function keeps the old shape until you act). |
 | `functionName` | `string` | no | Its function's name when it is not the operation's: `get-parcel-2` in `parcel-desk.get-parcel-2`, once a breaking change's new function took over from the old one. |

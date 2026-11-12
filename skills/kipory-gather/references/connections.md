@@ -4,17 +4,18 @@
 <!-- field-ok: flowCount — a field of a 409's `details.dependents`, which error details carry untyped, not a request field -->
 
 An API with an OpenAPI document — or an MCP server's link — becomes a set of functions your
-organization's projects can use as steps — one per operation (or tool) that reads. That is a
-**connection**. It is made once, at the
+organization's projects can use as steps — one per operation (or tool), each one that reads and
+each one that sends. That is a **connection**. It is made once, at the
 organization, from the document's link and a credential; every project under the organization can
 then use its functions like any other source.
 
 ## What a connection can do
 
-- **It reads.** Each `GET` (or `HEAD`) operation the import can serve becomes a function. An operation
-  that sends something — `POST`, `PUT`, `PATCH`, `DELETE` — is listed and not served, with the
-  reason "writes come in a later release". To send to the API today, use `url.send` with a stored
-  key (`references/url-send.md`).
+- **It reads.** Each `GET` (or `HEAD`) operation the import can serve becomes a function.
+- **It sends.** An operation that sends something — `POST`, `PUT`, `PATCH`, `DELETE` — becomes a
+  function too, one that sends once the run is saved (below, "Sends"). An operation whose method
+  sends but which only reads — a search sent as a `POST` — is a read when you name it in `reads` at
+  connect.
 - **It calls one host, over https.** The host is the document's first `servers` entry (a relative one
   is read against the document's own link). Another server on another host is never called; an
   operation that names its own server elsewhere is not served. A first server on plain `http` is
@@ -41,6 +42,7 @@ POST /v1/nodes/{nodeId}/connections
   "sourceUrl": "https://api.parceldesk.example/openapi.json",
   "credential": { "kind": "api-key", "key": "…" },
   "operations": ["list-parcels", "GET /parcels/{id}"],   // optional: absent, every one served
+  "reads": ["POST /parcels/search"],                       // optional: these only read, whatever their method
   "validateOnly": true                                     // optional: preview, nothing written
 }
 ```
@@ -52,14 +54,23 @@ POST /v1/nodes/{nodeId}/connections
 - **The credential** is `api-key` (where it goes is read from the document's security scheme, or
   give `in: "header" | "query"` and `name`), `bearer` (`token`) or `basic` (`username`,
   `password`). It is never shown again.
+- **`reads`** names operations (by name, as `"POST /path"`, or by the document's `operationId`) whose method sends but which only
+  read: each is tested and served as a read, and stays one on every later read of the document. A
+  name the document does not have is a 422.
+- **A function that sends is never called at connect.** Its test is its shape alone — its request
+  is checked, nothing is sent to your API — and it is shown when that passes. A shape check is no
+  test of your key: when every operation you choose sends, the connection is stored with
+  `keyProven: false` ("key not yet proven"). The first send your API answers proves the key; a
+  key your API refuses on a send (401, 403) raises your organization's "sends failing" alert.
 - **One test call per reading operation**, on your key, at connect. One that answers makes its
   function **shown**, and its answer becomes the function's example. A parameter's own `example`
   (or a `default`) is what the test call asks it. One that fails leaves its
   function **hidden**, with the reason on the operation — often a required parameter the document
   gives no example or default for. Fix the cause, then `PATCH /v1/nodes/{nodeId}/connections/{slug}/abilities/{operation}`
   `{ "status": "shown", "version": … }`, which tests it again first and keeps that call as the
-  function's example (an untyped answer gives it its type). If every test fails, nothing is
-  stored and the answer is a 424 naming each failure.
+  function's example (an untyped answer gives it its type). If every test call fails — a wrong key,
+  say — nothing is stored and the answer is a 424 naming each failure, however many sending
+  functions passed their shape check.
 - **A link to a private address is refused** (422, naming the host): loopback, a private network,
   link-local or cloud metadata addresses — at connect and on every call after. A link that
   redirects is refused too (422): give the link it redirects to.
@@ -82,6 +93,42 @@ answer (marked inferred), or untyped.
 
 `GET /v1/functions/{key}` describes one like any other function; its words are the API's own
 (marked as the vendor's).
+
+A `default` the document gives a parameter that its own type refuses — `null` on a string, as
+generated documents often write — is dropped: the setting is optional with no default.
+
+## Sends
+
+A function that sends (`effect: "send"` on its operation) adds a note, posts a comment, opens a
+ticket. Its settings are the operation's parameters and body, as a read's are.
+
+- **It is sent once the run is saved, and once per run.** The step answers `true` at once: the run
+  now owes the call. The call goes out after the run's changes are saved — a run that fails sends
+  nothing — and the step never sees your API's answer, so a flow cannot branch on it. A step run
+  twice in one run sends once; a new run sends again. A preview or an eval run checks the call and
+  sends nothing (a `PREVIEWED_NOT_SENT` warning).
+- **The repeat key.** Every call carries one key, the same on every attempt. When the operation
+  declares an `Idempotency-Key` header parameter, the key goes there (it is not a setting), so
+  your API can tell a repeat from a new call.
+- **No answer is an unknown outcome, and a call with no repeat key is not sent twice.** A call
+  whose request left but got no answer to trust — a timeout, a 5xx, a gateway error — is sent again
+  later only when it carries its repeat key (the operation declares that idempotency header, or an
+  MCP tool says `idempotentHint: true`; an MCP tool carries no repeat key otherwise). Without one,
+  your API might act on it twice, so it ends as **outcome unknown** and is not sent again: check
+  your API. A call that never left (the name did not resolve, the connection was refused, the
+  server lost its session) and a 429 are tried again whatever the key; every attempt is recorded.
+  Any other answer ends it: a 4xx is not sent again (it needs the flow's author). It is tried again
+  at once, inside one attempt, only when it carries its repeat key.
+- **Made on the version the step ran.** A call staged before its function got a new version is not
+  made (`ability-changed`).
+- **A failed send shows on its run.** A send that ends unsent or unknown — refused, a 4xx, an
+  unknown outcome, no key, its tries spent — adds a warning to the step that staged it on the
+  run's timeline (`GET /v1/runs/{runId}/timeline`, a `step-warned` row whose `detail.kind` is
+  `send-failed` or `send-outcome-unknown`, with the reason in `detail.message`), after the run
+  was saved. Three failed or unknown sends of one connection within 24 hours, or one whose key
+  your API refused, raise your organization's alert "Sends through a connected API keep
+  failing", naming the connection. The next send your API answers (or a new key) clears it.
+- **One API, always.** A send is never moved to another vendor, and never tested daily.
 
 ## When the API changes: drift
 
@@ -158,13 +205,16 @@ POST /v1/nodes/{nodeId}/connections
 - **The credential** is a bearer token, or a key in a header you name (`api-key` with `name`). A
   key in the query, `basic`, or `include` are refused (422): tools are chosen by name in
   `operations`. The link must be https.
-- **Read-only tools only.** A tool is served when the server marks it read-only
-  (`readOnlyHint: true`). Any other — one that may change something, or says nothing — is listed
-  with "writes come in a later release". Also not served, each with its reason: a tool whose input
+- **Reads and sends.** A tool the server marks read-only (`readOnlyHint: true`) is a read. Any
+  other — one that may change something, or says nothing — is a send (see "Sends": sent once the
+  run is saved, never called at connect, never tested daily), unless you name it in `reads`. A
+  send's answer is never read, so its output schema neither types nor refuses it. Not
+  served, each with its reason: a tool whose input
   is no object, whose schema refers to another document or uses `oneOf`, one whose answer type
-  refers to itself, and one that runs only as a task.
+  refers to itself, one that runs only as a task, and one whose `x-mcp-header` annotation is
+  invalid (an argument it marks is mirrored into an `Mcp-Param-*` header on every call).
 - **Settings and answers.** Every argument of the tool is a setting on the step, named as the tool
-  names it. A tool that declares an output schema answers typed items; when that answer holds
+  names it (a `default` its own type refuses — `null` on a string — is dropped). A tool that declares an output schema answers typed items; when that answer holds
   exactly one list (`{ "tickets": [...] }`), its items are the list's elements and the step takes
   `maxItems`. A tool with no output schema answers its text as JSON when it is JSON, else as one
   `{ "text": … }` item; its type comes from the test call's answer.

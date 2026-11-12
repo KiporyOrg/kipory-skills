@@ -998,11 +998,11 @@
       "hash": "87a25f91f799"
     },
     "GET /v1/nodes/{nodeId}/connections": {
-      "hash": "f8b1945768cc",
+      "hash": "ef441efeaa6e",
       "page": "kipory-gather/references/api/connections.md"
     },
     "GET /v1/nodes/{nodeId}/connections/{slug}": {
-      "hash": "2e05fd1d24c9",
+      "hash": "832b5a3c3a75",
       "page": "kipory-gather/references/api/connections.md"
     },
     "GET /v1/nodes/{nodeId}/effective-role": {
@@ -1400,15 +1400,15 @@
       "hash": "00c2daf69eb2"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}": {
-      "hash": "f7523a34fa72",
+      "hash": "e0f934612301",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}/abilities/{operation}": {
-      "hash": "efd4a6aa7c9d",
+      "hash": "58e1ec13a7f8",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/connections/{slug}/daily-tests": {
-      "hash": "0a0223660821",
+      "hash": "161e62934aba",
       "page": "kipory-gather/references/api/connections.md"
     },
     "PATCH /v1/nodes/{nodeId}/members/{userId}": {
@@ -1592,7 +1592,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "POST /v1/nodes/{nodeId}/connections": {
-      "hash": "58864405b0eb",
+      "hash": "9042b544103f",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/connections/{slug}/checks": {
@@ -1600,7 +1600,7 @@
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/connections/{slug}/refresh": {
-      "hash": "ade3ed3f08ac",
+      "hash": "0aa76819a72e",
       "page": "kipory-gather/references/api/connections.md"
     },
     "POST /v1/nodes/{nodeId}/invites": {
