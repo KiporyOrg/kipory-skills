@@ -1,7 +1,8 @@
 {
-  "source": "b570b76c6d32122b8c1543470a17eaecb906c8e0",
+  "source": "ad3711555f01a80adc53f164474cdab7b8efb90b",
   "since": "2026-08-18",
   "history": [
+    {"sha":"ad3711555f01","skills":"Money and queues hold under real faults: a charge the database refuses waits in a file, the outbox delivers once, and broken engine invariants page staff (engine hardening wave 2) (#3731)"},
     {"sha":"b570b76c6d32","skills":"An organization connects a server that allows only sign-in: a person signs in once and Kipory keeps it working unattended — and feature 428 ships (428, S5 + closing) (#3734)"},
     {"sha":"5c157eabd3a9","skills":"A document plan records, for measurement only, the agent session and turn that made it and the codes that refused it (#3733)"},
     {"sha":"615456bfb0f8","skills":"Problems become visible: CI keeps every test's result and the box load, a function may not grow more tangled, a cap raised three times in 30 days needs Anton's yes, and the nightly job fuzzes the API (engine hardening wave 1) (#3730)"},
@@ -1000,7 +1001,6 @@
     {"sha":"2564a85ae972"},
     {"sha":"951a35343b23"},
     {"sha":"b21ce7eb3d81"},
-    {"sha":"7b2cbcd497f6"},
-    {"sha":"a1f18315f24c"}
+    {"sha":"7b2cbcd497f6"}
   ]
 }

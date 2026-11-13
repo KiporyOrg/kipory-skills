@@ -133,7 +133,9 @@ A `filter` is a condition in the trigger's own grammar, `{ op, slot, path?, valu
 **two slots**: `event` (the envelope's own fields) and `data` (its payload). A payload field is addressed as
 `{ "op": "slotEquals", "slot": "data", "path": "source", "value": "telegram" }`; an envelope
 field as `{ "slot": "event", "path": "category", … }`. The combinators are `{ "op": "and", "all": [...] }`,
-`{ "op": "or", "any": [...] }` and `{ "op": "not", "inner": … }`.
+`{ "op": "or", "any": [...] }` and `{ "op": "not", "inner": … }`. `slotContains` matches text anywhere
+in the field, ignoring case, as a flow's `contains` and a record query's do; `slotContainsExactCase`
+is the case-sensitive check.
 
 A `path` walks the slot: `author.profile.id` descends into objects
 (a key that itself contains a dot still matches, longest key first) and `items[0].kind` reads one

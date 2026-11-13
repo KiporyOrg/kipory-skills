@@ -739,7 +739,8 @@ Each kind of clause is answered by the store its use routed the field to, so eac
   needs no use. `not-in` is taken by the route's body, a view's clauses and a `record.query` step's
   config alike. `contains` matches text anywhere in a text field, ignoring case, `%` and `_`
   literal; the text is at least 3 characters with a word in them (`"50%"` and `"a-b"` are found,
-  signs alone like `"%%%"` are refused: the index has nothing to find them by). Dates travel as ISO strings.
+  signs alone like `"%%%"` are refused: the index has nothing to find them by, so the minimum is a
+  search-speed limit). A flow's `contains` and a trigger filter's `slotContains` ignore case too. Dates travel as ISO strings.
 - **`any`** is an OR of 2 to 8 `field`, `term`, `link` or `stream` clauses, one level deep: a record
   matching any one of them is in the answer. Each alternative needs what it would need alone, and
   counts toward the query's 16 clauses. It holds no `semantic` clause, no `any`, and no stream

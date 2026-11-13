@@ -791,7 +791,7 @@ Each item of `clauses`:
 | --- | --- | --- | --- |
 | `kind` | `"field"` | yes | A condition on a field the type routes with `filter`. |
 | `field` | `string` | no | A field of the table with a `filter` use, or `id` (with `eq`, `in` or `not-in`). |
-| `op` | `"eq" \| "lt" \| "lte" \| "gt" \| "gte" \| "in" \| "not-in" \| "contains"` | no | Each operator takes one value; `in` and `not-in` take a list. `not-in` keeps records with no value in the field. `contains` matches text anywhere in a text field, ignoring case: at least 3 characters with a word in them, not signs alone. |
+| `op` | `"eq" \| "lt" \| "lte" \| "gt" \| "gte" \| "in" \| "not-in" \| "contains"` | no | Each operator takes one value; `in` and `not-in` take a list. `not-in` keeps records with no value in the field. `contains` matches text anywhere in a text field, ignoring case: at least 3 characters with a word in them, not signs alone (a search-speed limit). |
 | `value` | `string \| number \| boolean \| string \| number \| boolean[]` | no | One value, or a list for `in` and `not-in`; dates as ISO 8601. |
 | `vocabularyKey` | `string` | no | A vocabulary the table lists in `uses.vocabularies`. |
 | `slug` | `string` | no | The term, by slug. An alias resolves to its canonical term, one hop, as every term read does. |

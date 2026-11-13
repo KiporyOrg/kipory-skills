@@ -67,7 +67,7 @@ page and bringing linked records, which the three reads share, comes first below
   `record.query` says how many it left out (`longTextSkipped` on its clause row). `eq` and `in`
   find a text value of any length in all three.
 - `record.query` also takes `contains` on a text field (text anywhere, ignoring case, at least 3
-  characters with a word in them, not signs alone), an `any` clause (2 to 8 field, term, link or stream alternatives, one level deep, an
+  characters with a word in them, not signs alone: a search-speed limit), an `any` clause (2 to 8 field, term, link or stream alternatives, one level deep, an
   OR), and an `order` by a number, true/false or text field with a `filter` use. A text order needs
   the type's `maxLength` of at most 500 on the field (`QUERY_ORDER_TEXT_UNBOUNDED`), and reading
   every page (`pages` above 1) still needs a date or `created` order.
