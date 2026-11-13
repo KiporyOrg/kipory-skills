@@ -936,6 +936,10 @@
       "hash": "ff408e295119",
       "page": "kipory-build/references/api/functions-and-models.md"
     },
+    "GET /v1/functions/search": {
+      "hash": "63f7467a4957",
+      "page": "kipory-build/references/api/functions-and-models.md"
+    },
     "GET /v1/functions/{key}": {
       "hash": "4616a1ba710f",
       "page": "kipory-build/references/api/functions-and-models.md"
@@ -1580,10 +1584,6 @@
     "POST /v1/flows/{id}/steps/{key}/preview": {
       "hash": "0646a1a2d530",
       "page": "kipory-build/references/api/steps.md"
-    },
-    "POST /v1/functions/missed-searches": {
-      "hash": "08583676bdbd",
-      "page": "kipory-build/references/api/functions-and-models.md"
     },
     "POST /v1/keys/": {
       "hash": "693238616ce4"

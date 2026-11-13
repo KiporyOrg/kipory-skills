@@ -13,7 +13,7 @@ Fields are listed one level deep with the text the API itself carries; a respons
 | `GET` | [`/v1/ai-models`](#get-v1-ai-models) |  |
 | `GET` | [`/v1/functions`](#get-v1-functions) |  |
 | `GET` | [`/v1/functions/{key}`](#get-v1-functions-key) |  |
-| `POST` | [`/v1/functions/missed-searches`](#post-v1-functions-missed-searches) |  |
+| `GET` | [`/v1/functions/search`](#get-v1-functions-search) |  |
 | `GET` | [`/v1/nodes/{nodeId}/model-prices`](#get-v1-nodes-nodeid-model-prices) |  |
 | `GET` | [`/v1/nodes/{nodeId}/routing`](#get-v1-nodes-nodeid-routing) |  |
 | `PUT` | [`/v1/nodes/{nodeId}/routing/{modelId}`](#put-v1-nodes-nodeid-routing-modelid) |  |
@@ -296,24 +296,63 @@ Each item of `servedBy`:
 | `why` | `object` | yes | Per setting it limits, what this vendor does not do, in words. |
 | `ceiling` | `object \| null` | yes | The most one step can cost at this vendor, derived from its definition. Each answer's count is compared with its request's share of it. Null when it cannot be derived. |
 
-### `POST /v1/functions/missed-searches`
+### `GET /v1/functions/search`
 
-Record a search on a flow's add list that ended with nothing chosen, or with "Ask AI to …": the phrase, the value kind and how it ended. Requires EDITOR on the flow, which is not kept. A phrase of fewer than three letters or digits is refused; the same phrase, value kind and ending again within an hour is accepted and not kept twice; a caller records at most 30 a minute, and past 5000 kept in 24 hours across all callers a record is accepted and not kept. Staff read them with `GET /v1/functions/missed-searches`; matching a request to a function is `GET /v1/functions` (`searchWords`).
+Ask, in your own words, whether Kipory can do something — "get the latest posts from an X account", "count orders per customer" — and get the functions that do it, best first, at most 5: why each matched, what it takes, what it answers, and the smallest step to paste into a flow. When none is close enough, `verdict` is `cannot`: Kipory cannot do this yet, `nearest` lists the closest functions in case one is enough, and `report` is a body to file with `POST /v1/reports` so Kipory hears it is missing.
+`text` is the whole answer as plain text. Pass `?project=` (VIEWER on it) to search the functions your organization connected too.
+The whole catalog is `GET /v1/functions`; one function's page with a worked example is `GET /v1/functions/{key}`.
+Each ask counts against your own request limit.
 
-**Request body**
-
-| Field | Type | Required | Meaning |
-| --- | --- | --- | --- |
-| `flowId` | `string` | yes | The flow whose add list was searched. Checked for EDITOR and not kept. |
-| `phrase` | `string` | yes | What was typed: at least 3 letters or digits, no NUL. Kept lowercased, with one space between words, trimmed, its first 200 characters; the same phrase, value kind and ending again within an hour is not kept twice. |
-| `valueKind` | `"text" \| "long-text" \| "search-phrase" \| "language-code" \| "country-code" \| "region-code" \| "email-address" \| "handle" \| "id" \| "record-id" \| "user-id" \| "video-id" \| "place-id" \| "web-address" \| "file-address" \| "image-address" \| "post-link" \| "profile-link" \| "ad-link" \| "date" \| "file" \| "image" \| "audio" \| "video" \| "document" \| "number" \| "count" \| "money" \| "boolean" \| null` | yes | The value kind's key the list was opened for (`long-text`), or null. |
-| `ending` | `"nothing" \| "ask-ai"` | yes | How the search ended: `nothing` chosen, or "Ask AI to …" (`ask-ai`). |
-
-**Response `202`**
+**Query**
 
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
-| `recorded` | `true` | yes | Accepted. Kept anonymously, unless the same search was kept within the last hour. |
+| `q` | `string` | yes | What you want to do, in your own words — "get the latest posts from an X account", "count orders per customer". At least 3 letters or digits; read lowercased, its first 200 characters. |
+| `project` | `string` | no | Node id of the project you are building. Needs VIEWER on it, and adds the functions your organization connected to the search. |
+
+**Response `200`**
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `query` | `string` | yes | Your ask, as it was read. |
+| `verdict` | `"found" \| "cannot"` | yes | `found` — `matches` lists functions that do it; `cannot` — Kipory cannot do this yet, and `nearest` lists the closest functions in case one is enough. |
+| `matches` | `object[]` | yes | The functions that do it, best first, each once, at most 5. Empty when the verdict is `cannot`. |
+| `nearest` | `object[]` | yes | On `cannot`: the 3 closest functions, none close enough to be a match. Empty when the verdict is `found`. |
+| `report` | `object \| null` | yes | On `cannot`: a report to file; null when the verdict is `found`. |
+| `text` | `string` | yes | The whole answer as plain text, to read as it is. |
+| `version` | `string` | yes | The function catalog's version the answer was made from, as `GET /v1/functions` reports it. |
+
+Each item of `matches`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The function key, as a step names it. |
+| `title` | `string` | yes | Its display name. |
+| `origin` | `"code" \| "ability" \| "platform"` | yes | `code` — one of Kipory's own functions; `ability` — a function whose contract is data, Kipory's or one your organization connected; `platform` — something Kipory does that is not a step: a command, a call or a part of the project document, said in `how`. |
+| `score` | `number` | yes | How close your ask came to it in meaning, from 0 to 1. |
+| `why` | `string` | yes | Why it was listed: the phrasing it matched, and how. |
+| `takes` | `object[]` | yes | A function's inputs, then the settings that matter, required first. Empty for `platform`. |
+| `answers` | `object \| null` | yes | What the step answers; null for `platform`. |
+| `step` | `object \| null` | yes | The smallest step that runs the function, in the project document's format; null for `platform`. |
+| `stepYaml` | `string \| null` | yes | The same step as YAML, ready to paste into a flow's `steps`; null for `platform`. |
+| `how` | `object \| null` | yes | For `platform`: how to do it. Null for a function. |
+| `detail` | `string` | yes | Where to read more: a function's whole page, or the documentation that explains the feature. |
+
+Each item of `nearest`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `key` | `string` | yes | The function key, as a step names it. |
+| `title` | `string` | yes | Its display name. |
+| `origin` | `"code" \| "ability" \| "platform"` | yes | `code` — one of Kipory's own functions; `ability` — a function whose contract is data, Kipory's or one your organization connected; `platform` — something Kipory does that is not a step: a command, a call or a part of the project document, said in `how`. |
+| `score` | `number` | yes | How close your ask came to it in meaning, from 0 to 1. |
+| `why` | `string` | yes | Why it was listed: the phrasing it matched, and how. |
+| `takes` | `object[]` | yes | A function's inputs, then the settings that matter, required first. Empty for `platform`. |
+| `answers` | `object \| null` | yes | What the step answers; null for `platform`. |
+| `step` | `object \| null` | yes | The smallest step that runs the function, in the project document's format; null for `platform`. |
+| `stepYaml` | `string \| null` | yes | The same step as YAML, ready to paste into a flow's `steps`; null for `platform`. |
+| `how` | `object \| null` | yes | For `platform`: how to do it. Null for a function. |
+| `detail` | `string` | yes | Where to read more: a function's whole page, or the documentation that explains the feature. |
 
 ### `GET /v1/nodes/{nodeId}/model-prices`
 

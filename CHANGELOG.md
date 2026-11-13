@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261113.43613 — 2026-11-13
+
+Synced from the Kipory monorepo at `020753df6`.
+
+Routes added: `GET /v1/functions/search`.
+
+Routes removed: `POST /v1/functions/missed-searches`.
+
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/which-function.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261113.22147 — 2026-11-13
 
 Synced from the Kipory monorepo at `ad3711555`.
