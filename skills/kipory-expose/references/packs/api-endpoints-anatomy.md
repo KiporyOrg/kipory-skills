@@ -258,7 +258,8 @@ answers 401 `SIGNATURE_INVALID` and stops the run, nothing written. On a match i
 the signature is checked. One secret for every call, such as a payment provider's, belongs in the
 vault: store it as a `signing_secret` (see the secrets pack) and write
 `"storedSecret": "<its name>"` in place of `secret`. It is read when the step runs and appears in no
-output, trace or log.
+output, trace or log. A secret written into the step (`{literal: …}`, or an expression that reads
+nothing from the run) is refused at save, `ARGUMENT_SECRET_FIXED`.
 
 **A timestamped signature** — a header such as `t=1762840800,v1=5257a8…`, the time in Unix seconds
 and the signature over `<t>.<raw body>` — is checked with `"format": "timestamped"`. Any one `v1`

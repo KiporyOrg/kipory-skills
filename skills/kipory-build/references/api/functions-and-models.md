@@ -130,7 +130,7 @@ Each item of `functions`:
 | `rateLimit` | `object` | no | How fast it may call upstream, and whose allowance that spends. Absent means it declares no limit and counts into no bucket -- which is NOT the same as being free. |
 | `credential` | `object` | no | The secret-vault credential this function resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU function, and ALSO of the AI ones: a model call runs on the platform's own key for its provider, and no project can bring one. For a function whose vendor is chosen per step, the DEFAULT vendor's -- see `providers`. |
 | `charges` | `object` | no | The vendor operations a step on this function is charged under, beside its compute. Absent means it bills no vendor fetch — true of every pure-CPU function and of the AI ones, whose model calls are priced by `GET /v1/nodes/{nodeId}/model-prices`. A step spending a stored vendor key is not charged these. For a function whose vendor is chosen per step, the DEFAULT vendor's — see `providers`. |
-| `stepCredential` | `object` | no | Present when a STEP may name a stored secret of its own. Unlike `credential`, the purpose is the author's: store a secret of this type under any purpose, and write that purpose in the config field. A stored `http_credential` says where in the request it goes and which hosts may receive it; a `signing_secret` is never sent. |
+| `stepCredentials` | `object[]` | no | Present when a STEP may name stored secrets of its own, one entry per config field. Unlike `credential`, the purpose is the author's: store a secret of this type under any purpose, and write that purpose in the config field. A stored `http_credential` says where in the request it goes and which hosts may receive it; a `signing_secret` is never sent. |
 | `providers` | `object` | no | Present only when each step chooses the vendor (its `vendor.use`): every vendor it may name and the credential each spends. Absent means the function has one vendor, the one `credential` names. |
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` functions; an inline or control function runs in the pipeline with neither. |
 | `run` | `object` | yes | How a step using this function is run: what its time limit bounds, where the default comes from, and any limit the function keeps whatever the step says. Always present. |
@@ -233,7 +233,7 @@ Any authenticated caller; the answer is the same for everyone.
 | `rateLimit` | `object` | no | How fast it may call upstream, and whose allowance that spends. Absent means it declares no limit and counts into no bucket -- which is NOT the same as being free. |
 | `credential` | `object` | no | The secret-vault credential this function resolves before calling its vendor. Absent means it asks the vault for nothing -- true of every pure-CPU function, and ALSO of the AI ones: a model call runs on the platform's own key for its provider, and no project can bring one. For a function whose vendor is chosen per step, the DEFAULT vendor's -- see `providers`. |
 | `charges` | `object` | no | The vendor operations a step on this function is charged under, beside its compute. Absent means it bills no vendor fetch — true of every pure-CPU function and of the AI ones, whose model calls are priced by `GET /v1/nodes/{nodeId}/model-prices`. A step spending a stored vendor key is not charged these. For a function whose vendor is chosen per step, the DEFAULT vendor's — see `providers`. |
-| `stepCredential` | `object` | no | Present when a STEP may name a stored secret of its own. Unlike `credential`, the purpose is the author's: store a secret of this type under any purpose, and write that purpose in the config field. A stored `http_credential` says where in the request it goes and which hosts may receive it; a `signing_secret` is never sent. |
+| `stepCredentials` | `object[]` | no | Present when a STEP may name stored secrets of its own, one entry per config field. Unlike `credential`, the purpose is the author's: store a secret of this type under any purpose, and write that purpose in the config field. A stored `http_credential` says where in the request it goes and which hosts may receive it; a `signing_secret` is never sent. |
 | `providers` | `object` | no | Present only when each step chooses the vendor (its `vendor.use`): every vendor it may name and the credential each spends. Absent means the function has one vendor, the one `credential` names. |
 | `queue` | `object` | no | Retry and cache policy. Present only for `ingest` functions; an inline or control function runs in the pipeline with neither. |
 | `run` | `object` | yes | How a step using this function is run: what its time limit bounds, where the default comes from, and any limit the function keeps whatever the step says. Always present. |
@@ -285,6 +285,13 @@ Each item of `configConstraints`:
 | `fields` | `string[]` | no | Set all of these, or none of them. |
 | `field` | `string` | no | The setting that may have no effect. |
 | `when` | `object` | no | The condition under which `field` applies at all. |
+
+Each item of `stepCredentials`:
+
+| Field | Type | Required | Meaning |
+| --- | --- | --- | --- |
+| `type` | `string` | yes | The vault catalog type to store the secret as — "http_credential" (sent with a request) or "signing_secret" (a signature is made or checked with it). |
+| `configPath` | `string` | yes | The config field in which a step names the secret, by the purpose it was stored under; dotted for a nested field (`sign.storedSecret`). |
 
 Each item of `servedBy`:
 

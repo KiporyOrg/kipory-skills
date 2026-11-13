@@ -95,12 +95,12 @@ answer to "what do I store, and under what name". `requiredApiKey` beside it is 
 person** ("a Firecrawl API key"), not an address; deriving a purpose from it is a guess that has no
 reason to keep working.
 
-⚠️ **A function with neither `credential` nor `stepCredential` cannot use a key you store, at any
+⚠️ **A function with neither `credential` nor `stepCredentials` cannot use a key you store, at any
 price.** Most model calls are
 the population that matters: text generation, embedding and transcription reach their provider
 through the platform's own configuration and never consult the vault, so a credential stored for
 one of those is a row nothing will ever read. Absence of both fields is the whole signal — there is
-no error, and every other sign the row is healthy will be present. (`stepCredential` is the other
+no error, and every other sign the row is healthy will be present. (`stepCredentials` is the other
 way a function reads a key: see the request credential below.)
 
 The `custom` type is in the same position: it stores a value under a name of your choosing, and no
@@ -110,9 +110,11 @@ secret as a `signing_secret`.
 
 ## A key for a service that has no function: `http_credential`
 
-A function whose catalog entry carries `stepCredential` lets a **step** name a secret of its own.
-Today that is `url.fetch`, `url.fetch-as-file` and `url.send`. The purpose is yours to choose; the step writes
-it in the setting `stepCredential.configPath` names (`secret`).
+A function whose catalog entry carries `stepCredentials` lets a **step** name secrets of its own,
+one entry per setting. Today that is `url.fetch`, `url.fetch-as-file` and `url.send` (a request
+credential in `secret`), `url.send` again (a signing secret in `sign.storedSecret`, which signs
+the body it sends) and `request.verify-signature` (a signing secret in `storedSecret`). The
+purpose is yours to choose; the step writes it in the setting the entry's `configPath` names.
 
 The stored value says where it goes in a request, so the step never does:
 
@@ -181,7 +183,9 @@ POST /v1/secrets
 
 The step then sets `storedSecret: payments-webhook` instead of `secret`. It names one or the other,
 never both: `secret` reads a value the flow holds (a field of a per-sender record, when each sender
-has its own secret), `storedSecret` reads the vault when the step runs.
+has its own secret), `storedSecret` reads the vault when the step runs. A secret written into the
+step itself (`{literal: …}`) is refused at save, `ARGUMENT_SECRET_FIXED`: it would sit in the
+flow for every editor to read.
 
 - `value` is the secret exactly as the sender shows it, prefix included: at least 8 characters, with
   no line break and no space at either end. `purpose` is up to 128 characters with no space at
@@ -196,6 +200,11 @@ has its own secret), `storedSecret` reads the vault when the step runs.
   `payments-webhook` is never read as a signing secret, and the other way round.
 - `GET /v1/secrets/resolution` does not list it, as with a request credential: check it on the node
   list.
+- The same secret also SIGNS what a flow sends: `url.send` with `sign: { header: "X-Signature",
+storedSecret: "payments-webhook" }` puts the HMAC of the exact body it sends in that header (or
+  the step's own `secret` inside `sign` for a value the run reads, such as a record's field; a secret
+  written into the step is refused, `ARGUMENT_SECRET_FIXED`). It is read when the step runs and leaves only as the
+  signature.
 
 The push keys are named the same way: an `apns_key` or `fcm_service_account` is stored under the
 app's bundle id or package name (an `apns_key` may add `:sandbox` or `:production`), read when a push

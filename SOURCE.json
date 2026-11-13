@@ -1,7 +1,8 @@
 {
-  "source": "020753df6b00fec1589d85334c130c2ab4c79f63",
+  "source": "e26e81f976de41b4c72abebdb050aa3b8711b22c",
   "since": "2026-08-18",
   "history": [
+    {"sha":"e26e81f976de","skills":"A flow signs what it sends, and a builder reads what each request sent and got back (433) (#3736)"},
     {"sha":"020753df6b00","skills":"An agent can ask whether Kipory can do something, in its own words, and get the functions that do it or an honest \"cannot\" (432) (#3735)"},
     {"sha":"ad3711555f01","skills":"Money and queues hold under real faults: a charge the database refuses waits in a file, the outbox delivers once, and broken engine invariants page staff (engine hardening wave 2) (#3731)"},
     {"sha":"b570b76c6d32","skills":"An organization connects a server that allows only sign-in: a person signs in once and Kipory keeps it working unattended — and feature 428 ships (428, S5 + closing) (#3734)"},
@@ -1000,7 +1001,6 @@
     {"sha":"f39c34b12396"},
     {"sha":"77450a130f6e"},
     {"sha":"2564a85ae972"},
-    {"sha":"951a35343b23"},
-    {"sha":"b21ce7eb3d81"}
+    {"sha":"951a35343b23"}
   ]
 }

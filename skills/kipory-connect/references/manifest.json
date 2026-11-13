@@ -2,7 +2,7 @@
   "$note": "Generated: one content hash per item the reference pages were built from, and the page that documents it. The deployment serves the same hashes live; scripts/sync.mjs in this skill compares them and names the items that differ. Regenerated on every publish, so an edit here is overwritten.",
   "packs": {
     "api-endpoints-anatomy": {
-      "hash": "509d9b671584",
+      "hash": "59dc09110bb3",
       "page": "kipory-expose/references/packs/api-endpoints-anatomy.md"
     },
     "authoring-order": {
@@ -34,7 +34,7 @@
       "page": "kipory-build/references/packs/flows-and-actions.md"
     },
     "limits": {
-      "hash": "f8d76e2a9111",
+      "hash": "a905a77d2646",
       "page": "kipory-connect/references/packs/limits.md"
     },
     "planning-protocol": {
@@ -66,7 +66,7 @@
       "page": "kipory-operate/references/packs/schedules.md"
     },
     "secrets": {
-      "hash": "1c9677af0d30",
+      "hash": "f251aeff4411",
       "page": "kipory-secrets/references/packs/secrets.md"
     },
     "sources": {
@@ -356,7 +356,7 @@
       "page": "kipory-build/references/functions/request.refuse.md"
     },
     "request.verify-signature": {
-      "hash": "6fa6d78cb884",
+      "hash": "0aae61cf98a3",
       "page": "kipory-build/references/functions/request.verify-signature.md"
     },
     "source.unwatch": {
@@ -488,11 +488,11 @@
       "page": "kipory-build/references/functions/tiktok.transcript.md"
     },
     "url.fetch": {
-      "hash": "2f31cb3b7851",
+      "hash": "57905e67132f",
       "page": "kipory-build/references/functions/url.fetch.md"
     },
     "url.fetch-as-file": {
-      "hash": "e5b56c45a929",
+      "hash": "53937bea94d7",
       "page": "kipory-build/references/functions/url.fetch-as-file.md"
     },
     "url.metadata": {
@@ -508,7 +508,7 @@
       "page": "kipory-build/references/functions/url.screenshot.md"
     },
     "url.send": {
-      "hash": "0329c146f785",
+      "hash": "97d63440bff9",
       "page": "kipory-build/references/functions/url.send.md"
     },
     "value.build": {
@@ -933,7 +933,7 @@
       "page": "kipory-build/references/api/flows.md"
     },
     "GET /v1/functions/": {
-      "hash": "ff408e295119",
+      "hash": "234f06c536ed",
       "page": "kipory-build/references/api/functions-and-models.md"
     },
     "GET /v1/functions/search": {
@@ -941,7 +941,7 @@
       "page": "kipory-build/references/api/functions-and-models.md"
     },
     "GET /v1/functions/{key}": {
-      "hash": "4616a1ba710f",
+      "hash": "de8f3cbe86cf",
       "page": "kipory-build/references/api/functions-and-models.md"
     },
     "GET /v1/grant/": {
@@ -1062,6 +1062,14 @@
     "GET /v1/organizations/{nodeId}/usage": {
       "hash": "22899db0f69e",
       "page": "kipory-operate/references/api/spend.md"
+    },
+    "GET /v1/outbound-requests/": {
+      "hash": "8ceaabb65c40",
+      "page": "kipory-diagnose/references/api/outbound-requests.md"
+    },
+    "GET /v1/outbound-requests/{id}": {
+      "hash": "2a76c7d840a8",
+      "page": "kipory-diagnose/references/api/outbound-requests.md"
     },
     "GET /v1/platform-status/": {
       "hash": "e8605ba3d18f",
@@ -1232,7 +1240,7 @@
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}": {
-      "hash": "f0ffd30c4bb2",
+      "hash": "92ddb6d284b8",
       "page": "kipory-diagnose/references/api/runs.md"
     },
     "GET /v1/runs/{runId}/change-set": {
@@ -1834,7 +1842,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "65fe0e3fa041",
+      "hash": "a344d7f19068",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

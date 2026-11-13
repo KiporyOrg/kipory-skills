@@ -47,6 +47,8 @@ A product call that came back 4xx may never have started a run at all — a bad 
 
 A run that sends mail closes when its message is committed, not when it is delivered, so a run can read `succeeded` while a message it sent never went. `messages` on `GET /v1/runs/{runId}` counts the messages the run committed (`owed`) and how many of them were refused, failed or bounced (`failed`). `GET /v1/mail-messages?project={nodeId}&run={runId}` lists them, newest first and cursor-paged: each row carries its `status` (`queued`, `retrying`, `sent`, `refused`, `failed`, `bounced`) and, once it failed or is being retried, the `reason`, whose `fault` it is (`platform`, `sender` or `recipient`) and the reason in a sentence (`message`). `sent` means the mail relay accepted the message, which is not proof it reached an inbox. `GET /v1/mail-messages/{id}` reads one message by its id. A row says who the message was for and never holds its subject or body.
 
+A run that sends a request with `url.send` closes when the request is committed, not when it is answered. `requests` on `GET /v1/runs/{runId}` counts them (`staged`, `sent`, `refused`, `failed`, `owed`), and `GET /v1/outbound-requests?project={nodeId}&run={runId}` lists them, newest first and cursor-paged (editors only): each carries its `status` (`queued`, `retrying`, `sent`, `refused`, `failed`, or `previewed` for a preview's), every try with its time, duration and status or failure class, the request as it left (once tried, every header, a signature included, a stored credential as `«secret»`; the whole body by id, its first 4,096 characters in the list) and the receiver's last answer (status and body, to 1 MB). A refused or failed request also leaves one warning on its step in the timeline. A record stays with the run's history (90 days); erasing the person a run acted as clears its content (`contentErased`). `GET /v1/outbound-requests/{id}` reads one.
+
 **How the run closed** — read `closing` on `GET /v1/runs/{runId}` before its steps: its verdict, whose failure it was, `waiting`, and which flow versions a run keeps: `references/how-a-run-closed.md`.
 
 Then the timeline — it is complete, and it names the failing **step** by its key.
@@ -103,6 +105,7 @@ Each of these is a trap with its explanation and remedy in [references/pitfalls.
 | `references/api/traces.md`            | the trace list and one trace                                                                       |
 | `references/api/rejected-requests.md` | the product endpoint calls that answered 4xx — by class, by endpoint                               |
 | `references/api/mail-messages.md`     | what happened to each message a run sent — by run, by status, one by id                            |
+| `references/api/outbound-requests.md` | what each request a run sent with `url.send` did — tries, what left, what came back                |
 | `references/reading-the-timeline.md`  | what each part of a run's timeline tells you, and what to do about it                              |
 | `references/pitfalls.md`              | each trap of diagnosing a run, with what happens and what to do                                    |
 | `references/how-a-run-closed.md`      | `closing`: the verdict, whose failure it was, `waiting`, and the flow versions a run keeps         |

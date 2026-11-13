@@ -1,6 +1,6 @@
 ---
 name: kipory-gather
-description: Bring data into a Kipory project from outside it, in a flow step — fetch or scrape a web page, poll a feed, call an API with or without a stored key, send a request to an outside system (`url.send`), run a web search, read social profiles, posts, comments and video transcripts (YouTube, X, TikTok, Instagram, LinkedIn, Threads, Reddit), search Reddit, Threads and four ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, turn coordinates into a place. Use when a flow needs something the project does not hold, when choosing which source function fits, when a source step is slow, empty, refused, rate-limited or returns an old answer (its cache), or when a vendor bill is larger than expected. Not for storing a vendor key or deciding whose key pays (kipory-secrets), not for subscribing to a Telegram channel (kipory-channels), not for opening a downloaded file (kipory-extract).
+description: Bring data into a Kipory project from outside it, in a flow step — fetch or scrape a web page, poll a feed, call an API with or without a stored key, send a request to an outside system (`url.send`), signed (HMAC), run a web search, read social profiles, posts, comments and video transcripts (YouTube, X, TikTok, Instagram, LinkedIn, Threads, Reddit), search Reddit, Threads and four ad libraries, look up a place's map listing and reviews, capture a page as an image, find Telegram channels, turn coordinates into a place. Use when a flow needs something the project does not hold, when choosing which source function fits, when a source step is slow, empty, refused, rate-limited or returns an old answer (its cache), or when a vendor bill is larger than expected. Not for storing a vendor key or deciding whose key pays (kipory-secrets), not for subscribing to a Telegram channel (kipory-channels), not for opening a downloaded file (kipory-extract).
 license: MIT
 ---
 
@@ -115,7 +115,7 @@ real browser.
 
 ## Telling an outside system something: `url.send`
 
-**Telling an outside system something: `url.send`** — a write, not a read: staged once per run, possibly seen twice, unreported, on the `outbound-request` budget. No flow branches on its answer: the system calls back an endpoint settling a keyed attempt: `references/url-send.md`.
+**Telling an outside system something: `url.send`** — a write, not a read: staged once per run, possibly seen twice, on the `outbound-request` budget, signed with `sign`. No flow branches on its answer: the system calls back an endpoint settling a keyed attempt: `references/url-send.md`.
 
 ## What will bite you
 

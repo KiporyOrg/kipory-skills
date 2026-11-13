@@ -2,6 +2,28 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261113.53403 — 2026-11-13
+
+Synced from the Kipory monorepo at `e26e81f97`.
+
+Routes added: `GET /v1/outbound-requests/`, `GET /v1/outbound-requests/{id}`.
+
+- changed: `skills/kipory-build/references/api/functions-and-models.md`
+- changed: `skills/kipory-build/references/functions/request.verify-signature.md`
+- changed: `skills/kipory-build/references/functions/url.send.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/packs/limits.md`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-diagnose/SKILL.md`
+- added: `skills/kipory-diagnose/references/api/outbound-requests.md`
+- changed: `skills/kipory-diagnose/references/api/runs.md`
+- changed: `skills/kipory-expose/SKILL.md`
+- changed: `skills/kipory-expose/references/packs/api-endpoints-anatomy.md`
+- changed: `skills/kipory-gather/SKILL.md`
+- changed: `skills/kipory-gather/references/url-send.md`
+- changed: `skills/kipory-secrets/references/packs/secrets.md`
+
 ## 1.20261113.43613 — 2026-11-13
 
 Synced from the Kipory monorepo at `020753df6`.
