@@ -2,12 +2,12 @@
 
 # Function catalog
 
-123 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
+124 customer functions, one page each, listed under the group the catalog files them in. An action in a flow is one of these plus its config. `GET /v1/functions` lists 3 more, marked `run.platformOnly: true`: `description.brief`, `description.plan`, `description.write`. They run only inside the platform's own flows; a project flow naming one is refused at save, so they have no page here. Confirm the key against `GET /v1/functions` on your deployment before you author an action — the catalog's `version` this was generated from is in kipory-connect/references/versions.md; if the live one differs, the live one wins.
 
 Each line carries the function's phase, then what an action on it spends:
 
 - `ingest` (75) — the heavy, paid, IO-bound actions: cached, retried, and run inside the run that waits on them.
-- `inline` (47) — runs synchronously inside the flow engine, in order.
+- `inline` (48) — runs synchronously inside the flow engine, in order.
 - `control` (1) — steers the run rather than carrying data: branch, fan out, merge, call a sub-flow.
 - vendor key — spends a vendor credential: the project's own from its secrets, or the platform's.
 - model — calls an AI model.
@@ -21,11 +21,12 @@ _Model calls: answer typed questions (the cheapest), generate text, or rank a li
 - [`text.generate`](text.generate.md) — Generate text · `ingest` · model · `any+` → `the step's outputSchema`
 - [`text.rerank`](text.rerank.md) — Rank by relevance · `ingest` · vendor key · model · `a question + documents` → `RerankHit[]`
 
-## text (5)
+## text (6)
 
 _Work on text without a model: split, match, fill a template, clean._
 
 - [`text.chunk`](text.chunk.md) — Split text into chunks · `inline` · `string` → `string[]`
+- [`text.csv`](text.csv.md) — Make CSV text · `inline` · `list` → `CSV text`
 - [`text.detect-language`](text.detect-language.md) — Detect language · `inline` · `string` → `string`
 - [`text.extract`](text.extract.md) — Pull out matching text · `inline` · `string+` → `string[]`
 - [`text.interpolate`](text.interpolate.md) — Fill a template · `inline` · `any+` → `string`

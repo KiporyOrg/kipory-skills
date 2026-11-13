@@ -67,8 +67,9 @@ The schema is COMPOSED from the design surfaces' own create bodies, never restat
 the surface's create body minus the addressing the document supplies by position (`project` and
 the element's `key`), the request-only `validateOnly` flag, and every field that holds an id of
 another row. So a field a surface grows appears in the document the same day, spelled the same way —
-an endpoint's `contractConfig.responseBody` (one flow output sent as the whole body), `redirect`,
-`statusOutput` and `headers`, and an input bound `from: "header.<name>"` or `"rawBody"`, are written
+an endpoint's `contractConfig.responseBody` (one flow output sent as the whole body), `responseType`
+(that output sent as CSV, TSV, plain or Markdown text), `redirect`, `statusOutput` and `headers`, and an
+input bound `from: "header.<name>"`, `"rawBody"` or `"patch"`, are written
 here as on `POST /v1/api-endpoints`, a
 table's `ownerScope` is `user` or `project` here as on `POST /v1/tables` and on a
 record (the stored `USER` / `PROJECT` is refused, in a document as on the row) — with

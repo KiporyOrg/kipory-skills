@@ -1,7 +1,8 @@
 {
-  "source": "840473ec336fb235b92541b2ab9dd044db78c416",
+  "source": "5bcb4a02fef6fe45fee1fa51e1cd047bf3aa266f",
   "since": "2026-08-18",
   "history": [
+    {"sha":"5bcb4a02fef6","skills":"An endpoint answers a declared optional field with no value as null, tells a sent null from a left-out field, and can answer CSV text (435) (#3739)"},
     {"sha":"840473ec336f","skills":"Kipory's vendor reads are ability rows: 54 functions change with no deploy and answer exactly as their code did (430) (#3737)"},
     {"sha":"5f33108378dd","skills":"A project sets how many test users it may hold, and whether its starts for everyone reach them (434) (#3738)"},
     {"sha":"e26e81f976de","skills":"A flow signs what it sends, and a builder reads what each request sent and got back (433) (#3736)"},
@@ -1000,7 +1001,6 @@
     {"sha":"497d47005f48"},
     {"sha":"569131a3c67c"},
     {"sha":"b84ab810e0c2"},
-    {"sha":"f39c34b12396"},
-    {"sha":"77450a130f6e"}
+    {"sha":"f39c34b12396"}
   ]
 }

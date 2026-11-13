@@ -6,12 +6,12 @@ Every page under `references/api/`, `references/functions/` and `references/pack
 
 | Source | Version | Served live as |
 | --- | --- | --- |
-| packs | `cea0222096de` | `version` on `GET /v1/capability-packs` |
-| functions | `d4e687ce4e354172975dcbc8a878e61be84eee2e7c705f3d7ab2456dfa5b1af9` | `version` on `GET /v1/functions` |
-| api | `790c55d6c645` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
+| packs | `13227d920e90` | `version` on `GET /v1/capability-packs` |
+| functions | `1efb2c6902586c0a5236b7ce4f5d44c074934527142065d5d485575eb2c9586d` | `version` on `GET /v1/functions` |
+| api | `01f6b85f542f` | `info["x-kipory-surface-version"]` on `GET /v1/openapi.json` |
 | codes | `8cf5b0839612` | `info["x-kipory-refusal-codes-version"]` on `GET /v1/openapi.json` |
 
-Function pages: 123 customer functions, key set `2dcaf5dce560`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
+Function pages: 124 customer functions, key set `24694c47e13a`; platform-only, listed live and not documented: `description.brief`, `description.plan`, `description.write`.
 
 Kipory's seeded abilities: 54 rows, set `3fecec05a5d5`; their pages say `Origin: ability`.
 

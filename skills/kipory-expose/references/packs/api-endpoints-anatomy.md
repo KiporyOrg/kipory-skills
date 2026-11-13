@@ -56,6 +56,26 @@ response body. Absent, the body is an object of every output the flow's `return`
 its name (`{ "result": { … } }`); set to `result`, the body is that output's value alone, and the published
 OpenAPI response is that output's schema. Only a synchronous `flow.invoke` takes it.
 
+`contractConfig.responseType` sends that one output as text instead of JSON: `text/csv`,
+`text/tab-separated-values`, `text/plain` or `text/markdown`, as
+`<type>; charset=utf-8` with `X-Content-Type-Options: nosniff`, whatever the caller's `Accept`
+says. It needs `responseBody` naming a required text output, on a synchronous `flow.invoke` with no
+`redirect`, `statusOutput` or 204. A refusal is still the JSON error, and a text the run had to cut
+at its size limit answers 502, never a broken file. The published 200 is that type with a string
+schema. Build CSV with a `text.csv` step (headings, one line a row, RFC 4180 quoting, formulas
+defused). For a download name, set `headers: {"Content-Disposition": "<output>"}` from an output
+holding `attachment; filename="week.csv"`. One URL answers one type: a project that wants JSON and
+CSV makes two endpoints.
+
+**A field a declared type marks optional is in the answer, `null` when it has no value** — at every
+depth: an optional output the `return` left out, an optional field a returned object lacks, list
+items, and a view endpoint's items. The published OpenAPI document lists every field as required,
+and the ones that may have no value as nullable. A field the type requires that a record leaves out
+still answers 502 (mark it optional, or give it a value of its type). A type that lists no fields
+(plain `object`) is sent as it is — a record returned straight from `record.read` included — so
+declare an output's type with its fields, the table's own type (`typeName: Link`) or a project type,
+to get them all.
+
 ## The one write-shape rule people get wrong
 
 ⚠️ **The write body is the read shape minus everything the server derives.**
@@ -112,6 +132,15 @@ parameters adjacent.
 | `query.<name>`, or `query` | a declared query parameter; bare `query` means the one named like the input                         |
 | `header.<name>`            | a request header, its name in lower case; absent when not sent                                      |
 | `rawBody`                  | the body's exact text as sent — what a webhook signs; the body may then carry fields no input binds |
+| `patch`                    | one object input: the body fields its type lists that the caller sent, `null` kept as `null`        |
+
+**`null` in a body.** An optional input sent as `null` is taken as not sent; a required one sent as
+`null` answers 422. A `patch` input (one per endpoint, POST or PATCH, its type listing its fields,
+every one optional) holds exactly what the caller sent: a field left out is not there, one sent as `null` is `null`.
+Pass it to `record.update` as `data` — a field set to `null` is removed, one left out is kept — and
+test `$exists(changes.<field>)` to act on a clear. Its fields are checked against their types, each
+optional and nullable, and the published request body lists them beside the `body` inputs. A
+`serialize` key part reads a `body` input, never a patch field.
 
 A body arrives as JSON (`application/json`), text (`text/plain`) or a form
 (`application/x-www-form-urlencoded`, as some webhooks send). A form's fields are text, and a field
@@ -325,10 +354,10 @@ Three kinds:
     fast result before a slow one, put both in a `parallel` block and emit an event from each.
 - **Subscribe** — a bus subscription over events (capability pack `events` — `GET /v1/capability-packs/events`).
 
-**An endpoint answers JSON, a redirect, an empty 204 or server-sent events.** A buffered invoke
-answers JSON (or the shape above); a stream and a subscription answer `text/event-stream`. There
-is no HTML response and no file download — hand a file out as a link from a `file.download-url`
-step — see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
+**An endpoint answers JSON, text of one declared type, a redirect, an empty 204 or server-sent
+events.** A buffered invoke answers JSON, or with `responseType` CSV, TSV, plain text or Markdown; a
+stream and a subscription answer `text/event-stream`. There is no HTML response and no binary file
+download — hand a file out as a link from a `file.download-url` step — see limits (capability pack `limits` — `GET /v1/capability-packs/limits`).
 
 **A retry is made safe with an `Idempotency-Key` header.** On an asynchronous invoke a second call
 with the same key gets the first call's acknowledgement and starts no second run, while the run's
@@ -565,8 +594,9 @@ save already refuses a required read of `userInfo` that no `if` with `{has: user
 `"principal": "no-end-user"` or you are testing a different run. See the preview section of
 flows-and-actions (capability pack `flows-and-actions` — `GET /v1/capability-packs/flows-and-actions`).
 
-**Nothing is filled in.** A `return` leaves out every output that is nothing, `null` included, and
-a required one left out is refused as above, whatever its type. A value that is empty is an answer:
+**Nothing is filled in by the flow.** A `return` leaves out every output that is nothing, `null`
+included, and a required one left out is refused as above, whatever its type; the endpoint then
+answers an optional one left out as `null`. A value that is empty is an answer:
 `""`, `[]`, `0` and `false` go back as they are. So a flow whose honest answer can be "nothing"
 returns a value for it (`{path: count.total, default: {literal: 0}}`) or declares the output
 optional. Preview names the gap in `missingRequiredOutput`.

@@ -41,7 +41,9 @@ each `evals` suite's `applyWrites` before you run it: `true` means a run saves t
 flow writes into your new project. Check each endpoint's `contractConfig.auth` too: `"none"` would
 make it public, callable with no credential. No shipped template declares one — a new project has
 no public spend cap, and a public endpoint cannot be saved without it — so every endpoint a template
-gives you needs a key or a session until you decide otherwise.
+gives you needs a key or a session until you decide otherwise. An endpoint there is written as on
+`POST /v1/api-endpoints`, `responseType` and a `from: "patch"` input included: read `responseType`
+to know an endpoint answers CSV or other text rather than JSON.
 
 ## Create a project from one
 

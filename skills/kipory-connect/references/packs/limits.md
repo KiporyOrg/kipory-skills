@@ -105,8 +105,8 @@ and Google keys. There is no SMS or chat function; a service that sends those th
 is reached with `url.send` and a stored key. A client that must be told something subscribes to the
 project's events through an endpoint, or polls one.
 
-**An endpoint answers JSON or server-sent events — never a page.** A flow cannot serve HTML, an
-image or a file at a URL of the project. A file a flow produced is handed out as a signed
+**An endpoint answers JSON, text of one declared type (CSV, TSV, plain, Markdown) or server-sent
+events — never a page.** A flow cannot serve HTML, an image or a binary file at a URL of the project. A file a flow produced is handed out as a signed
 download link that the caller then fetches: `file.download-url` in a flow (its link does not
 expire unless the step sets `neverExpires: false`; it then lasts `ttlSeconds`, 5 minutes by
 default and 7 days at most), or
