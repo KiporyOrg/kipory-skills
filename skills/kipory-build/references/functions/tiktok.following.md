@@ -6,6 +6,7 @@ List the accounts a TikTok account follows.
 
 Give a handle or profile link. Each account comes with handle, name, bio and counts.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile[]`

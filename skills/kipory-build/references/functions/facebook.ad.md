@@ -6,6 +6,7 @@ Look up one ad in the Facebook ad library.
 
 Give it the ad's library link or id. Returns advertiser, copy, media, destination, run dates and whether it still runs.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`

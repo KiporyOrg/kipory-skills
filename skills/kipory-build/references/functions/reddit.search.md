@@ -6,6 +6,7 @@ Find Reddit posts that match a search.
 
 Searches all subreddits, returning matches in the order you choose.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

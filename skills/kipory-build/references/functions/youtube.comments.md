@@ -6,6 +6,7 @@ List the comments on a YouTube video.
 
 Top-level comments, most liked or newest first. Each has its text, author, likes, reply count and rough time.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`

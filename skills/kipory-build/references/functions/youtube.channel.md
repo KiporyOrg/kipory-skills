@@ -6,6 +6,7 @@ Look up a YouTube channel's details and numbers.
 
 Takes a channel link, handle or id. Each part you fetch costs one unit of the daily quota.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `YoutubeChannel`

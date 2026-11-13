@@ -6,6 +6,7 @@ Read a place's map listing: address, hours, rating, and contact.
 
 Give a place ID, map link or name; a name returns the best match. Listings are cached for a week.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceCard`

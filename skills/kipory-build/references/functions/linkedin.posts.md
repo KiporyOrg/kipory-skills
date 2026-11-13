@@ -6,6 +6,7 @@ List the recent posts a company has published on LinkedIn.
 
 Give the company page's link. Each post has its text, link and time, without engagement counts.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

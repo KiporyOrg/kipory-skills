@@ -6,6 +6,7 @@ List the recent posts a Threads account has published.
 
 Threads shows a signed-out visitor only the latest twenty to thirty posts, so the list can be shorter.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

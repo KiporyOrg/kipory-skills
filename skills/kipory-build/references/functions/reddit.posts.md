@@ -6,6 +6,7 @@ List the posts in a subreddit.
 
 Give the subreddit's name or link. Each post has its title, text, author, time, score and comment count.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

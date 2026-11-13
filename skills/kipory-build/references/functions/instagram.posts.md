@@ -6,6 +6,7 @@ List the recent posts and reels an Instagram account has published.
 
 Give a handle or profile link. Each post or reel has its caption, time, media links and engagement counts.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

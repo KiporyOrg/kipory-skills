@@ -6,6 +6,7 @@ Turn a map point into a place: city, region, and country.
 
 A point it cannot place comes back empty. Answers are cached, so repeats are free.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `Location` → `Place`

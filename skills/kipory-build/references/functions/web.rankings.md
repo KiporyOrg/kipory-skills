@@ -6,6 +6,7 @@ List a country's most visited websites, in order.
 
 Ranks by where visitors come from, not where a site is published. Cached for a month.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TopSiteRanking`

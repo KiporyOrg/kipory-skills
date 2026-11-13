@@ -1,7 +1,8 @@
 {
-  "source": "5f33108378dddd74c9027a1b37cf52abb4050dd6",
+  "source": "840473ec336fb235b92541b2ab9dd044db78c416",
   "since": "2026-08-18",
   "history": [
+    {"sha":"840473ec336f","skills":"Kipory's vendor reads are ability rows: 54 functions change with no deploy and answer exactly as their code did (430) (#3737)"},
     {"sha":"5f33108378dd","skills":"A project sets how many test users it may hold, and whether its starts for everyone reach them (434) (#3738)"},
     {"sha":"e26e81f976de","skills":"A flow signs what it sends, and a builder reads what each request sent and got back (433) (#3736)"},
     {"sha":"020753df6b00","skills":"An agent can ask whether Kipory can do something, in its own words, and get the functions that do it or an honest \"cannot\" (432) (#3735)"},
@@ -1000,7 +1001,6 @@
     {"sha":"569131a3c67c"},
     {"sha":"b84ab810e0c2"},
     {"sha":"f39c34b12396"},
-    {"sha":"77450a130f6e"},
-    {"sha":"2564a85ae972"}
+    {"sha":"77450a130f6e"}
   ]
 }

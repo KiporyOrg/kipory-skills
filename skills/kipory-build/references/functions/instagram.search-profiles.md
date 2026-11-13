@@ -6,6 +6,7 @@ Find Instagram accounts by a name or a phrase.
 
 Accounts come in Instagram's order. The first ten also carry bio, category, flags and counts.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile[]`

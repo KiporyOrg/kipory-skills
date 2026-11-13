@@ -6,6 +6,7 @@ Look up an Instagram account's details and numbers.
 
 Give a handle or profile link. Returns name, bio, verified and private flags, category, contact, counts and last post time.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`

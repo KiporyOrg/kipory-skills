@@ -6,6 +6,7 @@ Look up one Threads post and its numbers.
 
 Give the post's link. Returns text, author, time, and like, reply and repost counts.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost`

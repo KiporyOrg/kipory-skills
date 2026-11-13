@@ -6,6 +6,7 @@ Get the words spoken in an Instagram reel or video post.
 
 Works on clips up to two minutes long. No speech returns an empty string.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

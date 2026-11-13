@@ -6,6 +6,7 @@ List the videos or shorts a YouTube channel has published.
 
 Newest or most viewed first, from a handle, id or link. Each has title, description, thumbnail, views and rough time.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

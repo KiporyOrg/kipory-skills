@@ -6,6 +6,7 @@ List a company's ads, or ads matching a keyword, from the LinkedIn ad library.
 
 Each ad comes with its advertiser, copy, image, destination and run dates.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`

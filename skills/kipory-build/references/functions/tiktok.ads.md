@@ -6,6 +6,7 @@ List ads that match a keyword or a company, from the TikTok ad library.
 
 Each ad comes with its advertiser, video links and the dates it was shown.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`

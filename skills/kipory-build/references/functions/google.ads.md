@@ -6,6 +6,7 @@ List the ads a company runs, from the Google ad library.
 
 Name the advertiser by its website domain. Image and text are left out unless asked for, at much higher cost.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd[]`

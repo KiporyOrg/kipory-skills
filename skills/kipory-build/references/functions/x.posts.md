@@ -6,6 +6,7 @@ Read the posts from an X post, profile, or search link.
 
 A video's link is its largest file; a smaller one among its variants may fit a storage limit.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `XPost[]`

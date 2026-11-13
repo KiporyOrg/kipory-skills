@@ -6,6 +6,7 @@ Look up a Threads account's details and numbers.
 
 Give a handle or profile link. Returns name, bio, avatar, verified flag and follower count.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`

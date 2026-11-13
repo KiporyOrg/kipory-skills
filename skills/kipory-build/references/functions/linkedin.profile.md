@@ -6,6 +6,7 @@ Look up a person's public LinkedIn profile.
 
 Give the profile link. Returns name, about text, photo, location and follower count as a signed-out visitor sees them.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialProfile`

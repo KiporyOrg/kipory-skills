@@ -6,6 +6,7 @@ List the recent posts a public Facebook page has published.
 
 Newest first, from a handle or page link. Each post has its text, time, link, counts and any video link.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

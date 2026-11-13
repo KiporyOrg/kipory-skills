@@ -6,6 +6,7 @@ Look up a public Facebook page's details and numbers.
 
 Give a handle or page link. Returns name, category, contact, address, counts, ad library id and whether it runs ads.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `FacebookPage`

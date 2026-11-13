@@ -6,6 +6,7 @@ Find the places a map lists for a query, like a category in a town.
 
 Each place comes with address, coordinates, category, rating, phone, website and status. Each place read is charged.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `PlaceCard[]`

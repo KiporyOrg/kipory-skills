@@ -6,6 +6,7 @@ Find Threads posts that match a search.
 
 Threads returns at most ten results to a signed-out visitor.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

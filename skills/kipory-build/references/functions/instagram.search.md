@@ -6,6 +6,7 @@ Find popular Instagram posts on a topic.
 
 Returns Instagram's own pick for the topic, with caption, author, link and play count; not every matching post.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

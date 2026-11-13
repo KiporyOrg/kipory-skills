@@ -6,6 +6,7 @@ List the comments on an Instagram post or reel.
 
 Each comment has its text, author, time and likes. Replies cost far more and are off unless asked for.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialComment[]`

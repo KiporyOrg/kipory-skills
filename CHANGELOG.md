@@ -2,6 +2,66 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261113.83112 — 2026-11-13
+
+Synced from the Kipory monorepo at `840473ec3`.
+
+- changed: `skills/kipory-build/references/functions/facebook.ad.md`
+- changed: `skills/kipory-build/references/functions/facebook.ads.md`
+- changed: `skills/kipory-build/references/functions/facebook.page.md`
+- changed: `skills/kipory-build/references/functions/facebook.posts.md`
+- changed: `skills/kipory-build/references/functions/google.ad.md`
+- changed: `skills/kipory-build/references/functions/google.ads.md`
+- changed: `skills/kipory-build/references/functions/instagram.comments.md`
+- changed: `skills/kipory-build/references/functions/instagram.post.md`
+- changed: `skills/kipory-build/references/functions/instagram.posts.md`
+- changed: `skills/kipory-build/references/functions/instagram.profile.md`
+- changed: `skills/kipory-build/references/functions/instagram.search-profiles.md`
+- changed: `skills/kipory-build/references/functions/instagram.search.md`
+- changed: `skills/kipory-build/references/functions/instagram.transcript.md`
+- changed: `skills/kipory-build/references/functions/linkedin.ad.md`
+- changed: `skills/kipory-build/references/functions/linkedin.ads.md`
+- changed: `skills/kipory-build/references/functions/linkedin.company.md`
+- changed: `skills/kipory-build/references/functions/linkedin.post.md`
+- changed: `skills/kipory-build/references/functions/linkedin.posts.md`
+- changed: `skills/kipory-build/references/functions/linkedin.profile.md`
+- changed: `skills/kipory-build/references/functions/location.resolve.md`
+- changed: `skills/kipory-build/references/functions/place.details.md`
+- changed: `skills/kipory-build/references/functions/place.reviews.md`
+- changed: `skills/kipory-build/references/functions/place.search.md`
+- changed: `skills/kipory-build/references/functions/reddit.comments.md`
+- changed: `skills/kipory-build/references/functions/reddit.post.md`
+- changed: `skills/kipory-build/references/functions/reddit.posts.md`
+- changed: `skills/kipory-build/references/functions/reddit.search.md`
+- changed: `skills/kipory-build/references/functions/telegram.search-channels.md`
+- changed: `skills/kipory-build/references/functions/threads.post.md`
+- changed: `skills/kipory-build/references/functions/threads.posts.md`
+- changed: `skills/kipory-build/references/functions/threads.profile.md`
+- changed: `skills/kipory-build/references/functions/threads.search.md`
+- changed: `skills/kipory-build/references/functions/tiktok.ads.md`
+- changed: `skills/kipory-build/references/functions/tiktok.audience.md`
+- changed: `skills/kipory-build/references/functions/tiktok.comments.md`
+- changed: `skills/kipory-build/references/functions/tiktok.followers.md`
+- changed: `skills/kipory-build/references/functions/tiktok.following.md`
+- changed: `skills/kipory-build/references/functions/tiktok.post.md`
+- changed: `skills/kipory-build/references/functions/tiktok.posts.md`
+- changed: `skills/kipory-build/references/functions/tiktok.profile.md`
+- changed: `skills/kipory-build/references/functions/tiktok.search.md`
+- changed: `skills/kipory-build/references/functions/tiktok.transcript.md`
+- changed: `skills/kipory-build/references/functions/web.rankings.md`
+- changed: `skills/kipory-build/references/functions/web.search.md`
+- changed: `skills/kipory-build/references/functions/web.traffic.md`
+- changed: `skills/kipory-build/references/functions/x.posts.md`
+- changed: `skills/kipory-build/references/functions/x.profile.md`
+- changed: `skills/kipory-build/references/functions/x.transcript.md`
+- changed: `skills/kipory-build/references/functions/youtube.channel.md`
+- changed: `skills/kipory-build/references/functions/youtube.comments.md`
+- changed: `skills/kipory-build/references/functions/youtube.posts.md`
+- changed: `skills/kipory-build/references/functions/youtube.search.md`
+- changed: `skills/kipory-build/references/functions/youtube.transcript.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+
 ## 1.20261113.61734 — 2026-11-13
 
 Synced from the Kipory monorepo at `5f3310837`.

@@ -6,6 +6,7 @@ Get the words spoken in a TikTok video.
 
 Reads the video's captions. Without captions it returns empty, unless the fallback transcribes it at higher cost.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `string`

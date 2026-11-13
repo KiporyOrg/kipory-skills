@@ -6,6 +6,7 @@ Find YouTube videos that match a search.
 
 Sorted by relevance or views. Each video has title, channel, thumbnail, length, view count and rough time.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialPost[]`

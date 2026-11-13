@@ -6,6 +6,7 @@ Look up one ad in the LinkedIn ad library.
 
 Give the ad's library link. Returns advertiser, headline, copy, image, destination, run dates and who it was shown to.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `SocialAd`

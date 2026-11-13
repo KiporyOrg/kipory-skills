@@ -6,6 +6,7 @@ Find public Telegram channels that match your search words.
 
 Takes comma-separated search terms. A per-term limit stops one broad term using the whole budget.
 
+- **Origin:** `ability`
 - **Group:** sources · **Phase:** `ingest` · **Effect class:** `read`
 - **Re-run:** a retry inside the run `converges` · a new run of the same input `converges`
 - **I/O:** `string` → `TelegramChannelSearchResults`
