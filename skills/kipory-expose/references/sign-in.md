@@ -159,10 +159,10 @@ Send the `session` as `Authorization: Bearer <session>` to the **project's host*
 
 What sets a test user apart:
 
-- **It is not one of your people.** `GET /v1/projects/{nodeId}/members`, `GET /v1/users?project={nodeId}` and their counts leave it out, and a `flow.start-per-person` over the whole project does not start a run for it. A start or a push that names it does reach it.
+- **It is not one of your people.** `GET /v1/projects/{nodeId}/members`, `GET /v1/users?project={nodeId}` and their counts leave it out. A `flow.start-per-person` over the whole project starts no run for it, and says how many test users it left out (`testUsersLeftOut`), until you turn on `testUsersInStarts` in the project's settings (`PATCH /v1/projects/{nodeId}/settings`): then every test user gets a run as everyone else does, paid by the project. Turn it off, or delete the test users, before real people use the project. A start or a push that names a test user always reaches it.
 - **It costs your project, not a wallet.** It gets no member wallet and no grant; the project pays its runs, and the spend is still attributed to it.
 - **It receives no mail.** Its `email` is one the platform made, on a domain that takes none; a mail step sent to it fails with `recipient-is-a-test-user` before anything is queued.
-- **It belongs to this project only**, and cannot sign in through Google or Apple. A project holds at most `limit` of them (the limit `account.test-users`); past it the create answers 422 `TEST_USER_LIMIT`.
+- **It belongs to this project only**, and cannot sign in through Google or Apple. A project holds at most `limit` of them: 20, or the project's `testUserLimit` setting, up to 100 (`PATCH /v1/projects/{nodeId}/settings { "testUserLimit": 50 }`). Past it the create answers 422 `TEST_USER_LIMIT`, whose `details.setting` names that setting.
 - **Deleting one** ends its sessions at once and erases what it owned. The project is told, as for a person who deleted their account: `member.left` with `account-deleted` — so it is how you test a cleanup flow.
 
 `runAsUserId` on an eval suite and on a flow preview takes a test user even before it owns a record (`kipory-prove`).

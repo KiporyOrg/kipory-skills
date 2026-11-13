@@ -114,7 +114,7 @@ flows:
 
 A run that acts for nobody — a schedule, a trigger, an API key — cannot write a person's own records. To do something for each person, start a flow once per person with `flow.start-per-person`: `flow`, the same `inputs` map, and `people`:
 
-- `{ kind: project }` — everyone in the project;
+- `{ kind: project }` — everyone in the project; its test users only while the project's `testUsersInStarts` setting is on (otherwise the answer's `testUsersLeftOut` says how many it skipped);
 - `{ kind: linked, relationId, recordId }` — the people who own a record linked to one record (the followers of a feed), each once;
 - `{ kind: list, userIds }` — ids an earlier step gave; ids not in the project are dropped.
 

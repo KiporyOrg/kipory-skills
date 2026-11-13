@@ -734,7 +734,7 @@ Each item of `refusedRows`:
 
 ### `GET /v1/projects/{nodeId}/settings`
 
-The project's spend ceilings — per end user, design-time, and the public spend cap that bounds what calls to its public endpoints may cost per UTC day — the warning threshold, its member-wallet settings (whether members hold their own wallets, and the joining and periodic grants), the describer switch, what design-time work has cost in the current window, and what public calls have cost today. Change them with `PATCH` on this path.
+The project's spend ceilings — per end user, design-time, and the public spend cap that bounds what calls to its public endpoints may cost per UTC day — the warning threshold, its member-wallet settings (whether members hold their own wallets, and the joining and periodic grants), the describer switch, its test-user settings (how many test users it may hold, and whether a start for everyone reaches them), what design-time work has cost in the current window, and what public calls have cost today. Change them with `PATCH` on this path.
 
 **Path parameters**
 
@@ -756,13 +756,15 @@ The project's spend ceilings — per end user, design-time, and the public spend
 | `memberJoinGrantCredits` | `integer \| null` | yes | Credits moved into a member's wallet once, when they join, out of the wallet the project is paid from. Null means no joining grant. Paid only to members who join after member wallets were turned on. |
 | `memberPeriodicGrantCredits` | `integer \| null` | yes | Credits moved into each member's wallet every `memberGrantPeriod`. Null means no periodic grant. What is left of one period's grant returns to the paying wallet when the next period begins. |
 | `memberGrantPeriod` | `"day" \| "week" \| "month"` | yes | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
+| `testUserLimit` | `integer \| null` | yes | How many test users the project may hold, 1–100. Null means the default, 20. Making one past it is refused 422 `TEST_USER_LIMIT`; a lower number deletes nobody and refuses new ones until fewer remain. |
+| `testUsersInStarts` | `boolean` | yes | Whether a `flow.start-per-person` over the whole project (`people.kind: "project"`) also starts a run for each of the project's test users, paid by the project as every started run is. Off (the default): it starts real people only and says how many test users it left out. Turn it on while you test with test users, and off (or delete them) before real people use the project. |
 | `describerEnabled` | `boolean` | yes | Whether the platform keeps this project's element descriptions current (`GET /v1/descriptions`). Off keeps what exists and adds nothing. The platform pays for descriptions. Defaults on. |
 | `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 | `publicSpend` | `object \| null` | yes | What calls to the project's public endpoints have cost since 00:00 UTC today — the figure `publicSpendCapCredits` is enforced against, measured whether or not a cap is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 
 ### `PATCH /v1/projects/{nodeId}/settings`
 
-Change the project's spend ceilings, warning threshold, member-wallet settings or describer switch; absent keys stay as they are. Answers what `GET` on this path answers. `publicSpendCapCredits` must be set before any endpoint can be saved public (`contractConfig.auth` on `/v1/api-endpoints`); clearing it while one is public is 422 with the issue code `PUBLIC_SPEND_CAP_REQUIRED`, and `0` refuses every public call. A change to a member-wallet setting is applied to the members' wallets moments after the save, by a queued run: turning `memberWallets` off returns every member's balance to the wallet the project is paid from and closes the wallets; one member's grant is `POST …/members/{userId}/credits`. The descriptions the describer writes are `GET /v1/descriptions?project=`.
+Change the project's spend ceilings, warning threshold, member-wallet settings, describer switch, or test-user settings (`testUserLimit`, how many test users it may hold; `testUsersInStarts`, whether a start for everyone reaches them); absent keys stay as they are. Answers what `GET` on this path answers. `publicSpendCapCredits` must be set before any endpoint can be saved public (`contractConfig.auth` on `/v1/api-endpoints`); clearing it while one is public is 422 with the issue code `PUBLIC_SPEND_CAP_REQUIRED`, and `0` refuses every public call. A change to a member-wallet setting is applied to the members' wallets moments after the save, by a queued run: turning `memberWallets` off returns every member's balance to the wallet the project is paid from and closes the wallets; one member's grant is `POST …/members/{userId}/credits`. The descriptions the describer writes are `GET /v1/descriptions?project=`.
 
 **Path parameters**
 
@@ -785,6 +787,8 @@ Change the project's spend ceilings, warning threshold, member-wallet settings o
 | `memberPeriodicGrantCredits` | `integer \| null` | no | Absent leaves it unchanged; null stops the periodic grant. At least 1. |
 | `memberGrantPeriod` | `"day" \| "week" \| "month"` | no | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
 | `describerEnabled` | `boolean` | no | Absent leaves it unchanged. Turn the platform's describer on or off for this project — what `GET /v1/descriptions` reads. |
+| `testUserLimit` | `integer \| null` | no | Absent leaves it unchanged; null returns to the default, 20. How many test users the project may hold, 1–100. |
+| `testUsersInStarts` | `boolean` | no | Absent leaves it unchanged. On: a start for everyone in the project also reaches its test users. |
 
 **Response `200`**
 
@@ -800,6 +804,8 @@ Change the project's spend ceilings, warning threshold, member-wallet settings o
 | `memberJoinGrantCredits` | `integer \| null` | yes | Credits moved into a member's wallet once, when they join, out of the wallet the project is paid from. Null means no joining grant. Paid only to members who join after member wallets were turned on. |
 | `memberPeriodicGrantCredits` | `integer \| null` | yes | Credits moved into each member's wallet every `memberGrantPeriod`. Null means no periodic grant. What is left of one period's grant returns to the paying wallet when the next period begins. |
 | `memberGrantPeriod` | `"day" \| "week" \| "month"` | yes | How often the periodic grant is made, on UTC calendar boundaries. What is left of one period's grant expires when the next begins. |
+| `testUserLimit` | `integer \| null` | yes | How many test users the project may hold, 1–100. Null means the default, 20. Making one past it is refused 422 `TEST_USER_LIMIT`; a lower number deletes nobody and refuses new ones until fewer remain. |
+| `testUsersInStarts` | `boolean` | yes | Whether a `flow.start-per-person` over the whole project (`people.kind: "project"`) also starts a run for each of the project's test users, paid by the project as every started run is. Off (the default): it starts real people only and says how many test users it left out. Turn it on while you test with test users, and off (or delete them) before real people use the project. |
 | `describerEnabled` | `boolean` | yes | Whether the platform keeps this project's element descriptions current (`GET /v1/descriptions`). Off keeps what exists and adds nothing. The platform pays for descriptions. Defaults on. |
 | `designSpend` | `object \| null` | yes | What design-time work has already cost in the current `designSpendCapPeriod` window — the figure the design ceiling is enforced against, measured whether or not a ceiling is set. Null when the measurement could not be read this time; the settings themselves are still current. |
 | `publicSpend` | `object \| null` | yes | What calls to the project's public endpoints have cost since 00:00 UTC today — the figure `publicSpendCapCredits` is enforced against, measured whether or not a cap is set. Null when the measurement could not be read this time; the settings themselves are still current. |

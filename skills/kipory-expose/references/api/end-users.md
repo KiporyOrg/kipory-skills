@@ -415,7 +415,7 @@ Create a new profile type from the platform's starter shape under the name you g
 
 ### `GET /v1/test-users`
 
-A project's test users (`?project=`, its node id), oldest first, each with how many live sessions it holds. Not paged: a project holds at most `limit`. Real people are on `GET /v1/projects/{nodeId}/members`; `POST /v1/test-users` makes another.
+A project's test users (`?project=`, its node id), oldest first, each with how many live sessions it holds. Not paged: a project holds at most `limit` — 20, or the number its `testUserLimit` setting sets (1–100, `PATCH /v1/projects/{nodeId}/settings`). Real people are on `GET /v1/projects/{nodeId}/members`; `POST /v1/test-users` makes another.
 
 **Query**
 
@@ -428,7 +428,7 @@ A project's test users (`?project=`, its node id), oldest first, each with how m
 | Field | Type | Required | Meaning |
 | --- | --- | --- | --- |
 | `testUsers` | `object[]` | yes | Every test user of the project, oldest first. Not paged: a project holds at most `limit`. |
-| `limit` | `integer` | yes | How many test users the project may hold (the limit `account.test-users`). |
+| `limit` | `integer` | yes | How many test users the project may hold: its `testUserLimit` setting, or 20 when it set none (the limit `account.test-users`). |
 
 Each item of `testUsers`:
 
@@ -444,7 +444,7 @@ Each item of `testUsers`:
 
 ### `POST /v1/test-users`
 
-Make a test user in a project (`project`, its node id) and get its first session, to call the project as that person while you build — no sign-in needed. Send the session as a Bearer to the project's host. A test user is left out of `GET /v1/projects/{nodeId}/members` and every count of real people, gets no member wallet (the project pays its runs), receives no mail, and belongs to this project only. Real people sign in with the routes under `/v1/auth`. `GET /v1/test-users?project=` lists them; `POST /v1/test-users/{id}/sessions` gives another session; `DELETE /v1/test-users/{id}` deletes one.
+Make a test user in a project (`project`, its node id) and get its first session, to call the project as that person while you build — no sign-in needed. Send the session as a Bearer to the project's host. A test user is left out of `GET /v1/projects/{nodeId}/members` and every count of real people, gets no member wallet (the project pays its runs), receives no mail, and belongs to this project only. A project holds up to 20, or the number its `testUserLimit` setting sets (1–100); past it the create is 422 `TEST_USER_LIMIT`. A start for everyone in the project reaches test users only while the project's `testUsersInStarts` setting is on. Real people sign in with the routes under `/v1/auth`. `GET /v1/test-users?project=` lists them; `POST /v1/test-users/{id}/sessions` gives another session; `DELETE /v1/test-users/{id}` deletes one.
 
 **Request body**
 

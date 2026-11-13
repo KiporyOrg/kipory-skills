@@ -27,7 +27,7 @@ Each run acts for its person; the project pays. They start once this run saves; 
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `kind` | `project` | yes | — | Everyone who belongs to the project. |
+| `kind` | `project` | yes | — | The project's people; its test users only while `testUsersInStarts` is on. |
 
 **`kind: linked`**
 

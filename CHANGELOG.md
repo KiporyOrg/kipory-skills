@@ -2,6 +2,20 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261113.61734 — 2026-11-13
+
+Synced from the Kipory monorepo at `5f3310837`.
+
+- changed: `skills/kipory-build/references/functions/flow.start-per-person.md`
+- changed: `skills/kipory-build/references/patterns.md`
+- changed: `skills/kipory-build/references/quickstart-document.md`
+- changed: `skills/kipory-connect/references/api/projects.md`
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/refusal-codes.md`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-expose/references/api/end-users.md`
+- changed: `skills/kipory-expose/references/sign-in.md`
+
 ## 1.20261113.53403 — 2026-11-13
 
 Synced from the Kipory monorepo at `e26e81f97`.
