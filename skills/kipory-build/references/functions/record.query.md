@@ -21,7 +21,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `clauses` | union[], 1 to 16 items | yes | — | Clauses every record must match; values are paths, literals or expressions. ⚠️ A semantic clause returns at most topK records, with no further pages. |
 | `cursor` | union | no | — | A prior answer's cursor; empty for the first page. ⚠️ Bound to another read's `nextCursor` after its last page, it answers an empty page; otherwise it reads page one. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the step; with `tableKeys`, each row carries its own table's named fields. |
-| `limit` | integer, 1 to 100 | no | `50` | How many records come back at most: 1 to 100. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
+| `limit` | union | no | — | Rows per page, 1 to 100; otherwise 50. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | union | no | — | Order by `created`, `meaning`, or a filterable field. ⚠️ A field order leaves out records with no value in that field. |
 | `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the step unless `onMore` is "stop". |
@@ -306,6 +306,24 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 - `kind: stream` — the same members as `kind: stream` of `clauses`
 
 ### `cursor` — one of
+
+- `string`
+- `number`
+- `boolean`
+
+**An object with `literal`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `literal` | any | yes | — |  |
+
+**An object with `expr`**
+
+| Member | Type | Required | Default | Meaning |
+| --- | --- | --- | --- | --- |
+| `expr` | string | yes | — |  |
+
+### `limit` — one of
 
 - `string`
 - `number`

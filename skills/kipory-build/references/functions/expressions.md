@@ -2,7 +2,7 @@
 
 # Expression functions
 
-Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 28 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
+Every expression a flow holds — a `value.transform`, a `value.build` field, an `{expr: …}` argument, a condition — and a table's computed-field formula may call JSONata 2.2's own functions and these 30 the platform adds. An expression cannot define a function another action calls; reach for one of these before writing a helper. A name you bind with `:=` hides the platform's for that expression (the plan warns `JSONATA_SHADOWS_BUILTIN`).
 
 No value means missing, `null`, empty text or an empty list: a function given none answers nothing (the action's slot stays empty) unless its entry says otherwise. A wrong type fails the action at the call. No function reads the clock, the host's time zone or its locale: `runInfo.now` is the time, and a date or locale function takes its zone and locale as arguments (UTC and `en` when left out).
 
@@ -94,6 +94,25 @@ The items, keeping the first with each value of their `key` field, in order. Ite
 - `$count($uniqBy(items, "id"))` over `{"items":[{"id":1},{"id":1},{"id":2}]}` → `2`
 
 ## Text
+
+### `$base64decode(text)`
+
+The base64 text decoded as UTF-8 text, so letters outside English come back as written. The URL-safe alphabet (`-`, `_`) and a missing `=` are read too. Text that is not base64, or bytes that are not text (an image), fail the step.
+
+- **No value:** Nothing (a step reading only it is skipped).
+- **Signature:** `<(sla)-:s>`
+- `$base64decode("Y2Fmw6k=")` → `"café"`
+- `$base64decode(body)` over `{"body":"Y2Fmw6kg4oCUIMO8"}` → `"café — ü"`
+- `$base64decode("eyJhIjoiw6kifQ")` → `"{\"a\":\"é\"}"`
+
+### `$base64encode(text)`
+
+The text's UTF-8 bytes, base64-encoded: what another system expects when it reads base64 as text.
+
+- **No value:** Nothing (a step reading only it is skipped).
+- **Signature:** `<(sla)-:s>`
+- `$base64encode("café")` → `"Y2Fmw6k="`
+- `$base64decode($base64encode(text))` over `{"text":"café — ü"}` → `"café — ü"`
 
 ### `$decodeHtml(text)`
 

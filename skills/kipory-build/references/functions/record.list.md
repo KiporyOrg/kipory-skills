@@ -28,7 +28,7 @@ Read one page and its cursor, or every page. Filter by status, date, vocabulary,
 | `fieldFilters` | object[], at least 1 item | no | — | Filters on the table's queryable fields, including ranges. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; an empty list answers an empty page; a never-produced input skips the step. |
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size page fails the step; a run warns from half the limit and a save when one is likely. |
 | `include` | object | no | `{}` | Extra details per row; terms come by default, the rest opt-in. ⚠️ Files sign a download URL for every file on every row. |
-| `limit` | union | no | — | Rows per page, 1 to 100; 50 by default. ⚠️ Only `nextCursor` shows a page was cut short; a value outside 1–100 or not whole reads the default. |
+| `limit` | union | no | — | Rows per page, 1 to 100; otherwise 50. ⚠️ Only `nextCursor` shows a page was cut short; a value outside 1–100 or not whole reads the default. |
 | `linkFilters` | object[], at least 1 item | no | — | Keep only rows carrying a link of these relations. ⚠️ A value missing or null fails `FILTER_VALUE_ABSENT`; a never-produced input skips the step. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
 | `order` | `asc` \| `desc` | no | `"desc"` | Sort direction: `desc` (default, newest first) or `asc`. |

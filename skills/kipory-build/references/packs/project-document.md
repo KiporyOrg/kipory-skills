@@ -435,7 +435,13 @@ The answer holds the `version` the plan was computed against, its `planId` and `
   also carries `at`, the key path of the step it is about, and its remedy: `fixes`, each a list of
   step edits that clears it (apply them to the flow's `steps` in your document, or with
   `POST /v1/flows/{id}/steps/edit` once the flow exists), or, when there is no ready fix, the
-  `decision` it needs from you.
+  `decision` it needs from you. Any other finding may carry `fixes` too, each
+  `{title, set: [{field, value}]}`: set each `value` at its `field` — a path in your document, in
+  the same form as the finding's own `field`; `value: null` removes it — and plan again. A flow
+  whose signature an endpoint captured carries `set flows.<key>.adoptSnapshots → true`, which
+  re-publishes that endpoint's contract to its callers; a required flow input bound to an
+  optional query parameter carries `set …params.<name>.required → true`. A finding with no `fixes`
+  says in its message what to decide.
 - `consequences` — what the change does to stored data, with counts measured in the planning
   transaction: records re-stamped, a vector reconcile queued, stream fields moved, links
   re-stamped, and `links-deleted` — every stored link a relation delete takes along, including a

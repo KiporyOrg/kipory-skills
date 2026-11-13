@@ -667,6 +667,14 @@ declare}}`: one keyword (`minLength` or `minItems`) declared on a field of a typ
   type for every reader, and a table's stored records must already fit it. A type new in the same
   document has no id yet, so `type` is absent: declare the keyword on that field under
   `types.<key>` in the document instead.
+  A required read of an expression that may be nothing, where a step below reads this one so it
+  cannot be skipped, gets a fix that inserts a refusal before it: `if not has <path>` →
+  `fail NO_VALUE` (`not filled` for an input that refuses an empty value). The run would stop at
+  that step anyway; the fix gives the caller a refusal instead of a failure. An expression that
+  holds an alternative (`?:`, `$default`, `$ifEmpty`, a condition) gets no such fix: one of its
+  reads may be missing on a run that still answers.
+  Findings on one step that each guard it all carry the same guard, the `and` of their tests: apply
+  a fix equal to one you already applied to that flow once.
 - **`decision`** — set exactly when `fixes` is empty: no edit clears it without changing what you
   meant, and the sentence says what to choose.
 - **`editIndex`** — on an edit batch, which edit was refused.
