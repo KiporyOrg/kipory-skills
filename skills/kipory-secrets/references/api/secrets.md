@@ -52,7 +52,7 @@ Each item of `secrets`:
 
 ### `POST /v1/secrets`
 
-Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is encrypted and never read back. ⚠️ A second one with the same type and purpose on the same node REPLACES the stored value (an upsert, 201) and the old value is unrecoverable — list the node first. Requires **ADMIN**. Rotate it later with `PUT /v1/secrets/{id}`.
+Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is encrypted and never read back. An `oauth_grant` is refused (422): a connection's sign-in is kept only by signing it in. ⚠️ A second one with the same type and purpose on the same node REPLACES the stored value (an upsert, 201) and the old value is unrecoverable — list the node first. Requires **ADMIN**. Rotate it later with `PUT /v1/secrets/{id}`.
 
 **Request body**
 
@@ -78,7 +78,7 @@ Store a credential on a node (`node`, `type`, `purpose`, `value`). The value is 
 
 ### `PUT /v1/secrets/{id}`
 
-Rotate a stored credential: replace its value in full. It never re-enables a switched-off credential — that is `PATCH /v1/secrets/{id}` with `enabled: true`. Requires **ADMIN** at the node that holds it.
+Rotate a stored credential: replace its value in full. It never re-enables a switched-off credential — that is `PATCH /v1/secrets/{id}` with `enabled: true`. An `oauth_grant` is refused (422): a connection's sign-in is replaced only by signing it in again. Requires **ADMIN** at the node that holds it.
 
 **Path parameters**
 

@@ -2,6 +2,19 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261113.5307 — 2026-11-13
+
+Synced from the Kipory monorepo at `b570b76c6`.
+
+Routes added: `GET /v1/oauth/callback`, `GET /v1/oauth/client-metadata.json`, `POST /v1/nodes/{nodeId}/connections/{slug}/authorizations`.
+
+- changed: `skills/kipory-connect/references/manifest.json`
+- changed: `skills/kipory-connect/references/versions.md`
+- changed: `skills/kipory-gather/references/api/connections.md`
+- changed: `skills/kipory-gather/references/connections.md`
+- changed: `skills/kipory-secrets/references/api/secrets.md`
+- changed: `skills/kipory-secrets/references/pitfalls.md`
+
 ## 1.20261112.232314 — 2026-11-12
 
 Synced from the Kipory monorepo at `5c157eabd`.
