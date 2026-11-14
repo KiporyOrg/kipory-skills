@@ -1,7 +1,11 @@
 {
-  "source": "b155994b8b63676cd8d9d301bdf471e61c966f2c",
+  "source": "1cff75ea24f153b93afa83e29168de8b34c9dfa2",
   "since": "2026-08-18",
   "history": [
+    {"sha":"1cff75ea24f1","skills":"A run that failed keeps its values, whatever the sample rate — a synchronous or streaming call included (#3744)"},
+    {"sha":"38725acef065"},
+    {"sha":"36d816a98f82"},
+    {"sha":"e19f7264e79c"},
     {"sha":"b155994b8b63","skills":"An agent orients from one primer, proves its backend as test users in one call, and ships a change with its checks (Lane 2) (#3742)"},
     {"sha":"65c592a2feee","skills":"A coding agent's first plan passes more often, and every other refusal carries the edit that clears it (431) (#3741)"},
     {"sha":"77c37b24f624"},
@@ -997,10 +1001,6 @@
     {"sha":"03dfc569ebf9"},
     {"sha":"84c44ff86014"},
     {"sha":"c2f5b95b4cfa"},
-    {"sha":"9bfbad7a7e61"},
-    {"sha":"c4369f0b6b80"},
-    {"sha":"339fc4da8c0c"},
-    {"sha":"369123cdf56f"},
-    {"sha":"497d47005f48"}
+    {"sha":"9bfbad7a7e61"}
   ]
 }
