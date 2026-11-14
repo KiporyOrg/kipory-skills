@@ -2,6 +2,16 @@
 
 One entry per publish. The version is also a git tag on this repository.
 
+## 1.20261114.72811 — 2026-11-14
+
+Synced from the Kipory monorepo at `b155994b8`.
+
+- changed: `skills/kipory-build/SKILL.md`
+- changed: `skills/kipory-build/references/quickstart-document.md`
+- changed: `skills/kipory-connect/SKILL.md`
+- changed: `skills/kipory-connect/scripts/kipory.mjs`
+- changed: `skills/kipory-retrieve/references/pipeline.md`
+
 ## 1.20261113.181514 — 2026-11-13
 
 Synced from the Kipory monorepo at `65c592a2f`.

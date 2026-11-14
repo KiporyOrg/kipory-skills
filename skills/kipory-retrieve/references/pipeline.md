@@ -62,8 +62,11 @@ it.
 1. **Part size.** Too large and the match is diluted; too small and the answer loses context. It
    is set on the embedding profile's `defaultChunking`, or the type's `uses.search.chunking`
    (`kipory-model`); changing it re-embeds the type's records.
-2. **Exact words.** A profile that also indexes exact words blends keyword rank into the order,
-   which helps when names, codes and identifiers matter. The score keeps its scale either way.
+2. **Exact words.** A profile that also indexes exact words (`keywords: true`) lets keyword rank
+   decide the order, while each record's score stays its meaning score: results are then no longer
+   in score order, and a paraphrase with none of the query's words can drop below literal matches.
+   Turn it on only when names, codes and identifiers must be findable; for search by meaning, say
+   `false`. It is fixed when the profile is made (`kipory-model`).
 3. **`topK`.** Widen the net before you sharpen it.
 4. **`minScore`.** Set it from scores you have looked at, not from a guess: run the query without
    it and read `scores` for matches you know are right and wrong.

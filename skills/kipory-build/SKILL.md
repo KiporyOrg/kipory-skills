@@ -8,12 +8,10 @@ license: MIT
 
 A backend on Kipory is one **project document**: types, tables, flows of **steps** (written in the order they run — a function, or `if`, `each`, `repeat`, `parallel`, `try`, `return`, `fail`), endpoints, views and schedules, planned and then applied as a whole. The fact most people get wrong: **a document that plans clean is not proven to work.** Call it as a person before you say it does.
 
-## Start here, in this order
+## Start here
 
-1. **`references/quickstart-document.md`**: one complete project this deployment planned, applied and ran, as one document. It covers per-person data, create and list endpoints, a kept total, a model call, a daily job and mail, with every name and field that refuses a plan. Copy its shapes.
-2. **`references/answers.md`**: the questions every build asks. How an endpoint answers 404, 409 or 422, how a flow reads the caller, sharing a record, search, order and paging from query params, running once, calls at once on one record, counters, and rehearsing a job.
-3. **The `kipory` command** that `kipory-connect` ships: `plan` and `ship` your document (a `.json` file, or a `.mjs` generator that prints it), `user` and `call` to try it as a person, `preview` to run one flow, `docs <words>` for any other question. Write no plan or apply scripts of your own.
-4. **Only then a deeper page**, the one `kipory docs` or the table below names.
+1. **`kipory-connect` is the primer.** Load it first if it is not in your context: the document's format with a complete example, the rules that keep a first plan clean, every function in one line with its settings, and the `kipory` command (`ship --check` plans, applies and proves a document as test users in one call). It is enough for a first document; this skill is the shelf of deeper pages.
+2. **Plan first, then open a page here only for what a refusal or a failed check names**: `kipory docs <words or CODE>` returns the one section, a function's own page explains a setting its line names, and `references/answers.md` and `references/quickstart-document.md` hold more worked shapes.
 
 ## Rules that keep a plan clean
 
@@ -35,7 +33,7 @@ First check you need a flow at all; usually you don't. A vocabulary whose `match
 
 | File                                                               | What it answers                                                               |
 | ------------------------------------------------------------------ | ----------------------------------------------------------------------------- |
-| `references/quickstart-document.md`                                | start here: one complete project as a document, and what refuses a plan       |
+| `references/quickstart-document.md`                                | a bigger worked project as one document, and what refuses a plan              |
 | `references/answers.md`                                            | the questions every build asks, each in a few lines                           |
 | `references/document.md`                                           | the document's rules: keys, removal, what a plan reports, the loop            |
 | `references/which-function.md`                                     | one row per function group, and where its judgment is                         |

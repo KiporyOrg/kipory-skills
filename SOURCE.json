@@ -1,7 +1,8 @@
 {
-  "source": "65c592a2feee961b8599de6125ea1ffe23ebd94e",
+  "source": "b155994b8b63676cd8d9d301bdf471e61c966f2c",
   "since": "2026-08-18",
   "history": [
+    {"sha":"b155994b8b63","skills":"An agent orients from one primer, proves its backend as test users in one call, and ships a change with its checks (Lane 2) (#3742)"},
     {"sha":"65c592a2feee","skills":"A coding agent's first plan passes more often, and every other refusal carries the edit that clears it (431) (#3741)"},
     {"sha":"77c37b24f624"},
     {"sha":"5bcb4a02fef6","skills":"An endpoint answers a declared optional field with no value as null, tells a sent null from a left-out field, and can answer CSV text (435) (#3739)"},
@@ -1000,7 +1001,6 @@
     {"sha":"c4369f0b6b80"},
     {"sha":"339fc4da8c0c"},
     {"sha":"369123cdf56f"},
-    {"sha":"497d47005f48"},
-    {"sha":"569131a3c67c"}
+    {"sha":"497d47005f48"}
   ]
 }

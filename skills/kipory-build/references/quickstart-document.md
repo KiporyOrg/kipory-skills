@@ -1,6 +1,6 @@
 # Build a backend as one document
 
-This page is the way in for a new backend, and for most changes to one. It is one complete project for an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 11` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
+A bigger worked project than the primer's (`kipory-connect`). It is one complete project for an invented fruit-box club — people sign in and keep their own membership and boxes, order and list them over HTTP, a total is kept for them, a model writes a packing slip, a daily job reminds members once by email — as one `kipory: 11` **project document**. Copy its shapes. Open another page only for something this one does not show (the last section says which).
 
 ## The loop
 
@@ -374,7 +374,7 @@ surfaces:
 
 ## Try it as a person, then change it
 
-- **Test users** sign in for you: `kipory user alice`, then `kipory call alice GET "/v1/club/boxes"` on the project's host (`POST /v1/test-users { "project": "<nodeId>", "name": "alice" }` answers the `session` the command keeps). A second user proves isolation.
+- **Prove it in one call**: `kipory ship app.mjs --check checks.json` plans, applies and runs the check file's requests as test users; `kipory call alice GET "/v1/club/boxes"` sends one (`POST /v1/test-users { "project": "<nodeId>", "name": "alice" }` makes alice); a second user proves isolation.
 - **A start for everyone skips test users until you say so.** `flow.start-per-person` with `people: {"kind": "project"}` starts real people only and answers `testUsersLeftOut`; set `"testUsersInStarts": true` with `PATCH /v1/projects/{nodeId}/settings` while you test, and `false` before launch. To rehearse one person's run: `kipory preview remind-renewal --as alice` (`POST /v1/flows/{id}/preview-runs` with `principal: "end-user"` and `runAsUserId`, then `GET /v1/runs/{runId}/trace`).
 - **A project holds 20 test users**; need more, set `"testUserLimit": 50` (up to 100) the same way.
 - **Change one flow's steps without a document**: `POST /v1/flows/{id}/steps/edit` with edits by key (`row-by-row.md`).
