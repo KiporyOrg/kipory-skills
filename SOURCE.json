@@ -1,7 +1,9 @@
 {
-  "source": "f8652ba789ccb10b3dbf71b452edaea067fdec12",
+  "source": "aef00dc9b79fce49784a4a218c64ec79facc67af",
   "since": "2026-08-19",
   "history": [
+    {"sha":"aef00dc9b79f","skills":"record.query orders by creation oldest first too, a record.update merge clears a field with a fixed null, and five refusals say what is true with the edit that clears them (tidy-up) (#3751)"},
+    {"sha":"73da2b513265"},
     {"sha":"f8652ba789cc","skills":"An agent writes its first plan from the primer: each setting's shape for the ten functions most steps use, a block example, and the facts agents went looking for (primer v3) (#3749)"},
     {"sha":"24d6be26680d"},
     {"sha":"1cff75ea24f1","skills":"A run that failed keeps its values, whatever the sample rate — a synchronous or streaming call included (#3744)"},
@@ -999,8 +1001,6 @@
     {"sha":"e048822c2886"},
     {"sha":"53046b00db67"},
     {"sha":"792906aa160e"},
-    {"sha":"5cd74bace5df"},
-    {"sha":"03dfc569ebf9"},
-    {"sha":"84c44ff86014"}
+    {"sha":"5cd74bace5df"}
   ]
 }

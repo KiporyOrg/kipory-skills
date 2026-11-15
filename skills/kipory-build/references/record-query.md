@@ -89,7 +89,7 @@ The query is asked of the parent, with the link coming IN:
 - **Following nobody is an answer.** `followed.ids` holding `[]` runs the query and returns no records. A value that may be nothing is a save finding on the query: have the transform always answer a list (`{"ids": [follows.records.authorId]}`).
 - **`in` takes at most 1,000 values.** Past that the step fails with `QUERY_OPERAND_INVALID`; store the membership on the record instead and filter on it.
 - **Each collection with its newest items is `linked`, not a second query.** Add `"linked": { "latest": { "relation": "in-collection", "direction": "incoming", "limit": 3, "onMore": "stop" } }` to the query: each collection then carries `linked.latest`, its three newest items (`limit` is per collection), and `linkedMore.latest` when it has more. For each linked read, the records it hangs off times its `limit`, summed over every linked read, must stay within 20,000 — checked at save.
-- **Order by a field the record carries:** `created` or a `filter` field (date, number, true/false, text with `maxLength` ≤ 500). `pages` needs a date or `created` order. A linked record's value: next pattern.
+- **Order by a field the record carries:** `created` (`{ "by": "created", "direction": "asc" }` for oldest first; newest first is the default) or a `filter` field (date, number, true/false, text with `maxLength` ≤ 500). `pages` needs a date or `created` order. A linked record's value: next pattern.
 - **Filter or look up only by a field with a `filter` use**, your own markers too.
 - **"Due now" is the same shape.** `{ "kind": "field", "field": "nextRunAt", "op": "lte", "value": "runInfo.now" }` reads only the due records; listing them all and filtering in a transform reads the whole table.
 

@@ -459,7 +459,7 @@ surfaces:
   - `fields: string[]` — Which fields each row carries; empty means all of them.
   - `limit: value` — Rows per page, 1 to 100; otherwise 50.
   - `linked: {‹name›: {relation*: string, direction: outgoing|incoming = outgoing, peerTable: string, fields: string[], include: {…}, limit: integer 1–100, sortField: string, order: desc|asc, onMore: fail|stop, when: value, linked: {‹name›: {…}}}}` — Linked records each record carries, under `linked.<name>`.
-  - `order: {by*: created} or {by*: meaning} or {by*: field, field*: string, direction: asc|desc = desc}` — Order by `created`, `meaning`, or a filterable field.
+  - `order: {by*: created, direction: asc|desc} or {by*: meaning} or {by*: field, field*: string, direction: asc|desc = desc}` — `created` (newest first; `direction: asc`, oldest), `meaning`, or a filterable field.
   - `pages: {max*: integer 1–500, onMore: fail|stop = fail}` — Read every page of an exact question, from `cursor` if set.
   - `tableKey: string` — The table to query; set exactly one of this and `tableKeys`.
   - `tableKeys: string[] 2–8 items` — 2 to 8 tables ranked in one answer, in place of `tableKey`.

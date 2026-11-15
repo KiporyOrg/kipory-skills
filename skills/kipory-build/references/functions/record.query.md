@@ -23,7 +23,7 @@ Exact clauses narrow first; `semantic` ranks by meaning, over every table in `ta
 | `fields` | string[] | no | `[]` | Which fields each row carries; empty means all of them. ⚠️ An over-size answer fails the step; with `tableKeys`, each row carries its own table's named fields. |
 | `limit` | union | no | — | Rows per page, 1 to 100; otherwise 50. ⚠️ A run warns from half the slot limit, and a save when a page of large records would pass it. |
 | `linked` | object | no | — | Linked records each record carries, under `linked.<name>`. |
-| `order` | union | no | — | Order by `created`, `meaning`, or a filterable field. ⚠️ A field order leaves out records with no value in that field. |
+| `order` | union | no | — | `created` (newest first; `direction: asc`, oldest), `meaning`, or a filterable field. ⚠️ A field order leaves out records with no value in that field. |
 | `pages` | object | no | — | Read every page of an exact question, from `cursor` if set. ⚠️ Only an exact question reads every page; records left after the last page fail the step unless `onMore` is "stop". |
 | `tableKey` | string | no | — | The table to query; set exactly one of this and `tableKeys`. ⚠️ A field with no value is left out of the row, so test it with `$exists(x)` or `$default(x, d)`. |
 | `tableKeys` | string[], 2 to 8 items | no | — | 2 to 8 tables ranked in one answer, in place of `tableKey`. ⚠️ Needs a `semantic` clause and one search model; tell the mixed rows apart by `scores[i].tableKey`, never by their fields. |
@@ -430,7 +430,8 @@ each entry › `linked` › each entry › `when` — one of:
 
 | Member | Type | Required | Default | Meaning |
 | --- | --- | --- | --- | --- |
-| `by` | `created` | yes | — | Newest created first. |
+| `by` | `created` | yes | — | By creation time. |
+| `direction` | `asc` \| `desc` | no | — | `desc` (newest first, the default) or `asc` (oldest first). |
 
 **`by: meaning`**
 

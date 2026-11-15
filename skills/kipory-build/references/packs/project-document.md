@@ -150,8 +150,10 @@ What no schema says:
   case, at least 3 characters with a word in them, not signs alone — a param that does not hold
   that is refused when the view is read, and a param of another type at save). A view
   holding an `any` clause is refused at save, `VIEW_ANY_UNSUPPORTED`: OR one field's values with
-  `in`, or ask the OR in a `record.query` step. A view's `order` may name a number, true/false or
-  text field with a `filter` use; a text field needs the type's `maxLength` of at most 500
+  `in`, or ask the OR in a `record.query` step. A view's `order` may be
+  `{ "by": "created", "direction": "asc" }` for oldest created first (newest first is the
+  default), or name a number, true/false or text field with a `filter` use; a text field needs
+  the type's `maxLength` of at most 500
   (`QUERY_ORDER_TEXT_UNBOUNDED`).
 - **The exclusion runs before the page is cut**, so a base view that drops what the caller hid
   (`visibleBooks`) gives every view that extends it full pages. `extends` takes the base's table,

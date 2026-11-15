@@ -46,7 +46,7 @@
       "page": "kipory-operate/references/packs/project-config.md"
     },
     "project-document": {
-      "hash": "acfed7b8731e",
+      "hash": "3325b42adffd",
       "page": "kipory-build/references/packs/project-document.md"
     },
     "project-provisioning": {
@@ -74,11 +74,11 @@
       "page": "kipory-channels/references/packs/sources.md"
     },
     "tables-and-types": {
-      "hash": "eac4a81a0b2f",
+      "hash": "2c9f70855d98",
       "page": "kipory-model/references/packs/tables-and-types.md"
     },
     "templates": {
-      "hash": "bc62e25cad2e",
+      "hash": "ffe3798db232",
       "page": "kipory-connect/references/packs/templates.md"
     },
     "triggers": {
@@ -312,7 +312,7 @@
       "page": "kipory-build/references/functions/record.merge.md"
     },
     "record.query": {
-      "hash": "26a639829051",
+      "hash": "09e173ef7db5",
       "page": "kipory-build/references/functions/record.query.md"
     },
     "record.read": {
@@ -771,7 +771,7 @@
       "hash": "cc578abb9285"
     },
     "GET /v1/bootstrap/": {
-      "hash": "b9747f30bd71",
+      "hash": "7a593be448e7",
       "page": "kipory-connect/references/api/bootstrap.md"
     },
     "GET /v1/bootstrap/stream": {
@@ -1084,7 +1084,7 @@
       "page": "kipory-operate/references/api/project-config.md"
     },
     "GET /v1/project-document/example": {
-      "hash": "fe9e6dd4df05",
+      "hash": "972f9d8c3e43",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/project-document/schema": {
@@ -1120,7 +1120,7 @@
       "page": "kipory-connect/references/api/projects.md"
     },
     "GET /v1/projects/{nodeId}/document": {
-      "hash": "c2eb405fd576",
+      "hash": "60a8e0d430c7",
       "page": "kipory-build/references/api/project-document.md"
     },
     "GET /v1/projects/{nodeId}/document/plans/{planId}": {
@@ -1320,7 +1320,7 @@
       "page": "kipory-connect/references/api/templates.md"
     },
     "GET /v1/templates/{slug}": {
-      "hash": "a3a0665eb270",
+      "hash": "affb47b3e9af",
       "page": "kipory-connect/references/api/templates.md"
     },
     "GET /v1/terms/": {
@@ -1701,7 +1701,7 @@
       "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/records/query": {
-      "hash": "e50306e7eb9a",
+      "hash": "2fd8318e335e",
       "page": "kipory-data/references/api/records.md"
     },
     "POST /v1/records/{id}/links/{relationKey}": {
@@ -1846,7 +1846,7 @@
   },
   "codes": {
     "refusal-codes": {
-      "hash": "94ccf42fdadd",
+      "hash": "850cd8869dda",
       "page": "kipory-connect/references/refusal-codes.md"
     }
   }

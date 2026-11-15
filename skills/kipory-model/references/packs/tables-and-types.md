@@ -859,7 +859,9 @@ the table with exactly ONE peer table; one that pairs it with several is refused
 
 **The order of the answer.** `order` is optional, beside `clauses`:
 
-- `{ "by": "created" }` — newest created first. The default without a semantic clause.
+- `{ "by": "created" }` — newest created first. The default without a semantic clause. Add
+  `"direction": "asc"` for oldest created first; `createdAt` is not a field, so
+  `{ "by": "field", "field": "createdAt" }` is refused with this order as its remedy.
 - `{ "by": "meaning" }` — closest first. The default with a semantic clause of the query's own,
   and refused without one (a peer's phrase chooses which records are in reach; it does not order
   them).
